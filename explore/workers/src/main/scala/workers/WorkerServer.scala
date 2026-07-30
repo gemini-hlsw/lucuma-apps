@@ -73,7 +73,7 @@ trait WorkerServer[T: Pickler](using Monoid[IO[Unit]]):
     handlerFn:    Invocation => IO[Unit],
     cancelTokens: Ref[IO, Map[WorkerProcessId, IO[Unit]]],
     localCtx:     LocalContext[IO]
-  )(dispatcher: Dispatcher[IO])(using LoggerFactory[IO]): IO[Unit] =
+  )(dispatcher: Dispatcher[IO])(using LoggerFactory[IO], Tracer[IO]): IO[Unit] =
     given Logger[IO] = LoggerFactory[IO].getLoggerFromName("worker-server")
 
     IO.delay(
@@ -93,19 +93,23 @@ trait WorkerServer[T: Pickler](using Monoid[IO[Unit]]):
                   data <- IO.fromEither(fromBytes[T](payload.value))
                   _    <-
                     (localCtx.scope(
-                      handlerFn(
-                        Invocation(
-                          data,
-                          payload,
-                          pickled =>
-                            postAsTransferable[IO, FromServer](
-                              self,
-                              FromServer.Data(id, pickled)
-                            ) >>
-                              // Important so that long-running processes don't hog the scheduler.
-                              IO.cede
+                      Tracer[IO]
+                        .span(s"worker.handle ${WorkerRequest.name(data)}")
+                        .surround(
+                          handlerFn(
+                            Invocation(
+                              data,
+                              payload,
+                              pickled =>
+                                postAsTransferable[IO, FromServer](
+                                  self,
+                                  FromServer.Data(id, pickled)
+                                ) >>
+                                  // Important so that long-running processes don't hog the scheduler.
+                                  IO.cede
+                            )
+                          )
                         )
-                      )
                     )(parentCtx) >>
                       postAsTransferable[IO, FromServer](self, FromServer.Complete(id)))
                       .handleErrorWith(t =>

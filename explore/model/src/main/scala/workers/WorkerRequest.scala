@@ -9,3 +9,13 @@ package workers
 trait WorkerRequest {
   type ResponseType
 }
+
+object WorkerRequest:
+  /**
+   * Name of a request, for span naming. Takes `Any` because servers are generic on their request
+   * type; `productPrefix` avoids reflection, which Scala.js dislikes.
+   */
+  def name(request: Any): String =
+    request match
+      case p: Product => p.productPrefix
+      case _          => "unknown"

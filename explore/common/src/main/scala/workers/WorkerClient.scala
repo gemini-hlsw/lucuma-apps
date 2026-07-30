@@ -52,7 +52,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger, Tracer as T}, R: Pickler]
       id           <- Resource.eval(UUIDGen.randomUUID).map(WorkerProcessId(_))
       // The span covers the round trip, and is the parent of whatever the worker traces
       span         <- T.span(
-                        s"worker.request ${WorkerClient.requestName(requestMessage)}",
+                        s"worker.request ${WorkerRequest.name(requestMessage)}",
                         Attribute("worker.process.id", id.value.toString)
                       ).resource
       traceHeaders <- Resource.eval(span.trace(Tracer[F].propagate(Map.empty[String, String])))
@@ -111,14 +111,6 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger, Tracer as T}, R: Pickler]
     request(requestMessage)(using nothingPickler.xmap(ev.flip)(ev)).use(_.compile.drain)
 
 object WorkerClient:
-  /**
-   * Case class name of the request, for span naming. Avoids reflection.
-   */
-  private def requestName(request: WorkerRequest): String =
-    request match
-      case p: Product => p.productPrefix
-      case _          => "unknown-worker"
-
   def fromWorker[F[_]: {Concurrent, UUIDGen, Logger, Tracer}, R: Pickler](
     worker: WebWorkerF[F]
   ): Resource[F, WorkerClient[F, R]] =

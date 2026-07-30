@@ -67,11 +67,21 @@ object AgsServer extends WorkerServer[AgsMessage.Request] {
         case AgsMessage.CleanCache               =>
           cache.clear *> invocation.respond(())
         case req @ AgsMessage.AgsRequest(id = _) =>
-          val cacheableRequest =
-            Cacheable(CacheName("ags"), CacheVersion(AgsCacheVersion), agsCalculation)
           Tracer[IO]
-            .span("ags.calculation", Attribute("candidates", req.candidates.length.toLong))
-            .surround:
+            .span(
+              "ags.calculation",
+              Attribute("candidates", req.candidates.length.toLong),
+              // Only the computation below runs on a miss, so it is the one that knows.
+              Attribute("cache.hit", true)
+            )
+            .use: span =>
+              val cacheableRequest =
+                Cacheable(
+                  CacheName("ags"),
+                  CacheVersion(AgsCacheVersion),
+                  (r: AgsMessage.AgsRequest) =>
+                    span.addAttribute(Attribute("cache.hit", false)) >> agsCalculation(r)
+                )
               cache
                 .eval(cacheableRequest)
                 .apply(req)
