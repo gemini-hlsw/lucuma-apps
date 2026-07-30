@@ -3,7 +3,6 @@
 
 package explore.config.sequence
 
-import cats.effect.IO
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.*
@@ -357,10 +356,11 @@ object SequenceTile
                               visitsViewOpt,
                               config.static,
                               ghostExecutionView.flatScience,
+                              isEditEnabled,
                               props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
-                              _ => atoms => IO(atoms)
+                              seqType => ctx.odbApi.replaceGhostSequence(props.obsId, seqType, _)
                             )
                       case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise) =>
                         sequnceView
