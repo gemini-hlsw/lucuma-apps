@@ -275,18 +275,35 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     )
 
   private def ghostDetectorCols(
-    getter:          SequenceRow[D] => Option[GhostDetector],
-    exposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]],
-    countId:         ColumnId,
-    timeId:          ColumnId,
-    readModeId:      ColumnId,
-    binningId:       ColumnId
+    getter:               SequenceRow[D] => Option[GhostDetector],
+    exposureReplace:      Step.Id => TimeSpan => Endo[List[Atom[D]]],
+    exposureCountReplace: Step.Id => PosInt => Endo[List[Atom[D]]],
+    countId:              ColumnId,
+    timeId:               ColumnId,
+    readModeId:           ColumnId,
+    binningId:            ColumnId
   ): List[colDef.TypeFor[?]] =
     List(
-      colDef(countId,
-             _.getStep.flatMap(getter(_).map(_.exposureCount)),
-             header = _ => "Counts",
-             cell = _.value.map(_.value.toString).orEmpty
+      colDef(
+        countId,
+        _.getStep.flatMap(getter(_).map(_.exposureCount)),
+        header = _ => "Counts",
+        cell = c =>
+          val isFinished: Boolean = c.getStep.forall(_.isFinished)
+          c.value.map[VdomNode]: v =>
+            if c.isRowEditing && !isFinished then
+              InputNumber(
+                id = s"${countId.value}-${c.row.index}",
+                value = v.value.toDouble,
+                min = 1,
+                maxFractionDigits = 0,
+                onValueChange = e =>
+                  handleRowValueEdit(c)(exposureCountReplace):
+                    e.valueOption.flatMap(d => PosInt.from(d.toInt).toOption)
+                ,
+                clazz = SequenceStyles.SequenceInput
+              )
+            else v.value.toString
       ),
       colDef(
         timeId,
@@ -327,6 +344,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       columns = ghostDetectorCols(
         _.ghostBlue,
         ghostBlueExposureReplace,
+        ghostBlueExposureCountReplace,
         SequenceColumns.GhostBlueExposureCountColumnId,
         SequenceColumns.GhostBlueExposureTimeColumnId,
         SequenceColumns.GhostBlueReadModeColumnId,
@@ -341,6 +359,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       columns = ghostDetectorCols(
         _.ghostRed,
         ghostRedExposureReplace,
+        ghostRedExposureCountReplace,
         SequenceColumns.GhostRedExposureCountColumnId,
         SequenceColumns.GhostRedExposureTimeColumnId,
         SequenceColumns.GhostRedReadModeColumnId,

@@ -7,6 +7,7 @@ import cats.Endo
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.syntax.effect.*
+import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.ObserveClass
@@ -101,11 +102,20 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
   private val detectorExposure: Lens[GhostDetector, TimeSpan] =
     Focus[GhostDetector](_.exposureTime)
 
+  private val detectorExposureCount: Lens[GhostDetector, PosInt] =
+    Focus[GhostDetector](_.exposureCount)
+
   protected val ghostRedExposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]] =
     modifyStep(ghostRed.andThen(detectorExposure).replace)
 
   protected val ghostBlueExposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]] =
     modifyStep(ghostBlue.andThen(detectorExposure).replace)
+
+  protected val ghostRedExposureCountReplace: Step.Id => PosInt => Endo[List[Atom[D]]] =
+    modifyStep(ghostRed.andThen(detectorExposureCount).replace)
+
+  protected val ghostBlueExposureCountReplace: Step.Id => PosInt => Endo[List[Atom[D]]] =
+    modifyStep(ghostBlue.andThen(detectorExposureCount).replace)
 
   protected val deleteRow: Step.Id => Endo[List[Atom[D]]] =
     stepId => atoms => extractStep(stepId)(atoms)._1
