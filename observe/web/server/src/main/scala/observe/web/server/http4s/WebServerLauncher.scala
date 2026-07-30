@@ -6,6 +6,7 @@ package observe.web.server.http4s
 import cats.data.Kleisli
 import cats.data.OptionT
 import cats.effect.*
+import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
@@ -30,6 +31,7 @@ import observe.server.Systems
 import observe.server.tcs.GuideConfigDb
 import observe.web.server.OcsBuildInfo
 import observe.web.server.config.*
+import observe.web.server.logging.SubscriptionAppender
 import observe.web.server.otel.ObserveOtel
 import org.http4s.HttpRoutes
 import org.http4s.Request
@@ -48,6 +50,7 @@ import org.http4s.server.Server
 import org.http4s.server.middleware.Logger as Http4sLogger
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
@@ -73,13 +76,11 @@ object WebServerLauncher extends IOApp with LogInitialization {
       systemsConf = confDir.resolve("local").resolve("systems.conf")
       site        = sys.env.get("SITE").getOrElse(sys.error("SITE environment variable not set"))
       siteConf    = confDir.resolve(site).resolve("site.conf")
-      _          <- Logger[F].info("Loading configuration:")
-      _          <- Logger[F].info:
-                      s" - $systemsConf (present: ${JavaFiles.exists(systemsConf)}), with fallback:"
-      _          <- Logger[F].info:
-                      s" - $secretsConf (present: ${JavaFiles.exists(secretsConf)}), with fallback:"
-      _          <- Logger[F].info(s" - $siteConf (present: ${JavaFiles.exists(siteConf)}), with fallback:")
-      _          <- Logger[F].info(s" - <resources>/base.conf")
+      _          <- info"Loading configuration:"
+      _          <- info" - $systemsConf (present: ${JavaFiles.exists(systemsConf)}), with fallback:"
+      _          <- info" - $secretsConf (present: ${JavaFiles.exists(secretsConf)}), with fallback:"
+      _          <- info" - $siteConf (present: ${JavaFiles.exists(siteConf)}), with fallback:"
+      _          <- info" - <resources>/base.conf"
     yield ConfigSource
       .file(systemsConf)
       .optional
@@ -126,6 +127,37 @@ object WebServerLauncher extends IOApp with LogInitialization {
     (for {
       ssl <- OptionT.liftF(makeContext[F](tls))
     } yield Network[F].tlsContext.fromSSLContext(ssl)).value
+
+  // We need to manually update the configuration of the logging subsystem
+  // to support capturing log messages and forwarding them to connected clients.
+  private def logToClients[F[_]: Sync](
+    out:        Topic[F, (Option[ClientId], ClientEvent)],
+    dispatcher: Dispatcher[F]
+  ): F[Unit] =
+    Sync[F].delay:
+      import ch.qos.logback.classic.AsyncAppender
+      import ch.qos.logback.classic.Logger as LogbackLogger
+      import ch.qos.logback.classic.LoggerContext
+      import org.slf4j.LoggerFactory
+
+      val asyncAppender = new AsyncAppender
+      val appender      = new SubscriptionAppender[F](out)(using dispatcher)
+
+      Option(LoggerFactory.getILoggerFactory)
+        .collect:
+          case lc: LoggerContext => lc
+        .foreach: ctx =>
+          asyncAppender.setContext(ctx)
+          appender.setContext(ctx)
+          asyncAppender.addAppender(appender)
+
+      Option(LoggerFactory.getLogger("observe"))
+        .collect:
+          case l: LogbackLogger => l
+        .foreach: l =>
+          l.addAppender(asyncAppender)
+          asyncAppender.start()
+          appender.start()
 
   private def jwtReader[F[_]: Concurrent](sso: LucumaSSOConfiguration): SsoJwtReader[F] =
     SsoJwtReader(JwtDecoder.withPublicKey(sso.publicKey))
@@ -235,15 +267,17 @@ object WebServerLauncher extends IOApp with LogInitialization {
         .flatten
 
     for {
-      mw     <- otelMiddleware
-      wst    <- Resource.eval(Topic[F, (Option[ClientId], ClientEvent)])
-      _      <- oe.clientEventStream
-                  .evalMap: targetedClientEvent =>
-                    wst.publish1(targetedClientEvent.clientId, targetedClientEvent.event)
-                  .compile
-                  .drain
-                  .background
-      server <- builderWithTLS(wst, mw)
+      mw         <- otelMiddleware
+      wst        <- Resource.eval(Topic[F, (Option[ClientId], ClientEvent)])
+      dispatcher <- Dispatcher.parallel[F]
+      _          <- Resource.eval(logToClients(wst, dispatcher))
+      _          <- oe.clientEventStream
+                      .evalMap: targetedClientEvent =>
+                        wst.publish1(targetedClientEvent.clientId, targetedClientEvent.event)
+                      .compile
+                      .drain
+                      .background
+      server     <- builderWithTLS(wst, mw)
     } yield server
 
   }

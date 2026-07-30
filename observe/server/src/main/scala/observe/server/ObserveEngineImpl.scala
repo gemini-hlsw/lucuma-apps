@@ -51,6 +51,7 @@ import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import java.util.concurrent.TimeUnit
 import scala.annotation.unused
@@ -60,7 +61,7 @@ import scala.concurrent.duration.*
 import SeqEvent.*
 import ClientEvent.*
 
-private class ObserveEngineImpl[F[_]: {Async, Logger}](
+private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   executeEngine:         Engine[F],
   override val systems:  Systems[F],
   @unused settings:      ObserveEngineConfiguration,
@@ -438,8 +439,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           .flatMap(
             _.fold(
               e =>
-                Logger[F]
-                  .warn(e)(s"Error loading observation $obsId$author")
+                L.warn(e)(s"Error loading observation $obsId$author")
                   .as(
                     Event.pure(
                       SeqEvent.NotifyUser(
@@ -454,10 +454,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
               { case (errs, odbData, stepGen) =>
                 errs.isEmpty
                   .fold(
-                    Logger[F].warn(s"Loaded observation $obsId$author"),
-                    Logger[F]
-                      .warn:
-                        s"Loaded observation $obsId with warnings: ${errs.mkString}$author"
+                    info"Loaded observation $obsId$author",
+                    warn"Loaded observation $obsId with warnings: ${errs.mkString}$author"
                   )
                   .as(
                     Event.modifyState {
