@@ -162,9 +162,6 @@ lazy val schemas_lib =
       createNpmProject              := {
         val npmDir = target.value / "npm"
 
-        val schemasDir                   = (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas"
-        val odbSchemaFile: File          = schemasDir / "ObservationDB.graphql"
-        val resourceSchemaFile: File     = schemasDir / "resource.graphql"
         val navigateSchemaFile: File     =
           (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
         val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
@@ -174,14 +171,14 @@ lazy val schemas_lib =
         IO.write(
           npmDir / "package.json",
           s"""|{
-             |  "name": "@gemini-hlsw/lucuma-schemas",
+             |  "name": "@gemini-hlsw/lucuma-apps-schemas",
              |  "version": "$semVerWithPrerelease",
+             |  "type": "module",
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
              |    "./package.json": "./package.json",
-             |    "./odb": "./${odbSchemaFile.getName}",
              |    "./navigate": "./${navigateSchemaFile.getName}",
-             |    "./resource": "./${resourceSchemaFile.getName}"
+             |    "./*": "./*"
              |  },
              |  "repository": {
              |    "type": "git",
@@ -191,9 +188,6 @@ lazy val schemas_lib =
              |""".stripMargin
         )
 
-        IO.copyFile(odbSchemaFile, npmDir / odbSchemaFile.getName)
-        IO.copyFile(resourceSchemaFile, npmDir / resourceSchemaFile.getName)
-
         // Replace the import path to the schema file to match the NPM package structure
         val navigateSchemaContent = IO
           .read(
@@ -201,7 +195,7 @@ lazy val schemas_lib =
           )
           .replace(
             "from \"lucuma/schemas/ObservationDB.graphql\"",
-            "from \"./ObservationDB.graphql\""
+            "from \"@gemini-hlsw/lucuma-schemas/odb\""
           )
         IO.write(
           npmDir / navigateSchemaFile.getName,

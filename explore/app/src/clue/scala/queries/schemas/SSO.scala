@@ -5,12 +5,19 @@ package queries.schemas
 
 import clue.annotation.GraphQLSchema
 
+// gql: import io.circe.refined.*
+
 @GraphQLSchema
 trait SSO:
   object Scalars:
-    type UserId   = lucuma.core.model.User.Id
-    type RoleId   = lucuma.core.model.StandardRole.Id
-    type ApiKeyId = String
+    // Ids
+    type UserId         = lucuma.core.model.User.Id
+    type RoleId         = lucuma.core.model.StandardRole.Id
+    type ApiKeyId       = String
+    // Refined
+    type NonEmptyString = eu.timepit.refined.types.string.NonEmptyString
+    type NonNegInt      = eu.timepit.refined.types.numeric.NonNegInt
 
   object Enums:
     type RoleType = lucuma.core.enums.RoleType
+    type Partner  = lucuma.core.enums.Partner

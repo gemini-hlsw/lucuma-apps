@@ -1,5 +1,5 @@
 # Publishes the npm package containing the graphql schema.
-# Only runs on the main branch when a `.graphql` file is changed.
+# Only runs on the main branch when `navigate.graphql` is changed.
 
 name: Publish npm package
 
@@ -8,7 +8,7 @@ on:
     branches:
       - "main"
     paths:
-      - "**.graphql"
+      - "navigate/web/server/src/main/resources/navigate.graphql"
     tags:
       - 'v*'
   workflow_dispatch:
