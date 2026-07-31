@@ -50,9 +50,6 @@ case class SourceProfileEditor(
 
 object SourceProfileEditor
     extends ReactFnComponent[SourceProfileEditor](props =>
-      val DefaultSpectralDefinitionIntegratedInput: SpectralDefinitionIntegratedInput =
-        SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
-
       for
         ctx                <- useContext(AppContext.ctx)
         brightnessExpanded <- useStateView(IsExpanded(true))
@@ -135,7 +132,9 @@ object SourceProfileEditor
                   gaussianAligner.zoom(
                     Gaussian.spectralDefinition,
                     forceAssign(GaussianInput.spectralDefinition.modify):
-                      DefaultSpectralDefinitionIntegratedInput
+                      emptySpectralDefinitionIntegratedInput(
+                        gaussianAligner.get.spectralDefinition
+                      )
                   ),
                   props.catalogInfo,
                   brightnessExpanded,
