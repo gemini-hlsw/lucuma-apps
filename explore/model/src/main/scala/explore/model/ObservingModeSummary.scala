@@ -497,7 +497,7 @@ object ObservingModeSummary:
       val fpuSummary: String        = fpu match
         case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
         case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
-      s"GNIRS Spectroscopy ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
+      s"GNIRS Spec ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
     case GhostIfu(resolutionMode, _, _, _)                                               =>
       s"GHOST IFU ${resolutionMode.shortName}"
     case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                =>
