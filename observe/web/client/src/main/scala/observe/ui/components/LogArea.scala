@@ -4,6 +4,7 @@
 package observe.ui.components
 
 import cats.syntax.all.*
+import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.SizePx
@@ -19,14 +20,18 @@ import observe.common.FixedLengthBuffer
 import observe.model.LogMessage
 import observe.model.enums.ObserveLogLevel
 import observe.ui.ObserveStyles
+import observe.ui.model.reusability.given
 
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-case class LogArea(timezone: ZoneId, globalLog: FixedLengthBuffer[LogMessage])
-    extends ReactFnProps(LogArea)
+case class LogArea(
+  timezone:     ZoneId,
+  globalLog:    FixedLengthBuffer[LogMessage],
+  displayLevel: View[ObserveLogLevel]
+) extends ReactFnProps(LogArea)
 
 object LogArea
     extends ReactFnComponent[LogArea](props =>
@@ -39,10 +44,22 @@ object LogArea
       val TimeStampColWidth: SizePx = 200.toPx
       val LevelColWidth: SizePx     = 100.toPx
 
+      def logLeverRank(level: ObserveLogLevel): Int =
+        level match
+          case ObserveLogLevel.Warning => 0
+          case ObserveLogLevel.Info    => 1
+          case ObserveLogLevel.Debug   => 2
+          case ObserveLogLevel.Error   => Int.MaxValue
+
+      def isVisible(displayLevel: ObserveLogLevel)(msg: LogMessage): Boolean =
+        msg.level match
+          case ObserveLogLevel.Error => true
+          case other                 => logLeverRank(other) <= logLeverRank(displayLevel)
+
       for
         resizer <- useResizeDetector
         cols    <-
-          useMemo(resizer.width.orEmpty): areaWidth =>
+          useMemo((resizer.width.orEmpty, props.timezone)): (areaWidth, timezone) =>
             List(
               ColDef(
                 TimeStampColId,
@@ -50,7 +67,7 @@ object LogArea
                 size = TimeStampColWidth,
                 cell = cell =>
                   val ldt: LocalDateTime =
-                    ZonedDateTime.ofInstant(cell.value, props.timezone).toLocalDateTime
+                    ZonedDateTime.ofInstant(cell.value, timezone).toLocalDateTime
                   DateTimeFormatter.ISO_LOCAL_DATE.format(ldt) + " " +
                     DateTimeFormatter.ISO_LOCAL_TIME.format(ldt)
               ),
@@ -68,8 +85,8 @@ object LogArea
               )
             )
         rows    <-
-          useMemo(props.globalLog.toChain.length): _ =>
-            props.globalLog.toChain.reverse.toList
+          useMemo((props.globalLog.toChain.length, props.displayLevel.get)): (_, level) =>
+            props.globalLog.toChain.reverse.toList.filter(isVisible(level))
         table   <- useReactTable(TableOptions(cols, rows))
       yield PrimeAutoHeightVirtualizedTable(
         table,

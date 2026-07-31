@@ -75,7 +75,6 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected val ExtraRowColumnId: ColumnId        = ColumnId("extraRow")
   protected val DeckerColumnId: ColumnId          = ColumnId("decker")
   protected val ReadModeColumnId: ColumnId        = ColumnId("readMode")
-  protected val SettingsColumnId: ColumnId        = ColumnId("settings")
 
   // Observe-specific detail columns. Some of these ids (e.g. decker, readMode) are also provided
   // by the shared per-instrument `SequenceColumns` (e.g. for GNIRS and Flamingos2). In that case
@@ -102,8 +101,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     BreakpointSpaceColumnId -> FixedSize(30.toPx),
     ExtraRowColumnId        -> FixedSize(0.toPx),
     DeckerColumnId          -> Resizable(10.toPx),
-    ReadModeColumnId        -> Resizable(180.toPx),
-    SettingsColumnId        -> FixedSize(39.toPx)
+    ReadModeColumnId        -> Resizable(180.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
   // The order in which they are removed by overflow. The ones at the beginning go first.
@@ -111,8 +109,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected lazy val ColumnPriorities: List[ColumnId] =
     List(
       DeckerColumnId,
-      ReadModeColumnId,
-      SettingsColumnId
+      ReadModeColumnId
     ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument)
 
   private lazy val collapsibleColIds: Set[ColumnId] =
@@ -255,11 +252,4 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
       List(
         column(DeckerColumnId, "Decker"),
         column(ReadModeColumnId, "ReadMode")
-      ).filterNot(c => instrumentColumnIds.contains(c.id)) ++
-      List(
-        column(
-          SettingsColumnId,
-          Icons.RectangleList,
-          _ => SettingsCell() // TODO
-        )
-      )
+      ).filterNot(c => instrumentColumnIds.contains(c.id))

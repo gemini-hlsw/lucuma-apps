@@ -3,7 +3,8 @@
 
 package observe.server.engine
 
-import cats.effect.Sync
+import cats.Functor
+import cats.effect.Clock
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
@@ -56,16 +57,18 @@ object Event {
     EventUser[F](ActionResume(obsId, i, c))
   def logDebugMsg[F[_]](msg: String, ts: Instant): Event[F]              =
     EventUser[F](LogDebug(msg, ts))
-  def logDebugMsgF[F[_]: Sync](msg: String): F[Event[F]]                 =
-    Sync[F].delay(Instant.now).map(t => EventUser[F](LogDebug(msg, t)))
+  def logDebugMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]       =
+    Clock[F].realTimeInstant.map(t => EventUser[F](LogDebug(msg, t)))
   def logInfoMsg[F[_]](msg: String, ts: Instant): Event[F]               =
     EventUser[F](LogInfo(msg, ts))
+  def logInfoMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]        =
+    Clock[F].realTimeInstant.map(t => EventUser[F](LogInfo(msg, t)))
   def logWarningMsg[F[_]](msg: String, ts: Instant): Event[F]            =
     EventUser[F](LogWarning(msg, ts))
   def logErrorMsg[F[_]](msg: String, ts: Instant): Event[F]              =
     EventUser[F](LogError(msg, ts))
-  def logErrorMsgF[F[_]: Sync](msg: String): F[Event[F]]                 =
-    Sync[F].delay(Instant.now).map(t => EventUser[F](LogError(msg, t)))
+  def logErrorMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]       =
+    Clock[F].realTimeInstant.map(t => EventUser[F](LogError(msg, t)))
 
   def pure[F[_]](v: SeqEvent): Event[F] = EventUser[F](Pure(v))
 

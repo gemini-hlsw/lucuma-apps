@@ -51,6 +51,7 @@ import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import java.util.concurrent.TimeUnit
 import scala.annotation.unused
@@ -60,7 +61,7 @@ import scala.concurrent.duration.*
 import SeqEvent.*
 import ClientEvent.*
 
-private class ObserveEngineImpl[F[_]: {Async, Logger}](
+private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   executeEngine:         Engine[F],
   override val systems:  Systems[F],
   @unused settings:      ObserveEngineConfiguration,
@@ -321,12 +322,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     clientId:    ClientId,
     runOverride: RunOverride
   ): F[Unit] =
-    executeEngine.offer:
-      Event.modifyState[F](
-        setObserver(obsId, observer) *>
-          clearObsCmd(obsId) *>
-          startChecks(executeEngine.startLoadedStep(obsId), obsId, clientId, none, runOverride)
-      )
+    logInfoEvent(s"Sequence $obsId: Start requested by ${user.displayName}") *>
+      executeEngine.offer:
+        Event.modifyState[F](
+          setObserver(obsId, observer) *>
+            clearObsCmd(obsId) *>
+            startChecks(executeEngine.startLoadedStep(obsId), obsId, clientId, none, runOverride)
+        )
 
   override def proceedAfterPrompt(
     id:       Observation.Id,
@@ -357,7 +359,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer(Event.pause(obsId, user))
 
   override def requestCancelPause(
@@ -365,7 +368,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Continue requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer(Event.cancelPause(obsId, user))
 
   override def setBreakpoints(
@@ -438,8 +442,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           .flatMap(
             _.fold(
               e =>
-                Logger[F]
-                  .warn(e)(s"Error loading observation $obsId$author")
+                L.warn(e)(s"Error loading observation $obsId$author")
                   .as(
                     Event.pure(
                       SeqEvent.NotifyUser(
@@ -454,10 +457,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
               { case (errs, odbData, stepGen) =>
                 errs.isEmpty
                   .fold(
-                    Logger[F].warn(s"Loaded observation $obsId$author"),
-                    Logger[F]
-                      .warn:
-                        s"Loaded observation $obsId with warnings: ${errs.mkString}$author"
+                    info"Loaded observation $obsId$author",
+                    warn"Loaded observation $obsId with warnings: ${errs.mkString}$author"
                   )
                   .as(
                     Event.modifyState {
@@ -507,14 +508,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           )
     )
 
-  private def logDebugEvent(msg: String): F[Unit] =
-    Event.logDebugMsgF(msg).flatMap(executeEngine.offer)
+  private def logDebugEvent(msg: String): F[Unit] = L.debug(msg)
+
+  private def logInfoEvent(msg: String): F[Unit] = L.info(msg)
 
   private def logDebugEvent(msg: String, user: User, clientId: ClientId): F[Unit] =
-    Event
-      .logDebugMsgF:
-        s"$msg, by ${user.displayName} from client $clientId"
-      .flatMap(executeEngine.offer)
+    L.debug(s"$msg, by ${user.displayName} from client $clientId")
 
   override def clearLoadedSequences(user: User): F[Unit] =
     logDebugEvent("ObserveEngine: Updating loaded sequences") *>
@@ -752,6 +751,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Warning, ts, m)))
           case UserEvent.LogError(m, ts)          =>
             Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Error, ts, m)))
+          case UserEvent.LogDebug(m, ts)          =>
+            Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Debug, ts, m)))
           case _                                  => Stream.empty
       case SystemUpdate(se, _)             =>
         se match
@@ -839,7 +840,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     user:     User,
     graceful: Boolean
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Stop requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer(
         Event.getState: engineState =>
           EngineState
@@ -861,7 +863,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Abort requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer:
         Event.actionStop(obsId, translator.abortObserve(obsId))
 
@@ -871,7 +874,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     user:     User,
     graceful: Boolean
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine
         .offer:
           Event.modifyState(setObsCmd(obsId, PauseGracefully))
@@ -884,7 +888,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    executeEngine.offer(Event.modifyState(clearObsCmd(obsId))) *>
+    logInfoEvent(s"Sequence $obsId: Continue requested by ${user.displayName}") *>
+      executeEngine.offer(Event.modifyState(clearObsCmd(obsId))) *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer:
         Event.getState(translator.resumePaused(obsId))

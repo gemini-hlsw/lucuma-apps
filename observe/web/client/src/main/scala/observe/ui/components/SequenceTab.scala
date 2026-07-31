@@ -11,7 +11,6 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.react.primereact.*
 import lucuma.ui.syntax.all.*
 import observe.model.ClientConfig
 import observe.ui.ObserveStyles
@@ -46,7 +45,7 @@ object SequenceTab
           rootModelData.readyObsByInstrument.get(props.instrument)
 
         (clientConfigPot, props.rootModel.renderExploreLinkToObs, obsListReady).tupled
-          .renderPot: (clientConfig, renderExploreLinkToObs, _) =>
+          .renderPot: (_, renderExploreLinkToObs, _) =>
             <.div(ObserveStyles.MainPanel)(
               loadedObsId
                 .flatMap(rootModelData.readyObservationsMap.get)
@@ -59,16 +58,5 @@ object SequenceTab
                       .getOrElse(Map.empty),
                     renderExploreLinkToObs
                   )
-              ,
-              Accordion(
-                clazz = ObserveStyles.LogArea,
-                tabs = List(
-                  AccordionTab(header = "Show Log")(
-                    <.div(^.height := "200px")(
-                      LogArea(clientConfig.site.timezone, rootModelData.globalLog)
-                    )
-                  )
-                )
-              )
             )
     )

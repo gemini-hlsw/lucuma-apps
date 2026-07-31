@@ -65,9 +65,8 @@ object ObserveStyles:
   val WaterVaporArea: Css      = Css("observe-water-vapor-area")
   val SkyBackgroundArea: Css   = Css("observe-sky-background-area")
 
-  val ConfiguringRow: Css     = Css("observe-configuring-row")
-  val StepTable: Css          = Css("observe-step-table")
-  val StepSettingsHeader: Css = Css("observe-step-settings-header")
+  val ConfiguringRow: Css = Css("observe-configuring-row")
+  val StepTable: Css      = Css("observe-step-table")
 
   val StepRowWarning: Css        = Css("observe-step-row-warning")
   val StepRowError: Css          = Css("observe-step-row-error")
@@ -127,9 +126,17 @@ object ObserveStyles:
   val ObsSummaryButton: Css     = Css("observe-obs-summary-button")
   val ObsLoadSection: Css       = Css("observe-obs-load-section")
 
-  val LogTable: Css      = Css("observe-log-table")
-  val LogWarningRow: Css = Css("observe-log-warning-row")
-  val LogErrorRow: Css   = Css("observe-log-error-row")
+  val LogTable: Css          = Css("observe-log-table")
+  val LogWarningRow: Css     = Css("observe-log-warning-row")
+  val LogErrorRow: Css       = Css("observe-log-error-row")
+  val LogHeaderRow: Css      = Css("observe-log-header-row")
+  val LogTimezoneSwitch: Css = Css("observe-log-timezone-switch")
+
+  val MainBodyLogWrapper: Css = Css("observe-main-body-log-wrapper")
+  val MainBodyContent: Css    = Css("observe-main-body-content")
+
+  val LogHeaderControls: Css = Css("observe-log-header-controls")
+  val LogAreaContent: Css    = Css("observe-log-area-content")
 
   val ExternalLink: Css = Css("observe-external-link")
 

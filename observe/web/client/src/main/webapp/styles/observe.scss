@@ -101,7 +101,7 @@ body {
 }
 
 .p-accordion.observe-log-area {
-  margin-top: auto;
+  flex-shrink: 0;
 
   .p-accordion-header:not(.p-disabled) {
     .p-accordion-header-link {
@@ -113,6 +113,32 @@ body {
       }
     }
   }
+}
+
+.observe-main-body-log-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.observe-main-body-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  justify-items: stretch;
+}
+
+.observe-log-area-content {
+  height: 200px;
+}
+
+.observe-log-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .p-toolbar {
@@ -924,10 +950,6 @@ body {
   display: flex;
 }
 
-.observe-step-settings-header {
-  color: var(--text-color);
-}
-
 .observe-step-type-cell {
   text-align: center;
 }
@@ -1114,6 +1136,21 @@ body {
 
 .observe-icon-soft {
   opacity: 0.8;
+}
+
+.observe-log-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5em;
+}
+
+.observe-log-timezone-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: smaller;
 }
 
 .observe-log-table {
