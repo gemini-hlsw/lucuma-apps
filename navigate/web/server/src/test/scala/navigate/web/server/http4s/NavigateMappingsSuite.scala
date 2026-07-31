@@ -2927,6 +2927,10 @@ object NavigateMappingsTest {
 
     override def oiwfsQlMode(mode: QlMode): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsDomePark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsShuttersPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {

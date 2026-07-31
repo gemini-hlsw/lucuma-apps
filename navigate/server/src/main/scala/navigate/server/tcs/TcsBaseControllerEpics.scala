@@ -201,40 +201,6 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .post
       .verifiedRun(ConnectionTimeout)
 
-  override def ecsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ): F[ApplyCommandResult] =
-    sys.tcsEpics
-      .startCommand(timeout)
-      .ecsCarouselModeCmd
-      .setDomeMode(domeMode)
-      .ecsCarouselModeCmd
-      .setShutterMode(shutterMode)
-      .ecsCarouselModeCmd
-      .setSlitHeight(slitHeight)
-      .ecsCarouselModeCmd
-      .setDomeEnable(domeEnable)
-      .ecsCarouselModeCmd
-      .setShutterEnable(shutterEnable)
-      .post
-      .verifiedRun(ConnectionTimeout)
-
-  private val EcsVentGatesMoveTimeout = FiniteDuration(60, SECONDS)
-
-  override def ecsVentGatesMove(gateEast: Double, gateWest: Double): F[ApplyCommandResult] =
-    sys.tcsEpics
-      .startCommand(EcsVentGatesMoveTimeout)
-      .ecsVenGatesMoveCmd
-      .setVentGateEast(gateEast)
-      .ecsVenGatesMoveCmd
-      .setVentGateWest(gateWest)
-      .post
-      .verifiedRun(ConnectionTimeout)
-
   val DefaultBrightness: Double = 10.0
 
   protected def setTarget(
@@ -2484,6 +2450,167 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
               guideUsesOiwfs,
               setupOiwfsObserve
     )(mode)
+
+  private val scienceFoldParkTimeout                    = FiniteDuration(60, SECONDS)
+  override def agScienceFoldPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(scienceFoldParkTimeout)
+    .scienceFoldCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val pickoffMirrorParkTimeout                    = FiniteDuration(60, SECONDS)
+  override def agPickoffMirrorPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(pickoffMirrorParkTimeout)
+    .aoFoldCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val aoFoldParkTimeout                    = FiniteDuration(60, SECONDS)
+  override def agAoFoldPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(aoFoldParkTimeout)
+    .hrwfsCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val agAllParkTimeout                  =
+    List(scienceFoldParkTimeout, pickoffMirrorParkTimeout, aoFoldParkTimeout).max
+  override def agAllPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(agAllParkTimeout)
+    .scienceFoldCommands
+    .park
+    .mark
+    .aoFoldCommands
+    .park
+    .mark
+    .hrwfsCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private def partialDomeModeCmd(
+    timeout:        FiniteDuration,
+    domeMode:       Option[DomeMode] = None,
+    shutterMode:    Option[ShutterMode] = None,
+    domeEnabled:    Option[Boolean] = None,
+    shutterEnabled: Option[Boolean] = None
+  ): F[ApplyCommandResult] = (for {
+    dmF   <- sys.tcsEpics.status.ecsCarouselModeParams.domeMode
+    shmF  <- sys.tcsEpics.status.ecsCarouselModeParams.shutterMode
+    slitF <- sys.tcsEpics.status.ecsCarouselModeParams.slitHeight
+    dmenF <- sys.tcsEpics.status.ecsCarouselModeParams.domeEnable
+    shenF <- sys.tcsEpics.status.ecsCarouselModeParams.shutterEnable
+  } yield
+    for {
+      dm   <- dmF
+      shm  <- shmF
+      slit <- slitF
+      dmen <- dmenF
+      shen <- shenF
+      r    <- {
+        val domeModeAp       = (cmds: TcsCommands[F]) =>
+          domeMode
+            .map(cmds.ecsCarouselModeCmd.setDomeMode)
+            .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setDomeMode(DomeMode.default))(_ => cmds))
+        val shutterModeAp    = (cmds: TcsCommands[F]) =>
+          shutterMode
+            .map(cmds.ecsCarouselModeCmd.setShutterMode)
+            .getOrElse(
+              dm.fold(cmds.ecsCarouselModeCmd.setShutterMode(ShutterMode.default))(_ => cmds)
+            )
+        val shutterHeightApp = (cmds: TcsCommands[F]) =>
+          shutterMode match {
+            case Some(ShutterMode.Tracking(height)) => cmds.ecsCarouselModeCmd.setSlitHeight(height)
+            case _                                  => slit.fold(cmds.ecsCarouselModeCmd.setSlitHeight(Distance.Zero))(_ => cmds)
+          }
+        val domeEnableAp     = (cmds: TcsCommands[F]) =>
+          domeEnabled
+            .map(cmds.ecsCarouselModeCmd.setDomeEnable)
+            .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setDomeEnable(false))(_ => cmds))
+        val shutterEnableAp  = (cmds: TcsCommands[F]) =>
+          shutterEnabled
+            .map(cmds.ecsCarouselModeCmd.setShutterEnable)
+            .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setShutterEnable(false))(_ => cmds))
+
+        (domeModeAp >>> shutterModeAp >>> shutterHeightApp >>> domeEnableAp >>> shutterEnableAp)(
+          sys.tcsEpics.startCommand(timeout)
+        ).post.verifiedRun(ConnectionTimeout)
+      }
+    } yield r).verifiedRun(ConnectionTimeout)
+
+  private val domeModeTimeout                                       = FiniteDuration(60, SECONDS)
+  override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] =
+    partialDomeModeCmd(timeout = domeModeTimeout, domeMode = mode.some, domeEnabled = true.some)
+
+  private val domeDisableTimeout                     = FiniteDuration(10, SECONDS)
+  override def ecsDisableDome: F[ApplyCommandResult] =
+    partialDomeModeCmd(timeout = domeDisableTimeout, domeEnabled = false.some)
+
+  protected val domeParkPosition: Angle
+  private val domeParkTimeout                     = FiniteDuration(60, SECONDS)
+  override def ecsDomePark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(domeParkTimeout)
+    .ecsCarouselMoveCmd
+    .setAngle(domeParkPosition)
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val shutterModeTimeout                                           = FiniteDuration(60, SECONDS)
+  override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] = partialDomeModeCmd(
+    timeout = shutterModeTimeout,
+    shutterMode = mode.some,
+    shutterEnabled = true.some
+  )
+
+  private val shutterDisableTimeout                      = FiniteDuration(10, SECONDS)
+  override def ecsDisableShutters: F[ApplyCommandResult] =
+    partialDomeModeCmd(timeout = shutterDisableTimeout, shutterEnabled = false.some)
+
+  private val shutterParkPosition                     = Distance.fromBigDecimalMeter(11)
+  private val shutterParkTimeout                      = FiniteDuration(60, SECONDS)
+  override def ecsShuttersPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(shutterParkTimeout)
+    .ecsShuttersMoveCmd
+    .setBottom(shutterParkPosition)
+    .ecsShuttersMoveCmd
+    .setTop(shutterParkPosition)
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val ventGateTimeout                                                 = FiniteDuration(60, SECONDS)
+  override def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(ventGateTimeout)
+    .ecsVenGatesMoveCmd
+    .setVentGateEast(position)
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  override def ecsCloseEastVentGate: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(ventGateTimeout)
+    .ecsVenGatesMoveCmd
+    .setVentGateEast(Distance.Zero)
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  override def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(ventGateTimeout)
+    .ecsVenGatesMoveCmd
+    .setVentGateWest(position)
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  override def ecsCloseWestVentGate: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(ventGateTimeout)
+    .ecsVenGatesMoveCmd
+    .setVentGateWest(Distance.Zero)
+    .post
+    .verifiedRun(ConnectionTimeout)
 }
 
 object TcsBaseControllerEpics {

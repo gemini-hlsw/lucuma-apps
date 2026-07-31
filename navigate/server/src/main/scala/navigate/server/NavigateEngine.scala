@@ -193,8 +193,10 @@ trait NavigateEngine[F[_]] {
   // ECS commands
   def ecsEnableDome(mode:                            DomeMode): F[CommandResult]
   def ecsDisableDome: F[CommandResult]
+  def ecsDomePark: F[CommandResult]
   def ecsEnableShutters(mode:                        ShutterMode): F[CommandResult]
   def ecsDisableShutters: F[CommandResult]
+  def ecsShuttersPark: F[CommandResult]
   def ecsMoveEastVentGate(position:                  Distance): F[CommandResult]
   def ecsCloseEastVentGate: F[CommandResult]
   def ecsMoveWestVentGate(position:                  Distance): F[CommandResult]
@@ -844,28 +846,48 @@ object NavigateEngine {
     } yield x.result
 
     override def ecsEnableDome(mode: DomeMode): F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsEnableDome not yet implemented.").pure[F]
+      simpleCommand(
+        engine,
+        EcsEnableDome(mode),
+        systems.tcsCommon.ecsEnableDome(mode)
+      )
 
     override def ecsDisableDome: F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsDisableDome not yet implemented.").pure[F]
+      simpleCommand(
+        engine,
+        EcsDisableDome,
+        systems.tcsCommon.ecsDisableDome
+      )
+
+    override def ecsDomePark: F[CommandResult] =
+      simpleCommand(engine, EcsDomePark, systems.tcsCommon.ecsDomePark)
 
     override def ecsEnableShutters(mode: ShutterMode): F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsEnableShutters not yet implemented.").pure[F]
+      simpleCommand(engine, EcsEnableShutters(mode), systems.tcsCommon.ecsEnableShutters(mode))
 
     override def ecsDisableShutters: F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsDisableShutters not yet implemented.").pure[F]
+      simpleCommand(engine, EcsDisableShutters, systems.tcsCommon.ecsDisableShutters)
 
-    override def ecsMoveEastVentGate(position: Distance): F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsMoveEastVentGate not yet implemented.").pure[F]
+    override def ecsShuttersPark: F[CommandResult] =
+      simpleCommand(engine, EcsShuttersPark, systems.tcsCommon.ecsShuttersPark)
+
+    override def ecsMoveEastVentGate(position: Distance): F[CommandResult] = simpleCommand(
+      engine,
+      EcsEastVentGateMove(position),
+      systems.tcsCommon.ecsMoveEastVentGate(position)
+    )
 
     override def ecsCloseEastVentGate: F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsCloseEastVentGate not yet implemented.").pure[F]
+      simpleCommand(engine, EcsCloseEastVentGate, systems.tcsCommon.ecsCloseEastVentGate)
 
-    override def ecsMoveWestVentGate(position: Distance): F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsMoveWestVentGate not yet implemented.").pure[F]
+    override def ecsMoveWestVentGate(position: Distance): F[CommandResult] = simpleCommand(
+      engine,
+      EcsWestVentGateMove(position),
+      systems.tcsCommon.ecsMoveWestVentGate(position)
+    )
 
     override def ecsCloseWestVentGate: F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsCloseWestVentGate not yet implemented.").pure[F]
+      simpleCommand(engine, EcsCloseWestVentGate, systems.tcsCommon.ecsCloseWestVentGate)
 
     override def mcsUnwrap: F[CommandResult] =
       CommandResult.CommandFailure("Command mcsUnwrap not yet implemented.").pure[F]
@@ -879,17 +901,29 @@ object NavigateEngine {
     override def pwfs2Unwrap: F[CommandResult] =
       CommandResult.CommandFailure("Command pwfs2Unwrap not yet implemented.").pure[F]
 
-    override def agScienceFoldPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agScienceFoldPark not yet implemented.").pure[F]
+    override def agScienceFoldPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgScienceFoldPark,
+      systems.tcsCommon.agScienceFoldPark
+    )
 
-    override def agPickoffMirrorPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agPickoffMirrorPark not yet implemented.").pure[F]
+    override def agPickoffMirrorPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgPickoffMirrorPark,
+      systems.tcsCommon.agPickoffMirrorPark
+    )
 
-    override def agAoFoldPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agAoFoldPark not yet implemented.").pure[F]
+    override def agAoFoldPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgAoFoldPark,
+      systems.tcsCommon.agAoFoldPark
+    )
 
-    override def agAllPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agAllPark not yet implemented.").pure[F]
+    override def agAllPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgAllPark,
+      systems.tcsCommon.agAllPark
+    )
 
     override def pwfs1QlMode(mode: QlMode): F[CommandResult] = simpleCommand(
       engine,

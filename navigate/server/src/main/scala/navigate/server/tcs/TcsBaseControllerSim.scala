@@ -32,6 +32,7 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -119,18 +120,6 @@ abstract class TcsBaseControllerSim[F[_]: Async](
       _.focus(_.crcs.parked).replace(NotParked)
     )
     .as(ApplyCommandResult.Completed)
-
-  override def ecsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
-
-  override def ecsVentGatesMove(gateEast: Double, westGate: Double): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
 
   override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
@@ -491,4 +480,36 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def oiwfsQlMode(mode: QlMode): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
+
+  override def agScienceFoldPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def agPickoffMirrorPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def agAoFoldPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def agAllPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def ecsDisableDome: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def ecsDisableShutters: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def ecsCloseEastVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def ecsCloseWestVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsDomePark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsShuttersPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 }

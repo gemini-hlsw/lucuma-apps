@@ -11,6 +11,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.Site
+import lucuma.core.math.Angle
 import navigate.epics.given
 import navigate.model.WfsConfiguration
 import navigate.model.enums.HrwfsPickupPosition
@@ -70,6 +71,7 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
   override def takeHrOut(cmds: TcsCommands[F]): TcsCommands[F] =
     cmds.hrwfsCommands.move.setPosition(HrwfsPickupPosition.Out)
 
+  override protected val domeParkPosition: Angle = Angle.fromDoubleDegrees(90.0)
 }
 
 object TcsNorthControllerEpics {
