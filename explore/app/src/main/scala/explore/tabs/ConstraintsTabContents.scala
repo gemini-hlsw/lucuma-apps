@@ -66,24 +66,25 @@ object ConstraintsTabContents extends TwoPanels:
       .withHooks[Props]
       .useContext(AppContext.ctx)
       .useState(none[ObsIdSet]) // shadowClipboardObs (a copy as state only if it has observations)
-      .useEffectOnMountBy: (_, ctx, shadowClipboardObs) => // initialize shadowClipboard
-        import ctx.given
-        ExploreClipboard.get.flatMap:
-          _ match
-            case LocalClipboard.CopiedObservations(idSet) =>
+      .useEffectWithDepsBy((props, _, _) => props.programId): (_, ctx, shadowClipboardObs) =>
+        programId => // initialize shadowClipboard
+          import ctx.given
+          ExploreClipboard.get.flatMap:
+            // ignore paste of an obs from a different pid
+            case LocalClipboard.CopiedObservations(pid, idSet) if pid === programId =>
               shadowClipboardObs.setStateAsync(idSet.some)
-            case _                                        => IO.unit
+            case _                                                                  =>
+              shadowClipboardObs.setStateAsync(none)
       .useMemoBy((props, _, _) => (props.focusedObsSet, props.observations)): (_, _, _) =>
         (focused, obsList) => focused.map(ObsIdSetEditInfo.fromObservationList(_, obsList))
-      .useCallbackWithDepsBy((props, _, _, _) => props.focusedObsSet): // COPY Action Callback
+      .useCallbackWithDepsBy((props, _, _, _) => (props.focusedObsSet, props.programId)): // COPY Action Callback
         (_, ctx, shadowClipboardObs, _) =>
-          focusedObsSet =>
+          (focusedObsSet, programId) =>
             import ctx.given
 
             focusedObsSet
               .map: obsIdSet =>
-                (ExploreClipboard
-                  .set(LocalClipboard.CopiedObservations(obsIdSet)) >>
+                (ExploreClipboard.set(LocalClipboard.CopiedObservations(programId, obsIdSet)) >>
                   shadowClipboardObs.setStateAsync(obsIdSet.some))
                   .withToast(s"Copied observation(s) ${obsIdSet.idSet.toList.mkString(", ")}")
               .orUnit
@@ -96,7 +97,8 @@ object ConstraintsTabContents extends TwoPanels:
 
           ExploreClipboard.get
             .flatMap:
-              case LocalClipboard.CopiedObservations(copiedObsIdSet) =>
+              case LocalClipboard.CopiedObservations(pid, copiedObsIdSet)
+                  if pid === props.programId =>
                 val selectedConstraints: Option[ConstraintSet] =
                   selObsSet
                     .flatMap: focusedObsIdSet =>
@@ -120,7 +122,7 @@ object ConstraintsTabContents extends TwoPanels:
                       s"Pasting obs ${copiedObsIdSet.idSet.toList.mkString(", ")} into active constraint set",
                       s"Pasted obs ${copiedObsIdSet.idSet.toList.mkString(", ")} into active constraint set".some
                     )
-              case _                                                 => IO.unit
+              case _ => IO.unit
             .runAsync
             .unless_(readonly)
       .useGlobalHotkeysWithDepsBy((_, _, _, _, copyCallback, pasteCallback) =>

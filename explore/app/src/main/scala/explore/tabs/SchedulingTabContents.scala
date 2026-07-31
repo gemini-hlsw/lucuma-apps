@@ -62,27 +62,28 @@ object SchedulingTabContents extends TwoPanels:
         // shadowClipboardObs (a copy as state only if it has observations)
         shadowClipboardObs <- useState(none[ObsIdSet])
         // initialize shadowClipboard
-        _                  <- useEffectOnMount:
+        _                  <- useEffectWithDeps(props.programId): programId =>
                                 import ctx.given
 
                                 ExploreClipboard.get.flatMap:
-                                  _ match
-                                    case LocalClipboard.CopiedObservations(idSet) =>
-                                      shadowClipboardObs.setStateAsync(idSet.some)
-                                    case _                                        => IO.unit
+                                  case LocalClipboard.CopiedObservations(pid, idSet) if pid === programId =>
+                                    shadowClipboardObs.setStateAsync(idSet.some)
+                                  case _                                                                  =>
+                                    shadowClipboardObs.setStateAsync(none)
         // COPY Action Callback
-        copyCallback       <- useCallbackWithDeps(props.focusedObsSet): focusedObsSet =>
-                                import ctx.given
+        copyCallback       <- useCallbackWithDeps((props.focusedObsSet, props.programId)):
+                                (focusedObsSet, programId) =>
+                                  import ctx.given
 
-                                focusedObsSet
-                                  .map: obsIdSet =>
-                                    (ExploreClipboard
-                                      .set(LocalClipboard.CopiedObservations(obsIdSet)) >>
-                                      shadowClipboardObs.setStateAsync(obsIdSet.some))
-                                      .withToast:
-                                        s"Copied observation(s) ${obsIdSet.idSet.toList.mkString(", ")}"
-                                  .orUnit
-                                  .runAsync
+                                  focusedObsSet
+                                    .map: obsIdSet =>
+                                      (ExploreClipboard
+                                        .set(LocalClipboard.CopiedObservations(programId, obsIdSet)) >>
+                                        shadowClipboardObs.setStateAsync(obsIdSet.some))
+                                        .withToast:
+                                          s"Copied observation(s) ${obsIdSet.idSet.toList.mkString(", ")}"
+                                    .orUnit
+                                    .runAsync
         // PASTE Action Callback
         pasteCallback      <-
           useCallbackWithDeps((props.observations, props.focusedObsSet, props.readonly)):
@@ -91,7 +92,8 @@ object SchedulingTabContents extends TwoPanels:
 
               ExploreClipboard.get
                 .flatMap:
-                  case LocalClipboard.CopiedObservations(copiedObsIdSet) =>
+                  case LocalClipboard.CopiedObservations(pid, copiedObsIdSet)
+                      if pid === props.programId =>
                     val selectedGroups: Option[SchedulingConstraints] =
                       selObsSet
                         .flatMap: focusedObsIdSet =>
@@ -115,7 +117,7 @@ object SchedulingTabContents extends TwoPanels:
                           s"Pasting obs ${copiedObsIdSet.idSet.toList.mkString(", ")} into active scheduling group",
                           s"Pasted obs ${copiedObsIdSet.idSet.toList.mkString(", ")} into active scheduling group".some
                         )
-                  case _                                                 => IO.unit
+                  case _ => IO.unit
                 .runAsync
                 .unless_(readonly)
         _                  <- useGlobalHotkeysWithDeps((copyCallback, pasteCallback)):

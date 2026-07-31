@@ -129,30 +129,31 @@ object ObsTabContents extends TwoPanels:
                                       case _                            => Callback.empty
         resize                 <- useResizeDetector
         shadowClipboardObs     <- useState(none[ObsIdSet])
-        _                      <- useEffectOnMount:
+        _                      <- useEffectWithDeps(props.programId): programId =>
                                     import ctx.given
 
                                     ExploreClipboard.get.flatMap:
-                                      _ match
-                                        case LocalClipboard.CopiedObservations(idSet) =>
-                                          shadowClipboardObs.setStateAsync(idSet.some)
-                                        case _                                        => IO.unit
+                                      case LocalClipboard.CopiedObservations(pid, idSet) if pid === programId =>
+                                        shadowClipboardObs.setStateAsync(idSet.some)
+                                      case _                                                                  =>
+                                        shadowClipboardObs.setStateAsync(none)
         selectedObsIds         <- useStateView(List.empty[Observation.Id])
         selectedOrFocusedObsIds =
           props.focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds.get))
-        copyCallback           <- useCallbackWithDeps(selectedOrFocusedObsIds): selectedOrFocusedObsIds =>
-                                    import ctx.given
+        copyCallback           <- useCallbackWithDeps((selectedOrFocusedObsIds, props.programId)):
+                                    (selectedOrFocusedObsIds, programId) =>
+                                      import ctx.given
 
-                                    selectedOrFocusedObsIds
-                                      .map: obsIdSet =>
-                                        val msg =
-                                          s"Copied observation(s) ${obsIdSet.idSet.toList.mkString(", ")}"
+                                      selectedOrFocusedObsIds
+                                        .map: obsIdSet =>
+                                          val msg =
+                                            s"Copied observation(s) ${obsIdSet.idSet.toList.mkString(", ")}"
 
-                                        (ExploreClipboard
-                                          .set(LocalClipboard.CopiedObservations(obsIdSet)) >>
-                                          shadowClipboardObs.setStateAsync(obsIdSet.some)).withToast(msg)
-                                      .orUnit
-                                      .runAsync
+                                          (ExploreClipboard
+                                            .set(LocalClipboard.CopiedObservations(programId, obsIdSet)) >>
+                                            shadowClipboardObs.setStateAsync(obsIdSet.some)).withToast(msg)
+                                        .orUnit
+                                        .runAsync
         pasteCallback          <- useCallbackWithDeps(
                                     (props.observations.get, props.resolvedActiveGroupId, props.readonly)
                                   ): (_, resolvedActiveGroupId, readonly) =>
@@ -160,7 +161,8 @@ object ObsTabContents extends TwoPanels:
 
                                     ExploreClipboard.get
                                       .flatMap:
-                                        case LocalClipboard.CopiedObservations(obsIdSet) =>
+                                        case LocalClipboard.CopiedObservations(pid, obsIdSet)
+                                            if pid === props.programId =>
                                           cloneObs(
                                             props.programId,
                                             obsIdSet.idSet.toList,
@@ -170,7 +172,7 @@ object ObsTabContents extends TwoPanels:
                                           ).withToastDuring(
                                             s"Duplicating obs ${obsIdSet.idSet.mkString_(", ")}"
                                           )
-                                        case _                                           => IO.unit
+                                        case _ => IO.unit
                                       .runAsync
                                       .unless_(readonly)
         _                      <- useGlobalHotkeysWithDeps(
