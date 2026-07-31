@@ -56,14 +56,6 @@ trait TcsBaseController[F[_]] {
   def rotPark: F[ApplyCommandResult]
   def rotFollow(enable:                 Boolean): F[ApplyCommandResult]
   def rotMove(angle:                    RotatorAngle): F[ApplyCommandResult]
-  def ecsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ): F[ApplyCommandResult]
-  def ecsVentGatesMove(gateEast:        Double, westGate:       Double): F[ApplyCommandResult]
   def tcsConfig(config:                 TcsConfig)(guide:       GuideConfig): F[ApplyCommandResult]
   def slew(slewOptions:                 SlewOptions, tcsConfig: TcsConfig): F[ApplyCommandResult]
   def swapTarget(swapConfig:            SwapConfig): F[ApplyCommandResult]
@@ -145,8 +137,10 @@ trait TcsBaseController[F[_]] {
   // ECS commands
   def ecsEnableDome(mode:           DomeMode): F[ApplyCommandResult]
   def ecsDisableDome: F[ApplyCommandResult]
+  def ecsDomePark: F[ApplyCommandResult]
   def ecsEnableShutters(mode:       ShutterMode): F[ApplyCommandResult]
   def ecsDisableShutters: F[ApplyCommandResult]
+  def ecsShuttersPark: F[ApplyCommandResult]
   def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult]
   def ecsCloseEastVentGate: F[ApplyCommandResult]
   def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult]

@@ -121,18 +121,6 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     )
     .as(ApplyCommandResult.Completed)
 
-  override def ecsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
-
-  override def ecsVentGatesMove(gateEast: Double, westGate: Double): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
-
   override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
@@ -520,4 +508,8 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     ApplyCommandResult.Completed.pure[F]
 
   override def ecsCloseWestVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsDomePark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def ecsShuttersPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 }

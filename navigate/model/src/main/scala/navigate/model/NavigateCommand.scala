@@ -45,14 +45,10 @@ object NavigateCommand {
   case class Cwfs1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Cwfs2Follow(enable: Boolean)                                    extends NavigateCommand
   case class Cwfs3Follow(enable: Boolean)                                    extends NavigateCommand
-  case class EcsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ) extends NavigateCommand
-  case class EcsVentGatesMove(gateEast: Double, gateWest: Double)            extends NavigateCommand
+  case class EcsEnableDome(domeMode: DomeMode)                               extends NavigateCommand
+  case class EcsEnableShutters(shutterMode: ShutterMode)                     extends NavigateCommand
+  case class EcsEastVentGateMove(gateEast: Distance)                         extends NavigateCommand
+  case class EcsWestVentGateMove(gateWest: Distance)                         extends NavigateCommand
   case class EnableGuide(config: TelescopeGuideConfig)                       extends NavigateCommand
   case class InstSpecifics(instrumentSpecificsParams: InstrumentSpecifics)   extends NavigateCommand
   case class LightPathConfig(from: LightSource, to: LightSink)               extends NavigateCommand
@@ -113,6 +109,14 @@ object NavigateCommand {
   case object Cwfs1Park                                                      extends NavigateCommand
   case object Cwfs2Park                                                      extends NavigateCommand
   case object Cwfs3Park                                                      extends NavigateCommand
+  case object EcsCloseEastVentGate                                           extends NavigateCommand
+  case object EcsCloseWestVentGate                                           extends NavigateCommand
+  case object EcsDisableDome                                                 extends NavigateCommand
+  case object EcsDomePark                                                    extends NavigateCommand
+  case object EcsDisableShutters                                             extends NavigateCommand
+  case object EcsShuttersPark                                                extends NavigateCommand
+  case object EcsEastVenGatePark                                             extends NavigateCommand
+  case object EcsWestVenGatePark                                             extends NavigateCommand
   case object DisableGuide                                                   extends NavigateCommand
   case object M1LoadAoFigure                                                 extends NavigateCommand
   case object M1LoadNonAoFigure                                              extends NavigateCommand
@@ -146,76 +150,76 @@ object NavigateCommand {
 
   given Show[NavigateCommand] = Show.show { self =>
     self match {
-      case AcObserve(period)                                                             => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
-      case AcSetLens(l)                                                                  => s"${self.name}(lens = $l)"
-      case AcSetFilter(flt)                                                              => s"${self.name}(filter = $flt)"
-      case AcSetNdFilter(nd)                                                             => s"${self.name}(ndFilter = $nd)"
-      case AcSetWindowSize(wnd)                                                          => s"${self.name}(window = ${wnd.tag})"
-      case AcquisitionAdjust(offset, ipa, iaa)                                           =>
+      case AcObserve(period)                                  => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
+      case AcSetLens(l)                                       => s"${self.name}(lens = $l)"
+      case AcSetFilter(flt)                                   => s"${self.name}(filter = $flt)"
+      case AcSetNdFilter(nd)                                  => s"${self.name}(ndFilter = $nd)"
+      case AcSetWindowSize(wnd)                               => s"${self.name}(window = ${wnd.tag})"
+      case AcquisitionAdjust(offset, ipa, iaa)                =>
         s"${self.name}(offset = $offset, ipa = $ipa, iaa = $iaa)"
-      case AowfsFollow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case CrcsFollow(enable)                                                            => s"${self.name}(enable = $enable)"
-      case CrcsMove(angle)                                                               => f"${self.name}(angle = ${angle.toDoubleDegrees}%.2fº)"
-      case CrcsStop(brakes)                                                              => s"${self.name}(brakes = $brakes)"
-      case Cwfs1Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Cwfs2Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Cwfs3Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case EcsCarouselMode(domeMode, shutterMode, slitHeight, domeEnable, shutterEnable) =>
-        s"${self.name}(domeMode = $domeMode, shutterMode = $shutterMode, slitHeight = $slitHeight, domeEnable = $domeEnable, shutterEnable = $shutterEnable)"
-      case EcsVentGatesMove(gateEast, gateWest)                                          =>
-        s"${self.name}(gateEast = $gateEast, gateWest = $gateWest)"
-      case EnableGuide(config)                                                           => s"${self.name}(config = $config)"
-      case InstSpecifics(instrumentSpecificsParams)                                      =>
+      case AowfsFollow(enable)                                => s"${self.name}(enable = $enable)"
+      case CrcsFollow(enable)                                 => s"${self.name}(enable = $enable)"
+      case CrcsMove(angle)                                    => f"${self.name}(angle = ${angle.toDoubleDegrees}%.2fº)"
+      case CrcsStop(brakes)                                   => s"${self.name}(brakes = $brakes)"
+      case Cwfs1Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Cwfs2Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Cwfs3Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case EcsEnableDome(mode)                                => s"${self.name}(mode = $mode)"
+      case EcsEnableShutters(mode)                            => s"${self.name}(mode = $mode)"
+      case EcsEastVentGateMove(position)                      => s"${self.name}(position = ${position.toMeters})"
+      case EcsWestVentGateMove(position)                      => s"${self.name}(position = ${position.toMeters})"
+      case EnableGuide(config)                                => s"${self.name}(config = $config)"
+      case InstSpecifics(instrumentSpecificsParams)           =>
         s"${self.name}(instrumentSpecificsParams = ${instrumentSpecificsParams.show})"
-      case LightPathConfig(from, to)                                                     => s"${self.name}(from = $from, to = $to)"
-      case McsFollow(enable)                                                             => s"${self.name}(enable = $enable)"
-      case Odgw1Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Odgw2Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Odgw3Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Odgw4Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case OiwfsFollow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case OiwfsObserve(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
-      case OiwfsCircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
-      case OiwfsQlMode(mode)                                                             => s"${self.name}(mode = $mode)"
-      case OiwfsProbeTracking(config)                                                    => s"${self.name}(config = $config)"
-      case OiwfsTarget(target)                                                           => s"${self.name}(target = ${target.show})"
-      case OriginAdjust(handsetAdjustment, openLoops)                                    =>
+      case LightPathConfig(from, to)                          => s"${self.name}(from = $from, to = $to)"
+      case McsFollow(enable)                                  => s"${self.name}(enable = $enable)"
+      case Odgw1Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Odgw2Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Odgw3Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Odgw4Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case OiwfsFollow(enable)                                => s"${self.name}(enable = $enable)"
+      case OiwfsObserve(period)                               => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
+      case OiwfsCircularBuffer(enable)                        => s"${self.name}(enable = $enable)"
+      case OiwfsQlMode(mode)                                  => s"${self.name}(mode = $mode)"
+      case OiwfsProbeTracking(config)                         => s"${self.name}(config = $config)"
+      case OiwfsTarget(target)                                => s"${self.name}(target = ${target.show})"
+      case OriginAdjust(handsetAdjustment, openLoops)         =>
         s"${self.name}(handsetAdjustment = ${handsetAdjustment.show}, openLoops = $openLoops)"
-      case OriginOffsetClear(openLoops)                                                  => s"${self.name}(openLoops = $openLoops)"
-      case PointingAdjust(handsetAdjustment)                                             =>
+      case OriginOffsetClear(openLoops)                       => s"${self.name}(openLoops = $openLoops)"
+      case PointingAdjust(handsetAdjustment)                  =>
         s"${self.name}(handsetAdjustment = ${handsetAdjustment.show})"
-      case Pwfs1FieldStop(fieldStop)                                                     => s"${self.name}(fieldStop = $fieldStop)"
-      case Pwfs1Filter(filter)                                                           => s"${self.name}(filter = $filter)"
-      case Pwfs1Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Pwfs1Observe(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
-      case Pwfs1CircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
-      case Pwfs1QlMode(mode)                                                             => s"${self.name}(mode = $mode)"
-      case Pwfs1ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
-      case Pwfs1Target(target: Target)                                                   => s"${self.name}(target = ${target.show})"
-      case Pwfs2FieldStop(fieldStop)                                                     => s"${self.name}(fieldStop = $fieldStop)"
-      case Pwfs2Filter(filter)                                                           => s"${self.name}(filter = $filter)"
-      case Pwfs2Follow(enable)                                                           => s"${self.name}(enable = $enable)"
-      case Pwfs2Observe(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
-      case Pwfs2CircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
-      case Pwfs2QlMode(mode)                                                             => s"${self.name}(mode = $mode)"
-      case Pwfs2ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
-      case Pwfs2Target(target)                                                           => s"${self.name}(target = ${target.show})"
-      case RestoreTarget(config)                                                         => s"${self.name}(config = $config)"
-      case RefreshEphemerides(date)                                                      => s"${self.name}(date = $date)"
-      case RotatorTrackingConfig(config)                                                 => s"${self.name}(config = $config)"
-      case ScsFollow(enable)                                                             => s"${self.name}(enable = $enable)"
-      case Slew(slewOptions, tcsConfig, oid)                                             =>
+      case Pwfs1FieldStop(fieldStop)                          => s"${self.name}(fieldStop = $fieldStop)"
+      case Pwfs1Filter(filter)                                => s"${self.name}(filter = $filter)"
+      case Pwfs1Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Pwfs1Observe(period)                               => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
+      case Pwfs1CircularBuffer(enable)                        => s"${self.name}(enable = $enable)"
+      case Pwfs1QlMode(mode)                                  => s"${self.name}(mode = $mode)"
+      case Pwfs1ProbeTracking(config)                         => s"${self.name}(config = $config)"
+      case Pwfs1Target(target: Target)                        => s"${self.name}(target = ${target.show})"
+      case Pwfs2FieldStop(fieldStop)                          => s"${self.name}(fieldStop = $fieldStop)"
+      case Pwfs2Filter(filter)                                => s"${self.name}(filter = $filter)"
+      case Pwfs2Follow(enable)                                => s"${self.name}(enable = $enable)"
+      case Pwfs2Observe(period)                               => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
+      case Pwfs2CircularBuffer(enable)                        => s"${self.name}(enable = $enable)"
+      case Pwfs2QlMode(mode)                                  => s"${self.name}(mode = $mode)"
+      case Pwfs2ProbeTracking(config)                         => s"${self.name}(config = $config)"
+      case Pwfs2Target(target)                                => s"${self.name}(target = ${target.show})"
+      case RestoreTarget(config)                              => s"${self.name}(config = $config)"
+      case RefreshEphemerides(date)                           => s"${self.name}(date = $date)"
+      case RotatorTrackingConfig(config)                      => s"${self.name}(config = $config)"
+      case ScsFollow(enable)                                  => s"${self.name}(enable = $enable)"
+      case Slew(slewOptions, tcsConfig, oid)                  =>
         s"${self.name}(slewOptions = $slewOptions, tcsConfig = ${tcsConfig.show}, oid = $oid)"
-      case SwapTarget(swapConfig)                                                        => s"${self.name}(swapConfig = ${swapConfig.show})"
-      case TargetAdjust(target, handsetAdjustment, openLoops)                            =>
+      case SwapTarget(swapConfig)                             => s"${self.name}(swapConfig = ${swapConfig.show})"
+      case TargetAdjust(target, handsetAdjustment, openLoops) =>
         s"${self.name}(target = $target, handsetAdjustment = ${handsetAdjustment.show}, openLoops = $openLoops)"
-      case TargetOffsetAbsorb(target)                                                    => s"${self.name}(target = $target)"
-      case TargetOffsetClear(target, openLoops)                                          =>
+      case TargetOffsetAbsorb(target)                         => s"${self.name}(target = $target)"
+      case TargetOffsetClear(target, openLoops)               =>
         s"${self.name}(target = $target, openLoops = $openLoops)"
-      case TcsConfigure(config)                                                          => s"${self.name}(config = ${config.show})"
-      case WfsSky(wfs, period)                                                           =>
+      case TcsConfigure(config)                               => s"${self.name}(config = ${config.show})"
+      case WfsSky(wfs, period)                                =>
         f"${self.name}(wfs = $wfs, period = ${period.toSeconds.toDouble}%.3f)"
-      case _                                                                             => self.name
+      case _                                                  => self.name
     }
   }
 

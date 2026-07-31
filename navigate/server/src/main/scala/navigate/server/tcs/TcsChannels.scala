@@ -194,6 +194,36 @@ object TcsChannels {
     ecsVentGateWest:  Channel[F, String]
   )
 
+  object EnclosureChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      top:     TcsTop
+    ): Resource[F, EnclosureChannels[F]] =
+      for {
+        edm <- service.getChannel[String](top.value, "carouselMode.A")
+        esm <- service.getChannel[String](top.value, "carouselMode.B")
+        esh <- service.getChannel[String](top.value, "carouselMode.C")
+        ede <- service.getChannel[String](top.value, "carouselMode.D")
+        ese <- service.getChannel[String](top.value, "carouselMode.E")
+        ema <- service.getChannel[String](top.value, "carousel.A")
+        est <- service.getChannel[String](top.value, "shutter.A")
+        esb <- service.getChannel[String](top.value, "shutter.B")
+        eve <- service.getChannel[String](top.value, "ventgates.A")
+        evw <- service.getChannel[String](top.value, "ventgates.B")
+      } yield EnclosureChannels(
+        edm,
+        esm,
+        esh,
+        ede,
+        ese,
+        ema,
+        est,
+        esb,
+        eve,
+        evw
+      )
+  }
+
   case class M1Channels[F[_]](
     telltale:      TelltaleChannel[F],
     park:          Channel[F, String],
@@ -369,36 +399,6 @@ object TcsChannels {
         eq  <- service.getChannel[String](top.value, "chopRelative.D")
       } yield ChopRelativeChannels(tr, an, sys, eq)
   }
-
-  // Build functions to construct each epics channel for each
-  // channels group
-  def buildEnclosureChannels[F[_]](
-    service: EpicsService[F],
-    top:     TcsTop
-  ): Resource[F, EnclosureChannels[F]] =
-    for {
-      edm <- service.getChannel[String](top.value, "carouselMode.A")
-      esm <- service.getChannel[String](top.value, "carouselMode.B")
-      esh <- service.getChannel[String](top.value, "carouselMode.C")
-      ede <- service.getChannel[String](top.value, "carouselMode.D")
-      ese <- service.getChannel[String](top.value, "carouselMode.E")
-      ema <- service.getChannel[String](top.value, "carousel.A")
-      est <- service.getChannel[String](top.value, "shutter.A")
-      esb <- service.getChannel[String](top.value, "shutter.B")
-      eve <- service.getChannel[String](top.value, "ventgates.A")
-      evw <- service.getChannel[String](top.value, "ventgates.B")
-    } yield EnclosureChannels(
-      edm,
-      esm,
-      esh,
-      ede,
-      ese,
-      ema,
-      est,
-      esb,
-      eve,
-      evw
-    )
 
   def buildTargetChannels[F[_]](
     service: EpicsService[F],
@@ -884,7 +884,7 @@ object TcsChannels {
       rpd  <- service.getChannel[CadDirective](tcsTop.value, s"rotPark$DirSuffix")
       rf   <- service.getChannel[String](tcsTop.value, "crFollow.A")
       rma  <- service.getChannel[String](tcsTop.value, "rotMove.A")
-      ecs  <- buildEnclosureChannels(service, tcsTop)
+      ecs  <- EnclosureChannels.build(service, tcsTop)
       sra  <- buildTargetChannels(service, s"${tcsTop.value}sourceA")
       p1t  <- buildTargetChannels(service, s"${tcsTop.value}pwfs1")
       p2t  <- buildTargetChannels(service, s"${tcsTop.value}pwfs2")

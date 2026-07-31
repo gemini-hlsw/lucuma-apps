@@ -189,17 +189,14 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     val testHeight   = 123.456
     val testVentEast = 0.3
     val testVentWest = 0.2
-    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeter(1))
+    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeter(testHeight))
 
     for {
       (st, ctr) <- createController()
-      _         <- ctr.ecsCarouselMode(DomeMode.MinVibration,
-                                       shutterMode,
-                                       testHeight,
-                                       domeEnable = true,
-                                       shutterEnable = true
-                   )
-      _         <- ctr.ecsVentGatesMove(testVentEast, testVentWest)
+      _         <- ctr.ecsEnableDome(DomeMode.MinVibration)
+      _         <- ctr.ecsEnableShutters(shutterMode)
+      _         <- ctr.ecsMoveEastVentGate(Distance.fromBigDecimalMeter(testVentEast))
+      _         <- ctr.ecsMoveWestVentGate(Distance.fromBigDecimalMeter(testVentWest))
       rs        <- st.tcs.get
     } yield {
       assert(rs.enclosure.ecsDomeMode.connected)

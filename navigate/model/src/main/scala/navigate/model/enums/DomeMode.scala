@@ -10,3 +10,7 @@ enum DomeMode(val tag: String) derives Enumerated {
   case MinScatter   extends DomeMode("MinScatter")
   case MinVibration extends DomeMode("MinVibration")
 }
+
+object DomeMode {
+  val default: DomeMode = DomeMode.Basic
+}

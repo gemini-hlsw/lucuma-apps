@@ -36,7 +36,7 @@ object Distance {
     def µm: Quantity[Long, Micrometer]            = toMicrometers
 
     def toMillimeters: Quantity[BigDecimal, Millimeter] = to[Millimeter](3)
-    def toMeter: Quantity[BigDecimal, Meter]            = to[Meter](6)
+    def toMeters: Quantity[BigDecimal, Meter]           = to[Meter](6)
 
   }
 

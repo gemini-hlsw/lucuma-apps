@@ -5,7 +5,7 @@ package navigate.server.epicsdata
 
 import lucuma.core.util.Enumerated
 
-enum BinaryOnOff(val tag: String) extends Product with Serializable derives Enumerated {
+enum BinaryOnOff(val tag: String) derives Enumerated {
   case Off extends BinaryOnOff("Off")
   case On  extends BinaryOnOff("On")
 }

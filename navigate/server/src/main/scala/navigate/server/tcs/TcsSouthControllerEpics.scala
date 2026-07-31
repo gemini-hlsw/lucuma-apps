@@ -11,6 +11,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.Site
+import lucuma.core.math.Angle
 import lucuma.core.util.TimeSpan
 import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.epics.given
@@ -41,6 +42,8 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
   override val acInstrument: Instrument = Instrument.AcqCamSouth
 
   override val site: Site = Site.GS
+
+  override protected val domeParkPosition: Angle = Angle.fromDoubleDegrees(180.0)
 
   override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
     case Instrument.AcqCamNorth  => 0.pure[F]
