@@ -139,23 +139,30 @@ object TargetTabContents extends TwoPanels:
       .useState[LocalClipboard](
         LocalClipboard.Empty
       )                                      // shadowClipboard (a copy of the clipboard as state)
-      .useEffectOnMountBy: (_, ctx, _, _, _, shadowClipboard) => // initialize shadowClipboard
-        import ctx.given
-        ExploreClipboard.get.flatMap(shadowClipboard.setStateAsync)
-      .useCallbackWithDepsBy((_, _, _, _, selIdsOpt, _) => selIdsOpt): // COPY Action Callback
+      .useEffectWithDepsBy((props, _, _, _, _, _) => props.programId):
+        (_, ctx, _, _, _, shadowClipboard) => // initialize shadowClipboard
+          programId =>
+            import ctx.given
+            ExploreClipboard.get.flatMap:
+              case lc @ LocalClipboard.CopiedObservations(pid, _) if pid === programId =>
+                shadowClipboard.setStateAsync(lc)
+              case lc @ LocalClipboard.CopiedTargets(pid, _) if pid === programId      =>
+                shadowClipboard.setStateAsync(lc)
+              case _                                                                   => shadowClipboard.setStateAsync(LocalClipboard.Empty)
+      .useCallbackWithDepsBy((props, _, _, _, selIdsOpt, _) => (selIdsOpt, props.programId)): // COPY Action Callback
         (_, ctx, _, _, _, shadowClipboard) =>
-          selIdsOpt =>
+          (selIdsOpt, programId) =>
             import ctx.given
 
             selIdsOpt.value
               .map:
                 _.fold[(LocalClipboard, String)](
                   tids =>
-                    (LocalClipboard.CopiedTargets(tids),
+                    (LocalClipboard.CopiedTargets(programId, tids),
                      s"Copied target(s) ${tids.toList.mkString(", ")}"
                     ),
                   oids =>
-                    (LocalClipboard.CopiedObservations(oids),
+                    (LocalClipboard.CopiedObservations(programId, oids),
                      s"Copied observation(s) ${oids.idSet.toList.mkString(", ")}"
                     )
                 )
@@ -189,7 +196,8 @@ object TargetTabContents extends TwoPanels:
 
           ExploreClipboard.get
             .flatMap {
-              case LocalClipboard.CopiedObservations(copiedObsIdSet) =>
+              case LocalClipboard.CopiedObservations(pid, copiedObsIdSet)
+                  if pid === props.programId =>
                 val obsAndTargets: List[(Observation.Id, List[Target.Id])] =
                   optFocusedObsIds
                     .map: focusedObsIdSet => // This with some targets on the tree selected
@@ -215,7 +223,7 @@ object TargetTabContents extends TwoPanels:
                     s"Pasted obs ${copiedObsIdSet.idSet.toList.mkString(", ")} into ${selTargetIds.length} target(s)".some
                   )
 
-              case LocalClipboard.CopiedTargets(tids) =>
+              case LocalClipboard.CopiedTargets(pid, tids) if pid === props.programId =>
                 optFocusedObsIds
                   .foldMap: obsIds =>
                     val observations: List[Observation] =
