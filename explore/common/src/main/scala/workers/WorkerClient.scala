@@ -14,6 +14,9 @@ import explore.model.boopickle.Boopickle.*
 import explore.model.extensions.*
 import fs2.RaiseThrowable
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Tracer
 
 import WorkerMessage.*
 
@@ -21,7 +24,7 @@ import WorkerMessage.*
  * Implements the client side of a simple client/server protocol that provides a somewhat more
  * functional/effecful way of communicating with workers.
  */
-class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
+class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger, Tracer as T}, R: Pickler] private (
   worker:    WebWorkerF[F],
   initLatch: Deferred[F, Unit]
 ):
@@ -29,7 +32,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
     worker.subscribe
       .use:
         _.map(decodeFromTransferableEither[FromServer]).rethrow
-          .evalTap(msg => Logger[F].trace(s"<<< Received msg from server: [$msg]"))
+          .evalTap(msg => trace"<<< Received msg from server: [$msg]")
           .collectFirst { case FromServer.ServerReady => initLatch.complete(()) }
           .evalMap(identity) // Runs latch.complete
           .compile
@@ -47,17 +50,26 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
     for {
       _            <- Resource.eval(initLatch.get) // Ensure server is initialized
       id           <- Resource.eval(UUIDGen.randomUUID).map(WorkerProcessId(_))
+      // The span covers the round trip, and is the parent of whatever the worker traces
+      span         <- T.span(
+                        s"worker.request ${WorkerRequest.name(requestMessage)}",
+                        Attribute("worker.process.id", id.value.toString)
+                      ).resource
+      traceHeaders <- Resource.eval(span.trace(Tracer[F].propagate(Map.empty[String, String])))
+      traceparent   = traceHeaders.get("traceparent")
       _            <-
         Resource.make(
-          (Logger[F].trace(s">>> Starting request with id [$id]. Request: [$requestMessage]") >>
+          (trace">>> Starting request with id [$id]. Request: [$requestMessage]" >>
             worker.postTransferable(
-              asTypedArray[FromClient](FromClient.Start(id, Pickled(asBytes[R](requestMessage))))
+              asTypedArray[FromClient](
+                FromClient.Start(id, Pickled(asBytes[R](requestMessage)), traceparent)
+              )
             ))
             .logErrors(
               s">>> Error in request with id [$id]. Request: [$requestMessage]"
             )
         )(_ =>
-          Logger[F].trace(s">>> Ending request with id [$id]. Request: [$requestMessage]") >>
+          trace">>> Ending request with id [$id]. Request: [$requestMessage]" >>
             worker.postTransferable(
               asTypedArray[FromClient](FromClient.End(id))
             )
@@ -73,7 +85,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
           none
         case FromServer.Error(mid, error) if mid === id  =>
           error.asLeft.some
-      .evalTap(msg => Logger[F].trace(s"<<< Received msg from server with id [$id]: [$msg]"))
+      .evalTap(msg => trace"<<< Received msg from server with id [$id]: [$msg]")
       .unNoneTerminate
       .rethrow
       .onErrorLog(s"Error in worker client request with id [$id]")
@@ -99,7 +111,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
     request(requestMessage)(using nothingPickler.xmap(ev.flip)(ev)).use(_.compile.drain)
 
 object WorkerClient:
-  def fromWorker[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler](
+  def fromWorker[F[_]: {Concurrent, UUIDGen, Logger, Tracer}, R: Pickler](
     worker: WebWorkerF[F]
   ): Resource[F, WorkerClient[F, R]] =
     for {

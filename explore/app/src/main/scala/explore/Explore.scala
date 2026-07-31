@@ -33,7 +33,6 @@ import lucuma.ui.otel.OtelSdk
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
-import org.http4s.Uri
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
@@ -127,11 +126,10 @@ object ExploreMain {
 
     def initializeItc(
       workerClients: WorkerClients[IO],
-      itcURI:        Uri,
       toastCtx:      ToastCtx[IO]
     )(using Logger[IO]): IO[Unit] =
       workerClients.itc
-        .requestSingle(ItcMessage.Initialize(itcURI))
+        .requestSingle(ItcMessage.Initialize)
         .flatMap:
           case Some(Some(error)) =>
             toastCtx.showToast(error, Message.Severity.Error, true)
@@ -176,7 +174,7 @@ object ExploreMain {
                                   workerClients,
                                   bc
                                 )
-        _                    <- initializeItc(workerClients, appConfig.itcURI, ctx.toastCtx)
+        _                    <- initializeItc(workerClients, ctx.toastCtx)
         r                    <- (ctx.sso.whoami, setupDOM[IO], showEnvironment[IO](appConfig.environment)).parTupled
         (vault, container, _) = r
       } yield ReactDOMClient

@@ -9,6 +9,7 @@ import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import explore.events.CatalogMessage
 import explore.events.CatalogMessage.BlindOffsetRequest
+import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import japgolly.webapputil.indexeddb.IndexedDb
 import lucuma.catalog.clients.GaiaClient
@@ -17,7 +18,8 @@ import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
-import org.typelevel.otel4s.trace.Tracer.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -28,7 +30,7 @@ import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
 
 @JSExportTopLevel("CatalogServer", moduleID = "exploreworkers")
-object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with CatalogCache:
+object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCache:
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
@@ -36,7 +38,9 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
   private val Expiration: Duration           = Duration.ofDays(30)
   private val RequestTimeout: FiniteDuration = FiniteDuration(300, TimeUnit.SECONDS)
 
-  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
+  protected def handler(
+    config: Option[AppConfig]
+  ): (LoggerFactory[IO], Tracer[IO], TracerProvider[IO]) ?=> IO[Invocation => IO[Unit]] =
     for {
       self      <- IO(dom.DedicatedWorkerGlobalScope.self)
       idb       <- IO(self.indexedDB.toOption)

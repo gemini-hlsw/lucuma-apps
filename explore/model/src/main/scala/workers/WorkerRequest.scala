@@ -8,4 +8,18 @@ package workers
  */
 trait WorkerRequest {
   type ResponseType
+
+  /** Custom span name */
+  def traceName: String = ""
 }
+
+object WorkerRequest:
+  /**
+   * Name of a request, for span naming. A request may override `traceName` for a more specific
+   * name, otherwise the case-class name (`productPrefix`) is used.
+   */
+  def name(request: Any): String =
+    request match
+      case w: WorkerRequest if w.traceName.nonEmpty => w.traceName
+      case p: Product                               => p.productPrefix
+      case _                                        => "unknown"

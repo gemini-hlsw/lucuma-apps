@@ -10,9 +10,10 @@ import cats.effect.std.Dispatcher
 import cats.effect.std.UUIDGen
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 
 trait WorkerClientBuilder[R: Pickler](worker: dom.Worker):
-  def build[F[_]: {Async, UUIDGen, Logger}](
+  def build[F[_]: {Async, UUIDGen, Logger, Tracer}](
     dispatcher: Dispatcher[F]
   ): Resource[F, WorkerClient[F, R]] =
     for {

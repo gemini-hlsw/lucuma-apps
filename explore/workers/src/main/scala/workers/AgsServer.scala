@@ -7,6 +7,7 @@ import boopickle.DefaultBasic.*
 import cats.effect.IO
 import cats.effect.unsafe.implicits.*
 import explore.events.AgsMessage
+import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
@@ -14,6 +15,9 @@ import lucuma.ags.AgsAnalysis.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import workers.*
 
 import java.time.Duration
@@ -21,7 +25,7 @@ import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
 
 @JSExportTopLevel("AgsServer", moduleID = "exploreworkers")
-object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
+object AgsServer extends WorkerServer[AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
@@ -46,12 +50,13 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
           correctedCandidates
         )
     .flatTap: r =>
-        // We should send these as a trace but workers are out of the trace context so far.
         Logger[IO].debug(pprint.apply(r._2).render)
       .map:
         _._1.sortUsablePositions
 
-  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
+  protected def handler(
+    config: Option[AppConfig]
+  ): (LoggerFactory[IO], Tracer[IO], TracerProvider[IO]) ?=> IO[Invocation => IO[Unit]] =
     for
       self             <- IO(dom.DedicatedWorkerGlobalScope.self)
       cache            <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")
@@ -62,11 +67,21 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
         case AgsMessage.CleanCache               =>
           cache.clear *> invocation.respond(())
         case req @ AgsMessage.AgsRequest(id = _) =>
-          val cacheableRequest =
-            Cacheable(CacheName("ags"), CacheVersion(AgsCacheVersion), agsCalculation)
+          val cacheName = CacheName("ags")
+          val cacheVer  = CacheVersion(AgsCacheVersion)
           cache
-            .eval(cacheableRequest)
-            .apply(req)
-            .flatMap(invocation.respond)
+            .get[AgsMessage.AgsRequest, List[AgsAnalysis.Usable]](cacheName, cacheVer, req)
+            .flatMap {
+              case Some(result) => invocation.respond(result) // hit: nothing calculated, no span
+              case None         =>                            // miss: trace the calculation
+                Tracer[IO]
+                  .span("ags.calculation", Attribute("candidates", req.candidates.length.toLong))
+                  .surround:
+                    val compute = (r: AgsMessage.AgsRequest) => agsCalculation(r)
+                    cache
+                      .eval(Cacheable(cacheName, cacheVer, compute))
+                      .apply(req)
+                      .flatMap(invocation.respond)
+            }
       }
 }

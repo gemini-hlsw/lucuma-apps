@@ -13,6 +13,7 @@ import cats.syntax.all.*
 import explore.events.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 import workers.WorkerClient
 import workers.WorkerClientBuilder
 
@@ -95,7 +96,7 @@ object WorkerClients {
 
   object HorizonsWorkerClient extends WorkerClientBuilder[HorizonsMessage.Request](HorizonsWorker())
 
-  def build[F[_]: {Async, Logger, SecureRandom}](
+  def build[F[_]: {Async, Logger, SecureRandom, Tracer}](
     dispatcher: Dispatcher[F]
   ): Resource[F, WorkerClients[F]] =
     (ItcClient.build[F](dispatcher),
