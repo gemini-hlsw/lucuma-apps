@@ -88,6 +88,38 @@ object GnirsControllerEpics extends GnirsEncoders {
     case GnirsGrating.D111 => "111"
   }
 
+  // EPICS grating string.
+  // When the slit is the high-resolution IFU and the prism mode is Mirror,
+  // the grating takes a special "HR" form.
+  // Mirrors seqexec's setGrating HR_IFU branch.
+  private[server] def buildGratingValue(
+    prism:   GnirsPrism,
+    grating: GnirsGrating,
+    camera:  GnirsCamera,
+    hrIfu:   Boolean
+  ): String = (prism, grating, camera) match {
+    case (GnirsPrism.Sxd, GnirsGrating.D10, GnirsCamera.LongBlue)  => "10/mmLBSX"
+    case (GnirsPrism.Lxd, GnirsGrating.D10, GnirsCamera.LongBlue)  => "10/mmLBLX"
+    case (GnirsPrism.Lxd, GnirsGrating.D111, GnirsCamera.LongBlue) => "111/mmLBLX"
+    case (GnirsPrism.Mirror, g, c) if hrIfu                        => s"${gratingStr(g)}/mm${cameraStr(c)}HR"
+    case (_, g, c)                                                 => s"${gratingStr(g)}/mm${cameraStr(c)}"
+  }
+
+  // EPICS prism string.
+  // Mirror mode with the HR-IFU slit uses a camera+grating-prefixed form.
+  // Mirrors seqexec's setPrism HR_IFU branch.
+  private[server] def buildPrismValue(
+    prism:   GnirsPrism,
+    grating: GnirsGrating,
+    camera:  GnirsCamera,
+    hrIfu:   Boolean
+  ): String = prism match {
+    case GnirsPrism.Mirror if hrIfu => s"${cameraStr(camera)}${gratingStr(grating)}+MIR"
+    case GnirsPrism.Mirror          => "MIR"
+    case GnirsPrism.Sxd             => s"${cameraStr(camera)}+SXD"
+    case GnirsPrism.Lxd             => s"${cameraStr(camera)}+LXD"
+  }
+
   // GNIRS has two physical filter wheels but the ODB exposes a single logical filter. This maps the
   // logical filter to (filter1, filter2) wheel positions. Reconciled against seqexec's OCS-derived
   // resolution (Gnirs.getFilter1/getFilter2): this reproduces that mapping for all 14 filters. The
@@ -147,20 +179,11 @@ object GnirsControllerEpics extends GnirsEncoders {
 
       private def setSpectrography(
         camera: GnirsCamera,
-        out:    GnirsAcquisitionMirrorMode.Out
+        out:    GnirsAcquisitionMirrorMode.Out,
+        hrIfu:  Boolean
       ): List[F[Option[F[Unit]]]] = {
-        val gratingValue: String = (out.prism, out.grating, camera) match {
-          case (GnirsPrism.Sxd, GnirsGrating.D10, GnirsCamera.LongBlue)  => "10/mmLBSX"
-          case (GnirsPrism.Lxd, GnirsGrating.D10, GnirsCamera.LongBlue)  => "10/mmLBLX"
-          case (GnirsPrism.Lxd, GnirsGrating.D111, GnirsCamera.LongBlue) => "111/mmLBLX"
-          case (_, g, c)                                                 => s"${gratingStr(g)}/mm${cameraStr(c)}"
-        }
-
-        val prismValue: String = out.prism match {
-          case GnirsPrism.Mirror => "MIR"
-          case GnirsPrism.Sxd    => s"${cameraStr(camera)}+SXD"
-          case GnirsPrism.Lxd    => s"${cameraStr(camera)}+LXD"
-        }
+        val gratingValue: String = buildGratingValue(out.prism, out.grating, camera, hrIfu)
+        val prismValue: String   = buildPrismValue(out.prism, out.grating, camera, hrIfu)
 
         val gratingMode: String            = "WAVELENGTH"
         val wavelengthRelTolerance: Double = 0.0001
@@ -239,10 +262,14 @@ object GnirsControllerEpics extends GnirsEncoders {
         val cameraValue: String                            = encode(dc.camera)
         val deckerValue: String                            = encode(dc.decker)
 
+        val hrIfu: Boolean = dc.fpu match
+          case GnirsFpu.Spectroscopy.Ifu(GnirsFpuIfu.HighResolution) => true
+          case _                                                     => false
+
         val acqMirrorAndSpectrography: List[F[Option[F[Unit]]]] = dc.acquisitionMirror match {
           case GnirsAcquisitionMirrorMode.In                 => List(setAcqMirror("In"))
           case out @ GnirsAcquisitionMirrorMode.Out(_, _, _) =>
-            setAcqMirror("Out") :: setSpectrography(dc.camera, out)
+            setAcqMirror("Out") :: setSpectrography(dc.camera, out, hrIfu)
         }
 
         val focusParam: F[Option[F[Unit]]] = dc.focus match {
