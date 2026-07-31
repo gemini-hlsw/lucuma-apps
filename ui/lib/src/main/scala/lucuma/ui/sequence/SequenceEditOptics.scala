@@ -9,12 +9,14 @@ import cats.syntax.all.*
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.react.pragmaticdnd.Edge
 import lucuma.ui.dnd.insertIntoList
+import monocle.Focus
 import monocle.Optional
 import monocle.Prism
 import monocle.Traversal
@@ -73,6 +75,13 @@ trait SequenceEditOptics[D]:
 
   protected val ghost: Optional[Step[D], GhostDynamicConfig] =
     Step.instrumentConfig.andThen(ghostDynamicConfig)
+
+  // GHOST's red and blue detectors are configured independently.
+  protected val ghostRed: Optional[Step[D], GhostDetector] =
+    ghost.andThen(Focus[GhostDynamicConfig](_.red)).andThen(GhostDetector.Red.Value)
+
+  protected val ghostBlue: Optional[Step[D], GhostDetector] =
+    ghost.andThen(Focus[GhostDynamicConfig](_.blue)).andThen(GhostDetector.Blue.Value)
 
   protected def combineOptionalsReplace[S, A](optionals: Optional[S, A]*)(a: A): S => S =
     Function.chain(optionals.map(_.replace(a)))

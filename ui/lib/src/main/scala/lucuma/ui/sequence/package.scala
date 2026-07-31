@@ -68,7 +68,7 @@ extension (instrument: Instrument)
   def isSequenceEditable: Boolean =
     instrument match
       case Instrument.GmosNorth | Instrument.GmosSouth | Instrument.Flamingos2 |
-          Instrument.Igrins2 | Instrument.Gnirs =>
+          Instrument.Igrins2 | Instrument.Gnirs | Instrument.Ghost =>
         true
       case _ => false
 

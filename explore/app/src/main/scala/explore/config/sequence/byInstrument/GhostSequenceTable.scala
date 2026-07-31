@@ -24,6 +24,7 @@ final case class GhostSequenceTable(
   visits:               View[Option[ExecutionVisits]],
   staticConfig:         GhostStaticConfig,
   science:              View[List[Atom[GhostDynamicConfig]]],
+  isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
@@ -40,8 +41,6 @@ final case class GhostSequenceTable(
 
   // TBD. We may get two s/n values
   override val scienceSN = none
-
-  override val isEditEnabled = IsEditEnabled.False
 
   override val toInstrumentVisits =
     case ExecutionVisits.Ghost(visits) => visits

@@ -28,6 +28,8 @@ import lucuma.core.model.sequence.TelescopeConfigAlongSlit
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
@@ -1234,3 +1236,32 @@ extension (step: Step[GnirsDynamicConfig])
 extension (atom: Atom[GnirsDynamicConfig])
   def toInput: GnirsAtomInput =
     GnirsAtomInput(steps = atom.steps.map(_.toInput).toList)
+
+extension (detector: GhostDetector)
+  def toInput: GhostDetectorInput = GhostDetectorInput(
+    exposureTime = detector.exposureTime.toInput,
+    exposureCount = detector.exposureCount,
+    binning = detector.binning,
+    readMode = detector.readMode
+  )
+
+extension (ghostDynamic: GhostDynamicConfig)
+  def toInput: GhostDynamicInput = GhostDynamicInput(
+    red = ghostDynamic.red.value.toInput,
+    blue = ghostDynamic.blue.value.toInput,
+    ifu1FiberAgitator = ghostDynamic.ifu1FiberAgitator,
+    ifu2FiberAgitator = ghostDynamic.ifu2FiberAgitator
+  )
+
+extension (step: Step[GhostDynamicConfig])
+  def toInput: GhostStepInput =
+    GhostStepInput(
+      instrumentConfig = step.instrumentConfig.toInput,
+      stepConfig = step.stepConfig.toInput,
+      observeClass = step.observeClass,
+      telescopeConfig = step.telescopeConfig.toInput.assign
+    )
+
+extension (atom: Atom[GhostDynamicConfig])
+  def toInput: GhostAtomInput =
+    GhostAtomInput(steps = atom.steps.map(_.toInput).toList)

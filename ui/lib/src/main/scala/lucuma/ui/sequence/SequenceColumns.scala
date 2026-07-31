@@ -3,24 +3,33 @@
 
 package lucuma.ui.sequence
 
+import cats.Endo
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.GhostBinning
+import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.InputNumber
+import lucuma.react.primereact.SelectItem
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.LucumaStyles
+import lucuma.ui.display.given
 import lucuma.ui.format.formatSN
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.*
@@ -119,15 +128,10 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.flatMap(_.exposureTime),
       header = _ => "Exp (sec)",
       cell = c =>
-        val isEditing: Boolean  =
-          (for
-            seqType <- c.getStep.flatMap(_.sequenceType)
-            ctx     <- c.table.options.meta.map(_.editContexts.forSequenceType(seqType))
-          yield ctx.isEditing.get.value).getOrElse(false)
         val isFinished: Boolean = c.getStep.forall(_.isFinished)
         (c.value, c.getStep.flatMap(_.instrument))
           .mapN[VdomNode]: (v, i) =>
-            if isEditing && !isFinished then
+            if c.isRowEditing && !isFinished then
               React.Fragment(
                 InputNumber(
                   id = s"exposure-${c.row.index}",
@@ -277,34 +281,94 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     )
 
   private def ghostDetectorCols(
-    getter:     SequenceRow[D] => Option[GhostDetector],
-    countId:    ColumnId,
-    timeId:     ColumnId,
-    readModeId: ColumnId,
-    binningId:  ColumnId
+    getter:               SequenceRow[D] => Option[GhostDetector],
+    exposureReplace:      Step.Id => TimeSpan => Endo[List[Atom[D]]],
+    exposureCountReplace: Step.Id => PosInt => Endo[List[Atom[D]]],
+    readModeReplace:      Step.Id => GhostReadMode => Endo[List[Atom[D]]],
+    binningReplace:       Step.Id => GhostBinning => Endo[List[Atom[D]]],
+    countId:              ColumnId,
+    timeId:               ColumnId,
+    readModeId:           ColumnId,
+    binningId:            ColumnId
   ): List[colDef.TypeFor[?]] =
     List(
-      colDef(countId,
-             _.getStep.flatMap(getter(_).map(_.exposureCount)),
-             header = _ => "Counts",
-             cell = _.value.map(_.value.toString).orEmpty
+      colDef(
+        countId,
+        _.getStep.flatMap(getter(_).map(_.exposureCount)),
+        header = _ => "Counts",
+        cell = c =>
+          val isFinished: Boolean = c.getStep.forall(_.isFinished)
+          c.value.map[VdomNode]: v =>
+            if c.isRowEditing && !isFinished then
+              InputNumber(
+                id = s"${countId.value}-${c.row.index}",
+                value = v.value.toDouble,
+                min = 1,
+                maxFractionDigits = 0,
+                onValueChange = e =>
+                  handleRowValueEdit(c)(exposureCountReplace):
+                    e.valueOption.flatMap(d => PosInt.from(d.toInt).toOption)
+                ,
+                clazz = SequenceStyles.SequenceInput
+              )
+            else v.value.toString
       ),
       colDef(
         timeId,
         _.getStep.flatMap(getter(_).map(_.exposureTime)),
         header = _ => "Exptime",
-        cell = _.value.map(Instrument.Ghost.formatExposureTime(_).value).orEmpty
+        cell = c =>
+          val isFinished: Boolean = c.getStep.forall(_.isFinished)
+          c.value.map[VdomNode]: v =>
+            if c.isRowEditing && !isFinished then
+              InputNumber(
+                id = s"${timeId.value}-${c.row.index}",
+                value = v.toSeconds.toDouble,
+                maxFractionDigits = Instrument.Ghost.exposureTimeFractionDigits,
+                onValueChange = e =>
+                  handleRowValueEdit(c)(exposureReplace):
+                    e.valueOption.flatMap(d => TimeSpan.fromSeconds(BigDecimal(d)))
+                ,
+                clazz = SequenceStyles.SequenceInput
+              )
+            else Instrument.Ghost.formatExposureTime(v).value
       ),
-      colDef(readModeId,
-             _.getStep.flatMap(getter(_).map(_.readMode.shortName)),
-             header = _ => "Readmode",
-             cell = _.value.orEmpty
-      ),
-      colDef(binningId,
-             _.getStep.flatMap(getter(_).map(_.binning.name)),
-             header = _ => "Binning",
-             cell = _.value.orEmpty
+      ghostEnumCol(readModeId, getter(_).map(_.readMode), "Readmode", readModeReplace, _.shortName),
+      ghostEnumCol(
+        binningId,
+        getter(_).map(_.binning),
+        "Binning",
+        binningReplace,
+        b => s"${b.spectralBinning} x ${b.spatialBinning}"
       )
+    )
+
+  // GHOST's enumerated detector settings are rendered compactly, so we don't use the
+  // `Display` labels, which are too wide for these columns.
+  private def ghostEnumCol[A: Enumerated: Display](
+    colId:     ColumnId,
+    getter:    SequenceRow[D] => Option[A],
+    colHeader: String,
+    replace:   Step.Id => A => Endo[List[Atom[D]]],
+    renderer:  A => String
+  ): colDef.TypeFor[Option[A]] =
+    colDef(
+      colId,
+      _.getStep.flatMap(getter),
+      header = _ => colHeader,
+      cell = c =>
+        val isFinished: Boolean = c.getStep.forall(_.isFinished)
+        c.value.map[VdomNode]: v =>
+          if c.isRowEditing && !isFinished then
+            EnumDropdown[A](
+              id = NonEmptyString.unsafeFrom(s"${colId.value}-${c.row.index}"),
+              value = v,
+              onChange = a => handleRowValueEdit(c)(replace)(a.some),
+              itemTemplate = (si: SelectItem[A]) => renderer(si.value),
+              valueTemplate = (si: SelectItem[A]) => renderer(si.value),
+              clazz = SequenceStyles.SequenceDropdown
+            )
+          else renderer(v)
     )
 
   private lazy val ghostBlueGroupCol: colDef.Type =
@@ -313,6 +377,10 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       header = _ => <.span(LucumaStyles.GhostBlue)("Blue"),
       columns = ghostDetectorCols(
         _.ghostBlue,
+        ghostBlueExposureReplace,
+        ghostBlueExposureCountReplace,
+        ghostBlueReadModeReplace,
+        ghostBlueBinningReplace,
         SequenceColumns.GhostBlueExposureCountColumnId,
         SequenceColumns.GhostBlueExposureTimeColumnId,
         SequenceColumns.GhostBlueReadModeColumnId,
@@ -326,6 +394,10 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       header = _ => <.span(LucumaStyles.GhostRed)("Red"),
       columns = ghostDetectorCols(
         _.ghostRed,
+        ghostRedExposureReplace,
+        ghostRedExposureCountReplace,
+        ghostRedReadModeReplace,
+        ghostRedBinningReplace,
         SequenceColumns.GhostRedExposureCountColumnId,
         SequenceColumns.GhostRedExposureTimeColumnId,
         SequenceColumns.GhostRedReadModeColumnId,
@@ -391,7 +463,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     )
 
   lazy val ForGhost: List[colDef.Type] =
-    List[colDef.Type](indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
+    List[colDef.Type](dragHandleCol,
+                      editControlsCol,
+                      indexAndTypeCol,
+                      guideStateCol,
+                      pOffsetCol,
+                      qOffsetCol
+    ) ++
       List(ghostBlueGroupCol, ghostRedGroupCol)
 
   lazy val ForGnirs: List[colDef.TypeFor[?]] =
