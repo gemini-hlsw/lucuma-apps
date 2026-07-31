@@ -15,6 +15,7 @@ import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
+import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
@@ -100,6 +101,18 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
         igrins2.andThen(Igrins2DynamicConfig.exposure),
         gnirs.andThen(GnirsDynamicConfig.exposure)
       )
+
+  // p/q and guiding live in the telescope config, which is not instrument specific.
+  private val stepTelescopeConfig: Lens[Step[D], TelescopeConfig] = Step.telescopeConfig[D]
+
+  protected val pOffsetReplace: Step.Id => Angle => Endo[List[Atom[D]]] =
+    modifyStep(stepTelescopeConfig.andThen(TelescopeConfig.offset).andThen(Offset.pAngle).replace)
+
+  protected val qOffsetReplace: Step.Id => Angle => Endo[List[Atom[D]]] =
+    modifyStep(stepTelescopeConfig.andThen(TelescopeConfig.offset).andThen(Offset.qAngle).replace)
+
+  protected val guidingReplace: Step.Id => StepGuideState => Endo[List[Atom[D]]] =
+    modifyStep(stepTelescopeConfig.andThen(TelescopeConfig.guiding).replace)
 
   private val detectorExposure: Lens[GhostDetector, TimeSpan] =
     Focus[GhostDetector](_.exposureTime)

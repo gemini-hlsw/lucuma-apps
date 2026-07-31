@@ -5,6 +5,8 @@ package lucuma.ui.sequence
 
 import cats.Endo
 import cats.syntax.all.*
+import crystal.react.View
+import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
@@ -12,29 +14,40 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.StepGuideState
+import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.optics.ValidWedge
+import lucuma.core.syntax.validation.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.core.validation.InputValidWedge
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.InputNumber
+import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.SelectItem
+import lucuma.react.primereact.ToggleButton
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.formatSN
+import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
+import monocle.Prism
 
 import SequenceRowFormatters.*
 
@@ -160,9 +173,28 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.GuideColumnId,
       _.getStep.map(_.hasGuiding),
       header = "",
-      cell = _.value
-        .filter(identity) // Only render on Some(true)
-        .map(_ => SequenceIcons.Crosshairs.withClass(SequenceStyles.StepGuided))
+      cell = c =>
+        val isFinished: Boolean = c.getStep.forall(_.isFinished)
+        if c.isRowEditing && !isFinished then
+          c.value.map[VdomNode]: guiding =>
+            ToggleButton(
+              onIcon = SequenceIcons.Crosshairs.addClass(SequenceStyles.StepGuided),
+              offIcon = SequenceIcons.Crosshairs.addClass(SequenceStyles.StepUnguided),
+              onLabel = "",
+              offLabel = "",
+              tooltip = "Toggle Guiding",
+              tooltipOptions = TooltipOptions.Top,
+              text = true,
+              clazz = PrimeStyles.ButtonIconOnly |+| SequenceStyles.GuidingToggle,
+              checked = guiding,
+              onChange = b =>
+                handleRowValueEdit(c)(guidingReplace):
+                  (if b then StepGuideState.Enabled else StepGuideState.Disabled).some
+            ).mini.compact
+        else
+          c.value
+            .filter(identity) // Only render on Some(true)
+            .map(_ => SequenceIcons.Crosshairs.withClass(SequenceStyles.StepGuided))
     )
 
   private lazy val pOffsetCol: colDef.TypeFor[Option[Offset.P]] =
@@ -170,7 +202,8 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.PColumnId,
       _.getStep.flatMap(_.offset.map(_.p)),
       header = _ => "p",
-      cell = _.value.map(FormatOffsetP(_).value).orEmpty
+      cell = c =>
+        offsetCell(c, SequenceColumns.PColumnId, pOffsetReplace)(_.toAngle, FormatOffsetP(_).value)
     )
 
   private lazy val qOffsetCol: colDef.TypeFor[Option[Offset.Q]] =
@@ -178,8 +211,33 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.QColumnId,
       _.getStep.flatMap(_.offset.map(_.q)),
       header = _ => "q",
-      cell = _.value.map(FormatOffsetQ(_).value).orEmpty
+      cell = c =>
+        offsetCell(c, SequenceColumns.QColumnId, qOffsetReplace)(_.toAngle, FormatOffsetQ(_).value)
     )
+
+  private def offsetCell[A](
+    c:       CellContextType[Option[A]],
+    colId:   ColumnId,
+    replace: Step.Id => Angle => Endo[List[Atom[D]]]
+  )(toAngle: A => Angle, format: A => String): Option[VdomNode] =
+    val isFinished: Boolean = c.getStep.forall(_.isFinished)
+    c.value.map[VdomNode]: v =>
+      if c.isRowEditing && !isFinished then
+        val angle: Angle = toAngle(v)
+        FormInputTextView(
+          id = NonEmptyString.unsafeFrom(s"${colId.value}-${c.row.index}"),
+          value = View[Angle](
+            angle,
+            (mod, cb) =>
+              val newAngle: Angle = mod(angle)
+              handleRowValueEdit(c)(replace)(newAngle.some) >> cb(angle, newAngle)
+          ),
+          validFormat = SequenceColumns.DecimalArcsecondsValidWedge,
+          changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+          groupClass = SequenceStyles.SequenceInput,
+          inputClass = SequenceStyles.OffsetInput
+        )
+      else format(v)
 
   private lazy val wavelengthCol: colDef.TypeFor[Option[Wavelength]] =
     colDef(
@@ -502,6 +560,20 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
 
 object SequenceColumns:
+
+  private val decimalArcsecondsPrism: Prism[BigDecimal, Angle] =
+    Prism[BigDecimal, Angle](Angle.signedDecimalArcseconds.reverseGet(_).some)(
+      Angle.signedDecimalArcseconds.get
+    )
+
+  private[sequence] val DecimalArcsecondsValidWedge: InputValidWedge[Angle] =
+    InputValidWedge
+      .truncatedBigDecimal(2.refined)
+      .andThen(
+        ValidWedge
+          .fromPrism(decimalArcsecondsPrism, _ => "Invalid Angle".refined[NonEmpty])
+          .toErrorsValidWedge
+      )
 
   val DragHandleColumnId: ColumnId    = ColumnId("dragHandle")
   val EditControlsColumnId: ColumnId  = ColumnId("editControls")

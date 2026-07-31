@@ -45,7 +45,11 @@
   }
 
   .lucuma-sequence-input input {
+    // The rows are too short to afford any vertical padding.
+    box-sizing: border-box;
     width: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
     border: inherit;
     text-align: center;
   }
@@ -59,6 +63,46 @@
       text-align: center;
     }
   }
+
+  .lucuma-sequence-offset-input {
+    width: 100%;
+    padding: 0;
+    border: inherit;
+    text-align: center;
+  }
+
+  .lucuma-sequence-guiding-toggle {
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+
+    // The box carries the affordance, so it reads as editable like the inputs do.
+    &.p-button {
+      box-sizing: border-box;
+      width: 100%;
+      display: inline-flex;
+      padding-top: 2px;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      border: 1px solid var(--prime-input-border-color);
+      border-radius: var(--border-radius);
+      background: var(--prime-input-background);
+    }
+
+    // PrimeReact still emits a `&nbsp;` label for an icon-only button.
+    .p-button-label {
+      display: none;
+    }
+
+    .p-button-icon-left {
+      margin: 0;
+    }
+  }
+}
+
+.lucuma-sequence-step-unguided {
+  opacity: 0.2;
 }
 
 .lucuma-sequence-step-guided {
