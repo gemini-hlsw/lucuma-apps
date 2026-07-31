@@ -117,9 +117,9 @@ case class AsterismGroupObsList(
 
   private val clipboardText: Option[String] =
     clipboardContent match
-      case LocalClipboard.Empty                            => none
-      case LocalClipboard.CopiedTargets(targets)           => targetsText(targets.idSet.toSortedSet).some
-      case LocalClipboard.CopiedObservations(observations) => observationsText(observations).some
+      case LocalClipboard.Empty                               => none
+      case LocalClipboard.CopiedTargets(_, targets)           => targetsText(targets.idSet.toSortedSet).some
+      case LocalClipboard.CopiedObservations(_, observations) => observationsText(observations).some
 
   private val isDisabledSelected: Boolean =
     (selectedIdsOpt.flatMap(_.left.toOption), programType).tupled.fold(false):

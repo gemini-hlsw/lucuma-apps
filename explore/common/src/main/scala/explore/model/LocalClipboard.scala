@@ -3,7 +3,15 @@
 
 package explore.model
 
-enum LocalClipboard(val isEmpty: Boolean, val isObservations: Boolean, val isTargets: Boolean):
-  case Empty                              extends LocalClipboard(true, false, false)
-  case CopiedObservations(oids: ObsIdSet) extends LocalClipboard(false, true, false)
-  case CopiedTargets(tids: TargetIdSet)   extends LocalClipboard(false, false, true)
+import io.circe.Decoder
+import io.circe.Encoder
+import lucuma.core.model.Program
+
+enum LocalClipboard(val isEmpty: Boolean, val isObservations: Boolean, val isTargets: Boolean)
+    derives Encoder,
+      Decoder:
+  case Empty extends LocalClipboard(true, false, false)
+  case CopiedObservations(programId: Program.Id, oids: ObsIdSet)
+      extends LocalClipboard(false, true, false)
+  case CopiedTargets(programId: Program.Id, tids: TargetIdSet)
+      extends LocalClipboard(false, false, true)

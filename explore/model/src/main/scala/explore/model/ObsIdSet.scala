@@ -10,6 +10,8 @@ import cats.Show
 import cats.data.NonEmptySet
 import cats.syntax.all.*
 import explore.model.util.NonEmptySetWrapper
+import io.circe.Decoder
+import io.circe.Encoder
 import monocle.Iso
 import monocle.Prism
 
@@ -33,6 +35,10 @@ object ObsIdSet {
   given Show[ObsIdSet] = Show.show(_.idSet.toList.mkString(", "))
 
   given Semigroup[ObsIdSet] = Semigroup.instance((a, b) => ObsIdSet(a.idSet |+| b.idSet))
+
+  given Encoder[ObsIdSet] = Encoder.encodeString.contramap(fromString.reverseGet)
+  given Decoder[ObsIdSet] =
+    Decoder.decodeString.emap(s => fromString.getOption(s).toRight("Invalid observation id set"))
 
   val iso: Iso[ObsIdSet, NonEmptySet[Observation.Id]] =
     Iso[ObsIdSet, NonEmptySet[Observation.Id]](_.idSet)(ObsIdSet.apply)

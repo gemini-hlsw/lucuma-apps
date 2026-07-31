@@ -7,6 +7,8 @@ import cats.Order
 import cats.data.NonEmptySet
 import cats.syntax.all.*
 import explore.model.util.NonEmptySetWrapper
+import io.circe.Decoder
+import io.circe.Encoder
 import lucuma.core.model.Target
 import monocle.Iso
 import monocle.Prism
@@ -15,6 +17,10 @@ case class TargetIdSet(idSet: NonEmptySet[Target.Id])
 
 object TargetIdSet {
   implicit val orderTargetIdSet: Order[TargetIdSet] = Order.by(_.idSet)
+
+  given Encoder[TargetIdSet] = Encoder.encodeString.contramap(fromString.reverseGet)
+  given Decoder[TargetIdSet] =
+    Decoder.decodeString.emap(s => fromString.getOption(s).toRight("Invalid target id set"))
 
   val iso: Iso[TargetIdSet, NonEmptySet[Target.Id]] =
     Iso[TargetIdSet, NonEmptySet[Target.Id]](_.idSet)(TargetIdSet.apply)
