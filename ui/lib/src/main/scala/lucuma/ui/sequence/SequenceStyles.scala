@@ -8,6 +8,7 @@ import lucuma.react.common.Css
 object SequenceStyles:
   val SequenceTable: Css = Css("lucuma-sequence-table")
   val StepGuided: Css    = Css("lucuma-sequence-step-guided")
+  val StepUnguided: Css  = Css("lucuma-sequence-step-unguided")
 
   val TableHeader           = Css("lucuma-sequence-header")
   val TableHeaderExpandable = Css("lucuma-sequence-header-expandable")
@@ -27,6 +28,8 @@ object SequenceStyles:
 
   val SequenceInput    = Css("lucuma-sequence-input")
   val SequenceDropdown = Css("lucuma-sequence-dropdown")
+  val OffsetInput      = Css("lucuma-sequence-offset-input")
+  val GuidingToggle    = Css("lucuma-sequence-guiding-toggle")
   val SaturatedCell    = Css("lucuma-sequence-saturated-cell")
 
   val CurrentHeader = Css("lucuma-sequence-current-header")

@@ -281,6 +281,11 @@
   --form-input-color: var(--site-input-color);
   --form-input-focus-color: var(--color-text-base);
   --form-input-background: var(--control-background-color);
+
+  // Mirrors the chrome PrimeReact's theme gives `.p-inputtext`, for controls that
+  // need to read as text fields without being one.
+  --prime-input-background: hsl(0deg 0% 7%);
+  --prime-input-border-color: hsl(0deg 0% 22%);
   --form-input-focus-border-color: transparent;
   --form-input-focus-box-shadow:
     0 0 0 0.1rem var(--focus-inner-color), 0 0 0 0.2rem var(--focus-outer-color);
