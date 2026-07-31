@@ -162,12 +162,13 @@ object TargetEditor:
 
   private def emptySourceProfileInput(sp: SourceProfile): SourceProfileInput =
     sp match
-      case SourceProfile.Point(_)       =>
-        SourceProfileInput.Point:
-          SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
-      case SourceProfile.Uniform(_)     =>
-        SourceProfileInput.Uniform:
-          SpectralDefinitionSurfaceInput.BandNormalized(BandNormalizedSurfaceInput())
+      case SourceProfile.Point(sd)      =>
+        SourceProfileInput.Point(emptySpectralDefinitionIntegratedInput(sd))
+      case SourceProfile.Uniform(sd)    =>
+        SourceProfileInput.Uniform(emptySpectralDefinitionSurfaceInput(sd))
+      // The spectral definition must be left unassigned here: this is the base for *all*
+      // deltas under `gaussian`, so assigning it would make even a plain FWHM edit emit a
+      // spurious spectral definition edit. `SourceProfileEditor` fills it in via `forceAssign`.
       case SourceProfile.Gaussian(_, _) =>
         SourceProfileInput.Gaussian:
           GaussianInput()

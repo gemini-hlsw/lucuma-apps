@@ -9,7 +9,10 @@ import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import lucuma.ags.AgsAnalysis
+import lucuma.core.math.BrightnessUnits.*
+import lucuma.core.model.SpectralDefinition
 import lucuma.core.util.NewBoolean
+import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.aladin.Fov
 import lucuma.ui.reusability.given
 import org.scalajs.dom.HTMLElement
@@ -20,6 +23,28 @@ given Reusability[AgsAnalysis.Usable] =
 
 object AreAdding extends NewBoolean
 type AreAdding = AreAdding.Type
+
+// The `SpectralDefinition*Input`s are `@oneOf`s, so `Aligner` drills into them through a
+// `Prism`. The base input we start from must therefore be of the same kind as the current
+// spectral definition, otherwise the prism doesn't match and the edit is silently dropped,
+// resulting in an empty (and invalid) edit of the wrong kind being sent to the ODB.
+private def emptySpectralDefinitionIntegratedInput(
+  sd: SpectralDefinition[Integrated]
+): SpectralDefinitionIntegratedInput =
+  sd match
+    case SpectralDefinition.BandNormalized(_, _) =>
+      SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
+    case SpectralDefinition.EmissionLines(_, _)  =>
+      SpectralDefinitionIntegratedInput.EmissionLines(EmissionLinesIntegratedInput())
+
+private def emptySpectralDefinitionSurfaceInput(
+  sd: SpectralDefinition[Surface]
+): SpectralDefinitionSurfaceInput =
+  sd match
+    case SpectralDefinition.BandNormalized(_, _) =>
+      SpectralDefinitionSurfaceInput.BandNormalized(BandNormalizedSurfaceInput())
+    case SpectralDefinition.EmissionLines(_, _)  =>
+      SpectralDefinitionSurfaceInput.EmissionLines(EmissionLinesSurfaceInput())
 
 extension (options: AsterismVisualOptions) inline def fov: Fov = Fov(options.fovRA, options.fovDec)
 
