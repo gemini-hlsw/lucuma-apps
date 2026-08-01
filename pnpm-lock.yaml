@@ -114,8 +114,8 @@ importers:
         specifier: 4.7.1
         version: 4.7.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-grid-layout:
-        specifier: 2.2.3
-        version: 2.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: 2.2.4
+        version: 2.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-hotkeys-hook:
         specifier: 5.3.3
         version: 5.3.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -306,8 +306,8 @@ importers:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
       react-grid-layout:
-        specifier: 2.2.3
-        version: 2.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: 2.2.4
+        version: 2.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       sass:
         specifier: 1.101.7
         version: 1.101.7
@@ -2967,8 +2967,8 @@ packages:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
 
-  react-grid-layout@2.2.3:
-    resolution: {integrity: sha512-OAEJHBxmfuxQfVtZwRzmsokijGlBgzYIJ7MUlLk/VSa43SaGzu15w5D0P2RDrfX5EvP9POMbL6bFrai/huDzbQ==}
+  react-grid-layout@2.2.4:
+    resolution: {integrity: sha512-Eb57FsgOMYOfsUGrMI1ku/FFR+dPNPrE8qo+3hwZubpqVSy4GO9v52DeX50Tl3JDYAlCypP4rmw7Vrqk/zOIvA==}
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
@@ -6628,7 +6628,7 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
-  react-grid-layout@2.2.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  react-grid-layout@2.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       clsx: 2.1.1
       fast-equals: 4.0.3
