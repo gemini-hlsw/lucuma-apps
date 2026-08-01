@@ -36,6 +36,7 @@ import observe.model.arb.ObserveModelArbitraries.given
 import observe.model.odb.ObsRecordedIds
 import observe.ui.model.IsAudioActivated
 import observe.ui.model.LoadedObservations
+import observe.ui.model.UserPreferences
 import observe.ui.model.ObsSummary
 import observe.ui.model.ObservationRequests
 import observe.ui.model.RootModelData
@@ -53,6 +54,11 @@ trait ArbRootModel:
   given Arbitrary[Observation.Id] = Arbitrary:
     Gen.oneOf(Gen.const(StandardObsId), arbGid[Observation.Id].arbitrary)
 
+  given Arbitrary[UserPreferences] = Arbitrary:
+    arbitrary[IsAudioActivated].map(UserPreferences(_))
+
+  given Cogen[UserPreferences] = Cogen[IsAudioActivated].contramap(_.isAudioActivated)
+
   given Arbitrary[RootModelData] = Arbitrary:
     for
       uv    <- arbitrary[Pot[Option[UserVault]]]
@@ -69,7 +75,7 @@ trait ArbRootModel:
       op    <- arbitrary[Option[Operator]]
       usm   <- arbitrary[Option[NonEmptyString]]
       log   <- arbitrary[FixedLengthBuffer[LogMessage]]
-      audio <- arbitrary[IsAudioActivated]
+      up    <- arbitrary[UserPreferences]
       gf    <- arbitrary[String]
       cf    <-
         arbitrary[Map[String, String]].map(_.map((k, v) => ColumnId(k) -> v)).map(ColumnFilters(_))
@@ -88,7 +94,7 @@ trait ArbRootModel:
       op,
       usm,
       log,
-      audio,
+      up,
       gf,
       cf
     )
@@ -109,7 +115,7 @@ trait ArbRootModel:
       Option[Operator],
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
-      IsAudioActivated,
+      UserPreferences,
       String,
       Map[String, String]
     )
@@ -128,7 +134,7 @@ trait ArbRootModel:
      x.operator,
      x.userSelectionMessage,
      x.globalLog,
-     x.isAudioActivated,
+     x.userPreferences,
      x.obsListGlobalFilter,
      x.obsListColumnFilters.value.map((k, v) => k.value -> v.toString)
     )
