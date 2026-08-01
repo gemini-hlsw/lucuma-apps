@@ -37,6 +37,8 @@ import observe.model.odb.ObsRecordedIds
 import observe.ui.model.IsAudioActivated
 import observe.ui.model.LoadedObservations
 import observe.ui.model.UserPreferences
+import lucuma.ui.enums.Theme
+import observe.model.enums.ObserveLogLevel
 import observe.ui.model.ObsSummary
 import observe.ui.model.ObservationRequests
 import observe.ui.model.RootModelData
@@ -55,9 +57,16 @@ trait ArbRootModel:
     Gen.oneOf(Gen.const(StandardObsId), arbGid[Observation.Id].arbitrary)
 
   given Arbitrary[UserPreferences] = Arbitrary:
-    arbitrary[IsAudioActivated].map(UserPreferences(_))
+    for
+      audio <- arbitrary[IsAudioActivated]
+      theme <- Gen.oneOf(Theme.values*)
+      level <- Gen.oneOf(ObserveLogLevel.values*)
+      utc   <- arbitrary[Boolean]
+    yield UserPreferences(audio, theme, level, utc)
 
-  given Cogen[UserPreferences] = Cogen[IsAudioActivated].contramap(_.isAudioActivated)
+  given Cogen[UserPreferences] =
+    Cogen[(IsAudioActivated, Int, Int, Boolean)].contramap: p =>
+      (p.isAudioActivated, p.theme.ordinal, p.logLevel.ordinal, p.logTimeIsUTC)
 
   given Arbitrary[RootModelData] = Arbitrary:
     for

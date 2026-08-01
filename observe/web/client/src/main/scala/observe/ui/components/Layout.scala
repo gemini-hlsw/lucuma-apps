@@ -31,6 +31,7 @@ import observe.ui.model.AppContext
 import observe.ui.model.Page
 import observe.ui.model.RootModel
 import observe.ui.model.RootModelData
+import observe.ui.model.UserPreferences
 import observe.ui.model.enums.AppTab
 
 import java.time.ZoneOffset
@@ -44,16 +45,23 @@ object Layout
       for
         ctx             <- useContext(AppContext.ctx)
         odbStatus       <- useStreamOnMount(ctx.odbClient.statusStream)
-        theme           <- useTheme(initial = Theme.Dark)
+        // Theme is initialized from the persisted preference.
+        theme           <- useTheme(initial = props.rootModel.data.get.userPreferences.theme)
+        _               <-
+          useEffectWithDeps(theme.get): t =>
+            props.rootModel.data
+              .zoom(RootModelData.userPreferences.andThen(UserPreferences.theme))
+              .set(t)
         bootstrapped    <- useState(Bootstrapped.False)
-        logDisplayLevel <- useStateView(ObserveLogLevel.Info)
-        showUT          <- useStateView(false)
         ready            = odbStatus.contains_(PersistentClientStatus.Connected) &&
                              props.rootModel.clientConfig.isReady
         _               <- useEffectWithDeps(ready):
                              case r => bootstrapped.setState(Bootstrapped.True).when_(r)
       yield
-        val appTab: AppTab = AppTab.from(props.resolution.page)
+        val userPrefs       = props.rootModel.data.zoom(RootModelData.userPreferences)
+        val logDisplayLevel = userPrefs.zoom(UserPreferences.logLevel)
+        val showUT          = userPrefs.zoom(UserPreferences.logTimeIsUTC)
+        val appTab: AppTab  = AppTab.from(props.resolution.page)
 
         val appTabView: View[AppTab] =
           View(

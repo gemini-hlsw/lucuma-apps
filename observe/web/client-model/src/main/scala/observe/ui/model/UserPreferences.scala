@@ -7,8 +7,10 @@ import cats.Eq
 import cats.derived.*
 import io.circe.Decoder
 import io.circe.Encoder
+import lucuma.ui.enums.Theme
 import monocle.Focus
 import monocle.Lens
+import observe.model.enums.ObserveLogLevel
 
 // UI-only preferences for Observe.
 //
@@ -23,24 +25,49 @@ import monocle.Lens
 //   - decode it as `Option[...]` in the `Decoder` below so an older blob (missing the field) still
 //     loads instead of failing the whole decode.
 case class UserPreferences(
-  isAudioActivated: IsAudioActivated
+  isAudioActivated: IsAudioActivated,
+  theme:            Theme,
+  logLevel:         ObserveLogLevel,
+  // When false the log panel uses the site timezone (local); when true it uses UTC.
+  logTimeIsUTC:     Boolean
 ) derives Eq
 
 object UserPreferences:
-  val Default: UserPreferences = UserPreferences(isAudioActivated = IsAudioActivated.True)
+  val Default: UserPreferences = UserPreferences(
+    isAudioActivated = IsAudioActivated.True,
+    theme = Theme.Dark,
+    logLevel = ObserveLogLevel.Info,
+    logTimeIsUTC = false
+  )
 
   val isAudioActivated: Lens[UserPreferences, IsAudioActivated] =
     Focus[UserPreferences](_.isAudioActivated)
+  val theme: Lens[UserPreferences, Theme]        =
+    Focus[UserPreferences](_.theme)
+  val logLevel: Lens[UserPreferences, ObserveLogLevel] =
+    Focus[UserPreferences](_.logLevel)
+  val logTimeIsUTC: Lens[UserPreferences, Boolean] =
+    Focus[UserPreferences](_.logTimeIsUTC)
 
   // Lenient: each field is decoded as an Option and falls back to its default when absent, so a
   // blob written by an older (or newer) version of the app degrades gracefully instead of failing.
-  // Any remaining decode failure (corrupt JSON, etc.) is additionally caught at the storage layer,
-  // which replaces the whole blob with `Default` -- the "use defaults on failure" policy.
+  // Any remaining decode failure (corrupt JSON, unknown enum value, ...) is additionally caught at
+  // the storage layer, which replaces the whole blob with `Default` -- the "use defaults on
+  // failure" policy.
   given Decoder[UserPreferences] =
     Decoder.instance: c =>
-      c.downField("isAudioActivated")
-        .as[Option[IsAudioActivated]]
-        .map(audio => UserPreferences(audio.getOrElse(Default.isAudioActivated)))
+      for
+        audio    <- c.downField("isAudioActivated").as[Option[IsAudioActivated]]
+        theme    <- c.downField("theme").as[Option[Theme]]
+        logLevel <- c.downField("logLevel").as[Option[ObserveLogLevel]]
+        logUtc   <- c.downField("logTimeIsUTC").as[Option[Boolean]]
+      yield UserPreferences(
+        isAudioActivated = audio.getOrElse(Default.isAudioActivated),
+        theme = theme.getOrElse(Default.theme),
+        logLevel = logLevel.getOrElse(Default.logLevel),
+        logTimeIsUTC = logUtc.getOrElse(Default.logTimeIsUTC)
+      )
 
   given Encoder[UserPreferences] =
-    Encoder.forProduct1("isAudioActivated")(_.isAudioActivated)
+    Encoder.forProduct4("isAudioActivated", "theme", "logLevel", "logTimeIsUTC"): p =>
+      (p.isAudioActivated, p.theme, p.logLevel, p.logTimeIsUTC)
