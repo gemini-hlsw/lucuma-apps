@@ -42,6 +42,12 @@ import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpGain
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpReadMode
+import lucuma.core.model.sequence.gmos.mos.mosBinning
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
@@ -194,7 +200,71 @@ final case class Observation(
             mode,
             explicitRoi.getOrElse(defaultRoi)
           )
-      case _ => none
+      case n: ObservingMode.GmosNorthMos =>
+        profiles(targets).map: ps =>
+          val bins =
+            ps.map(
+              mosBinning(
+                n.customMask.slitWidth.width,
+                _,
+                constraints.imageQuality.toImageQuality,
+                n.grating.dispersion,
+                n.grating.referenceResolution,
+                n.grating.blazeWavelength,
+                DefaultGmosNorthDetector.pixelSize
+              )
+            )
+
+          val defaultMode: GmosCcdMode =
+            GmosCcdMode(
+              bins.map(_._1).minimumBy(_.count),
+              bins.map(_._2).minimumBy(_.count),
+              DefaultAmpCount,
+              DefaultAmpGain,
+              DefaultAmpReadMode
+            )
+
+          val mode: GmosCcdMode = applyGmosCcdModesOverrides(
+            n.explicitXBin.map(GmosXBinning(_)),
+            n.explicitYBin.map(GmosYBinning(_)),
+            n.explicitAmpReadMode,
+            n.explicitAmpGain
+          )(defaultMode)
+
+          InstrumentOverrides.GmosSpectroscopy(n.centralWavelength, mode, n.roi)
+      case s: ObservingMode.GmosSouthMos =>
+        profiles(targets).map: ps =>
+          val bins =
+            ps.map(
+              mosBinning(
+                s.customMask.slitWidth.width,
+                _,
+                constraints.imageQuality.toImageQuality,
+                s.grating.dispersion,
+                s.grating.referenceResolution,
+                s.grating.blazeWavelength,
+                DefaultGmosSouthDetector.pixelSize
+              )
+            )
+
+          val defaultMode: GmosCcdMode =
+            GmosCcdMode(
+              bins.map(_._1).minimumBy(_.count),
+              bins.map(_._2).minimumBy(_.count),
+              DefaultAmpCount,
+              DefaultAmpGain,
+              DefaultAmpReadMode
+            )
+
+          val mode: GmosCcdMode = applyGmosCcdModesOverrides(
+            s.explicitXBin.map(GmosXBinning(_)),
+            s.explicitYBin.map(GmosYBinning(_)),
+            s.explicitAmpReadMode,
+            s.explicitAmpGain
+          )(defaultMode)
+
+          InstrumentOverrides.GmosSpectroscopy(s.centralWavelength, mode, s.roi)
+      case _                             => none
 
   // Imaging modes can return multiple configs due to multiple filters.
   // And exchange modes return an empty list.
@@ -215,6 +285,30 @@ final case class Observation(
             List(
               ItcInstrumentConfig
                 .GmosSouthSpectroscopy(s.grating, s.fpu.some, s.filter, s.exposureTimeMode, o.some)
+            )
+        case n: GmosNorthMos                     =>
+          modeOverride.foldMap: o =>
+            List(
+              ItcInstrumentConfig.GmosNorthSpectroscopy(
+                grating = n.grating,
+                fpu = none,
+                filter = n.filter,
+                exposureTimeMode = n.exposureTimeMode,
+                modeOverrides = o.some,
+                customSlitWidth = n.customMask.slitWidth.width.some
+              )
+            )
+        case s: GmosSouthMos                     =>
+          modeOverride.foldMap: o =>
+            List(
+              ItcInstrumentConfig.GmosSouthSpectroscopy(
+                grating = s.grating,
+                fpu = none,
+                filter = s.filter,
+                exposureTimeMode = s.exposureTimeMode,
+                modeOverrides = o.some,
+                customSlitWidth = s.customMask.slitWidth.width.some
+              )
             )
         case n: GmosNorthImaging                 =>
           n.filters.toList
