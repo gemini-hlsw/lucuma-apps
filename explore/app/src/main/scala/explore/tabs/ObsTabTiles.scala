@@ -470,6 +470,8 @@ object ObsTabTiles:
                 ).some
               case Some(_: BasicConfiguration.GmosNorthLongSlit) |
                   Some(_: BasicConfiguration.GmosSouthLongSlit) |
+                  Some(_: BasicConfiguration.GmosNorthMos) |
+                  Some(_: BasicConfiguration.GmosSouthMos) |
                   Some(_: BasicConfiguration.Flamingos2LongSlit) |
                   Some(_: BasicConfiguration.Igrins2LongSlit.type) |
                   Some(_: BasicConfiguration.GhostIfu) |
