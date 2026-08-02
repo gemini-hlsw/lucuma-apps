@@ -56,17 +56,23 @@ trait ArbRootModel:
   given Arbitrary[Observation.Id] = Arbitrary:
     Gen.oneOf(Gen.const(StandardObsId), arbGid[Observation.Id].arbitrary)
 
+  given Arbitrary[ColumnFilters] = Arbitrary:
+    arbitrary[Map[String, String]].map(m => ColumnFilters(m.map((k, v) => ColumnId(k) -> v)))
+
   given Arbitrary[UserPreferences] = Arbitrary:
     for
       audio <- arbitrary[IsAudioActivated]
       theme <- Gen.oneOf(Theme.values*)
       level <- Gen.oneOf(ObserveLogLevel.values*)
       utc   <- arbitrary[Boolean]
-    yield UserPreferences(audio, theme, level, utc)
+      gf    <- arbitrary[String]
+      cf    <- arbitrary[ColumnFilters]
+    yield UserPreferences(audio, theme, level, utc, gf, cf)
 
   given Cogen[UserPreferences] =
-    Cogen[(IsAudioActivated, Int, Int, Boolean)].contramap: p =>
-      (p.isAudioActivated, p.theme.ordinal, p.logLevel.ordinal, p.logTimeIsUTC)
+    Cogen[(IsAudioActivated, Int, Int, Boolean, String, Map[String, String])].contramap: p =>
+      (p.isAudioActivated, p.theme.ordinal, p.logLevel.ordinal, p.logTimeIsUTC,
+       p.obsListGlobalFilter, p.obsListColumnFilters.value.map((k, v) => k.value -> v.toString))
 
   given Arbitrary[RootModelData] = Arbitrary:
     for
@@ -85,9 +91,6 @@ trait ArbRootModel:
       usm   <- arbitrary[Option[NonEmptyString]]
       log   <- arbitrary[FixedLengthBuffer[LogMessage]]
       up    <- arbitrary[UserPreferences]
-      gf    <- arbitrary[String]
-      cf    <-
-        arbitrary[Map[String, String]].map(_.map((k, v) => ColumnId(k) -> v)).map(ColumnFilters(_))
     yield RootModelData(
       uv,
       ros,
@@ -103,9 +106,7 @@ trait ArbRootModel:
       op,
       usm,
       log,
-      up,
-      gf,
-      cf
+      up
     )
 
   given Cogen[RootModelData] = Cogen[
@@ -124,9 +125,7 @@ trait ArbRootModel:
       Option[Operator],
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
-      UserPreferences,
-      String,
-      Map[String, String]
+      UserPreferences
     )
   ].contramap: x =>
     (x.userVault,
@@ -143,9 +142,7 @@ trait ArbRootModel:
      x.operator,
      x.userSelectionMessage,
      x.globalLog,
-     x.userPreferences,
-     x.obsListGlobalFilter,
-     x.obsListColumnFilters.value.map((k, v) => k.value -> v.toString)
+     x.userPreferences
     )
 
 object ArbRootModel extends ArbRootModel

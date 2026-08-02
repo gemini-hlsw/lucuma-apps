@@ -44,9 +44,7 @@ case class RootModelData(
   operator:             Option[Operator],
   userSelectionMessage: Option[NonEmptyString],
   globalLog:            FixedLengthBuffer[LogMessage],
-  userPreferences:      UserPreferences,
-  obsListGlobalFilter:  String,
-  obsListColumnFilters: ColumnFilters
+  userPreferences:      UserPreferences
 ) derives Eq:
   // TODO Readonly mode won't depend on user logged or not, but on their permissions.
   // For the moment we are requiring the STAFF role, so all logged users can operate.
@@ -134,9 +132,7 @@ object RootModelData:
       operator = none,
       userSelectionMessage = none,
       globalLog = FixedLengthBuffer.unsafe(MaxGlobalLogEntries),
-      userPreferences = UserPreferences.Default,
-      obsListGlobalFilter = "",
-      obsListColumnFilters = ColumnFilters.Empty
+      userPreferences = UserPreferences.Default
     )
 
   val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     =
@@ -169,13 +165,11 @@ object RootModelData:
     Focus[RootModelData](_.globalLog)
   val userPreferences: Lens[RootModelData, UserPreferences]                      =
     Focus[RootModelData](_.userPreferences)
-  // Composed lens kept for backwards compatibility so call sites (e.g. Layout) read/write the
-  // audio toggle exactly as before, even though the value now lives under `userPreferences`.
   val isAudioActivated: Lens[RootModelData, IsAudioActivated]                    =
     userPreferences.andThen(UserPreferences.isAudioActivated)
   val obsListGlobalFilter: Lens[RootModelData, String]                           =
-    Focus[RootModelData](_.obsListGlobalFilter)
+    userPreferences.andThen(UserPreferences.obsListGlobalFilter)
   val obsListColumnFilters: Lens[RootModelData, ColumnFilters]                   =
-    Focus[RootModelData](_.obsListColumnFilters)
+    userPreferences.andThen(UserPreferences.obsListColumnFilters)
 
 case class RootModel(clientConfig: Pot[ClientConfig], data: View[RootModelData])

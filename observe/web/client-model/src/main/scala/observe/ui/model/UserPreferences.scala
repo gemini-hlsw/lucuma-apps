@@ -7,6 +7,7 @@ import cats.Eq
 import cats.derived.*
 import io.circe.Decoder
 import io.circe.Encoder
+import lucuma.react.table.ColumnFilters
 import lucuma.ui.enums.Theme
 import monocle.Focus
 import monocle.Lens
@@ -14,22 +15,18 @@ import observe.model.enums.ObserveLogLevel
 
 // UI-only preferences for Observe.
 //
-// Observe keeps them entirely in the browser, as a single JSON blob per user in `window.localStorage`.
-// See `UserPreferencesStorage` / `LocalUserPreferences` for the persistence seam.
-//
-// As for explore we are lenient in decoding if a field or the whole preferences is missing we
-// use sane defaults.
-//
 // When adding a field:
 //   - give it a default used by `Default`,
 //   - decode it as `Option[...]` in the `Decoder` below so an older blob (missing the field) still
 //     loads instead of failing the whole decode.
 case class UserPreferences(
-  isAudioActivated: IsAudioActivated,
-  theme:            Theme,
-  logLevel:         ObserveLogLevel,
+  isAudioActivated:     IsAudioActivated,
+  theme:                Theme,
+  logLevel:             ObserveLogLevel,
   // When false the log panel uses the site timezone (local); when true it uses UTC.
-  logTimeIsUTC:     Boolean
+  logTimeIsUTC:         Boolean,
+  obsListGlobalFilter:  String,
+  obsListColumnFilters: ColumnFilters
 ) derives Eq
 
 object UserPreferences:
@@ -37,23 +34,26 @@ object UserPreferences:
     isAudioActivated = IsAudioActivated.True,
     theme = Theme.Dark,
     logLevel = ObserveLogLevel.Info,
-    logTimeIsUTC = false
+    logTimeIsUTC = false,
+    obsListGlobalFilter = "",
+    obsListColumnFilters = ColumnFilters.Empty
   )
 
-  val isAudioActivated: Lens[UserPreferences, IsAudioActivated] =
+  val isAudioActivated: Lens[UserPreferences, IsAudioActivated]  =
     Focus[UserPreferences](_.isAudioActivated)
-  val theme: Lens[UserPreferences, Theme]        =
+  val theme: Lens[UserPreferences, Theme]                        =
     Focus[UserPreferences](_.theme)
-  val logLevel: Lens[UserPreferences, ObserveLogLevel] =
+  val logLevel: Lens[UserPreferences, ObserveLogLevel]           =
     Focus[UserPreferences](_.logLevel)
-  val logTimeIsUTC: Lens[UserPreferences, Boolean] =
+  val logTimeIsUTC: Lens[UserPreferences, Boolean]               =
     Focus[UserPreferences](_.logTimeIsUTC)
+  val obsListGlobalFilter: Lens[UserPreferences, String]         =
+    Focus[UserPreferences](_.obsListGlobalFilter)
+  val obsListColumnFilters: Lens[UserPreferences, ColumnFilters] =
+    Focus[UserPreferences](_.obsListColumnFilters)
 
   // Lenient: each field is decoded as an Option and falls back to its default when absent, so a
   // blob written by an older (or newer) version of the app degrades gracefully instead of failing.
-  // Any remaining decode failure (corrupt JSON, unknown enum value, ...) is additionally caught at
-  // the storage layer, which replaces the whole blob with `Default` -- the "use defaults on
-  // failure" policy.
   given Decoder[UserPreferences] =
     Decoder.instance: c =>
       for
@@ -61,13 +61,31 @@ object UserPreferences:
         theme    <- c.downField("theme").as[Option[Theme]]
         logLevel <- c.downField("logLevel").as[Option[ObserveLogLevel]]
         logUtc   <- c.downField("logTimeIsUTC").as[Option[Boolean]]
+        gf       <- c.downField("obsListGlobalFilter").as[Option[String]]
+        cf       <- c.downField("obsListColumnFilters").as[Option[ColumnFilters]]
       yield UserPreferences(
         isAudioActivated = audio.getOrElse(Default.isAudioActivated),
         theme = theme.getOrElse(Default.theme),
         logLevel = logLevel.getOrElse(Default.logLevel),
-        logTimeIsUTC = logUtc.getOrElse(Default.logTimeIsUTC)
+        logTimeIsUTC = logUtc.getOrElse(Default.logTimeIsUTC),
+        obsListGlobalFilter = gf.getOrElse(Default.obsListGlobalFilter),
+        obsListColumnFilters = cf.getOrElse(Default.obsListColumnFilters)
       )
 
   given Encoder[UserPreferences] =
-    Encoder.forProduct4("isAudioActivated", "theme", "logLevel", "logTimeIsUTC"): p =>
-      (p.isAudioActivated, p.theme, p.logLevel, p.logTimeIsUTC)
+    Encoder.forProduct6(
+      "isAudioActivated",
+      "theme",
+      "logLevel",
+      "logTimeIsUTC",
+      "obsListGlobalFilter",
+      "obsListColumnFilters"
+    ): p =>
+      (
+        p.isAudioActivated,
+        p.theme,
+        p.logLevel,
+        p.logTimeIsUTC,
+        p.obsListGlobalFilter,
+        p.obsListColumnFilters
+      )
