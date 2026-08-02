@@ -43,20 +43,18 @@ case class Layout(c: RouterCtl[Page], resolution: ResolutionWithProps[Page, Root
 object Layout
     extends ReactFnComponent[Layout](props =>
       for
-        ctx             <- useContext(AppContext.ctx)
-        odbStatus       <- useStreamOnMount(ctx.odbClient.statusStream)
-        // Theme is initialized from the persisted preference.
-        theme           <- useTheme(initial = props.rootModel.data.get.userPreferences.theme)
-        _               <-
-          useEffectWithDeps(theme.get): t =>
-            props.rootModel.data
-              .zoom(RootModelData.userPreferences.andThen(UserPreferences.theme))
-              .set(t)
-        bootstrapped    <- useState(Bootstrapped.False)
-        ready            = odbStatus.contains_(PersistentClientStatus.Connected) &&
-                             props.rootModel.clientConfig.isReady
-        _               <- useEffectWithDeps(ready):
-                             case r => bootstrapped.setState(Bootstrapped.True).when_(r)
+        ctx          <- useContext(AppContext.ctx)
+        odbStatus    <- useStreamOnMount(ctx.odbClient.statusStream)
+        theme        <- useTheme(initial = props.rootModel.data.get.userPreferences.theme)
+        _            <- useEffectWithDeps(theme.get): t =>
+                          props.rootModel.data
+                            .zoom(RootModelData.userPreferences.andThen(UserPreferences.theme))
+                            .set(t)
+        bootstrapped <- useState(Bootstrapped.False)
+        ready         = odbStatus.contains_(PersistentClientStatus.Connected) &&
+                          props.rootModel.clientConfig.isReady
+        _            <- useEffectWithDeps(ready):
+                          case r => bootstrapped.setState(Bootstrapped.True).when_(r)
       yield
         val userPrefs       = props.rootModel.data.zoom(RootModelData.userPreferences)
         val logDisplayLevel = userPrefs.zoom(UserPreferences.logLevel)

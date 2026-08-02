@@ -23,7 +23,6 @@ case class UserPreferences(
   isAudioActivated:     IsAudioActivated,
   theme:                Theme,
   logLevel:             ObserveLogLevel,
-  // When false the log panel uses the site timezone (local); when true it uses UTC.
   logTimeIsUTC:         Boolean,
   obsListGlobalFilter:  String,
   obsListColumnFilters: ColumnFilters

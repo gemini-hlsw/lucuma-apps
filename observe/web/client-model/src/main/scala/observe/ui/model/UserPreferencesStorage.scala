@@ -13,9 +13,6 @@ trait UserPreferencesStorage[F[_]]:
   def save(userId: User.Id, prefs: UserPreferences): F[Unit]
 
 object UserPreferencesStorage:
-  // Wraps a storage so that `load`/`save` can never fail: any error (missing key, corrupt JSON,
-  // quota exceeded, private mode, ...) is swallowed and `load` yields `Default`. This centralizes
-  // the "use defaults on failure" policy so callers don't have to repeat it.
   def build[F[_]: Sync as F](
     underlying: UserPreferencesStorage[F]
   ): UserPreferencesStorage[F] =

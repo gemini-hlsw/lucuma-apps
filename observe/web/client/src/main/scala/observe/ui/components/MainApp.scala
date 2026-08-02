@@ -60,8 +60,8 @@ import observe.ui.model.ObsSummary
 import observe.ui.model.RootModel
 import observe.ui.model.RootModelData
 import observe.ui.model.UserPreferencesStorage
-import observe.ui.model.reusability.given
 import observe.ui.model.enums.*
+import observe.ui.model.reusability.given
 import observe.ui.services.*
 import org.http4s.Uri
 import org.http4s.client.Client
