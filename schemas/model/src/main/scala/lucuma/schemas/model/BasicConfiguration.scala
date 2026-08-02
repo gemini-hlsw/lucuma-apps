@@ -62,6 +62,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN.some
     case _: BasicConfiguration.GmosSouthImaging   => Site.GS.some
     case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS.some
+    case _: BasicConfiguration.GmosNorthMos       => Site.GN.some
+    case _: BasicConfiguration.GmosSouthMos       => Site.GS.some
     case _: BasicConfiguration.GnirsImaging       => Site.GN.some
     case _: BasicConfiguration.GnirsSpectroscopy  => Site.GN.some
     case BasicConfiguration.Igrins2LongSlit       => Site.GN.some
@@ -77,6 +79,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
     case _: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
+    case _: BasicConfiguration.GmosNorthMos       => ObservingModeType.GmosNorthMos
+    case _: BasicConfiguration.GmosSouthMos       => ObservingModeType.GmosSouthMos
     case _: BasicConfiguration.GnirsImaging       => ObservingModeType.GnirsImaging
     case g: BasicConfiguration.GnirsSpectroscopy  => g.gnirsObsModeType
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
@@ -88,6 +92,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
       cw.some
     case BasicConfiguration.GmosSouthLongSlit(centralWavelength = cw) =>
+      cw.some
+    case BasicConfiguration.GmosNorthMos(centralWavelength = cw)      =>
+      cw.some
+    case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
       cw.some
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       CentralWavelength(filter.wavelength).some
@@ -106,6 +114,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
       AGSWavelength(cw.value)
     case BasicConfiguration.GmosSouthLongSlit(centralWavelength = cw) =>
+      AGSWavelength(cw.value)
+    case BasicConfiguration.GmosNorthMos(centralWavelength = cw)      =>
+      AGSWavelength(cw.value)
+    case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
       AGSWavelength(cw.value)
     case BasicConfiguration.GmosNorthImaging(filters)                 =>
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
@@ -134,6 +146,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
       cw.value
     case BasicConfiguration.GmosSouthLongSlit(centralWavelength = cw) =>
+      cw.value
+    case BasicConfiguration.GmosNorthMos(centralWavelength = cw)      =>
+      cw.value
+    case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
       cw.value
     case BasicConfiguration.GmosNorthImaging(filters)                 =>
       filters.minimumBy(_.wavelength).wavelength
@@ -200,46 +216,35 @@ object BasicConfiguration:
         c.downField("gmosNorthLongSlit")
           .as[GmosNorthLongSlit]
           .orElse:
-            c.downField("gmosSouthLongSlit")
-              .as[GmosSouthLongSlit]
-              .orElse:
-                c.downField("gmosNorthImaging")
-                  .as[GmosNorthImaging]
-                  .orElse:
-                    c.downField("gmosSouthImaging")
-                      .as[GmosSouthImaging]
-                      .orElse:
-                        c.downField("flamingos2Imaging")
-                          .as[Flamingos2Imaging]
-                          .orElse:
-                            c.downField("flamingos2LongSlit")
-                              .as[Flamingos2LongSlit]
-                              .orElse:
-                                c.downField("igrins2LongSlit")
-                                  .as[Igrins2LongSlit.type]
-                                  .orElse:
-                                    c.downField("gnirsImaging")
-                                      .as[GnirsImaging]
-                                      .orElse:
-                                        c.downField("gnirsSpectroscopy")
-                                          .as[GnirsSpectroscopy]
-                                          .orElse:
-                                            c.downField("ghostIfu")
-                                              .as[GhostIfu]
-                                              .orElse:
-                                                c.downField("visitor")
-                                                  .as[Visitor]
-                                                  .orElse:
-                                                    c.downField("exchange")
-                                                      .as[KeckExchange]
-                                                      .orElse:
-                                                        c.downField("exchange")
-                                                          .as[SubaruExchange]
-                                                          .orElse:
-                                                            DecodingFailure(
-                                                              "Could not decode BasicConfiguration",
-                                                              c.history
-                                                            ).asLeft
+            c.downField("gmosSouthLongSlit").as[GmosSouthLongSlit]
+          .orElse:
+            c.downField("gmosNorthMos").as[GmosNorthMos]
+          .orElse:
+            c.downField("gmosSouthMos").as[GmosSouthMos]
+          .orElse:
+            c.downField("gmosNorthImaging").as[GmosNorthImaging]
+          .orElse:
+            c.downField("gmosSouthImaging").as[GmosSouthImaging]
+          .orElse:
+            c.downField("flamingos2Imaging").as[Flamingos2Imaging]
+          .orElse:
+            c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
+          .orElse:
+            c.downField("igrins2LongSlit").as[Igrins2LongSlit.type]
+          .orElse:
+            c.downField("gnirsImaging").as[GnirsImaging]
+          .orElse:
+            c.downField("gnirsSpectroscopy").as[GnirsSpectroscopy]
+          .orElse:
+            c.downField("ghostIfu").as[GhostIfu]
+          .orElse:
+            c.downField("visitor").as[Visitor]
+          .orElse:
+            c.downField("exchange").as[KeckExchange]
+          .orElse:
+            c.downField("exchange").as[SubaruExchange]
+          .orElse:
+            DecodingFailure("Could not decode BasicConfiguration", c.history).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -260,6 +265,40 @@ object BasicConfiguration:
 
   object GmosSouthLongSlit:
     given Decoder[GmosSouthLongSlit] = deriveDecoder
+
+  case class GmosNorthMos(
+    grating:           GmosNorthGrating,
+    filter:            Option[GmosNorthFilter],
+    slitWidth:         GmosCustomSlitWidth,
+    centralWavelength: CentralWavelength
+  ) extends BasicConfiguration derives Eq
+
+  object GmosNorthMos:
+    // Not derivable: the slit width is nested under the mode's custom mask.
+    given Decoder[GmosNorthMos] = Decoder.instance: c =>
+      for
+        grating   <- c.downField("grating").as[GmosNorthGrating]
+        filter    <- c.downField("filter").as[Option[GmosNorthFilter]]
+        slitWidth <- c.downField("customMask").downField("slitWidth").as[GmosCustomSlitWidth]
+        cw        <- c.downField("centralWavelength").as[CentralWavelength]
+      yield GmosNorthMos(grating, filter, slitWidth, cw)
+
+  case class GmosSouthMos(
+    grating:           GmosSouthGrating,
+    filter:            Option[GmosSouthFilter],
+    slitWidth:         GmosCustomSlitWidth,
+    centralWavelength: CentralWavelength
+  ) extends BasicConfiguration derives Eq
+
+  object GmosSouthMos:
+    // Not derivable: the slit width is nested under the mode's custom mask.
+    given Decoder[GmosSouthMos] = Decoder.instance: c =>
+      for
+        grating   <- c.downField("grating").as[GmosSouthGrating]
+        filter    <- c.downField("filter").as[Option[GmosSouthFilter]]
+        slitWidth <- c.downField("customMask").downField("slitWidth").as[GmosCustomSlitWidth]
+        cw        <- c.downField("centralWavelength").as[CentralWavelength]
+      yield GmosSouthMos(grating, filter, slitWidth, cw)
 
   case class GmosNorthImaging(
     filters: NonEmptyList[GmosNorthFilter]
@@ -475,6 +514,12 @@ object BasicConfiguration:
 
   val gmosSouthLongSlit: Prism[BasicConfiguration, GmosSouthLongSlit] =
     GenPrism[BasicConfiguration, GmosSouthLongSlit]
+
+  val gmosNorthMos: Prism[BasicConfiguration, GmosNorthMos] =
+    GenPrism[BasicConfiguration, GmosNorthMos]
+
+  val gmosSouthMos: Prism[BasicConfiguration, GmosSouthMos] =
+    GenPrism[BasicConfiguration, GmosSouthMos]
 
   val gmosNorthImaging: Prism[BasicConfiguration, GmosNorthImaging] =
     GenPrism[BasicConfiguration, GmosNorthImaging]

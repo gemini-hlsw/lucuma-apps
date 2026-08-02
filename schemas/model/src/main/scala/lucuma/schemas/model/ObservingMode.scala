@@ -20,6 +20,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
+import lucuma.core.model.Attachment
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
@@ -53,6 +54,8 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
   def obsModeType: ObservingModeType = this match
     case _: ObservingMode.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
     case _: ObservingMode.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
+    case _: ObservingMode.GmosNorthMos       => ObservingModeType.GmosNorthMos
+    case _: ObservingMode.GmosSouthMos       => ObservingModeType.GmosSouthMos
     case _: ObservingMode.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
     case _: ObservingMode.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: ObservingMode.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
@@ -76,6 +79,8 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
   def siteFor: Option[Site] = this match
     case _: ObservingMode.GmosNorthLongSlit  => Site.GN.some
     case _: ObservingMode.GmosSouthLongSlit  => Site.GS.some
+    case _: ObservingMode.GmosNorthMos       => Site.GN.some
+    case _: ObservingMode.GmosSouthMos       => Site.GS.some
     case _: ObservingMode.GmosNorthImaging   => Site.GN.some
     case _: ObservingMode.GmosSouthImaging   => Site.GS.some
     case _: ObservingMode.Flamingos2Imaging  => Site.GS.some
@@ -93,6 +98,18 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
       BasicConfiguration.GmosNorthLongSlit(n.grating, n.filter, n.fpu, n.centralWavelength)
     case s: ObservingMode.GmosSouthLongSlit                        =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
+    case n: ObservingMode.GmosNorthMos                             =>
+      BasicConfiguration.GmosNorthMos(n.grating,
+                                      n.filter,
+                                      n.customMask.slitWidth,
+                                      n.centralWavelength
+      )
+    case s: ObservingMode.GmosSouthMos                             =>
+      BasicConfiguration.GmosSouthMos(s.grating,
+                                      s.filter,
+                                      s.customMask.slitWidth,
+                                      s.centralWavelength
+      )
     case ObservingMode.GmosNorthImaging(filters = filters)         =>
       BasicConfiguration.GmosNorthImaging(filters.map(_.filter))
     case ObservingMode.GmosSouthImaging(filters = filters)         =>
@@ -152,6 +169,10 @@ object ObservingMode:
           .as[GmosNorthLongSlit]
           .orElse:
             c.downField("gmosSouthLongSlit").as[GmosSouthLongSlit]
+          .orElse:
+            c.downField("gmosNorthMos").as[GmosNorthMos]
+          .orElse:
+            c.downField("gmosSouthMos").as[GmosSouthMos]
           .orElse:
             c.downField("gmosNorthImaging").as[GmosNorthImaging]
           .orElse:
@@ -478,6 +499,258 @@ object ObservingMode:
       Focus[GmosSouthLongSlit](_.exposureTimeMode)
     val acquisition: Lens[GmosSouthLongSlit, GmosSouthLongSlit.Acquisition]                        =
       Focus[GmosSouthLongSlit](_.acquisition)
+
+  // The mask through which a MOS observation is taken. Distinct from
+  // lucuma-core's `GmosFpuMask.Custom`, which carries a filename instead of the
+  // attachment holding the mask definition. The attachment is unset until the
+  // mask is designed, which normally happens in Phase 2.
+  case class GmosCustomMask(
+    attachmentId: Option[Attachment.Id],
+    slitWidth:    GmosCustomSlitWidth
+  ) derives Decoder,
+        Eq
+
+  object GmosCustomMask:
+    val attachmentId: Lens[GmosCustomMask, Option[Attachment.Id]] =
+      Focus[GmosCustomMask](_.attachmentId)
+    val slitWidth: Lens[GmosCustomMask, GmosCustomSlitWidth]      =
+      Focus[GmosCustomMask](_.slitWidth)
+
+  case class GmosNorthMos(
+    initialGrating:            GmosNorthGrating,
+    grating:                   GmosNorthGrating,
+    initialFilter:             Option[GmosNorthFilter],
+    filter:                    Option[GmosNorthFilter],
+    initialSlitWidth:          GmosCustomSlitWidth,
+    customMask:                GmosCustomMask,
+    initialCentralWavelength:  CentralWavelength,
+    centralWavelength:         CentralWavelength,
+    defaultXBin:               GmosBinning,
+    explicitXBin:              Option[GmosBinning],
+    defaultYBin:               GmosBinning,
+    explicitYBin:              Option[GmosBinning],
+    defaultAmpReadMode:        GmosAmpReadMode,
+    explicitAmpReadMode:       Option[GmosAmpReadMode],
+    defaultAmpGain:            GmosAmpGain,
+    explicitAmpGain:           Option[GmosAmpGain],
+    defaultRoi:                GmosRoi,
+    explicitRoi:               Option[GmosRoi],
+    defaultWavelengthDithers:  NonEmptyList[WavelengthDither],
+    explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
+    defaultOffsets:            NonEmptyList[Offset.Q],
+    explicitOffsets:           Option[NonEmptyList[Offset.Q]],
+    exposureTimeMode:          ExposureTimeMode
+  ) extends ObservingMode(Instrument.GmosNorth.some) derives Eq:
+    val xBin: GmosBinning                                 =
+      explicitXBin.getOrElse(defaultXBin)
+    val yBin: GmosBinning                                 =
+      explicitYBin.getOrElse(defaultYBin)
+    val ampReadMode: GmosAmpReadMode                      =
+      explicitAmpReadMode.getOrElse(defaultAmpReadMode)
+    val ampGain: GmosAmpGain                              =
+      explicitAmpGain.getOrElse(defaultAmpGain)
+    val roi: GmosRoi                                      =
+      explicitRoi.getOrElse(defaultRoi)
+    val wavelengthDithers: NonEmptyList[WavelengthDither] =
+      explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
+    val offsets: NonEmptyList[Offset.Q]                   =
+      explicitOffsets.getOrElse(defaultOffsets)
+
+    def isCustomized: Boolean =
+      initialGrating =!= grating ||
+        initialFilter =!= filter ||
+        initialSlitWidth =!= customMask.slitWidth ||
+        initialCentralWavelength =!= centralWavelength ||
+        explicitXBin.exists(_ =!= defaultXBin) ||
+        explicitYBin.exists(_ =!= defaultYBin) ||
+        explicitAmpReadMode.exists(_ =!= defaultAmpReadMode) ||
+        explicitAmpGain.exists(_ =!= defaultAmpGain) ||
+        explicitRoi.exists(_ =!= defaultRoi) ||
+        explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
+        explicitOffsets.exists(_ =!= defaultOffsets)
+
+    def revertCustomizations: GmosNorthMos =
+      this.copy(
+        grating = this.initialGrating,
+        filter = this.initialFilter,
+        customMask = GmosCustomMask.slitWidth.replace(this.initialSlitWidth)(this.customMask),
+        centralWavelength = this.initialCentralWavelength,
+        explicitXBin = None,
+        explicitYBin = None,
+        explicitAmpReadMode = None,
+        explicitAmpGain = None,
+        explicitRoi = None,
+        explicitWavelengthDithers = None,
+        explicitOffsets = None
+      )
+
+  object GmosNorthMos:
+    given Decoder[GmosNorthMos] = deriveDecoder
+
+    val initialGrating: Lens[GmosNorthMos, GmosNorthGrating]                                  =
+      Focus[GmosNorthMos](_.initialGrating)
+    val grating: Lens[GmosNorthMos, GmosNorthGrating]                                         =
+      Focus[GmosNorthMos](_.grating)
+    val initialFilter: Lens[GmosNorthMos, Option[GmosNorthFilter]]                            =
+      Focus[GmosNorthMos](_.initialFilter)
+    val filter: Lens[GmosNorthMos, Option[GmosNorthFilter]]                                   =
+      Focus[GmosNorthMos](_.filter)
+    val initialSlitWidth: Lens[GmosNorthMos, GmosCustomSlitWidth]                             =
+      Focus[GmosNorthMos](_.initialSlitWidth)
+    val customMask: Lens[GmosNorthMos, GmosCustomMask]                                        =
+      Focus[GmosNorthMos](_.customMask)
+    val initialCentralWavelength: Lens[GmosNorthMos, CentralWavelength]                       =
+      Focus[GmosNorthMos](_.initialCentralWavelength)
+    val centralWavelength: Lens[GmosNorthMos, CentralWavelength]                              =
+      Focus[GmosNorthMos](_.centralWavelength)
+    val defaultXBin: Lens[GmosNorthMos, GmosBinning]                                          =
+      Focus[GmosNorthMos](_.defaultXBin)
+    val explicitXBin: Lens[GmosNorthMos, Option[GmosBinning]]                                 =
+      Focus[GmosNorthMos](_.explicitXBin)
+    val defaultYBin: Lens[GmosNorthMos, GmosBinning]                                          =
+      Focus[GmosNorthMos](_.defaultYBin)
+    val explicitYBin: Lens[GmosNorthMos, Option[GmosBinning]]                                 =
+      Focus[GmosNorthMos](_.explicitYBin)
+    val defaultAmpReadMode: Lens[GmosNorthMos, GmosAmpReadMode]                               =
+      Focus[GmosNorthMos](_.defaultAmpReadMode)
+    val explicitAmpReadMode: Lens[GmosNorthMos, Option[GmosAmpReadMode]]                      =
+      Focus[GmosNorthMos](_.explicitAmpReadMode)
+    val defaultAmpGain: Lens[GmosNorthMos, GmosAmpGain]                                       =
+      Focus[GmosNorthMos](_.defaultAmpGain)
+    val explicitAmpGain: Lens[GmosNorthMos, Option[GmosAmpGain]]                              =
+      Focus[GmosNorthMos](_.explicitAmpGain)
+    val defaultRoi: Lens[GmosNorthMos, GmosRoi]                                               =
+      Focus[GmosNorthMos](_.defaultRoi)
+    val explicitRoi: Lens[GmosNorthMos, Option[GmosRoi]]                                      =
+      Focus[GmosNorthMos](_.explicitRoi)
+    val defaultWavelengthDithers: Lens[GmosNorthMos, NonEmptyList[WavelengthDither]]          =
+      Focus[GmosNorthMos](_.defaultWavelengthDithers)
+    val explicitWavelengthDithers: Lens[GmosNorthMos, Option[NonEmptyList[WavelengthDither]]] =
+      Focus[GmosNorthMos](_.explicitWavelengthDithers)
+    val defaultOffsets: Lens[GmosNorthMos, NonEmptyList[Offset.Q]]                            =
+      Focus[GmosNorthMos](_.defaultOffsets)
+    val explicitOffsets: Lens[GmosNorthMos, Option[NonEmptyList[Offset.Q]]]                   =
+      Focus[GmosNorthMos](_.explicitOffsets)
+    val exposureTimeMode: Lens[GmosNorthMos, ExposureTimeMode]                                =
+      Focus[GmosNorthMos](_.exposureTimeMode)
+
+  case class GmosSouthMos(
+    initialGrating:            GmosSouthGrating,
+    grating:                   GmosSouthGrating,
+    initialFilter:             Option[GmosSouthFilter],
+    filter:                    Option[GmosSouthFilter],
+    initialSlitWidth:          GmosCustomSlitWidth,
+    customMask:                GmosCustomMask,
+    initialCentralWavelength:  CentralWavelength,
+    centralWavelength:         CentralWavelength,
+    defaultXBin:               GmosBinning,
+    explicitXBin:              Option[GmosBinning],
+    defaultYBin:               GmosBinning,
+    explicitYBin:              Option[GmosBinning],
+    defaultAmpReadMode:        GmosAmpReadMode,
+    explicitAmpReadMode:       Option[GmosAmpReadMode],
+    defaultAmpGain:            GmosAmpGain,
+    explicitAmpGain:           Option[GmosAmpGain],
+    defaultRoi:                GmosRoi,
+    explicitRoi:               Option[GmosRoi],
+    defaultWavelengthDithers:  NonEmptyList[WavelengthDither],
+    explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
+    defaultOffsets:            NonEmptyList[Offset.Q],
+    explicitOffsets:           Option[NonEmptyList[Offset.Q]],
+    exposureTimeMode:          ExposureTimeMode
+  ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
+    val xBin: GmosBinning                                 =
+      explicitXBin.getOrElse(defaultXBin)
+    val yBin: GmosBinning                                 =
+      explicitYBin.getOrElse(defaultYBin)
+    val ampReadMode: GmosAmpReadMode                      =
+      explicitAmpReadMode.getOrElse(defaultAmpReadMode)
+    val ampGain: GmosAmpGain                              =
+      explicitAmpGain.getOrElse(defaultAmpGain)
+    val roi: GmosRoi                                      =
+      explicitRoi.getOrElse(defaultRoi)
+    val wavelengthDithers: NonEmptyList[WavelengthDither] =
+      explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
+    val offsets: NonEmptyList[Offset.Q]                   =
+      explicitOffsets.getOrElse(defaultOffsets)
+
+    def isCustomized: Boolean =
+      initialGrating =!= grating ||
+        initialFilter =!= filter ||
+        initialSlitWidth =!= customMask.slitWidth ||
+        initialCentralWavelength =!= centralWavelength ||
+        explicitXBin.exists(_ =!= defaultXBin) ||
+        explicitYBin.exists(_ =!= defaultYBin) ||
+        explicitAmpReadMode.exists(_ =!= defaultAmpReadMode) ||
+        explicitAmpGain.exists(_ =!= defaultAmpGain) ||
+        explicitRoi.exists(_ =!= defaultRoi) ||
+        explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
+        explicitOffsets.exists(_ =!= defaultOffsets)
+
+    def revertCustomizations: GmosSouthMos =
+      this.copy(
+        grating = this.initialGrating,
+        filter = this.initialFilter,
+        customMask = GmosCustomMask.slitWidth.replace(this.initialSlitWidth)(this.customMask),
+        centralWavelength = this.initialCentralWavelength,
+        explicitXBin = None,
+        explicitYBin = None,
+        explicitAmpReadMode = None,
+        explicitAmpGain = None,
+        explicitRoi = None,
+        explicitWavelengthDithers = None,
+        explicitOffsets = None
+      )
+
+  object GmosSouthMos:
+    given Decoder[GmosSouthMos] = deriveDecoder
+
+    val initialGrating: Lens[GmosSouthMos, GmosSouthGrating]                                  =
+      Focus[GmosSouthMos](_.initialGrating)
+    val grating: Lens[GmosSouthMos, GmosSouthGrating]                                         =
+      Focus[GmosSouthMos](_.grating)
+    val initialFilter: Lens[GmosSouthMos, Option[GmosSouthFilter]]                            =
+      Focus[GmosSouthMos](_.initialFilter)
+    val filter: Lens[GmosSouthMos, Option[GmosSouthFilter]]                                   =
+      Focus[GmosSouthMos](_.filter)
+    val initialSlitWidth: Lens[GmosSouthMos, GmosCustomSlitWidth]                             =
+      Focus[GmosSouthMos](_.initialSlitWidth)
+    val customMask: Lens[GmosSouthMos, GmosCustomMask]                                        =
+      Focus[GmosSouthMos](_.customMask)
+    val initialCentralWavelength: Lens[GmosSouthMos, CentralWavelength]                       =
+      Focus[GmosSouthMos](_.initialCentralWavelength)
+    val centralWavelength: Lens[GmosSouthMos, CentralWavelength]                              =
+      Focus[GmosSouthMos](_.centralWavelength)
+    val defaultXBin: Lens[GmosSouthMos, GmosBinning]                                          =
+      Focus[GmosSouthMos](_.defaultXBin)
+    val explicitXBin: Lens[GmosSouthMos, Option[GmosBinning]]                                 =
+      Focus[GmosSouthMos](_.explicitXBin)
+    val defaultYBin: Lens[GmosSouthMos, GmosBinning]                                          =
+      Focus[GmosSouthMos](_.defaultYBin)
+    val explicitYBin: Lens[GmosSouthMos, Option[GmosBinning]]                                 =
+      Focus[GmosSouthMos](_.explicitYBin)
+    val defaultAmpReadMode: Lens[GmosSouthMos, GmosAmpReadMode]                               =
+      Focus[GmosSouthMos](_.defaultAmpReadMode)
+    val explicitAmpReadMode: Lens[GmosSouthMos, Option[GmosAmpReadMode]]                      =
+      Focus[GmosSouthMos](_.explicitAmpReadMode)
+    val defaultAmpGain: Lens[GmosSouthMos, GmosAmpGain]                                       =
+      Focus[GmosSouthMos](_.defaultAmpGain)
+    val explicitAmpGain: Lens[GmosSouthMos, Option[GmosAmpGain]]                              =
+      Focus[GmosSouthMos](_.explicitAmpGain)
+    val defaultRoi: Lens[GmosSouthMos, GmosRoi]                                               =
+      Focus[GmosSouthMos](_.defaultRoi)
+    val explicitRoi: Lens[GmosSouthMos, Option[GmosRoi]]                                      =
+      Focus[GmosSouthMos](_.explicitRoi)
+    val defaultWavelengthDithers: Lens[GmosSouthMos, NonEmptyList[WavelengthDither]]          =
+      Focus[GmosSouthMos](_.defaultWavelengthDithers)
+    val explicitWavelengthDithers: Lens[GmosSouthMos, Option[NonEmptyList[WavelengthDither]]] =
+      Focus[GmosSouthMos](_.explicitWavelengthDithers)
+    val defaultOffsets: Lens[GmosSouthMos, NonEmptyList[Offset.Q]]                            =
+      Focus[GmosSouthMos](_.defaultOffsets)
+    val explicitOffsets: Lens[GmosSouthMos, Option[NonEmptyList[Offset.Q]]]                   =
+      Focus[GmosSouthMos](_.explicitOffsets)
+    val exposureTimeMode: Lens[GmosSouthMos, ExposureTimeMode]                                =
+      Focus[GmosSouthMos](_.exposureTimeMode)
 
   case class GmosNorthImaging(
     variant:             ImagingVariant,
@@ -1392,6 +1665,12 @@ object ObservingMode:
 
   val gmosSouthLongSlit: Prism[ObservingMode, GmosSouthLongSlit] =
     GenPrism[ObservingMode, GmosSouthLongSlit]
+
+  val gmosNorthMos: Prism[ObservingMode, GmosNorthMos] =
+    GenPrism[ObservingMode, GmosNorthMos]
+
+  val gmosSouthMos: Prism[ObservingMode, GmosSouthMos] =
+    GenPrism[ObservingMode, GmosSouthMos]
 
   val gmosNorthImaging: Prism[ObservingMode, GmosNorthImaging] =
     GenPrism[ObservingMode, GmosNorthImaging]
