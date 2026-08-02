@@ -14,6 +14,7 @@ import explore.model.enums.PosAngleOptions
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -200,6 +201,13 @@ object all:
         case PosAngleConstraint.AllowFlip(_)           => PosAngleOptions.AllowFlip
         case PosAngleConstraint.ParallacticOverride(_) => PosAngleOptions.ParallacticOverride
         case PosAngleConstraint.AverageParallactic     => PosAngleOptions.AverageParallactic
+
+  // A MOS row carries its slit width as an angle, but the observing mode and the
+  // ITC both need the enum. Shared so the two cannot disagree about which widths
+  // are recognised.
+  extension (slitWidth: Angle)
+    def toGmosCustomSlitWidth: Option[GmosCustomSlitWidth] =
+      Enumerated[GmosCustomSlitWidth].all.find(_.width === slitWidth)
 
   extension (pac: PosAngleConstraint)
     def fallbackPosAngle(averagePA: Option[Angle]): Angle =

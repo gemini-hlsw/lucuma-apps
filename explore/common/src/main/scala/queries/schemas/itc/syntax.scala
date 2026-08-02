@@ -13,12 +13,12 @@ import explore.model.TargetList
 import explore.model.itc.ItcQueryProblem
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
+import explore.model.syntax.all.*
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
 import lucuma.core.enums.Flamingos2ReadMode
 import lucuma.core.enums.GhostResolutionMode
-import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.GnirsWellDepth
@@ -28,7 +28,6 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.*
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
-import lucuma.core.util.Enumerated
 import lucuma.itc.ItcGhostDetector
 import lucuma.itc.client.GmosCustomMask
 import lucuma.itc.client.GmosFpu
@@ -118,9 +117,7 @@ trait syntax:
 
       // Custom masks don't have a real mask file at this stage but the itc doesn't care.
       def customMaskFor(slitWidth: Angle): Option[GmosCustomMask] =
-        Enumerated[GmosCustomSlitWidth].all
-          .find(_.width === slitWidth)
-          .map(GmosCustomMask.apply)
+        slitWidth.toGmosCustomSlitWidth.map(GmosCustomMask.apply)
 
       row match
         case ItcInstrumentConfig

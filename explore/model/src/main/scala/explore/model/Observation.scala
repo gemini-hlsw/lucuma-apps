@@ -16,6 +16,7 @@ import explore.givens.given
 import explore.model.syntax.all.*
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
+import explore.modes.SpectroscopyModeRow
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
@@ -44,10 +45,6 @@ import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
-import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
-import lucuma.core.model.sequence.gmos.longslit.DefaultAmpGain
-import lucuma.core.model.sequence.gmos.longslit.DefaultAmpReadMode
-import lucuma.core.model.sequence.gmos.mos.mosBinning
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
@@ -202,26 +199,15 @@ final case class Observation(
           )
       case n: ObservingMode.GmosNorthMos =>
         profiles(targets).map: ps =>
-          val bins =
-            ps.map(
-              mosBinning(
-                n.customMask.slitWidth.width,
-                _,
-                constraints.imageQuality.toImageQuality,
-                n.grating.dispersion,
-                n.grating.referenceResolution,
-                n.grating.blazeWavelength,
-                DefaultGmosNorthDetector.pixelSize
-              )
-            )
-
           val defaultMode: GmosCcdMode =
-            GmosCcdMode(
-              bins.map(_._1).minimumBy(_.count),
-              bins.map(_._2).minimumBy(_.count),
-              DefaultAmpCount,
-              DefaultAmpGain,
-              DefaultAmpReadMode
+            SpectroscopyModeRow.mosCcdMode(
+              n.customMask.slitWidth.width,
+              ps,
+              constraints.imageQuality.toImageQuality,
+              n.grating.dispersion,
+              n.grating.referenceResolution,
+              n.grating.blazeWavelength,
+              DefaultGmosNorthDetector.pixelSize
             )
 
           val mode: GmosCcdMode = applyGmosCcdModesOverrides(
@@ -234,26 +220,15 @@ final case class Observation(
           InstrumentOverrides.GmosSpectroscopy(n.centralWavelength, mode, n.roi)
       case s: ObservingMode.GmosSouthMos =>
         profiles(targets).map: ps =>
-          val bins =
-            ps.map(
-              mosBinning(
-                s.customMask.slitWidth.width,
-                _,
-                constraints.imageQuality.toImageQuality,
-                s.grating.dispersion,
-                s.grating.referenceResolution,
-                s.grating.blazeWavelength,
-                DefaultGmosSouthDetector.pixelSize
-              )
-            )
-
           val defaultMode: GmosCcdMode =
-            GmosCcdMode(
-              bins.map(_._1).minimumBy(_.count),
-              bins.map(_._2).minimumBy(_.count),
-              DefaultAmpCount,
-              DefaultAmpGain,
-              DefaultAmpReadMode
+            SpectroscopyModeRow.mosCcdMode(
+              s.customMask.slitWidth.width,
+              ps,
+              constraints.imageQuality.toImageQuality,
+              s.grating.dispersion,
+              s.grating.referenceResolution,
+              s.grating.blazeWavelength,
+              DefaultGmosSouthDetector.pixelSize
             )
 
           val mode: GmosCcdMode = applyGmosCcdModesOverrides(
