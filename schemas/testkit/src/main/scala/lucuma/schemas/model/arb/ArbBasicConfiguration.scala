@@ -72,6 +72,36 @@ trait ArbBasicConfiguration {
       )
     )
 
+  given Arbitrary[BasicConfiguration.GmosNorthMos] =
+    Arbitrary[BasicConfiguration.GmosNorthMos](
+      for {
+        grating   <- arbitrary[GmosNorthGrating]
+        filter    <- arbitrary[Option[GmosNorthFilter]]
+        slitWidth <- arbitrary[GmosCustomSlitWidth]
+        cw        <- arbitrary[Wavelength]
+      } yield BasicConfiguration.GmosNorthMos(
+        grating,
+        filter,
+        slitWidth,
+        CentralWavelength(cw)
+      )
+    )
+
+  given Arbitrary[BasicConfiguration.GmosSouthMos] =
+    Arbitrary[BasicConfiguration.GmosSouthMos](
+      for {
+        grating   <- arbitrary[GmosSouthGrating]
+        filter    <- arbitrary[Option[GmosSouthFilter]]
+        slitWidth <- arbitrary[GmosCustomSlitWidth]
+        cw        <- arbitrary[Wavelength]
+      } yield BasicConfiguration.GmosSouthMos(
+        grating,
+        filter,
+        slitWidth,
+        CentralWavelength(cw)
+      )
+    )
+
   given Arbitrary[BasicConfiguration.GmosNorthImaging] =
     Arbitrary[BasicConfiguration.GmosNorthImaging](
       for {
@@ -175,6 +205,8 @@ trait ArbBasicConfiguration {
     Gen.oneOf(
       arbitrary[BasicConfiguration.GmosNorthLongSlit],
       arbitrary[BasicConfiguration.GmosSouthLongSlit],
+      arbitrary[BasicConfiguration.GmosNorthMos],
+      arbitrary[BasicConfiguration.GmosSouthMos],
       arbitrary[BasicConfiguration.GmosNorthImaging],
       arbitrary[BasicConfiguration.GmosSouthImaging],
       arbitrary[BasicConfiguration.GnirsSpectroscopy],
@@ -210,6 +242,32 @@ trait ArbBasicConfiguration {
           o.grating,
           o.filter,
           o.fpu
+        )
+      )
+
+  given Cogen[BasicConfiguration.GmosNorthMos] =
+    Cogen[
+      (GmosNorthGrating, Option[GmosNorthFilter], GmosCustomSlitWidth, Wavelength)
+    ]
+      .contramap(o =>
+        (
+          o.grating,
+          o.filter,
+          o.slitWidth,
+          o.centralWavelength.value
+        )
+      )
+
+  given Cogen[BasicConfiguration.GmosSouthMos] =
+    Cogen[
+      (GmosSouthGrating, Option[GmosSouthFilter], GmosCustomSlitWidth, Wavelength)
+    ]
+      .contramap(o =>
+        (
+          o.grating,
+          o.filter,
+          o.slitWidth,
+          o.centralWavelength.value
         )
       )
 
@@ -289,7 +347,13 @@ trait ArbBasicConfiguration {
                           BasicConfiguration.Visitor,
                           Either[
                             BasicConfiguration.KeckExchange,
-                            BasicConfiguration.SubaruExchange
+                            Either[
+                              BasicConfiguration.SubaruExchange,
+                              Either[
+                                BasicConfiguration.GmosNorthMos,
+                                BasicConfiguration.GmosSouthMos
+                              ]
+                            ]
                           ]
                         ]
                       ]
@@ -323,7 +387,11 @@ trait ArbBasicConfiguration {
         case k: BasicConfiguration.KeckExchange       =>
           k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: BasicConfiguration.SubaruExchange     =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case n: BasicConfiguration.GmosNorthMos       =>
+          n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: BasicConfiguration.GmosSouthMos       =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 
 }
 

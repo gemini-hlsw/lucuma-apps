@@ -19,6 +19,7 @@ import lucuma.core.math.arb.ArbCoordinates
 import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
+import lucuma.core.model.Attachment
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
@@ -31,6 +32,7 @@ import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
+import lucuma.core.util.arb.ArbGid
 import lucuma.core.util.arb.ArbNewType
 import lucuma.core.util.arb.ArbTimeSpan
 import lucuma.schemas.model.CentralWavelength
@@ -62,6 +64,7 @@ trait ArbObservingMode {
   import ArbCoordinates.given
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
+  import ArbGid.given
   import ArbImagingVariant.given
   import ArbGnirsAcquisitionMode.given
   import ArbOffset.given
@@ -352,6 +355,229 @@ trait ArbObservingMode {
          o.explicitWavelengthDithers,
          o.defaultOffsets,
          (o.explicitOffsets, o.exposureTimeMode, o.acquisition)
+        )
+      )
+
+  // The attachment is unset until the mask is designed, so both cases must be generated.
+  given Arbitrary[ObservingMode.GmosCustomMask] =
+    Arbitrary[ObservingMode.GmosCustomMask](
+      for
+        attachmentId <- Gen.option(arbitrary[Attachment.Id])
+        slitWidth    <- arbitrary[GmosCustomSlitWidth]
+      yield ObservingMode.GmosCustomMask(attachmentId, slitWidth)
+    )
+
+  given Cogen[ObservingMode.GmosCustomMask] =
+    Cogen[(Option[Attachment.Id], GmosCustomSlitWidth)]
+      .contramap(m => (m.attachmentId, m.slitWidth))
+
+  given Arbitrary[ObservingMode.GmosNorthMos] =
+    Arbitrary[ObservingMode.GmosNorthMos](
+      for
+        initialGrating            <- arbitrary[GmosNorthGrating]
+        grating                   <- arbitrary[GmosNorthGrating]
+        initialFilter             <- arbitrary[Option[GmosNorthFilter]]
+        filter                    <- arbitrary[Option[GmosNorthFilter]]
+        initialSlitWidth          <- arbitrary[GmosCustomSlitWidth]
+        customMask                <- arbitrary[ObservingMode.GmosCustomMask]
+        initialCentralWavelength  <- arbitrary[Wavelength]
+        centralWavelength         <- arbitrary[Wavelength]
+        defaultXBin               <- arbitrary[GmosBinning]
+        explicitXBin              <- arbitrary[Option[GmosBinning]]
+        defaultYBin               <- arbitrary[GmosBinning]
+        explicitYBin              <- arbitrary[Option[GmosBinning]]
+        defaultAmpReadMode        <- arbitrary[GmosAmpReadMode]
+        explicitAmpReadMode       <- arbitrary[Option[GmosAmpReadMode]]
+        defaultAmpGain            <- arbitrary[GmosAmpGain]
+        explicitAmpGain           <- arbitrary[Option[GmosAmpGain]]
+        defaultRoi                <- arbitrary[GmosRoi]
+        explicitRoi               <- arbitrary[Option[GmosRoi]]
+        defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
+        explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
+        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+      yield ObservingMode.GmosNorthMos(
+        initialGrating,
+        grating,
+        initialFilter,
+        filter,
+        initialSlitWidth,
+        customMask,
+        CentralWavelength(initialCentralWavelength),
+        CentralWavelength(centralWavelength),
+        defaultXBin,
+        explicitXBin,
+        defaultYBin,
+        explicitYBin,
+        defaultAmpReadMode,
+        explicitAmpReadMode,
+        defaultAmpGain,
+        explicitAmpGain,
+        defaultRoi,
+        explicitRoi,
+        defaultWavelengthDithers,
+        explicitWavelengthDithers,
+        defaultOffsets,
+        explicitOffsets,
+        exposureTimeMode
+      )
+    )
+
+  given Arbitrary[ObservingMode.GmosSouthMos] =
+    Arbitrary[ObservingMode.GmosSouthMos](
+      for
+        initialGrating            <- arbitrary[GmosSouthGrating]
+        grating                   <- arbitrary[GmosSouthGrating]
+        initialFilter             <- arbitrary[Option[GmosSouthFilter]]
+        filter                    <- arbitrary[Option[GmosSouthFilter]]
+        initialSlitWidth          <- arbitrary[GmosCustomSlitWidth]
+        customMask                <- arbitrary[ObservingMode.GmosCustomMask]
+        initialCentralWavelength  <- arbitrary[Wavelength]
+        centralWavelength         <- arbitrary[Wavelength]
+        defaultXBin               <- arbitrary[GmosBinning]
+        explicitXBin              <- arbitrary[Option[GmosBinning]]
+        defaultYBin               <- arbitrary[GmosBinning]
+        explicitYBin              <- arbitrary[Option[GmosBinning]]
+        defaultAmpReadMode        <- arbitrary[GmosAmpReadMode]
+        explicitAmpReadMode       <- arbitrary[Option[GmosAmpReadMode]]
+        defaultAmpGain            <- arbitrary[GmosAmpGain]
+        explicitAmpGain           <- arbitrary[Option[GmosAmpGain]]
+        defaultRoi                <- arbitrary[GmosRoi]
+        explicitRoi               <- arbitrary[Option[GmosRoi]]
+        defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
+        explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
+        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+      yield ObservingMode.GmosSouthMos(
+        initialGrating,
+        grating,
+        initialFilter,
+        filter,
+        initialSlitWidth,
+        customMask,
+        CentralWavelength(initialCentralWavelength),
+        CentralWavelength(centralWavelength),
+        defaultXBin,
+        explicitXBin,
+        defaultYBin,
+        explicitYBin,
+        defaultAmpReadMode,
+        explicitAmpReadMode,
+        defaultAmpGain,
+        explicitAmpGain,
+        defaultRoi,
+        explicitRoi,
+        defaultWavelengthDithers,
+        explicitWavelengthDithers,
+        defaultOffsets,
+        explicitOffsets,
+        exposureTimeMode
+      )
+    )
+
+  given Cogen[ObservingMode.GmosNorthMos] =
+    Cogen[
+      (GmosNorthGrating,
+       GmosNorthGrating,
+       Option[GmosNorthFilter],
+       Option[GmosNorthFilter],
+       GmosCustomSlitWidth,
+       ObservingMode.GmosCustomMask,
+       Wavelength,
+       Wavelength,
+       GmosBinning,
+       Option[GmosBinning],
+       GmosBinning,
+       Option[GmosBinning],
+       GmosAmpReadMode,
+       Option[GmosAmpReadMode],
+       GmosAmpGain,
+       Option[GmosAmpGain],
+       GmosRoi,
+       Option[GmosRoi],
+       NonEmptyList[WavelengthDither],
+       Option[NonEmptyList[WavelengthDither]],
+       NonEmptyList[Offset.Q],
+       (Option[NonEmptyList[Offset.Q]], ExposureTimeMode)
+      )
+    ]
+      .contramap(o =>
+        (o.initialGrating,
+         o.grating,
+         o.initialFilter,
+         o.filter,
+         o.initialSlitWidth,
+         o.customMask,
+         o.initialCentralWavelength.value,
+         o.centralWavelength.value,
+         o.defaultXBin,
+         o.explicitXBin,
+         o.defaultYBin,
+         o.explicitYBin,
+         o.defaultAmpReadMode,
+         o.explicitAmpReadMode,
+         o.defaultAmpGain,
+         o.explicitAmpGain,
+         o.defaultRoi,
+         o.explicitRoi,
+         o.defaultWavelengthDithers,
+         o.explicitWavelengthDithers,
+         o.defaultOffsets,
+         (o.explicitOffsets, o.exposureTimeMode)
+        )
+      )
+
+  given Cogen[ObservingMode.GmosSouthMos] =
+    Cogen[
+      (GmosSouthGrating,
+       GmosSouthGrating,
+       Option[GmosSouthFilter],
+       Option[GmosSouthFilter],
+       GmosCustomSlitWidth,
+       ObservingMode.GmosCustomMask,
+       Wavelength,
+       Wavelength,
+       GmosBinning,
+       Option[GmosBinning],
+       GmosBinning,
+       Option[GmosBinning],
+       GmosAmpReadMode,
+       Option[GmosAmpReadMode],
+       GmosAmpGain,
+       Option[GmosAmpGain],
+       GmosRoi,
+       Option[GmosRoi],
+       NonEmptyList[WavelengthDither],
+       Option[NonEmptyList[WavelengthDither]],
+       NonEmptyList[Offset.Q],
+       (Option[NonEmptyList[Offset.Q]], ExposureTimeMode)
+      )
+    ]
+      .contramap(o =>
+        (o.initialGrating,
+         o.grating,
+         o.initialFilter,
+         o.filter,
+         o.initialSlitWidth,
+         o.customMask,
+         o.initialCentralWavelength.value,
+         o.centralWavelength.value,
+         o.defaultXBin,
+         o.explicitXBin,
+         o.defaultYBin,
+         o.explicitYBin,
+         o.defaultAmpReadMode,
+         o.explicitAmpReadMode,
+         o.defaultAmpGain,
+         o.explicitAmpGain,
+         o.defaultRoi,
+         o.explicitRoi,
+         o.defaultWavelengthDithers,
+         o.explicitWavelengthDithers,
+         o.defaultOffsets,
+         (o.explicitOffsets, o.exposureTimeMode)
         )
       )
 
@@ -1056,6 +1282,8 @@ trait ArbObservingMode {
     Gen.oneOf(
       arbitrary[ObservingMode.GmosNorthLongSlit],
       arbitrary[ObservingMode.GmosSouthLongSlit],
+      arbitrary[ObservingMode.GmosNorthMos],
+      arbitrary[ObservingMode.GmosSouthMos],
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
@@ -1089,10 +1317,18 @@ trait ArbObservingMode {
                     ObservingMode.GmosSouthImaging,
                     Either[
                       ObservingMode.GhostIfu,
-                      Either[ObservingMode.Flamingos2Imaging,
-                             Either[ObservingMode.Visitor, Either[ObservingMode.KeckExchange,
-                                                                  ObservingMode.SubaruExchange
-                             ]]
+                      Either[
+                        ObservingMode.Flamingos2Imaging,
+                        Either[
+                          ObservingMode.Visitor,
+                          Either[ObservingMode.KeckExchange,
+                                 Either[ObservingMode.SubaruExchange,
+                                        Either[ObservingMode.GmosNorthMos,
+                                               ObservingMode.GmosSouthMos
+                                        ]
+                                 ]
+                          ]
+                        ]
                       ]
                     ]
                   ]
@@ -1124,7 +1360,11 @@ trait ArbObservingMode {
         case k: ObservingMode.KeckExchange       =>
           k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: ObservingMode.SubaruExchange     =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case n: ObservingMode.GmosNorthMos       =>
+          n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthMos       =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }
