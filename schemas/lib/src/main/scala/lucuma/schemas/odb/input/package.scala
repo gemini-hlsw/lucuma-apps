@@ -508,6 +508,44 @@ extension (o: ObservingMode.GmosSouthLongSlit)
     acquisition = o.acquisition.toInput.assign
   )
 
+extension (m: ObservingMode.GmosCustomMask)
+  def toInput: GmosMosCustomMaskInput = GmosMosCustomMaskInput(
+    attachmentId = m.attachmentId.orUnassign,
+    slitWidth = m.slitWidth.assign
+  )
+
+extension (o: ObservingMode.GmosNorthMos)
+  def toInput: GmosNorthMosInput = GmosNorthMosInput(
+    grating = o.grating.assign,
+    filter = o.filter.orUnassign,
+    customMask = o.customMask.toInput.assign,
+    centralWavelength = o.centralWavelength.value.toInput.assign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    explicitXBin = o.explicitXBin.orUnassign,
+    explicitYBin = o.explicitYBin.orUnassign,
+    explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
+    explicitAmpGain = o.explicitAmpGain.orUnassign,
+    explicitRoi = o.explicitRoi.orUnassign,
+    explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
+    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
+  )
+
+extension (o: ObservingMode.GmosSouthMos)
+  def toInput: GmosSouthMosInput = GmosSouthMosInput(
+    grating = o.grating.assign,
+    filter = o.filter.orUnassign,
+    customMask = o.customMask.toInput.assign,
+    centralWavelength = o.centralWavelength.value.toInput.assign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    explicitXBin = o.explicitXBin.orUnassign,
+    explicitYBin = o.explicitYBin.orUnassign,
+    explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
+    explicitAmpGain = o.explicitAmpGain.orUnassign,
+    explicitRoi = o.explicitRoi.orUnassign,
+    explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
+    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
+  )
+
 extension (imagingFilter: ObservingMode.GmosNorthImaging.ImagingFilter)
   def toInput: GmosNorthImagingFilterInput = GmosNorthImagingFilterInput(
     filter = imagingFilter.filter,
@@ -746,6 +784,10 @@ extension (b: ObservingMode)
       ObservingModeInput.GmosNorthLongSlit(o.toInput)
     case o: ObservingMode.GmosSouthLongSlit  =>
       ObservingModeInput.GmosSouthLongSlit(o.toInput)
+    case o: ObservingMode.GmosNorthMos       =>
+      ObservingModeInput.GmosNorthMos(o.toInput)
+    case o: ObservingMode.GmosSouthMos       =>
+      ObservingModeInput.GmosSouthMos(o.toInput)
     case o: ObservingMode.GmosNorthImaging   =>
       ObservingModeInput.GmosNorthImaging(o.toInput)
     case o: ObservingMode.GmosSouthImaging   =>
@@ -803,6 +845,33 @@ extension (i: BasicConfiguration)
           grating = grating.assign,
           filter = filter.orUnassign,
           fpu = fpu.assign,
+          centralWavelength = centralWavelength.value.toInput.assign
+        )
+    // The mask's attachment is left unassigned: it is designed in Phase 2.
+    case BasicConfiguration.GmosNorthMos(
+          grating = grating,
+          filter = filter,
+          slitWidth = slitWidth,
+          centralWavelength = centralWavelength
+        ) =>
+      ObservingModeInput.GmosNorthMos:
+        GmosNorthMosInput(
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          centralWavelength = centralWavelength.value.toInput.assign
+        )
+    case BasicConfiguration.GmosSouthMos(
+          grating = grating,
+          filter = filter,
+          slitWidth = slitWidth,
+          centralWavelength = centralWavelength
+        ) =>
+      ObservingModeInput.GmosSouthMos:
+        GmosSouthMosInput(
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.GmosNorthImaging(filters = filters)                                   =>

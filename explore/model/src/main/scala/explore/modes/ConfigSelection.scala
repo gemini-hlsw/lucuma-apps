@@ -9,12 +9,15 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
+import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.enums.VisitorObservingModeType
+import lucuma.core.math.Angle
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
+import lucuma.core.util.Enumerated
 import lucuma.itc.ItcGhostDetector
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
@@ -120,6 +123,53 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         BasicConfiguration
           .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
+      // MOS rows have no builtin FPU; their focal plane unit is a custom mask.
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
+                                                     None,
+                                                     filter,
+                                                     _,
+                                                     Some(cw, _, _),
+                                                     Some(slitWidth)
+          ) =>
+        ConfigSelection
+          .customSlitWidth(slitWidth)
+          .map(sw => BasicConfiguration.GmosNorthMos(grating, filter, sw, cw))
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
+                                                     None,
+                                                     filter,
+                                                     _,
+                                                     None,
+                                                     Some(slitWidth)
+          ) if withFallbackWavelength =>
+        ConfigSelection
+          .customSlitWidth(slitWidth)
+          .map(sw =>
+            BasicConfiguration
+              .GmosNorthMos(grating, filter, sw, ItcInstrumentConfig.GmosFallbackCW)
+          )
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
+                                                     None,
+                                                     filter,
+                                                     _,
+                                                     Some(cw, _, _),
+                                                     Some(slitWidth)
+          ) =>
+        ConfigSelection
+          .customSlitWidth(slitWidth)
+          .map(sw => BasicConfiguration.GmosSouthMos(grating, filter, sw, cw))
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
+                                                     None,
+                                                     filter,
+                                                     _,
+                                                     None,
+                                                     Some(slitWidth)
+          ) if withFallbackWavelength =>
+        ConfigSelection
+          .customSlitWidth(slitWidth)
+          .map(sw =>
+            BasicConfiguration
+              .GmosSouthMos(grating, filter, sw, ItcInstrumentConfig.GmosFallbackCW)
+          )
       case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _) =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
       case ItcInstrumentConfig.GmosNorthImaging(_, _)                               =>
@@ -209,6 +259,10 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 
 object ConfigSelection:
   val Empty: ConfigSelection = ConfigSelection(Nil)
+
+  // A MOS row carries its slit width as an angle; the observing mode needs the enum.
+  private def customSlitWidth(slitWidth: Angle): Option[GmosCustomSlitWidth] =
+    Enumerated[GmosCustomSlitWidth].all.find(_.width === slitWidth)
 
   private def residentVisitorConfiguration(
     mode: VisitorObservingModeType
