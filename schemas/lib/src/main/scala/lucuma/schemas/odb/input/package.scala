@@ -3,6 +3,8 @@
 
 package lucuma.schemas.odb.input
 
+import cats.Functor
+import cats.effect.kernel.Clock
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
@@ -54,8 +56,17 @@ import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.TelescopeConfigGenerator
 
+import java.time.Instant
 import scala.annotation.targetName
 import scala.collection.immutable.SortedMap
+
+// TODO Move to lucuma-core
+private def timestampNow[F[_]: Clock: Functor]: F[Timestamp] =
+  Clock[F].realTime.map: d =>
+    Timestamp.fromInstantTruncatedAndBounded(Instant.EPOCH.plusNanos(d.toNanos))
+
+def clientTimeNow[F[_]: Clock: Functor]: F[Input[Timestamp]] =
+  timestampNow[F].map(_.assign)
 
 extension (id: Observation.Id)
   def toWhereObservation: WhereObservation         =

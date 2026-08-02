@@ -5,12 +5,10 @@ package observe.server.odb
 
 import cats.Endo
 import cats.effect.Sync
-import cats.effect.kernel.Clock
 import cats.effect.kernel.Ref
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import clue.FetchClientWithPars
-import clue.data.{Assign, Input}
 import clue.syntax.*
 import lucuma.core.enums.DatasetStage
 import lucuma.core.enums.SequenceCommand
@@ -20,9 +18,9 @@ import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.IdempotencyKey
-import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Scalars.VisitId
+import lucuma.schemas.odb.input.clientTimeNow
 import observe.common.EventsGQL.*
 import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
@@ -47,10 +45,6 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   private def newIdempotencyKey: F[IdempotencyKey] =
     UUIDGen[F].randomUUID.map(IdempotencyKey(_))
 
-  // Move to lucuma-odb
-  private def clientTimestamp: F[Input[Timestamp]] =
-    Clock[F].realTimeInstant.map(t => Assign(Timestamp.fromInstantTruncatedAndBounded(t)))
-
   // We use the default retry policy in the http4s client. For it to kick in
   // we need to add the `Idempotency-Key` header to non-GET requests.
   private def addIdempotencyKey(idempotencyKey: IdempotencyKey): Endo[Request[F]] = req =>
@@ -68,7 +62,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       visitId        <- getCurrentVisitId(obsId)
       _              <- L.debug(s"Send ODB event sequenceStart for obsId: $obsId, visitId: $visitId")
       idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimestamp
+      clientTime     <- clientTimeNow
       _              <-
         AddSequenceEventMutation[F]
           .execute(
@@ -90,7 +84,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       visitId        <- getCurrentVisitId(obsId)
       _              <- L.debug(s"Send ODB event $stage for obsId: $obsId, step $stepId")
       idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimestamp
+      clientTime     <- clientTimeNow
       _              <- AddStepEventMutation[F]
                           .execute(
                             stepId,
@@ -128,7 +122,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
       _              <- L.debug(s"Recorded dataset id ${dataset.id}")
       idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimestamp
+      clientTime     <- clientTimeNow
       _              <- AddDatasetEventMutation[F]
                           .execute(
                             dataset.id,
@@ -149,7 +143,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       datasetId      <- getCurrentDatasetId(obsId, fileId)
       _              <- L.debug(s"Send ODB event $stage for obsId: $obsId datasetId: $datasetId")
       idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimestamp
+      clientTime     <- clientTimeNow
       _              <- AddDatasetEventMutation[F]
                           .execute(
                             datasetId,
@@ -205,7 +199,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- L.debug(s"Send ODB event $sequenceCommand for obsId: $obsId")
       visitId        <- getCurrentVisitId(obsId)
       idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimestamp
+      clientTime     <- clientTimeNow
       _              <- AddSequenceEventMutation[F]
                           .execute(
                             visitId,
@@ -234,7 +228,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   ): F[VisitId] =
     for
       idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimestamp
+      clientTime     <- clientTimeNow
       result         <- RecordVisitMutation[F]
                           .execute(
                             obsId,
