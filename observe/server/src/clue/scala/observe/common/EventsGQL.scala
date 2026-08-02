@@ -14,9 +14,9 @@ object EventsGQL:
   @GraphQL
   trait AddSequenceEventMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($vId: VisitId!, $cmd: SequenceCommand!, $idempotencyKey: IdempotencyKey!) {
-        addSequenceEvent(input: { visitId: $vId, command: $cmd, idempotencyKey: $idempotencyKey } ) {
-          event { received }
+      mutation($vId: VisitId!, $cmd: SequenceCommand!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp) {
+        addSequenceEvent(input: { visitId: $vId, command: $cmd, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
+          event { recordedTime }
         }
       }
       """
@@ -24,8 +24,8 @@ object EventsGQL:
   @GraphQL
   trait AddStepEventMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($stepId: StepId!, $visitId: VisitId!, $stg: StepStage!, $idempotencyKey: IdempotencyKey!)  {
-        addStepEvent(input: { stepId: $stepId, visitId: $visitId, stepStage: $stg, idempotencyKey: $idempotencyKey } ) {
+      mutation($stepId: StepId!, $visitId: VisitId!, $stg: StepStage!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp)  {
+        addStepEvent(input: { stepId: $stepId, visitId: $visitId, stepStage: $stg, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
           event { id }
         }
       }
@@ -34,8 +34,8 @@ object EventsGQL:
   @GraphQL
   trait AddDatasetEventMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($datasetId: DatasetId!, $stg: DatasetStage!, $idempotencyKey: IdempotencyKey!)  {
-        addDatasetEvent(input: { datasetId: $datasetId, datasetStage: $stg, idempotencyKey: $idempotencyKey } ) {
+      mutation($datasetId: DatasetId!, $stg: DatasetStage!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp)  {
+        addDatasetEvent(input: { datasetId: $datasetId, datasetStage: $stg, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
           event { id }
         }
       }
@@ -60,8 +60,8 @@ object EventsGQL:
   @GraphQL
   trait RecordVisitMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($obsId: ObservationId!, $idempotencyKey: IdempotencyKey!) {
-        recordVisit(input: { observationId: $obsId, idempotencyKey: $idempotencyKey } ) {
+      mutation($obsId: ObservationId!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp) {
+        recordVisit(input: { observationId: $obsId, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
           visit { id }
         }
       }
