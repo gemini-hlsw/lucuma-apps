@@ -22,8 +22,7 @@ object ObserveStyles:
   val MainPanel: Css             = Css("observe-main-panel")
   val ActiveInstrumentLabel: Css = Css("observe-active-instrument-label")
   val LabelPointer: Css          = Css("observe-label-pointer")
-  val IdleTag: Css               = Css("observe-idle-tag")
-  val RunningTag: Css            = Css("observe-running-tag")
+  val TagDisabled: Css           = Css("observe-tag-disabled")
 
   val LogArea: Css = Css("observe-log-area")
   val Footer: Css  = Css("observe-footer")
