@@ -12,8 +12,8 @@ object ObsQueriesGQL:
   @GraphQL
   trait AddSlewEventMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($obsId: ObservationId!, $stg: SlewStage!)  {
-        addSlewEvent(input: { observationId: $obsId, slewStage: $stg } ) {
+      mutation($obsId: ObservationId!, $stg: SlewStage!, $clientTime: Timestamp)  {
+        addSlewEvent(input: { observationId: $obsId, slewStage: $stg, clientTime: $clientTime } ) {
           event {
             id
           }

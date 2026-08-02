@@ -5,13 +5,16 @@ package navigate.server
 
 import cats.Applicative
 import cats.MonadThrow
+import cats.effect.kernel.Clock
 import cats.syntax.all.*
 import clue.FetchClient
+import clue.data.{Assign, Input}
 import clue.syntax.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.SlewStage
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.Observation
+import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
 import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery
 import navigate.queries.ObsQueriesGQL.AddSlewEventMutation
@@ -59,16 +62,20 @@ object OdbProxy {
     ): F[List[Ephemeris.Key]] = List.empty.pure[F]
   }
 
-  class OdbCommandsImpl[F[_]: MonadThrow](using
+  class OdbCommandsImpl[F[_]: MonadThrow: Clock](using
     L:      Logger[F],
     client: FetchClient[F, ObservationDB]
   ) extends OdbEventCommands[F] {
 
+    private def clientTimestamp: F[Input[Timestamp]] =
+      Clock[F].realTimeInstant.map(t => Assign(Timestamp.fromInstantTruncatedAndBounded(t)))
+
     override def addSlewEvent(obsId: Observation.Id, stage: SlewStage): F[Unit] =
       L.info(s"Adding slew event for obsId: $obsId, stage: $stage") *>
-        AddSlewEventMutation[F]
-          .execute(obsId = obsId, stg = stage)
-          .void
+        clientTimestamp.flatMap: clientTime =>
+          AddSlewEventMutation[F]
+            .execute(obsId = obsId, stg = stage, clientTime = clientTime)
+            .void
 
     private def extractNonsiderealTargets(
       data: ActiveNonsiderealTargetsQuery.Data
