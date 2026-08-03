@@ -5,8 +5,8 @@ package workers
 
 import boopickle.DefaultBasic.*
 import cats.effect.IO
-import cats.syntax.show.*
 import cats.effect.unsafe.implicits.*
+import cats.syntax.show.*
 import explore.events.AgsMessage
 import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
