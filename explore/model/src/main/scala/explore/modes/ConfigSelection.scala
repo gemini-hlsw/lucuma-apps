@@ -9,7 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
-import explore.model.syntax.all.*
+import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
@@ -129,7 +129,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      Some(cw, _, _),
                                                      Some(slitWidth)
           ) =>
-        slitWidth.toGmosCustomSlitWidth
+        GmosCustomSlitWidth
+          .fromWidth(slitWidth)
           .map(sw => BasicConfiguration.GmosNorthMos(grating, filter, sw, cw))
       case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
                                                      None,
@@ -138,7 +139,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      None,
                                                      Some(slitWidth)
           ) if withFallbackWavelength =>
-        slitWidth.toGmosCustomSlitWidth
+        GmosCustomSlitWidth
+          .fromWidth(slitWidth)
           .map(sw =>
             BasicConfiguration
               .GmosNorthMos(grating, filter, sw, ItcInstrumentConfig.GmosFallbackCW)
@@ -150,7 +152,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      Some(cw, _, _),
                                                      Some(slitWidth)
           ) =>
-        slitWidth.toGmosCustomSlitWidth
+        GmosCustomSlitWidth
+          .fromWidth(slitWidth)
           .map(sw => BasicConfiguration.GmosSouthMos(grating, filter, sw, cw))
       case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
                                                      None,
@@ -159,7 +162,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      None,
                                                      Some(slitWidth)
           ) if withFallbackWavelength =>
-        slitWidth.toGmosCustomSlitWidth
+        GmosCustomSlitWidth
+          .fromWidth(slitWidth)
           .map(sw =>
             BasicConfiguration
               .GmosSouthMos(grating, filter, sw, ItcInstrumentConfig.GmosFallbackCW)

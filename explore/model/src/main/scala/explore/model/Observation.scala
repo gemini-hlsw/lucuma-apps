@@ -16,7 +16,6 @@ import explore.givens.given
 import explore.model.syntax.all.*
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
-import explore.modes.SpectroscopyModeRow
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
@@ -200,9 +199,9 @@ final case class Observation(
       case n: ObservingMode.GmosNorthMos =>
         profiles(targets).map: ps =>
           val defaultMode: GmosCcdMode =
-            SpectroscopyModeRow.mosCcdMode(
-              n.customMask.slitWidth.width,
+            GmosCcdMode.Default.Mos(
               ps,
+              n.customMask.slitWidth.width,
               constraints.imageQuality.toImageQuality,
               n.grating.dispersion,
               n.grating.referenceResolution,
@@ -221,9 +220,9 @@ final case class Observation(
       case s: ObservingMode.GmosSouthMos =>
         profiles(targets).map: ps =>
           val defaultMode: GmosCcdMode =
-            SpectroscopyModeRow.mosCcdMode(
-              s.customMask.slitWidth.width,
+            GmosCcdMode.Default.Mos(
               ps,
+              s.customMask.slitWidth.width,
               constraints.imageQuality.toImageQuality,
               s.grating.dispersion,
               s.grating.referenceResolution,
