@@ -102,6 +102,10 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
         gnirs.andThen(GnirsDynamicConfig.exposure)
       )
 
+  // Coadds for GNIRS.
+  protected val coaddsReplace: Step.Id => PosInt => Endo[List[Atom[D]]] =
+    modifyStep(gnirs.andThen(GnirsDynamicConfig.coadds).replace)
+
   // p/q and guiding live in the telescope config, which is not instrument specific.
   private val stepTelescopeConfig: Lens[Step[D], TelescopeConfig] = Step.telescopeConfig[D]
 
