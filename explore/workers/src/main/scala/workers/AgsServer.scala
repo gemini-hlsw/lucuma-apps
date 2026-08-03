@@ -24,7 +24,6 @@ import workers.*
 import java.time.Duration
 import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
-import lucuma.ags.Ags.*
 
 @JSExportTopLevel("AgsServer", moduleID = "exploreworkers")
 object AgsServer extends WorkerServer[AgsMessage.Request] {
