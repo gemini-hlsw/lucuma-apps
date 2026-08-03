@@ -2463,7 +2463,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   private val pickoffMirrorParkTimeout                    = FiniteDuration(60, SECONDS)
   override def agPickoffMirrorPark: F[ApplyCommandResult] = sys.tcsEpics
     .startCommand(pickoffMirrorParkTimeout)
-    .aoFoldCommands
+    .hrwfsCommands
     .park
     .mark
     .post
@@ -2472,7 +2472,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   private val aoFoldParkTimeout                    = FiniteDuration(60, SECONDS)
   override def agAoFoldPark: F[ApplyCommandResult] = sys.tcsEpics
     .startCommand(aoFoldParkTimeout)
-    .hrwfsCommands
+    .aoFoldCommands
     .park
     .mark
     .post
