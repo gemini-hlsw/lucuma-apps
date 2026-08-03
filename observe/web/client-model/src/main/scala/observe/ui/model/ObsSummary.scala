@@ -63,6 +63,10 @@ case class ObsSummary(
           filters.map(_.shortName).toList.mkString(", ").some
         case BasicConfiguration.GmosSouthImaging(filters)             =>
           filters.map(_.shortName).toList.mkString(", ").some
+        case BasicConfiguration.GmosNorthMos(grating, _, sw, _)       =>
+          s"MOS ${grating.shortName} ${sw.shortName}".some
+        case BasicConfiguration.GmosSouthMos(grating, _, sw, _)       =>
+          s"MOS ${grating.shortName} ${sw.shortName}".some
         case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu) =>
           s"${disperser.shortName} ${fpu.shortName}".some
         case BasicConfiguration.Flamingos2Imaging(filters)            =>
