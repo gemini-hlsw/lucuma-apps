@@ -500,10 +500,6 @@ object ObservingMode:
     val acquisition: Lens[GmosSouthLongSlit, GmosSouthLongSlit.Acquisition]                        =
       Focus[GmosSouthLongSlit](_.acquisition)
 
-  // The mask through which a MOS observation is taken. Distinct from
-  // lucuma-core's `GmosFpuMask.Custom`, which carries a filename instead of the
-  // attachment holding the mask definition. The attachment is unset until the
-  // mask is designed, which normally happens in Phase 2.
   case class GmosCustomMask(
     attachmentId: Option[Attachment.Id],
     slitWidth:    GmosCustomSlitWidth

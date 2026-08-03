@@ -274,7 +274,6 @@ object BasicConfiguration:
   ) extends BasicConfiguration derives Eq
 
   object GmosNorthMos:
-    // Not derivable: the slit width is nested under the mode's custom mask.
     given Decoder[GmosNorthMos] = Decoder.instance: c =>
       for
         grating   <- c.downField("grating").as[GmosNorthGrating]
@@ -291,7 +290,6 @@ object BasicConfiguration:
   ) extends BasicConfiguration derives Eq
 
   object GmosSouthMos:
-    // Not derivable: the slit width is nested under the mode's custom mask.
     given Decoder[GmosSouthMos] = Decoder.instance: c =>
       for
         grating   <- c.downField("grating").as[GmosSouthGrating]
