@@ -145,17 +145,15 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         (c.value, c.getStep.flatMap(_.instrument))
           .mapN[VdomNode]: (v, i) =>
             if c.isRowEditing && !isFinished then
-              React.Fragment(
-                InputNumber(
-                  id = s"exposure-${c.row.index}",
-                  value = v.toSeconds.toDouble,
-                  maxFractionDigits = i.exposureTimeFractionDigits,
-                  onValueChange = e =>
-                    handleRowValueEdit(c)(exposureReplace):
-                      e.valueOption.flatMap(d => TimeSpan.fromSeconds(BigDecimal(d)))
-                  ,
-                  clazz = SequenceStyles.SequenceInput
-                )
+              InputNumber(
+                id = s"exposure-${c.row.index}",
+                value = v.toSeconds.toDouble,
+                maxFractionDigits = i.exposureTimeFractionDigits,
+                onValueChange = e =>
+                  handleRowValueEdit(c)(exposureReplace):
+                    e.valueOption.flatMap(d => TimeSpan.fromSeconds(BigDecimal(d)))
+                ,
+                clazz = SequenceStyles.SequenceInput
               )
             else i.formatExposureTime(v).value
     )
@@ -165,7 +163,22 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.CoaddsColumnId,
       _.getStep.flatMap(_.coadds),
       header = _ => "Coadds",
-      cell = _.value.map(_.value.toString).orEmpty
+      cell = c =>
+        val isFinished: Boolean = c.getStep.forall(_.isFinished)
+        c.value.map[VdomNode]: v =>
+          if c.isRowEditing && !isFinished then
+            InputNumber(
+              id = s"${SequenceColumns.CoaddsColumnId.value}-${c.row.index}",
+              value = v.value.toDouble,
+              min = 1,
+              maxFractionDigits = 0,
+              onValueChange = e =>
+                handleRowValueEdit(c)(coaddsReplace):
+                  e.valueOption.flatMap(d => PosInt.from(d.toInt).toOption)
+              ,
+              clazz = SequenceStyles.SequenceInput
+            )
+          else v.value.toString
     )
 
   private lazy val guideStateCol: colDef.TypeFor[Option[Boolean]] =
@@ -736,11 +749,11 @@ object SequenceColumns:
       GuideColumnId
     ).reverse
 
+    // Exposure and Coadds are editable fields for GNIRS, so we keep them undroppable
     val ForGnirs: List[ColumnId] = List(
       PColumnId,
       QColumnId,
       GuideColumnId,
-      ExposureColumnId,
       SNColumnId,
       FilterColumnId,
       FPUColumnId
