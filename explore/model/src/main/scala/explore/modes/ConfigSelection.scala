@@ -94,80 +94,45 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
     else ConfigSelection.one(configAndResult)
 
   def toBasicConfiguration(withFallbackWavelength: Boolean = false): Option[BasicConfiguration] =
+    // The wavelength comes from the mode overrides or a default
+    def centralWavelength(
+      fromOverrides: Option[CentralWavelength],
+      fallback:      => CentralWavelength
+    ): Option[CentralWavelength] =
+      fromOverrides.orElse(Option.when(withFallbackWavelength)(fallback))
+
+    def gmosCW(overrides: Option[InstrumentOverrides.GmosSpectroscopy]): Option[CentralWavelength] =
+      centralWavelength(overrides.map(_.centralWavelength), ItcInstrumentConfig.GmosFallbackCW)
+
     configs.headOption.flatMap(_.instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
-                                                     Some(fpu),
-                                                     filter,
-                                                     _,
-                                                     Some(cw, _, _),
-                                                     _
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating,
+                                                     fpu = Some(fpu),
+                                                     filter = filter,
+                                                     modeOverrides = overrides
           ) =>
-        BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, None, _)
-          if withFallbackWavelength =>
-        BasicConfiguration
-          .GmosNorthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
-          .some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
-                                                     Some(fpu),
-                                                     filter,
-                                                     _,
-                                                     Some(cw, _, _),
-                                                     _
+        gmosCW(overrides).map(BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, _))
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating = grating,
+                                                     fpu = Some(fpu),
+                                                     filter = filter,
+                                                     modeOverrides = overrides
           ) =>
-        BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, None, _)
-          if withFallbackWavelength =>
-        BasicConfiguration
-          .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
-          .some
-      // MOS rows have no builtin FPU; their focal plane unit is a custom mask.
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
-                                                     None,
-                                                     filter,
-                                                     _,
-                                                     Some(cw, _, _),
-                                                     Some(slitWidth)
+        gmosCW(overrides).map(BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, _))
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating,
+                                                     fpu = None,
+                                                     filter = filter,
+                                                     modeOverrides = overrides,
+                                                     customSlitWidth = Some(slitWidth)
           ) =>
-        GmosCustomSlitWidth
-          .fromWidth(slitWidth)
-          .map(sw => BasicConfiguration.GmosNorthMos(grating, filter, sw, cw))
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
-                                                     None,
-                                                     filter,
-                                                     _,
-                                                     None,
-                                                     Some(slitWidth)
-          ) if withFallbackWavelength =>
-        GmosCustomSlitWidth
-          .fromWidth(slitWidth)
-          .map(sw =>
-            BasicConfiguration
-              .GmosNorthMos(grating, filter, sw, ItcInstrumentConfig.GmosFallbackCW)
-          )
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
-                                                     None,
-                                                     filter,
-                                                     _,
-                                                     Some(cw, _, _),
-                                                     Some(slitWidth)
+        (gmosCW(overrides), GmosCustomSlitWidth.fromWidth(slitWidth))
+          .mapN((cw, sw) => BasicConfiguration.GmosNorthMos(grating, filter, sw, cw))
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating = grating,
+                                                     fpu = None,
+                                                     filter = filter,
+                                                     modeOverrides = overrides,
+                                                     customSlitWidth = Some(slitWidth)
           ) =>
-        GmosCustomSlitWidth
-          .fromWidth(slitWidth)
-          .map(sw => BasicConfiguration.GmosSouthMos(grating, filter, sw, cw))
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
-                                                     None,
-                                                     filter,
-                                                     _,
-                                                     None,
-                                                     Some(slitWidth)
-          ) if withFallbackWavelength =>
-        GmosCustomSlitWidth
-          .fromWidth(slitWidth)
-          .map(sw =>
-            BasicConfiguration
-              .GmosSouthMos(grating, filter, sw, ItcInstrumentConfig.GmosFallbackCW)
-          )
+        (gmosCW(overrides), GmosCustomSlitWidth.fromWidth(slitWidth))
+          .mapN((cw, sw) => BasicConfiguration.GmosSouthMos(grating, filter, sw, cw))
       case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _) =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
       case ItcInstrumentConfig.GmosNorthImaging(_, _)                               =>
@@ -189,35 +154,21 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
               if c === camera =>
             f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GnirsImaging(_, camera))
-      case ItcInstrumentConfig.GnirsSpectroscopy(
-            grating,
-            fpu,
-            filter,
-            prism,
-            camera,
-            _,
-            Some(InstrumentOverrides.GnirsSpectroscopy(cw, _))
+      case ItcInstrumentConfig.GnirsSpectroscopy(grating = grating,
+                                                 fpu = fpu,
+                                                 filter = filter,
+                                                 prism = prism,
+                                                 camera = camera,
+                                                 modeOverrides = overrides
           ) =>
         // Both the long slit and the IFU map to an observing mode (distinguished by the FPU).
-        GnirsFpu.spectroscopy
-          .getOption(fpu)
-          .map(spec =>
-            BasicConfiguration.GnirsSpectroscopy(filter, spec, prism, grating, camera, cw)
-          )
-      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _, None)
-          if withFallbackWavelength =>
-        GnirsFpu.spectroscopy
-          .getOption(fpu)
-          .map: spec =>
-            BasicConfiguration
-              .GnirsSpectroscopy(
-                filter,
-                spec,
-                prism,
-                grating,
-                camera,
-                CentralWavelength(filter.centralWavelength)
-              )
+        (centralWavelength(overrides.map(_.centralWavelength),
+                           CentralWavelength(filter.centralWavelength)
+         ),
+         GnirsFpu.spectroscopy.getOption(fpu)
+        ).mapN((cw, spec) =>
+          BasicConfiguration.GnirsSpectroscopy(filter, spec, prism, grating, camera, cw)
+        )
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                               =>
         BasicConfiguration.Igrins2LongSlit.some
       case ItcInstrumentConfig.GhostIfu(
