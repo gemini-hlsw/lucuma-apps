@@ -13,12 +13,9 @@ import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.syntax.all.given
 
-// Temporary. MOS modes have no editor yet; this panel exists only so that an
-// observation with a MOS mode assigned still offers the revert-configuration
-// button. The editing ticket replaces this file wholesale.
 object GmosMosConfigPanel:
 
-  case class GmosNorthMos(
+  final case class GmosNorthMos(
     observingMode: ObservingMode.GmosNorthMos,
     revertConfig:  IO[Unit],
     permissions:   ConfigEditPermissions
@@ -26,10 +23,10 @@ object GmosMosConfigPanel:
 
   object GmosNorthMos
       extends ReactFnComponent[GmosNorthMos](props =>
-        MosPlaceholder("GMOS-N MOS", props.revertConfig, props.permissions)
+        TemporaryConfigPanel("GMOS-N MOS", props.revertConfig, props.permissions)
       )
 
-  case class GmosSouthMos(
+  final case class GmosSouthMos(
     observingMode: ObservingMode.GmosSouthMos,
     revertConfig:  IO[Unit],
     permissions:   ConfigEditPermissions
@@ -37,21 +34,21 @@ object GmosMosConfigPanel:
 
   object GmosSouthMos
       extends ReactFnComponent[GmosSouthMos](props =>
-        MosPlaceholder("GMOS-S MOS", props.revertConfig, props.permissions)
+        TemporaryConfigPanel("GMOS-S MOS", props.revertConfig, props.permissions)
       )
 
-  private case class MosPlaceholder(
+  private case class TemporaryConfigPanel(
     label:        String,
     revertConfig: IO[Unit],
     permissions:  ConfigEditPermissions
-  ) extends ReactFnProps(MosPlaceholder)
+  ) extends ReactFnProps(TemporaryConfigPanel)
 
-  private object MosPlaceholder
-      extends ReactFnComponent[MosPlaceholder](props =>
+  private object TemporaryConfigPanel
+      extends ReactFnComponent[TemporaryConfigPanel](props =>
         useStateView(ConfigEditState.View).map: editState =>
           React.Fragment(
             <.div(ExploreStyles.VisitorUpperGrid)(
-              s"${props.label} — editing is not yet supported"
+              s"${props.label} configuration placeholder"
             ),
             <.div(
               ExploreStyles.VisitorLowerGrid,

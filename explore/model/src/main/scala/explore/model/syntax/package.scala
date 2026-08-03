@@ -202,9 +202,6 @@ object all:
         case PosAngleConstraint.ParallacticOverride(_) => PosAngleOptions.ParallacticOverride
         case PosAngleConstraint.AverageParallactic     => PosAngleOptions.AverageParallactic
 
-  // A MOS row carries its slit width as an angle, but the observing mode and the
-  // ITC both need the enum. Shared so the two cannot disagree about which widths
-  // are recognised.
   extension (slitWidth: Angle)
     def toGmosCustomSlitWidth: Option[GmosCustomSlitWidth] =
       Enumerated[GmosCustomSlitWidth].all.find(_.width === slitWidth)
