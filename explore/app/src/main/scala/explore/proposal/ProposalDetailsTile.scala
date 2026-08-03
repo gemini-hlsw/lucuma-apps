@@ -83,6 +83,14 @@ case class ProposalDetailsBody(
   val timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]] =
     detailsAligner.get.programTimes.timeEstimateRange
   val pi: Option[ProgramUser]                                      = detailsAligner.get.pi
+  // On a Regular Semester call, a PI belonging to an exchange partner community
+  // requests the whole time on its behalf instead of splitting it across Gemini
+  // partners.
+  val exchangePartner: Option[ExchangePartner]                     =
+    proposal.call
+      .flatMap(_.gemini)
+      .filter(_.cfpType === GeminiCallForProposalsType.RegularSemester)
+      .flatMap(_ => pi.flatMap(_.partnerLink.exchangePartnerOption))
 
 object ProposalDetailsBody:
   private type Props = ProposalDetailsBody
@@ -333,6 +341,7 @@ object ProposalDetailsBody:
     totalHours:        View[Hours],
     timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
     isCfpSelected:     Boolean,
+    exchangePartner:   Option[ExchangePartner],
     readonly:          Boolean,
     showDialog:        View[Visible]
   ): VdomNode =
@@ -356,8 +365,10 @@ object ProposalDetailsBody:
 
     val needsPartnerSelection =
       scienceSubtype match {
-        // Queue is set by default even if there is no CfP selection
-        case ScienceSubtype.Queue | ScienceSubtype.Classical => isCfpSelected
+        // Queue is set by default even if there is no CfP selection. Time requested
+        // on behalf of an exchange partner community is never split across partners.
+        case ScienceSubtype.Queue | ScienceSubtype.Classical =>
+          isCfpSelected && exchangePartner.isEmpty
         case _                                               => false
       }
 
@@ -541,18 +552,33 @@ object ProposalDetailsBody:
             oldCall.flatMap(_.gemini).map(_.cfpType)
           val newGeminiType: Option[GeminiCallForProposalsType] =
             newCall.flatMap(_.gemini).map(_.cfpType)
-          newCall.fold(newProposal): newCfp =>
-            // If the CfP observatory has changed, we also need to change the proposal type accordingly
-            if oldCall.forall(_.observatory =!= newCfp.observatory) then
-              val newType = newCfp.observatory.defaultProposalType
-              Proposal.proposalType.replace(newType.some)(newProposal)
-            // If both old and new cfps are gemini, but they are different subtypes,
-            // update the proposal type to the default for the new CfP
-            else if newGeminiType.exists(n => !oldGeminiType.contains(n)) then
-              newGeminiType.fold(newProposal): newGemini =>
-                val newType = newGemini.defaultType(props.pi.map(_.id))
+
+          // Whether the request belongs to an exchange partner community depends on
+          // the new call, so it is applied here and travels with the same mutation.
+          val exchangePartner: Option[ExchangePartner] =
+            Option
+              .when(newGeminiType.contains(GeminiCallForProposalsType.RegularSemester))(
+                props.pi.flatMap(_.partnerLink.exchangePartnerOption)
+              )
+              .flatten
+
+          val patched: Proposal =
+            newCall.fold(newProposal): newCfp =>
+              // If the CfP observatory has changed, we also need to change the proposal type accordingly
+              if oldCall.forall(_.observatory =!= newCfp.observatory) then
+                val newType = newCfp.observatory.defaultProposalType
                 Proposal.proposalType.replace(newType.some)(newProposal)
-            else newProposal
+              // If both old and new cfps are gemini, but they are different subtypes,
+              // update the proposal type to the default for the new CfP
+              else if newGeminiType.exists(n => !oldGeminiType.contains(n)) then
+                newGeminiType.fold(newProposal): newGemini =>
+                  val newType = newGemini.defaultType(props.pi.map(_.id))
+                  Proposal.proposalType.replace(newType.some)(newProposal)
+              else newProposal
+
+          Proposal.proposalType.some
+            .andThen(ProposalType.geminiProposalType)
+            .modify(GeminiProposalType.withExchangePartner(exchangePartner))(patched)
         .zoom(Proposal.call)
 
     val optGeminiView: Option[View[GeminiProposalType]] =
@@ -634,6 +660,7 @@ object ProposalDetailsBody:
                          totalHours,
                          props.timeEstimateRange,
                          isCfpSelected,
+                         props.exchangePartner,
                          props.readonly,
                          showDialog
             )
@@ -683,7 +710,14 @@ object ProposalDetailsBody:
                                          HelpIcon("proposal/main/proposal-type.md".refined)
                   ),
                   value = geminiView.get.scienceSubtype,
-                  onChange = v => geminiView.mod(GeminiProposalType.toScienceSubtype(v)),
+                  // Queue and Classical are the only subtypes that can carry an
+                  // exchange partner, so it is (re)applied on every conversion.
+                  onChange = v =>
+                    geminiView.mod(
+                      GeminiProposalType
+                        .toScienceSubtype(v)
+                        .andThen(GeminiProposalType.withExchangePartner(props.exchangePartner))
+                    ),
                   disabled = props.readonly,
                   modifiers = List(^.id := "proposalType")
                 ).when(hasSubtypes)

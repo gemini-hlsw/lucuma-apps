@@ -11,6 +11,7 @@ import explore.model.ProposalType.*
 import explore.model.ProposalType.GeminiProposalType.*
 import explore.model.arb.ArbPartnerSplit.given
 import lucuma.core.enums.ConsiderForBand3
+import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
@@ -30,12 +31,14 @@ trait ArbProposalType:
         scienceSubtype    <- arbitrary[ScienceSubtype]
         minPercentType    <- arbitrary[IntPercent]
         partnerSplits     <- arbitrary[List[PartnerSplit]]
+        exchangePartner   <- arbitrary[Option[ExchangePartner]]
         aeonMultiFacility <- arbitrary[Boolean]
         jwstSynergy       <- arbitrary[Boolean]
         usLongTerm        <- arbitrary[Boolean]
       } yield Classical(scienceSubtype,
                         minPercentType,
                         partnerSplits,
+                        exchangePartner,
                         aeonMultiFacility,
                         jwstSynergy,
                         usLongTerm
@@ -48,6 +51,7 @@ trait ArbProposalType:
         ScienceSubtype,
         IntPercent,
         List[PartnerSplit],
+        Option[ExchangePartner],
         Boolean,
         Boolean,
         Boolean
@@ -56,6 +60,7 @@ trait ArbProposalType:
       (p.scienceSubtype,
        p.minPercentTime,
        p.partnerSplits,
+       p.exchangePartner,
        p.aeonMultiFacility,
        p.jwstSynergy,
        p.usLongTerm
@@ -181,6 +186,7 @@ trait ArbProposalType:
         toOActivation     <- arbitrary[ToOActivation]
         minPercentType    <- arbitrary[IntPercent]
         partnerSplits     <- arbitrary[List[PartnerSplit]]
+        exchangePartner   <- arbitrary[Option[ExchangePartner]]
         aeonMultiFacility <- arbitrary[Boolean]
         jwstSynergy       <- arbitrary[Boolean]
         usLongTerm        <- arbitrary[Boolean]
@@ -189,6 +195,7 @@ trait ArbProposalType:
                     toOActivation,
                     minPercentType,
                     partnerSplits,
+                    exchangePartner,
                     aeonMultiFacility,
                     jwstSynergy,
                     usLongTerm,
@@ -203,6 +210,7 @@ trait ArbProposalType:
         ToOActivation,
         IntPercent,
         List[PartnerSplit],
+        Option[ExchangePartner],
         Boolean,
         Boolean,
         Boolean,
@@ -213,6 +221,7 @@ trait ArbProposalType:
        p.toOActivation,
        p.minPercentTime,
        p.partnerSplits,
+       p.exchangePartner,
        p.aeonMultiFacility,
        p.jwstSynergy,
        p.usLongTerm,
