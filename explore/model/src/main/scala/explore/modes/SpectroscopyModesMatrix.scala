@@ -8,7 +8,6 @@ import cats.Order
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.implicits.*
-import coulomb.Quantity
 import coulomb.conversion.ValueConversion
 import eu.timepit.refined.*
 import eu.timepit.refined.auto.*
@@ -28,17 +27,12 @@ import lucuma.core.math.BoundedInterval.*
 import lucuma.core.math.Declination
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
-import lucuma.core.math.units.NanometersPerPixel
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
-import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
-import lucuma.core.model.sequence.gmos.longslit.DefaultAmpGain
-import lucuma.core.model.sequence.gmos.longslit.DefaultAmpReadMode
 import lucuma.core.model.sequence.gmos.longslit.DefaultRoi
-import lucuma.core.model.sequence.gmos.mos.mosBinning
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
@@ -148,22 +142,6 @@ case class SpectroscopyModeRow(
       }
       .orElse(this.some)
 
-  private def mosCcdMode(
-    slitWidth:    Angle,
-    profiles:     NonEmptyList[SourceProfile],
-    imageQuality: ImageQuality,
-    dispersion:   Quantity[Rational, NanometersPerPixel],
-    resolution:   PosInt,
-    blaze:        Wavelength,
-    pixelScale:   Angle
-  ): GmosCcdMode =
-    val bins = profiles.map(
-      mosBinning(slitWidth, _, imageQuality, dispersion, resolution, blaze, pixelScale)
-    )
-    val xBin = bins.map(_._1).minimumBy(_.count)
-    val yBin = bins.map(_._2).minimumBy(_.count)
-    GmosCcdMode(xBin, yBin, DefaultAmpCount, DefaultAmpGain, DefaultAmpReadMode)
-
   private def withModeOverridesFor(
     wavelength:   Wavelength,
     profiles:     NonEmptyList[SourceProfile],
@@ -217,9 +195,9 @@ case class SpectroscopyModeRow(
                   InstrumentOverrides
                     .GmosSpectroscopy(
                       cw,
-                      mosCcdMode(
-                        slitWidth,
+                      GmosCcdMode.Default.Mos(
                         profiles,
+                        slitWidth,
                         imageQuality.toImageQuality,
                         grating.dispersion,
                         grating.referenceResolution,
@@ -240,9 +218,9 @@ case class SpectroscopyModeRow(
                   InstrumentOverrides
                     .GmosSpectroscopy(
                       cw,
-                      mosCcdMode(
-                        slitWidth,
+                      GmosCcdMode.Default.Mos(
                         profiles,
+                        slitWidth,
                         imageQuality.toImageQuality,
                         grating.dispersion,
                         grating.referenceResolution,

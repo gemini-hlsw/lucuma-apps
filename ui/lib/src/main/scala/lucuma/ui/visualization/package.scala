@@ -211,6 +211,9 @@ extension (conf: BasicConfiguration)
           AgsParams.GmosLongSlit(fpu.asLeft, port).some
         case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                                 =>
           AgsParams.GmosLongSlit(fpu.asRight, port).some
+        case BasicConfiguration.GmosNorthMos(_, _, _, _) |
+            BasicConfiguration.GmosSouthMos(_, _, _, _) =>
+          none
         case BasicConfiguration.GmosNorthImaging(_)                                          =>
           AgsParams.GmosImaging(port).some
         case BasicConfiguration.GmosSouthImaging(_)                                          =>

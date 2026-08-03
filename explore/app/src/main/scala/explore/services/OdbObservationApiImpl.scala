@@ -440,6 +440,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     gmosSouthLongSlit:  Boolean = false,
     gmosNorthImaging:   Boolean = false,
     gmosSouthImaging:   Boolean = false,
+    gmosNorthMos:       Boolean = false,
+    gmosSouthMos:       Boolean = false,
     flamingos2Imaging:  Boolean = false,
     flamingos2LongSlit: Boolean = false,
     igrins2LongSlit:    Boolean = false,
@@ -467,13 +469,13 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case ObservingModeType.GmosNorthImaging                                =>
         ModeViewFlags(gmosNorthImaging = true)
       case ObservingModeType.GmosNorthMos                                    =>
-        ???
+        ModeViewFlags(gmosNorthMos = true)
       case ObservingModeType.GmosSouthLongSlit                               =>
         ModeViewFlags(gmosSouthLongSlit = true)
       case ObservingModeType.GmosSouthImaging                                =>
         ModeViewFlags(gmosSouthImaging = true)
       case ObservingModeType.GmosSouthMos                                    =>
-        ???
+        ModeViewFlags(gmosSouthMos = true)
       case ObservingModeType.GnirsImaging                                    =>
         ModeViewFlags(gnirsImaging = true)
       case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu      =>
@@ -507,6 +509,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeGmosSouthLongSlit = flags.gmosSouthLongSlit,
             includeGmosNorthImaging = flags.gmosNorthImaging,
             includeGmosSouthImaging = flags.gmosSouthImaging,
+            includeGmosNorthMos = flags.gmosNorthMos,
+            includeGmosSouthMos = flags.gmosSouthMos,
             includeFlamingos2Imaging = flags.flamingos2Imaging,
             includeFlamingos2LongSlit = flags.flamingos2LongSlit,
             includeIgrins2LongSlit = flags.igrins2LongSlit,

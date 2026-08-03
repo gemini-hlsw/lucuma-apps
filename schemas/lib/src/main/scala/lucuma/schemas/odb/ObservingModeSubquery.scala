@@ -76,6 +76,62 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
               exposureTimeMode $ExposureTimeModeSubquery
             }
           }
+          gmosNorthMos {
+            initialGrating
+            initialFilter
+            initialSlitWidth
+            initialCentralWavelength $WavelengthSubquery
+            grating
+            filter
+            customMask {
+              attachmentId
+              slitWidth
+            }
+            centralWavelength $WavelengthSubquery
+            defaultXBin
+            explicitXBin
+            defaultYBin
+            explicitYBin
+            defaultAmpReadMode
+            explicitAmpReadMode
+            defaultAmpGain
+            explicitAmpGain
+            defaultRoi
+            explicitRoi
+            defaultWavelengthDithers $WavelengthDitherSubquery
+            explicitWavelengthDithers $WavelengthDitherSubquery
+            defaultOffsets $AngleSubquery
+            explicitOffsets $AngleSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+          }
+          gmosSouthMos {
+            initialGrating
+            initialFilter
+            initialSlitWidth
+            initialCentralWavelength $WavelengthSubquery
+            grating
+            filter
+            customMask {
+              attachmentId
+              slitWidth
+            }
+            centralWavelength $WavelengthSubquery
+            defaultXBin
+            explicitXBin
+            defaultYBin
+            explicitYBin
+            defaultAmpReadMode
+            explicitAmpReadMode
+            defaultAmpGain
+            explicitAmpGain
+            defaultRoi
+            explicitRoi
+            defaultWavelengthDithers $WavelengthDitherSubquery
+            explicitWavelengthDithers $WavelengthDitherSubquery
+            defaultOffsets $AngleSubquery
+            explicitOffsets $AngleSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+          }
           gmosNorthImaging {
             variant $ImagingVariantSubquery
             initialFilters {
@@ -328,6 +384,62 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               explicitRoi
               exposureTimeMode $ExposureTimeModeSubquery
             }
+          }
+          gmosNorthMos @include(if: $$includeGmosNorthMos) {
+            initialGrating
+            initialFilter
+            initialSlitWidth
+            initialCentralWavelength $WavelengthSubquery
+            grating
+            filter
+            customMask {
+              attachmentId
+              slitWidth
+            }
+            centralWavelength $WavelengthSubquery
+            defaultXBin
+            explicitXBin
+            defaultYBin
+            explicitYBin
+            defaultAmpReadMode
+            explicitAmpReadMode
+            defaultAmpGain
+            explicitAmpGain
+            defaultRoi
+            explicitRoi
+            defaultWavelengthDithers $WavelengthDitherSubquery
+            explicitWavelengthDithers $WavelengthDitherSubquery
+            defaultOffsets $AngleSubquery
+            explicitOffsets $AngleSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+          }
+          gmosSouthMos @include(if: $$includeGmosSouthMos) {
+            initialGrating
+            initialFilter
+            initialSlitWidth
+            initialCentralWavelength $WavelengthSubquery
+            grating
+            filter
+            customMask {
+              attachmentId
+              slitWidth
+            }
+            centralWavelength $WavelengthSubquery
+            defaultXBin
+            explicitXBin
+            defaultYBin
+            explicitYBin
+            defaultAmpReadMode
+            explicitAmpReadMode
+            defaultAmpGain
+            explicitAmpGain
+            defaultRoi
+            explicitRoi
+            defaultWavelengthDithers $WavelengthDitherSubquery
+            explicitWavelengthDithers $WavelengthDitherSubquery
+            defaultOffsets $AngleSubquery
+            explicitOffsets $AngleSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
           }
           gmosNorthImaging @include(if: $$includeGmosNorthImaging) {
             variant $ImagingVariantSubquery

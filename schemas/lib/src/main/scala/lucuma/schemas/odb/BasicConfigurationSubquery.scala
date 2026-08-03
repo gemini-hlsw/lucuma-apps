@@ -25,6 +25,22 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             fpu
             centralWavelength $WavelengthSubquery
           }
+          gmosNorthMos {
+            grating
+            filter
+            customMask {
+              slitWidth
+            }
+            centralWavelength $WavelengthSubquery
+          }
+          gmosSouthMos {
+            grating
+            filter
+            customMask {
+              slitWidth
+            }
+            centralWavelength $WavelengthSubquery
+          }
           gmosNorthImaging {
             filters {
               filter

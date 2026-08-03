@@ -37,6 +37,8 @@ object ProgramSummaryQueriesGQL {
         $$includeGmosSouthLongSlit: Boolean!,
         $$includeGmosNorthImaging: Boolean!,
         $$includeGmosSouthImaging: Boolean!,
+        $$includeGmosNorthMos: Boolean!,
+        $$includeGmosSouthMos: Boolean!,
         $$includeFlamingos2Imaging: Boolean!,
         $$includeFlamingos2LongSlit: Boolean!,
         $$includeIgrins2LongSlit: Boolean!,

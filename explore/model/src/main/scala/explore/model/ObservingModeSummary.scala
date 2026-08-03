@@ -15,6 +15,7 @@ import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosAmpReadMode
+import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosNorthGrating
@@ -43,10 +44,13 @@ import lucuma.schemas.ObservationDB.Types.ExchangeInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
+import lucuma.schemas.ObservationDB.Types.GmosMosCustomMaskInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
+import lucuma.schemas.ObservationDB.Types.GmosNorthMosInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
+import lucuma.schemas.ObservationDB.Types.GmosSouthMosInput
 import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
 import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
 import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
@@ -81,6 +85,20 @@ enum ObservingModeSummary derives Order:
     centralWavelength: CentralWavelength,
     ampReadMode:       GmosAmpReadMode,
     roi:               GmosRoi,
+    exposureTimeMode:  ExposureTimeMode
+  )                                                        extends ObservingModeSummary
+  case GmosNorthMos(
+    grating:           GmosNorthGrating,
+    filter:            Option[GmosNorthFilter],
+    slitWidth:         GmosCustomSlitWidth,
+    centralWavelength: CentralWavelength,
+    exposureTimeMode:  ExposureTimeMode
+  )                                                        extends ObservingModeSummary
+  case GmosSouthMos(
+    grating:           GmosSouthGrating,
+    filter:            Option[GmosSouthFilter],
+    slitWidth:         GmosCustomSlitWidth,
+    centralWavelength: CentralWavelength,
     exposureTimeMode:  ExposureTimeMode
   )                                                        extends ObservingModeSummary
   // TODO: Update for acquisition customization?
@@ -143,6 +161,8 @@ enum ObservingModeSummary derives Order:
   def obsModeType: ObservingModeType = this match
     case GmosNorthLongSlit(_, _, _, _, _, _, _)                 => ObservingModeType.GmosNorthLongSlit
     case GmosSouthLongSlit(_, _, _, _, _, _, _)                 => ObservingModeType.GmosSouthLongSlit
+    case GmosNorthMos(_, _, _, _, _)                            => ObservingModeType.GmosNorthMos
+    case GmosSouthMos(_, _, _, _, _)                            => ObservingModeType.GmosSouthMos
     case Flamingos2LongSlit(_, _, _, _)                         => ObservingModeType.Flamingos2LongSlit
     case Flamingos2Imaging(_, _)                                => ObservingModeType.Flamingos2Imaging
     case GnirsImaging(_, _, _)                                  => ObservingModeType.GnirsImaging
@@ -178,6 +198,26 @@ enum ObservingModeSummary derives Order:
           centralWavelength = centralWavelength.value.toInput.assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign,
+          exposureTimeMode = etm.toInput.assign
+        )
+      )
+    case GmosNorthMos(grating, filter, slitWidth, centralWavelength, etm)                  =>
+      ObservingModeInput.GmosNorthMos(
+        GmosNorthMosInput(
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          centralWavelength = centralWavelength.value.toInput.assign,
+          exposureTimeMode = etm.toInput.assign
+        )
+      )
+    case GmosSouthMos(grating, filter, slitWidth, centralWavelength, etm)                  =>
+      ObservingModeInput.GmosSouthMos(
+        GmosSouthMosInput(
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          centralWavelength = centralWavelength.value.toInput.assign,
           exposureTimeMode = etm.toInput.assign
         )
       )
@@ -311,6 +351,14 @@ enum ObservingModeSummary derives Order:
         val cwvStr    = formatAt(centralWavelength.value)
         val filterStr = filter.fold("None")(_.shortName)
         s"GMOS-S Longslit\n${grating.shortName} $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
+      case GmosNorthMos(grating, filter, slitWidth, centralWavelength, etm)                  =>
+        val cwvStr    = formatAt(centralWavelength.value)
+        val filterStr = filter.fold("None")(_.shortName)
+        s"GMOS-N MOS\n${grating.shortName} $cwvStr $filterStr  ${slitWidth.shortName} (${etm.formatSpec})"
+      case GmosSouthMos(grating, filter, slitWidth, centralWavelength, etm)                  =>
+        val cwvStr    = formatAt(centralWavelength.value)
+        val filterStr = filter.fold("None")(_.shortName)
+        s"GMOS-S MOS\n${grating.shortName} $cwvStr $filterStr  ${slitWidth.shortName} (${etm.formatSpec})"
       case Flamingos2LongSlit(grating, filter, fpu, etm)                                     =>
         s"Flamingos2 Longslit\n${grating.shortName} ${filter.shortName} ${fpu.shortName} (${etm.formatSpec})"
       case Flamingos2Imaging(variant, filters)                                               =>
@@ -410,6 +458,22 @@ object ObservingModeSummary:
           s.roi,
           s.exposureTimeMode
         )
+      case n: ObservingMode.GmosNorthMos       =>
+        GmosNorthMos(
+          n.grating,
+          n.filter,
+          n.customMask.slitWidth,
+          n.centralWavelength,
+          n.exposureTimeMode
+        )
+      case s: ObservingMode.GmosSouthMos       =>
+        GmosSouthMos(
+          s.grating,
+          s.filter,
+          s.customMask.slitWidth,
+          s.centralWavelength,
+          s.exposureTimeMode
+        )
       case f: ObservingMode.Flamingos2LongSlit =>
         Flamingos2LongSlit(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
       case f: ObservingMode.Flamingos2Imaging  =>
@@ -472,6 +536,14 @@ object ObservingModeSummary:
       val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-S Longslit ${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName}"
+    case GmosNorthMos(grating, filter, slitWidth, centralWavelength, _)                  =>
+      val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
+      val filterStr = filter.fold("None")(_.shortName)
+      s"GMOS-N MOS ${grating.shortName} @ $cwvStr $filterStr  ${slitWidth.shortName}"
+    case GmosSouthMos(grating, filter, slitWidth, centralWavelength, _)                  =>
+      val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
+      val filterStr = filter.fold("None")(_.shortName)
+      s"GMOS-S MOS ${grating.shortName} @ $cwvStr $filterStr  ${slitWidth.shortName}"
     case Flamingos2LongSlit(grating, filter, fpu, _)                                     =>
       s"Flamingos2 Longslit ${grating.shortName} ${filter.shortName} ${fpu.shortName}"
     case GmosNorthImaging(variant, filters, ampReadMode, roi)                            =>

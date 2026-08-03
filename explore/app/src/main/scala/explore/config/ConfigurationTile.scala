@@ -577,6 +577,18 @@ object ConfigurationTile
                         props.permissions,
                         props.units
                       ),
+                  // Gmos North MOS (placeholder, no editing yet)
+                  props.observingMode
+                    .flatMap(ObservingMode.gmosNorthMos.getOption)
+                    .map: northMos =>
+                      GmosMosConfigPanel
+                        .GmosNorthMos(northMos, revertConfig, props.permissions),
+                  // Gmos South MOS (placeholder, no editing yet)
+                  props.observingMode
+                    .flatMap(ObservingMode.gmosSouthMos.getOption)
+                    .map: southMos =>
+                      GmosMosConfigPanel
+                        .GmosSouthMos(southMos, revertConfig, props.permissions),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosNorthImaging(
