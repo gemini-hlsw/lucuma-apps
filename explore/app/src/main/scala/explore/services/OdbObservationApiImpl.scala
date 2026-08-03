@@ -460,6 +460,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(flamingos2Imaging = true)
       case ObservingModeType.Flamingos2LongSlit                              =>
         ModeViewFlags(flamingos2LongSlit = true)
+      case ObservingModeType.Flamingos2Mos                                   =>
+        ???
       case ObservingModeType.GmosNorthLongSlit                               =>
         ModeViewFlags(gmosNorthLongSlit = true)
       case ObservingModeType.GmosNorthImaging                                =>

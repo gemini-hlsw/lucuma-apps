@@ -133,6 +133,7 @@ object ConfigurationTableColumnBuilder {
   extension (mode: Configuration.ObservingMode)
     def fpu: String = mode match
       case Flamingos2LongSlit(_)  => "LongSlit"
+      case Flamingos2Mos(_)       => "MOS"
       case Igrins2LongSlit        => "LongSlit"
       case GhostIfu               => "IFU"
       case GmosNorthLongSlit(_)   => "LongSlit"
@@ -147,6 +148,7 @@ object ConfigurationTableColumnBuilder {
 
     def disperser: String = mode match
       case Flamingos2LongSlit(disperser) => disperser.shortName
+      case Flamingos2Mos(disperser)      => disperser.shortName
       case GhostIfu                      => ""
       case GmosNorthImaging(_)           => ""
       case GmosNorthLongSlit(grating)    => grating.shortName

@@ -6,6 +6,7 @@ package workers
 import boopickle.DefaultBasic.*
 import cats.effect.IO
 import cats.effect.unsafe.implicits.*
+import cats.syntax.show.*
 import explore.events.AgsMessage
 import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
@@ -33,7 +34,9 @@ object AgsServer extends WorkerServer[AgsMessage.Request] {
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
-  def agsCalculation(r: AgsMessage.AgsRequest)(using Logger[IO]): IO[List[AgsAnalysis.Usable]] =
+  def agsCalculation(
+    r: AgsMessage.AgsRequest
+  )(using Logger[IO], Tracer[IO]): IO[List[AgsAnalysis.Usable]] =
     IO.blocking:
       val correctedCandidates = r.candidates.map(_.at(r.vizTime))
       Ags
@@ -50,7 +53,8 @@ object AgsServer extends WorkerServer[AgsMessage.Request] {
           correctedCandidates
         )
     .flatTap: r =>
-        Logger[IO].debug(pprint.apply(r._2).render)
+        Tracer[IO].currentSpanOrNoop.flatMap(_.addAttributes(r._2.toSpanAttributes*)) *>
+          Logger[IO].debug(pprint.apply(r._2.show).render)
       .map:
         _._1.sortUsablePositions
 
@@ -75,7 +79,7 @@ object AgsServer extends WorkerServer[AgsMessage.Request] {
               case Some(result) => invocation.respond(result) // hit: nothing calculated, no span
               case None         =>                            // miss: trace the calculation
                 Tracer[IO]
-                  .span("ags.calculation", Attribute("candidates", req.candidates.length.toLong))
+                  .span("ags", Attribute("ags.mode", req.params.mode))
                   .surround:
                     val compute = (r: AgsMessage.AgsRequest) => agsCalculation(r)
                     cache
