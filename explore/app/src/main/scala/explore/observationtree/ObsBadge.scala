@@ -32,6 +32,7 @@ import lucuma.react.fa.LayeredIcon
 import lucuma.react.fa.TextLayer
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Checkbox
+import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.ui.components.TimeSpanView
@@ -96,6 +97,26 @@ object ObsBadge:
   // GHOST modes can carry a manually-set sky position
   private def configLabel(obs: Observation, shortName: String): String =
     if obs.hasSkyPosition then s"$shortName + Sky" else shortName
+
+  // Unapproved gets an "X", since "U" is taken by Undefined
+  private def stateLetter(state: ObservationWorkflowState): String =
+    state match
+      case ObservationWorkflowState.Inactive   => "I"
+      case ObservationWorkflowState.Undefined  => "U"
+      case ObservationWorkflowState.Unapproved => "X"
+      case ObservationWorkflowState.Defined    => "D"
+      case ObservationWorkflowState.Ready      => "R"
+      case ObservationWorkflowState.Ongoing    => "O"
+      case ObservationWorkflowState.Completed  => "C"
+
+  private def stateTag(state: ObservationWorkflowState): VdomNode =
+    <.span(
+      Tag(
+        value = stateLetter(state),
+        rounded = true,
+        clazz = ExploreStyles.ObsBadgeAssociatedObsState
+      )
+    ).withTooltip(content = state.shortName)
 
   // Daytime pinhole calibrations have no meaningful target, so we label them by role.
   private def badgeTitle(obs: Observation): String =
@@ -198,7 +219,7 @@ object ObsBadge:
         renderEnumProgress(obs.workflow.state)
       )
 
-      val validationTooltip =
+      lazy val validationTooltip =
         if (obs.hasConfigurationRequestError)
           <.span(obs.workflow.value.validationErrors.head.messages.head)
         else
@@ -209,7 +230,7 @@ object ObsBadge:
               )
           )
 
-      val validationIcon = <.span(Icons.ErrorIcon).withTooltip(content = validationTooltip)
+      lazy val validationIcon = <.span(Icons.ErrorIcon).withTooltip(content = validationTooltip)
 
       React.Fragment(
         <.div(
@@ -233,7 +254,7 @@ object ObsBadge:
                 props.setStateCB.map(setStatus =>
                   <.span(ExploreStyles.ObsStateSelectWrapper)(
                     EnumDropdownView(
-                      id = NonEmptyString.unsafeFrom(s"obs-status-${obs.id}-2"),
+                      id = NonEmptyString.unsafeFrom(s"obs-status-${obs.id}"),
                       value = View[ObservationWorkflowState](
                         obs.workflow.value.state,
                         (f, cb) =>
@@ -257,22 +278,14 @@ object ObsBadge:
                   TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
                     .withMods(props.executionTime.staleClass)
                 ),
-                validationIcon.unless(obs.workflow.value.validationErrors.isEmpty)
+                if (obs.hasValidationErrors) validationIcon else EmptyVdom
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
                 props.associatedObss
                   .map: childObs =>
                     val selected: Boolean = props.focusedObs.contains_(childObs.id)
 
-                    val currentState: ObservationWorkflowState            = childObs.workflow.value.state
-                    def isChecked(s: ObservationWorkflowState): Boolean   =
-                      s === ObservationWorkflowState.Ready
-                    def fromChecked(b: Boolean): ObservationWorkflowState =
-                      if (b) ObservationWorkflowState.Ready
-                      else ObservationWorkflowState.Inactive
-                    val canToggle: Boolean                                =
-                      childObs.workflow.value.validTransitions
-                        .contains_(fromChecked(!isChecked(currentState)))
+                    val currentState: ObservationWorkflowState = childObs.workflow.value.state
 
                     Button(
                       clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
@@ -282,17 +295,14 @@ object ObsBadge:
                       ),
                       severity = Button.Severity.Secondary
                     ).withMods(
+                      // TODO: Enable when the odb really supports changing the state.
                       Checkbox(
-                        checked = isChecked(currentState),
+                        checked = currentState === ObservationWorkflowState.Ready,
                         variant = Checkbox.Variant.Filled,
                         clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
-                        disabled = !canToggle,
-                        onChange = newValue =>
-                          props.setStateCB
-                            .map: setState =>
-                              setState(childObs.id)(fromChecked(newValue))
-                            .orEmpty
+                        disabled = true
                       )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
+                      stateTag(currentState),
                       <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
                         <.span(badgeTitle(childObs)),
                         <.span(
