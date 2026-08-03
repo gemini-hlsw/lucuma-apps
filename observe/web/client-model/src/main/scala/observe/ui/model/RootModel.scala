@@ -44,9 +44,7 @@ case class RootModelData(
   operator:             Option[Operator],
   userSelectionMessage: Option[NonEmptyString],
   globalLog:            FixedLengthBuffer[LogMessage],
-  isAudioActivated:     IsAudioActivated,
-  obsListGlobalFilter:  String,
-  obsListColumnFilters: ColumnFilters
+  userPreferences:      UserPreferences
 ) derives Eq:
   // TODO Readonly mode won't depend on user logged or not, but on their permissions.
   // For the moment we are requiring the STAFF role, so all logged users can operate.
@@ -107,8 +105,13 @@ case class RootModelData(
       userVault = vault.ready,
       observer =
         vault.flatMap(v => NonEmptyString.from(v.user.displayName).toOption.map(Observer(_))),
-      userSelectionMessage = result.left.toOption.map(t => NonEmptyString.unsafeFrom(t.getMessage))
+      userSelectionMessage = result.left.toOption.map(t => NonEmptyString.unsafeFrom(t.getMessage)),
+      userPreferences = UserPreferences.Default
     )
+
+  // Hydrate preferences from storage after a successful login.
+  def withUserPreferences(prefs: UserPreferences): RootModelData =
+    copy(userPreferences = prefs)
 
 object RootModelData:
   val MaxGlobalLogEntries: Int = 5000
@@ -129,9 +132,7 @@ object RootModelData:
       operator = none,
       userSelectionMessage = none,
       globalLog = FixedLengthBuffer.unsafe(MaxGlobalLogEntries),
-      isAudioActivated = IsAudioActivated.True,
-      obsListGlobalFilter = "",
-      obsListColumnFilters = ColumnFilters.Empty
+      userPreferences = UserPreferences.Default
     )
 
   val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     =
@@ -162,11 +163,13 @@ object RootModelData:
     Focus[RootModelData](_.userSelectionMessage)
   val globalLog: Lens[RootModelData, FixedLengthBuffer[LogMessage]]              =
     Focus[RootModelData](_.globalLog)
+  val userPreferences: Lens[RootModelData, UserPreferences]                      =
+    Focus[RootModelData](_.userPreferences)
   val isAudioActivated: Lens[RootModelData, IsAudioActivated]                    =
-    Focus[RootModelData](_.isAudioActivated)
+    userPreferences.andThen(UserPreferences.isAudioActivated)
   val obsListGlobalFilter: Lens[RootModelData, String]                           =
-    Focus[RootModelData](_.obsListGlobalFilter)
+    userPreferences.andThen(UserPreferences.obsListGlobalFilter)
   val obsListColumnFilters: Lens[RootModelData, ColumnFilters]                   =
-    Focus[RootModelData](_.obsListColumnFilters)
+    userPreferences.andThen(UserPreferences.obsListColumnFilters)
 
 case class RootModel(clientConfig: Pot[ClientConfig], data: View[RootModelData])

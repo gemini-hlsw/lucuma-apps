@@ -41,6 +41,7 @@ object reusability:
   given Reusability[StepProgress]                          = Reusability.byEq
   given Reusability[OperationRequest]                      = Reusability.byEq
   given Reusability[Map[Observation.Id, SequenceStatus]]   = Reusability.map
+  given Reusability[UserPreferences]                       = Reusability.byEq
   given Reusability[RootModelData]                         = Reusability.byEq
   // TODO We don't extend the hierarchy anymore. We can use a sealed type, put reusability in ui
   given [D: Eq]: Reusability[SequenceRow[D]]               = Reusability:

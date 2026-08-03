@@ -16,6 +16,7 @@ import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbNewType.given
 import lucuma.react.table.ColumnFilters
 import lucuma.react.table.ColumnId
+import lucuma.ui.enums.Theme
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.arb.ArbSelectedRowId.given
 import lucuma.ui.sso.UserVault
@@ -33,12 +34,14 @@ import observe.model.arb.ArbLogMessage.given
 import observe.model.arb.ArbObsRecordedIds.given
 import observe.model.arb.ArbStepProgress.given
 import observe.model.arb.ObserveModelArbitraries.given
+import observe.model.enums.ObserveLogLevel
 import observe.model.odb.ObsRecordedIds
 import observe.ui.model.IsAudioActivated
 import observe.ui.model.LoadedObservations
 import observe.ui.model.ObsSummary
 import observe.ui.model.ObservationRequests
 import observe.ui.model.RootModelData
+import observe.ui.model.UserPreferences
 import observe.ui.model.arb.ArbLoadedObservation.given
 import observe.ui.model.arb.ArbObsSummary.given
 import org.scalacheck.Arbitrary
@@ -53,26 +56,46 @@ trait ArbRootModel:
   given Arbitrary[Observation.Id] = Arbitrary:
     Gen.oneOf(Gen.const(StandardObsId), arbGid[Observation.Id].arbitrary)
 
+  given Arbitrary[ColumnFilters] = Arbitrary:
+    arbitrary[Map[String, String]].map(m => ColumnFilters(m.map((k, v) => ColumnId(k) -> v)))
+
+  given Arbitrary[UserPreferences] = Arbitrary:
+    for
+      audio <- arbitrary[IsAudioActivated]
+      theme <- Gen.oneOf(Theme.values.toSeq)
+      level <- Gen.oneOf(ObserveLogLevel.values.toSeq)
+      utc   <- arbitrary[Boolean]
+      gf    <- arbitrary[String]
+      cf    <- arbitrary[ColumnFilters]
+    yield UserPreferences(audio, theme, level, utc, gf, cf)
+
+  given Cogen[UserPreferences] =
+    Cogen[(IsAudioActivated, Int, Int, Boolean, String, Map[String, String])].contramap: p =>
+      (p.isAudioActivated,
+       p.theme.ordinal,
+       p.logLevel.ordinal,
+       p.logTimeIsUTC,
+       p.obsListGlobalFilter,
+       p.obsListColumnFilters.value.map((k, v) => k.value -> v.toString)
+      )
+
   given Arbitrary[RootModelData] = Arbitrary:
     for
-      uv    <- arbitrary[Pot[Option[UserVault]]]
-      ros   <- arbitrary[Pot[List[ObsSummary]]]
-      los   <- arbitrary[LoadedObservations]
-      es    <- arbitrary[Map[Observation.Id, ExecutionState]]
-      ri    <- arbitrary[ObsRecordedIds]
-      sp    <- arbitrary[Map[Observation.Id, StepProgress]]
-      usr   <- arbitrary[Map[Observation.Id, SelectedRowId]]
-      or    <- arbitrary[Map[Observation.Id, ObservationRequests]]
-      cs    <- arbitrary[CurrentConditions]
-      gc    <- arbitrary[GuideConfig]
-      obs   <- arbitrary[Option[Observer]]
-      op    <- arbitrary[Option[Operator]]
-      usm   <- arbitrary[Option[NonEmptyString]]
-      log   <- arbitrary[FixedLengthBuffer[LogMessage]]
-      audio <- arbitrary[IsAudioActivated]
-      gf    <- arbitrary[String]
-      cf    <-
-        arbitrary[Map[String, String]].map(_.map((k, v) => ColumnId(k) -> v)).map(ColumnFilters(_))
+      uv  <- arbitrary[Pot[Option[UserVault]]]
+      ros <- arbitrary[Pot[List[ObsSummary]]]
+      los <- arbitrary[LoadedObservations]
+      es  <- arbitrary[Map[Observation.Id, ExecutionState]]
+      ri  <- arbitrary[ObsRecordedIds]
+      sp  <- arbitrary[Map[Observation.Id, StepProgress]]
+      usr <- arbitrary[Map[Observation.Id, SelectedRowId]]
+      or  <- arbitrary[Map[Observation.Id, ObservationRequests]]
+      cs  <- arbitrary[CurrentConditions]
+      gc  <- arbitrary[GuideConfig]
+      obs <- arbitrary[Option[Observer]]
+      op  <- arbitrary[Option[Operator]]
+      usm <- arbitrary[Option[NonEmptyString]]
+      log <- arbitrary[FixedLengthBuffer[LogMessage]]
+      up  <- arbitrary[UserPreferences]
     yield RootModelData(
       uv,
       ros,
@@ -88,9 +111,7 @@ trait ArbRootModel:
       op,
       usm,
       log,
-      audio,
-      gf,
-      cf
+      up
     )
 
   given Cogen[RootModelData] = Cogen[
@@ -109,9 +130,7 @@ trait ArbRootModel:
       Option[Operator],
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
-      IsAudioActivated,
-      String,
-      Map[String, String]
+      UserPreferences
     )
   ].contramap: x =>
     (x.userVault,
@@ -128,9 +147,7 @@ trait ArbRootModel:
      x.operator,
      x.userSelectionMessage,
      x.globalLog,
-     x.isAudioActivated,
-     x.obsListGlobalFilter,
-     x.obsListColumnFilters.value.map((k, v) => k.value -> v.toString)
+     x.userPreferences
     )
 
 object ArbRootModel extends ArbRootModel

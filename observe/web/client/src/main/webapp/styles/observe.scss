@@ -91,12 +91,8 @@ body {
     padding: 5px 10px;
   }
 
-  &.observe-idle-tag {
+  &.observe-tag-disabled {
     background-color: var(--gray-400);
-  }
-
-  &.observe-running-tag {
-    background-color: var(--orange-500);
   }
 }
 

@@ -59,7 +59,9 @@ import observe.ui.model.AppContext
 import observe.ui.model.ObsSummary
 import observe.ui.model.RootModel
 import observe.ui.model.RootModelData
+import observe.ui.model.UserPreferencesStorage
 import observe.ui.model.enums.*
+import observe.ui.model.reusability.given
 import observe.ui.services.*
 import org.http4s.Uri
 import org.http4s.client.Client
@@ -99,6 +101,10 @@ object MainApp extends ServerEventHandler:
         .some,
       path = ApiBasePath / "events"
     )
+
+  // Browser-local user preferences store: a single JSON blob per user in `localStorage`.
+  private val prefsStorage: UserPreferencesStorage[IO] =
+    UserPreferencesStorage.build[IO](LocalUserPreferences[IO]())
 
   private def createLogger(level: LogLevelDesc): Logger[IO] =
     LogLevelLogger.setLevel(level)
@@ -190,7 +196,7 @@ object MainApp extends ServerEventHandler:
         clientConfigPot  <- useStateView(Pot.pending[ClientConfig])
         rootModelData    <- useStateView(RootModelData.Initial)
         configApiStatus  <- useStateView(ApiStatus.Idle)
-        isAudioActivated <- useShadowRef(rootModelData.get.isAudioActivated)
+        isAudioActivated <- useShadowRef(rootModelData.get.userPreferences.isAudioActivated)
         ctxPot           <- useState(Pot.pending[AppContext[IO]])
         // Breaks cyclic dependency between ctx and event stream handler
         ctxPotRef        <- useShadowRef(ctxPot.value.toOption)
@@ -261,8 +267,19 @@ object MainApp extends ServerEventHandler:
         _                <-
           useEffectWhenDepsReady(ctxPot.value): ctx =>
             // Once AppContext is ready, proceed to attempt login (5)
-            enforceStaffRole(ctx.ssoClient).attempt.flatMap: userVault =>
-              rootModelData.async.mod(_.withLoginResult(userVault.map(_.some)))
+            enforceStaffRole(ctx.ssoClient).attempt.flatMap: result =>
+              // withLoginResult resets preferences to Default
+              rootModelData.async.mod(_.withLoginResult(result.map(_.some))) *>
+                result.toOption.fold(IO.unit): vault =>
+                  prefsStorage
+                    .load(vault.user.id)
+                    .flatMap: prefs =>
+                      rootModelData.async.mod(_.withUserPreferences(prefs))
+        // Persist preferences to localStorage whenever they change
+        _                <-
+          useEffectWithDeps(rootModelData.get.userPreferences): prefs =>
+            rootModelData.get.userVault.toOption.flatten
+              .fold(IO.unit)(vault => prefsStorage.save(vault.user.id, prefs))
         authHeaderRef    <-
           useShadowRef:
             rootModelData.get.userVault.toOption.flatten.map(_.authorizationHeader)
