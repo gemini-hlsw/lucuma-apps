@@ -24,5 +24,6 @@ class ModelOpticsSuite extends DisciplineSuite:
   checkAll("targetRV", OptionalTests(TargetRV))
   checkAll("toOActivation", OptionalTests(GeminiProposalType.toOActivation))
   checkAll("partnerSplits", OptionalTests(GeminiProposalType.partnerSplits))
+  checkAll("exchangePartner", OptionalTests(GeminiProposalType.exchangePartner))
   checkAll("minPercentTime", OptionalTests(GeminiProposalType.minPercentTime))
   checkAll("totalTime", OptionalTests(GeminiProposalType.totalTime))

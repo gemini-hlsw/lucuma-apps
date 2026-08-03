@@ -3,12 +3,14 @@
 
 package explore.common
 
+import clue.data.Input
 import clue.data.Unassign
 import clue.data.syntax.*
 import explore.model.PartnerSplit
 import explore.model.ProgramUser
 import explore.model.Proposal
 import explore.model.ProposalType.*
+import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.ClassicalInput
@@ -30,6 +32,17 @@ trait ProposalOdbExtensions:
   // This is on import lucuma.schemas.odb.input.* but it is not picked up for some reason
   extension (ts: TimeSpan)
     def toInput: TimeSpanInput = TimeSpanInput.Microseconds(ts.toMicroseconds)
+
+  // The ODB rejects a time request that carries both partner splits and an
+  // exchange partner, so the splits are explicitly nulled out (which clears them)
+  // whenever the request belongs to an exchange partner community. Null is also
+  // how empty splits are expressed: a list, when given, must sum to 100.
+  private def splitsInput(
+    partnerSplits:   List[PartnerSplit],
+    exchangePartner: Option[ExchangePartner]
+  ): Input[List[PartnerSplitInput]] =
+    if (exchangePartner.isDefined || partnerSplits.isEmpty) Unassign
+    else partnerSplits.map(_.toInput).assign
 
   extension (proposalType: GeminiProposalType)
     def toInput: GeminiProposalTypeInput =
@@ -85,6 +98,7 @@ trait ProposalOdbExtensions:
               _,
               minPercentTime,
               partnerSplits,
+              exchangePartner,
               aeonMultiFacility,
               jwstSynergy,
               usLongTerm
@@ -92,8 +106,8 @@ trait ProposalOdbExtensions:
           GeminiProposalTypeInput.Classical(
             ClassicalInput(
               minPercentTime = minPercentTime.assign,
-              partnerSplits =
-                if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign,
+              partnerSplits = splitsInput(partnerSplits, exchangePartner),
+              exchangePartner = exchangePartner.orUnassign,
               aeonMultiFacility = aeonMultiFacility.assign,
               jwstSynergy = jwstSynergy.assign,
               usLongTerm = usLongTerm.assign
@@ -104,6 +118,7 @@ trait ProposalOdbExtensions:
               toOActivation,
               minPercentTime,
               partnerSplits,
+              exchangePartner,
               aeonMultiFacility,
               jwstSynergy,
               usLongTerm,
@@ -113,8 +128,8 @@ trait ProposalOdbExtensions:
             QueueInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign,
-              partnerSplits =
-                if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign,
+              partnerSplits = splitsInput(partnerSplits, exchangePartner),
+              exchangePartner = exchangePartner.orUnassign,
               aeonMultiFacility = aeonMultiFacility.assign,
               jwstSynergy = jwstSynergy.assign,
               usLongTerm = usLongTerm.assign,

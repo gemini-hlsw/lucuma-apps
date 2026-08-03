@@ -44,18 +44,25 @@ case class Proposal(
     call.fold(List("Call for Proposal is required."))(cfp =>
       val piAffiliation = users.pi.fold(PartnerLink.HasUnspecifiedPartner)(_.partnerLink)
       val partnerError  = piAffiliation match
-        case PartnerLink.HasGeminiPartner(partner) =>
+        case PartnerLink.HasGeminiPartner(partner)   =>
           Option.when(!cfp.partners.exists(_.partner === partner)) {
             "PI partner not valid for this Call for Proposal."
           }
-        case PartnerLink.HasNonPartner             =>
+        case PartnerLink.HasNonPartner               =>
           Option.when(cfp.gemini.exists(!_.allowsNonPartnerPi)) {
             "Non-partner PI is not allowed for this Call for Proposal."
           }
-        // Exchange-partner PIs are not yet supported in Explore.
-        case PartnerLink.HasExchangePartner(_)     => none
+        // The whole request is assigned to the exchange partner community instead
+        // of being apportioned across Gemini partners, so only the community itself
+        // has to be one the call offers.
+        case PartnerLink.HasExchangePartner(partner) =>
+          Option.when(
+            !cfp.gemini.exists(_.exchangePartners.exists(_.exchangePartner === partner))
+          ) {
+            "PI exchange partner not valid for this Call for Proposal."
+          }
         // This gets checked in usersAndTimesErrors
-        case PartnerLink.HasUnspecifiedPartner     => none
+        case PartnerLink.HasUnspecifiedPartner       => none
       val band3Error    = Option.when(
         proposalType.exists:
           case GeminiProposalType.Queue(considerForBand3 = considerForBand3) =>
@@ -66,10 +73,12 @@ case class Proposal(
       List(partnerError, band3Error).flattenOption
     )
 
-  // if this is None, either a CfP has not been selected or they are not required for the proposal type
+  // if this is None, either a CfP has not been selected, they are not required for the proposal
+  // type, or the time is requested on behalf of an exchange partner community instead
   private lazy val partnerSplits: Option[List[PartnerSplit]] =
     proposalType
       .flatMap(ProposalType.geminiProposalType.getOption)
+      .filter(GeminiProposalType.exchangePartner.getOption(_).flatten.isEmpty)
       .flatMap(GeminiProposalType.partnerSplits.getOption)
 
   private def usersAndTimesErrors(users: List[ProgramUser]): List[String] =
@@ -186,6 +195,9 @@ object Proposal:
   val proposalType: Lens[Proposal, Option[ProposalType]]             =
     Focus[Proposal](_.proposalType)
   // Focuses the Gemini proposal type, discarding any non-Gemini type on set.
+  // Only set or modify it where the proposal is known to be Gemini: `modify` on a
+  // Keck or Subaru proposal clears the type entirely. Elsewhere reach the Gemini
+  // type through `proposalType.some.andThen(ProposalType.geminiProposalType)`.
   val geminiProposalType: Lens[Proposal, Option[GeminiProposalType]] =
     Lens[Proposal, Option[GeminiProposalType]](
       _.proposalType.flatMap(ProposalType.geminiProposalType.getOption)

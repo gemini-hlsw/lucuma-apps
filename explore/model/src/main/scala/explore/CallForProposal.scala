@@ -55,7 +55,8 @@ case class CallForProposal(
   def middleDate: LocalDate =
     active.start.plusDays(ChronoUnit.DAYS.between(active.start, active.end) / 2)
 
-  // TODO: Fix this to support exchange partner deadlines and non gemini calls
+  // Exchange partners are offered by Gemini calls only, so a PI from one of those
+  // communities has no deadline on a Keck or Subaru call.
   def deadline(piPartner: Option[PartnerLink]): Either[String, Timestamp] =
     // piPartner is only None if there is no pi, which should never happen
     piPartner.fold("No PI for this program.".asLeft):
@@ -71,7 +72,13 @@ case class CallForProposal(
               _.submissionDeadline
                 .fold("PI partner deadline not set for this CfP.".asLeft)(_.asRight)
             ),
-        _ => "Exchange partner PIs are not yet supported.".asLeft
+        exchangePartner =>
+          gemini
+            .flatMap(_.exchangePartners.find(_.exchangePartner === exchangePartner))
+            .fold("PI exchange partner not valid for this CfP.".asLeft)(
+              _.submissionDeadline
+                .fold("PI exchange partner deadline not set for this CfP.".asLeft)(_.asRight)
+            )
       )
 
 object CallForProposal:

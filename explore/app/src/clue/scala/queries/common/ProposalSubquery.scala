@@ -25,6 +25,7 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
         ... on Classical {
           minPercentTime
           partnerSplits $PartnerSplitSubquery
+          exchangePartner
           aeonMultiFacility
           jwstSynergy
           usLongTerm
@@ -54,6 +55,7 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
           toOActivation
           minPercentTime
           partnerSplits $PartnerSplitSubquery
+          exchangePartner
           aeonMultiFacility
           jwstSynergy
           usLongTerm

@@ -11,6 +11,7 @@ import io.circe.ACursor
 import io.circe.Decoder
 import io.circe.refined.*
 import lucuma.core.enums.ConsiderForBand3
+import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
@@ -88,23 +89,24 @@ object ProposalType:
     def toScienceSubtype(s: ScienceSubtype): GeminiProposalType => GeminiProposalType =
       s match
         case ScienceSubtype.Classical => {
-          case Queue(_, _, minTime, splits, aeon, jwst, lt, _) =>
-            Classical(ScienceSubtype.Classical, minTime, splits, aeon, jwst, lt)
-          case i                                               => i
+          case Queue(_, _, minTime, splits, exchange, aeon, jwst, lt, _) =>
+            Classical(ScienceSubtype.Classical, minTime, splits, exchange, aeon, jwst, lt)
+          case i                                                         => i
         }
         case ScienceSubtype.Queue     => {
-          case Classical(_, minTime, splits, aeon, jwst, lt) =>
+          case Classical(_, minTime, splits, exchange, aeon, jwst, lt) =>
             // On conversion consider for band 3 gets unset.
             Queue(ScienceSubtype.Queue,
                   ToOActivation.None,
                   minTime,
                   splits,
+                  exchange,
                   aeon,
                   jwst,
                   lt,
                   ConsiderForBand3.Unset
             )
-          case i                                             => i
+          case i                                                       => i
         }
         case _                        => identity
 
@@ -137,6 +139,28 @@ object ProposalType:
         case q: Queue     => q.copy(partnerSplits = a)
         case i            => i
       })
+
+    // Only Queue and Classical proposals can request time on behalf of an
+    // exchange partner community, and only when the PI belongs to one.
+    val exchangePartner: Optional[GeminiProposalType, Option[ExchangePartner]] =
+      Optional[GeminiProposalType, Option[ExchangePartner]] {
+        case c: Classical => c.exchangePartner.some
+        case q: Queue     => q.exchangePartner.some
+        case _            => none
+      }(a => {
+        case c: Classical => c.copy(exchangePartner = a)
+        case q: Queue     => q.copy(exchangePartner = a)
+        case i            => i
+      })
+
+    // The time request is either assigned to an exchange partner community or
+    // apportioned across Gemini partners, never both.
+    def withExchangePartner(
+      ep: Option[ExchangePartner]
+    ): GeminiProposalType => GeminiProposalType =
+      gpt =>
+        val withEp = exchangePartner.replace(ep)(gpt)
+        if ep.isDefined then partnerSplits.replace(List.empty)(withEp) else withEp
 
     val minPercentTime: Optional[GeminiProposalType, IntPercent] =
       Optional[GeminiProposalType, IntPercent] {
@@ -228,19 +252,22 @@ object ProposalType:
       scienceSubtype:    ScienceSubtype,
       minPercentTime:    IntPercent,
       partnerSplits:     List[PartnerSplit],
+      exchangePartner:   Option[ExchangePartner],
       aeonMultiFacility: Boolean,
       jwstSynergy:       Boolean,
       usLongTerm:        Boolean
     ) extends GeminiProposalType derives Eq
 
     object Classical {
-      val minPercentTime: Lens[Classical, IntPercent] = Focus[Classical](_.minPercentTime)
-      val aeonMultiFacility: Lens[Classical, Boolean] = Focus[Classical](_.aeonMultiFacility)
-      val jwstSynergy: Lens[Classical, Boolean]       = Focus[Classical](_.jwstSynergy)
-      val usLongTerm: Lens[Classical, Boolean]        = Focus[Classical](_.usLongTerm)
+      val minPercentTime: Lens[Classical, IntPercent]               = Focus[Classical](_.minPercentTime)
+      val exchangePartner: Lens[Classical, Option[ExchangePartner]] =
+        Focus[Classical](_.exchangePartner)
+      val aeonMultiFacility: Lens[Classical, Boolean]               = Focus[Classical](_.aeonMultiFacility)
+      val jwstSynergy: Lens[Classical, Boolean]                     = Focus[Classical](_.jwstSynergy)
+      val usLongTerm: Lens[Classical, Boolean]                      = Focus[Classical](_.usLongTerm)
 
       val Default: Classical =
-        Classical(ScienceSubtype.Classical, 100.refined, List.empty, false, false, false)
+        Classical(ScienceSubtype.Classical, 100.refined, List.empty, none, false, false, false)
     }
 
     // Define the DemoScience case class implementing GeminiProposalType
@@ -344,6 +371,7 @@ object ProposalType:
       toOActivation:     ToOActivation,
       minPercentTime:    IntPercent,
       partnerSplits:     List[PartnerSplit],
+      exchangePartner:   Option[ExchangePartner],
       aeonMultiFacility: Boolean,
       jwstSynergy:       Boolean,
       usLongTerm:        Boolean,
@@ -351,18 +379,20 @@ object ProposalType:
     ) extends GeminiProposalType derives Eq
 
     object Queue {
-      val minPercentTime: Lens[Queue, IntPercent]         = Focus[Queue](_.minPercentTime)
-      val toOActivation: Lens[Queue, ToOActivation]       = Focus[Queue](_.toOActivation)
-      val aeonMultiFacility: Lens[Queue, Boolean]         = Focus[Queue](_.aeonMultiFacility)
-      val jwstSynergy: Lens[Queue, Boolean]               = Focus[Queue](_.jwstSynergy)
-      val usLongTerm: Lens[Queue, Boolean]                = Focus[Queue](_.usLongTerm)
-      val considerForBand3: Lens[Queue, ConsiderForBand3] = Focus[Queue](_.considerForBand3)
+      val minPercentTime: Lens[Queue, IntPercent]               = Focus[Queue](_.minPercentTime)
+      val toOActivation: Lens[Queue, ToOActivation]             = Focus[Queue](_.toOActivation)
+      val exchangePartner: Lens[Queue, Option[ExchangePartner]] = Focus[Queue](_.exchangePartner)
+      val aeonMultiFacility: Lens[Queue, Boolean]               = Focus[Queue](_.aeonMultiFacility)
+      val jwstSynergy: Lens[Queue, Boolean]                     = Focus[Queue](_.jwstSynergy)
+      val usLongTerm: Lens[Queue, Boolean]                      = Focus[Queue](_.usLongTerm)
+      val considerForBand3: Lens[Queue, ConsiderForBand3]       = Focus[Queue](_.considerForBand3)
 
       val Default: Queue =
         Queue(ScienceSubtype.Queue,
               ToOActivation.None,
               100.refined,
               List.empty,
+              none,
               false,
               false,
               false,
@@ -412,12 +442,14 @@ object ProposalType:
             for {
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
+              exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
               aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
               jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
             } yield Classical(tpe,
                               minPercentTime,
                               partnerSplits,
+                              exchangePartner,
                               aeonMultiFacility,
                               jwstSynergy,
                               usLongTerm
@@ -472,6 +504,7 @@ object ProposalType:
               toOActivation     <- c.downField("toOActivation").as[ToOActivation]
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
+              exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
               aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
               jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
@@ -480,6 +513,7 @@ object ProposalType:
                           toOActivation,
                           minPercentTime,
                           partnerSplits,
+                          exchangePartner,
                           aeonMultiFacility,
                           jwstSynergy,
                           usLongTerm,

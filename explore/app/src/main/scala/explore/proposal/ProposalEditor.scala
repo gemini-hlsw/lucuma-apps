@@ -3,9 +3,11 @@
 
 package explore.proposal
 
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.*
 import clue.data.Input
+import clue.data.Unassign
 import clue.data.syntax.*
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -35,7 +37,10 @@ import explore.users.AddProgramUserButton
 import explore.users.ProgramUsersTable
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ExchangePartner
+import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.enums.ProgramUserRole
+import lucuma.core.enums.ScienceSubtype
 import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnComponent
@@ -50,6 +55,7 @@ import lucuma.ui.optics.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.react.given
+import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
@@ -73,6 +79,23 @@ case class ProposalEditor(
   val proposalOrUserIsReadonly: Boolean = proposalIsReadonly || userIsReadonlyCoi
   val pi: Option[ProgramUser]           = undoCtx.get.pi
 
+  val geminiProposalType: Option[GeminiProposalType] =
+    proposal.get.proposalType.flatMap(ProposalType.geminiProposalType.getOption)
+
+  // The exchange partner the proposal type currently carries. The outer `Option`
+  // is empty for the subtypes that cannot have one at all.
+  val proposalExchangePartner: Option[Option[ExchangePartner]] =
+    geminiProposalType.flatMap(GeminiProposalType.exchangePartner.getOption)
+
+  // On a Regular Semester call, a PI belonging to an exchange partner community
+  // requests the whole time on its behalf instead of splitting it across Gemini
+  // partners. Anywhere else there is no exchange partner.
+  val piExchangePartner: Option[ExchangePartner] =
+    proposal.get.call
+      .flatMap(_.gemini)
+      .filter(_.cfpType === GeminiCallForProposalsType.RegularSemester)
+      .flatMap(_ => pi.flatMap(_.partnerLink.exchangePartnerOption))
+
 object ProposalEditor
     extends ReactFnComponent[ProposalEditor](props =>
       val BaseWordLimit = 200
@@ -87,6 +110,45 @@ object ProposalEditor
               .split("\\s+", HardWordLimit + 1)
               .length // add a limit to restrict the performance hit
 
+      // Only Queue and Classical requests can be assigned to an exchange partner.
+      // Just the two mutually exclusive time request fields are sent, leaving the
+      // rest of the proposal type alone.
+      def timeRequestInput(
+        scienceSubtype:  ScienceSubtype,
+        partnerSplits:   Input[List[PartnerSplitInput]],
+        exchangePartner: Input[ExchangePartner]
+      ): Option[GeminiProposalTypeInput] =
+        scienceSubtype match
+          case ScienceSubtype.Classical =>
+            GeminiProposalTypeInput
+              .Classical(
+                ClassicalInput(partnerSplits = partnerSplits, exchangePartner = exchangePartner)
+              )
+              .some
+          case ScienceSubtype.Queue     =>
+            GeminiProposalTypeInput
+              .Queue(QueueInput(partnerSplits = partnerSplits, exchangePartner = exchangePartner))
+              .some
+          case _                        => none
+
+      // The two fields always move together, since a request belongs either to an
+      // exchange partner community or to Gemini partners. Empty splits are sent as
+      // null; the ODB rejects an empty list, which must sum to 100 when given.
+      def remoteTimeRequestUpdate(
+        scienceSubtype:  ScienceSubtype,
+        exchangePartner: Option[ExchangePartner]
+      )(using ctx: AppContext[IO]): IO[Unit] =
+        timeRequestInput(scienceSubtype, Unassign, exchangePartner.orUnassign)
+          .foldMap(gemini =>
+            ctx.odbApi
+              .updateProposal:
+                UpdateProposalInput(
+                  programId = props.programId.assign,
+                  SET = ProposalPropertiesInput(gemini = gemini.assign)
+                )
+              .void
+          )
+
       for
         ctx             <- useContext(AppContext.ctx)
         abstractCounter <-
@@ -95,6 +157,31 @@ object ProposalEditor
                              case Some(t) => abstractCounter.setState(t.wordCount)
                              case None    => abstractCounter.setState(0)
                            }
+        // Keep the time request aligned with the PI's partner link, which can change
+        // from the investigators table or by selecting a different call. This is a
+        // consequence of another edit, so it doesn't participate in undo/redo.
+        _               <- useEffectWithDeps((props.piExchangePartner, props.proposalExchangePartner)):
+                             (desired, current) =>
+                               import ctx.given
+
+                               // `current` is empty for the proposal types that cannot
+                               // have an exchange partner at all.
+                               current
+                                 .filterNot(_ => props.proposalOrUserIsReadonly)
+                                 .filter(_ =!= desired)
+                                 .foldMap: _ =>
+                                   props.geminiProposalType.foldMap: gemini =>
+                                     props.proposal.model
+                                       .zoom(
+                                         Proposal.proposalType.some
+                                           .andThen(ProposalType.geminiProposalType)
+                                       )
+                                       .mod(
+                                         GeminiProposalType.withExchangePartner(desired)
+                                       ) >>
+                                       remoteTimeRequestUpdate(gemini.scienceSubtype, desired)(using
+                                         ctx
+                                       ).runAsyncAndForget
         resize          <- useResizeDetector
       yield
         import ctx.given
