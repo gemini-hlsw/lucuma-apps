@@ -20,12 +20,15 @@ trait util:
 
   extension (element: dom.Element)
     /**
-     * Scroll the element into view if it is not fully visible.
+     * Scroll the element into view if it is not fully visible within its scroll container,
+     * scrolling as little as possible.
+     *
+     * `js.Dynamic` is needed since scalajs-dom only exposes `scrollIntoView(top: Boolean)`.
      */
     def scrollIfNeeded: Callback = Callback.lift(() =>
-      val rect = element.getBoundingClientRect()
-      if (rect.top < 0) element.scrollIntoView()
-      if (rect.bottom > dom.window.innerHeight) element.scrollIntoView(false)
+      val _ = element
+        .asInstanceOf[js.Dynamic]
+        .scrollIntoView(js.Dynamic.literal(block = "nearest", inline = "nearest"))
     )
 
 object util extends util
