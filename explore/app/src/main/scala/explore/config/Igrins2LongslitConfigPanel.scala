@@ -31,6 +31,7 @@ import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
+import lucuma.core.model.sequence.igrins2.SvcMinExposureTime
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -199,7 +200,7 @@ object Igrins2LongslitConfigPanel
                           InputNumber(
                             id = "ig2-svc-exposure",
                             value = svcExposure.get.toSeconds.toDouble,
-                            min = 0,
+                            min = SvcMinExposureTime.toSeconds.toDouble,
                             maxFractionDigits = 3,
                             disabled = !props.permissions.isFullEdit,
                             onValueChange = e =>
