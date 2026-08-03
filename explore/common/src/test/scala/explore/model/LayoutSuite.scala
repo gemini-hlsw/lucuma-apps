@@ -216,4 +216,71 @@ class LayoutSuite extends FunSuite {
     assertEquals(mergeLayoutItems(observationMdXLayoutItem, atMinW).w, atMinW.w)
     assertEquals(mergeLayoutItems(observationMdXLayoutItem, dbObservationMdXLayoutItem).w, 7)
   }
+
+  // resolveAutoHeight
+  // rowHeight = 36, rowPadding = 5, so a row span of `h` renders as `41h - 5` px.
+  // 1 row = 36px, 2 rows = 77px, 3 rows = 118px, 4 rows = 159px, 5 rows = 200px.
+
+  val autoItem = LayoutItem(i = "Auto", x = 0, y = 0, w = 8, h = 4)
+
+  val LargeViewport = 10000
+
+  test("Quantization: content exactly at a row boundary needs exactly that many rows") {
+    assertEquals(resolveAutoHeight(autoItem, 118, LargeViewport, false).h, 3)
+  }
+
+  test("Quantization: one pixel over a row boundary needs one more row") {
+    assertEquals(resolveAutoHeight(autoItem, 119, LargeViewport, false).h, 4)
+  }
+
+  test("Quantization: one pixel under a row boundary still needs that many rows") {
+    assertEquals(resolveAutoHeight(autoItem, 117, LargeViewport, false).h, 3)
+  }
+
+  test("Floor: content wanting fewer than two rows still yields two") {
+    assertEquals(resolveAutoHeight(autoItem, 1, LargeViewport, false).h, AutoHeightMinRows)
+    assertEquals(resolveAutoHeight(autoItem, 0, LargeViewport, false).h, AutoHeightMinRows)
+  }
+
+  test("Ceiling: content taller than the viewport is capped at the rows that fit") {
+    // Viewport fits 3 rows (118px), content wants 5 (200px).
+    assertEquals(resolveAutoHeight(autoItem, 200, 118, false).h, 3)
+  }
+
+  test("Ceiling: a viewport smaller than the floor still respects the floor") {
+    assertEquals(resolveAutoHeight(autoItem, 200, 1, false).h, AutoHeightMinRows)
+  }
+
+  test("Deadband: a measurement matching the current row span leaves the item unchanged") {
+    val stable = autoItem.copy(h = 3)
+    assertEquals(resolveAutoHeight(stable, 118, LargeViewport, false), stable)
+  }
+
+  test("Deadband: a measurement that crosses a row boundary updates the item") {
+    val stable = autoItem.copy(h = 3)
+    assertEquals(resolveAutoHeight(stable, 119, LargeViewport, false).h, 4)
+  }
+
+  test("Growth: a taller measurement increases h") {
+    assertEquals(resolveAutoHeight(autoItem.copy(h = 3), 200, LargeViewport, false).h, 5)
+  }
+
+  test("Shrink: a shorter measurement decreases h") {
+    assertEquals(resolveAutoHeight(autoItem.copy(h = 5), 118, LargeViewport, false).h, 3)
+  }
+
+  test("Minimize suppression: a minimized item is returned unchanged regardless of measurement") {
+    val minimized = autoItem.copy(h = 1)
+    assertEquals(resolveAutoHeight(minimized, 500, LargeViewport, true), minimized)
+  }
+
+  test("Non-height fields are preserved") {
+    val result = resolveAutoHeight(autoItem, 500, LargeViewport, false)
+    assertEquals(result.x, autoItem.x)
+    assertEquals(result.y, autoItem.y)
+    assertEquals(result.w, autoItem.w)
+    assertEquals(result.i, autoItem.i)
+    assertEquals(result.minH, autoItem.minH)
+    assertEquals(result.maxH, autoItem.maxH)
+  }
 }

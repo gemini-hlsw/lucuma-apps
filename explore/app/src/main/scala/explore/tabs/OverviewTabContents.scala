@@ -162,6 +162,7 @@ object OverviewTabContents
           TileController(
             props.userId,
             resize.width.getOrElse(1),
+            resize.height.getOrElse(1),
             defaultLayouts,
             props.layout,
             List(

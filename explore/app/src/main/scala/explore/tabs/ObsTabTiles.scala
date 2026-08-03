@@ -810,6 +810,7 @@ object ObsTabTiles:
             TileController(
               props.vault.userId,
               props.resize.width.getOrElse(0),
+              props.resize.height.getOrElse(0),
               defaultLayout,
               layout,
               tiles,
@@ -821,6 +822,7 @@ object ObsTabTiles:
               TileController(
                 props.vault.userId,
                 props.resize.width.getOrElse(0),
+                props.resize.height.getOrElse(0),
                 ExploreGridLayouts.sectionLayout(GridLayoutSection.ObservationsSequenceLayout),
                 props.userPreferences.get.sequenceTileLayout,
                 List(sequenceTile),

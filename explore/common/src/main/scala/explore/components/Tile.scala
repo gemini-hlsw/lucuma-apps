@@ -13,6 +13,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.*
 import lucuma.react.primereact.Button
+import lucuma.react.resizeDetector.hooks.*
 import lucuma.ui.syntax.all.given
 
 /**
@@ -37,6 +38,9 @@ import lucuma.ui.syntax.all.given
  *   whether the tile can be maximized
  * @param hidden
  *   whether the tile is hidden
+ * @param autoHeight
+ *   whether the tile's row span is derived from its content instead of stored; disables vertical
+ *   resizing
  * @param sizeState
  *   the initial size state of the tile
  * @param sizeStateCallback
@@ -59,6 +63,7 @@ abstract class Tile[This <: Tile[This]](
   val canMinimize:      Boolean = true,
   val canMaximize:      Boolean = true,
   val hidden:           Boolean = false,
+  val autoHeight:       Boolean = false,
   val initialSizeState: TileSizeState = TileSizeState.Maximized,
   val controllerClass:  Css = Css.Empty, // applied to wrapping div when in a TileController.
   val bodyClass:        Css = Css.Empty, // applied to tile body
@@ -68,12 +73,13 @@ abstract class Tile[This <: Tile[This]](
   type Type = This
 
 protected[components] case class TileState[P <: Tile[P]](
-  tileProps:         P,
-  renderBackButton:  Option[VdomNode],
-  canMinimize:       Boolean = true,
-  canMaximize:       Boolean = true,
-  sizeState:         TileSizeState,
-  sizeStateCallback: TileSizeState => Callback = (_ => Callback.empty)
+  tileProps:          P,
+  renderBackButton:   Option[VdomNode],
+  canMinimize:        Boolean = true,
+  canMaximize:        Boolean = true,
+  sizeState:          TileSizeState,
+  sizeStateCallback:  TileSizeState => Callback = (_ => Callback.empty),
+  autoHeightCallback: Int => Callback = (_ => Callback.empty)
 ) extends ReactFnProps(tileProps.component.component):
   val fullSize: Boolean = !tileProps.canMinimize && !tileProps.canMaximize
 
@@ -89,6 +95,9 @@ protected[components] case class TileState[P <: Tile[P]](
   ): TileState[P] =
     copy(sizeState = state, sizeStateCallback = sizeStateCallback)
 
+  def withAutoHeightCallback(autoHeightCallback: Int => Callback): TileState[P] =
+    copy(autoHeightCallback = autoHeightCallback)
+
   def withFullSize: TileState[P] =
     copy(canMinimize = false, canMaximize = false)
 
@@ -102,7 +111,16 @@ trait TileComponent[P <: Tile[P]](
     ScalaFnComponent[TileState[P]]: tileState =>
       val props: P = tileState.tileProps
 
-      for tileContents <- useTileContents(props, tileState.sizeState)
+      for
+        tileContents  <- useTileContents(props, tileState.sizeState)
+        titleResize   <- useResizeDetector
+        contentResize <- useResizeDetector
+        _             <-
+          useEffectWithDeps((props.autoHeight, titleResize.height, contentResize.height)):
+            case (true, Some(titleH), Some(contentH)) =>
+              tileState.autoHeightCallback(titleH + contentH)
+            case _                                    =>
+              Callback.empty
       yield
         val maximizeButton: Button =
           Button(
@@ -131,6 +149,14 @@ trait TileComponent[P <: Tile[P]](
           disabled = true
         )
 
+        val body: TagMod =
+          if props.autoHeight then <.div.withRef(contentResize.ref)(tileContents.body)
+          else tileContents.body
+
+        val bodyClass: Css =
+          ExploreStyles.TileBody |+| props.bodyClass |+|
+            (if props.autoHeight then ExploreStyles.AutoHeightTileBody else Css.Empty)
+
         // Tile wrapper
         if (!props.hidden) {
           <.div(
@@ -138,7 +164,10 @@ trait TileComponent[P <: Tile[P]](
             ^.key := "tile-${props.id.value}"
           )(
             // Tile title
-            <.div(ExploreStyles.TileTitle, ^.key := s"tileTitle-${props.id.value}")(
+            <.div.withRef(titleResize.ref)(
+              ExploreStyles.TileTitle,
+              ^.key := s"tileTitle-${props.id.value}"
+            )(
               // Title and optional back button
               <.div(ExploreStyles.TileTitleMenu |+| props.tileTitleClass)(
                 tileState.renderBackButton.map(b => <.div(ExploreStyles.TileButton, b)),
@@ -155,9 +184,9 @@ trait TileComponent[P <: Tile[P]](
             // Tile body
             <.div(
               ^.key := s"tileBody-${props.id.value}",
-              ExploreStyles.TileBody |+| props.bodyClass
+              bodyClass
             )(
-              tileContents.body
+              body
             )
               .unless(tileState.sizeState === TileSizeState.Minimized)
           )

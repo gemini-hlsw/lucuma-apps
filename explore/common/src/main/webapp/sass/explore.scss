@@ -548,6 +548,12 @@ thead tr th.sticky-header {
   background-color: var(--tile-background);
 }
 
+// Keeps the content box the same width whether or not the scrollbar is showing, so a
+// content-driven height can't oscillate with the scrollbar's own appearance/disappearance.
+.explore-auto-height-tile-body {
+  scrollbar-gutter: stable;
+}
+
 .explore-tile {
   height: 100%;
   width: 100%;

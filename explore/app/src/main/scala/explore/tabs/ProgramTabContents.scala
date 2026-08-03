@@ -179,6 +179,7 @@ object ProgramTabContents
           TileController(
             userId,
             resize.width.getOrElse(1),
+            resize.height.getOrElse(1),
             defaultLayouts,
             layouts,
             List(

@@ -443,6 +443,7 @@ object ProposalEditor
             TileController(
               props.optUserId,
               resize.width.getOrElse(1),
+              resize.height.getOrElse(1),
               defaultLayouts,
               props.layout,
               List(

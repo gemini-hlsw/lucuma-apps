@@ -310,6 +310,7 @@ object ObsTabContents extends TwoPanels:
           TileController(
             props.vault.map(_.user.id),
             resize.width.getOrElse(0),
+            resize.height.getOrElse(0),
             ExploreGridLayouts.sectionLayout(GridLayoutSection.ObservationListLayout),
             props.userPreferences.get.observationListTabLayout,
             List(obsSummaryTableTile, skyPlotTile),

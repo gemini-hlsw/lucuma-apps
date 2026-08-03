@@ -229,6 +229,7 @@ object ConstraintsTabContents extends TwoPanels:
             TileController(
               props.userId,
               resize.width.getOrElse(1),
+              resize.height.getOrElse(1),
               ExploreGridLayouts.sectionLayout(GridLayoutSection.ConstraintsLayout),
               props.userPreferences.constraintsTabLayout,
               List(tile),

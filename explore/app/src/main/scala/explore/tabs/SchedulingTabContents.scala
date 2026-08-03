@@ -170,6 +170,7 @@ object SchedulingTabContents extends TwoPanels:
               TileController(
                 props.userId,
                 resize.width.getOrElse(1),
+                resize.height.getOrElse(1),
                 ExploreGridLayouts.sectionLayout(GridLayoutSection.SchedulingLayout),
                 props.userPreferences.schedulingTabLayout,
                 List(schedulingWindowsTile),

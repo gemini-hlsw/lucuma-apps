@@ -5,8 +5,10 @@ package explore.components
 
 import cats.*
 import cats.Order.*
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.FetchClient
+import crystal.Throttler
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.common.UserPreferencesQueries.*
@@ -18,7 +20,6 @@ import explore.model.enums.TileSizeState
 import explore.model.layout.*
 import explore.model.layout.given
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnProps
@@ -30,11 +31,13 @@ import lucuma.ui.syntax.all.given
 import monocle.Traversal
 import queries.schemas.UserPreferencesDB
 
+import scala.concurrent.duration.*
 import scala.scalajs.js.JSConverters.*
 
 case class TileController(
   userId:           Option[User.Id],
   gridWidth:        Int,
+  gridHeight:       Int,
   defaultLayout:    LayoutsMap,
   layoutMap:        LayoutsMap,
   tileDefs:         List[Tile[?]],
@@ -56,12 +59,12 @@ case class TileController(
 object TileController:
   private type Props = TileController
 
-  private def storeLayouts[F[_]: {MonadThrow, Dispatch}](
+  private def storeLayouts(
     userId:  Option[User.Id],
     section: GridLayoutSection,
     layouts: ResponsiveLayouts
-  )(using FetchClient[F, UserPreferencesDB]): Callback =
-    GridLayouts.storeLayoutsPreference[F](userId, section, layouts).runAsyncAndForget
+  )(using FetchClient[IO, UserPreferencesDB]): IO[Unit] =
+    GridLayouts.storeLayoutsPreference[IO](userId, section, layouts)
 
   // Calculate the state out of the height
   private def unsafeSizeToState(
@@ -85,33 +88,56 @@ object TileController:
       .filter(_.i === id.value)
       .andThen(layoutItemHeight)
 
+  // Auto-height tiles keep only east/west handles: their height is derived, not draggable.
+  private val AutoHeightResizeHandles: List[ResizeHandle] = List(ResizeHandle.E, ResizeHandle.W)
+
+  private def isAutoHeight(tiles: List[TileState[?]], id: String): Boolean =
+    tiles.exists(t => t.tileProps.id.value === id && t.tileProps.autoHeight)
+
   private def updateResizableState(tiles: List[TileState[?]], p: LayoutsMap): LayoutsMap =
     allLayouts
       .andThen(layoutItems)
-      .modify {
-        case r if tiles.exists(t => t.tileProps.id.value === r.i && t.tileProps.hidden) =>
+      .modify { r =>
+        val hidden     = tiles.exists(t => t.tileProps.id.value === r.i && t.tileProps.hidden)
+        val autoHeight = isAutoHeight(tiles, r.i)
+        if hidden then
           // height to 0 for hidden tiles
           r.copy(minH = 0, h = 0, isResizable = false)
-        case r if r.h === 1                                                             => r.copy(minH = 1)
-        case r                                                                          => r
+        else if autoHeight then
+          val withHandles = r.copy(resizeHandles = AutoHeightResizeHandles)
+          // A stored h of 1 is a legitimately minimized tile; leave it alone. Any other stored
+          // h is stale (it belongs to the previous render, not the current content) and is
+          // reset to the floor until the tile mounts and reports its real measurement.
+          if r.h === 1 then withHandles.copy(minH = 1)
+          else withHandles.copy(h = AutoHeightMinRows, minH = AutoHeightMinRows)
+        else if r.h === 1 then r.copy(minH = 1)
+        else r
       }(p)
 
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx           <- useContext(AppContext.ctx)
+        ctx            <- useContext(AppContext.ctx)
         // Get the breakpoint from the layout
-        breakpoint    <- useState(
-                           getBreakpointFromWidth(
-                             props.layoutMap.map { case (x, (w, _, _)) => x -> w },
-                             props.gridWidth
-                           )
-                         )
+        breakpoint     <- useState(
+                            getBreakpointFromWidth(
+                              props.layoutMap.map { case (x, (w, _, _)) => x -> w },
+                              props.gridWidth
+                            )
+                          )
         // Make a local copy of the layout fixing the state of minimized layouts
-        currentLayout <- useStateView(updateResizableState(props.tiles, props.layoutMap))
+        currentLayout  <- useStateView(updateResizableState(props.tiles, props.layoutMap))
         // Update the current layout if it changes upstream
-        _             <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
-                           (_, layout) => currentLayout.set(updateResizableState(props.tiles, layout))
+        _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
+                            (_, layout) => currentLayout.set(updateResizableState(props.tiles, layout))
+        // Suppressed while a drag or resize gesture is in flight, so an auto-height measurement
+        // doesn't fight the pointer mid-gesture.
+        gesturing      <- useStateView(false)
+        storeThrottler <- useMemo(())(_ => Throttler.unsafe[IO](1.second))
+        // The last content height an auto-height tile reported, keyed by tile id. Kept across
+        // minimize/maximize (unlike `h`, which is overwritten to encode the minimized state) so
+        // maximizing can restore the height the content actually wants instead of the floor.
+        lastMeasuredPx <- useStateView(Map.empty[String, Int])
       yield
         import ctx.given
 
@@ -122,14 +148,30 @@ object TileController:
               case l if l.i === id.value =>
                 if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
                 else if (st === TileSizeState.Maximized)
-                  val defaultHeight =
-                    unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
-                  l.copy(
-                    h = defaultHeight,
-                    minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
-                  )
+                  if isAutoHeight(props.tiles, id.value) then
+                    val measuredPx = lastMeasuredPx.get.getOrElse(id.value, 0)
+                    val restored   = resolveAutoHeight(l, measuredPx, props.gridHeight, false)
+                    restored.copy(minH = scala.math.max(l.minH.getOrElse(1), AutoHeightMinRows))
+                  else
+                    val defaultHeight =
+                      unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
+                    l.copy(
+                      h = defaultHeight,
+                      minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
+                    )
                 else l
               case l                     => l
+
+        def autoHeightCallback(id: Tile.TileId): Int => Callback = measuredPx =>
+          val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
+          lastMeasuredPx.mod(_.updated(id.value, measuredPx)) *>
+            currentLayout
+              .zoom(allTiles)
+              .mod:
+                case l if l.i === id.value =>
+                  resolveAutoHeight(l, measuredPx, props.gridHeight, minimized)
+                case l                     => l
+              .when_(!gesturing.get)
 
         val tilesWithBackButton: List[TileState[?]] = {
           val topTile =
@@ -200,11 +242,20 @@ object TileController:
           // equivalent layouts. Writing those back into the `layouts` prop re-triggers compaction
           // forever ("Maximum update depth exceeded"). Persisting is fine here (it's an async,
           // non-rendering DB write); we capture genuine user changes via onDragStop/onResizeStop.
+          // Throttled: an auto-height tile fires this on every content change, for a value
+          // that's overridden on read by `updateResizableState`, so there's no need to persist
+          // each one individually.
           onLayoutChange = (_: Layout, newLayouts: ResponsiveLayouts) =>
-            storeLayouts(props.userId, props.section, newLayouts)
+            storeThrottler
+              .submit(storeLayouts(props.userId, props.section, newLayouts))
+              .runAsyncAndForget
               .when_(props.storeLayout),
-          onDragStop = (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m),
-          onResizeStop = (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m),
+          onDragStart = (_, _, _, _, _, _) => gesturing.set(true),
+          onDragStop =
+            (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m) *> gesturing.set(false),
+          onResizeStart = (_, _, _, _, _, _) => gesturing.set(true),
+          onResizeStop =
+            (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m) *> gesturing.set(false),
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
@@ -239,6 +290,7 @@ object TileController:
                   unsafeSizeToState(currentLayout.get, tile.tileProps.id),
                   setSizeState(tile.tileProps.id)
                 )
+                .withAutoHeightCallback(autoHeightCallback(tile.tileProps.id))
             )
           }.toVdomArray
         )
