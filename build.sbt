@@ -151,11 +151,12 @@ lazy val schemas_lib =
     .settings(
       name                          := "lucuma-schemas",
       libraryDependencies ++=
-        In(Test)(
-          Fs2Io.value ++
-            MUnit.value ++
-            MUnitCatsEffect.value
-        ),
+        CatsEffect.value ++
+          In(Test)(
+            Fs2Io.value ++
+              MUnit.value ++
+              MUnitCatsEffect.value
+          ),
       Compile / clueSourceDirectory := (ThisBuild / baseDirectory).value / "schemas" / "lib" / "src" / "clue",
       // Include schema files in jar.
       Compile / unmanagedResourceDirectories += (Compile / clueSourceDirectory).value / "resources",

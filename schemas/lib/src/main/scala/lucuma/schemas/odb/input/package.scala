@@ -3,6 +3,8 @@
 
 package lucuma.schemas.odb.input
 
+import cats.Functor
+import cats.effect.Clock
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
@@ -56,6 +58,9 @@ import lucuma.schemas.model.TelescopeConfigGenerator
 
 import scala.annotation.targetName
 import scala.collection.immutable.SortedMap
+
+def clientTimeNow[F[_]: Clock: Functor]: F[Input[Timestamp]] =
+  Timestamp.timestampNow[F].map(_.assign)
 
 extension (id: Observation.Id)
   def toWhereObservation: WhereObservation         =

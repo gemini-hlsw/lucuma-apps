@@ -20,6 +20,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.util.IdempotencyKey
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Scalars.VisitId
+import lucuma.schemas.odb.input.clientTimeNow
 import observe.common.EventsGQL.*
 import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
@@ -61,12 +62,14 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       visitId        <- getCurrentVisitId(obsId)
       _              <- L.debug(s"Send ODB event sequenceStart for obsId: $obsId, visitId: $visitId")
       idempotencyKey <- newIdempotencyKey
+      clientTime     <- clientTimeNow
       _              <-
         AddSequenceEventMutation[F]
           .execute(
             visitId,
             SequenceCommand.Start,
             idempotencyKey,
+            clientTime,
             addIdempotencyKey(idempotencyKey)
           )
       _              <- L.debug(s"ODB event sequenceStart sent for obsId: $obsId")
@@ -81,12 +84,14 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       visitId        <- getCurrentVisitId(obsId)
       _              <- L.debug(s"Send ODB event $stage for obsId: $obsId, step $stepId")
       idempotencyKey <- newIdempotencyKey
+      clientTime     <- clientTimeNow
       _              <- AddStepEventMutation[F]
                           .execute(
                             stepId,
                             visitId,
                             stage,
                             idempotencyKey,
+                            clientTime,
                             addIdempotencyKey(idempotencyKey)
                           )
       _              <- L.debug(s"ODB event for step $stage sent")
@@ -117,11 +122,13 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
       _              <- L.debug(s"Recorded dataset id ${dataset.id}")
       idempotencyKey <- newIdempotencyKey
+      clientTime     <- clientTimeNow
       _              <- AddDatasetEventMutation[F]
                           .execute(
                             dataset.id,
                             DatasetStage.StartExpose,
                             idempotencyKey,
+                            clientTime,
                             addIdempotencyKey(idempotencyKey)
                           )
       _              <- L.debug("ODB event datasetStartExposure sent")
@@ -136,11 +143,13 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       datasetId      <- getCurrentDatasetId(obsId, fileId)
       _              <- L.debug(s"Send ODB event $stage for obsId: $obsId datasetId: $datasetId")
       idempotencyKey <- newIdempotencyKey
+      clientTime     <- clientTimeNow
       _              <- AddDatasetEventMutation[F]
                           .execute(
                             datasetId,
                             stage,
                             idempotencyKey,
+                            clientTime,
                             addIdempotencyKey(idempotencyKey)
                           )
       _              <- L.debug(s"ODB event for dataset $stage sent")
@@ -190,11 +199,13 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- L.debug(s"Send ODB event $sequenceCommand for obsId: $obsId")
       visitId        <- getCurrentVisitId(obsId)
       idempotencyKey <- newIdempotencyKey
+      clientTime     <- clientTimeNow
       _              <- AddSequenceEventMutation[F]
                           .execute(
                             visitId,
                             sequenceCommand,
                             idempotencyKey,
+                            clientTime,
                             addIdempotencyKey(idempotencyKey)
                           )
       _              <- L.debug(s"ODB event for sequence $sequenceCommand sent")
@@ -215,11 +226,18 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   private def recordVisit(
     obsId: Observation.Id
   ): F[VisitId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordVisitMutation[F]
-        .execute(obsId, idempotencyKey, addIdempotencyKey(idempotencyKey))
-        .raiseGraphQLErrors
-        .map(_.recordVisit.visit.id)
+    for
+      idempotencyKey <- newIdempotencyKey
+      clientTime     <- clientTimeNow
+      result         <- RecordVisitMutation[F]
+                          .execute(
+                            obsId,
+                            idempotencyKey,
+                            clientTime,
+                            addIdempotencyKey(idempotencyKey)
+                          )
+                          .raiseGraphQLErrors
+    yield result.recordVisit.visit.id
 
   private def recordDataset(
     stepId:  Step.Id,
