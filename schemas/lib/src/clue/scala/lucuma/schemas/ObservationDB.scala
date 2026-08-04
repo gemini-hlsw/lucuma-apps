@@ -90,6 +90,7 @@ trait ObservationDB {
     type SubaruCallForProposalsType          = enums.SubaruCallForProposalsType
     type Observatory                         = enums.Observatory
     type ExchangePartner                     = enums.ExchangePartner
+    type ExecutionRequirement                = enums.ExecutionRequirement
     type KeckInstrument                      = enums.KeckInstrument
     type SubaruInstrument                    = enums.SubaruInstrument
     type CatalogName                         = enums.CatalogName

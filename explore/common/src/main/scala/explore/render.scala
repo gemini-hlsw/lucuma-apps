@@ -8,6 +8,7 @@ import explore.model.enums.TargetType
 import explore.model.formats.durationHMS
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ExecutionRequirement
 import lucuma.core.model.TimingWindowEnd
 import lucuma.core.model.TimingWindowRepeat
 import lucuma.ui.format.*
@@ -47,3 +48,12 @@ object render:
   given Render[TargetType] = Render.by:
     case TargetType.Sidereal    => React.Fragment(Icons.Star, "Sidereal")
     case TargetType.Nonsidereal => React.Fragment(Icons.PlanetRinged, "Nonsidereal")
+
+  // Empty when the scheduler is unconstrained, so that callers can omit the badge altogether.
+  def executionRequirementBadge(executionRequirement: ExecutionRequirement): Option[VdomNode] =
+    executionRequirement match
+      case ExecutionRequirement.Unconstrained   => None
+      case ExecutionRequirement.NoSplitting     =>
+        Some(React.Fragment(Icons.DoNotSplitIcon, " Do Not Split"))
+      case ExecutionRequirement.Uninterruptible =>
+        Some(React.Fragment(Icons.DoNotSplitIcon, " Do Not Split or Interrupt"))

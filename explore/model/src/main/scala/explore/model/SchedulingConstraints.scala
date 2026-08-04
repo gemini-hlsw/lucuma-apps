@@ -8,6 +8,7 @@ import cats.Order.given
 import cats.derived.*
 import clue.data.syntax.*
 import io.circe.Decoder
+import lucuma.core.enums.ExecutionRequirement
 import lucuma.core.model.TimingWindow
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.decoders.given
@@ -15,18 +16,21 @@ import lucuma.schemas.odb.input.*
 import monocle.Focus
 
 case class SchedulingConstraints(
-  isSplittable:  Boolean,
-  timingWindows: List[TimingWindow]
+  executionRequirement: ExecutionRequirement,
+  timingWindows:        List[TimingWindow]
 ) derives Eq:
   def toInput: SchedulingConstraintsInput =
-    SchedulingConstraintsInput(isSplittable.assign, timingWindows.map(_.toInput).assign)
+    SchedulingConstraintsInput(
+      executionRequirement = executionRequirement.assign,
+      timingWindows = timingWindows.map(_.toInput).assign
+    )
 
 object SchedulingConstraints:
-  val isSplittable  = Focus[SchedulingConstraints](_.isSplittable)
-  val timingWindows = Focus[SchedulingConstraints](_.timingWindows)
+  val executionRequirement = Focus[SchedulingConstraints](_.executionRequirement)
+  val timingWindows        = Focus[SchedulingConstraints](_.timingWindows)
 
   given Decoder[SchedulingConstraints] = Decoder.instance: c =>
     for
-      isSplittable  <- c.get[Boolean]("isSplittable")
-      timingWindows <- c.get[List[TimingWindow]]("timingWindows")
-    yield SchedulingConstraints(isSplittable, timingWindows.sorted)
+      executionRequirement <- c.get[ExecutionRequirement]("executionRequirement")
+      timingWindows        <- c.get[List[TimingWindow]]("timingWindows")
+    yield SchedulingConstraints(executionRequirement, timingWindows.sorted)

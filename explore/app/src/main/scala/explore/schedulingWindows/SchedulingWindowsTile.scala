@@ -26,17 +26,20 @@ import explore.model.enums.TileSizeState
 import explore.model.formats.*
 import explore.model.reusability.given
 import explore.model.syntax.all.*
+import explore.render.*
 import explore.render.given
 import explore.services.OdbObservationApi
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ExecutionRequirement
 import lucuma.core.enums.TimingWindowInclusion
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.TimingWindowEnd
 import lucuma.core.model.TimingWindowRepeat
 import lucuma.core.syntax.display.*
+import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.core.validation.InputValidSplitEpi
@@ -66,6 +69,13 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
+// Only `Unconstrained` and `NoSplitting` are user selectable here, and they read as the
+// "may"/"may not" options of the "This observation ... be split." sentence.
+private given Display[ExecutionRequirement] = Display.byShortName:
+  case ExecutionRequirement.Unconstrained   => "may"
+  case ExecutionRequirement.NoSplitting     => "may not"
+  case ExecutionRequirement.Uninterruptible => "may not be split or interrupted"
+
 sealed abstract class SchedulingWindowsTile(
   val obsEditInfo:           ObsIdSetEditInfo,
   val schedulingConstraints: View[SchedulingConstraints],
@@ -78,9 +88,10 @@ sealed abstract class SchedulingWindowsTile(
       canMinimize = !fullSize,
       tileClass = ExploreStyles.SchedulingTile
     )(SchedulingWindowsTile):
-  val readonly                                = isReadOnly || obsEditInfo.allAreCompleted
-  val splittable: View[Boolean]               = schedulingConstraints.zoom(SchedulingConstraints.isSplittable)
-  val timingWindows: View[List[TimingWindow]] =
+  val readonly                                         = isReadOnly || obsEditInfo.allAreCompleted
+  val executionRequirement: View[ExecutionRequirement] =
+    schedulingConstraints.zoom(SchedulingConstraints.executionRequirement)
+  val timingWindows: View[List[TimingWindow]]          =
     schedulingConstraints.zoom(SchedulingConstraints.timingWindows)
 
 object SchedulingWindowsTile
@@ -208,7 +219,7 @@ object SchedulingWindowsTile
             ExploreStyles.SchedulingTileTitle,
             addButton,
             <.span(s"${props.timingWindows.get.length} Windows"),
-            if props.splittable.get then <.span else <.span(Icons.DoNotSplitIcon, " Do Not Split")
+            <.span(executionRequirementBadge(props.executionRequirement.get).whenDefined)
           )
 
         val pos: Option[Int] = table.getSelectedRowModel().rows.headOption.map(_.original._2)
@@ -222,22 +233,29 @@ object SchedulingWindowsTile
                 .asView
             )
 
+        val subject: String =
+          if props.obsEditInfo.editing.length > 1 then "These observations" else "This observation"
+
         val body =
           React.Fragment(
             msg.map(msg => <.div(msg, ExploreStyles.SharedEditWarning)),
             <.h3("Splitting", HelpIcon("scheduling/splitting.md".refined)),
             <.div(
-              if props.obsEditInfo.editing.length > 1 then "These observations"
-              else "This observation",
-              BooleanDropdownView(
-                id = "observation-is-splittable".refined,
-                value = props.splittable,
-                trueLabel = "may".refined,
-                falseLabel = "may not".refined,
-                clazz = ExploreStyles.IsSplittableDropdown,
-                disabled = props.readonly
-              ),
-              "be split."
+              subject,
+              // `Uninterruptible` cannot be set here, so it is shown as plain text instead.
+              if props.executionRequirement.get === ExecutionRequirement.Uninterruptible then
+                TagMod(" may not be split or interrupted.")
+              else
+                TagMod(
+                  EnumDropdownView(
+                    id = "observation-execution-requirement".refined,
+                    value = props.executionRequirement,
+                    exclude = Set(ExecutionRequirement.Uninterruptible),
+                    clazz = ExploreStyles.IsSplittableDropdown,
+                    disabled = props.readonly
+                  ),
+                  "be split."
+                )
             ),
             Divider(),
             <.h3(s"Windows (${props.timingWindows.get.length})",

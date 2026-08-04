@@ -514,9 +514,9 @@ extension (o: ObservingMode.GmosSouthLongSlit)
   )
 
 extension (m: ObservingMode.GmosCustomMask)
-  def toInput: GmosMosCustomMaskInput = GmosMosCustomMaskInput(
+  def toInput: GmosCustomMaskInput = GmosCustomMaskInput(
     attachmentId = m.attachmentId.orUnassign,
-    slitWidth = m.slitWidth.assign
+    slitWidth = m.slitWidth
   )
 
 extension (o: ObservingMode.GmosNorthMos)
@@ -863,7 +863,7 @@ extension (i: BasicConfiguration)
         GmosNorthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.GmosSouthMos(
@@ -876,7 +876,7 @@ extension (i: BasicConfiguration)
         GmosSouthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.GmosNorthImaging(filters = filters)                                   =>

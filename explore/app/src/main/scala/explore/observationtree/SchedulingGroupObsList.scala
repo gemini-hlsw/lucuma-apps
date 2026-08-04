@@ -22,6 +22,7 @@ import explore.model.SchedulingConstraints
 import explore.model.SchedulingGroupList
 import explore.model.enums.AppTab
 import explore.model.syntax.all.*
+import explore.render.*
 import explore.render.given
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
@@ -320,8 +321,9 @@ object SchedulingGroupObsList:
           val csHeader = <.span(ExploreStyles.ObsTreeGroupHeader)(
             icon,
             <.ul(ExploreStyles.ObsGroupTitleWithList)(
-              ((if s.isSplittable then List.empty[VdomNode]
-                else List[VdomNode](<.li(Icons.DoNotSplitIcon, " Do Not Split"))) ++
+              (executionRequirementBadge(s.executionRequirement)
+                .map(badge => <.li(badge): VdomNode)
+                .toList ++
                 timingWindows.map(tw => <.li(tw.renderVdom))).toTagMod
             ),
             <.span(ExploreStyles.ObsCount, s"${obsIds.size} Obs")
