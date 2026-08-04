@@ -107,6 +107,14 @@ def useModeData(
           ObservingMode.Flamingos2LongSlit(disperser = yDisperser, filter = yFilter, fpu = yFpu)
         ) =>
       xDisperser === yDisperser && xFilter === yFilter && xFpu === yFpu
+    case (ObservingMode.GmosNorthMos(grating = xGrating, filter = xFilter, customMask = xMask),
+          ObservingMode.GmosNorthMos(grating = yGrating, filter = yFilter, customMask = yMask)
+        ) =>
+      xGrating === yGrating && xFilter === yFilter && xMask.slitWidth === yMask.slitWidth
+    case (ObservingMode.GmosSouthMos(grating = xGrating, filter = xFilter, customMask = xMask),
+          ObservingMode.GmosSouthMos(grating = yGrating, filter = yFilter, customMask = yMask)
+        ) =>
+      xGrating === yGrating && xFilter === yFilter && xMask.slitWidth === yMask.slitWidth
     case (ObservingMode.Igrins2LongSlit, ObservingMode.Igrins2LongSlit) => true
     case _                                                              => false
 
