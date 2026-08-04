@@ -41,6 +41,7 @@ import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
+import lucuma.schemas.model.enums.GmosMosAcquisitionType
 import monocle.Focus
 import monocle.Lens
 import monocle.Prism
@@ -521,10 +522,11 @@ object ObservingMode:
     customMask:                GmosCustomMask,
     initialCentralWavelength:  CentralWavelength,
     centralWavelength:         CentralWavelength,
-    defaultXBin:               GmosBinning,
-    explicitXBin:              Option[GmosBinning],
-    defaultYBin:               GmosBinning,
-    explicitYBin:              Option[GmosBinning],
+    acquisitionType:           GmosMosAcquisitionType,
+    defaultXBin:               GmosXBinning,
+    explicitXBin:              Option[GmosXBinning],
+    defaultYBin:               GmosYBinning,
+    explicitYBin:              Option[GmosYBinning],
     defaultAmpReadMode:        GmosAmpReadMode,
     explicitAmpReadMode:       Option[GmosAmpReadMode],
     defaultAmpGain:            GmosAmpGain,
@@ -537,9 +539,9 @@ object ObservingMode:
     explicitOffsets:           Option[List[Offset.Q]],
     exposureTimeMode:          ExposureTimeMode
   ) extends ObservingMode(Instrument.GmosNorth.some) derives Eq:
-    val xBin: GmosBinning                                 =
+    val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
-    val yBin: GmosBinning                                 =
+    val yBin: GmosYBinning                                =
       explicitYBin.getOrElse(defaultYBin)
     val ampReadMode: GmosAmpReadMode                      =
       explicitAmpReadMode.getOrElse(defaultAmpReadMode)
@@ -599,13 +601,15 @@ object ObservingMode:
       Focus[GmosNorthMos](_.initialCentralWavelength)
     val centralWavelength: Lens[GmosNorthMos, CentralWavelength]                              =
       Focus[GmosNorthMos](_.centralWavelength)
-    val defaultXBin: Lens[GmosNorthMos, GmosBinning]                                          =
+    val acquisitionType: Lens[GmosNorthMos, GmosMosAcquisitionType]                                    =
+      Focus[GmosNorthMos](_.acquisitionType)
+    val defaultXBin: Lens[GmosNorthMos, GmosXBinning]                                         =
       Focus[GmosNorthMos](_.defaultXBin)
-    val explicitXBin: Lens[GmosNorthMos, Option[GmosBinning]]                                 =
+    val explicitXBin: Lens[GmosNorthMos, Option[GmosXBinning]]                                =
       Focus[GmosNorthMos](_.explicitXBin)
-    val defaultYBin: Lens[GmosNorthMos, GmosBinning]                                          =
+    val defaultYBin: Lens[GmosNorthMos, GmosYBinning]                                         =
       Focus[GmosNorthMos](_.defaultYBin)
-    val explicitYBin: Lens[GmosNorthMos, Option[GmosBinning]]                                 =
+    val explicitYBin: Lens[GmosNorthMos, Option[GmosYBinning]]                                =
       Focus[GmosNorthMos](_.explicitYBin)
     val defaultAmpReadMode: Lens[GmosNorthMos, GmosAmpReadMode]                               =
       Focus[GmosNorthMos](_.defaultAmpReadMode)
@@ -639,10 +643,11 @@ object ObservingMode:
     customMask:                GmosCustomMask,
     initialCentralWavelength:  CentralWavelength,
     centralWavelength:         CentralWavelength,
-    defaultXBin:               GmosBinning,
-    explicitXBin:              Option[GmosBinning],
-    defaultYBin:               GmosBinning,
-    explicitYBin:              Option[GmosBinning],
+    acquisitionType:           GmosMosAcquisitionType,
+    defaultXBin:               GmosXBinning,
+    explicitXBin:              Option[GmosXBinning],
+    defaultYBin:               GmosYBinning,
+    explicitYBin:              Option[GmosYBinning],
     defaultAmpReadMode:        GmosAmpReadMode,
     explicitAmpReadMode:       Option[GmosAmpReadMode],
     defaultAmpGain:            GmosAmpGain,
@@ -655,9 +660,9 @@ object ObservingMode:
     explicitOffsets:           Option[List[Offset.Q]],
     exposureTimeMode:          ExposureTimeMode
   ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
-    val xBin: GmosBinning                                 =
+    val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
-    val yBin: GmosBinning                                 =
+    val yBin: GmosYBinning                                =
       explicitYBin.getOrElse(defaultYBin)
     val ampReadMode: GmosAmpReadMode                      =
       explicitAmpReadMode.getOrElse(defaultAmpReadMode)
@@ -717,13 +722,15 @@ object ObservingMode:
       Focus[GmosSouthMos](_.initialCentralWavelength)
     val centralWavelength: Lens[GmosSouthMos, CentralWavelength]                              =
       Focus[GmosSouthMos](_.centralWavelength)
-    val defaultXBin: Lens[GmosSouthMos, GmosBinning]                                          =
+    val acquisitionType: Lens[GmosSouthMos, GmosMosAcquisitionType]                                    =
+      Focus[GmosSouthMos](_.acquisitionType)
+    val defaultXBin: Lens[GmosSouthMos, GmosXBinning]                                         =
       Focus[GmosSouthMos](_.defaultXBin)
-    val explicitXBin: Lens[GmosSouthMos, Option[GmosBinning]]                                 =
+    val explicitXBin: Lens[GmosSouthMos, Option[GmosXBinning]]                                =
       Focus[GmosSouthMos](_.explicitXBin)
-    val defaultYBin: Lens[GmosSouthMos, GmosBinning]                                          =
+    val defaultYBin: Lens[GmosSouthMos, GmosYBinning]                                         =
       Focus[GmosSouthMos](_.defaultYBin)
-    val explicitYBin: Lens[GmosSouthMos, Option[GmosBinning]]                                 =
+    val explicitYBin: Lens[GmosSouthMos, Option[GmosYBinning]]                                =
       Focus[GmosSouthMos](_.explicitYBin)
     val defaultAmpReadMode: Lens[GmosSouthMos, GmosAmpReadMode]                               =
       Focus[GmosSouthMos](_.defaultAmpReadMode)
