@@ -44,7 +44,7 @@ import lucuma.schemas.ObservationDB.Types.ExchangeInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
-import lucuma.schemas.ObservationDB.Types.GmosMosCustomMaskInput
+import lucuma.schemas.ObservationDB.Types.GmosCustomMaskInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthMosInput
@@ -206,7 +206,7 @@ enum ObservingModeSummary derives Order:
         GmosNorthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
           centralWavelength = centralWavelength.value.toInput.assign,
           exposureTimeMode = etm.toInput.assign
         )
@@ -216,7 +216,7 @@ enum ObservingModeSummary derives Order:
         GmosSouthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosMosCustomMaskInput(slitWidth = slitWidth.assign).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
           centralWavelength = centralWavelength.value.toInput.assign,
           exposureTimeMode = etm.toInput.assign
         )
