@@ -56,7 +56,6 @@ import monocle.Iso
 import org.scalajs.dom
 
 import scala.collection.immutable.SortedSet
-import scala.scalajs.js
 
 case class ObsTree(
   programId:             Program.Id,
@@ -161,6 +160,42 @@ case class ObsTree(
   private def isVisibleInTree(value: Either[Observation, Group]): Boolean =
     value.fold(_ => true, g => !isOrphanObservationCalibration(g))
 
+  // The science observation of an observation calibration group, plus its calibrations (eg:
+  // telluric standards), which are rendered within the science observation's badge.
+  private def mainAndAssociatedObs(groupId: Group.Id): (Option[Observation], List[Observation]) =
+    val groupObservations: List[Observation] =
+      groupsChildren
+        .get(groupId.some)
+        .orEmpty
+        .collect:
+          case Left(obs) => obs
+    val mainObs: Option[Observation]         = groupObservations.find(_.calibrationRole.isEmpty)
+    (mainObs, groupObservations.filterNot(o => mainObs.exists(_.id === o.id)))
+
+  /**
+   * The id of the DOM element rendering an observation or group, if it has one. Observation
+   * calibrations, and the observation calibration group itself, don't get their own tree node: they
+   * are rendered within the badge of the group's science observation.
+   */
+  private def treeElementId(target: Either[Observation.Id, Group.Id]): Option[String] =
+    def obsCalibrationGroupElementId(groupId: Group.Id): Option[String] =
+      mainAndAssociatedObs(groupId)._1.map(mainObs => s"obs-list-${mainObs.id}")
+
+    target match
+      case Left(obsId)    =>
+        observations.get
+          .get(obsId)
+          .flatMap: obs =>
+            obs.groupId
+              .filter(groupId => groups.get.get(groupId).exists(_.isObsCalibration))
+              .fold(s"obs-list-$obsId".some)(obsCalibrationGroupElementId)
+      case Right(groupId) =>
+        groups.get
+          .get(groupId)
+          .flatMap: group =>
+            if group.isObsCalibration then obsCalibrationGroupElementId(groupId)
+            else s"obs-group-$groupId".some
+
   private def createNode(
     value:        Either[Observation, Group],
     dragging:     Option[Either[Observation, Group]],
@@ -208,16 +243,13 @@ object ObsTree:
       _.flatMap(v => Group.Id.parse(v.value))
     )
 
-  private def scrollIfNeeded(targetObs: Observation.Id) =
-    Callback {
-      Option(dom.document.getElementById(s"obs-list-${targetObs.toString}"))
-        .filterNot(js.isUndefined)
-        .map { obsListElement =>
-          val rect = obsListElement.getBoundingClientRect()
-          if (rect.top < 0) obsListElement.scrollIntoView()
-          if (rect.bottom > dom.window.innerHeight) obsListElement.scrollIntoView(false)
-        }
-    }
+  /**
+   * Scrolls the element into view, if it is currently rendered. It is not rendered while its
+   * ancestor groups are collapsed. Returns whether it was found.
+   */
+  private def scrollIntoViewIfRendered(elementId: String): CallbackTo[Boolean] =
+    CallbackTo(Option(dom.document.getElementById(elementId)))
+      .flatMap(_.fold(CallbackTo(false))(_.scrollIfNeeded.map(_ => true)))
 
   extension (node: Either[Observation, Group])
     def id: Either[Observation.Id, Group.Id] = node.bimap(_.id, _.id)
@@ -270,15 +302,24 @@ object ObsTree:
         // refocus if current focus ceases to exist
         _                 <- refocus(prevGroupInfo, ctx)
         adding            <- useStateView(AddingObservation(false))
-        // Scroll to newly created/selected observation
-        _                 <- useEffectWithDeps(props.focusedObsId): focusedObs =>
-                               focusedObs.map(scrollIfNeeded).getOrEmpty
-        // Open the group (and all super-groups) of the focused observation
+        // Request scrolling to the newly created/selected observation or group
+        pendingScroll     <- useStateView(none[Either[Observation.Id, Group.Id]])
+        _                 <- useEffectWithDeps(props.focusedObsOrGroup)(pendingScroll.set)
+        // Open the group (and all super-groups) of the focused observation or group
         _                 <- useEffectWithDeps(props.resolvedActiveGroupId):
                                _.map: activeGroupId =>
                                  props.expandedGroups.mod:
                                    _ ++ props.parentGroups(activeGroupId.asRight) + activeGroupId
                                .orEmpty
+        // Scroll to the focused observation or group. Its element may not be rendered yet, if its
+        // ancestor groups are still collapsed (see the effect above), in which case the request
+        // stays pending and is retried when the expanded groups change.
+        _                 <- useEffectWithDeps(
+                               (pendingScroll.get.flatMap(props.treeElementId), props.expandedGroups.get)
+                             ): (elementId, _) =>
+                               elementId.foldMap: id =>
+                                 scrollIntoViewIfRendered(id).flatMap: scrolled =>
+                                   pendingScroll.set(none).when_(scrolled)
       yield
         import ctx.given
 
@@ -372,20 +413,8 @@ object ObsTree:
           item:         Either[Observation, Group],
           inSystemTree: Boolean
         ): VdomNode =
-          val (mainObs, associatedObss): (Option[Observation], List[Observation]) = item.fold(
-            obs => (obs.some, List.empty),
-            group =>
-              val groupObservations: List[Observation] =
-                props.groupsChildren
-                  .get(group.id.some)
-                  .orEmpty
-                  .collect:
-                    case Left(obs) => obs
-              val mainObs: Option[Observation]         = groupObservations.find(_.calibrationRole.isEmpty)
-              val associatedObss: List[Observation]    =
-                groupObservations.filterNot(o => mainObs.exists(_.id === o.id))
-              (mainObs, associatedObss)
-          )
+          val (mainObs, associatedObss): (Option[Observation], List[Observation]) =
+            item.fold(obs => (obs.some, List.empty), group => props.mainAndAssociatedObs(group.id))
 
           // If we cannot determine the mainObs, render as a regular group.
           // .toOption.get is safe since it will only happen if we are in a group
@@ -394,7 +423,7 @@ object ObsTree:
 
             val badge =
               <.a(
-                ^.id   := s"obs-list-${item.id.toString}",
+                ^.id   := s"obs-list-${obs.id}",
                 ^.href := ctx.pageUrl(
                   (AppTab.Observations,
                    props.programId,
