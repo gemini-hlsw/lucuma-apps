@@ -23,7 +23,7 @@ import monocle.macros.GenPrism
 
 enum Visit[+D]:
   def id: Visit.Id
-  def created: Timestamp
+  def effectiveTime: Timestamp
   def interval: Option[TimestampInterval]
   def atoms: List[AtomRecord[D]]
 
@@ -34,45 +34,45 @@ enum Visit[+D]:
     atoms.filter(_.sequenceType === SequenceType.Science)
 
   case GmosNorth(
-    id:       Visit.Id,
-    created:  Timestamp,
-    interval: Option[TimestampInterval],
-    atoms:    List[AtomRecord.GmosNorth]
+    id:            Visit.Id,
+    effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
+    atoms:         List[AtomRecord.GmosNorth]
   ) extends Visit[gmos.DynamicConfig.GmosNorth]
 
   case GmosSouth(
-    id:       Visit.Id,
-    created:  Timestamp,
-    interval: Option[TimestampInterval],
-    atoms:    List[AtomRecord.GmosSouth]
+    id:            Visit.Id,
+    effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
+    atoms:         List[AtomRecord.GmosSouth]
   ) extends Visit[gmos.DynamicConfig.GmosSouth]
 
   case Flamingos2(
-    id:       Visit.Id,
-    created:  Timestamp,
-    interval: Option[TimestampInterval],
-    atoms:    List[AtomRecord.Flamingos2]
+    id:            Visit.Id,
+    effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
+    atoms:         List[AtomRecord.Flamingos2]
   ) extends Visit[Flamingos2DynamicConfig]
 
   case Igrins2(
-    id:       Visit.Id,
-    created:  Timestamp,
-    interval: Option[TimestampInterval],
-    atoms:    List[AtomRecord.Igrins2]
+    id:            Visit.Id,
+    effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
+    atoms:         List[AtomRecord.Igrins2]
   ) extends Visit[Igrins2DynamicConfig]
 
   case Ghost(
-    id:       Visit.Id,
-    created:  Timestamp,
-    interval: Option[TimestampInterval],
-    atoms:    List[AtomRecord.Ghost]
+    id:            Visit.Id,
+    effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
+    atoms:         List[AtomRecord.Ghost]
   ) extends Visit[GhostDynamicConfig]
 
   case Gnirs(
-    id:       Visit.Id,
-    created:  Timestamp,
-    interval: Option[TimestampInterval],
-    atoms:    List[AtomRecord.Gnirs]
+    id:            Visit.Id,
+    effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
+    atoms:         List[AtomRecord.Gnirs]
   ) extends Visit[GnirsDynamicConfig]
 
 object Visit:
@@ -87,8 +87,8 @@ object Visit:
     val id: Lens[GmosNorth, Visit.Id] =
       Focus[GmosNorth](_.id)
 
-    val created: Lens[GmosNorth, Timestamp] =
-      Focus[GmosNorth](_.created)
+    val effectiveTime: Lens[GmosNorth, Timestamp] =
+      Focus[GmosNorth](_.effectiveTime)
 
     val interval: Lens[GmosNorth, Option[TimestampInterval]] =
       Focus[GmosNorth](_.interval)
@@ -102,8 +102,8 @@ object Visit:
     val id: Lens[GmosSouth, Visit.Id] =
       Focus[GmosSouth](_.id)
 
-    val created: Lens[GmosSouth, Timestamp] =
-      Focus[GmosSouth](_.created)
+    val effectiveTime: Lens[GmosSouth, Timestamp] =
+      Focus[GmosSouth](_.effectiveTime)
 
     val interval: Lens[GmosSouth, Option[TimestampInterval]] =
       Focus[GmosSouth](_.interval)
@@ -117,8 +117,8 @@ object Visit:
     val id: Lens[Flamingos2, Visit.Id] =
       Focus[Flamingos2](_.id)
 
-    val created: Lens[Flamingos2, Timestamp] =
-      Focus[Flamingos2](_.created)
+    val effectiveTime: Lens[Flamingos2, Timestamp] =
+      Focus[Flamingos2](_.effectiveTime)
 
     val interval: Lens[Flamingos2, Option[TimestampInterval]] =
       Focus[Flamingos2](_.interval)
@@ -132,8 +132,8 @@ object Visit:
     val id: Lens[Igrins2, Visit.Id] =
       Focus[Igrins2](_.id)
 
-    val created: Lens[Igrins2, Timestamp] =
-      Focus[Igrins2](_.created)
+    val effectiveTime: Lens[Igrins2, Timestamp] =
+      Focus[Igrins2](_.effectiveTime)
 
     val interval: Lens[Igrins2, Option[TimestampInterval]] =
       Focus[Igrins2](_.interval)
@@ -147,8 +147,8 @@ object Visit:
     val id: Lens[Ghost, Visit.Id] =
       Focus[Ghost](_.id)
 
-    val created: Lens[Ghost, Timestamp] =
-      Focus[Ghost](_.created)
+    val effectiveTime: Lens[Ghost, Timestamp] =
+      Focus[Ghost](_.effectiveTime)
 
     val interval: Lens[Ghost, Option[TimestampInterval]] =
       Focus[Ghost](_.interval)
@@ -162,8 +162,8 @@ object Visit:
     val id: Lens[Gnirs, Visit.Id] =
       Focus[Gnirs](_.id)
 
-    val created: Lens[Gnirs, Timestamp] =
-      Focus[Gnirs](_.created)
+    val effectiveTime: Lens[Gnirs, Timestamp] =
+      Focus[Gnirs](_.effectiveTime)
 
     val interval: Lens[Gnirs, Option[TimestampInterval]] =
       Focus[Gnirs](_.interval)

@@ -153,19 +153,19 @@ trait VisitDecoders:
     buildVisit: (Visit.Id, Timestamp, Option[TimestampInterval], List[A]) => R
   ): Decoder[R] = Decoder.instance: c =>
     for
-      instrument <- c.downField("instrument").as[Instrument]
-      _          <- Either.cond(instrument === expected,
-                                (),
-                                DecodingFailure(
-                                  s"Attempted to decode a $instrument visit in $expected decoder",
-                                  c.history
-                                )
-                    )
-      id         <- c.downField("id").as[Visit.Id]
-      created    <- c.downField("created").as[Timestamp]
-      interval   <- c.downField("interval").as[Option[TimestampInterval]]
-      atoms      <- c.downField("atomRecords").downField("matches").as[List[A]]
-    yield buildVisit(id, created, interval, atoms)
+      instrument    <- c.downField("instrument").as[Instrument]
+      _             <- Either.cond(instrument === expected,
+                                   (),
+                                   DecodingFailure(
+                                     s"Attempted to decode a $instrument visit in $expected decoder",
+                                     c.history
+                                   )
+                       )
+      id            <- c.downField("id").as[Visit.Id]
+      effectiveTime <- c.downField("effectiveTime").as[Timestamp]
+      interval      <- c.downField("interval").as[Option[TimestampInterval]]
+      atoms         <- c.downField("atomRecords").downField("matches").as[List[A]]
+    yield buildVisit(id, effectiveTime, interval, atoms)
 
   given decoderVisitGmosNorth: Decoder[Visit.GmosNorth]   =
     visitDecoder(Instrument.GmosNorth, Visit.GmosNorth.apply)
