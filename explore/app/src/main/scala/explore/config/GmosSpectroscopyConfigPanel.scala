@@ -17,6 +17,7 @@ import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
+import explore.model.Help
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -53,8 +54,8 @@ import lucuma.ui.utils.given
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 
-object GmosLongslitConfigPanel {
-  sealed trait GmosLongslitConfigPanel[T <: ObservingMode, Input] {
+object GmosSpectroscopyConfigPanel {
+  sealed trait GmosSpectroscopyConfigPanel[T <: ObservingMode, Input] {
     def programId: Program.Id
     def obsId: Observation.Id
     def calibrationRole: Option[CalibrationRole]
@@ -67,10 +68,10 @@ object GmosLongslitConfigPanel {
     def instrument = observingMode.get.instrument
   }
 
-  sealed abstract class GmosLongslitConfigPanelBuilder[
+  sealed abstract class GmosSpectroscopyConfigPanelBuilder[
     T <: ObservingMode,
     Input,
-    Props <: GmosLongslitConfigPanel[T, Input],
+    Props <: GmosSpectroscopyConfigPanel[T, Input],
     Grating: Enumerated: Display,
     Filter: Enumerated: Display,
     Fpu: Enumerated: Display
@@ -141,35 +142,32 @@ object GmosLongslitConfigPanel {
       Option[NonEmptyList[WavelengthDither]]
     ]
 
-    protected def explicitOffsets(aligner: AA)(using
-      MonadError[IO, Throwable],
-      Effect.Dispatch[IO],
-      Logger[IO]
-    ): View[Option[NonEmptyList[Offset.Q]]]
-
     protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[ExposureTimeMode]
 
-    protected def explicitAcquisitionFilter(aligner: AA)(using
+    /**
+     * The spatial offsets control. Long slit's offsets are a `NonEmptyList`, MOS's a plain `List`,
+     * so the control itself — not just its contents — differs between modes.
+     */
+    protected def offsetsControl(props: Props, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[Filter]]
+    ): VdomNode
 
-    protected def explicitAcquisitionRoi(aligner: AA)(using
+    /**
+     * The contents of the collapsible Acquisition panel. Long slit's acquisition is a sub-record
+     * with its own Input type and three controls; MOS's is a single plain enum. The builder still
+     * owns the panel, its header, its help icon and the `showAcquisitionConfig` gate.
+     */
+    protected def acquisitionSection(props: Props, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[GmosLongSlitAcquisitionRoi]]
-
-    protected def acquisitionExposureTimeModeView(aligner: AA)(using
-      MonadError[IO, Throwable],
-      Effect.Dispatch[IO],
-      Logger[IO]
-    ): View[ExposureTimeMode]
+    ): VdomNode
 
     protected val initialGratingLens: Lens[T, Grating]
     protected val initialFilterLens: Lens[T, Option[Filter]]
@@ -180,14 +178,17 @@ object GmosLongslitConfigPanel {
     protected val defaultReadModeGainLens: Lens[T, (GmosAmpReadMode, GmosAmpGain)]
     protected val defaultRoiLens: Lens[T, GmosRoi]
     protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
-    protected val defaultOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
 
     protected val excludedFpus: Set[Fpu]
-    protected val excludedAcquisitionFilters: Set[Filter]
-    protected val defaultAcquisitionFilterLens: Lens[T, Filter]
-    protected val defaultAcquisitionRoiLens: Lens[T, GmosLongSlitAcquisitionRoi]
+    protected val fpuLabel: String
+    protected val fpuHelpId: Option[Help.Id]
 
     protected def resolvedReadModeGainGetter: T => (GmosAmpReadMode, GmosAmpGain)
+
+    /** Customization indicators are hidden for calibration observations. */
+    protected def showCustomization(props: Props): Boolean = props.calibrationRole.isEmpty
+
+    protected def allowRevertCustomization(props: Props): Boolean = props.permissions.isFullEdit
 
     protected given Display[(GmosAmpReadMode, GmosAmpGain)] =
       Display.by( // Shortname is in lower case for some reason
@@ -209,20 +210,18 @@ object GmosLongslitConfigPanel {
           val disableSimpleEdit        =
             disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
           val disableAdvancedAcqEdit   = disableAdvancedEdit && !props.permissions.isOnlyForOngoing
-          val showCustomization        = props.calibrationRole.isEmpty
-          val allowRevertCustomization = props.permissions.isFullEdit
+          val showCustomization        = this.showCustomization(props)
+          val allowRevertCustomization = this.allowRevertCustomization(props)
           val showAcquisitionConfig    = props.calibrationRole.needsAcquisitionConfig
 
           val centralWavelengthView    = centralWavelength(props.observingMode)
           val initialCentralWavelength = initialCentralWavelengthLens.get(props.observingMode.get)
 
-          val defaultXBinning          = defaultXBinningLens.get(props.observingMode.get)
-          val defaultYBinning          = defaultYBinningLens.get(props.observingMode.get)
-          val defaultReadModeGain      = defaultReadModeGainLens.get(props.observingMode.get)
-          val defaultRoi               = defaultRoiLens.get(props.observingMode.get)
-          val resolvedReadModeGain     = resolvedReadModeGainGetter(props.observingMode.get)
-          val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
-          val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
+          val defaultXBinning      = defaultXBinningLens.get(props.observingMode.get)
+          val defaultYBinning      = defaultYBinningLens.get(props.observingMode.get)
+          val defaultReadModeGain  = defaultReadModeGainLens.get(props.observingMode.get)
+          val defaultRoi           = defaultRoiLens.get(props.observingMode.get)
+          val resolvedReadModeGain = resolvedReadModeGainGetter(props.observingMode.get)
 
           val validDithers = modeData.value
             .map: mode =>
@@ -286,21 +285,14 @@ object GmosLongslitConfigPanel {
                   id = "fpu".refined,
                   view = fpu(props.observingMode),
                   defaultValue = initialFpuLens.get(props.observingMode.get),
-                  label = "FPU".some,
-                  helpId = Some("configuration/gmos/fpu.md".refined),
+                  label = fpuLabel.some,
+                  helpId = fpuHelpId,
                   disabled = disableAdvancedEdit,
                   exclude = excludedFpus,
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
-                OffsetsControl(
-                  explicitOffsets(props.observingMode),
-                  defaultOffsetsLens.get(props.observingMode.get),
-                  props.sequenceChanged,
-                  disableSimpleEdit,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
-                )
+                offsetsControl(props, disableSimpleEdit)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableInputText(
@@ -400,52 +392,7 @@ object GmosLongslitConfigPanel {
                 toggleable = true,
                 collapsed = true
               )(
-                <.div(
-                  ExploreStyles.AcquisitionCustomizationGrid,
-                  <.div(
-                    LucumaPrimeStyles.FormColumnCompact,
-                    CustomizableEnumSelectOptional(
-                      id = "acq-explicit-roi".refined,
-                      view = explicitAcquisitionRoi(props.observingMode)
-                        .withDefault(defaultAcquisitionRoi),
-                      defaultValue = defaultAcquisitionRoi.some,
-                      label = "ROI".some,
-                      helpId = None,
-                      disabled = disableAdvancedAcqEdit,
-                      showCustomization = showCustomization,
-                      allowRevertCustomization =
-                        allowRevertCustomization || props.permissions.isOnlyForOngoing
-                    ),
-                    CustomizableEnumSelectOptional(
-                      id = "acq-explicit-filter".refined,
-                      view = explicitAcquisitionFilter(props.observingMode)
-                        .withDefault(defaultAcquisitionFilter),
-                      defaultValue = defaultAcquisitionFilter.some,
-                      exclude = excludedAcquisitionFilters,
-                      label = "Filter".some,
-                      helpId = None,
-                      disabled = disableAdvancedAcqEdit,
-                      showCustomization = showCustomization,
-                      allowRevertCustomization =
-                        allowRevertCustomization || props.permissions.isOnlyForOngoing
-                    )
-                  ),
-                  <.div(
-                    LucumaPrimeStyles.FormColumnCompact,
-                    ExposureTimeModeEditor(
-                      instrument = props.observingMode.get.instrument,
-                      wavelength = none,
-                      exposureTimeMode = acquisitionExposureTimeModeView(props.observingMode),
-                      coadds = none,
-                      scienceMode = ScienceMode.Imaging,
-                      readonly = props.permissions.isReadonly,
-                      units = props.units,
-                      calibrationRole = props.calibrationRole,
-                      idPrefix = "gmosAcq".refined,
-                      forceCount = Some(1.refined)
-                    )
-                  )
-                )
+                acquisitionSection(props, disableAdvancedAcqEdit)
               ).when(showAcquisitionConfig),
               AdvancedConfigButtons(
                 editState = editState,
@@ -459,6 +406,65 @@ object GmosLongslitConfigPanel {
           )
   }
 
+  /**
+   * The long slit Acquisition panel contents, shared by both long slit instantiations. MOS has no
+   * counterpart: its acquisition is a single plain enum.
+   */
+  private def longSlitAcquisitionSection[Filter: Enumerated: Display](
+    props:                    GmosSpectroscopyConfigPanel[?, ?],
+    disabled:                 Boolean,
+    showCustomization:        Boolean,
+    allowRevertCustomization: Boolean,
+    roiView:                  View[Option[GmosLongSlitAcquisitionRoi]],
+    defaultRoi:               GmosLongSlitAcquisitionRoi,
+    filterView:               View[Option[Filter]],
+    defaultFilter:            Filter,
+    excludedFilters:          Set[Filter],
+    exposureTimeMode:         View[ExposureTimeMode]
+  ): VdomNode =
+    <.div(
+      ExploreStyles.AcquisitionCustomizationGrid,
+      <.div(
+        LucumaPrimeStyles.FormColumnCompact,
+        CustomizableEnumSelectOptional(
+          id = "acq-explicit-roi".refined,
+          view = roiView,
+          defaultValue = defaultRoi.some,
+          label = "ROI".some,
+          helpId = None,
+          disabled = disabled,
+          showCustomization = showCustomization,
+          allowRevertCustomization = allowRevertCustomization || props.permissions.isOnlyForOngoing
+        ),
+        CustomizableEnumSelectOptional(
+          id = "acq-explicit-filter".refined,
+          view = filterView,
+          defaultValue = defaultFilter.some,
+          exclude = excludedFilters,
+          label = "Filter".some,
+          helpId = None,
+          disabled = disabled,
+          showCustomization = showCustomization,
+          allowRevertCustomization = allowRevertCustomization || props.permissions.isOnlyForOngoing
+        )
+      ),
+      <.div(
+        LucumaPrimeStyles.FormColumnCompact,
+        ExposureTimeModeEditor(
+          instrument = props.observingMode.get.instrument,
+          wavelength = none,
+          exposureTimeMode = exposureTimeMode,
+          coadds = none,
+          scienceMode = ScienceMode.Imaging,
+          readonly = props.permissions.isReadonly,
+          units = props.units,
+          calibrationRole = props.calibrationRole,
+          idPrefix = "gmosAcq".refined,
+          forceCount = Some(1.refined)
+        )
+      )
+    )
+
   // Gmos North Long Slit
   case class GmosNorthLongSlit(
     programId:       Program.Id,
@@ -470,19 +476,19 @@ object GmosLongslitConfigPanel {
     sequenceChanged: Callback,
     permissions:     ConfigEditPermissions,
     units:           WavelengthUnits
-  ) extends ReactFnProps[GmosLongslitConfigPanel.GmosNorthLongSlit](
-        GmosLongslitConfigPanel.GmosNorthLongSlit.component
+  ) extends ReactFnProps[GmosSpectroscopyConfigPanel.GmosNorthLongSlit](
+        GmosSpectroscopyConfigPanel.GmosNorthLongSlit.component
       )
-      with GmosLongslitConfigPanel[
+      with GmosSpectroscopyConfigPanel[
         ObservingMode.GmosNorthLongSlit,
         GmosNorthLongSlitInput
       ]
 
   object GmosNorthLongSlit
-      extends GmosLongslitConfigPanelBuilder[
+      extends GmosSpectroscopyConfigPanelBuilder[
         ObservingMode.GmosNorthLongSlit,
         GmosNorthLongSlitInput,
-        GmosLongslitConfigPanel.GmosNorthLongSlit,
+        GmosSpectroscopyConfigPanel.GmosNorthLongSlit,
         GmosNorthGrating,
         GmosNorthFilter,
         GmosNorthFpu
@@ -610,7 +616,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline override protected def explicitOffsets(aligner: AA)(using
+    inline private def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -620,6 +626,19 @@ object GmosLongslitConfigPanel {
         GmosNorthLongSlitInput.explicitOffsets.modify
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
+
+    override protected def offsetsControl(
+      props:    GmosSpectroscopyConfigPanel.GmosNorthLongSlit,
+      disabled: Boolean
+    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
+      OffsetsControl(
+        explicitOffsets(props.observingMode),
+        ObservingMode.GmosNorthLongSlit.defaultOffsets.get(props.observingMode.get),
+        props.sequenceChanged,
+        disabled,
+        showCustomization = showCustomization(props),
+        allowRevertCustomization = allowRevertCustomization(props)
+      )
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -643,7 +662,7 @@ object GmosLongslitConfigPanel {
           )
         )
 
-    inline override protected def explicitAcquisitionFilter(aligner: AA)(using
+    inline private def explicitAcquisitionFilter(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -653,7 +672,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    inline override protected def explicitAcquisitionRoi(aligner: AA)(using
+    inline private def explicitAcquisitionRoi(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -663,7 +682,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    inline override protected def acquisitionExposureTimeModeView(aligner: AA)(using
+    inline private def acquisitionExposureTimeModeView(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -672,6 +691,25 @@ object GmosLongslitConfigPanel {
             GmosNorthLongSlitAcquisitionInput.exposureTimeMode.modify
       )
       .view(_.toInput.assign)
+
+    override protected def acquisitionSection(
+      props:    GmosSpectroscopyConfigPanel.GmosNorthLongSlit,
+      disabled: Boolean
+    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
+      val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
+      val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
+      longSlitAcquisitionSection(
+        props,
+        disabled,
+        showCustomization(props),
+        allowRevertCustomization(props),
+        explicitAcquisitionRoi(props.observingMode).withDefault(defaultAcquisitionRoi),
+        defaultAcquisitionRoi,
+        explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
+        defaultAcquisitionFilter,
+        excludedAcquisitionFilters,
+        acquisitionExposureTimeModeView(props.observingMode)
+      )
 
     override protected val initialGratingLens           =
       ObservingMode.GmosNorthLongSlit.initialGrating
@@ -692,21 +730,23 @@ object GmosLongslitConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosNorthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthLongSlit.defaultWavelengthDithers
-    override protected val defaultOffsetsLens           =
-      ObservingMode.GmosNorthLongSlit.defaultOffsets
 
     override protected val excludedFpus: Set[GmosNorthFpu] =
       Enumerated[GmosNorthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
 
-    override protected val excludedAcquisitionFilters: Set[GmosNorthFilter] =
+    override protected val fpuLabel: String           = "FPU"
+    override protected val fpuHelpId: Option[Help.Id] =
+      Some("configuration/gmos/fpu.md".refined)
+
+    private val excludedAcquisitionFilters: Set[GmosNorthFilter] =
       Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
 
-    override protected val defaultAcquisitionFilterLens
+    private val defaultAcquisitionFilterLens
       : Lens[ObservingMode.GmosNorthLongSlit, GmosNorthFilter]            =
       ObservingMode.GmosNorthLongSlit.acquisition.andThen(
         ObservingMode.GmosNorthLongSlit.Acquisition.defaultFilter
       )
-    override protected val defaultAcquisitionRoiLens
+    private val defaultAcquisitionRoiLens
       : Lens[ObservingMode.GmosNorthLongSlit, GmosLongSlitAcquisitionRoi] =
       ObservingMode.GmosNorthLongSlit.acquisition.andThen(
         ObservingMode.GmosNorthLongSlit.Acquisition.defaultRoi
@@ -734,19 +774,19 @@ object GmosLongslitConfigPanel {
     sequenceChanged: Callback,
     permissions:     ConfigEditPermissions,
     units:           WavelengthUnits
-  ) extends ReactFnProps[GmosLongslitConfigPanel.GmosSouthLongSlit](
-        GmosLongslitConfigPanel.GmosSouthLongSlit.component
+  ) extends ReactFnProps[GmosSpectroscopyConfigPanel.GmosSouthLongSlit](
+        GmosSpectroscopyConfigPanel.GmosSouthLongSlit.component
       )
-      with GmosLongslitConfigPanel[
+      with GmosSpectroscopyConfigPanel[
         ObservingMode.GmosSouthLongSlit,
         GmosSouthLongSlitInput
       ]
 
   object GmosSouthLongSlit
-      extends GmosLongslitConfigPanelBuilder[
+      extends GmosSpectroscopyConfigPanelBuilder[
         ObservingMode.GmosSouthLongSlit,
         GmosSouthLongSlitInput,
-        GmosLongslitConfigPanel.GmosSouthLongSlit,
+        GmosSpectroscopyConfigPanel.GmosSouthLongSlit,
         GmosSouthGrating,
         GmosSouthFilter,
         GmosSouthFpu
@@ -875,7 +915,7 @@ object GmosLongslitConfigPanel {
         ).orUnassign
       )
 
-    inline override protected def explicitOffsets(aligner: AA)(using
+    inline private def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -885,6 +925,19 @@ object GmosLongslitConfigPanel {
         GmosSouthLongSlitInput.explicitOffsets.modify
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
+
+    override protected def offsetsControl(
+      props:    GmosSpectroscopyConfigPanel.GmosSouthLongSlit,
+      disabled: Boolean
+    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
+      OffsetsControl(
+        explicitOffsets(props.observingMode),
+        ObservingMode.GmosSouthLongSlit.defaultOffsets.get(props.observingMode.get),
+        props.sequenceChanged,
+        disabled,
+        showCustomization = showCustomization(props),
+        allowRevertCustomization = allowRevertCustomization(props)
+      )
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -911,10 +964,14 @@ object GmosLongslitConfigPanel {
     override protected val excludedFpus: Set[GmosSouthFpu] =
       Enumerated[GmosSouthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
 
-    override protected val excludedAcquisitionFilters: Set[GmosSouthFilter] =
+    override protected val fpuLabel: String           = "FPU"
+    override protected val fpuHelpId: Option[Help.Id] =
+      Some("configuration/gmos/fpu.md".refined)
+
+    private val excludedAcquisitionFilters: Set[GmosSouthFilter] =
       Enumerated[GmosSouthFilter].all.toSet -- GmosSouthFilter.acquisition.toList.toSet
 
-    inline override protected def explicitAcquisitionFilter(aligner: AA)(using
+    inline private def explicitAcquisitionFilter(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -924,7 +981,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    inline override protected def explicitAcquisitionRoi(aligner: AA)(using
+    inline private def explicitAcquisitionRoi(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -934,7 +991,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    inline override protected def acquisitionExposureTimeModeView(aligner: AA)(using
+    inline private def acquisitionExposureTimeModeView(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -943,6 +1000,25 @@ object GmosLongslitConfigPanel {
             GmosSouthLongSlitAcquisitionInput.exposureTimeMode.modify
       )
       .view(_.toInput.assign)
+
+    override protected def acquisitionSection(
+      props:    GmosSpectroscopyConfigPanel.GmosSouthLongSlit,
+      disabled: Boolean
+    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
+      val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
+      val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
+      longSlitAcquisitionSection(
+        props,
+        disabled,
+        showCustomization(props),
+        allowRevertCustomization(props),
+        explicitAcquisitionRoi(props.observingMode).withDefault(defaultAcquisitionRoi),
+        defaultAcquisitionRoi,
+        explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
+        defaultAcquisitionFilter,
+        excludedAcquisitionFilters,
+        acquisitionExposureTimeModeView(props.observingMode)
+      )
 
     override protected val initialGratingLens           =
       ObservingMode.GmosSouthLongSlit.initialGrating
@@ -963,15 +1039,13 @@ object GmosLongslitConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosSouthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthLongSlit.defaultWavelengthDithers
-    override protected val defaultOffsetsLens           =
-      ObservingMode.GmosSouthLongSlit.defaultOffsets
 
-    override protected val defaultAcquisitionFilterLens
+    private val defaultAcquisitionFilterLens
       : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter]            =
       ObservingMode.GmosSouthLongSlit.acquisition.andThen(
         ObservingMode.GmosSouthLongSlit.Acquisition.defaultFilter
       )
-    override protected val defaultAcquisitionRoiLens
+    private val defaultAcquisitionRoiLens
       : Lens[ObservingMode.GmosSouthLongSlit, GmosLongSlitAcquisitionRoi] =
       ObservingMode.GmosSouthLongSlit.acquisition.andThen(
         ObservingMode.GmosSouthLongSlit.Acquisition.defaultRoi
