@@ -94,6 +94,11 @@ object ExploreModelValidators:
       .withErrorMessage(_ => "Invalid offsets".refined)
       .optional
 
+  // GMOS MOS offsets may legitimately be empty, so they are modelled as a plain List.
+  // An empty input still means "no explicit offsets", as it does for a NonEmptyList.
+  val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
+    offsetQNELValidWedge.imapB(_.flatMap(NonEmptyList.fromList), _.map(_.toList))
+
   val hoursValidWedge: InputValidWedge[BigDecimal Refined HourRange] =
     InputValidWedge
       .truncatedBigDecimal(decimals = 2.refined)
