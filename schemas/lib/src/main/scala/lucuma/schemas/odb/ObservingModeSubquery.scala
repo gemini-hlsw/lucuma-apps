@@ -88,6 +88,7 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
               slitWidth
             }
             centralWavelength $WavelengthSubquery
+            acquisitionType
             defaultXBin
             explicitXBin
             defaultYBin
@@ -116,6 +117,7 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
               slitWidth
             }
             centralWavelength $WavelengthSubquery
+            acquisitionType
             defaultXBin
             explicitXBin
             defaultYBin
@@ -397,6 +399,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               slitWidth
             }
             centralWavelength $WavelengthSubquery
+            acquisitionType
             defaultXBin
             explicitXBin
             defaultYBin
@@ -425,6 +428,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               slitWidth
             }
             centralWavelength $WavelengthSubquery
+            acquisitionType
             defaultXBin
             explicitXBin
             defaultYBin
