@@ -46,7 +46,7 @@ class VisitDecodersSuite extends InputStreamSuite {
     NonEmptyList.of(
       Visit.GmosNorth(
         id = Visit.Id(457L.refined),
-        created =
+        effectiveTime =
           Timestamp.unsafeFromLocalDateTime(LocalDateTime.of(2024, 2, 12, 17, 22, 6, 372335000)),
         interval = TimestampInterval
           .between(
@@ -120,7 +120,7 @@ class VisitDecodersSuite extends InputStreamSuite {
     NonEmptyList.of(
       Visit.GmosSouth(
         id = Visit.Id(457L.refined),
-        created =
+        effectiveTime =
           Timestamp.unsafeFromLocalDateTime(LocalDateTime.of(2024, 2, 12, 17, 22, 6, 372335000)),
         interval = TimestampInterval
           .between(
@@ -218,7 +218,7 @@ class VisitDecodersSuite extends InputStreamSuite {
     cats.data.NonEmptyList.of(
       Visit.Ghost(
         id = Visit.Id(457L.refined),
-        created =
+        effectiveTime =
           Timestamp.unsafeFromLocalDateTime(LocalDateTime.of(2024, 2, 12, 17, 22, 6, 372335000)),
         interval = TimestampInterval
           .between(

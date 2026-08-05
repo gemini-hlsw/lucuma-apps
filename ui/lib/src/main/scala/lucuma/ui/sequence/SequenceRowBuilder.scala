@@ -58,18 +58,20 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     )
 
   protected case class VisitData(
-    visitId:      Visit.Id,
-    created:      Timestamp,
-    sequenceType: SequenceType,
-    stepRows:     NonEmptyList[SequenceIndexedRow[D]],
-    datasetRange: Option[(Short, Short)]
+    visitId:       Visit.Id,
+    effectiveTime: Timestamp,
+    sequenceType:  SequenceType,
+    stepRows:      NonEmptyList[SequenceIndexedRow[D]],
+    datasetRange:  Option[(Short, Short)]
   ):
     val rowId: RowId = RowId(s"$visitId-$sequenceType")
 
   protected def renderVisitHeader(visit: VisitData): VdomNode =
+    val visitTime: String = UtcFormatter.format(visit.effectiveTime.toInstant)
+
     <.div(SequenceStyles.VisitHeader)(
       <.span(
-        s"${visit.sequenceType.shortName} Visit on ${UtcFormatter.format(visit.created.toInstant)}"
+        s"${visit.sequenceType.shortName} Visit on $visitTime"
       ), // Steps is non-empty => head and last are safe
       <.span(s"Steps: ${visit.stepRows.head.index} - ${visit.stepRows.last.index}"),
       <.span(
@@ -190,7 +192,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
 
   private def buildVisitRows(
     visitId:       Visit.Id,
-    created:       Timestamp,
+    effectiveTime: Timestamp,
     atoms:         List[AtomRecord[D]],
     sequenceType:  SequenceType,
     currentStepId: Option[Step.Id], // Will be removed from visit rows
@@ -205,18 +207,18 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         val datasetIndices = steps.flatMap(_.datasets).map(_.index.value)
 
         (
-          created,
+          effectiveTime,
           steps
             .map(SequenceRow.Executed.ExecutedStep(visitId, _, none)) // TODO Add SignalToNoise
             .zipWithStepIndex(startIndex),
           datasetIndices.minOption.map(min => (min, datasetIndices.max))
         )
-      .map: (created, zipResult, datasetRange) =>
+      .map: (effectiveTime, zipResult, datasetRange) =>
         val (rows, nextIndex) = zipResult
 
         (VisitData(
            visitId,
-           created,
+           effectiveTime,
            sequenceType,
            NonEmptyList.fromListUnsafe(rows.map(SequenceIndexedRow(_, _))),
            datasetRange
@@ -243,7 +245,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         val (acquisition, nextAcquisitionIndex) =
           buildVisitRows(
             visit.id,
-            visit.created,
+            visit.effectiveTime,
             visit.acquisitionAtoms,
             SequenceType.Acquisition,
             currentStepId
@@ -252,7 +254,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         val (science, nextScienceIndex) =
           buildVisitRows(
             visit.id,
-            visit.created,
+            visit.effectiveTime,
             visit.scienceAtoms,
             SequenceType.Science,
             currentStepId,

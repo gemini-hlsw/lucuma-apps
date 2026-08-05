@@ -20,7 +20,7 @@ object ExecutionVisitsSubquery
         matches {
           id
           instrument
-          created
+          effectiveTime
           interval $TimestampIntervalSubquery
           atomRecords {
             matches {

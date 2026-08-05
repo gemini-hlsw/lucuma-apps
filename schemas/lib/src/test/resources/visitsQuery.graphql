@@ -5,7 +5,7 @@ query {
         matches {
           id
           instrument
-          created
+          effectiveTime
           interval {
             start
             end

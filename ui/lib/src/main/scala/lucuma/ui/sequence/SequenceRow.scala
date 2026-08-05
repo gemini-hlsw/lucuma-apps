@@ -264,7 +264,7 @@ object SequenceRow:
       val stepConfig       = none
       val telescopeConfig  = none
       val sequenceType     = none
-      export visit.{created, id => visitId, interval}
+      export visit.{effectiveTime, id => visitId, interval}
 
     object ExecutedVisit:
       given [D]: Eq[ExecutedVisit[D]] = Eq.derived
