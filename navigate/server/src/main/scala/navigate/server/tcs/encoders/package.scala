@@ -11,6 +11,7 @@ import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.UnwrapMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.acm.Encoder
 import navigate.server.acm.Encoder.*
@@ -80,6 +81,12 @@ package object encoders {
   extension (v: String) {
     def decode[A: {Enumerated, Encoder[*, String]}]: Option[A] =
       Enumerated[A].all.find(_.encode === v)
+  }
+
+  given Encoder[UnwrapMode, String] = {
+    case UnwrapMode.Minus => "-1"
+    case UnwrapMode.Auto  => "0"
+    case UnwrapMode.Plus  => "1"
   }
 
 }

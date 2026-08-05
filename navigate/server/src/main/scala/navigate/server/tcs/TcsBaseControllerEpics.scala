@@ -49,6 +49,8 @@ import navigate.model.AutoparkGems
 import navigate.model.AutoparkOiwfs
 import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
+import navigate.model.AzimuthAngle
+import navigate.model.AzimuthAngle.given
 import navigate.model.BafflesState
 import navigate.model.Distance
 import navigate.model.EnclosureState
@@ -65,6 +67,7 @@ import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
 import navigate.model.ResetPointing
 import navigate.model.RotatorAngle
+import navigate.model.RotatorAngle.given
 import navigate.model.RotatorTrackConfig
 import navigate.model.RotatorTrackingMode
 import navigate.model.ShortcircuitMountFilter
@@ -104,6 +107,7 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
+import navigate.model.enums.UnwrapMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server
 import navigate.server.ApplyCommandResult
@@ -128,6 +132,7 @@ import org.typelevel.log4cats.Logger
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
+import scala.math.Ordering.Implicits.given
 
 import TcsBaseController.AcCommands
 import TcsBaseController.EquinoxDefault
@@ -529,7 +534,12 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     r   <- (
              selectOiwfsT(tcsConfig)
                .andThen(
-                 _.wrapsCommand.azimuth(0).wrapsCommand.rotator(0).zeroRotatorGuide.mark
+                 _.wrapsCommand
+                   .azimuth(UnwrapMode.Auto)
+                   .wrapsCommand
+                   .rotator(UnwrapMode.Auto)
+                   .zeroRotatorGuide
+                   .mark
                )(sys.tcsEpics.startCommand(timeout))
                .post *>
                VerifiedEpics.liftF(Temporal[F].sleep(OiwfsSelectionDelay)) *>
@@ -2611,6 +2621,35 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     .setVentGateWest(Distance.Zero)
     .post
     .verifiedRun(ConnectionTimeout)
+
+  private val azUnwrapTimeout                       = FiniteDuration(60, SECONDS)
+  override def azimuthUnwrap: F[ApplyCommandResult] =
+    sys.tcsEpics.status.azimuthDemand.verifiedRun(ConnectionTimeout).flatMap { az =>
+      sys.tcsEpics
+        .startCommand(azUnwrapTimeout)
+        .wrapsCommand
+        .azimuth((az < AzimuthAngle.OneEighty).fold(UnwrapMode.Plus, UnwrapMode.Minus))
+        .post
+        .verifiedRun(ConnectionTimeout)
+    }
+
+  private val rotUnwrapTimeout                  = FiniteDuration(60, SECONDS)
+  override def rotUnwrap: F[ApplyCommandResult] =
+    sys.tcsEpics.status.rotatorDemand.verifiedRun(ConnectionTimeout).flatMap { rot =>
+      sys.tcsEpics
+        .startCommand(rotUnwrapTimeout)
+        .wrapsCommand
+        .rotator((rot < RotatorAngle.Ninety).fold(UnwrapMode.Plus, UnwrapMode.Minus))
+        .post
+        .verifiedRun(ConnectionTimeout)
+    }
+
+  private val wfsUnwrapTimeout                    = FiniteDuration(60, SECONDS)
+  override def pwfs1Unwrap: F[ApplyCommandResult] =
+    sys.tcsEpics.startCommand(wfsUnwrapTimeout).pwfs1Unwrap.mark.post.verifiedRun(ConnectionTimeout)
+
+  override def pwfs2Unwrap: F[ApplyCommandResult] =
+    sys.tcsEpics.startCommand(wfsUnwrapTimeout).pwfs2Unwrap.mark.post.verifiedRun(ConnectionTimeout)
 }
 
 object TcsBaseControllerEpics {

@@ -438,7 +438,11 @@ object TestTcsEpicsSystem {
     p2Filter:             TestChannel.State[String],
     p2FieldStop:          TestChannel.State[String],
     chopConfig:           ChopConfigState,
-    chopRelative:         ChopRelativeState
+    chopRelative:         ChopRelativeState,
+    pwfs1UnwrapDir:       TestChannel.State[CadDirective],
+    pwfs2UnwrapDir:       TestChannel.State[CadDirective],
+    demandAzimuth:        TestChannel.State[String],
+    demandRotator:        TestChannel.State[Double]
   )
 
   val defaultState: State = State(
@@ -591,7 +595,11 @@ object TestTcsEpicsSystem {
     p2Filter = TestChannel.State.default,
     p2FieldStop = TestChannel.State.default,
     chopConfig = ChopConfigState.default,
-    chopRelative = ChopRelativeState.default
+    chopRelative = ChopRelativeState.default,
+    pwfs1UnwrapDir = TestChannel.State.default,
+    pwfs2UnwrapDir = TestChannel.State.default,
+    demandAzimuth = TestChannel.State.default,
+    demandRotator = TestChannel.State.default
   )
 
   def buildEnclosureChannels[F[_]: Temporal](s: Ref[F, State]): EnclosureChannels[F] =
@@ -1248,7 +1256,11 @@ object TestTcsEpicsSystem {
         new TestChannel[F, State, String](s, Focus[State](_.chopRelative.angle)),
         new TestChannel[F, State, String](s, Focus[State](_.chopRelative.system)),
         new TestChannel[F, State, String](s, Focus[State](_.chopRelative.equinox))
-      )
+      ),
+      pwfs1UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs1UnwrapDir)),
+      pwfs2UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs2UnwrapDir)),
+      demandAzimuth = new TestChannel[F, State, String](s, Focus[State](_.demandAzimuth)),
+      demandRotator = new TestChannel[F, State, Double](s, Focus[State](_.demandRotator))
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {

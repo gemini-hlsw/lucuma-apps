@@ -29,6 +29,7 @@ import navigate.epics.EpicsService
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.*
+import navigate.model.AzimuthAngle
 import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.RotatorAngle
@@ -42,6 +43,7 @@ import navigate.model.enums.HrwfsPickupPosition
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
+import navigate.model.enums.UnwrapMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
 import navigate.server.acm.CadDirective
@@ -323,6 +325,8 @@ object TcsEpicsSystem {
     //   case G4 => g4GuideConfig
     // }
     def ecsCarouselModeParams: CarouselModeParams[F]
+    def azimuthDemand: VerifiedEpics[F, F, AzimuthAngle]
+    def rotatorDemand: VerifiedEpics[F, F, RotatorAngle]
   }
 
   object TcsStatus {
@@ -554,6 +558,27 @@ object TcsEpicsSystem {
 
         override def ecsCarouselModeParams: CarouselModeParams[F] =
           CarouselModeParams.build(channels)
+
+        override def azimuthDemand: VerifiedEpics[F, F, AzimuthAngle] =
+          readChannel(channels.telltale, channels.demandAzimuth).map(
+            _.flatMap { s =>
+              val parts = s.split(':')
+              (for {
+                deg <- parts.lift(0).flatMap(_.toDoubleOption)
+                min <- parts.lift(1).flatMap(_.toDoubleOption)
+                sec <- parts.lift(2).flatMap(_.toDoubleOption)
+              } yield AzimuthAngle
+                .fromDoubleDegrees(deg + (deg >= 0.0).fold(1.0, -1.0) * (min + sec/60.0)/60.0)
+                .pure[F]).getOrElse(
+                Async[F].raiseError(new Throwable(s"Problem reading current azimuth value $s"))
+              )
+            }
+          )
+
+        override def rotatorDemand: VerifiedEpics[F, F, RotatorAngle] =
+          readChannel(channels.telltale, channels.demandRotator).map(
+            _.map(RotatorAngle.fromDoubleDegrees)
+          )
       }
   }
 
@@ -1388,12 +1413,12 @@ object TcsEpicsSystem {
       }
     override val wrapsCommand: WrapsCommand[F, TcsCommands[F]]                       =
       new WrapsCommand[F, TcsCommands[F]] {
-        override def azimuth(v: Int): TcsCommands[F] = addParam(
-          writeCadParam(channels.telltale, channels.azimuthWrap)(v)
+        override def azimuth(mode: UnwrapMode): TcsCommands[F] = addParam(
+          writeCadParam(channels.telltale, channels.azimuthWrap)(mode)
         )
 
-        override def rotator(v: Int): TcsCommands[F] = addParam(
-          writeCadParam(channels.telltale, channels.rotatorWrap)(v)
+        override def rotator(mode: UnwrapMode): TcsCommands[F] = addParam(
+          writeCadParam(channels.telltale, channels.rotatorWrap)(mode)
         )
       }
     override val zeroRotatorGuide: BaseCommand[F, TcsCommands[F]]                    =
@@ -1419,7 +1444,7 @@ object TcsEpicsSystem {
 
     override val pwfs2MechCommands: PwfsMechCommands[F] = buildPwfsMechCommands(channels.pwfs2Mechs)
 
-    override val chopConfig: ChopConfigCommand[F]     = new ChopConfigCommand[F] {
+    override val chopConfig: ChopConfigCommand[F]            = new ChopConfigCommand[F] {
       override def typ(tp: String): TcsCommands[F] = addParam(
         writeCadParam(channels.telltale, channels.chopConfig.typ)(tp)
       )
@@ -1436,7 +1461,7 @@ object TcsEpicsSystem {
         writeCadParam(channels.telltale, channels.chopConfig.dutyCycle)(duty)
       )
     }
-    override val chopRelative: ChopRelativeCommand[F] = new ChopRelativeCommand[F] {
+    override val chopRelative: ChopRelativeCommand[F]        = new ChopRelativeCommand[F] {
       override def thrw(d: Angle): TcsCommands[F] = addParam(
         writeCadParam(channels.telltale, channels.chopRelative.thrw)(
           Angle.signedDecimalArcseconds.get(d).toDouble
@@ -1453,6 +1478,16 @@ object TcsEpicsSystem {
 
       override def equinox(eq: String): TcsCommands[F] = addParam(
         writeCadParam(channels.telltale, channels.chopRelative.equinox)(eq)
+      )
+    }
+    override val pwfs1Unwrap: BaseCommand[F, TcsCommands[F]] = new BaseCommand[F, TcsCommands[F]] {
+      override def mark: TcsCommands[F] = addParam(
+        writeChannel(channels.telltale, channels.pwfs1UnwrapDir)(CadDirective.MARK.pure[F])
+      )
+    }
+    override val pwfs2Unwrap: BaseCommand[F, TcsCommands[F]] = new BaseCommand[F, TcsCommands[F]] {
+      override def mark: TcsCommands[F] = addParam(
+        writeChannel(channels.telltale, channels.pwfs2UnwrapDir)(CadDirective.MARK.pure[F])
       )
     }
   }
@@ -2133,8 +2168,8 @@ object TcsEpicsSystem {
   }
 
   trait WrapsCommand[F[_], +S] {
-    def azimuth(v: Int): S
-    def rotator(v: Int): S
+    def azimuth(mode: UnwrapMode): S
+    def rotator(mode: UnwrapMode): S
   }
 
   trait ProbeTrackingCommand[F[_], +S] {
@@ -2316,8 +2351,10 @@ object TcsEpicsSystem {
     val focusOffsetCommand: FocusOffsetCommand[F, TcsCommands[F]]
     val pwfs1ProbeTrackingCommand: ProbeTrackingCommand[F, TcsCommands[F]]
     val pwfs1ProbeCommands: ProbeCommands[F, TcsCommands[F]]
+    val pwfs1Unwrap: BaseCommand[F, TcsCommands[F]]
     val pwfs2ProbeTrackingCommand: ProbeTrackingCommand[F, TcsCommands[F]]
     val pwfs2ProbeCommands: ProbeCommands[F, TcsCommands[F]]
+    val pwfs2Unwrap: BaseCommand[F, TcsCommands[F]]
     val oiwfsProbeTrackingCommand: ProbeTrackingCommand[F, TcsCommands[F]]
     val oiwfsProbeCommands: ProbeCommands[F, TcsCommands[F]]
     val m1GuideCommand: GuideCommand[F, TcsCommands[F]]
