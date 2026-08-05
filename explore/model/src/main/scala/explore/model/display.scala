@@ -163,7 +163,7 @@ trait DisplayImplicits:
 
   given Display[GmosCustomSlitWidth] = Display.by(_.shortName, _.longName)
 
-  given Display[GmosMosAcquisitionType] = Display.by(_.shortName, _.longName)
+  given Display[GmosMosAcquisitionType] = Display.byShortName(_.longName)
 
   given Display[GmosNorthFpu] = Display.byShortName(_.longName)
 

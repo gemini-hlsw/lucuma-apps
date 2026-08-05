@@ -473,11 +473,13 @@ object GmosSpectroscopyConfigPanel {
   /**
    * The MOS Acquisition panel contents: whether the acquisition image is taken through the mask or
    * with it out of the beam. Unlike every long slit acquisition control this is a plain dropdown,
-   * not a `Customizable*` one — `acquisitionType` has no baseline to customize against.
+   * not a `Customizable*` one — `acquisitionType` has no baseline to customize against. It is also
+   * outside the edit-state machinery: it is editable whenever the user can edit at all, without
+   * entering Advanced Edit.
    */
   private def mosAcquisitionSection(
-    view:     View[GmosMosAcquisitionType],
-    disabled: Boolean
+    view:        View[GmosMosAcquisitionType],
+    permissions: ConfigEditPermissions
   ): VdomNode =
     <.div(
       ExploreStyles.AcquisitionCustomizationGrid,
@@ -487,7 +489,7 @@ object GmosSpectroscopyConfigPanel {
           id = "acq-type".refined,
           value = view,
           label = "Acquisition Type",
-          disabled = disabled
+          disabled = permissions.isReadonly
         )
       )
     )
@@ -1258,7 +1260,7 @@ object GmosSpectroscopyConfigPanel {
       props:    GmosSpectroscopyConfigPanel.GmosNorthMos,
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosAcquisitionSection(acquisitionType(props.observingMode), disabled)
+      mosAcquisitionSection(acquisitionType(props.observingMode), props.permissions)
 
     override protected val initialGratingLens           = ObservingMode.GmosNorthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosNorthMos.initialFilter
@@ -1486,7 +1488,7 @@ object GmosSpectroscopyConfigPanel {
       props:    GmosSpectroscopyConfigPanel.GmosSouthMos,
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosAcquisitionSection(acquisitionType(props.observingMode), disabled)
+      mosAcquisitionSection(acquisitionType(props.observingMode), props.permissions)
 
     override protected val initialGratingLens           = ObservingMode.GmosSouthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosSouthMos.initialFilter
