@@ -87,9 +87,6 @@ object ExploreModelValidators:
   ): InputValidWedge[WavelengthDither] =
     ditherValidWedge.andThen(ditherInRange(λcentral, λmin, λmax).asValidWedge)
 
-  // GMOS offsets are a List because the schema's `[OffsetQ!]!` permits an empty one. The parse
-  // still goes through a NonEmptyList — lucuma-core has no list-separated combinator — so an
-  // explicitly empty list normalizes to None, which is what a Wedge is allowed to do.
   val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
     MathValidators.truncatedAngleSignedArcSec
       .andThen(Offset.Component.angle[Axis.Q].reverse)

@@ -41,7 +41,6 @@ import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
-import lucuma.schemas.model.enums.GmosMosAcquisitionType
 import monocle.Focus
 import monocle.Lens
 import monocle.Prism

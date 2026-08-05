@@ -133,7 +133,7 @@ trait ObservationDB {
     type GmosAmpGain                         = enums.GmosAmpGain
     type GmosAmpReadMode                     = enums.GmosAmpReadMode
     type GmosCustomSlitWidth                 = enums.GmosCustomSlitWidth
-    type GmosMosAcquisitionType              = lucuma.schemas.model.enums.GmosMosAcquisitionType
+    type GmosMosAcquisitionType              = enums.GmosMosAcquisitionType
     type GmosGratingOrder                    = enums.GmosGratingOrder
     type GmosDtax                            = enums.GmosDtax
     type GmosEOffsetting                     = enums.GmosEOffsetting

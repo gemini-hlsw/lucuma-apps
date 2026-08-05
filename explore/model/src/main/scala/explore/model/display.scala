@@ -27,7 +27,6 @@ import lucuma.core.util.Display
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.enums.GmosMosAcquisitionType
 import lucuma.ui.display.given
 
 import java.text.DecimalFormat
@@ -163,7 +162,7 @@ trait DisplayImplicits:
 
   given Display[GmosCustomSlitWidth] = Display.by(_.shortName, _.longName)
 
-  given Display[GmosMosAcquisitionType] = Display.byShortName(_.longName)
+  given Display[GmosMosAcquisitionType] = Display.byShortName(_.tag)
 
   given Display[GmosNorthFpu] = Display.byShortName(_.longName)
 

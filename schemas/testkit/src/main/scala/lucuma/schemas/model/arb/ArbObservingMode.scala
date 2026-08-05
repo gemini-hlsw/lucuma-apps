@@ -39,7 +39,6 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.GnirsSpectroscopy.SubMode
-import lucuma.schemas.model.enums.GmosMosAcquisitionType
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
@@ -272,10 +271,7 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        List[Offset.Q],
-       (Option[List[Offset.Q]],
-        ExposureTimeMode,
-        ObservingMode.GmosNorthLongSlit.Acquisition
-       )
+       (Option[List[Offset.Q]], ExposureTimeMode, ObservingMode.GmosNorthLongSlit.Acquisition)
       )
     ]
       .contramap(o =>
@@ -327,10 +323,7 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        List[Offset.Q],
-       (Option[List[Offset.Q]],
-        ExposureTimeMode,
-        ObservingMode.GmosSouthLongSlit.Acquisition
-       )
+       (Option[List[Offset.Q]], ExposureTimeMode, ObservingMode.GmosSouthLongSlit.Acquisition)
       )
     ]
       .contramap(o =>
