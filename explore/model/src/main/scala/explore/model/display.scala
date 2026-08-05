@@ -160,6 +160,10 @@ trait DisplayImplicits:
 
   given Display[GmosSouthFilter] = Display.by(_.shortName, _.longName)
 
+  given Display[GmosCustomSlitWidth] = Display.by(_.shortName, _.longName)
+
+  given Display[GmosMosAcquisitionType] = Display.byShortName(_.tag)
+
   given Display[GmosNorthFpu] = Display.byShortName(_.longName)
 
   given Display[GmosSouthFpu] = Display.byShortName(_.longName)

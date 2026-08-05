@@ -250,6 +250,10 @@ object ConfigurationTile
         ObservingModeInput.GmosNorthLongSlit(GmosNorthLongSlitInput())
       val EmptyGmosSouthLongSlitInput: ObservingModeInput =
         ObservingModeInput.GmosSouthLongSlit(GmosSouthLongSlitInput())
+      val EmptyGmosNorthMosInput: ObservingModeInput      =
+        ObservingModeInput.GmosNorthMos(GmosNorthMosInput())
+      val EmptyGmosSouthMosInput: ObservingModeInput      =
+        ObservingModeInput.GmosSouthMos(GmosSouthMosInput())
       val EmptyF2LongSlitInput: ObservingModeInput        =
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
@@ -376,6 +380,26 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.gmosSouthLongSlit
                   .andThen(ObservingModeInput.GmosSouthLongSlit.value)
+                  .modify
+            )
+
+        val optGmosNorthMosAligner: Option[Aligner[GmosNorthMos, GmosNorthMosInput]] =
+          optModeAligner(EmptyGmosNorthMosInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gmosNorthMos,
+              modInput:
+                ObservingModeInput.gmosNorthMos
+                  .andThen(ObservingModeInput.GmosNorthMos.value)
+                  .modify
+            )
+
+        val optGmosSouthMosAligner: Option[Aligner[GmosSouthMos, GmosSouthMosInput]] =
+          optModeAligner(EmptyGmosSouthMosInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gmosSouthMos,
+              modInput:
+                ObservingModeInput.gmosSouthMos
+                  .andThen(ObservingModeInput.GmosSouthMos.value)
                   .modify
             )
 
@@ -551,7 +575,7 @@ object ConfigurationTile
                 React.Fragment(
                   // Gmos North Long Slit
                   optGmosNorthAligner.map: northAligner =>
-                    GmosLongslitConfigPanel
+                    GmosSpectroscopyConfigPanel
                       .GmosNorthLongSlit(
                         props.programId,
                         props.obsId,
@@ -565,7 +589,7 @@ object ConfigurationTile
                       ),
                   // Gmos South Long Slit
                   optGmosSouthAligner.map: southAligner =>
-                    GmosLongslitConfigPanel
+                    GmosSpectroscopyConfigPanel
                       .GmosSouthLongSlit(
                         props.programId,
                         props.obsId,
@@ -577,18 +601,34 @@ object ConfigurationTile
                         props.permissions,
                         props.units
                       ),
-                  // Gmos North MOS (placeholder, no editing yet)
-                  props.observingMode
-                    .flatMap(ObservingMode.gmosNorthMos.getOption)
-                    .map: northMos =>
-                      GmosMosConfigPanel
-                        .GmosNorthMos(northMos, revertConfig, props.permissions),
-                  // Gmos South MOS (placeholder, no editing yet)
-                  props.observingMode
-                    .flatMap(ObservingMode.gmosSouthMos.getOption)
-                    .map: southMos =>
-                      GmosMosConfigPanel
-                        .GmosSouthMos(southMos, revertConfig, props.permissions),
+                  // Gmos North MOS
+                  optGmosNorthMosAligner.map: northMosAligner =>
+                    GmosSpectroscopyConfigPanel
+                      .GmosNorthMos(
+                        props.programId,
+                        props.obsId,
+                        props.obsConf.calibrationRole,
+                        northMosAligner,
+                        revertConfig,
+                        props.modes.spectroscopy,
+                        props.sequenceChanged,
+                        props.permissions,
+                        props.units
+                      ),
+                  // Gmos South MOS
+                  optGmosSouthMosAligner.map: southMosAligner =>
+                    GmosSpectroscopyConfigPanel
+                      .GmosSouthMos(
+                        props.programId,
+                        props.obsId,
+                        props.obsConf.calibrationRole,
+                        southMosAligner,
+                        revertConfig,
+                        props.modes.spectroscopy,
+                        props.sequenceChanged,
+                        props.permissions,
+                        props.units
+                      ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosNorthImaging(

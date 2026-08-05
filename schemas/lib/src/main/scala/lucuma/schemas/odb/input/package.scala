@@ -485,7 +485,7 @@ extension (o: ObservingMode.GmosNorthLongSlit)
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign,
     exposureTimeMode = o.exposureTimeMode.toInput.assign,
     acquisition = o.acquisition.toInput.assign
   )
@@ -509,7 +509,7 @@ extension (o: ObservingMode.GmosSouthLongSlit)
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign,
     acquisition = o.acquisition.toInput.assign
   )
 
@@ -525,14 +525,15 @@ extension (o: ObservingMode.GmosNorthMos)
     filter = o.filter.orUnassign,
     customMask = o.customMask.toInput.assign,
     centralWavelength = o.centralWavelength.value.toInput.assign,
+    acquisitionType = o.acquisitionType.assign,
     exposureTimeMode = o.exposureTimeMode.toInput.assign,
-    explicitXBin = o.explicitXBin.orUnassign,
-    explicitYBin = o.explicitYBin.orUnassign,
+    explicitXBin = o.explicitXBin.map(_.value).orUnassign,
+    explicitYBin = o.explicitYBin.map(_.value).orUnassign,
     explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
+    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign
   )
 
 extension (o: ObservingMode.GmosSouthMos)
@@ -541,14 +542,15 @@ extension (o: ObservingMode.GmosSouthMos)
     filter = o.filter.orUnassign,
     customMask = o.customMask.toInput.assign,
     centralWavelength = o.centralWavelength.value.toInput.assign,
+    acquisitionType = o.acquisitionType.assign,
     exposureTimeMode = o.exposureTimeMode.toInput.assign,
-    explicitXBin = o.explicitXBin.orUnassign,
-    explicitYBin = o.explicitYBin.orUnassign,
+    explicitXBin = o.explicitXBin.map(_.value).orUnassign,
+    explicitYBin = o.explicitYBin.map(_.value).orUnassign,
     explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
+    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign
   )
 
 extension (imagingFilter: ObservingMode.GmosNorthImaging.ImagingFilter)

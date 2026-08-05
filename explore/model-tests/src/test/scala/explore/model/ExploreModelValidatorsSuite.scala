@@ -3,7 +3,6 @@
 
 package explore.model
 
-import cats.laws.discipline.arbitrary.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.scalacheck.all.*
 import lucuma.core.arb.*
@@ -34,8 +33,8 @@ class ExploreModelValidatorsSuite extends DisciplineSuite:
   )
 
   checkAll(
-    "offsetQNELValidWedge",
-    ValidWedgeTests(ExploreModelValidators.offsetQNELValidWedge).validWedgeLaws
+    "offsetQListValidWedge",
+    ValidWedgeTests(ExploreModelValidators.offsetQListValidWedge).validWedgeLaws
   )
 
   checkAll(

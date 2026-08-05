@@ -161,8 +161,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[List[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition]
       yield ObservingMode.GmosNorthLongSlit(
@@ -216,8 +216,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[List[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition]
       yield ObservingMode.GmosSouthLongSlit(
@@ -270,11 +270,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       NonEmptyList[Offset.Q],
-       (Option[NonEmptyList[Offset.Q]],
-        ExposureTimeMode,
-        ObservingMode.GmosNorthLongSlit.Acquisition
-       )
+       List[Offset.Q],
+       (Option[List[Offset.Q]], ExposureTimeMode, ObservingMode.GmosNorthLongSlit.Acquisition)
       )
     ]
       .contramap(o =>
@@ -325,11 +322,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       NonEmptyList[Offset.Q],
-       (Option[NonEmptyList[Offset.Q]],
-        ExposureTimeMode,
-        ObservingMode.GmosSouthLongSlit.Acquisition
-       )
+       List[Offset.Q],
+       (Option[List[Offset.Q]], ExposureTimeMode, ObservingMode.GmosSouthLongSlit.Acquisition)
       )
     ]
       .contramap(o =>
@@ -382,10 +376,11 @@ trait ArbObservingMode {
         customMask                <- arbitrary[ObservingMode.GmosCustomMask]
         initialCentralWavelength  <- arbitrary[Wavelength]
         centralWavelength         <- arbitrary[Wavelength]
-        defaultXBin               <- arbitrary[GmosBinning]
-        explicitXBin              <- arbitrary[Option[GmosBinning]]
-        defaultYBin               <- arbitrary[GmosBinning]
-        explicitYBin              <- arbitrary[Option[GmosBinning]]
+        acquisitionType           <- arbitrary[GmosMosAcquisitionType]
+        defaultXBin               <- arbitrary[GmosXBinning]
+        explicitXBin              <- arbitrary[Option[GmosXBinning]]
+        defaultYBin               <- arbitrary[GmosYBinning]
+        explicitYBin              <- arbitrary[Option[GmosYBinning]]
         defaultAmpReadMode        <- arbitrary[GmosAmpReadMode]
         explicitAmpReadMode       <- arbitrary[Option[GmosAmpReadMode]]
         defaultAmpGain            <- arbitrary[GmosAmpGain]
@@ -406,6 +401,7 @@ trait ArbObservingMode {
         customMask,
         CentralWavelength(initialCentralWavelength),
         CentralWavelength(centralWavelength),
+        acquisitionType,
         defaultXBin,
         explicitXBin,
         defaultYBin,
@@ -435,10 +431,11 @@ trait ArbObservingMode {
         customMask                <- arbitrary[ObservingMode.GmosCustomMask]
         initialCentralWavelength  <- arbitrary[Wavelength]
         centralWavelength         <- arbitrary[Wavelength]
-        defaultXBin               <- arbitrary[GmosBinning]
-        explicitXBin              <- arbitrary[Option[GmosBinning]]
-        defaultYBin               <- arbitrary[GmosBinning]
-        explicitYBin              <- arbitrary[Option[GmosBinning]]
+        acquisitionType           <- arbitrary[GmosMosAcquisitionType]
+        defaultXBin               <- arbitrary[GmosXBinning]
+        explicitXBin              <- arbitrary[Option[GmosXBinning]]
+        defaultYBin               <- arbitrary[GmosYBinning]
+        explicitYBin              <- arbitrary[Option[GmosYBinning]]
         defaultAmpReadMode        <- arbitrary[GmosAmpReadMode]
         explicitAmpReadMode       <- arbitrary[Option[GmosAmpReadMode]]
         defaultAmpGain            <- arbitrary[GmosAmpGain]
@@ -459,6 +456,7 @@ trait ArbObservingMode {
         customMask,
         CentralWavelength(initialCentralWavelength),
         CentralWavelength(centralWavelength),
+        acquisitionType,
         defaultXBin,
         explicitXBin,
         defaultYBin,
@@ -487,10 +485,10 @@ trait ArbObservingMode {
        ObservingMode.GmosCustomMask,
        Wavelength,
        Wavelength,
-       GmosBinning,
-       Option[GmosBinning],
-       GmosBinning,
-       Option[GmosBinning],
+       GmosXBinning,
+       Option[GmosXBinning],
+       GmosYBinning,
+       Option[GmosYBinning],
        GmosAmpReadMode,
        Option[GmosAmpReadMode],
        GmosAmpGain,
@@ -500,7 +498,7 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        List[Offset.Q],
-       (Option[List[Offset.Q]], ExposureTimeMode)
+       (Option[List[Offset.Q]], ExposureTimeMode, GmosMosAcquisitionType)
       )
     ]
       .contramap(o =>
@@ -525,7 +523,7 @@ trait ArbObservingMode {
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
          o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode)
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType)
         )
       )
 
@@ -539,10 +537,10 @@ trait ArbObservingMode {
        ObservingMode.GmosCustomMask,
        Wavelength,
        Wavelength,
-       GmosBinning,
-       Option[GmosBinning],
-       GmosBinning,
-       Option[GmosBinning],
+       GmosXBinning,
+       Option[GmosXBinning],
+       GmosYBinning,
+       Option[GmosYBinning],
        GmosAmpReadMode,
        Option[GmosAmpReadMode],
        GmosAmpGain,
@@ -552,7 +550,7 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        List[Offset.Q],
-       (Option[List[Offset.Q]], ExposureTimeMode)
+       (Option[List[Offset.Q]], ExposureTimeMode, GmosMosAcquisitionType)
       )
     ]
       .contramap(o =>
@@ -577,7 +575,7 @@ trait ArbObservingMode {
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
          o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode)
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType)
         )
       )
 

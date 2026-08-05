@@ -87,12 +87,13 @@ object ExploreModelValidators:
   ): InputValidWedge[WavelengthDither] =
     ditherValidWedge.andThen(ditherInRange(λcentral, λmin, λmax).asValidWedge)
 
-  val offsetQNELValidWedge: InputValidWedge[Option[NonEmptyList[Offset.Q]]] =
+  val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
     MathValidators.truncatedAngleSignedArcSec
       .andThen(Offset.Component.angle[Axis.Q].reverse)
       .toNel(",".refined)
       .withErrorMessage(_ => "Invalid offsets".refined)
       .optional
+      .imapB(_.flatMap(NonEmptyList.fromList), _.map(_.toList))
 
   val hoursValidWedge: InputValidWedge[BigDecimal Refined HourRange] =
     InputValidWedge

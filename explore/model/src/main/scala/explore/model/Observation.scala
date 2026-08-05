@@ -210,8 +210,8 @@ final case class Observation(
             )
 
           val mode: GmosCcdMode = applyGmosCcdModesOverrides(
-            n.explicitXBin.map(GmosXBinning(_)),
-            n.explicitYBin.map(GmosYBinning(_)),
+            n.explicitXBin,
+            n.explicitYBin,
             n.explicitAmpReadMode,
             n.explicitAmpGain
           )(defaultMode)
@@ -231,8 +231,8 @@ final case class Observation(
             )
 
           val mode: GmosCcdMode = applyGmosCcdModesOverrides(
-            s.explicitXBin.map(GmosXBinning(_)),
-            s.explicitYBin.map(GmosYBinning(_)),
+            s.explicitXBin,
+            s.explicitYBin,
             s.explicitAmpReadMode,
             s.explicitAmpGain
           )(defaultMode)

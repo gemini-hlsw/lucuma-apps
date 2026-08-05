@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import explore.components.CustomizableInputTextOptional
@@ -19,8 +18,8 @@ import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.syntax.all.given
 
 final case class OffsetsControl(
-  view:                     View[Option[NonEmptyList[Offset.Q]]],
-  defaultValue:             NonEmptyList[Offset.Q],
+  view:                     View[Option[List[Offset.Q]]],
+  defaultValue:             List[Offset.Q],
   onChange:                 Callback,
   disabled:                 Boolean,
   showCustomization:        Boolean,
@@ -37,7 +36,7 @@ object OffsetsControl
           "Spatial Offsets",
           HelpIcon("configuration/spatial-offsets.md".refined)
         ),
-        validFormat = ExploreModelValidators.offsetQNELValidWedge,
+        validFormat = ExploreModelValidators.offsetQListValidWedge,
         changeAuditor = ChangeAuditor
           .bigDecimal(integers = 3.refined, decimals = 2.refined)
           .toSequence()
