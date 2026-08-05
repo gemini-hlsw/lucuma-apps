@@ -601,7 +601,7 @@ object ObservingMode:
       Focus[GmosNorthMos](_.initialCentralWavelength)
     val centralWavelength: Lens[GmosNorthMos, CentralWavelength]                              =
       Focus[GmosNorthMos](_.centralWavelength)
-    val acquisitionType: Lens[GmosNorthMos, GmosMosAcquisitionType]                                    =
+    val acquisitionType: Lens[GmosNorthMos, GmosMosAcquisitionType]                           =
       Focus[GmosNorthMos](_.acquisitionType)
     val defaultXBin: Lens[GmosNorthMos, GmosXBinning]                                         =
       Focus[GmosNorthMos](_.defaultXBin)
@@ -722,7 +722,7 @@ object ObservingMode:
       Focus[GmosSouthMos](_.initialCentralWavelength)
     val centralWavelength: Lens[GmosSouthMos, CentralWavelength]                              =
       Focus[GmosSouthMos](_.centralWavelength)
-    val acquisitionType: Lens[GmosSouthMos, GmosMosAcquisitionType]                                    =
+    val acquisitionType: Lens[GmosSouthMos, GmosMosAcquisitionType]                           =
       Focus[GmosSouthMos](_.acquisitionType)
     val defaultXBin: Lens[GmosSouthMos, GmosXBinning]                                         =
       Focus[GmosSouthMos](_.defaultXBin)
