@@ -394,8 +394,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[List[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
       yield ObservingMode.GmosNorthMos(
         initialGrating,
@@ -447,8 +447,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[List[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
       yield ObservingMode.GmosSouthMos(
         initialGrating,
@@ -499,8 +499,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       NonEmptyList[Offset.Q],
-       (Option[NonEmptyList[Offset.Q]], ExposureTimeMode)
+       List[Offset.Q],
+       (Option[List[Offset.Q]], ExposureTimeMode)
       )
     ]
       .contramap(o =>
@@ -551,8 +551,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       NonEmptyList[Offset.Q],
-       (Option[NonEmptyList[Offset.Q]], ExposureTimeMode)
+       List[Offset.Q],
+       (Option[List[Offset.Q]], ExposureTimeMode)
       )
     ]
       .contramap(o =>
