@@ -531,14 +531,13 @@ object ConfigurationTile
           React.Fragment(
             <.div(ExploreStyles.ConfigurationGrid)(
               props.obsConf.agsState
-                .map(agsState =>
+                .map(_ =>
                   PAConfigurationPanel(
                     props.programId,
                     props.obsId,
                     posAngleConstraintView,
                     props.obsConf.selectedPA,
                     props.obsConf.averagePA,
-                    agsState,
                     props.permissions,
                     props.obsConf.cassRotator
                   )

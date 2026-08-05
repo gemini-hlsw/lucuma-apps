@@ -49,6 +49,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
+import lucuma.react.primereact.hooks.useDebounce
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.syntax.minimizeEphemeris
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
@@ -210,6 +211,9 @@ object AladinCell extends ModelOptics with AladinCommon:
 
     (offsetChangeInAladin, offsetOnCenter)
   }
+
+  // Position-angle changes debouncing time
+  private val AgsDebounceDelay: FiniteDuration = 500.millis
 
   private val component = ScalaFnComponent[Props]: props =>
     for {
@@ -404,24 +408,25 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  _ <- props.guideStarSelection.set(GuideStarSelection.Default)
                                  _ <- offsetOnCenter.set(Offset.Zero)
                                yield ()
-      // Reset selection if the angles to test change
+      // Debounced twin of `props.anglesToTest` for AGS consumption. We push the
+      // live value in on every (structural) change, the debounced output lags by
+      // `AgsDebounceDelay`
+      anglesDebounce      <- useDebounce(props.anglesToTest, AgsDebounceDelay.toMillis.toInt)
+      _                   <- useEffectWithDeps(props.anglesToTest): v =>
+                               anglesDebounce.set(v)
+      // Clear the guide-star selection as soon as the PA changes. The
       _                   <- useEffectWithDeps(props.anglesToTest): _ =>
-                               (props.obsConf
-                                 .flatMap(_.agsState)
-                                 .foldMap(
-                                   _.set(AgsState.Calculating)
-                                 ) *>
-                                 props.guideStarSelection
-                                   .set(GuideStarSelection.Default))
+                               props.guideStarSelection
+                                 .set(GuideStarSelection.Default)
                                  .whenA(
                                    // should check that the candidates list option is definde AND non empty
                                    props.needsAGS && candidates.value.toOption.flatten.exists(_.nonEmpty)
                                  )
-      // request AGS calculation
+      // request AGS calculation (on the debounced angles, see `anglesDebounce`)
       agsResults          <- useAgsCalculation(
                                obsTargetsCoordsPot.toOption.flatMap(_.toOption),
                                agsCalcProps.value,
-                               props.anglesToTest,
+                               anglesDebounce.debouncedValue,
                                props.obsConf.flatMap(_.posAngleConstraint).isDefined,
                                props.obsConf.flatMap(_.agsState),
                                props.guideStarSelection,

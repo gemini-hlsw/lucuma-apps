@@ -18,6 +18,7 @@ import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.Site
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -211,9 +212,10 @@ extension (conf: BasicConfiguration)
           AgsParams.GmosLongSlit(fpu.asLeft, port).some
         case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                                 =>
           AgsParams.GmosLongSlit(fpu.asRight, port).some
-        case BasicConfiguration.GmosNorthMos(_, _, _, _) |
-            BasicConfiguration.GmosSouthMos(_, _, _, _) =>
-          none
+        case BasicConfiguration.GmosNorthMos(_, _, _, _)                                     =>
+          AgsParams.GmosMos(Site.GN, port).some
+        case BasicConfiguration.GmosSouthMos(_, _, _, _)                                     =>
+          AgsParams.GmosMos(Site.GS, port).some
         case BasicConfiguration.GmosNorthImaging(_)                                          =>
           AgsParams.GmosImaging(port).some
         case BasicConfiguration.GmosSouthImaging(_)                                          =>

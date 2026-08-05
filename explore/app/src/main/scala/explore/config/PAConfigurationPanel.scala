@@ -10,7 +10,6 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AveragePABasis
 import explore.model.Observation
-import explore.model.enums.AgsState
 import explore.model.enums.PosAngleOptions
 import explore.model.syntax.all.*
 import japgolly.scalajs.react.*
@@ -41,7 +40,6 @@ case class PAConfigurationPanel(
   posAngleView: View[PosAngleConstraint],
   selectedPA:   Option[Angle],
   averagePA:    Option[AveragePABasis],
-  agsState:     View[AgsState],
   permissions:  ConfigEditPermissions,
   cassRotator:  CassRotator
 ) extends ReactFnProps(PAConfigurationPanel.component)
@@ -124,8 +122,7 @@ object PAConfigurationPanel:
 
       val finalReadOnly =
         props.permissions.isReadonly ||
-          (props.permissions.isOnlyForOngoing && !isAllowedOption) ||
-          !props.agsState.get.canRecalculate
+          (props.permissions.isOnlyForOngoing && !isAllowedOption)
 
       val disabledOptions: Set[PosAngleOptions] =
         if (props.permissions.isOnlyForOngoing && isAllowedOption)

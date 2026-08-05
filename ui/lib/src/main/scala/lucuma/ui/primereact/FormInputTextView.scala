@@ -128,8 +128,14 @@ object FormInputTextView {
       .useRef(none[html.Input])                      // inputElement
       .useState(none[NonEmptyChain[NonEmptyString]]) // errors
       .useEffectWithDepsBy((props, _, _, _, _, _) => props.stringValue)(
-        (_, displayValue, _, _, _, errors) =>
-          newValue => displayValue.setState(newValue) >> errors.setState(none)
+        (props, displayValue, _, _, _, errors) =>
+          newValue =>
+            import props.given
+            val displayMatchesExternal =
+              props.validFormat.getValid(displayValue.value).toOption ===
+                props.validFormat.getValid(newValue).toOption
+            (if (displayMatchesExternal) Callback.empty else displayValue.setState(newValue)) >>
+              errors.setState(none)
       )
       .useEffectOnMountBy((props, displayValue, cursor, lastKeyCode, inputElement, _) =>
         getInputElement(props.id) >>= (element =>
