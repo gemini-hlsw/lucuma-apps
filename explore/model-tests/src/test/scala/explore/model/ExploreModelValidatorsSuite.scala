@@ -3,7 +3,6 @@
 
 package explore.model
 
-import cats.laws.discipline.arbitrary.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.scalacheck.all.*
 import lucuma.core.arb.*

@@ -159,11 +159,6 @@ object GmosSpectroscopyConfigPanel {
       Logger[IO]
     ): View[Option[List[Offset.Q]]]
 
-    /**
-     * The contents of the collapsible Acquisition panel. Long slit's acquisition is a sub-record
-     * with its own Input type and three controls; MOS's is a single plain enum. The builder still
-     * owns the panel, its header, its help icon and the `showAcquisitionConfig` gate.
-     */
     protected def acquisitionSection(props: Props, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
@@ -411,10 +406,9 @@ object GmosSpectroscopyConfigPanel {
   }
 
   /**
-   * The long slit Acquisition panel contents, shared by both long slit instantiations. MOS has no
-   * counterpart: its acquisition is a single plain enum.
+   * The long slit Acquisition panel contents for GS and GN
    */
-  private def longSlitAcquisitionSection[Filter: Enumerated: Display](
+  private def longSlitAcqPanel[Filter: Enumerated: Display](
     props:            GmosSpectroscopyConfigPanel[?, ?],
     disabled:         Boolean,
     roiView:          View[Option[GmosLongSlitAcquisitionRoi]],
@@ -470,13 +464,9 @@ object GmosSpectroscopyConfigPanel {
     )
 
   /**
-   * The MOS Acquisition panel contents: whether the acquisition image is taken through the mask or
-   * with it out of the beam. Unlike every long slit acquisition control this is a plain dropdown,
-   * not a `Customizable*` one — `acquisitionType` has no baseline to customize against. It is also
-   * outside the edit-state machinery: it is editable whenever the user can edit at all, without
-   * entering Advanced Edit.
+   * The MOS Acquisition panel contents same for GN and GS
    */
-  private def mosAcquisitionSection(
+  private def mosAcquisitionPanel(
     view:        View[GmosMosAcquisitionType],
     permissions: ConfigEditPermissions
   ): VdomNode =
@@ -713,7 +703,7 @@ object GmosSpectroscopyConfigPanel {
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
       val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
       val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
-      longSlitAcquisitionSection(
+      longSlitAcqPanel(
         props,
         disabled,
         explicitAcquisitionRoi(props.observingMode).withDefault(defaultAcquisitionRoi),
@@ -1009,7 +999,7 @@ object GmosSpectroscopyConfigPanel {
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
       val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
       val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
-      longSlitAcquisitionSection(
+      longSlitAcqPanel(
         props,
         disabled,
         explicitAcquisitionRoi(props.observingMode).withDefault(defaultAcquisitionRoi),
@@ -1063,8 +1053,32 @@ object GmosSpectroscopyConfigPanel {
       (readMode, ampGain)
   }
 
-  // Gmos North MOS
+  /**
+   * Intermediate builder for the two MOS panels.
+   */
+  sealed abstract class GmosMosConfigPanelBuilder[
+    T <: ObservingMode,
+    Input,
+    Props <: GmosSpectroscopyConfigPanel[T, Input],
+    Grating: Enumerated: Display,
+    Filter: Enumerated: Display
+  ] extends GmosSpectroscopyConfigPanelBuilder[
+        T,
+        Input,
+        Props,
+        Grating,
+        Filter,
+        GmosCustomSlitWidth
+      ] {
+    override protected val excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
 
+    override protected val fpuLabel: String = "Custom Slit Width"
+
+    override protected val fpuHelpId: Option[Help.Id] =
+      Some("configuration/gmos/mos-slit-width.md".refined)
+  }
+
+  // Gmos North MOS
   case class GmosNorthMos(
     programId:       Program.Id,
     obsId:           Observation.Id,
@@ -1084,13 +1098,12 @@ object GmosSpectroscopyConfigPanel {
       ]
 
   object GmosNorthMos
-      extends GmosSpectroscopyConfigPanelBuilder[
+      extends GmosMosConfigPanelBuilder[
         ObservingMode.GmosNorthMos,
         GmosNorthMosInput,
         GmosSpectroscopyConfigPanel.GmosNorthMos,
         GmosNorthGrating,
-        GmosNorthFilter,
-        GmosCustomSlitWidth
+        GmosNorthFilter
       ] {
 
     inline override protected def revertCustomizations(
@@ -1131,9 +1144,7 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.orUnassign)
 
-    // The Input's customMask is optional and its slitWidth required, so the whole mask has to be
-    // resent whenever the slit width changes. The base is the mask as it stands, which also carries
-    // the attachment id across untouched.
+    // The Input's customMask is optional and its slitWidth required.
     inline private def customMask(
       aligner: AA
     ): Aligner[ObservingMode.GmosCustomMask, GmosCustomMaskInput] =
@@ -1259,7 +1270,7 @@ object GmosSpectroscopyConfigPanel {
       props:    GmosSpectroscopyConfigPanel.GmosNorthMos,
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosAcquisitionSection(acquisitionType(props.observingMode), props.permissions)
+      mosAcquisitionPanel(acquisitionType(props.observingMode), props.permissions)
 
     override protected val initialGratingLens           = ObservingMode.GmosNorthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosNorthMos.initialFilter
@@ -1278,11 +1289,6 @@ object GmosSpectroscopyConfigPanel {
     override protected val defaultOffsetsLens           =
       ObservingMode.GmosNorthMos.defaultOffsets
 
-    override protected val excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
-    override protected val fpuLabel: String                       = "Slit Width"
-    override protected val fpuHelpId: Option[Help.Id]             =
-      Some("configuration/gmos/mos-slit-width.md".refined)
-
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosNorthMos.explicitAmpReadMode
         .get(mode)
@@ -1294,7 +1300,6 @@ object GmosSpectroscopyConfigPanel {
   }
 
   // Gmos South MOS
-
   case class GmosSouthMos(
     programId:       Program.Id,
     obsId:           Observation.Id,
@@ -1314,13 +1319,12 @@ object GmosSpectroscopyConfigPanel {
       ]
 
   object GmosSouthMos
-      extends GmosSpectroscopyConfigPanelBuilder[
+      extends GmosMosConfigPanelBuilder[
         ObservingMode.GmosSouthMos,
         GmosSouthMosInput,
         GmosSpectroscopyConfigPanel.GmosSouthMos,
         GmosSouthGrating,
-        GmosSouthFilter,
-        GmosCustomSlitWidth
+        GmosSouthFilter
       ] {
 
     inline override protected def revertCustomizations(
@@ -1487,7 +1491,7 @@ object GmosSpectroscopyConfigPanel {
       props:    GmosSpectroscopyConfigPanel.GmosSouthMos,
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosAcquisitionSection(acquisitionType(props.observingMode), props.permissions)
+      mosAcquisitionPanel(acquisitionType(props.observingMode), props.permissions)
 
     override protected val initialGratingLens           = ObservingMode.GmosSouthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosSouthMos.initialFilter
@@ -1505,11 +1509,6 @@ object GmosSpectroscopyConfigPanel {
       ObservingMode.GmosSouthMos.defaultWavelengthDithers
     override protected val defaultOffsetsLens           =
       ObservingMode.GmosSouthMos.defaultOffsets
-
-    override protected val excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
-    override protected val fpuLabel: String                       = "Slit Width"
-    override protected val fpuHelpId: Option[Help.Id]             =
-      Some("configuration/gmos/mos-slit-width.md".refined)
 
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosSouthMos.explicitAmpReadMode
