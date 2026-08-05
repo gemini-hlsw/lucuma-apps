@@ -658,6 +658,18 @@ extension (o: ObservingMode.Flamingos2Imaging)
     explicitReadoutMode = o.explicitReadoutMode.orUnassign
   )
 
+extension (a: ObservingMode.GnirsImaging.Acquisition)
+  def toInput: GnirsImagingAcquisitionInput = GnirsImagingAcquisitionInput(
+    explicitAcquisitionType = a.explicitAcquisitionMode.map(_.acquisitionType).orUnassign,
+    skyOffset = a.explicitAcquisitionMode
+      .flatMap(GnirsAcquisitionMode.skyOffset.getOption)
+      .map(_.toInput)
+      .orUnassign,
+    explicitFilter = a.explicitFilter.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    coadds = a.coadds.assign
+  )
+
 extension (o: ObservingMode.GnirsImaging)
   def toInput: GnirsImagingInput = GnirsImagingInput(
     variant = o.variant.toInput.assign,
@@ -665,7 +677,8 @@ extension (o: ObservingMode.GnirsImaging)
     camera = o.camera.assign,
     coadds = o.coadds.assign,
     explicitReadMode = o.explicitReadMode.orUnassign,
-    explicitWellDepth = o.explicitWellDepth.orUnassign
+    explicitWellDepth = o.explicitWellDepth.orUnassign,
+    acquisition = o.acquisition.toInput.assign
   )
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)

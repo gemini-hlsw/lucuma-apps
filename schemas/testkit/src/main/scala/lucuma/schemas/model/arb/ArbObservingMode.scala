@@ -903,6 +903,27 @@ trait ArbObservingMode {
       } yield ObservingMode.GnirsImaging.ImagingFilter(filter, etm)
     )
 
+  @targetName("gnirsImagingAcquisitionArbitrary")
+  given Arbitrary[ObservingMode.GnirsImaging.Acquisition] =
+    Arbitrary[ObservingMode.GnirsImaging.Acquisition](
+      for {
+        explicitAcquisitionMode <- arbitrary[Option[GnirsAcquisitionMode]]
+        explicitFilter          <- arbitrary[Option[GnirsFilter]]
+        exposureTimeMode        <- arbitrary[ExposureTimeMode]
+        coadds                  <- arbitrary[PosInt]
+      } yield ObservingMode.GnirsImaging.Acquisition(
+        explicitAcquisitionMode,
+        explicitFilter,
+        exposureTimeMode,
+        coadds
+      )
+    )
+
+  @targetName("gnirsImagingAcquisitionCogen")
+  given Cogen[ObservingMode.GnirsImaging.Acquisition] =
+    Cogen[(Option[GnirsAcquisitionMode], Option[GnirsFilter], ExposureTimeMode, PosInt)]
+      .contramap(a => (a.explicitAcquisitionMode, a.explicitFilter, a.exposureTimeMode, a.coadds))
+
   given Arbitrary[ObservingMode.GnirsImaging] =
     Arbitrary[ObservingMode.GnirsImaging](
       for
@@ -914,6 +935,7 @@ trait ArbObservingMode {
         defaultWellDepth  <- arbitrary[GnirsWellDepth]
         explicitWellDepth <- arbitrary[Option[GnirsWellDepth]]
         variant           <- arbitrary[ImagingVariant]
+        acquisition       <- arbitrary[ObservingMode.GnirsImaging.Acquisition]
       yield ObservingMode.GnirsImaging(
         initialFilters,
         filters,
@@ -922,7 +944,8 @@ trait ArbObservingMode {
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
-        variant
+        variant,
+        acquisition
       )
     )
 
@@ -939,7 +962,8 @@ trait ArbObservingMode {
         Option[GnirsReadMode],
         GnirsWellDepth,
         Option[GnirsWellDepth],
-        ImagingVariant
+        ImagingVariant,
+        ObservingMode.GnirsImaging.Acquisition
       )
     ]
       .contramap(o =>
@@ -951,7 +975,8 @@ trait ArbObservingMode {
           o.explicitReadMode,
           o.defaultWellDepth,
           o.explicitWellDepth,
-          o.variant
+          o.variant,
+          o.acquisition
         )
       )
 
