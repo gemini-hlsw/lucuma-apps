@@ -172,17 +172,17 @@ def usePatrolFieldShapes(
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
             gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos           =>
-            none // TODO shapes are different for GN/GS
-          case ObservingModeType.Igrins2LongSlit =>
+            gmos.candidatesArea.candidatesArea.some
+          case ObservingModeType.Igrins2LongSlit                                         =>
             pwfs.patrolField.patrolField.some
-          case ObservingModeType.GhostIfu        =>
+          case ObservingModeType.GhostIfu                                                =>
             ghost.scienceArea.fov.some
           case ObservingModeType.GnirsImaging | ObservingModeType.GnirsLongSlit |
               ObservingModeType.GnirsIfu =>
             pwfs.patrolField.patrolField.some
-          case _: VisitorObservingModeType       =>
+          case _: VisitorObservingModeType                                               =>
             pwfs.patrolField.patrolField.some
-          case _: ExchangeObservingModeType      =>
+          case _: ExchangeObservingModeType                                              =>
             none // We won't get this far for exchange observations, anyway
 
       SortedMap.from(
@@ -303,7 +303,26 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos           =>
-            none
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                VisualizationStyles.GmosCcdVisible
+
+            (probeVisibilityCss,
+             GmosGeometry.gmosGeometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.flatMap(_.guidedAcqOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               PortDisposition.Side,
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            ).some
           case ObservingModeType.Igrins2LongSlit                                         =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>

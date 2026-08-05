@@ -55,6 +55,14 @@ object GmosGeometry extends WithPwfsGeometry:
           Some(BasicConfiguration.GmosSouthImaging(_)) =>
         base
           + ((GmosCcdVisible |+| GmosScienceCcd) -> gmos.scienceArea.imaging ⟲ posAngle)
+      case Some(BasicConfiguration.GmosNorthMos(_, _, _, _))     =>
+        base
+          + ((GmosCcdVisible |+| GmosScienceCcd) ->
+            gmos.scienceArea.mosModeNorth.shapeAt(posAngle, offset))
+      case Some(BasicConfiguration.GmosSouthMos(_, _, _, _))     =>
+        base
+          + ((GmosCcdVisible |+| GmosScienceCcd) ->
+            gmos.scienceArea.mosModeSouth.shapeAt(posAngle, offset))
       case _                                                     =>
         SortedMap.empty
     }
@@ -74,6 +82,10 @@ object GmosGeometry extends WithPwfsGeometry:
       case BasicConfiguration.GmosNorthImaging(_)          =>
         oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
       case BasicConfiguration.GmosSouthImaging(_)          =>
+        oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
+      case BasicConfiguration.GmosNorthMos(_, _, _, _)     =>
+        oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
+      case BasicConfiguration.GmosSouthMos(_, _, _, _)     =>
         oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
       case _                                               =>
         ShapeExpression.Empty
@@ -130,7 +142,9 @@ object GmosGeometry extends WithPwfsGeometry:
                  .shapeAt(posAngle, guideStarOffset, offsetPos, fpu.asRight, port)
               )
             ).some
-          case (BasicConfiguration.GmosSouthImaging(_) | BasicConfiguration.GmosNorthImaging(_),
+          case (BasicConfiguration.GmosSouthImaging(_) | BasicConfiguration.GmosNorthImaging(_) |
+                BasicConfiguration.GmosNorthMos(_, _, _, _) |
+                BasicConfiguration.GmosSouthMos(_, _, _, _),
                 GuideProbe.GmosOIWFS
               ) =>
             SortedMap(
