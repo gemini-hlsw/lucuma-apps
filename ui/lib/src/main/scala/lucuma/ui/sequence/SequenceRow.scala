@@ -100,14 +100,14 @@ sealed trait SequenceRow[+D]:
     case GhostDynamicConfig(_, _, _, _)                          => none
 
   lazy val exposureTime: Option[TimeSpan] = instrumentConfig.flatMap:
-    case gmos.DynamicConfig.GmosNorth(exposure, _, _, _, _, _, _)  => exposure.some
-    case gmos.DynamicConfig.GmosSouth(exposure, _, _, _, _, _, _)  => exposure.some
-    case Flamingos2DynamicConfig(exposure, _, _, _, _, _, _, _, _) => exposure.some
-    case GnirsDynamicConfig(exposure, _, _, _, _, _, _, _, _)      => exposure.some
-    case Igrins2DynamicConfig(exposure)                            => exposure.some
+    case gmos.DynamicConfig.GmosNorth(exposure = exposure) => exposure.some
+    case gmos.DynamicConfig.GmosSouth(exposure = exposure) => exposure.some
+    case Flamingos2DynamicConfig(exposure = exposure)      => exposure.some
+    case GnirsDynamicConfig(exposure = exposure)           => exposure.some
+    case Igrins2DynamicConfig(exposure)                    => exposure.some
     // We pick the longest time from both sensors
-    case g @ GhostDynamicConfig(_, _, _, _)                        => g.totalExposureTime.some
-    case _                                                         => none
+    case g @ GhostDynamicConfig(_, _, _, _)                => g.totalExposureTime.some
+    case _                                                 => none
 
   lazy val coadds: Option[PosInt] = instrumentConfig.flatMap:
     case GnirsDynamicConfig(_, coadds, _, _, _, _, _, _, _) => coadds.some
@@ -123,33 +123,36 @@ sealed trait SequenceRow[+D]:
 
   // There's no unified grating type, so we return a string.
   lazy val gratingName: Option[String] = instrumentConfig.flatMap:
-    case gmos.DynamicConfig.GmosNorth(_, _, _, _, grating, _, _)    => grating.map(_.grating.shortName)
-    case gmos.DynamicConfig.GmosSouth(_, _, _, _, grating, _, _)    => grating.map(_.grating.shortName)
-    case Flamingos2DynamicConfig(_, disperser, _, _, _, _, _, _, _) =>
+    case gmos.DynamicConfig.GmosNorth(gratingConfig = grating) => grating.map(_.grating.shortName)
+    case gmos.DynamicConfig.GmosSouth(gratingConfig = grating) => grating.map(_.grating.shortName)
+    case Flamingos2DynamicConfig(disperser = disperser)        =>
       disperser.map(_.shortName)
-    case GnirsDynamicConfig(_, _, _, _, _, acqMirror, _, _, _)      =>
+    case GnirsDynamicConfig(acquisitionMirror = acqMirror)     =>
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
+
+  private def gmosFpuName[T](
+    fpu:         Option[GmosFpuMask[T]],
+    builtinName: T => String
+  ): Option[String] =
+    fpu match
+      case Some(GmosFpuMask.Builtin(builtin))     => builtinName(builtin).some
+      case Some(GmosFpuMask.Custom(_, slitWidth)) => s"${slitWidth.shortName} Custom Mask".some
+      case None                                   => "Imaging".some
 
   // There's no unified FPU type, so we return a string.
   lazy val fpuName: Option[String] = instrumentConfig.flatMap:
-    case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, fpu)  =>
-      fpu match
-        case Some(GmosFpuMask.Builtin(builtin))     => builtin.longName.some
-        case Some(GmosFpuMask.Custom(_, slitWidth)) => slitWidth.longName.some
-        case None                                   => "Imaging".some
-    case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, fpu)  =>
-      fpu match
-        case Some(GmosFpuMask.Builtin(builtin))     => builtin.longName.some
-        case Some(GmosFpuMask.Custom(_, slitWidth)) => slitWidth.longName.some
-        case None                                   => "Imaging".some
-    case Flamingos2DynamicConfig(_, _, _, _, _, fpu, _, _, _) =>
+    case gmos.DynamicConfig.GmosNorth(fpu = fpu) =>
+      gmosFpuName(fpu, _.longName)
+    case gmos.DynamicConfig.GmosSouth(fpu = fpu) =>
+      gmosFpuName(fpu, _.longName)
+    case Flamingos2DynamicConfig(fpu = fpu)      =>
       fpu match
         case Flamingos2FpuMask.Builtin(builtin)     => builtin.longName.some
         case Flamingos2FpuMask.Custom(_, slitWidth) => slitWidth.longName.some
         case Flamingos2FpuMask.Imaging              => "Imaging".some
-    case GnirsDynamicConfig(_, _, _, _, fpu, _, _, _, _)      =>
+    case GnirsDynamicConfig(fpu = fpu)           =>
       fpu.fold(slit => slit.longName.some, ifu => ifu.shortName.some, other => other.shortName.some)
-    case _                                                    =>
+    case _                                       =>
       none
 
   lazy val deckerName: Option[String] = instrumentConfig.flatMap:
