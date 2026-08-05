@@ -34,8 +34,8 @@ class ExploreModelValidatorsSuite extends DisciplineSuite:
   )
 
   checkAll(
-    "offsetQNELValidWedge",
-    ValidWedgeTests(ExploreModelValidators.offsetQNELValidWedge).validWedgeLaws
+    "offsetQListValidWedge",
+    ValidWedgeTests(ExploreModelValidators.offsetQListValidWedge).validWedgeLaws
   )
 
   checkAll(

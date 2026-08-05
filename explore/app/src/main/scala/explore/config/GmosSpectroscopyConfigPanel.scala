@@ -154,15 +154,11 @@ object GmosSpectroscopyConfigPanel {
       Logger[IO]
     ): View[ExposureTimeMode]
 
-    /**
-     * The spatial offsets control. Long slit's offsets are a `NonEmptyList`, MOS's a plain `List`,
-     * so the control itself — not just its contents — differs between modes.
-     */
-    protected def offsetsControl(props: Props, disabled: Boolean)(using
+    protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): VdomNode
+    ): View[Option[List[Offset.Q]]]
 
     /**
      * The contents of the collapsible Acquisition panel. Long slit's acquisition is a sub-record
@@ -184,6 +180,7 @@ object GmosSpectroscopyConfigPanel {
     protected val defaultReadModeGainLens: Lens[T, (GmosAmpReadMode, GmosAmpGain)]
     protected val defaultRoiLens: Lens[T, GmosRoi]
     protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
+    protected val defaultOffsetsLens: Lens[T, List[Offset.Q]]
 
     protected val excludedFpus: Set[Fpu]
     protected val fpuLabel: String
@@ -241,7 +238,7 @@ object GmosSpectroscopyConfigPanel {
             val view    = explicitWavelengthDithers(props.observingMode)
             CustomizableInputTextOptional(
               id = "dithers".refined,
-              value = view.withOnMod(_ => props.sequenceChanged),
+              value = view.withOnMod(_ => onChange),
               defaultValue = default,
               label = React.Fragment("λ Dithers",
                                      HelpIcon("configuration/gmos/lambda-dithers.md".refined)
@@ -293,7 +290,14 @@ object GmosSpectroscopyConfigPanel {
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
-                offsetsControl(props, disableSimpleEdit)
+                OffsetsControl(
+                  explicitOffsets(props.observingMode),
+                  defaultOffsetsLens.get(props.observingMode.get),
+                  props.sequenceChanged,
+                  disableSimpleEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableInputText(
@@ -464,35 +468,6 @@ object GmosSpectroscopyConfigPanel {
           forceCount = Some(1.refined)
         )
       )
-    )
-
-  /**
-   * The MOS spatial offsets control, shared by both MOS instantiations. `OffsetsControl` cannot be
-   * reused: it is built around long slit's `NonEmptyList`, while MOS offsets may be empty.
-   */
-  private def mosOffsetsControl(
-    props:        GmosSpectroscopyConfigPanel[?, ?],
-    disabled:     Boolean,
-    view:         View[Option[List[Offset.Q]]],
-    defaultValue: List[Offset.Q]
-  ): VdomNode =
-    CustomizableInputTextOptional(
-      id = "offsets".refined,
-      value = view.withOnMod(_ => props.sequenceChanged),
-      defaultValue = defaultValue,
-      label = React.Fragment(
-        "Spatial Offsets",
-        HelpIcon("configuration/spatial-offsets.md".refined)
-      ),
-      validFormat = ExploreModelValidators.offsetQListValidWedge,
-      changeAuditor = ChangeAuditor
-        .bigDecimal(integers = 3.refined, decimals = 2.refined)
-        .toSequence()
-        .optional,
-      units = "arcsec".some,
-      disabled = disabled,
-      showCustomization = props.showCustomization,
-      allowRevertCustomization = props.allowRevertCustomization
     )
 
   /**
@@ -668,29 +643,16 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline private def explicitOffsets(aligner: AA)(using
+    inline override protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[NonEmptyList[Offset.Q]]] = aligner
+    ): View[Option[List[Offset.Q]]] = aligner
       .zoom(
         ObservingMode.GmosNorthLongSlit.explicitOffsets,
         GmosNorthLongSlitInput.explicitOffsets.modify
       )
-      .view(_.map(_.toList.map(_.toInput)).orUnassign)
-
-    override protected def offsetsControl(
-      props:    GmosSpectroscopyConfigPanel.GmosNorthLongSlit,
-      disabled: Boolean
-    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      OffsetsControl(
-        explicitOffsets(props.observingMode),
-        ObservingMode.GmosNorthLongSlit.defaultOffsets.get(props.observingMode.get),
-        props.sequenceChanged,
-        disabled,
-        showCustomization = props.showCustomization,
-        allowRevertCustomization = props.allowRevertCustomization
-      )
+      .view(_.map(_.map(_.toInput)).orUnassign)
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -780,6 +742,8 @@ object GmosSpectroscopyConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosNorthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthLongSlit.defaultWavelengthDithers
+    override protected val defaultOffsetsLens           =
+      ObservingMode.GmosNorthLongSlit.defaultOffsets
 
     override protected val excludedFpus: Set[GmosNorthFpu] =
       Enumerated[GmosNorthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
@@ -965,29 +929,16 @@ object GmosSpectroscopyConfigPanel {
         ).orUnassign
       )
 
-    inline private def explicitOffsets(aligner: AA)(using
+    inline override protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[NonEmptyList[Offset.Q]]] = aligner
+    ): View[Option[List[Offset.Q]]] = aligner
       .zoom(
         ObservingMode.GmosSouthLongSlit.explicitOffsets,
         GmosSouthLongSlitInput.explicitOffsets.modify
       )
-      .view(_.map(_.toList.map(_.toInput)).orUnassign)
-
-    override protected def offsetsControl(
-      props:    GmosSpectroscopyConfigPanel.GmosSouthLongSlit,
-      disabled: Boolean
-    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      OffsetsControl(
-        explicitOffsets(props.observingMode),
-        ObservingMode.GmosSouthLongSlit.defaultOffsets.get(props.observingMode.get),
-        props.sequenceChanged,
-        disabled,
-        showCustomization = props.showCustomization,
-        allowRevertCustomization = props.allowRevertCustomization
-      )
+      .view(_.map(_.map(_.toInput)).orUnassign)
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -1087,6 +1038,8 @@ object GmosSpectroscopyConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosSouthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthLongSlit.defaultWavelengthDithers
+    override protected val defaultOffsetsLens           =
+      ObservingMode.GmosSouthLongSlit.defaultOffsets
 
     private val defaultAcquisitionFilterLens
       : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter]            =
@@ -1279,7 +1232,7 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline private def explicitOffsets(aligner: AA)(using
+    inline override protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -1301,17 +1254,6 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.toInput.assign)
 
-    override protected def offsetsControl(
-      props:    GmosSpectroscopyConfigPanel.GmosNorthMos,
-      disabled: Boolean
-    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosOffsetsControl(
-        props,
-        disabled,
-        explicitOffsets(props.observingMode),
-        ObservingMode.GmosNorthMos.defaultOffsets.get(props.observingMode.get)
-      )
-
     override protected def acquisitionSection(
       props:    GmosSpectroscopyConfigPanel.GmosNorthMos,
       disabled: Boolean
@@ -1332,6 +1274,8 @@ object GmosSpectroscopyConfigPanel {
     override protected val defaultRoiLens               = ObservingMode.GmosNorthMos.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthMos.defaultWavelengthDithers
+    override protected val defaultOffsetsLens           =
+      ObservingMode.GmosNorthMos.defaultOffsets
 
     override protected val excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
     override protected val fpuLabel: String                       = "Slit Width"
@@ -1516,7 +1460,7 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline private def explicitOffsets(aligner: AA)(using
+    inline override protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -1538,17 +1482,6 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.toInput.assign)
 
-    override protected def offsetsControl(
-      props:    GmosSpectroscopyConfigPanel.GmosSouthMos,
-      disabled: Boolean
-    )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosOffsetsControl(
-        props,
-        disabled,
-        explicitOffsets(props.observingMode),
-        ObservingMode.GmosSouthMos.defaultOffsets.get(props.observingMode.get)
-      )
-
     override protected def acquisitionSection(
       props:    GmosSpectroscopyConfigPanel.GmosSouthMos,
       disabled: Boolean
@@ -1569,6 +1502,8 @@ object GmosSpectroscopyConfigPanel {
     override protected val defaultRoiLens               = ObservingMode.GmosSouthMos.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthMos.defaultWavelengthDithers
+    override protected val defaultOffsetsLens           =
+      ObservingMode.GmosSouthMos.defaultOffsets
 
     override protected val excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
     override protected val fpuLabel: String                       = "Slit Width"

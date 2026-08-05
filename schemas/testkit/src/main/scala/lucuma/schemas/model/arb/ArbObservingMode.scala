@@ -162,8 +162,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[List[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition]
       yield ObservingMode.GmosNorthLongSlit(
@@ -217,8 +217,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[List[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition]
       yield ObservingMode.GmosSouthLongSlit(
@@ -271,8 +271,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       NonEmptyList[Offset.Q],
-       (Option[NonEmptyList[Offset.Q]],
+       List[Offset.Q],
+       (Option[List[Offset.Q]],
         ExposureTimeMode,
         ObservingMode.GmosNorthLongSlit.Acquisition
        )
@@ -326,8 +326,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       NonEmptyList[Offset.Q],
-       (Option[NonEmptyList[Offset.Q]],
+       List[Offset.Q],
+       (Option[List[Offset.Q]],
         ExposureTimeMode,
         ObservingMode.GmosSouthLongSlit.Acquisition
        )

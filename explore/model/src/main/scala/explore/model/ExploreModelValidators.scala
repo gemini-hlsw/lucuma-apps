@@ -87,18 +87,16 @@ object ExploreModelValidators:
   ): InputValidWedge[WavelengthDither] =
     ditherValidWedge.andThen(ditherInRange(λcentral, λmin, λmax).asValidWedge)
 
-  val offsetQNELValidWedge: InputValidWedge[Option[NonEmptyList[Offset.Q]]] =
+  // GMOS offsets are a List because the schema's `[OffsetQ!]!` permits an empty one. The parse
+  // still goes through a NonEmptyList — lucuma-core has no list-separated combinator — so an
+  // explicitly empty list normalizes to None, which is what a Wedge is allowed to do.
+  val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
     MathValidators.truncatedAngleSignedArcSec
       .andThen(Offset.Component.angle[Axis.Q].reverse)
       .toNel(",".refined)
       .withErrorMessage(_ => "Invalid offsets".refined)
       .optional
-
-  // GMOS MOS offsets are a plain List because the ODB may send an empty one. This wedge can
-  // display that (as a blank field, distinct from the default the field shows when unset) but not
-  // author it: an empty input means "no explicit offsets", exactly as it does for a NonEmptyList.
-  val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
-    offsetQNELValidWedge.imapB(_.flatMap(NonEmptyList.fromList), _.map(_.toList))
+      .imapB(_.flatMap(NonEmptyList.fromList), _.map(_.toList))
 
   val hoursValidWedge: InputValidWedge[BigDecimal Refined HourRange] =
     InputValidWedge
