@@ -68,6 +68,10 @@ object GmosSpectroscopyConfigPanel {
     def permissions: ConfigEditPermissions
     def units: WavelengthUnits
     def instrument = observingMode.get.instrument
+
+    /** Customization indicators are hidden for calibration observations. */
+    def showCustomization: Boolean        = calibrationRole.isEmpty
+    def allowRevertCustomization: Boolean = permissions.isFullEdit
   }
 
   sealed abstract class GmosSpectroscopyConfigPanelBuilder[
@@ -187,11 +191,6 @@ object GmosSpectroscopyConfigPanel {
 
     protected def resolvedReadModeGainGetter: T => (GmosAmpReadMode, GmosAmpGain)
 
-    /** Customization indicators are hidden for calibration observations. */
-    protected def showCustomization(props: Props): Boolean = props.calibrationRole.isEmpty
-
-    protected def allowRevertCustomization(props: Props): Boolean = props.permissions.isFullEdit
-
     protected given Display[(GmosAmpReadMode, GmosAmpGain)] =
       Display.by( // Shortname is in lower case for some reason
         { case (r, g) => s"${r.longName}, ${g.shortName} Gain" },
@@ -212,8 +211,8 @@ object GmosSpectroscopyConfigPanel {
           val disableSimpleEdit        =
             disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
           val disableAdvancedAcqEdit   = disableAdvancedEdit && !props.permissions.isOnlyForOngoing
-          val showCustomization        = this.showCustomization(props)
-          val allowRevertCustomization = this.allowRevertCustomization(props)
+          val showCustomization        = props.showCustomization
+          val allowRevertCustomization = props.allowRevertCustomization
           val showAcquisitionConfig    = props.calibrationRole.needsAcquisitionConfig
 
           val centralWavelengthView    = centralWavelength(props.observingMode)
@@ -242,7 +241,7 @@ object GmosSpectroscopyConfigPanel {
             val view    = explicitWavelengthDithers(props.observingMode)
             CustomizableInputTextOptional(
               id = "dithers".refined,
-              value = view.withOnMod(_ => onChange),
+              value = view.withOnMod(_ => props.sequenceChanged),
               defaultValue = default,
               label = React.Fragment("λ Dithers",
                                      HelpIcon("configuration/gmos/lambda-dithers.md".refined)
@@ -413,16 +412,14 @@ object GmosSpectroscopyConfigPanel {
    * counterpart: its acquisition is a single plain enum.
    */
   private def longSlitAcquisitionSection[Filter: Enumerated: Display](
-    props:                    GmosSpectroscopyConfigPanel[?, ?],
-    disabled:                 Boolean,
-    showCustomization:        Boolean,
-    allowRevertCustomization: Boolean,
-    roiView:                  View[Option[GmosLongSlitAcquisitionRoi]],
-    defaultRoi:               GmosLongSlitAcquisitionRoi,
-    filterView:               View[Option[Filter]],
-    defaultFilter:            Filter,
-    excludedFilters:          Set[Filter],
-    exposureTimeMode:         View[ExposureTimeMode]
+    props:            GmosSpectroscopyConfigPanel[?, ?],
+    disabled:         Boolean,
+    roiView:          View[Option[GmosLongSlitAcquisitionRoi]],
+    defaultRoi:       GmosLongSlitAcquisitionRoi,
+    filterView:       View[Option[Filter]],
+    defaultFilter:    Filter,
+    excludedFilters:  Set[Filter],
+    exposureTimeMode: View[ExposureTimeMode]
   ): VdomNode =
     <.div(
       ExploreStyles.AcquisitionCustomizationGrid,
@@ -435,8 +432,9 @@ object GmosSpectroscopyConfigPanel {
           label = "ROI".some,
           helpId = None,
           disabled = disabled,
-          showCustomization = showCustomization,
-          allowRevertCustomization = allowRevertCustomization || props.permissions.isOnlyForOngoing
+          showCustomization = props.showCustomization,
+          allowRevertCustomization =
+            props.allowRevertCustomization || props.permissions.isOnlyForOngoing
         ),
         CustomizableEnumSelectOptional(
           id = "acq-explicit-filter".refined,
@@ -446,8 +444,9 @@ object GmosSpectroscopyConfigPanel {
           label = "Filter".some,
           helpId = None,
           disabled = disabled,
-          showCustomization = showCustomization,
-          allowRevertCustomization = allowRevertCustomization || props.permissions.isOnlyForOngoing
+          showCustomization = props.showCustomization,
+          allowRevertCustomization =
+            props.allowRevertCustomization || props.permissions.isOnlyForOngoing
         )
       ),
       <.div(
@@ -472,16 +471,14 @@ object GmosSpectroscopyConfigPanel {
    * reused: it is built around long slit's `NonEmptyList`, while MOS offsets may be empty.
    */
   private def mosOffsetsControl(
-    view:                     View[Option[List[Offset.Q]]],
-    defaultValue:             List[Offset.Q],
-    onChange:                 Callback,
-    disabled:                 Boolean,
-    showCustomization:        Boolean,
-    allowRevertCustomization: Boolean
+    props:        GmosSpectroscopyConfigPanel[?, ?],
+    disabled:     Boolean,
+    view:         View[Option[List[Offset.Q]]],
+    defaultValue: List[Offset.Q]
   ): VdomNode =
     CustomizableInputTextOptional(
       id = "offsets".refined,
-      value = view.withOnMod(_ => onChange),
+      value = view.withOnMod(_ => props.sequenceChanged),
       defaultValue = defaultValue,
       label = React.Fragment(
         "Spatial Offsets",
@@ -494,8 +491,8 @@ object GmosSpectroscopyConfigPanel {
         .optional,
       units = "arcsec".some,
       disabled = disabled,
-      showCustomization = showCustomization,
-      allowRevertCustomization = allowRevertCustomization
+      showCustomization = props.showCustomization,
+      allowRevertCustomization = props.allowRevertCustomization
     )
 
   /**
@@ -691,8 +688,8 @@ object GmosSpectroscopyConfigPanel {
         ObservingMode.GmosNorthLongSlit.defaultOffsets.get(props.observingMode.get),
         props.sequenceChanged,
         disabled,
-        showCustomization = showCustomization(props),
-        allowRevertCustomization = allowRevertCustomization(props)
+        showCustomization = props.showCustomization,
+        allowRevertCustomization = props.allowRevertCustomization
       )
 
     inline protected def exposureTimeMode(aligner: AA)(using
@@ -756,8 +753,6 @@ object GmosSpectroscopyConfigPanel {
       longSlitAcquisitionSection(
         props,
         disabled,
-        showCustomization(props),
-        allowRevertCustomization(props),
         explicitAcquisitionRoi(props.observingMode).withDefault(defaultAcquisitionRoi),
         defaultAcquisitionRoi,
         explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
@@ -817,7 +812,7 @@ object GmosSpectroscopyConfigPanel {
       (readMode, ampGain)
   }
 
-// Gmos South Long Slit
+  // Gmos South Long Slit
 
   case class GmosSouthLongSlit(
     programId:       Program.Id,
@@ -990,8 +985,8 @@ object GmosSpectroscopyConfigPanel {
         ObservingMode.GmosSouthLongSlit.defaultOffsets.get(props.observingMode.get),
         props.sequenceChanged,
         disabled,
-        showCustomization = showCustomization(props),
-        allowRevertCustomization = allowRevertCustomization(props)
+        showCustomization = props.showCustomization,
+        allowRevertCustomization = props.allowRevertCustomization
       )
 
     inline protected def exposureTimeMode(aligner: AA)(using
@@ -1065,8 +1060,6 @@ object GmosSpectroscopyConfigPanel {
       longSlitAcquisitionSection(
         props,
         disabled,
-        showCustomization(props),
-        allowRevertCustomization(props),
         explicitAcquisitionRoi(props.observingMode).withDefault(defaultAcquisitionRoi),
         defaultAcquisitionRoi,
         explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
@@ -1116,7 +1109,7 @@ object GmosSpectroscopyConfigPanel {
       (readMode, ampGain)
   }
 
-// Gmos North MOS
+  // Gmos North MOS
 
   case class GmosNorthMos(
     programId:       Program.Id,
@@ -1313,12 +1306,10 @@ object GmosSpectroscopyConfigPanel {
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
       mosOffsetsControl(
-        explicitOffsets(props.observingMode),
-        ObservingMode.GmosNorthMos.defaultOffsets.get(props.observingMode.get),
-        props.sequenceChanged,
+        props,
         disabled,
-        showCustomization(props),
-        allowRevertCustomization(props)
+        explicitOffsets(props.observingMode),
+        ObservingMode.GmosNorthMos.defaultOffsets.get(props.observingMode.get)
       )
 
     override protected def acquisitionSection(
@@ -1329,7 +1320,6 @@ object GmosSpectroscopyConfigPanel {
 
     override protected val initialGratingLens           = ObservingMode.GmosNorthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosNorthMos.initialFilter
-    // Slit Width customizes against the assigned width, as long slit's FPU does against initialFpu.
     override protected val initialFpuLens               = ObservingMode.GmosNorthMos.initialSlitWidth
     override protected val initialCentralWavelengthLens =
       ObservingMode.GmosNorthMos.initialCentralWavelength.andThen(CentralWavelength.Value)
@@ -1358,7 +1348,7 @@ object GmosSpectroscopyConfigPanel {
       (readMode, ampGain)
   }
 
-// Gmos South MOS
+  // Gmos South MOS
 
   case class GmosSouthMos(
     programId:       Program.Id,
@@ -1426,6 +1416,7 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.orUnassign)
 
+    // See the note on the North equivalent.
     inline private def customMask(
       aligner: AA
     ): Aligner[ObservingMode.GmosCustomMask, GmosCustomMaskInput] =
@@ -1552,12 +1543,10 @@ object GmosSpectroscopyConfigPanel {
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
       mosOffsetsControl(
-        explicitOffsets(props.observingMode),
-        ObservingMode.GmosSouthMos.defaultOffsets.get(props.observingMode.get),
-        props.sequenceChanged,
+        props,
         disabled,
-        showCustomization(props),
-        allowRevertCustomization(props)
+        explicitOffsets(props.observingMode),
+        ObservingMode.GmosSouthMos.defaultOffsets.get(props.observingMode.get)
       )
 
     override protected def acquisitionSection(

@@ -94,8 +94,9 @@ object ExploreModelValidators:
       .withErrorMessage(_ => "Invalid offsets".refined)
       .optional
 
-  // GMOS MOS offsets may legitimately be empty, so they are modelled as a plain List.
-  // An empty input still means "no explicit offsets", as it does for a NonEmptyList.
+  // GMOS MOS offsets are a plain List because the ODB may send an empty one. This wedge can
+  // display that (as a blank field, distinct from the default the field shows when unset) but not
+  // author it: an empty input means "no explicit offsets", exactly as it does for a NonEmptyList.
   val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
     offsetQNELValidWedge.imapB(_.flatMap(NonEmptyList.fromList), _.map(_.toList))
 

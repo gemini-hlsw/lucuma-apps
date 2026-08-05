@@ -459,7 +459,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === disperser && rFilter === filter && rFpu === fpu
             case _ => false
-      case ObservingMode.GmosNorthMos(grating = grating, filter = filter, customMask = mask)    =>
+      case ObservingMode.GmosNorthMos(grating = grating, filter = filter, customMask = mask)   =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosNorthSpectroscopy(
@@ -471,7 +471,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
               rGrating === grating && rFilter === filter &&
               GmosCustomSlitWidth.fromWidth(rSlitWidth) === mask.slitWidth.some
             case _ => false
-      case ObservingMode.GmosSouthMos(grating = grating, filter = filter, customMask = mask)    =>
+      case ObservingMode.GmosSouthMos(grating = grating, filter = filter, customMask = mask)   =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosSouthSpectroscopy(
