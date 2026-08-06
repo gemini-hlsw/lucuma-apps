@@ -59,9 +59,11 @@ object ProgramTable:
   )
 
   private val ColDef =
-    ColumnDef[View[ProgramInfo]].WithColumnFilters.WithGlobalFilter[String].WithTableMeta[
-      TableMeta
-    ]
+    ColumnDef[View[ProgramInfo]].WithColumnFilters
+      .WithGlobalFilter[String]
+      .WithTableMeta[
+        TableMeta
+      ]
 
   private given Reusability[List[View[ProgramInfo]]] = Reusability.by(_.map(_.get))
 
