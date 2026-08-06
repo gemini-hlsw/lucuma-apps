@@ -39,7 +39,8 @@ import scala.collection.immutable.TreeSeqMap
 object ObsSummaryColumns:
   import ObsSummaryRow.*
 
-  private val ColDef = ColumnDef[Expandable[ObsSummaryRow]].WithColumnFilters
+  private val ColDef =
+    ColumnDef[Expandable[ObsSummaryRow]].WithColumnFilters.WithGlobalFilter[String]
 
   protected[observationtree] val ObservationIdColumnId = ColumnId("observation_id")
   protected[observationtree] val GroupColumnId         = ColumnId("group")

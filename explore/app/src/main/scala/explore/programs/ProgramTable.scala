@@ -24,8 +24,10 @@ import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.InputGroup
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
@@ -56,7 +58,12 @@ object ProgramTable:
     programCount:     Int
   )
 
-  private val ColDef = ColumnDef[View[ProgramInfo]].WithColumnFilters.WithTableMeta[TableMeta]
+  private val ColDef =
+    ColumnDef[View[ProgramInfo]].WithColumnFilters
+      .WithGlobalFilter[String]
+      .WithTableMeta[
+        TableMeta
+      ]
 
   private given Reusability[List[View[ProgramInfo]]] = Reusability.by(_.map(_.get))
 
@@ -218,6 +225,8 @@ object ProgramTable:
                      enableSorting = true,
                      enableColumnResizing = false,
                      enableColumnFilters = true,
+                     enableGlobalFilter = true,
+                     globalFilterFn = FilterMethod.globalFilterFn(cols),
                      enableFacetedUniqueValues = true,
                      meta = TableMeta(
                        props.currentProgramId,
@@ -230,15 +239,44 @@ object ProgramTable:
                    TableStore(props.userId.some, TableId.ProgramsSelector)
                  )
       _     <- useEffectWithDeps(props.showFilters): showFilters =>
-                 table.resetColumnFilters().unless_(showFilters)
-    } yield PrimeAutoHeightVirtualizedTable(
-      table,
-      estimateSize = _ => 32.toPx,
-      striped = true,
-      compact = Compact.Very,
-      tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
-      virtualizerRef = props.virtualizerRef,
-      columnFilterRenderer = if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
-      emptyMessage = "No programs available"
-    )
+                 (table.resetColumnFilters() >> table.resetGlobalFilter()).unless_(showFilters)
+    } yield
+      val globalFilterRow =
+        if props.showFilters then
+          <.div(
+            InputGroup(
+              InputGroup.Addon(Icons.Search: VdomNode),
+              DebouncedInputText(
+                id = "programs-table-global-filter".refined,
+                delayMillis = 250,
+                placeholder = "Search",
+                value = table.getState().globalFilter.orEmpty,
+                onChange = v => table.setGlobalFilter(v.some.filter(_.nonEmpty)),
+                showClear = false
+              ),
+              InputGroup
+                .Addon(
+                  ^.cursor.pointer,
+                  ^.onClick ==> (e =>
+                    e.preventDefaultCB >> e.stopPropagationCB >> table.setGlobalFilter(none)
+                  )
+                )(LucumaPrimeStyles.IconTimes)
+                .when(table.getState().globalFilter.exists(_.nonEmpty))
+            )
+          ): VdomNode
+        else EmptyVdom
+
+      React.Fragment(
+        globalFilterRow,
+        PrimeAutoHeightVirtualizedTable(
+          table,
+          estimateSize = _ => 32.toPx,
+          striped = true,
+          compact = Compact.Very,
+          tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
+          virtualizerRef = props.virtualizerRef,
+          columnFilterRenderer = if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
+          emptyMessage = "No programs available"
+        )
+      )
   )

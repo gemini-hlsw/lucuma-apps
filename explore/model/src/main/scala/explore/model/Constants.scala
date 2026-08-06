@@ -24,20 +24,21 @@ trait Constants:
   val SimbadResultLimit        = 50
   val MaxConcurrentItcRequests = 4
 
-  val Calculating        = "Calculating..."
-  val LoadingStars       = "Loading candidate stars..."
-  val NoGuideStarMessage = "No guidestar available"
-  val NoDuration         = "No duration available"
-  val NoExposureTimeMode = "No exposure time mode defined"
-  val MissingMode        = "Observation is missing observing mode" // Matches odb error message
-  val AcceptConfigPrompt = "Accept an instrument configuration below."
-  val MissingCandidates  = "No catalog stars available"
-  val NoObservations     = "No observations available"
-  val NoTargets          = "No targets available"
-  val NoTargetSelected   = "No target selected"
-  val BadTimingWindow    = "Review the dates on this timing window."
-  val MissingInfoMsg     = "Not enough information to call ITC"
-  val P1TemplatesUrl     = "https://www.gemini.edu/observing/phase-i/pit/pit-description#PDF"
+  val Calculating            = "Calculating..."
+  val LoadingStars           = "Loading candidate stars..."
+  val NoGuideStarMessage     = "No guidestar available"
+  val NoDuration             = "No duration available"
+  val NoExposureTimeMode     = "No exposure time mode defined"
+  val MissingMode            = "Observation is missing observing mode" // Matches odb error message
+  val AcceptConfigPrompt     = "Accept an instrument configuration below."
+  val MissingCandidates      = "No catalog stars available"
+  val NoObservations         = "No observations available"
+  val NoMatchingObservations = "No matching observations"
+  val NoTargets              = "No targets available"
+  val NoTargetSelected       = "No target selected"
+  val BadTimingWindow        = "Review the dates on this timing window."
+  val MissingInfoMsg         = "Not enough information to call ITC"
+  val P1TemplatesUrl         = "https://www.gemini.edu/observing/phase-i/pit/pit-description#PDF"
 
   val SignalToNoiseAtLabel = "λ for S/N"
 
