@@ -34,6 +34,7 @@ import lucuma.react.primereact.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.LucumaStyles
 import lucuma.ui.primereact.*
@@ -161,6 +162,8 @@ object ObsSummaryTile
                              ,
                              enableSorting = true,
                              enableColumnFilters = true,
+                             enableGlobalFilter = true,
+                             globalFilterFn = FilterMethod.globalFilterFn(cols),
                              enableMultiRowSelection = true,
                              enableFacetedUniqueValues = true,
                              state = tableState,
@@ -189,7 +192,8 @@ object ObsSummaryTile
                   if props.showFilters.get.value then Button.Severity.Primary
                   else Button.Severity.Secondary,
                 onClick = props.showFilters.mod(_.flip) >>
-                  table.resetColumnFilters().when_(props.showFilters.get.value),
+                  (table.resetColumnFilters() >> table.resetGlobalFilter())
+                    .when_(props.showFilters.get.value),
                 tooltip = "Toggle column filters"
               ).compact,
               Button(
@@ -208,57 +212,86 @@ object ObsSummaryTile
           ColumnSelectorInTitle(SelectableColumnNames, columnVisibility)
         )
 
-        val body = PrimeAutoHeightVirtualizedTable(
-          table,
-          _ => 32.toPx,
-          striped = true,
-          compact = Compact.Very,
-          innerContainerMod = ^.width := "100%",
-          containerRef = resizer.ref,
-          hoverableRows = rowsPot.value.value.toOption.exists(_.nonEmpty),
-          tableMod =
-            ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
-          columnFilterRenderer =
-            if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
-          headerCellMod = _ => ExploreStyles.StickyHeader,
-          rowMod = rowTagMod: row =>
-            TagMod(
-              ExploreStyles.TableRowSelected
-                .when(row.getIsSelected() && (row.subRows.isEmpty || !row.getIsExpanded())),
-              ExploreStyles.TableRowSelectedStart
-                .when(row.getIsSelected() && row.subRows.nonEmpty && row.getIsExpanded()),
-              ExploreStyles.TableRowSelectedSpan
-                .when:
-                  props.selectedObsIds.get.contains_(row.original.value.obs.id)
-              ,
-              ExploreStyles.TableRowSelectedEnd.when:
-                row.original.value.isLastAsterismTargetOf
-                  .exists(props.selectedObsIds.get.contains_)
-              ,
-              ^.onClick ==> table
-                .getMultiRowSelectedHandler(RowId(row.original.value.obs.id.toString))
-            ),
-          emptyMessage =
-            if (props.readonly)
-              <.div(Constants.NoObservations)
-            else
-              <.span(LucumaStyles.HVCenter)(
-                Button(
-                  severity = Button.Severity.Success,
-                  icon = Icons.New,
-                  disabled = adding.get.value,
-                  loading = adding.get.value,
-                  label = "Add an observation",
-                  clazz = LucumaPrimeStyles.Massive |+| ExploreStyles.ObservationsSummaryAdd,
-                  onClick = insertObs(props.programId,
-                                      none,
-                                      props.observations,
-                                      adding,
-                                      ctx
-                  ).runAsyncAndForget
-                ).tiny.compact
+        val globalFilterRow =
+          if props.showFilters.get.value then
+            <.div(
+              InputGroup(
+                InputGroup.Addon(Icons.Search: VdomNode),
+                DebouncedInputText(
+                  id = "obs-summary-global-filter".refined,
+                  delayMillis = 250,
+                  placeholder = "Search",
+                  value = table.getState().globalFilter.orEmpty,
+                  onChange = v => table.setGlobalFilter(v.some.filter(_.nonEmpty)),
+                  showClear = false
+                ),
+                InputGroup
+                  .Addon(
+                    ^.cursor.pointer,
+                    ^.onClick ==> (e =>
+                      e.preventDefaultCB >> e.stopPropagationCB >> table.setGlobalFilter(none)
+                    )
+                  )(LucumaPrimeStyles.IconTimes)
+                  .when(table.getState().globalFilter.exists(_.nonEmpty))
               )
-        )
+            ): VdomNode
+          else EmptyVdom
+
+        val body =
+          React.Fragment(
+            globalFilterRow,
+            PrimeAutoHeightVirtualizedTable(
+              table,
+              _ => 32.toPx,
+              striped = true,
+              compact = Compact.Very,
+              innerContainerMod = ^.width := "100%",
+              containerRef = resizer.ref,
+              hoverableRows = rowsPot.value.value.toOption.exists(_.nonEmpty),
+              tableMod =
+                ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
+              columnFilterRenderer =
+                if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+              headerCellMod = _ => ExploreStyles.StickyHeader,
+              rowMod = rowTagMod: row =>
+                TagMod(
+                  ExploreStyles.TableRowSelected
+                    .when(row.getIsSelected() && (row.subRows.isEmpty || !row.getIsExpanded())),
+                  ExploreStyles.TableRowSelectedStart
+                    .when(row.getIsSelected() && row.subRows.nonEmpty && row.getIsExpanded()),
+                  ExploreStyles.TableRowSelectedSpan
+                    .when:
+                      props.selectedObsIds.get.contains_(row.original.value.obs.id)
+                  ,
+                  ExploreStyles.TableRowSelectedEnd.when:
+                    row.original.value.isLastAsterismTargetOf
+                      .exists(props.selectedObsIds.get.contains_)
+                  ,
+                  ^.onClick ==> table
+                    .getMultiRowSelectedHandler(RowId(row.original.value.obs.id.toString))
+                ),
+              emptyMessage =
+                if (props.readonly)
+                  <.div(Constants.NoObservations)
+                else
+                  <.span(LucumaStyles.HVCenter)(
+                    Button(
+                      severity = Button.Severity.Success,
+                      icon = Icons.New,
+                      disabled = adding.get.value,
+                      loading = adding.get.value,
+                      label = "Add an observation",
+                      clazz = LucumaPrimeStyles.Massive |+| ExploreStyles.ObservationsSummaryAdd,
+                      onClick = insertObs(props.programId,
+                                          none,
+                                          props.observations,
+                                          adding,
+                                          ctx
+                      ).runAsyncAndForget
+                    ).tiny.compact
+                  )
+            )
+          )
 
         TileContents(title, body)
       }
