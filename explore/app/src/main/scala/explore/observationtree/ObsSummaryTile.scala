@@ -271,7 +271,9 @@ object ObsSummaryTile
                     .getMultiRowSelectedHandler(RowId(row.original.value.obs.id.toString))
                 ),
               emptyMessage =
-                if (props.readonly)
+                if (rowsPot.value.value.toOption.exists(_.nonEmpty))
+                  <.div(Constants.NoMatchingObservations)
+                else if (props.readonly)
                   <.div(Constants.NoObservations)
                 else
                   <.span(LucumaStyles.HVCenter)(
