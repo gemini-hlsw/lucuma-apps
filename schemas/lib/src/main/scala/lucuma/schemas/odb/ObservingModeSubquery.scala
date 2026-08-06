@@ -239,6 +239,13 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultWellDepth
             explicitWellDepth
             variant $ImagingVariantSubquery
+            acquisition {
+              explicitAcquisitionType
+              explicitFilter
+              skyOffset $OffsetSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
           }
           gnirsSpectroscopy {
             initialGrating
@@ -550,6 +557,13 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultWellDepth
             explicitWellDepth
             variant $ImagingVariantSubquery
+            acquisition {
+              explicitAcquisitionType
+              explicitFilter
+              skyOffset $OffsetSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
           }
           gnirsSpectroscopy @include(if: $$includeGnirsSpectroscopy) {
             initialGrating

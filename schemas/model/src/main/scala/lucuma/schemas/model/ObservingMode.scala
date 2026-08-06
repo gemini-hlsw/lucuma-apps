@@ -1147,7 +1147,8 @@ object ObservingMode:
     explicitReadMode:  Option[GnirsReadMode],
     defaultWellDepth:  GnirsWellDepth,
     explicitWellDepth: Option[GnirsWellDepth],
-    variant:           ImagingVariant
+    variant:           ImagingVariant,
+    acquisition:       GnirsImaging.Acquisition
   ) extends ObservingMode(Instrument.Gnirs.some) derives Eq:
     val wellDepth: GnirsWellDepth =
       explicitWellDepth.getOrElse(defaultWellDepth)
@@ -1155,13 +1156,15 @@ object ObservingMode:
     def isCustomized: Boolean =
       initialFilters =!= filters ||
         explicitReadMode.isDefined ||
-        explicitWellDepth.exists(_ =!= defaultWellDepth)
+        explicitWellDepth.exists(_ =!= defaultWellDepth) ||
+        acquisition.isCustomized
 
     def revertCustomizations: GnirsImaging =
       this.copy(
         filters = this.initialFilters,
         explicitReadMode = None,
-        explicitWellDepth = None
+        explicitWellDepth = None,
+        acquisition = this.acquisition.revertCustomizations
       )
 
   object GnirsImaging:
@@ -1173,6 +1176,57 @@ object ObservingMode:
       val filter: Lens[ImagingFilter, GnirsFilter]                = Focus[ImagingFilter](_.filter)
       val exposureTimeMode: Lens[ImagingFilter, ExposureTimeMode] =
         Focus[ImagingFilter](_.exposureTimeMode)
+
+    // The acquisition exposure time mode and coadds always have a value (the ODB returns
+    // no default for them), so they take no part in isCustomized / revertCustomizations.
+    case class Acquisition(
+      explicitAcquisitionMode: Option[GnirsAcquisitionMode],
+      explicitFilter:          Option[GnirsFilter],
+      exposureTimeMode:        ExposureTimeMode,
+      coadds:                  PosInt
+    ) derives Eq {
+      def isCustomized: Boolean =
+        explicitAcquisitionMode.isDefined ||
+          explicitFilter.isDefined
+
+      def revertCustomizations: Acquisition =
+        this.copy(explicitAcquisitionMode = none, explicitFilter = none)
+    }
+
+    object Acquisition {
+      // The API splits the acquisition mode across `explicitAcquisitionType` and
+      // `skyOffset`; recombine them into the single GnirsAcquisitionMode we model. The
+      // ODB sends a sky offset exactly when the type is FAINT, so the default is unused.
+      given Decoder[Acquisition] = Decoder.instance: c =>
+        for
+          explicitAcquisitionType <-
+            c.downField("explicitAcquisitionType").as[Option[GnirsAcquisitionType]]
+          skyOffset               <- c.downField("skyOffset").as[Option[Offset]]
+          explicitAcquisitionMode  =
+            explicitAcquisitionType.map:
+              GnirsAcquisitionMode.forTypeAndOffset(
+                _,
+                skyOffset.getOrElse(GnirsAcquisitionMode.Faint.DefaultImagingSkyOffset)
+              )
+          explicitFilter          <- c.downField("explicitFilter").as[Option[GnirsFilter]]
+          exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+          coadds                  <- c.downField("coadds").as[PosInt]
+        yield Acquisition(
+          explicitAcquisitionMode,
+          explicitFilter,
+          exposureTimeMode,
+          coadds
+        )
+
+      val explicitAcquisitionMode: Lens[Acquisition, Option[GnirsAcquisitionMode]] =
+        Focus[Acquisition](_.explicitAcquisitionMode)
+      val explicitFilter: Lens[Acquisition, Option[GnirsFilter]]                   =
+        Focus[Acquisition](_.explicitFilter)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                    =
+        Focus[Acquisition](_.exposureTimeMode)
+      val coadds: Lens[Acquisition, PosInt]                                        =
+        Focus[Acquisition](_.coadds)
+    }
 
     given Decoder[GnirsImaging] = deriveDecoder
 
@@ -1192,6 +1246,8 @@ object ObservingMode:
       Focus[GnirsImaging](_.explicitWellDepth)
     val variant: Lens[GnirsImaging, ImagingVariant]                     =
       Focus[GnirsImaging](_.variant)
+    val acquisition: Lens[GnirsImaging, Acquisition]                    =
+      Focus[GnirsImaging](_.acquisition)
 
   case class GnirsSpectroscopy(
     initialGrating:           GnirsGrating,
@@ -1280,13 +1336,18 @@ object ObservingMode:
     }
 
     object Acquisition {
+      // The ODB sends a sky offset exactly when the type is FAINT, so the default is unused.
       given Decoder[Acquisition] = Decoder.instance: c =>
         for
           explicitAcquisitionType <-
             c.downField("explicitAcquisitionType").as[Option[GnirsAcquisitionType]]
           skyOffset               <- c.downField("skyOffset").as[Option[Offset]]
           explicitAcquisitionMode  =
-            explicitAcquisitionType.map(GnirsAcquisitionMode.forTypeAndOffset(_, skyOffset))
+            explicitAcquisitionType.map:
+              GnirsAcquisitionMode.forTypeAndOffset(
+                _,
+                skyOffset.getOrElse(GnirsAcquisitionMode.Faint.DefaultSlitSkyOffset)
+              )
           explicitFilter          <- c.downField("explicitFilter").as[Option[GnirsFilter]]
           exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
           coadds                  <- c.downField("coadds").as[PosInt]

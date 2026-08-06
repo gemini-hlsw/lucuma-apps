@@ -250,11 +250,20 @@ object GnirsSpectroscopyPanel
                 )
               .getOrElse((Input.unassign, Input.unassign))
 
+        // Selecting FAINT seeds the sky offset with the default for this sub-mode; the
+        // slit and the IFU place the sky in different directions.
+        val defaultFaintSkyOffset: Offset =
+          props.observingMode.get.subMode match
+            case _: SubMode.Slit => GnirsAcquisitionMode.Faint.DefaultSlitSkyOffset
+            case _: SubMode.Ifu  => GnirsAcquisitionMode.Faint.DefaultIfuSkyOffset
+
         val acquisitionTypeView: View[Option[GnirsAcquisitionType]] =
           acquisitionModeView.zoom(_.map(_.acquisitionType))(mod =>
             mode =>
               mod(mode.map(_.acquisitionType))
-                .map(newType => GnirsAcquisitionMode.forTypeAndOffset(newType, none))
+                .map(newType =>
+                  GnirsAcquisitionMode.forTypeAndOffset(newType, defaultFaintSkyOffset)
+                )
           )
 
         val acquisitionSkyOffsetViewOpt: Option[View[Offset]] =

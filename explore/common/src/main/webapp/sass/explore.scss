@@ -2003,6 +2003,23 @@ svg.fa-check.explore-success-icon {
       'filters buttons' auto
       / 2fr 1fr;
 
+    // The filters panel and the (optional) acquisition panel share the left grid cell,
+    // so the grid keeps exactly two children whether or not acquisition is shown.
+    .explore-imaging-lower-grid-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+    }
+
+    .explore-acquisition-customization-grid {
+      display: grid;
+      padding-top: 0.5em;
+      gap: 1em;
+      grid-template:
+        'col1 col2' auto
+        / 1fr 1fr;
+    }
+
     .p-panel-title span {
       display: flex;
       gap: 0.5em;

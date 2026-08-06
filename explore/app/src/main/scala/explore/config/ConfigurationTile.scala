@@ -705,7 +705,7 @@ object ConfigurationTile
                       reqsExposureTimeMode,
                       revertConfig,
                       props.sequenceChanged,
-                      !props.permissions.isFullEdit,
+                      props.permissions,
                       props.units,
                       props.isStaffOrAdmin
                     ),

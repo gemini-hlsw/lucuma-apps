@@ -420,6 +420,7 @@ object ExploreStyles:
   val GmosLongSlitLowerGrid: Css           = Css("explore-gmos-longslit-lower-grid")
   val ImagingUpperGrid: Css                = Css("explore-imaging-upper-grid")
   val ImagingLowerGrid: Css                = Css("explore-imaging-lower-grid")
+  val ImagingLowerGridStack: Css           = Css("explore-imaging-lower-grid-stack")
   val ImagingFilter: Css                   = Css("explore-imaging-filter")
   val ImagingFilterGrid: Css               = Css("explore-imaging-filter-grid")
   val ImagingFilterGridHeader: Css         = Css("explore-imaging-filter-grid-header")
