@@ -509,15 +509,15 @@ object TcsEpicsSystem {
                       ),
                       FocalPlaneOffset(
                         FocalPlaneOffset
-                          .DeltaX(Distance.fromBigDecimalMillimeter(v(4)).toAngleInFocalPlane),
+                          .DeltaX(Distance.fromBigDecimalMillimeters(v(4)).toAngleInFocalPlane),
                         FocalPlaneOffset
-                          .DeltaY(Distance.fromBigDecimalMillimeter(v(5)).toAngleInFocalPlane)
+                          .DeltaY(Distance.fromBigDecimalMillimeters(v(5)).toAngleInFocalPlane)
                       ),
                       FocalPlaneOffset(
                         FocalPlaneOffset
-                          .DeltaX(Distance.fromBigDecimalMillimeter(v(6)).toAngleInFocalPlane),
+                          .DeltaX(Distance.fromBigDecimalMillimeters(v(6)).toAngleInFocalPlane),
                         FocalPlaneOffset
-                          .DeltaY(Distance.fromBigDecimalMillimeter(v(7)).toAngleInFocalPlane)
+                          .DeltaY(Distance.fromBigDecimalMillimeters(v(7)).toAngleInFocalPlane)
                       )
                     ).pure[F]
                   }
@@ -568,7 +568,7 @@ object TcsEpicsSystem {
                 min <- parts.lift(1).flatMap(_.toDoubleOption)
                 sec <- parts.lift(2).flatMap(_.toDoubleOption)
               } yield AzimuthAngle
-                .fromDoubleDegrees(deg + (deg >= 0.0).fold(1.0, -1.0) * (min + sec/60.0)/60.0)
+                .fromDoubleDegrees(deg + (deg >= 0.0).fold(1.0, -1.0) * (min + sec / 60.0) / 60.0)
                 .pure[F]).getOrElse(
                 Async[F].raiseError(new Throwable(s"Problem reading current azimuth value $s"))
               )
@@ -1950,7 +1950,7 @@ object TcsEpicsSystem {
           .map(
             _.attempt.map(
               _.toOption
-                .flatMap(_.toDoubleOption.map(d => Distance.fromBigDecimalMeter(BigDecimal(d))))
+                .flatMap(_.toDoubleOption.map(d => Distance.fromBigDecimalMeters(BigDecimal(d))))
             )
           )
 

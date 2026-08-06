@@ -144,9 +144,9 @@ trait GrackleParsers {
       case Some(("micrometers", n)) =>
         longValue(n).map(Distance.fromLongMicrometers)
       case Some(("millimeters", n)) =>
-        bigDecimalValue(n).map(Distance.fromBigDecimalMillimeter)
+        bigDecimalValue(n).map(Distance.fromBigDecimalMillimeters)
       case Some(("meters", n))      =>
-        bigDecimalValue(n).map(Distance.fromBigDecimalMeter)
+        bigDecimalValue(n).map(Distance.fromBigDecimalMeters)
       case _                        => None
     }
 

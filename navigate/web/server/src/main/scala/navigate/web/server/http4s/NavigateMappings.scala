@@ -1829,13 +1829,13 @@ object NavigateMappings extends GrackleParsers {
   def parseShuttersMode(l: List[(String, Value)]): Option[ShutterMode] = l
     .collectFirst { case ("mode", EnumValue(v)) => v }
     .flatMap {
-      case "FullyOpen" => ShutterMode.FullyOpen.some
-      case "Tracking"  =>
+      case "FULLY_OPEN" => ShutterMode.FullyOpen.some
+      case "TRACKING"   =>
         for {
           v <- l.collectFirst { case ("aperture", ObjectValue(v)) => v }
           d <- parseDistance(v)
         } yield ShutterMode.Tracking(d)
-      case _           => none
+      case _            => none
     }
 
 }

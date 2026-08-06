@@ -2582,7 +2582,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   override def ecsDisableShutters: F[ApplyCommandResult] =
     partialDomeModeCmd(timeout = shutterDisableTimeout, shutterEnabled = false.some)
 
-  private val shutterParkPosition                     = Distance.fromBigDecimalMeter(11)
+  private val shutterParkPosition                     = Distance.fromBigDecimalMeters(11)
   private val shutterParkTimeout                      = FiniteDuration(60, SECONDS)
   override def ecsShuttersPark: F[ApplyCommandResult] = sys.tcsEpics
     .startCommand(shutterParkTimeout)

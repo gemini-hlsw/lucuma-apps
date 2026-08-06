@@ -19,11 +19,11 @@ object Distance {
 
   def fromLongMicrometers(i: Long): Distance = i.withUnit[Micrometer]
 
-  def fromBigDecimalMillimeter(bigDecimal: BigDecimal): Distance = fromLongMicrometers(
+  def fromBigDecimalMillimeters(bigDecimal: BigDecimal): Distance = fromLongMicrometers(
     (bigDecimal * 1000).toLong
   )
 
-  def fromBigDecimalMeter(bigDecimal: BigDecimal): Distance = fromLongMicrometers(
+  def fromBigDecimalMeters(bigDecimal: BigDecimal): Distance = fromLongMicrometers(
     (bigDecimal * 1000000).toLong
   )
 
@@ -39,5 +39,7 @@ object Distance {
     def toMeters: Quantity[BigDecimal, Meter]           = to[Meter](6)
 
   }
+  
+  given Ordering[Distance] = Ordering.by(_.value)
 
 }

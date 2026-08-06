@@ -11,6 +11,7 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.ProbeGuide
+import lucuma.core.syntax.all.*
 import lucuma.core.util.Timestamp
 import lucuma.odb.json.angle.query.given
 import lucuma.odb.json.offset.query.given
@@ -18,6 +19,7 @@ import lucuma.odb.json.time.query.given
 import navigate.model.AcMechsState
 import navigate.model.AcquisitionAdjustment
 import navigate.model.BafflesState
+import navigate.model.Distance
 import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
@@ -31,6 +33,8 @@ import navigate.model.ServerConfiguration
 import navigate.model.TargetOffsets
 import navigate.model.TelescopeState
 import navigate.model.WfsConfiguration
+import navigate.model.enums.DomeMode
+import navigate.model.enums.ShutterMode
 
 package object encoder {
 
@@ -97,13 +101,36 @@ package object encoder {
       "follow" -> s.following.asJson
     )
 
+  given Encoder[Distance] = s =>
+    Json.obj(
+      "micrometers" -> s.toMicrometers.value.asJson,
+      "millimeters" -> s.toMillimeters.value.asJson,
+      "meters"      -> s.toMeters.value.asJson
+    )
+
+  given Encoder[ShutterMode] = {
+    case ShutterMode.FullyOpen          =>
+      Json.obj("mode"     -> ShutterMode.FullyOpen.tag.toScreamingSnakeCase.asJson,
+               "aperture" -> Json.Null
+      )
+    case ShutterMode.Tracking(aperture) =>
+      Json.obj(
+        "mode"     -> ShutterMode.FullyOpen.tag.toScreamingSnakeCase.asJson,
+        "aperture" -> aperture.asJson
+      )
+  }
+
+  // TODO: properly set values for `domeMode`, `shutterMode`, `eastVentGateAperture` and `westVentGateAperture`
   given Encoder[EnclosureState] = s =>
     Json.obj(
-      "domeEnabled"      -> s.domeEnabled.asJson,
-      "shuttersEnabled"  -> s.shuttersEnabled.asJson,
-      "eastVentGateOpen" -> s.eastVentGateOpen.asJson,
-      "westVentGateOpen" -> s.westVentGateOpen.asJson
+      "domeEnabled"          -> s.domeEnabled.asJson,
+      "domeMode"             -> DomeMode.Basic.asJson,
+      "shuttersEnabled"      -> s.shuttersEnabled.asJson,
+      "shuttersMode"         -> ShutterMode.FullyOpen.asJson,
+      "eastVentGateAperture" -> Distance.Zero.asJson,
+      "westVentGateAperture" -> Distance.Zero.asJson
     )
+
   given Encoder[TelescopeState] = s =>
     Json.obj(
       "mount"     -> s.mount.asJson,
