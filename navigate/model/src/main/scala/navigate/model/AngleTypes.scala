@@ -12,7 +12,7 @@ import LinearAngle.MinusAngle180µas
 import LinearAngle.MinusAngle270µas
 
 object AzimuthAngle extends LinearAngle[MinusAngle180µas, Angle360µas] {
-  val Zero: Type = AzimuthAngle.fromMicroarcseconds(angle0µas)
+  val Zero: Type      = AzimuthAngle.fromMicroarcseconds(angle0µas)
   val OneEighty: Type = AzimuthAngle.fromMicroarcseconds(angle180µas)
 }
 type AzimuthAngle = AzimuthAngle.Type

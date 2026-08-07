@@ -39,7 +39,7 @@ object Distance {
     def toMeters: Quantity[BigDecimal, Meter]           = to[Meter](6)
 
   }
-  
+
   given Ordering[Distance] = Ordering.by(_.value)
 
 }
