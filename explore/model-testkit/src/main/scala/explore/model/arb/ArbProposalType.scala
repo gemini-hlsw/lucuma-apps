@@ -9,11 +9,12 @@ import explore.model.ProgramUser
 import explore.model.ProposalType
 import explore.model.ProposalType.*
 import explore.model.ProposalType.GeminiProposalType.*
+import explore.model.TooActivationCeiling
 import explore.model.arb.ArbPartnerSplit.given
+import explore.model.arb.ArbTooActivationCeiling.given
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.ScienceSubtype
-import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -71,74 +72,74 @@ trait ArbProposalType:
     Arbitrary {
       for {
         scienceSubtype <- arbitrary[ScienceSubtype]
-        toOActivation  <- arbitrary[ToOActivation]
+        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
         minPercentType <- arbitrary[IntPercent]
-      } yield DemoScience(scienceSubtype, toOActivation, minPercentType)
+      } yield DemoScience(scienceSubtype, tooActivationCeiling, minPercentType)
     }
 
   given Cogen[DemoScience] =
     Cogen[
       (
         ScienceSubtype,
-        ToOActivation,
+        TooActivationCeiling,
         IntPercent
       )
-    ].contramap(p => (p.scienceSubtype, p.toOActivation, p.minPercentTime))
+    ].contramap(p => (p.scienceSubtype, p.tooActivationCeiling, p.minPercentTime))
 
   given Arbitrary[DirectorsTime] =
     Arbitrary {
       for {
         scienceSubtype <- arbitrary[ScienceSubtype]
-        toOActivation  <- arbitrary[ToOActivation]
+        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
         minPercentType <- arbitrary[IntPercent]
-      } yield DirectorsTime(scienceSubtype, toOActivation, minPercentType)
+      } yield DirectorsTime(scienceSubtype, tooActivationCeiling, minPercentType)
     }
 
   given Cogen[DirectorsTime] =
     Cogen[
       (
         ScienceSubtype,
-        ToOActivation,
+        TooActivationCeiling,
         IntPercent
       )
-    ].contramap(p => (p.scienceSubtype, p.toOActivation, p.minPercentTime))
+    ].contramap(p => (p.scienceSubtype, p.tooActivationCeiling, p.minPercentTime))
 
   given Arbitrary[FastTurnaround] =
     Arbitrary {
       for {
         scienceSubtype <- arbitrary[ScienceSubtype]
-        toOActivation  <- arbitrary[ToOActivation]
+        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
         minPercentType <- arbitrary[IntPercent]
         reviewer       <- arbitrary[Option[ProgramUser.Id]]
         mentor         <- arbitrary[Option[ProgramUser.Id]]
-      } yield FastTurnaround(scienceSubtype, toOActivation, minPercentType, reviewer, mentor)
+      } yield FastTurnaround(scienceSubtype, tooActivationCeiling, minPercentType, reviewer, mentor)
     }
 
   given Cogen[FastTurnaround] =
     Cogen[
       (
         ScienceSubtype,
-        ToOActivation,
+        TooActivationCeiling,
         IntPercent,
         Option[ProgramUser.Id],
         Option[ProgramUser.Id]
       )
     ].contramap(p =>
-      (p.scienceSubtype, p.toOActivation, p.minPercentTime, p.reviewerId, p.mentorId)
+      (p.scienceSubtype, p.tooActivationCeiling, p.minPercentTime, p.reviewerId, p.mentorId)
     )
 
   given Arbitrary[LargeProgram] =
     Arbitrary {
       for {
         scienceSubtype      <- arbitrary[ScienceSubtype]
-        toOActivation       <- arbitrary[ToOActivation]
+        tooActivationCeiling       <- arbitrary[TooActivationCeiling]
         minPercentType      <- arbitrary[IntPercent]
         minPercentTotalTime <- arbitrary[IntPercent]
         totalTime           <- arbitrary[TimeSpan]
         aeonMultiFacility   <- arbitrary[Boolean]
         jwstSynergy         <- arbitrary[Boolean]
       } yield LargeProgram(scienceSubtype,
-                           toOActivation,
+                           tooActivationCeiling,
                            minPercentType,
                            minPercentTotalTime,
                            totalTime,
@@ -150,7 +151,7 @@ trait ArbProposalType:
   given Cogen[LargeProgram] = Cogen[
     (
       ScienceSubtype,
-      ToOActivation,
+      TooActivationCeiling,
       IntPercent,
       IntPercent,
       TimeSpan,
@@ -159,7 +160,7 @@ trait ArbProposalType:
     )
   ].contramap(p =>
     (p.scienceSubtype,
-     p.toOActivation,
+     p.tooActivationCeiling,
      p.minPercentTime,
      p.minPercentTotalTime,
      p.totalTime,
@@ -183,7 +184,7 @@ trait ArbProposalType:
     Arbitrary {
       for {
         scienceSubtype    <- arbitrary[ScienceSubtype]
-        toOActivation     <- arbitrary[ToOActivation]
+        tooActivationCeiling     <- arbitrary[TooActivationCeiling]
         minPercentType    <- arbitrary[IntPercent]
         partnerSplits     <- arbitrary[List[PartnerSplit]]
         exchangePartner   <- arbitrary[Option[ExchangePartner]]
@@ -192,7 +193,7 @@ trait ArbProposalType:
         usLongTerm        <- arbitrary[Boolean]
         considerForBand3  <- arbitrary[ConsiderForBand3]
       } yield Queue(scienceSubtype,
-                    toOActivation,
+                    tooActivationCeiling,
                     minPercentType,
                     partnerSplits,
                     exchangePartner,
@@ -207,7 +208,7 @@ trait ArbProposalType:
     Cogen[
       (
         ScienceSubtype,
-        ToOActivation,
+        TooActivationCeiling,
         IntPercent,
         List[PartnerSplit],
         Option[ExchangePartner],
@@ -218,7 +219,7 @@ trait ArbProposalType:
       )
     ].contramap(p =>
       (p.scienceSubtype,
-       p.toOActivation,
+       p.tooActivationCeiling,
        p.minPercentTime,
        p.partnerSplits,
        p.exchangePartner,
@@ -233,19 +234,19 @@ trait ArbProposalType:
     Arbitrary {
       for {
         scienceSubtype <- arbitrary[ScienceSubtype]
-        toOActivation  <- arbitrary[ToOActivation]
+        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
         minPercentTime <- arbitrary[IntPercent]
-      } yield SystemVerification(scienceSubtype, toOActivation, minPercentTime)
+      } yield SystemVerification(scienceSubtype, tooActivationCeiling, minPercentTime)
     }
 
   given Cogen[SystemVerification] =
     Cogen[
       (
         ScienceSubtype,
-        ToOActivation,
+        TooActivationCeiling,
         IntPercent
       )
-    ].contramap(p => (p.scienceSubtype, p.toOActivation, p.minPercentTime))
+    ].contramap(p => (p.scienceSubtype, p.tooActivationCeiling, p.minPercentTime))
 
   given Arbitrary[GeminiProposalType] =
     Arbitrary {

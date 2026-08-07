@@ -47,29 +47,29 @@ trait ProposalOdbExtensions:
   extension (proposalType: GeminiProposalType)
     def toInput: GeminiProposalTypeInput =
       proposalType match
-        case GeminiProposalType.DemoScience(_, toOActivation, minPercentTime)        =>
+        case GeminiProposalType.DemoScience(_, tooActivationCeiling, minPercentTime)        =>
           GeminiProposalTypeInput.DemoScience(
             DemoScienceInput(
-              toOActivation = toOActivation.assign,
+              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign
             )
           )
-        case GeminiProposalType.DirectorsTime(_, toOActivation, minPercentTime)      =>
+        case GeminiProposalType.DirectorsTime(_, tooActivationCeiling, minPercentTime)      =>
           GeminiProposalTypeInput.DirectorsTime(
             DirectorsTimeInput(
-              toOActivation = toOActivation.assign,
+              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign
             )
           )
         case GeminiProposalType.FastTurnaround(_,
-                                               toOActivation,
+                                               tooActivationCeiling,
                                                minPercentTime,
                                                reviewer,
                                                mentor
             ) =>
           GeminiProposalTypeInput.FastTurnaround(
             FastTurnaroundInput(
-              toOActivation = toOActivation.assign,
+              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign,
               reviewerId = reviewer.orUnassign,
               mentorId = mentor.orUnassign
@@ -77,7 +77,7 @@ trait ProposalOdbExtensions:
           )
         case GeminiProposalType.LargeProgram(
               _,
-              toOActivation,
+              tooActivationCeiling,
               minPercentTime,
               minPercentTotalTime,
               totalTime,
@@ -86,7 +86,7 @@ trait ProposalOdbExtensions:
             ) =>
           GeminiProposalTypeInput.LargeProgram(
             LargeProgramInput(
-              toOActivation = toOActivation.assign,
+              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign,
               minPercentTotalTime = minPercentTotalTime.assign,
               totalTime = totalTime.toInput.assign,
@@ -115,7 +115,7 @@ trait ProposalOdbExtensions:
           )
         case GeminiProposalType.Queue(
               _,
-              toOActivation,
+              tooActivationCeiling,
               minPercentTime,
               partnerSplits,
               exchangePartner,
@@ -126,7 +126,7 @@ trait ProposalOdbExtensions:
             ) =>
           GeminiProposalTypeInput.Queue(
             QueueInput(
-              toOActivation = toOActivation.assign,
+              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign,
               partnerSplits = splitsInput(partnerSplits, exchangePartner),
               exchangePartner = exchangePartner.orUnassign,
@@ -136,14 +136,14 @@ trait ProposalOdbExtensions:
               considerForBand3 = considerForBand3.assign
             )
           )
-        case GeminiProposalType.SystemVerification(_, toOActivation, minPercentTime) =>
+        case GeminiProposalType.SystemVerification(_, tooActivationCeiling, minPercentTime) =>
           GeminiProposalTypeInput.SystemVerification(
             SystemVerificationInput(
-              toOActivation = toOActivation.assign,
+              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign
             )
           )
-        case GeminiProposalType.PoorWeather(scienceSubtype)                          =>
+        case GeminiProposalType.PoorWeather(scienceSubtype)                                 =>
           GeminiProposalTypeInput.PoorWeather(PoorWeatherInput())
 
   extension (proposalType: KeckProposalType)

@@ -5,6 +5,7 @@ package explore.proposal
 
 import cats.Order.*
 import cats.data.Chain
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.*
@@ -32,6 +33,7 @@ import explore.model.ProgramUser
 import explore.model.Proposal
 import explore.model.ProposalType
 import explore.model.ProposalType.*
+import explore.model.TooActivationCeiling
 import explore.model.display.given
 import explore.model.enums.TileSizeState
 import explore.model.enums.Visible
@@ -47,6 +49,7 @@ import lucuma.core.model.SiteCoordinatesLimits
 import lucuma.core.model.ZeroTo100
 import lucuma.core.syntax.all.*
 import lucuma.core.util.CalculatedValue
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.time.format.GppDateFormatter
@@ -69,6 +72,14 @@ import org.typelevel.log4cats.Logger
 import spire.std.any.*
 
 import scalajs.js.JSConverters.*
+
+// The ToO activation ceiling dropdown offers an explicit "Default" item, which is `none`.
+// The rest of the items are appended from the core enum, so a new activation value shows up
+// here without further changes.
+private given Enumerated[Option[TooActivation]] =
+  Enumerated
+    .fromNEL(NonEmptyList(none, TooActivation.values.toList.map(_.some)))
+    .withTag(_.fold("default")(_.tag))
 
 case class ProposalDetailsBody(
   detailsAligner:  Aligner[ProgramDetails, ProgramPropertiesInput],
@@ -345,8 +356,8 @@ object ProposalDetailsBody:
     readonly:          Boolean,
     showDialog:        View[Visible]
   ): VdomNode =
-    val activationView: Option[View[ToOActivation]] =
-      gemini.zoom(GeminiProposalType.toOActivation).toOptionView
+    val ceilingView: Option[View[TooActivationCeiling]] =
+      gemini.zoom(GeminiProposalType.tooActivationCeiling).toOptionView
 
     val aeonMultiFacilityView: Option[View[Boolean]] =
       gemini.zoom(GeminiProposalType.aeonMultiFacility).toOptionView
@@ -395,17 +406,22 @@ object ProposalDetailsBody:
       }
 
     React.Fragment(
-      activationView.map(activationView =>
+      ceilingView.map { v =>
+        // Named here rather than at the top level because only the ceiling in hand knows
+        // what "Default" resolves to.
+        given Display[Option[TooActivation]] =
+          Display.byShortName(_.fold(s"Default (${v.get.default.label})")(_.label))
+
         FormEnumDropdownView(
-          id = "too-activation".refined,
-          value = activationView,
+          id = "too-activation-ceiling".refined,
+          value = v.zoom(TooActivationCeiling.explicit),
           label = React.Fragment(
-            "ToO Activation",
+            "ToO Activation Ceiling",
             HelpIcon("proposal/main/too-activation.md".refined)
           ),
           disabled = readonly
         )
-      ),
+      },
       considerForBand3View.map: v =>
         FormEnumDropdownView(
           id = "consider-for-band3".refined,

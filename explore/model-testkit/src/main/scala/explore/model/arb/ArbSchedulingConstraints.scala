@@ -16,13 +16,19 @@ import org.scalacheck.Cogen
 trait ArbSchedulingConstraints:
   given Arbitrary[SchedulingConstraints] = Arbitrary(
     for {
-      executionRequirement <- arbitrary[ExecutionRequirement]
-      timingWindows        <- arbitrary[List[TimingWindow]]
-    } yield SchedulingConstraints(executionRequirement, timingWindows.sorted)
+      executionRequirement         <- arbitrary[ExecutionRequirement]
+      explicitExecutionRequirement <- arbitrary[Option[ExecutionRequirement]]
+      timingWindows                <- arbitrary[List[TimingWindow]]
+    } yield SchedulingConstraints(executionRequirement,
+                                  explicitExecutionRequirement,
+                                  timingWindows.sorted
+    )
   )
 
   given Cogen[SchedulingConstraints] = Cogen[
-    (ExecutionRequirement, List[TimingWindow])
-  ].contramap(sc => (sc.executionRequirement, sc.timingWindows))
+    (ExecutionRequirement, Option[ExecutionRequirement], List[TimingWindow])
+  ].contramap(sc =>
+    (sc.executionRequirement, sc.explicitExecutionRequirement, sc.timingWindows)
+  )
 
 object ArbSchedulingConstraints extends ArbSchedulingConstraints
