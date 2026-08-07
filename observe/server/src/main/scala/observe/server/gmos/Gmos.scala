@@ -138,7 +138,7 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
     case NsConfig.NoNodAndShuffle => false
     case _                        => true
 
-  override val dhsClient: DhsClient[F] = dhsClientProvider.dhsClient(dhsInstrumentName)
+  override lazy val dhsClient: DhsClient[F] = dhsClientProvider.dhsClient(dhsInstrumentName)
 }
 
 object Gmos {
