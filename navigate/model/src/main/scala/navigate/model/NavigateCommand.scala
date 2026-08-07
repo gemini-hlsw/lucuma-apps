@@ -106,6 +106,7 @@ object NavigateCommand {
   case object AgScienceFoldPark                                              extends NavigateCommand
   case object AowfsPark                                                      extends NavigateCommand
   case object CrcsPark                                                       extends NavigateCommand
+  case object CrcsUnwrap                                                     extends NavigateCommand
   case object Cwfs1Park                                                      extends NavigateCommand
   case object Cwfs2Park                                                      extends NavigateCommand
   case object Cwfs3Park                                                      extends NavigateCommand
@@ -126,6 +127,7 @@ object NavigateCommand {
   case object M1Unpark                                                       extends NavigateCommand
   case object M1ZeroFigure                                                   extends NavigateCommand
   case object McsPark                                                        extends NavigateCommand
+  case object MountUnwrap                                                    extends NavigateCommand
   case object Odgw1Park                                                      extends NavigateCommand
   case object Odgw2Park                                                      extends NavigateCommand
   case object Odgw3Park                                                      extends NavigateCommand
@@ -138,8 +140,10 @@ object NavigateCommand {
   case object PointingOffsetClearLocal                                       extends NavigateCommand
   case object Pwfs1Park                                                      extends NavigateCommand
   case object Pwfs1StopObserve                                               extends NavigateCommand
+  case object Pwfs1Unwrap                                                    extends NavigateCommand
   case object Pwfs2Park                                                      extends NavigateCommand
   case object Pwfs2StopObserve                                               extends NavigateCommand
+  case object Pwfs2Unwrap                                                    extends NavigateCommand
   case object ScsPark                                                        extends NavigateCommand
 
   given Eq[NavigateCommand] = Eq.fromUniversalEquals

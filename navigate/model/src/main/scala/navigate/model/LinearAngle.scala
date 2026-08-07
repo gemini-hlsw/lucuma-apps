@@ -35,6 +35,8 @@ class LinearAngle[A <: Long & Singleton: ValueOf, B <: Long & Singleton: ValueOf
 
   given Show[Type] = Show.show(x => s"${x.toDoubleDegrees}º")
 
+  given Ordering[Type] = Ordering.by(_.µas)
+
 }
 
 object LinearAngle {
@@ -54,8 +56,21 @@ object LinearAngle {
     }
   }
 
+  type Angle0µas        = 0L
+  type Angle90µas       = 324_000_000_000L
+  type Angle180µas      = 648_000_000_000L
   type Angle270µas      = 972_000_000_000L
-  type MinusAngle270µas = -972_000_000_000L
+  type Angle360µas      = 1_296_000_000_000L
+  type MinusAngle90µas  = -324_000_000_000L
   type MinusAngle180µas = -648_000_000_000L
+  type MinusAngle270µas = -972_000_000_000L
 
+  val angle0µas        = valueOf[Angle0µas]
+  val angle90µas       = valueOf[Angle90µas]
+  val angle180µas      = valueOf[Angle180µas]
+  val angle270µas      = valueOf[Angle270µas]
+  val angle360µas      = valueOf[Angle360µas]
+  val minusAngle90µas  = valueOf[MinusAngle90µas]
+  val minusAngle180µas = valueOf[MinusAngle180µas]
+  val minusAngle270µas = valueOf[MinusAngle270µas]
 }

@@ -890,16 +890,16 @@ object NavigateEngine {
       simpleCommand(engine, EcsCloseWestVentGate, systems.tcsCommon.ecsCloseWestVentGate)
 
     override def mcsUnwrap: F[CommandResult] =
-      CommandResult.CommandFailure("Command mcsUnwrap not yet implemented.").pure[F]
+      simpleCommand(engine, MountUnwrap, systems.tcsCommon.azimuthUnwrap)
 
     override def rotUnwrap: F[CommandResult] =
-      CommandResult.CommandFailure("Command rotUnwrap not yet implemented.").pure[F]
+      simpleCommand(engine, CrcsUnwrap, systems.tcsCommon.rotUnwrap)
 
     override def pwfs1Unwrap: F[CommandResult] =
-      CommandResult.CommandFailure("Command pwfs1Unwrap not yet implemented.").pure[F]
+      simpleCommand(engine, Pwfs1Unwrap, systems.tcsCommon.pwfs1Unwrap)
 
     override def pwfs2Unwrap: F[CommandResult] =
-      CommandResult.CommandFailure("Command pwfs2Unwrap not yet implemented.").pure[F]
+      simpleCommand(engine, Pwfs2Unwrap, systems.tcsCommon.pwfs2Unwrap)
 
     override def agScienceFoldPark: F[CommandResult] = simpleCommand(
       engine,

@@ -512,4 +512,12 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def ecsDomePark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
   override def ecsShuttersPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def azimuthUnwrap: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def rotUnwrap: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def pwfs1Unwrap: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def pwfs2Unwrap: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 }

@@ -95,13 +95,18 @@ enum DomeMode {
     MIN_VIBRATION
 }
 
-enum ShutterMode {
+enum ShutterControlMode {
     FULLY_OPEN
     TRACKING
 }
 
+type ShutterMode {
+    mode: ShutterControlMode!
+    aperture: Distance
+}
+
 input ShutterModeInput {
-    mode: ShutterMode!
+    mode: ShutterControlMode!
     aperture: DistanceInput
 }
 
@@ -112,9 +117,13 @@ type MechSystemState {
 
 type EnclosureState {
     domeEnabled: Boolean!
+    "domeMode is not null if domeEnabled is true"
+    domeMode: DomeMode
     shuttersEnabled: Boolean!
-    eastVentGateOpen: Boolean!
-    westVentGateOpen: Boolean!
+    "shuttersMode is not null if shuttersEnabled is true"
+    shuttersMode: ShutterMode
+    eastVentGateAperture: Distance!
+    westVentGateAperture: Distance!
 }
 
 type TelescopeState {
@@ -583,13 +592,13 @@ type Mutation {
     agAoFoldPark: OperationOutcome!
     agAllPark: OperationOutcome!
     """ ECS commands """
-    ecsEnableDome(mode:                            DomeMode): OperationOutcome!
+    ecsEnableDome(mode: DomeMode!): OperationOutcome!
     ecsDisableDome: OperationOutcome!
-    ecsEnableShutters(mode:                        ShutterMode): OperationOutcome!
+    ecsEnableShutters(mode: ShutterModeInput!): OperationOutcome!
     ecsDisableShutters: OperationOutcome!
-    ecsMoveEastVentGate(position:                  DistanceInput): OperationOutcome!
+    ecsMoveEastVentGate(position: DistanceInput!): OperationOutcome!
     ecsCloseEastVentGate: OperationOutcome!
-    ecsMoveWestVentGate(position:                  DistanceInput): OperationOutcome!
+    ecsMoveWestVentGate(position: DistanceInput!): OperationOutcome!
     ecsCloseWestVentGate: OperationOutcome!
 }
 

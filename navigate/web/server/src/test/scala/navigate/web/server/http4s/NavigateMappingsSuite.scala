@@ -48,6 +48,7 @@ import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.Distance
+import navigate.model.Distance.given
 import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
@@ -110,6 +111,7 @@ import java.time.LocalDate
 import java.util
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.given
+import scala.math.Ordering.Implicits.given
 
 class NavigateMappingsSuite extends CatsEffectSuite {
   import NavigateMappingsTest.*
@@ -1094,9 +1096,20 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |     }
           |     enclosure {
           |       domeEnabled
+          |       domeMode
           |       shuttersEnabled
-          |       eastVentGateOpen
-          |       westVentGateOpen
+          |       shuttersMode {
+          |         mode
+          |         aperture {
+          |           micrometers
+          |         }
+          |       }
+          |       eastVentGateAperture {
+          |         micrometers
+          |       }
+          |       westVentGateAperture {
+          |         micrometers
+          |       }
           |     }
           |   }
           | }
@@ -1244,9 +1257,20 @@ class NavigateMappingsSuite extends CatsEffectSuite {
             |     }
             |     enclosure {
             |       domeEnabled
+            |       domeMode
             |       shuttersEnabled
-            |       eastVentGateOpen
-            |       westVentGateOpen
+            |       shuttersMode {
+            |         mode
+            |         aperture {
+            |           micrometers
+            |         }
+            |       }
+            |       eastVentGateAperture {
+            |         micrometers
+            |       }
+            |       westVentGateAperture {
+            |         micrometers
+            |       }
             |     }
             |   }
             | }
@@ -3131,13 +3155,24 @@ object NavigateMappingsTest {
       flw <- h.downField("follow").as[FollowStatus]
     } yield MechSystemState(prk, flw)
 
+  given Decoder[Distance] = h =>
+    h.downField("micrometers")
+      .as[Long]
+      .map(Distance.fromLongMicrometers)
+      .orElse(
+        h.downField("millimeters").as[BigDecimal].map(Distance.fromBigDecimalMillimeters)
+      )
+      .orElse(
+        h.downField("meters").as[BigDecimal].map(Distance.fromBigDecimalMeters)
+      )
+
   given Decoder[EnclosureState] = h =>
     for {
       dome <- h.downField("domeEnabled").as[Boolean]
       shts <- h.downField("shuttersEnabled").as[Boolean]
-      evg  <- h.downField("eastVentGateOpen").as[Boolean]
-      wvg  <- h.downField("westVentGateOpen").as[Boolean]
-    } yield EnclosureState(dome, shts, evg, wvg)
+      evg  <- h.downField("eastVentGateAperture").as[Distance]
+      wvg  <- h.downField("westVentGateAperture").as[Distance]
+    } yield EnclosureState(dome, shts, evg > Distance.Zero, wvg > Distance.Zero)
 
   given Decoder[TelescopeState] = h =>
     for {

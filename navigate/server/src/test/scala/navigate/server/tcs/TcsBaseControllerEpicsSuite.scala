@@ -189,14 +189,14 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     val testHeight   = 123.456
     val testVentEast = 0.3
     val testVentWest = 0.2
-    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeter(testHeight))
+    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeters(testHeight))
 
     for {
       (st, ctr) <- createController()
       _         <- ctr.ecsEnableDome(DomeMode.MinVibration)
       _         <- ctr.ecsEnableShutters(shutterMode)
-      _         <- ctr.ecsMoveEastVentGate(Distance.fromBigDecimalMeter(testVentEast))
-      _         <- ctr.ecsMoveWestVentGate(Distance.fromBigDecimalMeter(testVentWest))
+      _         <- ctr.ecsMoveEastVentGate(Distance.fromBigDecimalMeters(testVentEast))
+      _         <- ctr.ecsMoveWestVentGate(Distance.fromBigDecimalMeters(testVentWest))
       rs        <- st.tcs.get
     } yield {
       assert(rs.enclosure.ecsDomeMode.connected)
@@ -2583,6 +2583,72 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.p2),
       Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.pwfs2CircularBuffer)
     )
+  }
+
+  test("Unwrap azimuth") {
+    for {
+      (st, ctr) <- createController()
+      _         <- st.tcs.update(
+                     Focus[TestTcsEpicsSystem.State](_.demandAzimuth)
+                       .replace(TestChannel.State.of("+225:00:12.34"))
+                   )
+      _         <- ctr.azimuthUnwrap
+      r1        <- st.tcs.get
+      _         <- st.tcs.update(
+                     Focus[TestTcsEpicsSystem.State](_.demandAzimuth)
+                       .replace(TestChannel.State.of("-45:00:12.34"))
+                   )
+      _         <- ctr.azimuthUnwrap
+      r2        <- st.tcs.get
+    } yield {
+      assert(r1.azimuthWrap.connected)
+      assertEquals(r1.azimuthWrap.value, "-1".some)
+      assertEquals(r2.azimuthWrap.value, "1".some)
+    }
+  }
+
+  test("Unwrap rotator") {
+    for {
+      (st, ctr) <- createController()
+      _         <-
+        st.tcs.update(
+          Focus[TestTcsEpicsSystem.State](_.demandRotator).replace(TestChannel.State.of(225.1234))
+        )
+      _         <- ctr.rotUnwrap
+      r1        <- st.tcs.get
+      _         <-
+        st.tcs.update(
+          Focus[TestTcsEpicsSystem.State](_.demandRotator).replace(TestChannel.State.of(-135.1234))
+        )
+      _         <- ctr.rotUnwrap
+      r2        <- st.tcs.get
+    } yield {
+      assert(r1.rotatorWrap.connected)
+      assertEquals(r1.rotatorWrap.value, "-1".some)
+      assertEquals(r2.rotatorWrap.value, "1".some)
+    }
+  }
+
+  test("Unwrap PWFS1") {
+    for {
+      (st, ctr) <- createController()
+      _         <- ctr.pwfs1Unwrap
+      r1        <- st.tcs.get
+    } yield {
+      assert(r1.pwfs1UnwrapDir.connected)
+      assertEquals(r1.pwfs1UnwrapDir.value, CadDirective.MARK.some)
+    }
+  }
+
+  test("Unwrap PWFS2") {
+    for {
+      (st, ctr) <- createController()
+      _         <- ctr.pwfs2Unwrap
+      r1        <- st.tcs.get
+    } yield {
+      assert(r1.pwfs2UnwrapDir.connected)
+      assertEquals(r1.pwfs2UnwrapDir.value, CadDirective.MARK.some)
+    }
   }
 
   case class StateRefs[F[_]](

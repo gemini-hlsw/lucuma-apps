@@ -201,7 +201,7 @@ private val FocalPlaneScale: Double = 1.61144 // arcsec/mm
 
 extension (a: Angle) {
   def toLengthInFocalPlane: Distance =
-    Distance.fromBigDecimalMillimeter(Angle.signedDecimalArcseconds.get(a) / FocalPlaneScale)
+    Distance.fromBigDecimalMillimeters(Angle.signedDecimalArcseconds.get(a) / FocalPlaneScale)
 }
 
 extension (d: Distance) {
