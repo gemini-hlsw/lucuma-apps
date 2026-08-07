@@ -36,9 +36,9 @@ package keywords {
   }
 
   abstract class DhsInstrument[F[_]: Monad as F] extends KeywordsClient[F] {
-    val dhsClient: DhsClient[F]
+    def dhsClient: DhsClient[F]
 
-    val dhsInstrumentName: String
+    def dhsInstrumentName: String
 
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
       dhsClient.setKeywords(id, keywords, finalFlag)

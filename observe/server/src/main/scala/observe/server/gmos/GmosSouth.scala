@@ -45,7 +45,6 @@ final case class GmosSouth[F[_]: {Temporal, Logger}](
     ) {
   override val resource: Instrument      = Instrument.GmosSouth
   override val dhsInstrumentName: String = "GMOS-S"
-//  override val dhsClient: DhsClient[F]   = dhsClientProvider.dhsClient(dhsInstrumentName)
 
 }
 
