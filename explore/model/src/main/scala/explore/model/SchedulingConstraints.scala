@@ -15,22 +15,32 @@ import lucuma.schemas.decoders.given
 import lucuma.schemas.odb.input.*
 import monocle.Focus
 
+// `executionRequirement` is the effective value the Scheduler honors: the more restrictive
+// of the explicit requirement and the default implied by the ToO activation. Only the
+// explicit one is editable, and it is all the API accepts as input.
 case class SchedulingConstraints(
-  executionRequirement: ExecutionRequirement,
-  timingWindows:        List[TimingWindow]
+  executionRequirement:         ExecutionRequirement,
+  explicitExecutionRequirement: Option[ExecutionRequirement],
+  timingWindows:                List[TimingWindow]
 ) derives Eq:
   def toInput: SchedulingConstraintsInput =
     SchedulingConstraintsInput(
-      executionRequirement = executionRequirement.assign,
+      explicitExecutionRequirement = explicitExecutionRequirement.orUnassign,
       timingWindows = timingWindows.map(_.toInput).assign
     )
 
 object SchedulingConstraints:
-  val executionRequirement = Focus[SchedulingConstraints](_.executionRequirement)
-  val timingWindows        = Focus[SchedulingConstraints](_.timingWindows)
+  val executionRequirement         = Focus[SchedulingConstraints](_.executionRequirement)
+  val explicitExecutionRequirement = Focus[SchedulingConstraints](_.explicitExecutionRequirement)
+  val timingWindows                = Focus[SchedulingConstraints](_.timingWindows)
 
   given Decoder[SchedulingConstraints] = Decoder.instance: c =>
     for
-      executionRequirement <- c.get[ExecutionRequirement]("executionRequirement")
-      timingWindows        <- c.get[List[TimingWindow]]("timingWindows")
-    yield SchedulingConstraints(executionRequirement, timingWindows.sorted)
+      executionRequirement         <- c.get[ExecutionRequirement]("executionRequirement")
+      explicitExecutionRequirement <-
+        c.get[Option[ExecutionRequirement]]("explicitExecutionRequirement")
+      timingWindows                <- c.get[List[TimingWindow]]("timingWindows")
+    yield SchedulingConstraints(executionRequirement,
+                                explicitExecutionRequirement,
+                                timingWindows.sorted
+    )

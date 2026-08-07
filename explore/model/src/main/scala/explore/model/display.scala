@@ -50,7 +50,7 @@ trait DisplayImplicits:
   given Display[TacCategory] =
     Display.byShortName(_.label)
 
-  given Display[ToOActivation] =
+  given Display[TooActivation] =
     Display.byShortName(_.label)
 
   given Display[ConsiderForBand3] = Display.byShortName:

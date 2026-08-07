@@ -204,7 +204,7 @@ trait ObservationDB {
     type TacCategory                         = enums.TacCategory
     type TimeAccountingCategory              = enums.TimeAccountingCategory
     type TimingWindowInclusion               = enums.TimingWindowInclusion
-    type ToOActivation                       = enums.ToOActivation
+    type TooActivation                       = enums.TooActivation
     type WaterVapor                          = enums.WaterVapor
     type SlitOffsetMode                      = enums.SlitOffsetMode
     type WavelengthOrder                     = enums.WavelengthOrder

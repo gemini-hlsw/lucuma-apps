@@ -39,7 +39,6 @@ import lucuma.core.model.TimingWindow
 import lucuma.core.model.TimingWindowEnd
 import lucuma.core.model.TimingWindowRepeat
 import lucuma.core.syntax.display.*
-import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.core.validation.InputValidSplitEpi
@@ -71,10 +70,10 @@ import java.time.ZonedDateTime
 
 // Only `Unconstrained` and `NoSplitting` are user selectable here, and they read as the
 // "may"/"may not" options of the "This observation ... be split." sentence.
-private given Display[ExecutionRequirement] = Display.byShortName:
-  case ExecutionRequirement.Unconstrained   => "may"
-  case ExecutionRequirement.NoSplitting     => "may not"
-  case ExecutionRequirement.Uninterruptible => "may not be split or interrupted"
+// private given Display[ExecutionRequirement] = Display.byShortName:
+//   case ExecutionRequirement.Unconstrained   => "may"
+//   case ExecutionRequirement.NoSplitting     => "may not"
+//   case ExecutionRequirement.Uninterruptible => "may not be split or interrupted"
 
 sealed abstract class SchedulingWindowsTile(
   val obsEditInfo:           ObsIdSetEditInfo,
@@ -233,31 +232,35 @@ object SchedulingWindowsTile
                 .asView
             )
 
-        val subject: String =
-          if props.obsEditInfo.editing.length > 1 then "These observations" else "This observation"
+        // TODO: Restore the splitting editor once the ODB settles on the semantics of the
+        // effective / default / explicit execution requirement triple. It now has to edit
+        // `explicitExecutionRequirement`, and the default is a floor rather than a fallback,
+        // so an explicit value more permissive than the default has no effect.
+        // val subject: String =
+        //   if props.obsEditInfo.editing.length > 1 then "These observations" else "This observation"
 
         val body =
           React.Fragment(
             msg.map(msg => <.div(msg, ExploreStyles.SharedEditWarning)),
-            <.h3("Splitting", HelpIcon("scheduling/splitting.md".refined)),
-            <.div(
-              subject,
-              // `Uninterruptible` cannot be set here, so it is shown as plain text instead.
-              if props.executionRequirement.get === ExecutionRequirement.Uninterruptible then
-                TagMod(" may not be split or interrupted.")
-              else
-                TagMod(
-                  EnumDropdownView(
-                    id = "observation-execution-requirement".refined,
-                    value = props.executionRequirement,
-                    exclude = Set(ExecutionRequirement.Uninterruptible),
-                    clazz = ExploreStyles.IsSplittableDropdown,
-                    disabled = props.readonly
-                  ),
-                  "be split."
-                )
-            ),
-            Divider(),
+            // <.h3("Splitting", HelpIcon("scheduling/splitting.md".refined)),
+            // <.div(
+            //   subject,
+            //   // `Uninterruptible` cannot be set here, so it is shown as plain text instead.
+            //   if props.executionRequirement.get === ExecutionRequirement.Uninterruptible then
+            //     TagMod(" may not be split or interrupted.")
+            //   else
+            //     TagMod(
+            //       EnumDropdownView(
+            //         id = "observation-execution-requirement".refined,
+            //         value = props.executionRequirement,
+            //         exclude = Set(ExecutionRequirement.Uninterruptible),
+            //         clazz = ExploreStyles.IsSplittableDropdown,
+            //         disabled = props.readonly
+            //       ),
+            //       "be split."
+            //     )
+            // ),
+            // Divider(),
             <.h3(s"Windows (${props.timingWindows.get.length})",
                  HelpIcon("scheduling/windows.md".refined)
             ),
