@@ -80,10 +80,8 @@ object ObsSummaryColumns:
     )
 
   protected[observationtree] val ColumnsExcludedFromVisibility: Set[ColumnId] =
-    Set(ExpanderColumnId)
+    Set(ExpanderColumnId, ScienceBandColumnId)
 
-  // Columns to be shown in the column visibility selector. We exclude
-  // the science band because we set that visibility below.
   protected[observationtree] val SelectableColumnNames: List[(ColumnId, String)] =
     ColumnNames.filterNot((k, _) => ColumnsExcludedFromVisibility.contains(k)).toList
 

@@ -14,36 +14,47 @@ import lucuma.react.table.*
 import lucuma.ui.reusability.given
 
 case class TableOptionsWithStateStore[F[_], T, TM, CM, TF](
-  tableOptions: TableOptions[T, TM, CM, TF],
-  stateStore:   TableStateStore[F, TF]
+  tableOptions:            TableOptions[T, TM, CM, TF],
+  stateStore:              TableStateStore[F, TF],
+  appControlledColumns:    Set[ColumnId] = Set.empty,
+  defaultColumnVisibility: Option[ColumnVisibility] = none
 )
 
 private object UseReactTableWithStateStore:
-  private object PrefsLoaded extends NewType[Boolean]
-
-  private object CanSave extends NewType[Boolean]
+  private object Loaded extends NewType[Boolean]
 
   def useReactTableWithStateStore[T, TM, CM, TF](
     options: TableOptionsWithStateStore[DefaultA, T, TM, CM, TF]
   ): HookResult[Table[T, TM, CM, TF]] =
+    def preferencesOf(state: TableState[TF]): TablePreferences =
+      TablePreferences.fromState(state).withoutColumns(options.appControlledColumns)
+
     for
-      table       <- useReactTable(options.tableOptions)
-      prefsLoadad <- useState(PrefsLoaded(false))
-      canSave     <- useRef(CanSave(false))
-      _           <- useEffectOnMount:
-                       (options.stateStore.load() >>=
-                         (_.foldMap(table.setState(_).to[IO]) >>
-                           prefsLoadad.setStateAsync(PrefsLoaded(true))))
-                         .guaranteeCase(outcome => canSave.setAsync(CanSave(true)).unlessA(outcome.isSuccess))
-      _           <- useEffectWithDeps(table.getState()): state =>
-                       // Don't save prefs while we are still attempting to load them or if we just loaded them.
-                       options.stateStore
-                         .save(state)
-                         .whenA(canSave.value.value)
-                         >>
-                           canSave
-                             .setAsync(CanSave(true))
-                             .whenA(prefsLoadad.value.value && !canSave.value.value)
+      table         <- useReactTable(options.tableOptions)
+      defaults      <- useMemo(()): _ =>
+                         options.defaultColumnVisibility.getOrElse:
+                           options.tableOptions.state
+                             .flatMap(_.columnVisibility)
+                             .getOrElse(table.initialState.columnVisibility)
+      loaded        <- useRef(Loaded(false))
+      lastPersisted <- useRef(none[TablePreferences])
+      _             <- useEffectOnMount:
+                         options.stateStore
+                           .load()
+                           .flatMap:
+                             _.map(preferencesOf)
+                               .map(_.withDefaultVisibility(defaults.value))
+                               .traverse: prefs =>
+                                 lastPersisted.setAsync(prefs.some) >>
+                                   prefs.applyTo(table, options.appControlledColumns).to[IO]
+                           .void
+                           // On failure `lastPersisted` stays empty, so the next change saves.
+                           .guarantee(loaded.setAsync(Loaded(true)))
+      _             <- useEffectWithDeps(table.getState()): state =>
+                         val current = preferencesOf(state)
+                         (options.stateStore.save(current.toTableState) >>
+                           lastPersisted.setAsync(current.some))
+                           .whenA(loaded.value.value && !lastPersisted.value.contains_(current))
     yield table
 
   private def hook[T, TM, CM, TF]

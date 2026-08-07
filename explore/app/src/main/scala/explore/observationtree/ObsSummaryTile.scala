@@ -170,7 +170,8 @@ object ObsSummaryTile
                              onRowSelectionChange = rowSelection.handleTableUpdate,
                              onColumnVisibilityChange = columnVisibility.handleTableUpdate
                            ),
-                           TableStore(props.userId, TableId.ObservationsSummary)
+                           TableStore(props.userId, TableId.ObservationsSummary),
+                           ColumnsExcludedFromVisibility
                          )
         _           <- useEffectOnMount:
                          toggleAllRowsSelected.set: // TODO Can this whole dance be avoided now?
