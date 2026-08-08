@@ -775,7 +775,9 @@ object ObsTabTiles:
               props.isStaffOrAdminUser,
               selectedItcTarget,
               props.observation.get.hasMaterializedSequence,
-              props.observation.get.observingMode.isPending
+              props.observation.get.observingMode.isPending,
+              props.attachments,
+              attachmentsView
             )
 
           val alltiles: List[Tile[?]] =

@@ -23,6 +23,8 @@ import explore.model.IsActive
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSetEditInfo
 import explore.model.ObsTabTileIds
+import explore.model.Attachment
+import explore.model.AttachmentList
 import explore.model.Observation
 import explore.model.ObservingModeGroupList
 import explore.model.ObservingModeSummary
@@ -89,7 +91,9 @@ final case class ConfigurationTile(
   isStaffOrAdmin:           Boolean,
   targetView:               View[Option[ItcTarget]],
   hasMaterializedSequence:  Boolean,
-  modePending:              Boolean                    // observingMode detail still loading
+  modePending:              Boolean,                   // observingMode detail still loading
+  attachments:              View[AttachmentList],
+  attachmentIds:            View[SortedSet[Attachment.Id]]
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
@@ -612,7 +616,9 @@ object ConfigurationTile
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.permissions,
-                        props.units
+                        props.units,
+                        props.attachments,
+                        props.attachmentIds
                       ),
                   // Gmos South MOS
                   optGmosSouthMosAligner.map: southMosAligner =>
@@ -626,7 +632,9 @@ object ConfigurationTile
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.permissions,
-                        props.units
+                        props.units,
+                        props.attachments,
+                        props.attachmentIds
                       ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>

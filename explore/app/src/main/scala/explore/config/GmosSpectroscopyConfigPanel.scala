@@ -16,6 +16,8 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
+import explore.model.Attachment
+import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.Help
 import explore.model.Observation
@@ -55,6 +57,8 @@ import lucuma.ui.utils.given
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 
+import scala.collection.immutable.SortedSet
+
 object GmosSpectroscopyConfigPanel {
   sealed trait GmosSpectroscopyConfigPanel[T <: ObservingMode, Input] {
     def programId: Program.Id
@@ -72,6 +76,15 @@ object GmosSpectroscopyConfigPanel {
     def showCustomization: Boolean        = calibrationRole.isEmpty
     def allowRevertCustomization: Boolean = permissions.isFullEdit
   }
+
+  /**
+   * Props carried only by the GMOS MOS panels: the program's attachments (read-only, to populate
+   * the mask picker) and the observation's attachment set (writable, to mirror a binding into
+   * attachment tagging). See ADR-0005.
+   */
+  trait GmosMosConfigPanel[T <: ObservingMode, Input] extends GmosSpectroscopyConfigPanel[T, Input]:
+    def attachments: View[AttachmentList]
+    def attachmentIds: View[SortedSet[Attachment.Id]]
 
   sealed abstract class GmosSpectroscopyConfigPanelBuilder[
     T <: ObservingMode,
@@ -164,6 +177,16 @@ object GmosSpectroscopyConfigPanel {
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode
+
+    /**
+     * Control rendered directly under the FPU select. Overridden by the MOS builder to render the
+     * mask picker; the default is empty so long slit panels are unaffected.
+     */
+    protected def maskControl(props: Props, disabled: Boolean)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): VdomNode = EmptyVdom
 
     protected val initialGratingLens: Lens[T, Grating]
     protected val initialFilterLens: Lens[T, Option[Filter]]
@@ -284,6 +307,7 @@ object GmosSpectroscopyConfigPanel {
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
+                maskControl(props, disableAdvancedEdit),
                 OffsetsControl(
                   explicitOffsets(props.observingMode),
                   defaultOffsetsLens.get(props.observingMode.get),
@@ -1059,7 +1083,7 @@ object GmosSpectroscopyConfigPanel {
   sealed abstract class GmosMosConfigPanelBuilder[
     T <: ObservingMode,
     Input,
-    Props <: GmosSpectroscopyConfigPanel[T, Input],
+    Props <: GmosMosConfigPanel[T, Input],
     Grating: Enumerated: Display,
     Filter: Enumerated: Display
   ] extends GmosSpectroscopyConfigPanelBuilder[
@@ -1076,6 +1100,25 @@ object GmosSpectroscopyConfigPanel {
 
     override protected val fpuHelpId: Option[Help.Id] =
       Some("configuration/gmos/mos-slit-width.md".refined)
+
+    /** The mask attachment id, undo-tracked through the mode's `customMask`. */
+    protected def customMaskAttachmentId(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[Attachment.Id]]
+
+    override protected def maskControl(props: Props, disabled: Boolean)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): VdomNode =
+      MosMaskPicker(
+        attachmentIdView = customMaskAttachmentId(props.observingMode),
+        attachments      = props.attachments,
+        attachmentIds    = props.attachmentIds,
+        disabled         = disabled
+      )
   }
 
   // Gmos North MOS
@@ -1088,11 +1131,13 @@ object GmosSpectroscopyConfigPanel {
     confMatrix:      SpectroscopyModesMatrix,
     sequenceChanged: Callback,
     permissions:     ConfigEditPermissions,
-    units:           WavelengthUnits
+    units:           WavelengthUnits,
+    attachments:     View[AttachmentList],
+    attachmentIds:   View[SortedSet[Attachment.Id]]
   ) extends ReactFnProps[GmosSpectroscopyConfigPanel.GmosNorthMos](
         GmosSpectroscopyConfigPanel.GmosNorthMos.component
       )
-      with GmosSpectroscopyConfigPanel[
+      with GmosMosConfigPanel[
         ObservingMode.GmosNorthMos,
         GmosNorthMosInput
       ]
@@ -1164,6 +1209,17 @@ object GmosSpectroscopyConfigPanel {
         GmosCustomMaskInput.slitWidth.modify
       )
       .view(identity)
+
+    override protected def customMaskAttachmentId(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[Attachment.Id]] = customMask(aligner)
+      .zoom(
+        ObservingMode.GmosCustomMask.attachmentId,
+        GmosCustomMaskInput.attachmentId.modify
+      )
+      .view(_.orUnassign)
 
     inline private def acquisitionType(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -1309,11 +1365,13 @@ object GmosSpectroscopyConfigPanel {
     confMatrix:      SpectroscopyModesMatrix,
     sequenceChanged: Callback,
     permissions:     ConfigEditPermissions,
-    units:           WavelengthUnits
+    units:           WavelengthUnits,
+    attachments:     View[AttachmentList],
+    attachmentIds:   View[SortedSet[Attachment.Id]]
   ) extends ReactFnProps[GmosSpectroscopyConfigPanel.GmosSouthMos](
         GmosSpectroscopyConfigPanel.GmosSouthMos.component
       )
-      with GmosSpectroscopyConfigPanel[
+      with GmosMosConfigPanel[
         ObservingMode.GmosSouthMos,
         GmosSouthMosInput
       ]
@@ -1385,6 +1443,17 @@ object GmosSpectroscopyConfigPanel {
         GmosCustomMaskInput.slitWidth.modify
       )
       .view(identity)
+
+    override protected def customMaskAttachmentId(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[Attachment.Id]] = customMask(aligner)
+      .zoom(
+        ObservingMode.GmosCustomMask.attachmentId,
+        GmosCustomMaskInput.attachmentId.modify
+      )
+      .view(_.orUnassign)
 
     inline private def acquisitionType(aligner: AA)(using
       MonadError[IO, Throwable],
