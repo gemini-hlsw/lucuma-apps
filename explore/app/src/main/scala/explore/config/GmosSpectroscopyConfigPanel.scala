@@ -58,6 +58,7 @@ import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.SortedSet
+import japgolly.scalajs.react.util.Effect.Dispatch
 
 object GmosSpectroscopyConfigPanel {
   sealed trait GmosSpectroscopyConfigPanel[T <: ObservingMode, Input] {
@@ -180,13 +181,14 @@ object GmosSpectroscopyConfigPanel {
 
     /**
      * Control rendered directly under the FPU select. Overridden by the MOS builder to render the
-     * mask picker; the default is empty so long slit panels are unaffected.
+     * mask picker; the default is empty so long slit panels are unaffected. The params are part of
+     * the override contract (used only by the MOS override), hence `@unused` here.
      */
-    protected def maskControl(props: Props, disabled: Boolean)(using
+    protected def maskControl(props: Props)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): VdomNode = EmptyVdom
+    ): VdomNode
 
     protected val initialGratingLens: Lens[T, Grating]
     protected val initialFilterLens: Lens[T, Option[Filter]]
@@ -307,7 +309,7 @@ object GmosSpectroscopyConfigPanel {
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
-                maskControl(props, disableAdvancedEdit),
+                maskControl(props),
                 OffsetsControl(
                   explicitOffsets(props.observingMode),
                   defaultOffsetsLens.get(props.observingMode.get),
@@ -535,6 +537,10 @@ object GmosSpectroscopyConfigPanel {
         GmosNorthFilter,
         GmosNorthFpu
       ] {
+
+    override protected def maskControl(
+      props: GmosNorthLongSlit
+    )(using MonadError[IO, Throwable], Dispatch[IO], Logger[IO]): VdomNode = EmptyVdom
 
     inline override protected def revertCustomizations(
       aligner: AA
@@ -820,6 +826,10 @@ object GmosSpectroscopyConfigPanel {
         GmosSouthFilter,
         GmosSouthFpu
       ] {
+
+    override protected def maskControl(
+      props: GmosSouthLongSlit
+    )(using MonadError[IO, Throwable], Dispatch[IO], Logger[IO]): VdomNode = EmptyVdom
 
     inline override protected def revertCustomizations(
       aligner: AA
@@ -1108,16 +1118,20 @@ object GmosSpectroscopyConfigPanel {
       Logger[IO]
     ): View[Option[Attachment.Id]]
 
-    override protected def maskControl(props: Props, disabled: Boolean)(using
+    override protected def maskControl(props: Props)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode =
+      // The mask is always selectable with full-edit permission — it is a routine assignment,
+      // not an advanced customization — so it is gated only on the permission tier, not on the
+      // Advanced Edit editState that slit width and grating require. It still locks on an
+      // executed observation (Readonly/OnlyForOngoing are not full-edit), staff included.
       MosMaskPicker(
         attachmentIdView = customMaskAttachmentId(props.observingMode),
-        attachments      = props.attachments,
-        attachmentIds    = props.attachmentIds,
-        disabled         = disabled
+        attachments = props.attachments,
+        attachmentIds = props.attachmentIds,
+        disabled = !props.permissions.isFullEdit
       )
   }
 
