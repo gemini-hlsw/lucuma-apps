@@ -88,7 +88,7 @@ object MosMaskPicker:
             id = "mos-mask",
             value = binding,
             options = options,
-            placeholder = "Not mask selected",
+            placeholder = "No mask selected",
             disabled = disabled,
             clazz = LucumaPrimeStyles.FormField,
             onChange = handleChange
