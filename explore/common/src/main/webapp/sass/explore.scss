@@ -2740,6 +2740,7 @@ img.partner-split-flag {
 .explore-border-table,
 table.explore-border-table {
   border: 1px solid var(--site-border-color);
+  border-top: 0;
   border-radius: var(--border-radius);
 }
 
