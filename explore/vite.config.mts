@@ -76,6 +76,30 @@ const pathExists = async (path: PathLike) => {
 };
 
 /**
+ * The dev (fastopt) worker bundle is a single huge file shared by all workers
+ * (ITC, AGS, Catalog, Plot, Horizons), each independently importing it at page
+ * load.
+ * Force `no-store` so the browser never tries to cache it.
+ */
+const noStoreForWorkersBundlePlugin = (): PluginOption => ({
+  name: 'no-store-for-workers-bundle',
+  configureServer(server) {
+    // Vite's own static/@fs middleware sets Cache-Control after ours would run,
+    // so patch res.setHeader for this request to force the value it lands on.
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.includes('-fastopt/exploreworkers.js')) {
+        const originalSetHeader = res.setHeader.bind(res);
+        res.setHeader = ((name: string, value: unknown) =>
+          name.toLowerCase() === 'cache-control'
+            ? originalSetHeader(name, 'no-store')
+            : originalSetHeader(name, value as never)) as typeof res.setHeader;
+      }
+      next();
+    });
+  },
+});
+
+/**
  * Vite plugin to reload the page when environment configuration changes
  */
 const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOption => ({
@@ -261,6 +285,7 @@ export default defineConfig(async ({ mode }) => {
       format: 'es', // We need this for workers to be able to do dynamic imports.
     },
     plugins: [
+      noStoreForWorkersBundlePlugin(),
       reloadEnvPlugin(publicDirProd, publicDirDev),
       mkcert({ hosts: ['localhost', 'local.lucuma.xyz', 'local.gemini.edu'] }),
       fontImport,
