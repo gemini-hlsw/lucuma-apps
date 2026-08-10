@@ -24,6 +24,7 @@ import lucuma.core.enums.MosPreImaging
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.math.Wavelength
+import lucuma.core.model.MaskDefinition
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
@@ -157,7 +158,7 @@ object Gmos {
     val order: Getter[D, Option[GmosController.Config.GratingOrder]]
     val wavelength: Getter[D, Option[Wavelength]]
     val builtinFpu: Getter[D, Option[GmosController.GmosSite.FPU[T]]]
-    val customFpu: Getter[D, Option[String]]
+    val customMask: Getter[D, Option[MaskDefinition]]
     val dtax: Getter[D, GmosController.Config.DTAX]
     val stageMode: Getter[S, GmosController.GmosSite.StageMode[T]]
     val nodAndShuffle: Getter[S, Option[GmosNodAndShuffle]]
@@ -185,11 +186,15 @@ object Gmos {
       .getOrElse(GmosController.Config.GmosGrating.Mirror())
 
   def fpuFromFPUnit[T <: GmosSite](
-    n: Option[GmosController.GmosSite.FPU[T]],
-    m: Option[String]
-  ): Option[GmosFPU[T]] =
-    n.map(GmosController.Config.BuiltInFPU[T].apply)
-      .orElse(m.map(GmosController.Config.CustomMaskFPU[T].apply))
+    n:           Option[GmosController.GmosSite.FPU[T]],
+    m:           Option[MaskDefinition],
+    customMasks: CustomMasks
+  ): Either[ObserveFailure, Option[GmosFPU[T]]] =
+    n.map(GmosController.Config.BuiltInFPU[T].apply.andThen(_.some.asRight))
+      .orElse(
+        m.map(customMasks.maskName(_).map(GmosController.Config.CustomMaskFPU[T].apply(_).some))
+      )
+      .getOrElse(none.asRight)
 
   def exposureTime(
     exp:      TimeSpan,
@@ -210,14 +215,15 @@ object Gmos {
     F[_],
     T <: GmosSite
   ](
-    stepType:   StepKind,
-    staticCfg:  GmosSite.StaticConfig[T],
-    dynamicCfg: GmosSite.DynamicConfig[T]
+    stepType:    StepKind,
+    staticCfg:   GmosSite.StaticConfig[T],
+    dynamicCfg:  GmosSite.DynamicConfig[T],
+    customMasks: CustomMasks
   )(using
-    getters:    ParamGetters[T]
-  ): GmosController.GmosConfig[T] = {
+    getters:     ParamGetters[T]
+  ): Either[ObserveFailure, GmosController.GmosConfig[T]] = {
 
-    def ccConfigFromSequenceConfig: Config.CCConfig[T] = {
+    def ccConfigFromSequenceConfig: Either[ObserveFailure, Config.CCConfig[T]] = {
       val isDarkOrBias: Boolean = stepType match {
         case StepKind.DarkOrBias(_)          => true
         case StepKind.DarkOrBiasNS(_)        => true
@@ -225,21 +231,26 @@ object Gmos {
         case _                               => false
       }
 
-      if (isDarkOrBias) Config.DarkOrBias[T]()
+      if (isDarkOrBias) Config.DarkOrBias[T]().asRight
       else
-        GmosController.Config.StandardCCConfig[T](
-          getters.filter.get(dynamicCfg),
-          calcDisperser[T](
-            getters.grating.get(dynamicCfg),
-            getters.order.get(dynamicCfg),
-            getters.wavelength.get(dynamicCfg)
-          ),
-          fpuFromFPUnit[T](getters.builtinFpu.get(dynamicCfg), getters.customFpu.get(dynamicCfg)),
-          getters.stageMode.get(staticCfg),
-          getters.dtax.get(dynamicCfg),
-          GmosAdc.Follow,
-          getters.nodAndShuffle.get(staticCfg).map(_.eOffset).getOrElse(GmosEOffsetting.Off)
-        )
+        fpuFromFPUnit[T](
+          getters.builtinFpu.get(dynamicCfg),
+          getters.customMask.get(dynamicCfg),
+          customMasks
+        ).map: fpu =>
+          GmosController.Config.StandardCCConfig[T](
+            getters.filter.get(dynamicCfg),
+            calcDisperser[T](
+              getters.grating.get(dynamicCfg),
+              getters.order.get(dynamicCfg),
+              getters.wavelength.get(dynamicCfg)
+            ),
+            fpu,
+            getters.stageMode.get(staticCfg),
+            getters.dtax.get(dynamicCfg),
+            GmosAdc.Follow,
+            getters.nodAndShuffle.get(staticCfg).map(_.eOffset).getOrElse(GmosEOffsetting.Off)
+          )
     }
 
     def extractROIs: RegionsOfInterest =
@@ -274,11 +285,12 @@ object Gmos {
       }
       .getOrElse(NsConfig.NoNodAndShuffle)
 
-    GmosController.GmosConfig[T](
-      ccConfigFromSequenceConfig,
-      dcConfigFromSequenceConfig(nsConfig),
-      nsConfig
-    )
+    ccConfigFromSequenceConfig.map: ccConfig =>
+      GmosController.GmosConfig[T](
+        ccConfig,
+        dcConfigFromSequenceConfig(nsConfig),
+        nsConfig
+      )
 
   }
 
@@ -335,7 +347,8 @@ object Gmos {
             targetEnvironment: TargetEnvironment,
             staticConfig:      S,
             odbStep:           Step[D],
-            observingTime:     Timestamp
+            observingTime:     Timestamp,
+            customMasks:       CustomMasks
           ): Either[ObserveFailure, InstrumentStep[F]] =
             Gmos
               .calcStepType[S](
@@ -345,40 +358,44 @@ object Gmos {
                 odbStep.observeClass,
                 getters.nodAndShuffle
               )
-              .map { stType =>
-                val config: GmosController.GmosConfig[T] = Gmos.buildConfig[F, T](
-                  stType,
-                  staticConfig,
-                  odbStep.instrumentConfig
-                )
-                new InstrumentStep[F] {
-                  override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-                    (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+              .flatMap { stType =>
+                Gmos
+                  .buildConfig[F, T](
+                    stType,
+                    staticConfig,
+                    odbStep.instrumentConfig,
+                    customMasks
+                  )
+                  .map { config =>
+                    new InstrumentStep[F] {
+                      override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+                        (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
 
-                  override def stepType: StepKind = stType
+                      override def stepType: StepKind = stType
 
-                  override def sfName: LightSinkName = LightSinkName.Gmos
+                      override def sfName: LightSinkName = LightSinkName.Gmos
 
-                  override def instrumentSystem(
-                    sysOverrides: SystemOverrides
-                  ): InstrumentSystem[F] = sysBuilder(systems, r, config)(sysOverrides)
+                      override def instrumentSystem(
+                        sysOverrides: SystemOverrides
+                      ): InstrumentSystem[F] = sysBuilder(systems, r, config)(sysOverrides)
 
-                  override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
-                    GmosHeader.header[F, T](
-                      kwClient,
-                      GmosObsKeywordsReader(staticConfig, odbStep.instrumentConfig),
-                      systems.systems.gmosKeywordReader,
-                      systems.systems.tcsKeywordReader
-                    )
+                      override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
+                        GmosHeader.header[F, T](
+                          kwClient,
+                          GmosObsKeywordsReader(staticConfig, odbStep.instrumentConfig),
+                          systems.systems.gmosKeywordReader,
+                          systems.systems.tcsKeywordReader
+                        )
 
-                  override def instrument: Instrument = gmosInstrument
+                      override def instrument: Instrument = gmosInstrument
 
-                  override def observeTimeout: TimeSpan =
-                    TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
+                      override def observeTimeout: TimeSpan =
+                        TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
 
-                  override def centralWavelength: Option[Wavelength] =
-                    getters.centralWavelength.get(odbStep.instrumentConfig)
-                }
+                      override def centralWavelength: Option[Wavelength] =
+                        getters.centralWavelength.get(odbStep.instrumentConfig)
+                    }
+                  }
               }
         }
       )
