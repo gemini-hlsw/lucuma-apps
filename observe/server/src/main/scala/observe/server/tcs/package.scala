@@ -53,10 +53,10 @@ object FocalPlaneScale:
 
 extension (a: Angle) {
   def iop: Quantity[Double, ArcSecond] =
-    Angle.signedDecimalMilliarcseconds.get(a).withUnit[ArcSecond].toValue[Double]
+    Angle.signedDecimalArcseconds.get(a).withUnit[ArcSecond].toValue[Double]
 
   def ioq: Quantity[Double, ArcSecond] =
-    Angle.signedDecimalMilliarcseconds.get(a).withUnit[ArcSecond].toValue[Double]
+    Angle.signedDecimalArcseconds.get(a).withUnit[ArcSecond].toValue[Double]
 }
 
 extension (o: Offset) {

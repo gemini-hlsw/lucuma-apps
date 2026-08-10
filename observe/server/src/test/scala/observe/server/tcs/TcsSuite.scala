@@ -10,6 +10,8 @@ import coulomb.units.accepted.ArcSecond
 import coulomb.units.accepted.Millimeter
 import edu.gemini.observe.server.tcs.BinaryOnOff
 import edu.gemini.observe.server.tcs.BinaryYesNo
+import lucuma.core.math.Angle
+import lucuma.core.math.Offset
 import lucuma.core.syntax.all.*
 import observe.server.tcs.FocalPlaneScale.*
 import observe.server.tcs.TcsController.FocalPlaneOffset
@@ -57,4 +59,13 @@ class TcsSuite extends munit.DisciplineSuite with TcsArbitraries:
       ),
       fpo
     )
+  }
+
+  test("Offset to InstrumentOffset is expressed in arcseconds") {
+    val offset = Offset(Offset.P(Angle.fromDoubleArcseconds(10.0)),
+                        Offset.Q(Angle.fromDoubleArcseconds(-5.0))
+    ).toInstrumentOffset
+
+    assertEqualsDouble(offset.p.value.value, 10.0, 1e-9)
+    assertEqualsDouble(offset.q.value.value, -5.0, 1e-9)
   }
