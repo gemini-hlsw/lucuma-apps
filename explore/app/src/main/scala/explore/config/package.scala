@@ -6,7 +6,10 @@ package explore.config
 import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
+import crystal.react.View
 import eu.timepit.refined.types.numeric.PosInt
+import explore.model.Attachment
+import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.enums.WavelengthUnits
 import explore.modes.ModeCommonWavelengths
@@ -22,6 +25,8 @@ import lucuma.core.validation.*
 import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.input.ChangeAuditor
+
+import scala.collection.immutable.SortedSet
 
 trait ConfigurationFormats:
   private lazy val angleArcsecondsBaseAuditor = ChangeAuditor
@@ -122,6 +127,12 @@ def useModeData(
                confMatrix.getRowByInstrumentConfig(obsMode)
   yield row.map(_.map(ModeData.fromSpectroscopyModeRow(_)))
 }
+
+final case class MosMaskContext(
+  attachments:      View[AttachmentList],
+  obsAttachmentIds: View[SortedSet[Attachment.Id]],
+  pickerActive:     Boolean
+)
 
 enum ConfigEditPermissions derives Eq:
   case Readonly, OnlyForOngoing, FullEdit

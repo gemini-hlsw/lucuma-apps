@@ -89,7 +89,8 @@ final case class ConfigurationTile(
   isStaffOrAdmin:           Boolean,
   targetView:               View[Option[ItcTarget]],
   hasMaterializedSequence:  Boolean,
-  modePending:              Boolean                    // observingMode detail still loading
+  modePending:              Boolean,                   // observingMode detail still loading
+  maskContext:              MosMaskContext
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
@@ -612,7 +613,8 @@ object ConfigurationTile
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.permissions,
-                        props.units
+                        props.units,
+                        props.maskContext
                       ),
                   // Gmos South MOS
                   optGmosSouthMosAligner.map: southMosAligner =>
@@ -626,7 +628,8 @@ object ConfigurationTile
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.permissions,
-                        props.units
+                        props.units,
+                        props.maskContext
                       ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
