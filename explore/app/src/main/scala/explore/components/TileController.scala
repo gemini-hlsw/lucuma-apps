@@ -29,6 +29,7 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import monocle.Traversal
+import org.scalajs.dom
 import queries.schemas.UserPreferencesDB
 
 import scala.concurrent.duration.*
@@ -37,7 +38,6 @@ import scala.scalajs.js.JSConverters.*
 case class TileController(
   userId:           Option[User.Id],
   gridWidth:        Int,
-  gridHeight:       Int,
   defaultLayout:    LayoutsMap,
   layoutMap:        LayoutsMap,
   tileDefs:         List[Tile[?]],
@@ -141,6 +141,13 @@ object TileController:
       yield
         import ctx.given
 
+        // The grid's own container is auto-sized to fit its rows (`autoSize = true` below), so
+        // it can't be the ceiling's source too: an auto-height tile capped by its own container
+        // would collapse the container, which would tighten the cap, indefinitely. The browser
+        // viewport can't be circular in that way, at the cost of not excluding other on-screen
+        // chrome (tab bars, headers) from the budget.
+        val viewportPx = dom.window.innerHeight.toInt
+
         def setSizeState(id: Tile.TileId) = (st: TileSizeState) =>
           currentLayout
             .zoom(allTiles)
@@ -150,7 +157,7 @@ object TileController:
                 else if (st === TileSizeState.Maximized)
                   if isAutoHeight(props.tiles, id.value) then
                     val measuredPx = lastMeasuredPx.get.getOrElse(id.value, 0)
-                    val restored   = resolveAutoHeight(l, measuredPx, props.gridHeight, false)
+                    val restored   = resolveAutoHeight(l, measuredPx, viewportPx, false)
                     restored.copy(minH = scala.math.max(l.minH.getOrElse(1), AutoHeightMinRows))
                   else
                     val defaultHeight =
@@ -169,7 +176,7 @@ object TileController:
               .zoom(allTiles)
               .mod:
                 case l if l.i === id.value =>
-                  resolveAutoHeight(l, measuredPx, props.gridHeight, minimized)
+                  resolveAutoHeight(l, measuredPx, viewportPx, minimized)
                 case l                     => l
               .when_(!gesturing.get)
 

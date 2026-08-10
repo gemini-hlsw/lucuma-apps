@@ -150,7 +150,8 @@ trait TileComponent[P <: Tile[P]](
         )
 
         val body: TagMod =
-          if props.autoHeight then <.div.withRef(contentResize.ref)(tileContents.body)
+          if props.autoHeight then
+            <.div.withRef(contentResize.ref)(ExploreStyles.AutoHeightTileContent, tileContents.body)
           else tileContents.body
 
         val bodyClass: Css =

@@ -63,7 +63,6 @@ object ObsGroupTiles
       TileController(
         props.userId,
         props.resize.width.orEmpty,
-        props.resize.height.orEmpty,
         props.defaultLayouts,
         props.layouts,
         List(editTile),
