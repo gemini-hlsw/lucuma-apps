@@ -445,7 +445,9 @@ object TcsKeywordsReaderEpics extends TcsKeywordDefaults {
     private val decoffIndex = 3L
 
     override def trackingRAOffset: F[Double] = {
-      def raOffset(off: Angle, dec: Angle): Angle = off * dec.cos
+      // The scaling must be done on the signed value, Angle multiplication works on [0, 360)
+      def raOffset(off: Angle, dec: Angle): Double =
+        Angle.signedDecimalArcseconds.get(off).toDouble * dec.cos
 
       sys.targetA
         .map(v =>
@@ -453,7 +455,6 @@ object TcsKeywordsReaderEpics extends TcsKeywordDefaults {
             .ap2(Option(raOffset(_, _)))(v.get(raoffIndex).map(Angle.fromDoubleRadians),
                                          v.get(decoffIndex).map(Angle.fromDoubleRadians)
             )
-            .map(Angle.signedDecimalArcseconds.get(_).toDouble)
         )
         .safeValOrDefault
     }
