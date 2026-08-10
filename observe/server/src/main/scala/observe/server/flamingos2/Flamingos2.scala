@@ -165,8 +165,10 @@ object Flamingos2 {
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]] = (
     new InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig] {
-      override def build(ctx: StepBuildContext[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
-        val StepBuildContext(systems, stepType, _, staticConf, step, _, customMasks) = ctx
+      override def build(
+        ctx: StepBuildContext[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]
+      ): Either[ObserveFailure, InstrumentStep[F]] =
+        import ctx.*
 
         (
           SeqTranslate.calcStepType(Instrument.Flamingos2, step.stepConfig, step.observeClass),

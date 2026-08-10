@@ -82,8 +82,10 @@ object Gnirs {
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
     new InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig] {
-      override def build(ctx: StepBuildContext[F, GnirsStaticConfig, GnirsDynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
-        val StepBuildContext(systems, stepType, _, staticConf, step, _, _) = ctx
+      override def build(
+        ctx: StepBuildContext[F, GnirsStaticConfig, GnirsDynamicConfig]
+      ): Either[ObserveFailure, InstrumentStep[F]] =
+        import ctx.*
         SeqTranslate.calcStepType(Instrument.Gnirs, step.stepConfig, step.observeClass).map {
           stepKind =>
             val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, stepType)

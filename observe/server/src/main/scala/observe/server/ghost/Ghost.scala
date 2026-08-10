@@ -117,10 +117,10 @@ object Ghost {
     conditionsRef: Ref[F, CurrentConditions]
   ): F[InstrumentStepBuilder[F, GhostStaticConfig, GhostDynamicConfig]] =
     new InstrumentStepBuilder[F, GhostStaticConfig, GhostDynamicConfig] {
-      override def build(ctx: StepBuildContext[F, GhostStaticConfig, GhostDynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
-        val StepBuildContext(
-          systems, _, targetEnvironment, staticConf, step, observingTime, _
-        ) = ctx
+      override def build(
+        ctx: StepBuildContext[F, GhostStaticConfig, GhostDynamicConfig]
+      ): Either[ObserveFailure, InstrumentStep[F]] =
+        import ctx.*
         for {
           stType <-
             SeqTranslate.calcStepType(specifics.instrument, step.stepConfig, step.observeClass)

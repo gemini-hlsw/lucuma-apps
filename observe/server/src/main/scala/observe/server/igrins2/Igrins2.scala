@@ -109,8 +109,10 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 object Igrins2:
   def build[F[_]: {MonadThrow, Temporal, Logger}] =
     new InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig] {
-      override def build(ctx: StepBuildContext[F, Igrins2StaticConfig, Igrins2DynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
-        val StepBuildContext(systems, _, _, _, step, _, _) = ctx
+      override def build(
+        ctx: StepBuildContext[F, Igrins2StaticConfig, Igrins2DynamicConfig]
+      ): Either[ObserveFailure, InstrumentStep[F]] =
+        import ctx.*
         SeqTranslate.calcStepType(Instrument.Igrins2, step.stepConfig, step.observeClass).map {
           stepKind =>
             val config: Igrins2Config =

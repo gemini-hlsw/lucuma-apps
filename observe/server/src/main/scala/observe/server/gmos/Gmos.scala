@@ -337,22 +337,24 @@ object Gmos {
       .of[F, Option[NSObserveCommand]](none)
       .map(r =>
         new InstrumentStepBuilder[F, S, D] {
-          override def build(ctx: StepBuildContext[F, S, D]): Either[ObserveFailure, InstrumentStep[F]] =
-            val StepBuildContext(systems, _, _, staticConfig, odbStep, _, customMasks) = ctx
+          override def build(
+            ctx: StepBuildContext[F, S, D]
+          ): Either[ObserveFailure, InstrumentStep[F]] =
+            import ctx.*
             Gmos
               .calcStepType[S](
                 gmosInstrument,
-                odbStep.stepConfig,
-                staticConfig,
-                odbStep.observeClass,
+                step.stepConfig,
+                staticConf,
+                step.observeClass,
                 getters.nodAndShuffle
               )
               .flatMap { stType =>
                 Gmos
                   .buildConfig[F, T](
                     stType,
-                    staticConfig,
-                    odbStep.instrumentConfig,
+                    staticConf,
+                    step.instrumentConfig,
                     customMasks
                   )
                   .map { config =>
@@ -371,7 +373,7 @@ object Gmos {
                       override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
                         GmosHeader.header[F, T](
                           kwClient,
-                          GmosObsKeywordsReader(staticConfig, odbStep.instrumentConfig),
+                          GmosObsKeywordsReader(staticConf, step.instrumentConfig),
                           systems.systems.gmosKeywordReader,
                           systems.systems.tcsKeywordReader
                         )
@@ -382,7 +384,7 @@ object Gmos {
                         TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
 
                       override def centralWavelength: Option[Wavelength] =
-                        getters.centralWavelength.get(odbStep.instrumentConfig)
+                        getters.centralWavelength.get(step.instrumentConfig)
                     }
                   }
               }
