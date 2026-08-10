@@ -19,13 +19,10 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.Timestamp
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
@@ -168,15 +165,8 @@ object Flamingos2 {
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]] = (
     new InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig] {
-      override def build(
-        systems:           Systems.OverriddenSystems[F],
-        stepType:          CoreStepType,
-        targetEnvironment: TargetEnvironment,
-        staticConf:        Flamingos2StaticConfig,
-        step:              Step[Flamingos2DynamicConfig],
-        observingTime:     Timestamp,
-        customMasks:       CustomMasks
-      ): Either[ObserveFailure, InstrumentStep[F]] =
+      override def build(ctx: StepBuildContext[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
+        val StepBuildContext(systems, stepType, _, staticConf, step, _, customMasks) = ctx
 
         (
           SeqTranslate.calcStepType(Instrument.Flamingos2, step.stepConfig, step.observeClass),

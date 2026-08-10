@@ -10,14 +10,10 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
-import lucuma.core.enums.StepType as OcsStepType
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.Timestamp
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
@@ -86,15 +82,8 @@ object Gnirs {
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
     new InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig] {
-      override def build(
-        systems:           Systems.OverriddenSystems[F],
-        stepType:          OcsStepType,
-        targetEnvironment: TargetEnvironment,
-        staticConf:        GnirsStaticConfig,
-        step:              Step[GnirsDynamicConfig],
-        observingTime:     Timestamp,
-        customMasks:       CustomMasks
-      ): Either[ObserveFailure, InstrumentStep[F]] =
+      override def build(ctx: StepBuildContext[F, GnirsStaticConfig, GnirsDynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
+        val StepBuildContext(systems, stepType, _, staticConf, step, _, _) = ctx
         SeqTranslate.calcStepType(Instrument.Gnirs, step.stepConfig, step.observeClass).map {
           stepKind =>
             val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, stepType)

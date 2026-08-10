@@ -22,18 +22,14 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MosPreImaging
 import lucuma.core.enums.ObserveClass
-import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.math.Wavelength
 import lucuma.core.model.MaskDefinition
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.Timestamp
 import monocle.Getter
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.GmosParameters.*
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
@@ -341,15 +337,8 @@ object Gmos {
       .of[F, Option[NSObserveCommand]](none)
       .map(r =>
         new InstrumentStepBuilder[F, S, D] {
-          override def build(
-            systems:           Systems.OverriddenSystems[F],
-            coreStepType:      CoreStepType,
-            targetEnvironment: TargetEnvironment,
-            staticConfig:      S,
-            odbStep:           Step[D],
-            observingTime:     Timestamp,
-            customMasks:       CustomMasks
-          ): Either[ObserveFailure, InstrumentStep[F]] =
+          override def build(ctx: StepBuildContext[F, S, D]): Either[ObserveFailure, InstrumentStep[F]] =
+            val StepBuildContext(systems, _, _, staticConfig, odbStep, _, customMasks) = ctx
             Gmos
               .calcStepType[S](
                 gmosInstrument,

@@ -10,14 +10,10 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
-import lucuma.core.enums.StepType as OcsStepType
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.Timestamp
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.ObserveStage
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
@@ -113,15 +109,8 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 object Igrins2:
   def build[F[_]: {MonadThrow, Temporal, Logger}] =
     new InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig] {
-      override def build(
-        systems:           Systems.OverriddenSystems[F],
-        stepType:          OcsStepType,
-        targetEnvironment: TargetEnvironment,
-        staticConf:        Igrins2StaticConfig,
-        step:              Step[Igrins2DynamicConfig],
-        observingTime:     Timestamp,
-        customMasks:       CustomMasks
-      ): Either[ObserveFailure, InstrumentStep[F]] =
+      override def build(ctx: StepBuildContext[F, Igrins2StaticConfig, Igrins2DynamicConfig]): Either[ObserveFailure, InstrumentStep[F]] =
+        val StepBuildContext(systems, _, _, _, step, _, _) = ctx
         SeqTranslate.calcStepType(Instrument.Igrins2, step.stepConfig, step.observeClass).map {
           stepKind =>
             val config: Igrins2Config =

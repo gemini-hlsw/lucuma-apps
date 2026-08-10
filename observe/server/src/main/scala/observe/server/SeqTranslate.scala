@@ -258,13 +258,15 @@ object SeqTranslate {
         .map: (step, atomId, seqType) =>
           insStepBuilder
             .build(
-              overriddenSystems,
-              step.stepConfig.stepType,
-              observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
-              executionConfig.static,
-              step,
-              obsTime,
-              CustomMasks.fromAttachments(observation.attachments)
+              StepBuildContext(
+                overriddenSystems,
+                step.stepConfig.stepType,
+                observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
+                executionConfig.static,
+                step,
+                obsTime,
+                CustomMasks.fromAttachments(observation.attachments)
+              )
             )
             .map: insStep =>
               translateStep(
