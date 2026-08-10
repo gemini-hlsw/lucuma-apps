@@ -1,8 +1,6 @@
 import react from '@vitejs/plugin-react';
 import type { PathLike } from 'fs';
 import fs from 'fs/promises';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import path from 'path';
 import Unfonts from 'unplugin-fonts/vite';
 import { defineConfig, PluginOption, UserConfig } from 'vite';
@@ -76,6 +74,30 @@ const pathExists = async (path: PathLike) => {
 };
 
 /**
+ * The dev (fastopt) worker bundle is a single huge file shared by all workers
+ * (ITC, AGS, Catalog, Plot, Horizons), each independently importing it at page
+ * load.
+ * Force `no-store` so the browser never tries to cache it.
+ */
+const noStoreForWorkersBundlePlugin = (): PluginOption => ({
+  name: 'no-store-for-workers-bundle',
+  configureServer(server) {
+    // Vite's own static/@fs middleware sets Cache-Control after ours would run,
+    // so patch res.setHeader for this request to force the value it lands on.
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.includes('-fastopt/exploreworkers.js')) {
+        const originalSetHeader = res.setHeader.bind(res);
+        res.setHeader = ((name: string, value: unknown) =>
+          name.toLowerCase() === 'cache-control'
+            ? originalSetHeader(name, 'no-store')
+            : originalSetHeader(name, value as never)) as typeof res.setHeader;
+      }
+      next();
+    });
+  },
+});
+
+/**
  * Vite plugin to reload the page when environment configuration changes
  */
 const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOption => ({
@@ -113,8 +135,7 @@ const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOpt
 
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
-  const _dirname =
-    typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url));
+  const _dirname = import.meta.dirname;
   const scalaClassesDir = path.resolve(_dirname, `app/target/scala-${scalaVersion}`);
   const isProduction = mode === 'production';
   const sjs = isProduction
@@ -261,6 +282,7 @@ export default defineConfig(async ({ mode }) => {
       format: 'es', // We need this for workers to be able to do dynamic imports.
     },
     plugins: [
+      noStoreForWorkersBundlePlugin(),
       reloadEnvPlugin(publicDirProd, publicDirDev),
       mkcert({ hosts: ['localhost', 'local.lucuma.xyz', 'local.gemini.edu'] }),
       fontImport,
