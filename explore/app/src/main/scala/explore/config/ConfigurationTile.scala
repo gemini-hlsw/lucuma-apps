@@ -19,12 +19,12 @@ import explore.common.ScienceQueries.UpdateScienceRequirements
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.Attachment
+import explore.model.AttachmentList
 import explore.model.IsActive
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSetEditInfo
 import explore.model.ObsTabTileIds
-import explore.model.Attachment
-import explore.model.AttachmentList
 import explore.model.Observation
 import explore.model.ObservingModeGroupList
 import explore.model.ObservingModeSummary
@@ -93,7 +93,8 @@ final case class ConfigurationTile(
   hasMaterializedSequence:  Boolean,
   modePending:              Boolean,                   // observingMode detail still loading
   attachments:              View[AttachmentList],
-  attachmentIds:            View[SortedSet[Attachment.Id]]
+  obsAttachmentIds:         View[SortedSet[Attachment.Id]],
+  maskPickerActive:         Boolean
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
@@ -618,7 +619,8 @@ object ConfigurationTile
                         props.permissions,
                         props.units,
                         props.attachments,
-                        props.attachmentIds
+                        props.obsAttachmentIds,
+                        props.maskPickerActive
                       ),
                   // Gmos South MOS
                   optGmosSouthMosAligner.map: southMosAligner =>
@@ -634,7 +636,8 @@ object ConfigurationTile
                         props.permissions,
                         props.units,
                         props.attachments,
-                        props.attachmentIds
+                        props.obsAttachmentIds,
+                        props.maskPickerActive
                       ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>

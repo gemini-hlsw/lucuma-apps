@@ -411,9 +411,13 @@ object ObsTabTiles:
               case PosAngleConstraint.AllowFlip(angle)           => flipIfNeeded(angle.some)
               case PosAngleConstraint.ParallacticOverride(angle) => angle.some
 
+          // Science programs only clear this once their proposal is accepted
+          // non-Science programs (engineering, calibration, etc.) are always considered past
+          val pastProposalReview = props.programSummaries.proposalIsAccepted ||
+            props.programSummaries.optProgramDetails.exists(_.programType =!= ProgramType.Science)
+
           // hide the finder charts and notes tiles for science programs if the proposal has not been accepted
-          val hideTiles = !props.programSummaries.proposalIsAccepted &&
-            props.programSummaries.optProgramDetails.forall(_.programType === ProgramType.Science)
+          val hideTiles = !pastProposalReview
 
           val finderChartsTile =
             FinderChartsTile(
@@ -777,7 +781,8 @@ object ObsTabTiles:
               props.observation.get.hasMaterializedSequence,
               props.observation.get.observingMode.isPending,
               props.attachments,
-              attachmentsView
+              attachmentsView,
+              pastProposalReview
             )
 
           val alltiles: List[Tile[?]] =

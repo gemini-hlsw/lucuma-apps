@@ -30,6 +30,7 @@ import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
+import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.math.Offset
@@ -58,7 +59,6 @@ import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.SortedSet
-import japgolly.scalajs.react.util.Effect.Dispatch
 
 object GmosSpectroscopyConfigPanel {
   sealed trait GmosSpectroscopyConfigPanel[T <: ObservingMode, Input] {
@@ -79,13 +79,12 @@ object GmosSpectroscopyConfigPanel {
   }
 
   /**
-   * Props carried only by the GMOS MOS panels: the program's attachments (read-only, to populate
-   * the mask picker) and the observation's attachment set (writable, to mirror a binding into
-   * attachment tagging). See ADR-0005.
+   * Props carried only by the GMOS MOS panels to select MOS mask attachments
    */
   trait GmosMosConfigPanel[T <: ObservingMode, Input] extends GmosSpectroscopyConfigPanel[T, Input]:
     def attachments: View[AttachmentList]
-    def attachmentIds: View[SortedSet[Attachment.Id]]
+    def obsAttachmentIds: View[SortedSet[Attachment.Id]]
+    def maskPickerActive: Boolean
 
   sealed abstract class GmosSpectroscopyConfigPanelBuilder[
     T <: ObservingMode,
@@ -179,16 +178,26 @@ object GmosSpectroscopyConfigPanel {
       Logger[IO]
     ): VdomNode
 
-    /**
-     * Control rendered directly under the FPU select. Overridden by the MOS builder to render the
-     * mask picker; the default is empty so long slit panels are unaffected. The params are part of
-     * the override contract (used only by the MOS override), hence `@unused` here.
-     */
     protected def maskControl(props: Props)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode
+
+    /**
+     * Whether the FPU select is shown at all.
+     *
+     * Long slit panels always show it (the default).
+     *
+     * For MOS: once the proposal is accepted, the mask picker (`maskControl`) takes over as the
+     * mask-selection control, and the "Custom Slit Width" select only reappears as a fallback while
+     * no mask is bound yet.
+     */
+    protected def fpuControlVisible(props: Props)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): Boolean = true
 
     protected val initialGratingLens: Lens[T, Grating]
     protected val initialFilterLens: Lens[T, Option[Filter]]
@@ -308,7 +317,7 @@ object GmosSpectroscopyConfigPanel {
                   exclude = excludedFpus,
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
-                ),
+                ).when(fpuControlVisible(props)),
                 maskControl(props),
                 OffsetsControl(
                   explicitOffsets(props.observingMode),
@@ -1118,36 +1127,50 @@ object GmosSpectroscopyConfigPanel {
       Logger[IO]
     ): View[Option[Attachment.Id]]
 
+    /** True once a mask attachment has been bound */
+    private def maskIsBound(props: Props)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): Boolean = customMaskAttachmentId(props.observingMode).get.isDefined
+
     override protected def maskControl(props: Props)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode =
-      // The mask is always selectable with full-edit permission — it is a routine assignment,
-      // not an advanced customization — so it is gated only on the permission tier, not on the
-      // Advanced Edit editState that slit width and grating require. It still locks on an
-      // executed observation (Readonly/OnlyForOngoing are not full-edit), staff included.
-      MosMaskPicker(
-        attachmentIdView = customMaskAttachmentId(props.observingMode),
-        attachments = props.attachments,
-        attachmentIds = props.attachmentIds,
-        disabled = !props.permissions.isFullEdit
-      )
+      // Only shown once the proposal is accepted
+      if (props.maskPickerActive)
+        MosMaskPicker(
+          attachmentIdView = customMaskAttachmentId(props.observingMode),
+          attachments = props.attachments,
+          obsAttachmentIds = props.obsAttachmentIds,
+          disabled = !props.permissions.isFullEdit
+        )
+      else EmptyVdom
+
+    override protected def fpuControlVisible(props: Props)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): Boolean =
+      !props.maskPickerActive || !maskIsBound(props)
   }
 
   // Gmos North MOS
   case class GmosNorthMos(
-    programId:       Program.Id,
-    obsId:           Observation.Id,
-    calibrationRole: Option[CalibrationRole],
-    observingMode:   Aligner[ObservingMode.GmosNorthMos, GmosNorthMosInput],
-    revertConfig:    IO[Unit],
-    confMatrix:      SpectroscopyModesMatrix,
-    sequenceChanged: Callback,
-    permissions:     ConfigEditPermissions,
-    units:           WavelengthUnits,
-    attachments:     View[AttachmentList],
-    attachmentIds:   View[SortedSet[Attachment.Id]]
+    programId:        Program.Id,
+    obsId:            Observation.Id,
+    calibrationRole:  Option[CalibrationRole],
+    observingMode:    Aligner[ObservingMode.GmosNorthMos, GmosNorthMosInput],
+    revertConfig:     IO[Unit],
+    confMatrix:       SpectroscopyModesMatrix,
+    sequenceChanged:  Callback,
+    permissions:      ConfigEditPermissions,
+    units:            WavelengthUnits,
+    attachments:      View[AttachmentList],
+    obsAttachmentIds: View[SortedSet[Attachment.Id]],
+    maskPickerActive: Boolean
   ) extends ReactFnProps[GmosSpectroscopyConfigPanel.GmosNorthMos](
         GmosSpectroscopyConfigPanel.GmosNorthMos.component
       )
@@ -1371,17 +1394,18 @@ object GmosSpectroscopyConfigPanel {
 
   // Gmos South MOS
   case class GmosSouthMos(
-    programId:       Program.Id,
-    obsId:           Observation.Id,
-    calibrationRole: Option[CalibrationRole],
-    observingMode:   Aligner[ObservingMode.GmosSouthMos, GmosSouthMosInput],
-    revertConfig:    IO[Unit],
-    confMatrix:      SpectroscopyModesMatrix,
-    sequenceChanged: Callback,
-    permissions:     ConfigEditPermissions,
-    units:           WavelengthUnits,
-    attachments:     View[AttachmentList],
-    attachmentIds:   View[SortedSet[Attachment.Id]]
+    programId:        Program.Id,
+    obsId:            Observation.Id,
+    calibrationRole:  Option[CalibrationRole],
+    observingMode:    Aligner[ObservingMode.GmosSouthMos, GmosSouthMosInput],
+    revertConfig:     IO[Unit],
+    confMatrix:       SpectroscopyModesMatrix,
+    sequenceChanged:  Callback,
+    permissions:      ConfigEditPermissions,
+    units:            WavelengthUnits,
+    attachments:      View[AttachmentList],
+    obsAttachmentIds: View[SortedSet[Attachment.Id]],
+    maskPickerActive: Boolean
   ) extends ReactFnProps[GmosSpectroscopyConfigPanel.GmosSouthMos](
         GmosSpectroscopyConfigPanel.GmosSouthMos.component
       )
