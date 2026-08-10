@@ -1700,7 +1700,7 @@ svg.fa-check.explore-success-icon {
 
   .recent-program-link.p-menuitem {
     width: 100%;
-    max-width: 500px;
+    max-width: min(700px, 90vw);
 
     .p-menuitem-content {
       width: 100%;
@@ -1716,8 +1716,11 @@ svg.fa-check.explore-success-icon {
     justify-content: space-between;
 
     .recent-program-id {
+      @include lucumaUICommon.text-ellipsis;
+
       margin-right: 1rem;
-      width: 120px;
+      width: 200px;
+      font-size: 0.85em;
     }
 
     .recent-program-name {
@@ -1726,6 +1729,19 @@ svg.fa-check.explore-success-icon {
 
     &:hover {
       background: var(--highlight-bg);
+    }
+
+    // on mobile keep only the reference/id.
+    @media (max-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      .recent-program-id {
+        width: auto;
+        flex: 1;
+        margin-right: 0;
+      }
+
+      .recent-program-name {
+        display: none;
+      }
     }
   }
 
