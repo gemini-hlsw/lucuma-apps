@@ -1,8 +1,6 @@
 import react from '@vitejs/plugin-react';
 import type { PathLike } from 'fs';
 import fs from 'fs/promises';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import path from 'path';
 import Unfonts from 'unplugin-fonts/vite';
 import { defineConfig, PluginOption, UserConfig } from 'vite';
@@ -137,8 +135,7 @@ const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOpt
 
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
-  const _dirname =
-    typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url));
+  const _dirname = import.meta.dirname;
   const scalaClassesDir = path.resolve(_dirname, `app/target/scala-${scalaVersion}`);
   const isProduction = mode === 'production';
   const sjs = isProduction
