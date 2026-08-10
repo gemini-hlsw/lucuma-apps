@@ -8,8 +8,8 @@ import cats.*
 import cats.syntax.all.*
 import coulomb.*
 import coulomb.units.mks.Pascal
-import coulomb.units.si.Second
 import coulomb.units.temperature.Fahrenheit
+import coulomb.units.time.Hour
 import coulomb.units.us.Mile
 import lucuma.core.enums.ExecutionEnvironment
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
@@ -53,7 +53,7 @@ object GwsHeader {
                           KeywordName.DEWPOIN2
               ),
               buildDouble(gwsReader.windVelocity.map(_.value), KeywordName.WINDSPEE),
-              buildDouble(gwsReader.windVelocity.map(_.toUnit[Mile / Second].value),
+              buildDouble(gwsReader.windVelocity.map(_.toUnit[Mile / Hour].value),
                           KeywordName.WINDSPE2
               ),
               buildDouble(gwsReader.windDirection.map(_.toDoubleDegrees), KeywordName.WINDDIRE)
