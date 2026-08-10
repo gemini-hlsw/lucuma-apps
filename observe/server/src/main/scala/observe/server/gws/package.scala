@@ -16,7 +16,7 @@ package object gws {
 
   final type MillimeterOfMercury
   given unit_MillimeterOfMercury
-    : DerivedUnit[MillimeterOfMercury, 1013.25 * Millibar, "Millimeter of mercury", "mmHg"] =
+    : DerivedUnit[MillimeterOfMercury, 1.33322387415 * Millibar, "Millimeter of mercury", "mmHg"] =
     DerivedUnit()
 
 }
