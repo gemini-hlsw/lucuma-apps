@@ -18,6 +18,7 @@ import explore.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationTile
+import explore.config.MosMaskContext
 import explore.config.sequence.SequenceTile
 import explore.findercharts.FinderChartsTile
 import explore.itc.ItcEmptyTile
@@ -780,9 +781,11 @@ object ObsTabTiles:
               selectedItcTarget,
               props.observation.get.hasMaterializedSequence,
               props.observation.get.observingMode.isPending,
-              props.attachments,
-              attachmentsView,
-              pastProposalReview
+              MosMaskContext(
+                props.attachments,
+                attachmentsView,
+                pastProposalReview
+              )
             )
 
           val alltiles: List[Tile[?]] =

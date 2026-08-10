@@ -24,8 +24,7 @@ import lucuma.ui.primereact.*
 import scala.collection.immutable.SortedSet
 
 /**
- * Single-select picker for the MOS mask bound to a GMOS MOS observation's
- * `customMask.attachmentId`.
+ * Single-select picker for the MOS mask bound to a MOS observation
  */
 final case class MosMaskPicker(
   attachmentIdView: View[Option[Attachment.Id]],
