@@ -1992,6 +1992,7 @@ svg.fa-check.explore-success-icon {
     display: grid;
     padding-top: 0.5em;
     gap: 0.5em;
+
     // Column order follows the DOM order of the ExposureTimeMode controls.  They
     // are placed by column but auto-placed by row, so a column that precedes the
     // previous control's would push it onto a new row.
