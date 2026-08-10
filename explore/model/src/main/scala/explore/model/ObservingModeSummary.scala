@@ -55,6 +55,7 @@ import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
 import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
 import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
 import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
+import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyWavelengthInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
@@ -283,8 +284,12 @@ enum ObservingModeSummary derives Order:
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,
-          centralWavelength = centralWavelength.value.toInput.assign,
-          exposureTimeMode = etm.toInput.assign
+          centralWavelengths = List(
+            GnirsSpectroscopyWavelengthInput(
+              centralWavelength = centralWavelength.value.toInput,
+              exposureTimeMode = etm.toInput.assign
+            )
+          ).assign
         )
       )
     case GhostIfu(resolutionMode, stepCount, red, blue)                                    =>
@@ -507,13 +512,15 @@ object ObservingModeSummary:
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
       case g: ObservingMode.GnirsSpectroscopy  =>
+        // The summary keeps one representative wavelength (the first, i.e. the
+        // shortest) with its exposure time mode.
         GnirsSpectroscopy(g.filter,
                           g.fpu,
                           g.prism,
                           g.grating,
                           g.camera,
-                          g.centralWavelength,
-                          g.exposureTimeMode
+                          g.centralWavelengths.head.centralWavelength,
+                          g.centralWavelengths.head.exposureTimeMode
         )
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)

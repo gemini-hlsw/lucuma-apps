@@ -3,6 +3,7 @@
 
 package explore.itc
 
+import cats.Order.given
 import cats.data.EitherNec
 import cats.effect.IO
 import cats.syntax.all.*
@@ -16,12 +17,14 @@ import eu.timepit.refined.types.numeric.PosInt
 import explore.common.UserPreferencesQueries.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
+import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.Constants
 import explore.model.GlobalPreferences
 import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.TargetList
+import explore.model.enums.WavelengthUnits
 import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.ItcInstrumentConfig
@@ -39,6 +42,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.SelectItem
 import lucuma.refined.*
 import lucuma.ui.format.*
+import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 
@@ -66,12 +70,26 @@ object ItcSpectroscopyTile
       for
         ctx         <- useContext(AppContext.ctx)
         tileState   <- useStateView(ItcTileState.Empty)
+        // One configuration per central wavelength for GNIRS spectroscopy; a
+        // single one for every other spectroscopy mode.
+        wavelengths  =
+          props.observation
+            .toInstrumentConfig(props.obsTargets)
+            .flatMap(ItcGraphQuerier.centralWavelength)
+            .distinct
+            .sorted
+        _           <- // Pick a wavelength, and re-pick if the list changes under us.
+          useEffectWithDeps(wavelengths): ws =>
+            val selected = tileState.zoom(ItcTileState.selectedWavelength)
+            if selected.get.exists(ws.contains) then Callback.empty
+            else selected.set(ws.headOption)
         graphQuerier =
           ItcGraphQuerier(
             props.observation,
             props.selectedConfig,
             props.obsTargets,
-            props.customSedTimestamps
+            props.customSedTimestamps,
+            tileState.get.selectedWavelength
           )
         _           <-
           useEffectWithDeps(graphQuerier): querier =>
@@ -124,11 +142,39 @@ object ItcSpectroscopyTile
           tileState.get.targetResults
             .map(t => SelectItem(label = t.target.name.value, value = t))
 
+        // GNIRS spectroscopy has a configuration -- and so a graph -- per central
+        // wavelength.  Offer a selector when there is more than one; other modes
+        // have a single configuration and get nothing.
+        // Label in the user's preferred wavelength units, as the rest of the UI does.
+        val units: WavelengthUnits = props.globalPreferences.get.wavelengthUnits
+
+        val wavelengthOptions =
+          wavelengths.map: w =>
+            SelectItem(
+              label = s"${units.toInputFormat.reverseGet(w)} ${units.symbol}",
+              value = w
+            )
+
+        val wavelengthSelector: Option[VdomNode] =
+          Option.when(wavelengths.sizeIs > 1):
+            React.Fragment(
+              <.label("λ:"),
+              Dropdown(
+                clazz = ExploreStyles.ItcTileTargetSelector,
+                value = tileState.get.selectedWavelength.getOrElse(wavelengths.head),
+                onChange =
+                  (w: Wavelength) => tileState.zoom(ItcTileState.selectedWavelength).set(w.some),
+                options = wavelengthOptions
+              )
+            )
+
         val title: VdomNode =
           // The only way this should be empty is if there are no targets in the results.
           tileState.get.selectedTarget.map: (gr: TargetAndResults) =>
             <.div(
               ExploreStyles.ItcTileTitle,
+              ExploreStyles.ItcTileTitleWithWavelength.when_(wavelengthSelector.isDefined),
+              wavelengthSelector,
               <.label(s"Target:"),
               Dropdown(
                 clazz = ExploreStyles.ItcTileTargetSelector,

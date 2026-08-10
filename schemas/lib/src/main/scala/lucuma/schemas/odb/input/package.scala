@@ -754,13 +754,18 @@ extension (a: ObservingMode.GnirsSpectroscopy)
       .orUnassign,
     prism = a.prism.assign,
     camera = a.camera.assign,
-    centralWavelength = a.centralWavelength.value.toInput.assign,
+    centralWavelengths = a.centralWavelengths.toList.map(_.toInput).assign,
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,
-    exposureTimeMode = a.exposureTimeMode.toInput.assign,
-    coadds = a.coadds.assign,
     acquisition = a.acquisition.toInput.assign
+  )
+
+extension (a: ObservingMode.GnirsSpectroscopy.ScienceWavelength)
+  def toInput: GnirsSpectroscopyWavelengthInput = GnirsSpectroscopyWavelengthInput(
+    centralWavelength = a.centralWavelength.value.toInput,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    coadds = a.coadds.assign
   )
 
 extension (d: ObservingMode.GhostIfu.GhostDetector)
@@ -963,7 +968,9 @@ extension (i: BasicConfiguration)
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,
-          centralWavelength = centralWavelength.value.toInput.assign
+          centralWavelengths = List(
+            GnirsSpectroscopyWavelengthInput(centralWavelength = centralWavelength.value.toInput)
+          ).assign
         )
     case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter, scienceFovDiameter)     =>
       ObservingModeInput.Visitor:

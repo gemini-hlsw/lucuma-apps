@@ -15,7 +15,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.config.offsets.IfuTelescopeConfigsEditor
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.SlitTelescopeConfigsEditor
@@ -153,12 +152,20 @@ object GnirsSpectroscopyPanel
           )
           .view(_.assign)
 
-        val centralWavelengthView: View[Wavelength] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.centralWavelength.andThen(CentralWavelength.Value),
-            GnirsSpectroscopyInput.centralWavelength.modify
-          )
-          .view(_.toInput.assign)
+        val centralWavelengthsView
+          : View[NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]] =
+          props.observingMode
+            .zoom(
+              ObservingMode.GnirsSpectroscopy.centralWavelengths,
+              GnirsSpectroscopyInput.centralWavelengths.modify
+            )
+            .view(_.toList.map(_.toInput).assign)
+
+        // Where a single representative wavelength is needed (the along-slit offset
+        // defaults are computed from the grating setting), use the first, which is
+        // the shortest and the one the sequence starts at.
+        val primaryWavelength: Wavelength =
+          centralWavelengthsView.get.head.centralWavelength.value
 
         val cameraView: View[GnirsCamera] = props.observingMode
           .zoom(
@@ -180,20 +187,6 @@ object GnirsSpectroscopyPanel
             GnirsSpectroscopyInput.explicitWellDepth.modify
           )
           .view(_.orUnassign)
-
-        val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.exposureTimeMode,
-            GnirsSpectroscopyInput.exposureTimeMode.modify
-          )
-          .view(_.toInput.assign)
-
-        val coaddsView: View[PosInt] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.coadds,
-            GnirsSpectroscopyInput.coadds.modify
-          )
-          .view(_.assign)
 
         val slitTelescopeConfigsViewOpt: Option[View[Option[SlitTelescopeConfigs]]] =
           slitAlignerOpt.map(
@@ -374,21 +367,6 @@ object GnirsSpectroscopyPanel
                 allowRevertCustomization = allowRevertCustomization,
                 useLongName = true
               ),
-              CustomizableInputText(
-                id = "central-wavelength".refined,
-                value = centralWavelengthView,
-                defaultValue = props.observingMode.get.initialCentralWavelength.value,
-                label = React.Fragment(
-                  "Wavelength",
-                  HelpIcon("configuration/gnirs/wavelength.md".refined)
-                ),
-                units = props.units.symbol.some,
-                validFormat = props.units.toInputFormat,
-                changeAuditor = props.units.toAuditor,
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
               CustomizableEnumSelect(
                 id = "camera".refined,
                 view = cameraView,
@@ -442,19 +420,6 @@ object GnirsSpectroscopyPanel
                 allowRevertCustomization = allowRevertCustomization
               )
             ),
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              ExposureTimeModeEditor(
-                instrument = props.observingMode.get.instrument,
-                wavelength = none,
-                exposureTimeMode = exposureTimeMode,
-                coadds = coaddsView.some,
-                scienceMode = ScienceMode.Spectroscopy,
-                readonly = !props.permissions.isFullEdit,
-                units = props.units,
-                calibrationRole = props.calibrationRole,
-                idPrefix = "gnirsSpectroscopy".refined
-              )
-            ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
               ifuTelescopeConfigsViewOpt.flatMap: v =>
                 fpuIfuViewOpt.map: fpuView =>
@@ -477,20 +442,34 @@ object GnirsSpectroscopyPanel
                         GnirsSlitOffsetPreset.NodAlongSlit,
                         prismView.get,
                         cameraView.get,
-                        GnirsGratingWavelength(centralWavelengthView.get)
+                        GnirsGratingWavelength(primaryWavelength)
                       )
                     ),
                   defaultForPreset = gnirs.defaultSlitTelescopeConfigs(
                     _,
                     prismView.get,
                     cameraView.get,
-                    GnirsGratingWavelength(centralWavelengthView.get)
+                    GnirsGratingWavelength(primaryWavelength)
                   ),
                   helpId = "configuration/slit-spatial-offsets.md".refined,
                   presetsReadonly = !props.permissions.isFullEdit,
                   editingReadonly = disableSimpleEdit
                 )
             )
+          ),
+          GnirsWavelengthsPanel(
+            instrument = props.observingMode.get.instrument,
+            wavelengthsView = centralWavelengthsView,
+            initialWavelengths = props.observingMode.get.initialCentralWavelengths,
+            // A new row with no explicit exposure time mode falls back to the
+            // observation's requirements, as the imaging filters do.
+            requirementsExposureTimeMode = none,
+            units = props.units,
+            calibrationRole = props.calibrationRole,
+            allowRevertCustomization = allowRevertCustomization,
+            wavelengthReadonly = disableSimpleEdit,
+            exposureTimeModeReadonly = !props.permissions.isFullEdit,
+            showCustomization = showCustomization
           ),
           <.div(ExploreStyles.GnirsLowerGrid)(
             Panel(

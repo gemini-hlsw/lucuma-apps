@@ -12,6 +12,7 @@ import cats.syntax.all.*
 import crystal.*
 import explore.model.itc.*
 import explore.modes.ItcInstrumentConfig
+import lucuma.core.math.Wavelength
 import monocle.Focus
 
 case class TargetAndResults(
@@ -25,7 +26,10 @@ case class TargetAndResults(
 case class ItcTileState(
   asterismResults:    Pot[EitherNec[ItcTargetProblem, (ItcAsterismGraphResults, ItcInstrumentConfig)]],
   calculationResults: Pot[EitherNec[ItcQueryProblem, ImagingResults]],
-  selectedTarget:     Option[TargetAndResults]
+  selectedTarget:     Option[TargetAndResults],
+  // GNIRS spectroscopy graphs one central wavelength at a time; this is the one
+  // shown.  Other spectroscopy modes have a single configuration and leave it empty.
+  selectedWavelength: Option[Wavelength] = none
 ):
   def graphResults: Option[ItcAsterismGraphResults] =
     asterismResults.toOption.flatMap(_.toOption.map(_._1))
@@ -71,10 +75,12 @@ case class ItcTileState(
       .orElse(imagingTargets.headOption)
 
 object ItcTileState:
-  def Empty: ItcTileState = ItcTileState(Pot.pending, Pot.pending, none)
+  def Empty: ItcTileState = ItcTileState(Pot.pending, Pot.pending, none, none)
 
   val asterismResults = Focus[ItcTileState](_.asterismResults)
 
   val selectedTarget = Focus[ItcTileState](_.selectedTarget)
 
   val calculationResults = Focus[ItcTileState](_.calculationResults)
+
+  val selectedWavelength = Focus[ItcTileState](_.selectedWavelength)

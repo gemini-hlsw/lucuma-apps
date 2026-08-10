@@ -86,7 +86,9 @@ class BasicConfigurationSuite extends FunSuite:
         "prism": "SXD",
         "grating": "D10",
         "camera": "SHORT_BLUE",
-        "centralWavelength": { "picometers": 1600000 }
+        "centralWavelengths": [
+          { "centralWavelength": { "picometers": 1600000 } }
+        ]
       }
     }"""
     decode[BasicConfiguration](json) match
@@ -107,7 +109,9 @@ class BasicConfigurationSuite extends FunSuite:
         "prism": "SXD",
         "grating": "D10",
         "camera": "SHORT_BLUE",
-        "centralWavelength": { "picometers": 1600000 }
+        "centralWavelengths": [
+          { "centralWavelength": { "picometers": 1600000 } }
+        ]
       }
     }"""
     decode[BasicConfiguration](json) match

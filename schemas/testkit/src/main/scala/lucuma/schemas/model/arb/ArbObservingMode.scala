@@ -1039,6 +1039,26 @@ trait ArbObservingMode {
         )
       )
 
+  @targetName("gnirsSpectroscopyScienceWavelengthArbitrary")
+  given Arbitrary[ObservingMode.GnirsSpectroscopy.ScienceWavelength] =
+    Arbitrary[ObservingMode.GnirsSpectroscopy.ScienceWavelength](
+      for {
+        centralWavelength <- arbitrary[Wavelength]
+        exposureTimeMode  <- arbitrary[ExposureTimeMode]
+        coadds            <- arbitrary[PosInt]
+      } yield ObservingMode.GnirsSpectroscopy.ScienceWavelength(
+        CentralWavelength(centralWavelength),
+        exposureTimeMode,
+        coadds
+      )
+    )
+
+  @targetName("gnirsSpectroscopyScienceWavelengthCogen")
+  given Cogen[ObservingMode.GnirsSpectroscopy.ScienceWavelength] =
+    import ArbNewType.given
+    Cogen[(CentralWavelength, ExposureTimeMode, PosInt)]
+      .contramap(a => (a.centralWavelength, a.exposureTimeMode, a.coadds))
+
   @targetName("gnirsLongSlitAcquisitionArbitrary")
   given Arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition] =
     Arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition](
@@ -1100,26 +1120,26 @@ trait ArbObservingMode {
     import ArbNewType.given
     Arbitrary:
       for
-        initialGrating           <- arbitrary[GnirsGrating]
-        grating                  <- arbitrary[GnirsGrating]
-        initialFilter            <- arbitrary[GnirsFilter]
-        filter                   <- arbitrary[GnirsFilter]
-        subMode                  <- arbitrary[SubMode]
-        initialPrism             <- arbitrary[GnirsPrism]
-        prism                    <- arbitrary[GnirsPrism]
-        initialCamera            <- arbitrary[GnirsCamera]
-        camera                   <- arbitrary[GnirsCamera]
-        initialCentralWavelength <- arbitrary[Wavelength]
-        centralWavelength        <- arbitrary[Wavelength]
-        defaultDecker            <- arbitrary[GnirsDecker]
-        explicitDecker           <- arbitrary[Option[GnirsDecker]]
-        explicitReadMode         <- arbitrary[Option[GnirsReadMode]]
-        defaultWellDepth         <- arbitrary[GnirsWellDepth]
-        explicitWellDepth        <- arbitrary[Option[GnirsWellDepth]]
-        explicitFocusMotorSteps  <- arbitrary[Option[GnirsFocusMotorStepsValue]]
-        exposureTimeMode         <- arbitrary[ExposureTimeMode]
-        coadds                   <- arbitrary[PosInt]
-        acquisition              <- arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition]
+        initialGrating            <- arbitrary[GnirsGrating]
+        grating                   <- arbitrary[GnirsGrating]
+        initialFilter             <- arbitrary[GnirsFilter]
+        filter                    <- arbitrary[GnirsFilter]
+        subMode                   <- arbitrary[SubMode]
+        initialPrism              <- arbitrary[GnirsPrism]
+        prism                     <- arbitrary[GnirsPrism]
+        initialCamera             <- arbitrary[GnirsCamera]
+        camera                    <- arbitrary[GnirsCamera]
+        initialCentralWavelengths <-
+          arbitrary[NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]]
+        centralWavelengths        <-
+          arbitrary[NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]]
+        defaultDecker             <- arbitrary[GnirsDecker]
+        explicitDecker            <- arbitrary[Option[GnirsDecker]]
+        explicitReadMode          <- arbitrary[Option[GnirsReadMode]]
+        defaultWellDepth          <- arbitrary[GnirsWellDepth]
+        explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
+        explicitFocusMotorSteps   <- arbitrary[Option[GnirsFocusMotorStepsValue]]
+        acquisition               <- arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition]
       yield ObservingMode.GnirsSpectroscopy(
         initialGrating,
         grating,
@@ -1130,16 +1150,14 @@ trait ArbObservingMode {
         prism,
         initialCamera,
         camera,
-        CentralWavelength(initialCentralWavelength),
-        CentralWavelength(centralWavelength),
+        initialCentralWavelengths,
+        centralWavelengths,
         defaultDecker,
         explicitDecker,
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
         explicitFocusMotorSteps,
-        exposureTimeMode,
-        coadds,
         acquisition
       )
 
@@ -1152,13 +1170,14 @@ trait ArbObservingMode {
        SubMode,
        (GnirsPrism, GnirsPrism),
        (GnirsCamera, GnirsCamera),
-       (Wavelength, Wavelength),
+       (NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength],
+        NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]
+       ),
        (GnirsDecker, Option[GnirsDecker]),
        Option[GnirsReadMode],
        (GnirsWellDepth, Option[GnirsWellDepth]),
        Option[GnirsFocusMotorStepsValue],
-       ExposureTimeMode,
-       (PosInt, ObservingMode.GnirsSpectroscopy.Acquisition)
+       ObservingMode.GnirsSpectroscopy.Acquisition
       )
     ]
       .contramap: o =>
@@ -1168,13 +1187,12 @@ trait ArbObservingMode {
           o.subMode,
           (o.initialPrism, o.prism),
           (o.initialCamera, o.camera),
-          (o.initialCentralWavelength.value, o.centralWavelength.value),
+          (o.initialCentralWavelengths, o.centralWavelengths),
           (o.defaultDecker, o.explicitDecker),
           o.explicitReadMode,
           (o.defaultWellDepth, o.explicitWellDepth),
           o.explicitFocusMotorSteps,
-          o.exposureTimeMode,
-          (o.coadds, o.acquisition)
+          o.acquisition
         )
 
   given Arbitrary[ObservingMode.GhostIfu.GhostDetector] =

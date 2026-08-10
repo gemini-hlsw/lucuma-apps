@@ -71,7 +71,7 @@ object TimeAndCountEditor extends ConfigurationFormats:
               changeAuditor = ChangeAuditor.int,
               disabled = props.readonly
             )(^.autoComplete.off),
-            Css.Empty
+            ExploreStyles.ExposureTimeModeCoadds
           ),
         Option.when(props.scienceMode === ScienceMode.Spectroscopy):
           props.controlsWrapper(
@@ -89,6 +89,6 @@ object TimeAndCountEditor extends ConfigurationFormats:
               changeAuditor = props.units.toSNAuditor,
               disabled = props.readonly
             ).clearable(^.autoComplete.off),
-            Css.Empty
+            ExploreStyles.ExposureTimeModeSignalToNoiseAt
           )
       )
