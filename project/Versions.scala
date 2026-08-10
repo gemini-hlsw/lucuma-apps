@@ -47,7 +47,7 @@ object Versions {
   val mUnitScalacheck        = "1.3.0"
   val openTelemetry          = "1.65.0"
   val openTelemetryInstr     = "2.26.1-alpha"
-  val otel4s                 = "1.0.1"
+  val otel4s                 = "1.1.0"
   val otel4sSdk              = "0.19.1"
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.10"
