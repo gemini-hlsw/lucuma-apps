@@ -119,7 +119,8 @@ object Igrins2:
         targetEnvironment: TargetEnvironment,
         staticConf:        Igrins2StaticConfig,
         step:              Step[Igrins2DynamicConfig],
-        observingTime:     Timestamp
+        observingTime:     Timestamp,
+        customMasks:       CustomMasks
       ): Either[ObserveFailure, InstrumentStep[F]] =
         SeqTranslate.calcStepType(Instrument.Igrins2, step.stepConfig, step.observeClass).map {
           stepKind =>

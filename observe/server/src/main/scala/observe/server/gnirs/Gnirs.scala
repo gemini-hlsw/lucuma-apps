@@ -92,7 +92,8 @@ object Gnirs {
         targetEnvironment: TargetEnvironment,
         staticConf:        GnirsStaticConfig,
         step:              Step[GnirsDynamicConfig],
-        observingTime:     Timestamp
+        observingTime:     Timestamp,
+        customMasks:       CustomMasks
       ): Either[ObserveFailure, InstrumentStep[F]] =
         SeqTranslate.calcStepType(Instrument.Gnirs, step.stepConfig, step.observeClass).map {
           stepKind =>

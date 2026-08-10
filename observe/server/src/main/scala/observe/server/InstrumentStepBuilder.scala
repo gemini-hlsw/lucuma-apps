@@ -15,6 +15,7 @@ trait InstrumentStepBuilder[F[_], S, D] {
     targetEnvironment: TargetEnvironment,
     staticConf:        S,
     step:              Step[D],
-    observingTime:     Timestamp
+    observingTime:     Timestamp,
+    customMasks:       CustomMasks
   ): Either[ObserveFailure, InstrumentStep[F]]
 }

@@ -124,7 +124,8 @@ object Ghost {
         targetEnvironment: TargetEnvironment,
         staticConf:        GhostStaticConfig,
         step:              Step[GhostDynamicConfig],
-        observingTime:     Timestamp
+        observingTime:     Timestamp,
+        customMasks:       CustomMasks
       ): Either[ObserveFailure, InstrumentStep[F]] = for {
         stType <-
           SeqTranslate.calcStepType(specifics.instrument, step.stepConfig, step.observeClass)

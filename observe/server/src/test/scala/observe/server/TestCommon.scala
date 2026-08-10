@@ -368,7 +368,8 @@ object TestCommon {
         WaterVapor.Median,
         ElevationRange.ByAirMass.Default
       ),
-      ODBObservation.SchedulingConstraints(List.empty)
+      ODBObservation.SchedulingConstraints(List.empty),
+      List.empty
     )
 
   /** Builds an OdbObservationData for testing with GmosNorth execution config. */

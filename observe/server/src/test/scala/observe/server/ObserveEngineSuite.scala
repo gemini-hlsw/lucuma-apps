@@ -135,7 +135,8 @@ class ObserveEngineSuite extends TestCommon {
       )
       .some,
     reqConditions,
-    ODBObservation.SchedulingConstraints(List.empty)
+    ODBObservation.SchedulingConstraints(List.empty),
+    List.empty
   )
 
   test("ObserveEngine setOperator should set operator's name") {
@@ -594,7 +595,8 @@ class ObserveEngineSuite extends TestCommon {
         )
         .some,
       reqConditions,
-      ODBObservation.SchedulingConstraints(List.empty)
+      ODBObservation.SchedulingConstraints(List.empty),
+      List.empty
     )
 
     (obs, stepList)
@@ -730,7 +732,8 @@ class ObserveEngineSuite extends TestCommon {
       ),
       defaultTargetEnvironment.some,
       reqConditions,
-      ODBObservation.SchedulingConstraints(List.empty)
+      ODBObservation.SchedulingConstraints(List.empty),
+      List.empty
     )
 
     (obs, stepList)
