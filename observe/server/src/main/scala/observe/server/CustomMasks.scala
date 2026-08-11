@@ -12,15 +12,16 @@ import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.Attachments
 
 /**
  * Resolves the custom mask (MOS) definitions of a sequence to the mask names understood by the
- * instruments, which are the file names of the mask attachments without their extension.
+ * instruments. The ODB derives the mask name from the attachment itself, and only MOS mask
+ * attachments have one.
  */
-final case class CustomMasks(fileNames: Map[Attachment.Id, String]) {
+final case class CustomMasks(maskNames: Map[Attachment.Id, String]) {
   def maskName(mask: MaskDefinition): Either[ObserveFailure, String] = mask match {
     case ToBeDefined => ObserveFailure.Unexpected("The custom mask has not been defined yet").asLeft
     case Defined(id) =>
-      fileNames
+      maskNames
         .get(id)
-        .toRight(ObserveFailure.Unexpected(s"Cannot find the custom mask attachment $id"))
+        .toRight(ObserveFailure.Unexpected(s"Cannot find the mask name of attachment $id"))
   }
 }
 
@@ -28,12 +29,6 @@ object CustomMasks {
   val Empty: CustomMasks = CustomMasks(Map.empty)
 
   def fromAttachments(attachments: List[Attachments]): CustomMasks = CustomMasks(
-    attachments.map(a => a.id -> stripExtension(a.fileName.value)).toMap
+    attachments.flatMap(a => a.maskName.map(n => a.id -> n.value)).toMap
   )
-
-  private def stripExtension(fileName: String): String =
-    fileName.lastIndexOf('.') match {
-      case i if i > 0 => fileName.take(i)
-      case _          => fileName
-    }
 }
