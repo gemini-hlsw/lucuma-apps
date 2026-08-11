@@ -43,7 +43,7 @@ object MosMaskPicker:
       val disabled   = props.disabled
       val mosMasks   = props.attachments.get
         .listForType(AttachmentType.MosMask)
-        .sortBy(_.fileName.value)
+        .sortBy(a => a.maskName.getOrElse(a.fileName).value)
       val mosMaskIds = mosMasks.map(_.id).toSet
       val binding    = props.attachmentIdView.get
       val dangling   = binding.exists(id => !mosMaskIds.contains(id))
@@ -51,7 +51,9 @@ object MosMaskPicker:
       // The "No mask selected" option is a selectable state — nulls the attachment id
       val options: List[SelectItem[Option[Attachment.Id]]] =
         SelectItem(value = none, label = "No mask selected") ::
-          mosMasks.map(a => SelectItem(value = a.id.some, label = a.fileName.value))
+          mosMasks.map(a =>
+            SelectItem(value = a.id.some, label = a.maskName.getOrElse(a.fileName).value)
+          )
 
       // Binding goes through the Aligner to support undo.
       def handleChange(oid: Option[Attachment.Id]): Callback =

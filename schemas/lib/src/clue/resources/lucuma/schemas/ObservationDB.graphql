@@ -734,7 +734,7 @@ input CallForProposalsPropertiesInput {
   Active period start date (inclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-  
+
   The start date is required on create and must be before the `activeEnd` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -744,7 +744,7 @@ input CallForProposalsPropertiesInput {
   Active period end date (exclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-  
+
   The end date is required on create and must be after the `activeStart` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3176,7 +3176,7 @@ type Mutation {
   """
   Re-runs the Archive Duplication Search for an observation, replacing its
   stored result with what the Gemini Observatory Archive holds now.
-  
+
   Rejected once the observation's proposal has been submitted.
   """
   refreshArchiveDuplication(input: RefreshArchiveDuplicationInput!): RefreshArchiveDuplicationResult!
@@ -3542,7 +3542,7 @@ input ObservationPropertiesInput {
   Deprecated in favor of the `schedulingConstraints` field — use that instead.
   If both this field and `schedulingConstraints` are specified in the same
   mutation, the mutation will be rejected with a validation error.
-  
+
   Specifies one or more timing windows during which the observation may execute.
   Defaults to empty (unconstrained) if omitted. To modify, supply the complete
   desired array — it replaces the previous value entirely.
@@ -3935,7 +3935,7 @@ input ProgramPropertiesInput {
   Active period start date (inclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-  
+
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3945,7 +3945,7 @@ input ProgramPropertiesInput {
   Active period end date (exclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-  
+
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -6538,6 +6538,11 @@ type Attachment {
   id: AttachmentId!
   attachmentType: AttachmentType!
   fileName: NonEmptyString!
+
+  """
+  The identifier of the physical mask plate this attachment describes, derived from the attachment itself and not settable. Null when the attachment is not a MOS_MASK, always present when it is.
+  """
+  maskName: NonEmptyString
   description: NonEmptyString
   checked: Boolean!
   fileSize: Long!
@@ -13513,7 +13518,7 @@ type Query {
   Obtains a list of program references for which the user with ORCiD `orcidId`
   has GOA data-download access privileges.  These will be those for which the
   user is a ProgramUser of any role with the `hasDataAccess` flag set.
-  
+
   This query is for use by staff and the GOA and will fail for other users.
   """
   goaDataDownloadAccess(orcidId: String!): [ProgramReferenceLabel!]!
@@ -16035,6 +16040,9 @@ input WhereAttachment {
 
   """Matches the attachment file name."""
   fileName: WhereString
+
+  """Matches the mask name, which is null for attachments that are not MOS masks."""
+  maskName: WhereOptionString
 
   """Matches the description."""
   description: WhereOptionString

@@ -9,12 +9,14 @@ import cats.syntax.all.*
 import clue.FetchClient
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
+import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.Dataset
 import lucuma.react.SizePx
 import lucuma.react.resizeDetector.hooks.*
@@ -59,8 +61,11 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
     editContexts:       SequenceEditContexts[D],
-    isUserStaffOrAdmin: Boolean
-  ) extends SequenceTableMeta[D]
+    isUserStaffOrAdmin: Boolean,
+    getMaskName:        Attachment.Id => Option[NonEmptyString]
+  ) extends SequenceTableMeta[D]:
+    override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
+      getMaskName(attachmentId)
 
   private lazy val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta[D]]
 
@@ -176,7 +181,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 props.visits,
                 datasetIdsInFlight,
                 editContexts,
-                props.isUserStaffOrAdmin
+                props.isUserStaffOrAdmin,
+                props.maskName
               )
             )
         _                             <-

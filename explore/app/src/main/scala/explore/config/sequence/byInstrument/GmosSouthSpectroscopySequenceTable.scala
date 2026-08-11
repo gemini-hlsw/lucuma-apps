@@ -7,8 +7,10 @@ import cats.effect.IO
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
+import explore.model.AttachmentList
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
+import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
@@ -30,12 +32,16 @@ final case class GmosSouthSpectroscopySequenceTable(
   isUserStaffOrAdmin:   Boolean,
   remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosSouth]] => IO[
     List[Atom[gmos.DynamicConfig.GmosSouth]]
-  ]
+  ],
+  attachments:          AttachmentList
 ) extends ReactFnProps(GmosSouthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]
     with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]:
   val toInstrumentVisits =
     case ExecutionVisits.GmosSouth(visits) => visits
+
+  override def maskName(attachmentId: Attachment.Id) =
+    attachments.get(attachmentId).flatMap(_.maskName)
 
 object GmosSouthSpectroscopySequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](

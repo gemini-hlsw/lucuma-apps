@@ -7,9 +7,11 @@ import cats.effect.IO
 import cats.syntax.all.*
 import clue.FetchClient
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
+import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.react.SizePx
@@ -61,8 +63,11 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
-    editContexts:       SequenceEditContexts[D]
-  ) extends SequenceTableMeta[D]
+    editContexts:       SequenceEditContexts[D],
+    getMaskName:        Attachment.Id => Option[NonEmptyString]
+  ) extends SequenceTableMeta[D]:
+    override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
+      getMaskName(attachmentId)
 
   protected val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]
 

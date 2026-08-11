@@ -123,7 +123,8 @@ object ObservationExecutionDisplay
                 requests,
                 selectedRowId,
                 setSelectedRowId,
-                rootModelData.clientMode
+                rootModelData.clientMode,
+                props.selectedObs.maskName
               )
             },
             errorRender = t =>

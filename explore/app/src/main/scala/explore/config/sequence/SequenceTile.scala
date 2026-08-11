@@ -12,6 +12,7 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.sequence.byInstrument.*
 import explore.model.AppContext
+import explore.model.AttachmentList
 import explore.model.Execution
 import explore.model.ObsTabTileIds
 import explore.model.Observation
@@ -49,7 +50,8 @@ final case class SequenceTile(
   sequenceChanged:      View[Pot[Unit]],
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
-  isUserStaffOrAdmin:   Boolean
+  isUserStaffOrAdmin:   Boolean,
+  attachments:          AttachmentList
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
       "Sequence",
@@ -169,7 +171,8 @@ object SequenceTile
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
-                                        .replaceGmosNorthSequence(props.obsId, seqType, atoms)
+                                        .replaceGmosNorthSequence(props.obsId, seqType, atoms),
+                                  props.attachments
                                 )
                               case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                                 GmosNorthImagingSequenceTable(
@@ -203,7 +206,8 @@ object SequenceTile
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
-                                        .replaceGmosNorthSequence(props.obsId, seqType, atoms)
+                                        .replaceGmosNorthSequence(props.obsId, seqType, atoms),
+                                  props.attachments
                                 )
                               case _                                                        => mismatchError
                       case SequenceData(
@@ -234,7 +238,8 @@ object SequenceTile
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
-                                        .replaceGmosSouthSequence(props.obsId, seqType, atoms)
+                                        .replaceGmosSouthSequence(props.obsId, seqType, atoms),
+                                  props.attachments
                                 )
                               case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                                 GmosSouthImagingSequenceTable(
@@ -268,7 +273,8 @@ object SequenceTile
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
-                                        .replaceGmosSouthSequence(props.obsId, seqType, atoms)
+                                        .replaceGmosSouthSequence(props.obsId, seqType, atoms),
+                                  props.attachments
                                 )
                               case _                                                        => mismatchError
                       case SequenceData(

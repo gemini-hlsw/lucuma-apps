@@ -4,8 +4,10 @@
 package observe.ui.components.sequence.byInstrument
 
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
+import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
@@ -37,7 +39,8 @@ final case class GmosNorthSpectroscopySequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
+  getMaskName:          Attachment.Id => Option[NonEmptyString]
 ) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
       Instrument.GmosNorth
@@ -45,6 +48,9 @@ final case class GmosNorthSpectroscopySequenceTable(
     with SpectroscopySequenceTable[gmos.DynamicConfig.GmosNorth]:
   lazy val toInstrumentVisits =
     case ExecutionVisits.GmosNorth(visits) => visits
+
+  override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
+    getMaskName(attachmentId)
 
 object GmosNorthSpectroscopySequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](

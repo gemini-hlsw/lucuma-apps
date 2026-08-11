@@ -17,6 +17,8 @@ import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
+import lucuma.core.model.Attachment
+import lucuma.core.model.Defined
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -136,7 +138,6 @@ sealed trait SequenceRow[+D]:
   ): Option[String] =
     fpu match
       case Some(GmosFpuMask.Builtin(builtin))     => builtinName(builtin).some
-      // TODO Show the mask id
       case Some(GmosFpuMask.Custom(_, slitWidth)) => s"${slitWidth.shortName} Custom Mask".some
       case None                                   => "Imaging".some
 
@@ -155,6 +156,10 @@ sealed trait SequenceRow[+D]:
       fpu.fold(slit => slit.longName.some, ifu => ifu.shortName.some, other => other.shortName.some)
     case _                                       =>
       none
+
+  lazy val fpuCustomMaskAttachmentId: Option[Attachment.Id] = instrumentConfig.collect:
+    case gmos.DynamicConfig.GmosNorth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
+    case gmos.DynamicConfig.GmosSouth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
 
   lazy val deckerName: Option[String] = instrumentConfig.flatMap:
     case Flamingos2DynamicConfig(decker = decker) => decker.shortName.some

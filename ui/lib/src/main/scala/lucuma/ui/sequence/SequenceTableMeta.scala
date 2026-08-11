@@ -3,5 +3,10 @@
 
 package lucuma.ui.sequence
 
+import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.model.Attachment
+
 trait SequenceTableMeta[D]:
   def editContexts: SequenceEditContexts[D]
+
+  def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None

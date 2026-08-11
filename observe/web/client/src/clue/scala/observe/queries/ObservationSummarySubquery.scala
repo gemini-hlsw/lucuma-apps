@@ -25,7 +25,10 @@ object ObservationSummarySubquery extends GraphQLSubquery.Typed[ObservationDB, O
           calibrationRole
           posAngleConstraint $PosAngleConstraintSubquery
           constraintSet $ConstraintSetSubquery
-          attachments { id }
+          attachments { 
+            id 
+            maskName 
+          }
           observingMode $BasicConfigurationSubquery
           reference { label }
           workflow {
