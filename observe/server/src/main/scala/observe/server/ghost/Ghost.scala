@@ -121,12 +121,11 @@ object Ghost {
         ctx: StepBuildContext[F, GhostStaticConfig, GhostDynamicConfig]
       ): Either[ObserveFailure, InstrumentStep[F]] =
         import ctx.*
-        for {
-          stType <-
-            SeqTranslate.calcStepType(specifics.instrument, step.stepConfig, step.observeClass)
-          cfg    <- buildConfig(staticConf, step, targetEnvironment, observingTime)
-        } yield new InstrumentStep[F] {
-          override def stepType: StepKind = stType
+        for
+          kind <- ctx.stepKind(specifics.instrument)
+          cfg  <- buildConfig(staticConf, step, targetEnvironment, observingTime)
+        yield new InstrumentStep[F] {
+          override def stepType: StepKind = kind
 
           override def sfName: LightSinkName = LightSinkName.Ghost
 

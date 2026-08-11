@@ -101,12 +101,11 @@ object Flamingos2 {
   private def fpuFromFpuMask(
     fpu:         Flamingos2FpuMask,
     customMasks: CustomMasks
-  ): Either[ObserveFailure, FocalPlaneUnit] = fpu match {
+  ): Either[ObserveFailure, FocalPlaneUnit] = fpu match
     case Flamingos2FpuMask.Imaging         => FocalPlaneUnit.Open.asRight
     case Flamingos2FpuMask.Builtin(value)  => builtinFpu(value).asRight
     case Flamingos2FpuMask.Custom(mask, _) =>
       customMasks.maskName(mask).map(FocalPlaneUnit.Custom.apply)
-  }
 
   private def windowCoverFromStepType(stepType: CoreStepType): Flamingos2WindowCover =
     stepType match
@@ -170,44 +169,41 @@ object Flamingos2 {
       ): Either[ObserveFailure, InstrumentStep[F]] =
         import ctx.*
 
-        (
-          SeqTranslate.calcStepType(Instrument.Flamingos2, step.stepConfig, step.observeClass),
-          fromSequenceConfig(step.instrumentConfig, stepType, customMasks)
-        ).mapN { (x, config) =>
-          new InstrumentStep[F] {
-            override def stepType: StepKind = x
+        for
+          kind   <- ctx.stepKind(Instrument.Flamingos2)
+          config <- fromSequenceConfig(step.instrumentConfig, coreStepType, customMasks)
+        yield new InstrumentStep[F]:
+          override def stepType: StepKind = kind
 
-            override def sfName: LightSinkName = LightSinkName.Flamingos2
+          override def sfName: LightSinkName = LightSinkName.Flamingos2
 
-            override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-              Flamingos2(
-                systems.flamingos2(sysOverrides),
-                systems.dhs(sysOverrides),
-                config
-              )
+          override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+            Flamingos2(
+              systems.flamingos2(sysOverrides),
+              systems.dhs(sysOverrides),
+              config
+            )
 
-            override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-              Flamingos2Header.header(
-                client,
-                Flamingos2Header.ObsKeywordsReader(
-                  staticConf,
-                  step.instrumentConfig
-                ),
-                systems.systems.tcsKeywordReader
-              )
+          override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+            Flamingos2Header.header(
+              client,
+              Flamingos2Header.ObsKeywordsReader(
+                staticConf,
+                step.instrumentConfig
+              ),
+              systems.systems.tcsKeywordReader
+            )
 
-            override def instrument: Instrument = Instrument.Flamingos2
+          override def instrument: Instrument = Instrument.Flamingos2
 
-            override def centralWavelength: Option[Wavelength] =
-              step.instrumentConfig.centralWavelength.some
+          override def centralWavelength: Option[Wavelength] =
+            step.instrumentConfig.centralWavelength.some
 
-            // TODO Use different value if using electronic offsets
-            override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-              (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+          // TODO Use different value if using electronic offsets
+          override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+            (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
 
-          }
-        }
     }
-  ).pure[F]
+  ).pure
 
 }

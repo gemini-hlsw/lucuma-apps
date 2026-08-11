@@ -341,53 +341,43 @@ object Gmos {
             ctx: StepBuildContext[F, S, D]
           ): Either[ObserveFailure, InstrumentStep[F]] =
             import ctx.*
-            Gmos
-              .calcStepType[S](
-                gmosInstrument,
-                step.stepConfig,
-                staticConf,
-                step.observeClass,
-                getters.nodAndShuffle
-              )
-              .flatMap { stType =>
-                Gmos
-                  .buildConfig[F, T](
-                    stType,
-                    staticConf,
-                    step.instrumentConfig,
-                    customMasks
-                  )
-                  .map { config =>
-                    new InstrumentStep[F] {
-                      override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-                        (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
-
-                      override def stepType: StepKind = stType
-
-                      override def sfName: LightSinkName = LightSinkName.Gmos
-
-                      override def instrumentSystem(
-                        sysOverrides: SystemOverrides
-                      ): InstrumentSystem[F] = sysBuilder(systems, r, config)(sysOverrides)
-
-                      override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
-                        GmosHeader.header[F, T](
-                          kwClient,
-                          GmosObsKeywordsReader(staticConf, step.instrumentConfig),
-                          systems.systems.gmosKeywordReader,
-                          systems.systems.tcsKeywordReader
+            for
+              kind   <- Gmos.calcStepType[S](
+                          gmosInstrument,
+                          step.stepConfig,
+                          staticConf,
+                          step.observeClass,
+                          getters.nodAndShuffle
                         )
+              config <- Gmos.buildConfig[F, T](kind, staticConf, step.instrumentConfig, customMasks)
+            yield new InstrumentStep[F] {
+              override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+                (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
 
-                      override def instrument: Instrument = gmosInstrument
+              override def stepType: StepKind = kind
 
-                      override def observeTimeout: TimeSpan =
-                        TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
+              override def sfName: LightSinkName = LightSinkName.Gmos
 
-                      override def centralWavelength: Option[Wavelength] =
-                        getters.centralWavelength.get(step.instrumentConfig)
-                    }
-                  }
-              }
+              override def instrumentSystem(
+                sysOverrides: SystemOverrides
+              ): InstrumentSystem[F] = sysBuilder(systems, r, config)(sysOverrides)
+
+              override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
+                GmosHeader.header[F, T](
+                  kwClient,
+                  GmosObsKeywordsReader(staticConf, step.instrumentConfig),
+                  systems.systems.gmosKeywordReader,
+                  systems.systems.tcsKeywordReader
+                )
+
+              override def instrument: Instrument = gmosInstrument
+
+              override def observeTimeout: TimeSpan =
+                TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
+
+              override def centralWavelength: Option[Wavelength] =
+                getters.centralWavelength.get(step.instrumentConfig)
+            }
         }
       )
   }

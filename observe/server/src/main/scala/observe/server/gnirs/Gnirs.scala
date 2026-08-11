@@ -86,29 +86,28 @@ object Gnirs {
         ctx: StepBuildContext[F, GnirsStaticConfig, GnirsDynamicConfig]
       ): Either[ObserveFailure, InstrumentStep[F]] =
         import ctx.*
-        SeqTranslate.calcStepType(Instrument.Gnirs, step.stepConfig, step.observeClass).map {
-          stepKind =>
-            val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, stepType)
-            new InstrumentStep[F] {
-              override def stepType: StepKind = stepKind
+        for kind <- ctx.stepKind(Instrument.Gnirs)
+        yield
+          val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, coreStepType)
+          new InstrumentStep[F] {
+            override def stepType: StepKind = kind
 
-              override def sfName: LightSinkName = LightSinkName.Gnirs
+            override def sfName: LightSinkName = LightSinkName.Gnirs
 
-              override def centralWavelength: Option[Wavelength] =
-                step.instrumentConfig.centralWavelength.some
+            override def centralWavelength: Option[Wavelength] =
+              step.instrumentConfig.centralWavelength.some
 
-              override def instrument: Instrument = Instrument.Gnirs
+            override def instrument: Instrument = Instrument.Gnirs
 
-              override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-                Gnirs(systems.gnirs(sysOverrides), systems.dhs(sysOverrides), config)
+            override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+              Gnirs(systems.gnirs(sysOverrides), systems.dhs(sysOverrides), config)
 
-              override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-                GnirsHeader.header(
-                  client,
-                  systems.systems.gnirsKeywordReader,
-                  systems.systems.tcsKeywordReader
-                )
-            }
-        }
+            override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+              GnirsHeader.header(
+                client,
+                systems.systems.gnirsKeywordReader,
+                systems.systems.tcsKeywordReader
+              )
+          }
     }.pure[F]
 }

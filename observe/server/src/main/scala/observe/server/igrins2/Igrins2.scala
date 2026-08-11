@@ -113,26 +113,24 @@ object Igrins2:
         ctx: StepBuildContext[F, Igrins2StaticConfig, Igrins2DynamicConfig]
       ): Either[ObserveFailure, InstrumentStep[F]] =
         import ctx.*
-        SeqTranslate.calcStepType(Instrument.Igrins2, step.stepConfig, step.observeClass).map {
-          stepKind =>
-            val config: Igrins2Config =
-              Igrins2Config(step.instrumentConfig, step.telescopeConfig, step.observeClass)
-            new InstrumentStep[F] {
-              override def stepType: StepKind = stepKind
+        for kind <- ctx.stepKind(Instrument.Igrins2)
+        yield
+          val config: Igrins2Config =
+            Igrins2Config(step.instrumentConfig, step.telescopeConfig, step.observeClass)
+          new InstrumentStep[F] {
+            override def stepType: StepKind = kind
 
-              override def sfName: LightSinkName = LightSinkName.Igrins2
+            override def sfName: LightSinkName = LightSinkName.Igrins2
 
-              override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-                Igrins2(systems.igrins2(sysOverrides), config)
+            override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+              Igrins2(systems.igrins2(sysOverrides), config)
 
-              override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-                Igrins2Header.header(client, systems.systems.tcsKeywordReader)
+            override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+              Igrins2Header.header(client, systems.systems.tcsKeywordReader)
 
-              override def instrument: Instrument = Instrument.Igrins2
+            override def instrument: Instrument = Instrument.Igrins2
 
-              override def centralWavelength: Option[Wavelength] =
-                step.instrumentConfig.centralWavelength.some
-            }
-
-        }
+            override def centralWavelength: Option[Wavelength] =
+              step.instrumentConfig.centralWavelength.some
+          }
     }.pure[F]
