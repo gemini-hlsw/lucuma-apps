@@ -112,12 +112,22 @@ object TopBar:
           recentPrograms
             .map: programId =>
               val progRef = (AppTab.Observations, programId, Focused.None).some
-              val name    =
+
+              val programInfo =
                 for {
                   pis <- props.programInfos.get
                   p   <- pis.get(programId)
-                  n   <- p.name
-                } yield n.value
+                } yield p
+
+              val name = programInfo.flatMap(_.name).map(_.value)
+
+              // Show the program reference when available, falling back to the
+              // proposal reference and finally the raw program id.
+              val reference =
+                programInfo
+                  .flatMap: p =>
+                    p.programReference.map(_.label).orElse(p.proposalReference.map(_.label))
+                  .getOrElse(programId.show)
 
               val isCurrent = props.programId.exists(_ === programId)
 
@@ -130,7 +140,7 @@ object TopBar:
                       (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(isCurrent)
                   )
                 )(
-                  <.div(ExploreStyles.RecentProgramId)(programId.show),
+                  <.div(ExploreStyles.RecentProgramId, ^.title := reference)(reference),
                   name.map(n => <.div(ExploreStyles.RecentProgramName, ^.title := n)(n))
                 ),
                 clazz = ExploreStyles.RecentProgramLink |+|
