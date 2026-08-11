@@ -157,7 +157,6 @@ sealed trait SequenceRow[+D]:
     case _                                       =>
       none
 
-  // The attachment id of the GMOS custom MOS mask bound to this step's FPU, when there is one.
   lazy val fpuCustomMaskAttachmentId: Option[Attachment.Id] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
     case gmos.DynamicConfig.GmosSouth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id

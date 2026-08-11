@@ -91,7 +91,7 @@ trait ArbObsSummary:
          s.instrument,
          s.constraints,
          s.attachmentIds.toList,
-         s.maskNames.toList.map { case (id, name) => (id, name.value) },
+         s.maskNames.view.mapValues(_.value).toList,
          s.observingMode,
          s.observationTime,
          s.calibrationRole,

@@ -9,5 +9,4 @@ import lucuma.core.model.Attachment
 trait SequenceTableMeta[D]:
   def editContexts: SequenceEditContexts[D]
 
-  // The mask name for a GMOS custom mask attachment, when known.
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
