@@ -94,11 +94,36 @@ object TileController:
   private def isAutoHeight(tiles: List[TileState[?]], id: String): Boolean =
     tiles.exists(t => t.tileProps.id.value === id && t.tileProps.autoHeight)
 
+  private def isHidden(tiles: List[TileState[?]], id: String): Boolean =
+    tiles.exists(t => t.tileProps.id.value === id && t.tileProps.hidden)
+
+  // The grid's own container is auto-sized to fit its rows (`autoSize = true` below), so it
+  // can't be the ceiling's source too: an auto-height tile capped by its own container would
+  // collapse the container, which would tighten the cap, indefinitely. The browser viewport
+  // can't be circular in that way, at the cost of not excluding other on-screen chrome (tab
+  // bars, headers) from the budget.
+  private def viewportPx: Int = dom.window.innerHeight.toInt
+
+  // Re-derives auto-height row spans from the last reported measurements. Needed wherever a
+  // measurement was dropped rather than applied — while a gesture was in flight, or when
+  // normalization reset the row span to the floor — because the resize detector only fires when
+  // the content's height changes and will not repeat its last value.
+  private def applyMeasuredHeights(
+    tiles:    List[TileState[?]],
+    measured: Map[String, Int],
+    layouts:  LayoutsMap
+  ): LayoutsMap =
+    allTiles.modify { l =>
+      if isAutoHeight(tiles, l.i) && !isHidden(tiles, l.i) then
+        measured.get(l.i).fold(l)(px => resolveAutoHeight(l, px, viewportPx, l.h === 1))
+      else l
+    }(layouts)
+
   private def updateResizableState(tiles: List[TileState[?]], p: LayoutsMap): LayoutsMap =
     allLayouts
       .andThen(layoutItems)
       .modify { r =>
-        val hidden     = tiles.exists(t => t.tileProps.id.value === r.i && t.tileProps.hidden)
+        val hidden     = isHidden(tiles, r.i)
         val autoHeight = isAutoHeight(tiles, r.i)
         if hidden then
           // height to 0 for hidden tiles
@@ -127,26 +152,28 @@ object TileController:
                           )
         // Make a local copy of the layout fixing the state of minimized layouts
         currentLayout  <- useStateView(updateResizableState(props.tiles, props.layoutMap))
-        // Update the current layout if it changes upstream
-        _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
-                            (_, layout) => currentLayout.set(updateResizableState(props.tiles, layout))
-        // Suppressed while a drag or resize gesture is in flight, so an auto-height measurement
-        // doesn't fight the pointer mid-gesture.
-        gesturing      <- useStateView(false)
-        storeThrottler <- useMemo(())(_ => Throttler.unsafe[IO](1.second))
         // The last content height an auto-height tile reported, keyed by tile id. Kept across
         // minimize/maximize (unlike `h`, which is overwritten to encode the minimized state) so
         // maximizing can restore the height the content actually wants instead of the floor.
         lastMeasuredPx <- useStateView(Map.empty[String, Int])
+        // Update the current layout if it changes upstream. Normalization resets auto-height
+        // tiles to the floor, so the last measurements are replayed on top: the reset is not a
+        // content change, so nothing else would restore the derived height.
+        _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
+                            (_, layout) =>
+                              currentLayout.set(
+                                applyMeasuredHeights(
+                                  props.tiles,
+                                  lastMeasuredPx.get,
+                                  updateResizableState(props.tiles, layout)
+                                )
+                              )
+        // Suppressed while a drag or resize gesture is in flight, so an auto-height measurement
+        // doesn't fight the pointer mid-gesture.
+        gesturing      <- useStateView(false)
+        storeThrottler <- useMemo(())(_ => Throttler.unsafe[IO](1.second))
       yield
         import ctx.given
-
-        // The grid's own container is auto-sized to fit its rows (`autoSize = true` below), so
-        // it can't be the ceiling's source too: an auto-height tile capped by its own container
-        // would collapse the container, which would tighten the cap, indefinitely. The browser
-        // viewport can't be circular in that way, at the cost of not excluding other on-screen
-        // chrome (tab bars, headers) from the budget.
-        val viewportPx = dom.window.innerHeight.toInt
 
         def setSizeState(id: Tile.TileId) = (st: TileSizeState) =>
           currentLayout
@@ -215,6 +242,14 @@ object TileController:
         def mergeIntoCurrentLayout(m: Layout): Callback =
           currentLayout.mod(breakpointLayout(breakpoint.value).modify(mergeLayouts(_, m)))
 
+        // Measurements that arrived mid-gesture were recorded but not applied; apply the latest
+        // one now, since the content will not re-report a height it already has.
+        val endGesture: Callback =
+          gesturing.set(false) *>
+            currentLayout
+              .mod(applyMeasuredHeights(props.tiles, lastMeasuredPx.get, _))
+              .when_(props.tiles.exists(_.tileProps.autoHeight))
+
         ResponsiveReactGridLayout(
           width = props.gridWidth.toDouble,
           breakpoints = currentLayouts.view.mapValues(_._1).toMap,
@@ -258,11 +293,9 @@ object TileController:
               .runAsyncAndForget
               .when_(props.storeLayout),
           onDragStart = (_, _, _, _, _, _) => gesturing.set(true),
-          onDragStop =
-            (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m) *> gesturing.set(false),
+          onDragStop = (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m) *> endGesture,
           onResizeStart = (_, _, _, _, _, _) => gesturing.set(true),
-          onResizeStop =
-            (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m) *> gesturing.set(false),
+          onResizeStop = (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m) *> endGesture,
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
