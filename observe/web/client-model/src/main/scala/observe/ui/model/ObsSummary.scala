@@ -33,6 +33,7 @@ import monocle.Focus
 import org.typelevel.cats.time.*
 
 import java.time.Instant
+import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 
 case class ObsSummary(
@@ -43,6 +44,7 @@ case class ObsSummary(
   instrument:         Instrument,
   constraints:        ConstraintSet,
   attachmentIds:      SortedSet[Attachment.Id],
+  maskNames:          SortedMap[Attachment.Id, NonEmptyString],
   observingMode:      Option[BasicConfiguration],
   observationTime:    Option[Instant],
   calibrationRole:    Option[CalibrationRole],
@@ -50,9 +52,12 @@ case class ObsSummary(
   obsReference:       Option[ObservationReference],
   workflowState:      ObservationWorkflowState
 ) derives Eq:
+  // The mask name for a GMOS custom mask attachment, when known.
+  def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
+    maskNames.get(attachmentId)
   // TODO This code seems to be duplicated between observe an explore, we should unify.
   // See explore/model/src/main/scala/explore/model/display.scala
-  lazy val configurationSummary: Option[String] =
+  lazy val configurationSummary: Option[String]                     =
     observingMode
       .flatMap:
         case BasicConfiguration.GmosNorthLongSlit(grating, _, fpu, _) =>
@@ -131,15 +136,16 @@ object ObsSummary:
   val instrument         = Focus[ObsSummary](_.instrument)
   val constraints        = Focus[ObsSummary](_.constraints)
   val attachmentIds      = Focus[ObsSummary](_.attachmentIds)
+  val maskNames          = Focus[ObsSummary](_.maskNames)
   val observingMode      = Focus[ObsSummary](_.observingMode)
   val observationTime    = Focus[ObsSummary](_.observationTime)
   val calibrationRole    = Focus[ObsSummary](_.calibrationRole)
   val posAngleConstraint = Focus[ObsSummary](_.posAngleConstraint)
   val obsReference       = Focus[ObsSummary](_.obsReference)
 
-  private case class AttachmentIdWrapper(id: Attachment.Id)
-  private object AttachmentIdWrapper:
-    given Decoder[AttachmentIdWrapper] = deriveDecoder
+  private case class AttachmentWrapper(id: Attachment.Id, maskName: Option[NonEmptyString])
+  private object AttachmentWrapper:
+    given Decoder[AttachmentWrapper] = deriveDecoder
 
   given Decoder[ObsSummary] = Decoder.instance: c =>
     for
@@ -149,7 +155,7 @@ object ObsSummary:
       subtitle           <- c.get[Option[NonEmptyString]]("subtitle")
       instrument         <- c.get[Option[Instrument]]("instrument")
       constraints        <- c.get[ConstraintSet]("constraintSet")
-      attachmentIds      <- c.get[List[AttachmentIdWrapper]]("attachments")
+      attachments        <- c.get[List[AttachmentWrapper]]("attachments")
       observingMode      <- c.get[Option[BasicConfiguration]]("observingMode")
       observationTime    <- c.get[Option[Timestamp]]("observationTime")
       calibrationRole    <- c.get[Option[CalibrationRole]]("calibrationRole")
@@ -168,7 +174,8 @@ object ObsSummary:
       subtitle,
       instrument.getOrElse(Instrument.VisitorSouth),
       constraints,
-      SortedSet.from(attachmentIds.map(_.id)),
+      SortedSet.from(attachments.map(_.id)),
+      SortedMap.from(attachments.collect { case AttachmentWrapper(id, Some(name)) => id -> name }),
       observingMode,
       observationTime.map(_.toInstant),
       calibrationRole,

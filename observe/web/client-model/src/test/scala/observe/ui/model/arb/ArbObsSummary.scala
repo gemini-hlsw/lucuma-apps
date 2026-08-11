@@ -28,6 +28,7 @@ import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
 
 import java.time.Instant
+import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 
 trait ArbObsSummary:
@@ -40,6 +41,7 @@ trait ArbObsSummary:
       instrument         <- arbitrary[Instrument]
       constraints        <- arbitrary[ConstraintSet]
       attachmentIds      <- arbitrary[List[Attachment.Id]]
+      maskNames          <- arbitrary[List[(Attachment.Id, NonEmptyString)]]
       observingMode      <- arbitrary[Option[BasicConfiguration]]
       observationTime    <- arbitrary[Option[Instant]]
       calRole            <- arbitrary[Option[CalibrationRole]]
@@ -54,6 +56,7 @@ trait ArbObsSummary:
       instrument,
       constraints,
       SortedSet.from(attachmentIds),
+      SortedMap.from(maskNames),
       observingMode,
       observationTime,
       calRole,
@@ -71,6 +74,7 @@ trait ArbObsSummary:
        Instrument,
        ConstraintSet,
        List[Attachment.Id],
+       List[(Attachment.Id, String)],
        Option[BasicConfiguration],
        Option[Instant],
        Option[CalibrationRole],
@@ -87,6 +91,7 @@ trait ArbObsSummary:
          s.instrument,
          s.constraints,
          s.attachmentIds.toList,
+         s.maskNames.toList.map { case (id, name) => (id, name.value) },
          s.observingMode,
          s.observationTime,
          s.calibrationRole,

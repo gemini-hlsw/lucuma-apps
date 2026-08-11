@@ -5,8 +5,10 @@ package observe.ui.components
 
 import cats.syntax.option.*
 import crystal.react.*
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
+import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
@@ -37,7 +39,8 @@ case class ObservationSequence(
   requests:             ObservationRequests,
   selectedRowId:        Option[SelectedRowId],
   setSelectedRowId:     SelectedRowId => Callback,
-  clientMode:           ClientMode
+  clientMode:           ClientMode,
+  getMaskName:          Attachment.Id => Option[NonEmptyString]
 ) extends ReactFnProps(ObservationSequence)
 
 object ObservationSequence
@@ -91,7 +94,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  props.getMaskName
                 )
               case ModeSignalToNoise.GmosNorthImaging(snByFilter)           =>
                 GmosNorthImagingSequenceTable(
@@ -125,7 +129,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  props.getMaskName
                 )
               case _                                                        => mismatchError
           case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise)  =>
@@ -145,7 +150,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  props.getMaskName
                 )
               case ModeSignalToNoise.GmosSouthImaging(snByFilter)           =>
                 GmosSouthImagingSequenceTable(
@@ -179,7 +185,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  props.getMaskName
                 )
               case _                                                        => mismatchError
           case SequenceData(InstrumentExecutionConfig.Flamingos2(config), signalToNoise) =>

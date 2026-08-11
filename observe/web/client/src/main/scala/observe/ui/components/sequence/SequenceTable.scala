@@ -7,10 +7,12 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.numeric.NonNegInt
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
+import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.ExecutionVisits
@@ -39,6 +41,10 @@ private trait SequenceTable[S, D](
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
+
+  // The mask name for a GMOS custom mask attachment, when known. Only GMOS sequence
+  // tables have a custom mask FPU, so other instruments keep the default.
+  def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
