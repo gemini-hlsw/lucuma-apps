@@ -88,9 +88,6 @@ object TileController:
       .filter(_.i === id.value)
       .andThen(layoutItemHeight)
 
-  // Auto-height tiles keep only east/west handles: their height is derived, not draggable.
-  private val AutoHeightResizeHandles: List[ResizeHandle] = List(ResizeHandle.E, ResizeHandle.W)
-
   private def isAutoHeight(tiles: List[TileState[?]], id: String): Boolean =
     tiles.exists(t => t.tileProps.id.value === id && t.tileProps.autoHeight)
 
@@ -120,7 +117,9 @@ object TileController:
               c,
               Layout(layout.asList.map { item =>
                 if isAutoHeight(tiles, item.i) && !isHidden(tiles, item.i) then
-                  currentItems.get(item.i).fold(item)(cur => item.copy(h = cur.h, minH = cur.minH))
+                  currentItems
+                    .get(item.i)
+                    .fold(item)(cur => item.copy(h = cur.h, minH = cur.minH, maxH = cur.maxH))
                 else item
               })
       ))
@@ -151,12 +150,12 @@ object TileController:
           // height to 0 for hidden tiles
           r.copy(minH = 0, h = 0, isResizable = false)
         else if autoHeight then
-          val withHandles = r.copy(resizeHandles = AutoHeightResizeHandles)
+          // The pinned minH/maxH restrict the regular corner handle to horizontal resizing.
           // A stored h of 1 is a legitimately minimized tile; leave it alone. Any other stored
           // h is stale (it belongs to the previous render, not the current content) and is
           // reset to the floor until the tile mounts and reports its real measurement.
-          if r.h === 1 then withHandles.copy(minH = 1)
-          else withHandles.copy(h = AutoHeightMinRows, minH = AutoHeightMinRows)
+          if r.h === 1 then r.copy(minH = 1, maxH = 1)
+          else r.copy(h = AutoHeightMinRows, minH = AutoHeightMinRows, maxH = AutoHeightMinRows)
         else if r.h === 1 then r.copy(minH = 1)
         else r
       }(p)
@@ -206,12 +205,13 @@ object TileController:
             .zoom(allTiles)
             .mod:
               case l if l.i === id.value =>
-                if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
+                if (st === TileSizeState.Minimized)
+                  if isAutoHeight(props.tiles, id.value) then l.copy(h = 1, minH = 1, maxH = 1)
+                  else l.copy(h = 1, minH = 1)
                 else if (st === TileSizeState.Maximized)
                   if isAutoHeight(props.tiles, id.value) then
                     val measuredPx = lastMeasuredPx.get.getOrElse(id.value, 0)
-                    val restored   = resolveAutoHeight(l, measuredPx, viewportPx, false)
-                    restored.copy(minH = scala.math.max(l.minH.getOrElse(1), AutoHeightMinRows))
+                    resolveAutoHeight(l, measuredPx, viewportPx, false)
                   else
                     val defaultHeight =
                       unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)

@@ -252,13 +252,19 @@ class LayoutSuite extends FunSuite {
   }
 
   test("Deadband: a measurement matching the current row span leaves the item unchanged") {
-    val stable = autoItem.copy(h = 3)
+    val stable = autoItem.copy(h = 3, minH = 3, maxH = 3)
     assertEquals(resolveAutoHeight(stable, 118, LargeViewport, false), stable)
   }
 
   test("Deadband: a measurement that crosses a row boundary updates the item") {
-    val stable = autoItem.copy(h = 3)
+    val stable = autoItem.copy(h = 3, minH = 3, maxH = 3)
     assertEquals(resolveAutoHeight(stable, 119, LargeViewport, false).h, 4)
+  }
+
+  test("Pinning: minH and maxH are pinned to the derived row span") {
+    val result = resolveAutoHeight(autoItem, 118, LargeViewport, false)
+    assertEquals(result.minH.toOption, Some(3))
+    assertEquals(result.maxH.toOption, Some(3))
   }
 
   test("Growth: a taller measurement increases h") {
@@ -280,7 +286,5 @@ class LayoutSuite extends FunSuite {
     assertEquals(result.y, autoItem.y)
     assertEquals(result.w, autoItem.w)
     assertEquals(result.i, autoItem.i)
-    assertEquals(result.minH, autoItem.minH)
-    assertEquals(result.maxH, autoItem.maxH)
   }
 }
