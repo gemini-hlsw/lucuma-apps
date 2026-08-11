@@ -2418,6 +2418,22 @@ svg.fa-check.explore-success-icon {
   }
 }
 
+.program-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
+  > :first-child {
+    flex: 0 0 auto;
+  }
+
+  > :last-child {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
 .api-keys-popup.p-dialog,
 .programs-popup.p-dialog {
   .api-keys-table {
@@ -2801,6 +2817,7 @@ img.partner-split-flag {
 .explore-border-table,
 table.explore-border-table {
   border: 1px solid var(--site-border-color);
+  border-top: 0;
   border-radius: var(--border-radius);
 }
 

@@ -266,7 +266,7 @@ object ProgramTable:
           ): VdomNode
         else EmptyVdom
 
-      React.Fragment(
+      <.div(ExploreStyles.ProgramTable)(
         globalFilterRow,
         PrimeAutoHeightVirtualizedTable(
           table,
