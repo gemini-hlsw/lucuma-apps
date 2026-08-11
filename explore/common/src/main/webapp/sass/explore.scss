@@ -2001,7 +2001,33 @@ svg.fa-check.explore-success-icon {
   }
 
   .explore-gmos-longslit-lower-grid,
-  .explore-flamingos2-lower-grid,
+  .explore-flamingos2-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'acquisition buttons' auto
+      / 2fr 1fr;
+
+    .explore-advanced-configuration-buttons {
+      grid-area: buttons;
+      justify-self: end;
+
+      .p-component.p-button {
+        margin-bottom: 0.5em;
+      }
+    }
+
+    .explore-acquisition-customization-grid {
+      display: grid;
+      padding-top: 0.5em;
+      gap: 1em;
+      grid-template:
+        'col1 col2' auto
+        / 1fr 1fr;
+    }
+  }
+
   // GNIRS spectroscopy central wavelengths.  Unlike the imaging filter grid this
   // carries coadds and, since it is a spectroscopy mode, the "λ for S/N" field.
   .explore-gnirs-wavelength-grid {
