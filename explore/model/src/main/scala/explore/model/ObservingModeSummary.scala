@@ -51,11 +51,11 @@ import lucuma.schemas.ObservationDB.Types.GmosNorthMosInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthMosInput
+import lucuma.schemas.ObservationDB.Types.GnirsCentralWavelengthConfigInput
 import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
 import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
 import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
 import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
-import lucuma.schemas.ObservationDB.Types.GnirsCentralWavelengthConfigInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput

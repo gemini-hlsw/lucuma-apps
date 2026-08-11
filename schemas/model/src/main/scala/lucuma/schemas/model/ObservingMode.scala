@@ -1453,7 +1453,8 @@ object ObservingMode:
         camera                    <- c.downField("camera").as[GnirsCamera]
         initialCentralWavelengths <-
           c.downField("initialCentralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
-        centralWavelengths        <- c.downField("centralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
+        centralWavelengths        <-
+          c.downField("centralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
         defaultDecker             <- c.downField("defaultDecker").as[GnirsDecker]
         explicitDecker            <- c.downField("explicitDecker").as[Option[GnirsDecker]]
         explicitReadMode          <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
@@ -1516,10 +1517,10 @@ object ObservingMode:
     val camera: Lens[GnirsSpectroscopy, GnirsCamera]                                        =
       Focus[GnirsSpectroscopy](_.camera)
     val initialCentralWavelengths
-      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]          =
+      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]    =
       Focus[GnirsSpectroscopy](_.initialCentralWavelengths)
     val centralWavelengths
-      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]          =
+      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]    =
       Focus[GnirsSpectroscopy](_.centralWavelengths)
     val defaultDecker: Lens[GnirsSpectroscopy, GnirsDecker]                                 =
       Focus[GnirsSpectroscopy](_.defaultDecker)
