@@ -350,7 +350,7 @@ object Gmos {
                           getters.nodAndShuffle
                         )
               config <- Gmos.buildConfig[F, T](kind, staticConf, step.instrumentConfig, customMasks)
-            yield new InstrumentStep[F] {
+            yield new InstrumentStep[F]:
               override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
                 (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
 
@@ -377,7 +377,6 @@ object Gmos {
 
               override def centralWavelength: Option[Wavelength] =
                 getters.centralWavelength.get(step.instrumentConfig)
-            }
         }
       )
   }

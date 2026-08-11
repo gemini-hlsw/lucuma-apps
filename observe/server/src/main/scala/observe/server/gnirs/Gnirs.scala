@@ -89,7 +89,7 @@ object Gnirs {
         for kind <- ctx.stepKind(Instrument.Gnirs)
         yield
           val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, coreStepType)
-          new InstrumentStep[F] {
+          new InstrumentStep[F]:
             override def stepType: StepKind = kind
 
             override def sfName: LightSinkName = LightSinkName.Gnirs
@@ -108,6 +108,5 @@ object Gnirs {
                 systems.systems.gnirsKeywordReader,
                 systems.systems.tcsKeywordReader
               )
-          }
-    }.pure[F]
+    }.pure
 }

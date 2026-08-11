@@ -117,7 +117,7 @@ object Igrins2:
         yield
           val config: Igrins2Config =
             Igrins2Config(step.instrumentConfig, step.telescopeConfig, step.observeClass)
-          new InstrumentStep[F] {
+          new InstrumentStep[F]:
             override def stepType: StepKind = kind
 
             override def sfName: LightSinkName = LightSinkName.Igrins2
@@ -132,5 +132,4 @@ object Igrins2:
 
             override def centralWavelength: Option[Wavelength] =
               step.instrumentConfig.centralWavelength.some
-          }
-    }.pure[F]
+    }.pure

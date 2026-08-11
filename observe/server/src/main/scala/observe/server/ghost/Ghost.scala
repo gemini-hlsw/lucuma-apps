@@ -124,7 +124,7 @@ object Ghost {
         for
           kind <- ctx.stepKind(specifics.instrument)
           cfg  <- buildConfig(staticConf, step, targetEnvironment, observingTime)
-        yield new InstrumentStep[F] {
+        yield new InstrumentStep[F]:
           override def stepType: StepKind = kind
 
           override def sfName: LightSinkName = LightSinkName.Ghost
@@ -145,6 +145,5 @@ object Ghost {
 
           override def centralWavelength: Option[Wavelength] =
             step.instrumentConfig.centralWavelength.some
-        }
-    }.pure[F]
+    }.pure
 }
