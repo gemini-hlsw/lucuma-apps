@@ -450,7 +450,8 @@ object ObsTabTiles:
               sequenceChanged,
               isEditingAcquisition,
               isEditingScience,
-              props.isStaffOrAdminUser
+              props.isStaffOrAdminUser,
+              props.attachments.get
             )
 
           val odbOrSelectedConfig: Option[BasicConfiguration] =

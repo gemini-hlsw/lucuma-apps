@@ -265,7 +265,12 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.FPUColumnId,
       _.getStep.flatMap(_.fpuName),
       header = _ => "FPU",
-      cell = _.value.orEmpty
+      cell = c =>
+        (for
+          attachmentId <- c.getStep.flatMap(_.fpuCustomMaskAttachmentId)
+          meta         <- c.table.options.meta
+          maskName     <- meta.maskName(attachmentId)
+        yield maskName.value).orElse(c.value).orEmpty
     )
 
   private lazy val deckerCol: colDef.TypeFor[Option[String]] =

@@ -7,8 +7,10 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
+import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
@@ -27,6 +29,9 @@ private trait SequenceTable[S, D]:
   def isEditingScience: View[IsEditing]
   def isUserStaffOrAdmin: Boolean
   def remoteReplace: SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
+
+  // The mask name for a custom mask attachment, when known.
+  def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
 
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
 
