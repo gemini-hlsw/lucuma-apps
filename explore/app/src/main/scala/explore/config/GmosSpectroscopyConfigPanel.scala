@@ -491,9 +491,13 @@ object GmosSpectroscopyConfigPanel {
   /**
    * The MOS Acquisition panel contents same for GN and GS
    */
-  private def mosAcquisitionPanel(
-    view:        View[GmosMosAcquisitionType],
-    permissions: ConfigEditPermissions
+  private def mosAcquisitionPanel[Filter: Enumerated: Display](
+    props:           GmosSpectroscopyConfigPanel[?, ?],
+    disabled:        Boolean,
+    acquisitionType: View[GmosMosAcquisitionType],
+    filterView:      View[Option[Filter]],
+    defaultFilter:   Filter,
+    excludedFilters: Set[Filter]
   ): VdomNode =
     <.div(
       ExploreStyles.AcquisitionCustomizationGrid,
@@ -501,9 +505,21 @@ object GmosSpectroscopyConfigPanel {
         LucumaPrimeStyles.FormColumnCompact,
         FormEnumDropdownView(
           id = "acq-type".refined,
-          value = view,
+          value = acquisitionType,
           label = "Acquisition Type",
-          disabled = permissions.isReadonly
+          disabled = props.permissions.isReadonly
+        ),
+        CustomizableEnumSelectOptional(
+          id = "acq-explicit-filter".refined,
+          view = filterView,
+          defaultValue = defaultFilter.some,
+          exclude = excludedFilters,
+          label = "Filter".some,
+          helpId = None,
+          disabled = disabled,
+          showCustomization = props.showCustomization,
+          allowRevertCustomization =
+            props.allowRevertCustomization || props.permissions.isOnlyForOngoing
         )
       )
     )
@@ -1255,6 +1271,35 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.assign)
 
+    inline private def acquisition(
+      aligner: AA
+    ): Aligner[ObservingMode.GmosNorthMos.Acquisition, GmosNorthMosAcquisitionInput] =
+      aligner
+        .zoom(
+          ObservingMode.GmosNorthMos.acquisition,
+          forceAssign(GmosNorthMosInput.acquisition.modify)(
+            GmosNorthMosAcquisitionInput()
+          )
+        )
+
+    inline private def explicitAcquisitionFilter(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosNorthFilter]] = acquisition(aligner)
+      .zoom(ObservingMode.GmosNorthMos.Acquisition.explicitFilter,
+            GmosNorthMosAcquisitionInput.explicitFilter.modify
+      )
+      .view(_.orUnassign)
+
+    private val excludedAcquisitionFilters: Set[GmosNorthFilter] =
+      Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
+
+    private val defaultAcquisitionFilterLens: Lens[ObservingMode.GmosNorthMos, GmosNorthFilter] =
+      ObservingMode.GmosNorthMos.acquisition.andThen(
+        ObservingMode.GmosNorthMos.Acquisition.defaultFilter
+      )
+
     inline override protected def explicitXBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
@@ -1349,7 +1394,15 @@ object GmosSpectroscopyConfigPanel {
       props:    GmosSpectroscopyConfigPanel.GmosNorthMos,
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosAcquisitionPanel(acquisitionType(props.observingMode), props.permissions)
+      val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
+      mosAcquisitionPanel(
+        props,
+        disabled,
+        acquisitionType(props.observingMode),
+        explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
+        defaultAcquisitionFilter,
+        excludedAcquisitionFilters
+      )
 
     override protected val initialGratingLens           = ObservingMode.GmosNorthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosNorthMos.initialFilter
@@ -1488,6 +1541,35 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.assign)
 
+    inline private def acquisition(
+      aligner: AA
+    ): Aligner[ObservingMode.GmosSouthMos.Acquisition, GmosSouthMosAcquisitionInput] =
+      aligner
+        .zoom(
+          ObservingMode.GmosSouthMos.acquisition,
+          forceAssign(GmosSouthMosInput.acquisition.modify)(
+            GmosSouthMosAcquisitionInput()
+          )
+        )
+
+    inline private def explicitAcquisitionFilter(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosSouthFilter]] = acquisition(aligner)
+      .zoom(ObservingMode.GmosSouthMos.Acquisition.explicitFilter,
+            GmosSouthMosAcquisitionInput.explicitFilter.modify
+      )
+      .view(_.orUnassign)
+
+    private val excludedAcquisitionFilters: Set[GmosSouthFilter] =
+      Enumerated[GmosSouthFilter].all.toSet -- GmosSouthFilter.acquisition.toList.toSet
+
+    private val defaultAcquisitionFilterLens: Lens[ObservingMode.GmosSouthMos, GmosSouthFilter] =
+      ObservingMode.GmosSouthMos.acquisition.andThen(
+        ObservingMode.GmosSouthMos.Acquisition.defaultFilter
+      )
+
     inline override protected def explicitXBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
@@ -1582,7 +1664,15 @@ object GmosSpectroscopyConfigPanel {
       props:    GmosSpectroscopyConfigPanel.GmosSouthMos,
       disabled: Boolean
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
-      mosAcquisitionPanel(acquisitionType(props.observingMode), props.permissions)
+      val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
+      mosAcquisitionPanel(
+        props,
+        disabled,
+        acquisitionType(props.observingMode),
+        explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
+        defaultAcquisitionFilter,
+        excludedAcquisitionFilters
+      )
 
     override protected val initialGratingLens           = ObservingMode.GmosSouthMos.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosSouthMos.initialFilter

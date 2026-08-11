@@ -104,6 +104,11 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultOffsets $AngleSubquery
             explicitOffsets $AngleSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           gmosSouthMos {
             initialGrating
@@ -133,6 +138,11 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultOffsets $AngleSubquery
             explicitOffsets $AngleSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           gmosNorthImaging {
             variant $ImagingVariantSubquery
@@ -428,6 +438,11 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultOffsets $AngleSubquery
             explicitOffsets $AngleSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           gmosSouthMos @include(if: $$includeGmosSouthMos) {
             initialGrating
@@ -457,6 +472,11 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultOffsets $AngleSubquery
             explicitOffsets $AngleSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           gmosNorthImaging @include(if: $$includeGmosNorthImaging) {
             variant $ImagingVariantSubquery
