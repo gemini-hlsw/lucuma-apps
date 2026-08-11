@@ -123,6 +123,7 @@ trait ObsAttachmentUtils extends AttachmentUtils:
                           attType,
                           name,
                           None,
+                          None,
                           false,
                           f.size.toLong,
                           Timestamp.unsafeFromInstantTruncated(now)
