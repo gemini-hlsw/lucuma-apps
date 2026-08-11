@@ -55,7 +55,7 @@ import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
 import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
 import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
 import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
-import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyWavelengthInput
+import lucuma.schemas.ObservationDB.Types.GnirsCentralWavelengthConfigInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
@@ -285,7 +285,7 @@ enum ObservingModeSummary derives Order:
           grating = grating.assign,
           camera = camera.assign,
           centralWavelengths = List(
-            GnirsSpectroscopyWavelengthInput(
+            GnirsCentralWavelengthConfigInput(
               centralWavelength = centralWavelength.value.toInput,
               exposureTimeMode = etm.toInput.assign
             )

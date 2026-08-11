@@ -761,8 +761,8 @@ extension (a: ObservingMode.GnirsSpectroscopy)
     acquisition = a.acquisition.toInput.assign
   )
 
-extension (a: ObservingMode.GnirsSpectroscopy.ScienceWavelength)
-  def toInput: GnirsSpectroscopyWavelengthInput = GnirsSpectroscopyWavelengthInput(
+extension (a: ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig)
+  def toInput: GnirsCentralWavelengthConfigInput = GnirsCentralWavelengthConfigInput(
     centralWavelength = a.centralWavelength.value.toInput,
     exposureTimeMode = a.exposureTimeMode.toInput.assign,
     coadds = a.coadds.assign
@@ -969,7 +969,7 @@ extension (i: BasicConfiguration)
           grating = grating.assign,
           camera = camera.assign,
           centralWavelengths = List(
-            GnirsSpectroscopyWavelengthInput(centralWavelength = centralWavelength.value.toInput)
+            GnirsCentralWavelengthConfigInput(centralWavelength = centralWavelength.value.toInput)
           ).assign
         )
     case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter, scienceFovDiameter)     =>

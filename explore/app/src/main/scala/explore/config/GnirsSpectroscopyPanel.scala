@@ -153,7 +153,7 @@ object GnirsSpectroscopyPanel
           .view(_.assign)
 
         val centralWavelengthsView
-          : View[NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]] =
+          : View[NonEmptyList[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig]] =
           props.observingMode
             .zoom(
               ObservingMode.GnirsSpectroscopy.centralWavelengths,

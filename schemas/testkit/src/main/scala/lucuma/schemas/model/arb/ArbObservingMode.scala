@@ -1039,22 +1039,22 @@ trait ArbObservingMode {
         )
       )
 
-  @targetName("gnirsSpectroscopyScienceWavelengthArbitrary")
-  given Arbitrary[ObservingMode.GnirsSpectroscopy.ScienceWavelength] =
-    Arbitrary[ObservingMode.GnirsSpectroscopy.ScienceWavelength](
+  @targetName("gnirsCentralWavelengthConfigArbitrary")
+  given Arbitrary[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig] =
+    Arbitrary[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig](
       for {
         centralWavelength <- arbitrary[Wavelength]
         exposureTimeMode  <- arbitrary[ExposureTimeMode]
         coadds            <- arbitrary[PosInt]
-      } yield ObservingMode.GnirsSpectroscopy.ScienceWavelength(
+      } yield ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig(
         CentralWavelength(centralWavelength),
         exposureTimeMode,
         coadds
       )
     )
 
-  @targetName("gnirsSpectroscopyScienceWavelengthCogen")
-  given Cogen[ObservingMode.GnirsSpectroscopy.ScienceWavelength] =
+  @targetName("gnirsCentralWavelengthConfigCogen")
+  given Cogen[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig] =
     import ArbNewType.given
     Cogen[(CentralWavelength, ExposureTimeMode, PosInt)]
       .contramap(a => (a.centralWavelength, a.exposureTimeMode, a.coadds))
@@ -1130,9 +1130,9 @@ trait ArbObservingMode {
         initialCamera             <- arbitrary[GnirsCamera]
         camera                    <- arbitrary[GnirsCamera]
         initialCentralWavelengths <-
-          arbitrary[NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]]
+          arbitrary[NonEmptyList[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig]]
         centralWavelengths        <-
-          arbitrary[NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]]
+          arbitrary[NonEmptyList[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig]]
         defaultDecker             <- arbitrary[GnirsDecker]
         explicitDecker            <- arbitrary[Option[GnirsDecker]]
         explicitReadMode          <- arbitrary[Option[GnirsReadMode]]
@@ -1170,8 +1170,8 @@ trait ArbObservingMode {
        SubMode,
        (GnirsPrism, GnirsPrism),
        (GnirsCamera, GnirsCamera),
-       (NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength],
-        NonEmptyList[ObservingMode.GnirsSpectroscopy.ScienceWavelength]
+       (NonEmptyList[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig],
+        NonEmptyList[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig]
        ),
        (GnirsDecker, Option[GnirsDecker]),
        Option[GnirsReadMode],

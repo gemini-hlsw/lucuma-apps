@@ -1265,8 +1265,8 @@ object ObservingMode:
     prism:                     GnirsPrism,
     initialCamera:             GnirsCamera,
     camera:                    GnirsCamera,
-    initialCentralWavelengths: NonEmptyList[GnirsSpectroscopy.ScienceWavelength],
-    centralWavelengths:        NonEmptyList[GnirsSpectroscopy.ScienceWavelength],
+    initialCentralWavelengths: NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig],
+    centralWavelengths:        NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig],
     defaultDecker:             GnirsDecker,
     explicitDecker:            Option[GnirsDecker],
     explicitReadMode:          Option[GnirsReadMode],
@@ -1330,20 +1330,20 @@ object ObservingMode:
      * One GNIRS spectroscopy science configuration: a central wavelength with the exposure time
      * mode and coadds that apply there.
      */
-    case class ScienceWavelength(
+    case class CentralWavelengthConfig(
       centralWavelength: CentralWavelength,
       exposureTimeMode:  ExposureTimeMode,
       coadds:            PosInt
     ) derives Decoder,
           Eq
 
-    object ScienceWavelength:
-      val centralWavelength: Lens[ScienceWavelength, CentralWavelength] =
-        Focus[ScienceWavelength](_.centralWavelength)
-      val exposureTimeMode: Lens[ScienceWavelength, ExposureTimeMode]   =
-        Focus[ScienceWavelength](_.exposureTimeMode)
-      val coadds: Lens[ScienceWavelength, PosInt]                       =
-        Focus[ScienceWavelength](_.coadds)
+    object CentralWavelengthConfig:
+      val centralWavelength: Lens[CentralWavelengthConfig, CentralWavelength] =
+        Focus[CentralWavelengthConfig](_.centralWavelength)
+      val exposureTimeMode: Lens[CentralWavelengthConfig, ExposureTimeMode]   =
+        Focus[CentralWavelengthConfig](_.exposureTimeMode)
+      val coadds: Lens[CentralWavelengthConfig, PosInt]                       =
+        Focus[CentralWavelengthConfig](_.coadds)
 
     case class Acquisition(
       explicitAcquisitionMode: Option[GnirsAcquisitionMode],
@@ -1452,8 +1452,8 @@ object ObservingMode:
         initialCamera             <- c.downField("initialCamera").as[GnirsCamera]
         camera                    <- c.downField("camera").as[GnirsCamera]
         initialCentralWavelengths <-
-          c.downField("initialCentralWavelengths").as[NonEmptyList[ScienceWavelength]]
-        centralWavelengths        <- c.downField("centralWavelengths").as[NonEmptyList[ScienceWavelength]]
+          c.downField("initialCentralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
+        centralWavelengths        <- c.downField("centralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
         defaultDecker             <- c.downField("defaultDecker").as[GnirsDecker]
         explicitDecker            <- c.downField("explicitDecker").as[Option[GnirsDecker]]
         explicitReadMode          <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
@@ -1516,10 +1516,10 @@ object ObservingMode:
     val camera: Lens[GnirsSpectroscopy, GnirsCamera]                                        =
       Focus[GnirsSpectroscopy](_.camera)
     val initialCentralWavelengths
-      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.ScienceWavelength]]          =
+      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]          =
       Focus[GnirsSpectroscopy](_.initialCentralWavelengths)
     val centralWavelengths
-      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.ScienceWavelength]]          =
+      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]          =
       Focus[GnirsSpectroscopy](_.centralWavelengths)
     val defaultDecker: Lens[GnirsSpectroscopy, GnirsDecker]                                 =
       Focus[GnirsSpectroscopy](_.defaultDecker)
