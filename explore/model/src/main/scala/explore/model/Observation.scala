@@ -240,7 +240,8 @@ final case class Observation(
           InstrumentOverrides.GmosSpectroscopy(s.centralWavelength, mode, s.roi)
       case _                             => none
 
-  // Imaging modes can return multiple configs due to multiple filters.
+  // Imaging modes can return multiple configs due to multiple filters, and GNIRS
+  // spectroscopy due to multiple central wavelengths.
   // And exchange modes return an empty list.
   def toInstrumentConfig(targets: TargetList): List[ItcInstrumentConfig] =
     import ObservingMode.*
@@ -306,18 +307,20 @@ final case class Observation(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)
           )
         case g: ObservingMode.GnirsSpectroscopy  =>
-          List(
-            ItcInstrumentConfig
-              .GnirsSpectroscopy(
-                g.grating,
-                g.fpu,
-                g.filter,
-                g.prism,
-                g.camera,
-                g.exposureTimeMode,
-                InstrumentOverrides.GnirsSpectroscopy(g.centralWavelength, g.coadds).some
-              )
-          )
+          // Each central wavelength is a separate configuration with its own ITC
+          // calculation, as each imaging filter is.
+          g.centralWavelengths.toList
+            .map: w =>
+              ItcInstrumentConfig
+                .GnirsSpectroscopy(
+                  g.grating,
+                  g.fpu,
+                  g.filter,
+                  g.prism,
+                  g.camera,
+                  w.exposureTimeMode,
+                  InstrumentOverrides.GnirsSpectroscopy(w.centralWavelength, w.coadds).some
+                )
         case g: ObservingMode.GhostIfu           =>
           val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(
             g.red.timeAndCount.some,

@@ -267,16 +267,22 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             }
             prism
             camera
-            centralWavelength $WavelengthSubquery
-            initialCentralWavelength $WavelengthSubquery
+            centralWavelengths {
+              centralWavelength $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
+            initialCentralWavelengths {
+              centralWavelength $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
             defaultDecker
             explicitDecker
             explicitReadMode
             defaultWellDepth
             explicitWellDepth
             explicitFocusMotorSteps
-            exposureTimeMode $ExposureTimeModeSubquery
-            coadds
             acquisition {
               explicitAcquisitionType
               explicitFilter
@@ -585,16 +591,22 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             }
             prism
             camera
-            centralWavelength $WavelengthSubquery
-            initialCentralWavelength $WavelengthSubquery
+            centralWavelengths {
+              centralWavelength $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
+            initialCentralWavelengths {
+              centralWavelength $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
             defaultDecker
             explicitDecker
             explicitReadMode
             defaultWellDepth
             explicitWellDepth
             explicitFocusMotorSteps
-            exposureTimeMode $ExposureTimeModeSubquery
-            coadds
             acquisition {
               explicitAcquisitionType
               explicitFilter

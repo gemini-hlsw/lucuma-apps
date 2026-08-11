@@ -37,6 +37,10 @@ trait ObservationDB {
     type ProgramUserId             = ProgramUser.Id
     type StepId                    = Step.Id
     type TargetId                  = Target.Id
+    // The ODB defines TooTrigger in its own project rather than lucuma-core while
+    // the design settles, so there is no Gid to map onto here yet.  Explore does
+    // not query ToO triggers; tighten this when TooTrigger moves to core.
+    type TooTriggerId              = String
     type UserId                    = User.Id
     type VisitId                   = Visit.Id
     // Basic types

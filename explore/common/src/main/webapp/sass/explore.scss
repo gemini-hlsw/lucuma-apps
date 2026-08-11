@@ -768,6 +768,11 @@ thead tr th.sticky-header {
   span {
     @include lucumaUICommon.text-ellipsis;
   }
+
+  // With the central wavelength selector there are 8 children rather than 6.
+  &.explore-itc-tile-title-with-wavelength {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr));
+  }
 }
 
 @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
@@ -780,6 +785,10 @@ thead tr th.sticky-header {
     *,
     *:nth-child(2n) {
       grid-row: 1;
+    }
+
+    &.explore-itc-tile-title-with-wavelength {
+      grid-template-columns: repeat(8, min-content);
     }
   }
 }
@@ -1977,6 +1986,62 @@ svg.fa-check.explore-success-icon {
 
   .explore-gmos-longslit-lower-grid,
   .explore-flamingos2-lower-grid,
+  // GNIRS spectroscopy central wavelengths.  Unlike the imaging filter grid this
+  // carries coadds and, since it is a spectroscopy mode, the "λ for S/N" field.
+  .explore-gnirs-wavelength-grid {
+    display: grid;
+    padding-top: 0.5em;
+    gap: 0.5em;
+
+    // Column order follows the DOM order of the ExposureTimeMode controls.  They
+    // are placed by column but auto-placed by row, so a column that precedes the
+    // previous control's would push it onto a new row.
+    grid-template-columns:
+      [action] auto [wavelength] 1fr [mode] 1fr [sn] 1fr
+      [time] 1fr [count] 1fr [coadds] 1fr [sn-at] 1fr;
+
+    .pl-form-field {
+      width: 100%;
+    }
+
+    .explore-gnirs-wavelength-grid-header {
+      padding-left: 0.5em;
+      background: var(--surface-100);
+    }
+
+    .explore-gnirs-wavelength-grid-action {
+      grid-column: action;
+    }
+
+    .explore-gnirs-wavelength-center {
+      grid-column: wavelength;
+    }
+
+    .explore-etm-mode {
+      grid-column: mode;
+    }
+
+    .explore-etm-signal-to-noise {
+      grid-column: sn;
+    }
+
+    .explore-etm-sn-at {
+      grid-column: sn-at;
+    }
+
+    .explore-etm-time {
+      grid-column: time;
+    }
+
+    .explore-etm-coadds {
+      grid-column: coadds;
+    }
+
+    .explore-etm-count {
+      grid-column: count;
+    }
+  }
+
   .explore-gnirs-lower-grid {
     display: grid;
     padding: 0.5em;
@@ -1984,6 +2049,18 @@ svg.fa-check.explore-success-icon {
     grid-template:
       'acquisition buttons' auto
       / 2fr 1fr;
+
+    // The grid declares a `buttons` area but nothing claimed it, so the buttons
+    // were auto-placed (and landed in the acquisition column when the
+    // acquisition panel is hidden).  Matches the imaging lower grid.
+    .explore-advanced-configuration-buttons {
+      grid-area: buttons;
+      justify-self: end;
+
+      .p-component.p-button {
+        margin-bottom: 0.5em;
+      }
+    }
 
     .explore-acquisition-customization-grid {
       display: grid;

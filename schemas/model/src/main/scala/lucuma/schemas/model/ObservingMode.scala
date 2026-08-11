@@ -124,7 +124,13 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
       BasicConfiguration.GnirsImaging(g.filters.map(_.filter), g.camera)
     case g: ObservingMode.GnirsSpectroscopy                        =>
       BasicConfiguration
-        .GnirsSpectroscopy(g.filter, g.fpu, g.prism, g.grating, g.camera, g.centralWavelength)
+        .GnirsSpectroscopy(g.filter,
+                           g.fpu,
+                           g.prism,
+                           g.grating,
+                           g.camera,
+                           g.centralWavelengths.head.centralWavelength
+        )
     case g: ObservingMode.GhostIfu                                 =>
       val red  = ItcGhostDetector(
         timeAndCount = g.red.timeAndCount,
@@ -1250,26 +1256,24 @@ object ObservingMode:
       Focus[GnirsImaging](_.acquisition)
 
   case class GnirsSpectroscopy(
-    initialGrating:           GnirsGrating,
-    grating:                  GnirsGrating,
-    initialFilter:            GnirsFilter,
-    filter:                   GnirsFilter,
-    subMode:                  GnirsSpectroscopy.SubMode,
-    initialPrism:             GnirsPrism,
-    prism:                    GnirsPrism,
-    initialCamera:            GnirsCamera,
-    camera:                   GnirsCamera,
-    initialCentralWavelength: CentralWavelength,
-    centralWavelength:        CentralWavelength,
-    defaultDecker:            GnirsDecker,
-    explicitDecker:           Option[GnirsDecker],
-    explicitReadMode:         Option[GnirsReadMode],
-    defaultWellDepth:         GnirsWellDepth,
-    explicitWellDepth:        Option[GnirsWellDepth],
-    explicitFocusMotorSteps:  Option[GnirsFocusMotorStepsValue],
-    exposureTimeMode:         ExposureTimeMode,
-    coadds:                   PosInt,
-    acquisition:              GnirsSpectroscopy.Acquisition
+    initialGrating:            GnirsGrating,
+    grating:                   GnirsGrating,
+    initialFilter:             GnirsFilter,
+    filter:                    GnirsFilter,
+    subMode:                   GnirsSpectroscopy.SubMode,
+    initialPrism:              GnirsPrism,
+    prism:                     GnirsPrism,
+    initialCamera:             GnirsCamera,
+    camera:                    GnirsCamera,
+    initialCentralWavelengths: NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig],
+    centralWavelengths:        NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig],
+    defaultDecker:             GnirsDecker,
+    explicitDecker:            Option[GnirsDecker],
+    explicitReadMode:          Option[GnirsReadMode],
+    defaultWellDepth:          GnirsWellDepth,
+    explicitWellDepth:         Option[GnirsWellDepth],
+    explicitFocusMotorSteps:   Option[GnirsFocusMotorStepsValue],
+    acquisition:               GnirsSpectroscopy.Acquisition
   ) extends ObservingMode(Instrument.Gnirs.some):
     val decker: GnirsDecker       =
       explicitDecker.getOrElse(defaultDecker)
@@ -1297,7 +1301,7 @@ object ObservingMode:
         initialFilter =!= filter ||
         initialPrism =!= prism ||
         initialCamera =!= camera ||
-        initialCentralWavelength =!= centralWavelength ||
+        initialCentralWavelengths =!= centralWavelengths ||
         explicitDecker.exists(_ =!= defaultDecker) ||
         explicitReadMode.isDefined ||
         explicitWellDepth.exists(_ =!= defaultWellDepth) ||
@@ -1312,7 +1316,7 @@ object ObservingMode:
         subMode = this.subMode.reverted,
         prism = this.initialPrism,
         camera = this.initialCamera,
-        centralWavelength = this.initialCentralWavelength,
+        centralWavelengths = this.initialCentralWavelengths,
         explicitDecker = None,
         explicitReadMode = None,
         explicitWellDepth = None,
@@ -1321,6 +1325,26 @@ object ObservingMode:
       )
 
   object GnirsSpectroscopy:
+
+    /**
+     * One GNIRS spectroscopy science configuration: a central wavelength with the exposure time
+     * mode and coadds that apply there.
+     */
+    case class CentralWavelengthConfig(
+      centralWavelength: CentralWavelength,
+      exposureTimeMode:  ExposureTimeMode,
+      coadds:            PosInt
+    ) derives Decoder,
+          Eq
+
+    object CentralWavelengthConfig:
+      val centralWavelength: Lens[CentralWavelengthConfig, CentralWavelength] =
+        Focus[CentralWavelengthConfig](_.centralWavelength)
+      val exposureTimeMode: Lens[CentralWavelengthConfig, ExposureTimeMode]   =
+        Focus[CentralWavelengthConfig](_.exposureTimeMode)
+      val coadds: Lens[CentralWavelengthConfig, PosInt]                       =
+        Focus[CentralWavelengthConfig](_.coadds)
+
     case class Acquisition(
       explicitAcquisitionMode: Option[GnirsAcquisitionMode],
       explicitFilter:          Option[GnirsFilter],
@@ -1415,30 +1439,30 @@ object ObservingMode:
 
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
       for
-        initialGrating           <- c.downField("initialGrating").as[GnirsGrating]
-        grating                  <- c.downField("grating").as[GnirsGrating]
-        initialFilter            <- c.downField("initialFilter").as[GnirsFilter]
-        filter                   <- c.downField("filter").as[GnirsFilter]
-        subMode                  <- c.downField("slit")
-                                      .as[SubMode.Slit]
-                                      .orElse:
-                                        c.downField("ifu").as[SubMode.Ifu]
-        initialPrism             <- c.downField("initialPrism").as[GnirsPrism]
-        prism                    <- c.downField("prism").as[GnirsPrism]
-        initialCamera            <- c.downField("initialCamera").as[GnirsCamera]
-        camera                   <- c.downField("camera").as[GnirsCamera]
-        initialCentralWavelength <- c.downField("initialCentralWavelength").as[CentralWavelength]
-        centralWavelength        <- c.downField("centralWavelength").as[CentralWavelength]
-        defaultDecker            <- c.downField("defaultDecker").as[GnirsDecker]
-        explicitDecker           <- c.downField("explicitDecker").as[Option[GnirsDecker]]
-        explicitReadMode         <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
-        defaultWellDepth         <- c.downField("defaultWellDepth").as[GnirsWellDepth]
-        explicitWellDepth        <- c.downField("explicitWellDepth").as[Option[GnirsWellDepth]]
-        explicitFocusMotorSteps  <-
+        initialGrating            <- c.downField("initialGrating").as[GnirsGrating]
+        grating                   <- c.downField("grating").as[GnirsGrating]
+        initialFilter             <- c.downField("initialFilter").as[GnirsFilter]
+        filter                    <- c.downField("filter").as[GnirsFilter]
+        subMode                   <- c.downField("slit")
+                                       .as[SubMode.Slit]
+                                       .orElse:
+                                         c.downField("ifu").as[SubMode.Ifu]
+        initialPrism              <- c.downField("initialPrism").as[GnirsPrism]
+        prism                     <- c.downField("prism").as[GnirsPrism]
+        initialCamera             <- c.downField("initialCamera").as[GnirsCamera]
+        camera                    <- c.downField("camera").as[GnirsCamera]
+        initialCentralWavelengths <-
+          c.downField("initialCentralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
+        centralWavelengths        <-
+          c.downField("centralWavelengths").as[NonEmptyList[CentralWavelengthConfig]]
+        defaultDecker             <- c.downField("defaultDecker").as[GnirsDecker]
+        explicitDecker            <- c.downField("explicitDecker").as[Option[GnirsDecker]]
+        explicitReadMode          <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
+        defaultWellDepth          <- c.downField("defaultWellDepth").as[GnirsWellDepth]
+        explicitWellDepth         <- c.downField("explicitWellDepth").as[Option[GnirsWellDepth]]
+        explicitFocusMotorSteps   <-
           c.downField("explicitFocusMotorSteps").as[Option[GnirsFocusMotorStepsValue]]
-        exposureTimeMode         <- c.downField("exposureTimeMode").as[ExposureTimeMode]
-        coadds                   <- c.downField("coadds").as[PosInt]
-        acquisition              <- c.downField("acquisition").as[Acquisition]
+        acquisition               <- c.downField("acquisition").as[Acquisition]
       yield GnirsSpectroscopy(
         initialGrating,
         grating,
@@ -1449,16 +1473,14 @@ object ObservingMode:
         prism,
         initialCamera,
         camera,
-        initialCentralWavelength,
-        centralWavelength,
+        initialCentralWavelengths,
+        centralWavelengths,
         defaultDecker,
         explicitDecker,
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
         explicitFocusMotorSteps,
-        exposureTimeMode,
-        coadds,
         acquisition
       )
 
@@ -1469,12 +1491,10 @@ object ObservingMode:
         x.subMode,
         (x.initialPrism, x.prism),
         (x.initialCamera, x.camera),
-        (x.initialCentralWavelength, x.centralWavelength),
+        (x.initialCentralWavelengths, x.centralWavelengths),
         (x.defaultDecker, x.explicitDecker),
         x.explicitReadMode,
         (x.defaultWellDepth, x.explicitWellDepth),
-        x.exposureTimeMode,
-        x.coadds,
         x.acquisition
       )
 
@@ -1496,10 +1516,12 @@ object ObservingMode:
       Focus[GnirsSpectroscopy](_.initialCamera)
     val camera: Lens[GnirsSpectroscopy, GnirsCamera]                                        =
       Focus[GnirsSpectroscopy](_.camera)
-    val initialCentralWavelength: Lens[GnirsSpectroscopy, CentralWavelength]                =
-      Focus[GnirsSpectroscopy](_.initialCentralWavelength)
-    val centralWavelength: Lens[GnirsSpectroscopy, CentralWavelength]                       =
-      Focus[GnirsSpectroscopy](_.centralWavelength)
+    val initialCentralWavelengths
+      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]    =
+      Focus[GnirsSpectroscopy](_.initialCentralWavelengths)
+    val centralWavelengths
+      : Lens[GnirsSpectroscopy, NonEmptyList[GnirsSpectroscopy.CentralWavelengthConfig]]    =
+      Focus[GnirsSpectroscopy](_.centralWavelengths)
     val defaultDecker: Lens[GnirsSpectroscopy, GnirsDecker]                                 =
       Focus[GnirsSpectroscopy](_.defaultDecker)
     val explicitDecker: Lens[GnirsSpectroscopy, Option[GnirsDecker]]                        =
@@ -1512,10 +1534,6 @@ object ObservingMode:
       Focus[GnirsSpectroscopy](_.explicitWellDepth)
     val explicitFocusMotorSteps: Lens[GnirsSpectroscopy, Option[GnirsFocusMotorStepsValue]] =
       Focus[GnirsSpectroscopy](_.explicitFocusMotorSteps)
-    val exposureTimeMode: Lens[GnirsSpectroscopy, ExposureTimeMode]                         =
-      Focus[GnirsSpectroscopy](_.exposureTimeMode)
-    val coadds: Lens[GnirsSpectroscopy, PosInt]                                             =
-      Focus[GnirsSpectroscopy](_.coadds)
     val acquisition: Lens[GnirsSpectroscopy, GnirsSpectroscopy.Acquisition]                 =
       Focus[GnirsSpectroscopy](_.acquisition)
 

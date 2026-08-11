@@ -2531,6 +2531,29 @@ input GmosNorthMosInput {
   The explicitOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
   """
   explicitOffsets: [OffsetComponentInput!]
+
+  """Parameters that override acquisition defaults."""
+  acquisition: GmosNorthMosAcquisitionInput
+}
+
+"""
+Parameters that override MOS acquisition defaults.  MOS acquisition is always
+Full Frame, so (unlike long slit) there is no ROI to configure.
+"""
+input GmosNorthMosAcquisitionInput {
+  """
+  An explicit acquisition filter to use instead of the default.  The `explicitFilter`
+  may be unset by assigning a null value, or ignored by skipping it altogether.  If not provided,
+  the filter that will be used for the acquisition sequence is the broadband filter closest to
+  the central wavelength.
+  """
+  explicitFilter: GmosNorthFilter
+
+  """
+  Exposure time mode for the acquisition sequence.  MOS acquisition must be
+  Time & Count; a signal-to-noise mode is rejected.
+  """
+  exposureTimeMode: ExposureTimeModeInput
 }
 
 """Edit or create GMOS South MOS advanced configuration"""
@@ -2602,6 +2625,29 @@ input GmosSouthMosInput {
   The explicitOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
   """
   explicitOffsets: [OffsetComponentInput!]
+
+  """Parameters that override acquisition defaults."""
+  acquisition: GmosSouthMosAcquisitionInput
+}
+
+"""
+Parameters that override MOS acquisition defaults.  MOS acquisition is always
+Full Frame, so (unlike long slit) there is no ROI to configure.
+"""
+input GmosSouthMosAcquisitionInput {
+  """
+  An explicit acquisition filter to use instead of the default.  The `explicitFilter`
+  may be unset by assigning a null value, or ignored by skipping it altogether.  If not provided,
+  the filter that will be used for the acquisition sequence is the broadband filter closest to
+  the central wavelength.
+  """
+  explicitFilter: GmosSouthFilter
+
+  """
+  Exposure time mode for the acquisition sequence.  MOS acquisition must be
+  Time & Count; a signal-to-noise mode is rejected.
+  """
+  exposureTimeMode: ExposureTimeModeInput
 }
 
 """Imaging filters combine an actual filter with an exposure time mode."""
@@ -3007,6 +3053,17 @@ type Mutation {
 
   """Creates a new program note according to provided parameters"""
   createProgramNote(input: CreateProgramNoteInput!): CreateProgramNoteResult!
+
+  """
+  Declines a REQUESTED Target-of-Opportunity trigger (staff), recording that it
+  was seen and passed over.  This also clears the observation's READY state, so
+  the observation returns to DEFINED.
+  
+  There is no corresponding mutation to request or withdraw a trigger: a trigger
+  is requested by setting a Target-of-Opportunity observation to READY via
+  `setObservationWorkflowState`, and withdrawn by clearing that state.
+  """
+  declineTooTrigger(input: DeclineTooTriggerInput!): DeclineTooTriggerResult!
 
   """Creates a new proposal according to the provided properties"""
   createProposal(
@@ -4133,7 +4190,7 @@ type DemoScience implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4172,7 +4229,7 @@ type DirectorsTime implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4211,7 +4268,7 @@ type FastTurnaround implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4259,7 +4316,7 @@ type LargeProgram implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4321,7 +4378,7 @@ type Queue implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4389,7 +4446,7 @@ type SystemVerification implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -5510,6 +5567,12 @@ type Subscription {
   groupEdit(input: GroupEditInput): GroupEdit!
   configurationRequestEdit(input: ConfigurationRequestEditInput): ConfigurationRequestEdit!
   executionEventAdded(input: ExecutionEventAddedInput): ExecutionEventAdded!
+
+  """
+  Subscribe to Target-of-Opportunity trigger edits (creation and lifecycle
+  transitions) for observations in programs the caller can read.
+  """
+  tooTriggerEdit(input: TooTriggerEditInput): TooTriggerEdit!
 }
 
 """Observation background-update calculation states."""
@@ -9111,17 +9174,59 @@ type GnirsSpectroscopyAcquisition {
   skyOffset: Offset
 }
 
+"""
+A GNIRS spectroscopy science configuration: a central wavelength together with
+the exposure time mode and coadds that apply at that wavelength.
+"""
+type GnirsCentralWavelengthConfig {
+  centralWavelength: Wavelength!
+
+  """
+  Exposure time mode for this central wavelength.
+  If not specified, it is taken from the observation's requirements.
+  """
+  exposureTimeMode: ExposureTimeMode!
+  coadds: PosInt!
+}
+
+"""
+Defines a GNIRS spectroscopy central wavelength to use along with its exposure
+time mode and coadds.
+"""
+input GnirsCentralWavelengthConfigInput {
+  centralWavelength: WavelengthInput!
+
+  """
+  Exposure time mode for this central wavelength.
+  If not specified, it is taken from the observation's requirements.
+  """
+  exposureTimeMode: ExposureTimeModeInput
+
+  """Coadds for this central wavelength.  Defaults to 1 when not specified."""
+  coadds: PosInt
+}
+
 """GNIRS Spectroscopy mode (long slit or IFU, distinguished by the FPU)."""
 type GnirsSpectroscopy {
-  exposureTimeMode: ExposureTimeMode!
   grating: GnirsGrating!
   explicitGrating: GnirsGrating
   initialGrating: GnirsGrating!
   prism: GnirsPrism!
   explicitPrism: GnirsPrism
   initialPrism: GnirsPrism!
-  centralWavelength: Wavelength!
-  initialCentralWavelength: Wavelength!
+
+  """
+  The central wavelengths at which spectra are taken, in increasing wavelength
+  order.  Each one is a separate configuration with its own exposure time mode,
+  coadds, ITC calculation and calibrations.
+  """
+  centralWavelengths: [GnirsCentralWavelengthConfig!]!
+
+  """
+  The central wavelengths as they were configured when the observing mode was
+  created.
+  """
+  initialCentralWavelengths: [GnirsCentralWavelengthConfig!]!
   camera: GnirsCamera!
   initialCamera: GnirsCamera!
 
@@ -9138,7 +9243,6 @@ type GnirsSpectroscopy {
   ifu: GnirsIfu
   filter: GnirsFilter!
   initialFilter: GnirsFilter!
-  coadds: PosInt!
   decker: GnirsDecker!
   explicitDecker: GnirsDecker
   defaultDecker: GnirsDecker!
@@ -9245,8 +9349,12 @@ input GnirsIfuInput {
 
 """Edit or create GNIRS Spectroscopy configuration (long slit or IFU)."""
 input GnirsSpectroscopyInput {
-  exposureTimeMode: ExposureTimeModeInput
-  coadds: PosInt
+  """
+  The central wavelengths at which spectra are taken.  Required on create, and
+  must contain at least one entry with no duplicated wavelength.  When given on
+  edit, it replaces the existing list wholesale.
+  """
+  centralWavelengths: [GnirsCentralWavelengthConfigInput!]
   filter: GnirsFilter
 
   """
@@ -9261,7 +9369,6 @@ input GnirsSpectroscopyInput {
   camera: GnirsCamera
   grating: GnirsGrating
   prism: GnirsPrism
-  centralWavelength: WavelengthInput
   explicitDecker: GnirsDecker
   explicitGrating: GnirsGrating
   explicitPrism: GnirsPrism
@@ -10449,6 +10556,35 @@ type GmosSouthLongSlit {
   initialCentralWavelength: Wavelength!
 }
 
+"""
+GMOS North MOS acquisition parameters.  MOS acquisition is always Full Frame
+"""
+type GmosNorthMosAcquisition {
+  """
+  The GMOS North filter that will be used in the acquisition sequence.  This will
+  be the `explicitFilter` if specified, but otherwise the `defaultFilter`.
+  """
+  filter: GmosNorthFilter!
+
+  """
+  The GMOS North filter that will be used by default, if an explicit acquisition
+  filter was not specified.  The default is calculated as the broadband filter
+  closest in wavelength to the observation's `centralWavelength`.
+  """
+  defaultFilter: GmosNorthFilter!
+
+  """
+  An explicitly specified GMOS North filter to use in acquisition (if any).
+  """
+  explicitFilter: GmosNorthFilter
+
+  """
+  The exposure time mode for the acquisition sequence.  MOS acquisition must be
+  Time & Count.
+  """
+  exposureTimeMode: ExposureTimeMode!
+}
+
 """GMOS North MOS mode"""
 type GmosNorthMos {
   """GMOS North Grating"""
@@ -10610,6 +10746,39 @@ type GmosNorthMos {
   field for the wavelength that will be used in the observation.
   """
   initialCentralWavelength: Wavelength!
+
+  """Parameters that override acquisition defaults."""
+  acquisition: GmosNorthMosAcquisition!
+}
+
+"""
+GMOS South MOS acquisition parameters.  MOS acquisition is always Full Frame,
+so there is no ROI to configure (unlike long slit).
+"""
+type GmosSouthMosAcquisition {
+  """
+  The GMOS South filter that will be used in the acquisition sequence.  This will
+  be the `explicitFilter` if specified, but otherwise the `defaultFilter`.
+  """
+  filter: GmosSouthFilter!
+
+  """
+  The GMOS South filter that will be used by default, if an explicit acquisition
+  filter was not specified.  The default is calculated as the broadband filter
+  closest in wavelength to the observation's `centralWavelength`.
+  """
+  defaultFilter: GmosSouthFilter!
+
+  """
+  An explicitly specified GMOS South filter to use in acquisition (if any).
+  """
+  explicitFilter: GmosSouthFilter
+
+  """
+  The exposure time mode for the acquisition sequence.  MOS acquisition must be
+  Time & Count; there is no acquisition ITC pass to solve a signal-to-noise one.
+  """
+  exposureTimeMode: ExposureTimeMode!
 }
 
 """GMOS South MOS mode"""
@@ -10773,6 +10942,9 @@ type GmosSouthMos {
   field for the wavelength that will be used in the observation.
   """
   initialCentralWavelength: Wavelength!
+
+  """Parameters that override acquisition defaults."""
+  acquisition: GmosSouthMosAcquisition!
 }
 
 """GMOS South Imaging mode"""
@@ -11629,6 +11801,15 @@ type ItcGnirsImagingResultSet {
 }
 
 """
+Combines a GNIRS spectroscopy central wavelength with an `ItcResultSet`. In
+other words, ITC results for all targets but a single central wavelength.
+"""
+type ItcGnirsSpectroscopyResultSet {
+  centralWavelength: Wavelength!
+  results: ItcResultSet!
+}
+
+"""
 ITC results for a particular observation, including relevant instrument
 configurations and targets.  There are specific instances for each `ItcType`.
 """
@@ -11677,6 +11858,16 @@ GNIRS imaging ITC results.  Here each filter is paired with its result set.
 type ItcGnirsImaging implements Itc {
   itcType: ItcType!
   gnirsImagingScience: [ItcGnirsImagingResultSet!]!
+}
+
+"""
+GNIRS spectroscopy ITC results.  Each central wavelength is a separate
+configuration and is paired with its own result set.
+"""
+type ItcGnirsSpectroscopy implements Itc {
+  itcType: ItcType!
+  acquisition: ItcResultSet!
+  gnirsSpectroscopyScience: [ItcGnirsSpectroscopyResultSet!]!
 }
 
 """ITC results for spectroscopy observations."""
@@ -12296,6 +12487,283 @@ enum ConfigurationRequestStatus {
   APPROVED
   DENIED
   WITHDRAWN
+}
+
+scalar TooTriggerId
+
+"""
+Lifecycle status of a Target-of-Opportunity trigger.  A trigger is REQUESTED
+while its observation carries the READY workflow state, and WITHDRAWN when that
+state is cleared; DECLINED records that an observer saw it and chose not to
+observe.  Both terminal statuses are equivalent to never having been triggered:
+setting the observation READY again produces a new trigger, never a transition
+out of a terminal state.
+"""
+enum TooTriggerStatus {
+  REQUESTED
+  DECLINED
+  WITHDRAWN
+}
+
+"""
+A Target-of-Opportunity trigger edit event: a trigger creation or lifecycle
+transition, delivered via the `tooTriggerEdit` subscription.
+"""
+type TooTriggerEdit {
+  """Type of edit."""
+  editType: EditType!
+
+  """The id of the edited trigger."""
+  tooTriggerId: TooTriggerId!
+
+  """The edited trigger.  Never null, since triggers are not deleted."""
+  value: TooTrigger!
+
+  """The observation the trigger is for."""
+  observation: Observation!
+}
+
+input TooTriggerEditInput {
+  """If provided, only edits for triggers in this program are delivered."""
+  programId: ProgramId
+
+  """
+  If provided, only edits for triggers on this observation are delivered.
+  """
+  observationId: ObservationId
+
+  """If provided, only edits for this specific trigger are delivered."""
+  tooTriggerId: TooTriggerId
+}
+
+"""
+A Target-of-Opportunity trigger: a per-attempt record of a request to activate a
+ToO observation, together with its lifecycle status.
+"""
+type TooTrigger {
+  """This trigger's unique id."""
+  id: TooTriggerId!
+
+  """The observation this trigger is for."""
+  observation: Observation!
+
+  """The trigger's lifecycle status."""
+  status: TooTriggerStatus!
+
+  """
+  Reason accompanying a terminal transition (e.g. a denial or withdrawal), if any.
+  """
+  resolutionReason: NonEmptyString
+
+  """When the trigger was requested (created)."""
+  requestedAt: Timestamp!
+
+  """The user who requested the trigger, if known."""
+  requestedBy: User
+
+  """When the trigger was last modified."""
+  updatedAt: Timestamp!
+}
+
+type DeclineTooTriggerResult {
+  """The declined trigger."""
+  tooTrigger: TooTrigger!
+}
+
+input DeclineTooTriggerInput {
+  """The trigger to decline."""
+  tooTriggerId: TooTriggerId!
+
+  """Optional reason recorded with the decision."""
+  reason: NonEmptyString
+}
+
+"""The matching triggers, limited to a maximum of 1000 entries."""
+type TooTriggerSelectResult {
+  """Matching triggers up to the return size limit of 1000."""
+  matches: [TooTrigger!]!
+
+  """`true` when there were additional matches that were not returned."""
+  hasMore: Boolean!
+}
+
+"""
+Filters on equality or order comparisons of the TooTriggerId property.  All
+supplied criteria must match, but usually only one is selected.
+"""
+input WhereOrderTooTriggerId {
+  """Matches if the property is exactly the supplied value."""
+  EQ: TooTriggerId
+
+  """Matches if the property is not the supplied value."""
+  NEQ: TooTriggerId
+
+  """Matches if the property value is any of the supplied options."""
+  IN: [TooTriggerId!]
+
+  """Matches if the property value is none of the supplied values."""
+  NIN: [TooTriggerId!]
+
+  """Matches if the property is ordered after (>) the supplied value."""
+  GT: TooTriggerId
+
+  """Matches if the property is ordered before (<) the supplied value."""
+  LT: TooTriggerId
+
+  """
+  Matches if the property is ordered after or equal (>=) the supplied value.
+  """
+  GTE: TooTriggerId
+
+  """
+  Matches if the property is ordered before or equal (<=) the supplied value.
+  """
+  LTE: TooTriggerId
+}
+
+"""
+Filters on equality or order comparisons of the TooTriggerStatus property.  Order
+follows the lifecycle declaration: REQUESTED < ACCEPTED < DENIED < WITHDRAWN, so
+`GTE: REQUESTED` matches every status.
+"""
+input WhereOrderTooTriggerStatus {
+  """Matches if the property is exactly the supplied value."""
+  EQ: TooTriggerStatus
+
+  """Matches if the property is not the supplied value."""
+  NEQ: TooTriggerStatus
+
+  """Matches if the property value is any of the supplied options."""
+  IN: [TooTriggerStatus!]
+
+  """Matches if the property value is none of the supplied values."""
+  NIN: [TooTriggerStatus!]
+
+  """Matches if the property is ordered after (>) the supplied value."""
+  GT: TooTriggerStatus
+
+  """Matches if the property is ordered before (<) the supplied value."""
+  LT: TooTriggerStatus
+
+  """
+  Matches if the property is ordered after or equal (>=) the supplied value.
+  """
+  GTE: TooTriggerStatus
+
+  """
+  Matches if the property is ordered before or equal (<=) the supplied value.
+  """
+  LTE: TooTriggerStatus
+}
+
+input WhereTooTrigger {
+  """A list of nested trigger filters that all must match."""
+  AND: [WhereTooTrigger!]
+
+  """
+  A list of nested trigger filters where any one match causes the group to match.
+  """
+  OR: [WhereTooTrigger!]
+
+  """A nested trigger filter that must not match."""
+  NOT: WhereTooTrigger
+
+  """Matches the trigger id."""
+  id: WhereOrderTooTriggerId
+
+  """Matches the observation id."""
+  observationId: WhereOrderObservationId
+
+  """Matches the program id (e.g. all triggers for one or more programs)."""
+  programId: WhereOrderProgramId
+
+  """Matches the trigger status."""
+  status: WhereOrderTooTriggerStatus
+
+  """Matches the request (creation) time."""
+  requestedAt: WhereOrderTimestamp
+
+  """Matches the requesting user."""
+  requestedBy: WhereUser
+
+  """Matches the last-modification time."""
+  updatedAt: WhereOrderTimestamp
+}
+
+"""
+A single entry in the Target-of-Opportunity trigger chronicle: one transaction's
+worth of change to a trigger (its creation or a lifecycle transition).
+"""
+type TooTriggerChronicleEntry {
+  id: ChronicleId!
+  transactionId: TransactionId!
+
+  """The user who performed the insertion or update, if known."""
+  user: User
+
+  """When the update happened."""
+  timestamp: Timestamp!
+
+  """The database operation that was performed."""
+  operation: DatabaseOperation!
+
+  """The trigger that was inserted or updated."""
+  tooTrigger: TooTrigger!
+  modObservationId: Boolean!
+  modProgramId: Boolean!
+  modStatus: Boolean!
+  modResolutionReason: Boolean!
+  newObservationId: ObservationId
+  newProgramId: ProgramId
+  newStatus: TooTriggerStatus
+  newResolutionReason: NonEmptyString
+}
+
+"""
+Allows filtering of TooTriggerChronicleEntry (see Query -> tooTriggerChronicleEntries)
+based on a number of criteria.
+"""
+input WhereTooTriggerChronicleEntry {
+  """A list of nested filters that all must match."""
+  AND: [WhereTooTriggerChronicleEntry!]
+
+  """
+  A list of nested filters where any one match causes the group to match.
+  """
+  OR: [WhereTooTriggerChronicleEntry!]
+
+  """A nested filter that must not match."""
+  NOT: WhereTooTriggerChronicleEntry
+
+  """Matches the chronicle entry id."""
+  id: WhereOrderChronicleId
+
+  """Matches the acting user."""
+  user: WhereUser
+
+  """Matches the database operation."""
+  operation: WhereEqDatabaseOperation
+
+  """Matches the transaction timestamp."""
+  timestamp: WhereOrderTimestamp
+
+  """Matches the trigger id."""
+  tooTrigger: WhereOrderTooTriggerId
+  modObservationId: WhereBoolean
+  modProgramId: WhereBoolean
+  modStatus: WhereBoolean
+  modResolutionReason: WhereBoolean
+}
+
+"""
+The matching trigger chronicle entries, limited to a maximum of 1000 entries.
+"""
+type TooTriggerChronicleEntrySelectResult {
+  """Matching entries up to the return size limit of 1000."""
+  matches: [TooTriggerChronicleEntry!]!
+
+  """`true` when there were additional matches that were not returned."""
+  hasMore: Boolean!
 }
 
 type ConfigurationRequest {
@@ -13194,6 +13662,45 @@ type Query {
     """Set to true to include deleted values."""
     includeDeleted: Boolean! = false
   ): ProgramNoteSelectResult!
+
+  """
+  Selects the Target-of-Opportunity trigger with the given id, if found and readable.
+  """
+  tooTrigger(tooTriggerId: TooTriggerId!): TooTrigger
+
+  """
+  Selects all Target-of-Opportunity triggers matching the optional WHERE, readable by the caller.
+  """
+  tooTriggers(
+    """Filters the selected triggers."""
+    WHERE: WhereTooTrigger
+
+    """
+    Starts the result set at (or after, if no exact match) the given trigger id.
+    """
+    OFFSET: TooTriggerId
+
+    """
+    Limits the result to at most this number of matches (but never more than 1000).
+    """
+    LIMIT: NonNegInt
+  ): TooTriggerSelectResult!
+
+  """
+  Selects Target-of-Opportunity trigger chronicle (audit) entries, readable by the caller.
+  """
+  tooTriggerChronicleEntries(
+    """Filters the selection of chronicle entries."""
+    WHERE: WhereTooTriggerChronicleEntry
+
+    """Starts the result set at (or after, if not existent) the given id."""
+    OFFSET: ChronicleId
+
+    """
+    Limits the result to at most this number of matches (but never more than 1000).
+    """
+    LIMIT: NonNegInt
+  ): TooTriggerChronicleEntrySelectResult!
 
   """
   Selects the first `LIMIT` matching program users based on the provided `WHERE`
@@ -15147,11 +15654,7 @@ enum ConsiderForBand3 {
   DO_NOT_CONSIDER
 }
 
-"""
-Target-of-Opportunity activation, in order of increasing disruption.  Used both
-as a proposal-level ceiling (the maximum an observation in the program may
-declare) and as the observation's own value.
-"""
+"""ToO Activation"""
 enum TooActivation {
   """Not a Target of Opportunity."""
   NONE

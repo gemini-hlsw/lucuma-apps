@@ -77,7 +77,9 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             prism
             grating
             camera
-            centralWavelength $WavelengthSubquery
+            centralWavelengths {
+              centralWavelength $WavelengthSubquery
+            }
           }
           ghostIfu {
             resolutionMode

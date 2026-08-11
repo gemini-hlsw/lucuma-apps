@@ -216,6 +216,9 @@ object ExploreStyles:
   val ItcImagingTableGroupHeader: Css = Css("explore-itc-imaging-table-group-header")
   val ItcTileTitle: Css               = Css("explore-itc-tile-title")
   val ItcTileTargetSelector: Css      = Css("explore-itc-tile-target-selector")
+  // The ITC tile title is a fixed-column grid; GNIRS spectroscopy adds a central
+  // wavelength selector, so it needs two more columns.
+  val ItcTileTitleWithWavelength: Css = Css("explore-itc-tile-title-with-wavelength")
   val ItcErrorIcon: Css               = Css("itc-error-icon")
   val ItcSourceTooBrightIcon: Css     = Css("itc-source-too-bright-icon")
 
@@ -425,6 +428,12 @@ object ExploreStyles:
   val ImagingFilterGrid: Css               = Css("explore-imaging-filter-grid")
   val ImagingFilterGridHeader: Css         = Css("explore-imaging-filter-grid-header")
   val ImagingFilterGridAction: Css         = Css("explore-imaging-filter-grid-action")
+
+  // GNIRS spectroscopy central wavelengths, one row per configuration.
+  val GnirsWavelengthGrid: Css             = Css("explore-gnirs-wavelength-grid")
+  val GnirsWavelengthGridHeader: Css       = Css("explore-gnirs-wavelength-grid-header")
+  val GnirsWavelengthGridAction: Css       = Css("explore-gnirs-wavelength-grid-action")
+  val GnirsWavelengthCenter: Css           = Css("explore-gnirs-wavelength-center")
   val TelescopeConfigGeneratorOffsets: Css = Css("explore-telescope-config-generator-offsets")
   val AcquisitionCustomizationGrid: Css    = Css("explore-acquisition-customization-grid")
   val SvcTelescopeConfigsEditor: Css       = Css("explore-svc-telescope-configs-editor")
@@ -461,10 +470,13 @@ object ExploreStyles:
   val SlitTelescopeConfigEditorHeader: Css = Css("explore-slit-telescope-config-editor-header")
 
   // ExposureTimeModeEditor
-  val ExposureTimeModeMode: Css          = Css("explore-etm-mode")
-  val ExposureTimeModeSignalToNoise: Css = Css("explore-etm-signal-to-noise")
-  val ExposureTimeModeTime: Css          = Css("explore-etm-time")
-  val ExposureTimeModeCount: Css         = Css("explore-etm-count")
+  val ExposureTimeModeMode: Css            = Css("explore-etm-mode")
+  val ExposureTimeModeSignalToNoise: Css   = Css("explore-etm-signal-to-noise")
+  val ExposureTimeModeTime: Css            = Css("explore-etm-time")
+  val ExposureTimeModeCount: Css           = Css("explore-etm-count")
+  // Only rendered in a grid row for spectroscopy modes with coadds (GNIRS).
+  val ExposureTimeModeCoadds: Css          = Css("explore-etm-coadds")
+  val ExposureTimeModeSignalToNoiseAt: Css = Css("explore-etm-sn-at")
 
   // Sequence Viewer
   val SequencesPanel           = Css("explore-sequences-panel")

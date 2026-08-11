@@ -22,6 +22,7 @@ import explore.model.reusability.given
 import explore.modes.ItcInstrumentConfig
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
+import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
@@ -32,7 +33,10 @@ case class ItcGraphQuerier(
   observation:         Observation,
   configs:             Option[ItcInstrumentConfig], // configs for imaging or single config for spectroscopy
   allTargets:          TargetList,
-  customSedTimestamps: List[Timestamp]
+  customSedTimestamps: List[Timestamp],
+  // GNIRS spectroscopy has one configuration per central wavelength; this picks
+  // which one to graph.  Other modes have a single configuration and ignore it.
+  selectedWavelength:  Option[Wavelength] = none
 ) derives Eq:
 
   private val constraints = observation.constraints
@@ -42,9 +46,10 @@ case class ItcGraphQuerier(
   // This will work even in the case the user has overriden some parameters.
   // When we use the remote configuration we don't need the exposure time.
   private val remoteConfig: Option[ItcInstrumentConfig] =
-    observation
-      .toInstrumentConfig(allTargets)
-      .headOption
+    val all = observation.toInstrumentConfig(allTargets)
+    selectedWavelength
+      .flatMap(w => all.find(c => ItcGraphQuerier.centralWavelength(c).contains(w)))
+      .orElse(all.headOption)
 
   private def requirementsExposureTimeMode: EitherNec[ItcQueryProblem, ExposureTimeMode] =
     observation.scienceRequirements.exposureTimeMode.toRightNec(
@@ -118,6 +123,17 @@ case class ItcGraphQuerier(
     } yield r).value
 
 object ItcGraphQuerier:
+
+  /**
+   * The central wavelength a configuration is for, when the mode has one per configuration (only
+   * GNIRS spectroscopy does).
+   */
+  def centralWavelength(c: ItcInstrumentConfig): Option[Wavelength] =
+    c match
+      case ItcInstrumentConfig.GnirsSpectroscopy(modeOverrides = overrides) =>
+        overrides.map(_.centralWavelength.value)
+      case _                                                                => none
+
   private case class QueryProps(
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],
