@@ -56,6 +56,10 @@ object ObsQueriesGql:
           schedulingConstraints {
             timingWindows $TimingWindowSubquery
           }
+          attachments {
+            id
+            maskName
+          }
         }
 
         executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery

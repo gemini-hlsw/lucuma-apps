@@ -237,7 +237,8 @@ object TestOdbProxy {
                       WaterVapor.Wet,
                       ElevationRange.ByAirMass.Default
                     ),
-                    ODBObservation.SchedulingConstraints(List.empty)
+                    ODBObservation.SchedulingConstraints(List.empty),
+                    List.empty
                   )
                 ),
                 buildExecutionConfig(

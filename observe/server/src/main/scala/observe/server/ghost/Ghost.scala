@@ -11,7 +11,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
-import lucuma.core.enums.StepType as OcsStepType
 import lucuma.core.math.*
 import lucuma.core.model.*
 import lucuma.core.model.sequence.Step
@@ -119,37 +118,32 @@ object Ghost {
   ): F[InstrumentStepBuilder[F, GhostStaticConfig, GhostDynamicConfig]] =
     new InstrumentStepBuilder[F, GhostStaticConfig, GhostDynamicConfig] {
       override def build(
-        systems:           Systems.OverriddenSystems[F],
-        stepType:          OcsStepType,
-        targetEnvironment: TargetEnvironment,
-        staticConf:        GhostStaticConfig,
-        step:              Step[GhostDynamicConfig],
-        observingTime:     Timestamp
-      ): Either[ObserveFailure, InstrumentStep[F]] = for {
-        stType <-
-          SeqTranslate.calcStepType(specifics.instrument, step.stepConfig, step.observeClass)
-        cfg    <- buildConfig(staticConf, step, targetEnvironment, observingTime)
-      } yield new InstrumentStep[F] {
-        override def stepType: StepKind = stType
+        ctx: StepBuildContext[F, GhostStaticConfig, GhostDynamicConfig]
+      ): Either[ObserveFailure, InstrumentStep[F]] =
+        import ctx.*
+        for
+          kind <- ctx.stepKind(specifics.instrument)
+          cfg  <- buildConfig(staticConf, step, targetEnvironment, observingTime)
+        yield new InstrumentStep[F]:
+          override def stepType: StepKind = kind
 
-        override def sfName: LightSinkName = LightSinkName.Ghost
+          override def sfName: LightSinkName = LightSinkName.Ghost
 
-        override def defocusB: Option[Length] = cfg.defocusOffset
+          override def defocusB: Option[Length] = cfg.defocusOffset
 
-        override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-          Ghost(systems.ghost(sysOverrides), conditionsRef, cfg)
+          override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+            Ghost(systems.ghost(sysOverrides), conditionsRef, cfg)
 
-        override def instrumentHeader(client: KeywordsClient[F]): Header[F] = GhostHeader.header(
-          client,
-          systems.systems.tcsKeywordReader,
-          GhostKeywordsReader(cfg, conditionsRef),
-          step
-        )
+          override def instrumentHeader(client: KeywordsClient[F]): Header[F] = GhostHeader.header(
+            client,
+            systems.systems.tcsKeywordReader,
+            GhostKeywordsReader(cfg, conditionsRef),
+            step
+          )
 
-        override def instrument: Instrument = specifics.instrument
+          override def instrument: Instrument = specifics.instrument
 
-        override def centralWavelength: Option[Wavelength] =
-          step.instrumentConfig.centralWavelength.some
-      }
-    }.pure[F]
+          override def centralWavelength: Option[Wavelength] =
+            step.instrumentConfig.centralWavelength.some
+    }.pure
 }

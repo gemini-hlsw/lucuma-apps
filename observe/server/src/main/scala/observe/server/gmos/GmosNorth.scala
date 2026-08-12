@@ -11,6 +11,7 @@ import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.MosPreImaging
 import lucuma.core.math.Wavelength
+import lucuma.core.model.MaskDefinition
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
@@ -63,10 +64,8 @@ object GmosNorth {
         DynamicConfig.GmosNorth.gratingConfig.asGetter.map(_.map(_.wavelength))
       override val builtinFpu: Getter[D, Option[FPU[GmosSite.North.type]]]  =
         DynamicConfig.GmosNorth.fpu.asGetter.map(_.flatMap(_.builtinFpu))
-      override val customFpu: Getter[D, Option[String]]                     =
-        // FIXME: This is a hack to get the custom mask definition to compile but it is not correct
-        DynamicConfig.GmosNorth.fpu.asGetter
-          .map(_.flatMap(_.customMaskDefinition.map(_.toString)))
+      override val customMask: Getter[D, Option[MaskDefinition]]            =
+        DynamicConfig.GmosNorth.fpu.asGetter.map(_.flatMap(_.customMaskDefinition))
       override val dtax: Getter[D, DTAX]                                    =
         DynamicConfig.GmosNorth.dtax.asGetter
       override val stageMode: Getter[S, StageMode[GmosSite.North.type]]     =

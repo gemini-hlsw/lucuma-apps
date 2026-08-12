@@ -19,13 +19,10 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.Timestamp
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
@@ -91,20 +88,24 @@ final case class Flamingos2[F[_]: {Async, Logger}](
 
 object Flamingos2 {
 
-  private def fpuFromFpuMask(fpu: Flamingos2FpuMask): FocalPlaneUnit = fpu match {
-    case Flamingos2FpuMask.Imaging        => FocalPlaneUnit.Open
-    case Flamingos2FpuMask.Builtin(value) =>
-      value match
-        case Flamingos2Fpu.SubPixPinhole => FocalPlaneUnit.GridSub1Pix
-        case Flamingos2Fpu.Pinhole       => FocalPlaneUnit.Grid2Pix
-        case Flamingos2Fpu.LongSlit1     => FocalPlaneUnit.Slit1Pix
-        case Flamingos2Fpu.LongSlit2     => FocalPlaneUnit.Slit2Pix
-        case Flamingos2Fpu.LongSlit3     => FocalPlaneUnit.Slit3Pix
-        case Flamingos2Fpu.LongSlit4     => FocalPlaneUnit.Slit4Pix
-        case Flamingos2Fpu.LongSlit6     => FocalPlaneUnit.Slit6Pix
-        case Flamingos2Fpu.LongSlit8     => FocalPlaneUnit.Slit8Pix
-    case Flamingos2FpuMask.Custom(_, _)   => FocalPlaneUnit.Custom("")
-  }
+  private def builtinFpu(fpu: Flamingos2Fpu): FocalPlaneUnit = fpu match
+    case Flamingos2Fpu.SubPixPinhole => FocalPlaneUnit.GridSub1Pix
+    case Flamingos2Fpu.Pinhole       => FocalPlaneUnit.Grid2Pix
+    case Flamingos2Fpu.LongSlit1     => FocalPlaneUnit.Slit1Pix
+    case Flamingos2Fpu.LongSlit2     => FocalPlaneUnit.Slit2Pix
+    case Flamingos2Fpu.LongSlit3     => FocalPlaneUnit.Slit3Pix
+    case Flamingos2Fpu.LongSlit4     => FocalPlaneUnit.Slit4Pix
+    case Flamingos2Fpu.LongSlit6     => FocalPlaneUnit.Slit6Pix
+    case Flamingos2Fpu.LongSlit8     => FocalPlaneUnit.Slit8Pix
+
+  private def fpuFromFpuMask(
+    fpu:         Flamingos2FpuMask,
+    customMasks: CustomMasks
+  ): Either[ObserveFailure, FocalPlaneUnit] = fpu match
+    case Flamingos2FpuMask.Imaging         => FocalPlaneUnit.Open.asRight
+    case Flamingos2FpuMask.Builtin(value)  => builtinFpu(value).asRight
+    case Flamingos2FpuMask.Custom(mask, _) =>
+      customMasks.maskName(mask).map(FocalPlaneUnit.Custom.apply)
 
   private def windowCoverFromStepType(stepType: CoreStepType): Flamingos2WindowCover =
     stepType match
@@ -128,16 +129,18 @@ object Flamingos2 {
 
   private def ccConfigFromSequenceConfig(
     dynamicConfig: Flamingos2DynamicConfig,
-    stepType:      CoreStepType
-  ): CCConfig =
-    CCConfig(
-      windowCoverFromStepType(stepType),
-      dynamicConfig.decker,
-      fpuFromFpuMask(dynamicConfig.fpu),
-      dynamicConfig.filter,
-      dynamicConfig.lyotWheel,
-      grismFromDisperserAndStepType(dynamicConfig.disperser, stepType)
-    )
+    stepType:      CoreStepType,
+    customMasks:   CustomMasks
+  ): Either[ObserveFailure, CCConfig] =
+    fpuFromFpuMask(dynamicConfig.fpu, customMasks).map: fpu =>
+      CCConfig(
+        windowCoverFromStepType(stepType),
+        dynamicConfig.decker,
+        fpu,
+        dynamicConfig.filter,
+        dynamicConfig.lyotWheel,
+        grismFromDisperserAndStepType(dynamicConfig.disperser, stepType)
+      )
 
   private def dcConfigFromSequenceConfig(dynamicConfig: Flamingos2DynamicConfig): DCConfig =
     DCConfig(
@@ -149,62 +152,58 @@ object Flamingos2 {
 
   private def fromSequenceConfig[F[_]](
     dynamicConfig: Flamingos2DynamicConfig,
-    stepType:      CoreStepType
-  ): Flamingos2Config =
-    Flamingos2Config(
-      ccConfigFromSequenceConfig(dynamicConfig, stepType),
-      dcConfigFromSequenceConfig(dynamicConfig)
-    )
+    stepType:      CoreStepType,
+    customMasks:   CustomMasks
+  ): Either[ObserveFailure, Flamingos2Config] =
+    ccConfigFromSequenceConfig(dynamicConfig, stepType, customMasks).map: ccConfig =>
+      Flamingos2Config(
+        ccConfig,
+        dcConfigFromSequenceConfig(dynamicConfig)
+      )
 
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]] = (
     new InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig] {
       override def build(
-        systems:           Systems.OverriddenSystems[F],
-        stepType:          CoreStepType,
-        targetEnvironment: TargetEnvironment,
-        staticConf:        Flamingos2StaticConfig,
-        step:              Step[Flamingos2DynamicConfig],
-        observingTime:     Timestamp
+        ctx: StepBuildContext[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]
       ): Either[ObserveFailure, InstrumentStep[F]] =
+        import ctx.*
 
-        SeqTranslate.calcStepType(Instrument.Flamingos2, step.stepConfig, step.observeClass).map {
-          x =>
-            val config: Flamingos2Config = fromSequenceConfig(step.instrumentConfig, stepType)
-            new InstrumentStep[F] {
-              override def stepType: StepKind = x
+        for
+          kind   <- ctx.stepKind(Instrument.Flamingos2)
+          config <- fromSequenceConfig(step.instrumentConfig, coreStepType, customMasks)
+        yield new InstrumentStep[F]:
+          override def stepType: StepKind = kind
 
-              override def sfName: LightSinkName = LightSinkName.Flamingos2
+          override def sfName: LightSinkName = LightSinkName.Flamingos2
 
-              override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-                Flamingos2(
-                  systems.flamingos2(sysOverrides),
-                  systems.dhs(sysOverrides),
-                  config
-                )
+          override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+            Flamingos2(
+              systems.flamingos2(sysOverrides),
+              systems.dhs(sysOverrides),
+              config
+            )
 
-              override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-                Flamingos2Header.header(
-                  client,
-                  Flamingos2Header.ObsKeywordsReader(
-                    staticConf,
-                    step.instrumentConfig
-                  ),
-                  systems.systems.tcsKeywordReader
-                )
+          override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+            Flamingos2Header.header(
+              client,
+              Flamingos2Header.ObsKeywordsReader(
+                staticConf,
+                step.instrumentConfig
+              ),
+              systems.systems.tcsKeywordReader
+            )
 
-              override def instrument: Instrument = Instrument.Flamingos2
+          override def instrument: Instrument = Instrument.Flamingos2
 
-              override def centralWavelength: Option[Wavelength] =
-                step.instrumentConfig.centralWavelength.some
+          override def centralWavelength: Option[Wavelength] =
+            step.instrumentConfig.centralWavelength.some
 
-              // TODO Use different value if using electronic offsets
-              override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-                (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+          // TODO Use different value if using electronic offsets
+          override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+            (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
 
-            }
-        }
     }
-  ).pure[F]
+  ).pure
 
 }

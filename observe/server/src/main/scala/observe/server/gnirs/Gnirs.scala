@@ -10,14 +10,10 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
-import lucuma.core.enums.StepType as OcsStepType
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.Timestamp
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
@@ -87,36 +83,30 @@ object Gnirs {
     : F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
     new InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig] {
       override def build(
-        systems:           Systems.OverriddenSystems[F],
-        stepType:          OcsStepType,
-        targetEnvironment: TargetEnvironment,
-        staticConf:        GnirsStaticConfig,
-        step:              Step[GnirsDynamicConfig],
-        observingTime:     Timestamp
+        ctx: StepBuildContext[F, GnirsStaticConfig, GnirsDynamicConfig]
       ): Either[ObserveFailure, InstrumentStep[F]] =
-        SeqTranslate.calcStepType(Instrument.Gnirs, step.stepConfig, step.observeClass).map {
-          stepKind =>
-            val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, stepType)
-            new InstrumentStep[F] {
-              override def stepType: StepKind = stepKind
+        import ctx.*
+        for kind <- ctx.stepKind(Instrument.Gnirs)
+        yield
+          val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, coreStepType)
+          new InstrumentStep[F]:
+            override def stepType: StepKind = kind
 
-              override def sfName: LightSinkName = LightSinkName.Gnirs
+            override def sfName: LightSinkName = LightSinkName.Gnirs
 
-              override def centralWavelength: Option[Wavelength] =
-                step.instrumentConfig.centralWavelength.some
+            override def centralWavelength: Option[Wavelength] =
+              step.instrumentConfig.centralWavelength.some
 
-              override def instrument: Instrument = Instrument.Gnirs
+            override def instrument: Instrument = Instrument.Gnirs
 
-              override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-                Gnirs(systems.gnirs(sysOverrides), systems.dhs(sysOverrides), config)
+            override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+              Gnirs(systems.gnirs(sysOverrides), systems.dhs(sysOverrides), config)
 
-              override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-                GnirsHeader.header(
-                  client,
-                  systems.systems.gnirsKeywordReader,
-                  systems.systems.tcsKeywordReader
-                )
-            }
-        }
-    }.pure[F]
+            override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+              GnirsHeader.header(
+                client,
+                systems.systems.gnirsKeywordReader,
+                systems.systems.tcsKeywordReader
+              )
+    }.pure
 }
