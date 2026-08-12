@@ -94,6 +94,7 @@ final case class ConfigurationTile(
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
+      autoHeight = true,
       bodyClass = ExploreStyles.ConfigurationTileBody
     )(ConfigurationTile):
   val observingMode: Option[ObservingMode]                             = pacAndMode.get._2

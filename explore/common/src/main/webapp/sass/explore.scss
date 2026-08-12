@@ -548,6 +548,28 @@ thead tr th.sticky-header {
   background-color: var(--tile-background);
 }
 
+.explore-tile-body-hidden {
+  display: none;
+}
+
+// Keeps the content box the same width whether or not the scrollbar is showing, so a
+// content-driven height can't oscillate with the scrollbar's own appearance/disappearance.
+.explore-auto-height-tile-body {
+  scrollbar-gutter: stable;
+}
+
+// The measurement wrapper must report the height its content *wants*, so the body's own layout
+// must not get a say in it. A flex or grid body would otherwise size it to the height already
+// available and the derived row span would settle wherever it started rather than converging on
+// the content.
+// `align-self` opts out of the stretch and `flex-shrink` out of the shrink
+// the explicit width restores the full bleed that stretching would have given us.
+.explore-auto-height-tile-content {
+  align-self: start;
+  flex-shrink: 0;
+  width: 100%;
+}
+
 .explore-tile {
   height: 100%;
   width: 100%;

@@ -112,6 +112,38 @@ object layout {
 
   val layoutsItemHeight = layoutItems.andThen(layoutItemHeight)
 
+  /** The row span a maximized auto-height tile may never go below. */
+  val AutoHeightMinRows: Int = 2
+
+  private val RowStridePx: Int = Constants.GridRowHeight + Constants.GridRowPadding
+
+  // react-grid-layout renders `h` rows as `h * rowHeight + (h - 1) * margin` pixels.
+  private def rowsNeeded(px: Int): Int =
+    math.ceil((px + Constants.GridRowPadding).toDouble / RowStridePx).toInt
+
+  private def rowsAvailable(px: Int): Int =
+    math.floor((px + Constants.GridRowPadding).toDouble / RowStridePx).toInt
+
+  /**
+   * Derives an auto-height tile's row span from its measured content height (title bar included),
+   * capped to what fits in `viewportPx`. Pinning minH/maxH to the result is what restricts resizing
+   * to horizontal. No-op while `minimized`
+   */
+  def resolveAutoHeight(
+    item:       LayoutItem,
+    measuredPx: Int,
+    viewportPx: Int,
+    minimized:  Boolean
+  ): LayoutItem =
+    if minimized then item
+    else
+      val contentRows  = math.max(AutoHeightMinRows, rowsNeeded(measuredPx))
+      val viewportRows = math.max(AutoHeightMinRows, rowsAvailable(viewportPx))
+      val rows         = math.min(contentRows, viewportRows)
+      if rows === item.h && item.minH.toOption.contains(rows) && item.maxH.toOption.contains(rows)
+      then item
+      else item.copy(h = rows, minH = rows, maxH = rows)
+
   // Only the x, y, width and height are saved in user preferences.
   // A stored width below `minW` cannot come from the user: react-grid-layout enforces `minW` on
   // resize, and minimizing a tile only changes its height.

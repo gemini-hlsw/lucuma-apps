@@ -30,6 +30,9 @@ object ExploreStyles:
   val TileControlButtons: Css           = Css("explore-tile-control-buttons")
   val TileBackButton: Css               = Css("tile-back-button")
   val TileBody: Css                     = Css("explore-tile-body")
+  val TileBodyHidden: Css               = Css("explore-tile-body-hidden")
+  val AutoHeightTileBody: Css           = Css("explore-auto-height-tile-body")
+  val AutoHeightTileContent: Css        = Css("explore-auto-height-tile-content")
   val TileButton: Css                   = Css("explore-tile-button")
   val TileStateButton: Css              = Css("explore-tile-state-button")
 
