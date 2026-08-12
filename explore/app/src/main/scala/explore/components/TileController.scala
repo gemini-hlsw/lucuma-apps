@@ -88,11 +88,15 @@ object TileController:
       .filter(_.i === id.value)
       .andThen(layoutItemHeight)
 
-  private def isAutoHeight(tiles: List[TileState[?]], id: String): Boolean =
-    tiles.exists(t => t.tileProps.id.value === id && t.tileProps.autoHeight)
+  private case class TileFlags(autoHeight: Set[String], hidden: Set[String]):
+    def autoVisible(id: String): Boolean = autoHeight.contains(id) && !hidden.contains(id)
 
-  private def isHidden(tiles: List[TileState[?]], id: String): Boolean =
-    tiles.exists(t => t.tileProps.id.value === id && t.tileProps.hidden)
+  private object TileFlags:
+    def of(tiles: List[TileState[?]]): TileFlags =
+      TileFlags(
+        tiles.collect { case t if t.tileProps.autoHeight => t.tileProps.id.value }.toSet,
+        tiles.collect { case t if t.tileProps.hidden => t.tileProps.id.value }.toSet
+      )
 
   // The grid container auto-sizes to fit its rows (`autoSize = true` below), so capping against
   // it would be circular; the window viewport can't be, though it includes other page chrome.
@@ -101,7 +105,7 @@ object TileController:
   // An auto-height tile's local row span is authoritative: the prefs subscription echoes every
   // store back ~1s later, and adopting the echoed height would collapse or floor a visible tile.
   private def preserveAutoHeights(
-    tiles:   List[TileState[?]],
+    flags:   TileFlags,
     current: LayoutsMap,
     updated: LayoutsMap
   ): LayoutsMap =
@@ -111,7 +115,7 @@ object TileController:
       bp -> ((w,
               c,
               Layout(layout.asList.map { item =>
-                if isAutoHeight(tiles, item.i) && !isHidden(tiles, item.i) then
+                if flags.autoVisible(item.i) then
                   currentItems
                     .get(item.i)
                     .fold(item)(cur => item.copy(h = cur.h, minH = cur.minH, maxH = cur.maxH))
@@ -123,23 +127,23 @@ object TileController:
   // Re-derives auto-height row spans from the last reported measurements, for spans that were
   // dropped mid-gesture or reset by normalization: the resize detector won't repeat its value.
   private def applyMeasuredHeights(
-    tiles:      List[TileState[?]],
+    flags:      TileFlags,
     measured:   Map[String, Int],
     viewportPx: Int,
     layouts:    LayoutsMap
   ): LayoutsMap =
     allTiles.modify { l =>
-      if isAutoHeight(tiles, l.i) && !isHidden(tiles, l.i) then
+      if flags.autoVisible(l.i) then
         measured.get(l.i).fold(l)(px => resolveAutoHeight(l, px, viewportPx, l.h === 1))
       else l
     }(layouts)
 
-  private def updateResizableState(tiles: List[TileState[?]], p: LayoutsMap): LayoutsMap =
+  private def updateResizableState(flags: TileFlags, p: LayoutsMap): LayoutsMap =
     allLayouts
       .andThen(layoutItems)
       .modify { r =>
-        val hidden     = isHidden(tiles, r.i)
-        val autoHeight = isAutoHeight(tiles, r.i)
+        val hidden     = flags.hidden.contains(r.i)
+        val autoHeight = flags.autoHeight.contains(r.i)
         if hidden then
           // height to 0 for hidden tiles
           r.copy(minH = 0, h = 0, isResizable = false)
@@ -155,6 +159,7 @@ object TileController:
 
   private val component =
     ScalaFnComponent[Props]: props =>
+      val tileFlags: TileFlags = TileFlags.of(props.tiles)
       for
         ctx            <- useContext(AppContext.ctx)
         // Get the breakpoint from the layout
@@ -165,7 +170,7 @@ object TileController:
                             )
                           )
         // Make a local copy of the layout fixing the state of minimized layouts
-        currentLayout  <- useStateView(updateResizableState(props.tiles, props.layoutMap))
+        currentLayout  <- useStateView(updateResizableState(tileFlags, props.layoutMap))
         // Last content height reported per tile id. Survives minimize/maximize so maximizing
         // can restore the height the content wants instead of the floor.
         lastMeasuredPx <- useStateView(Map.empty[String, Int])
@@ -176,13 +181,13 @@ object TileController:
                               viewportPx.flatMap: vp =>
                                 currentLayout.mod: current =>
                                   applyMeasuredHeights(
-                                    props.tiles,
+                                    tileFlags,
                                     lastMeasuredPx.get,
                                     vp,
                                     preserveAutoHeights(
-                                      props.tiles,
+                                      tileFlags,
                                       current,
-                                      updateResizableState(props.tiles, layout)
+                                      updateResizableState(tileFlags, layout)
                                     )
                                   )
         // While a drag or resize gesture is in flight, measurements are recorded but not applied.
@@ -198,10 +203,11 @@ object TileController:
               .mod:
                 case l if l.i === id.value =>
                   if (st === TileSizeState.Minimized)
-                    if isAutoHeight(props.tiles, id.value) then l.copy(h = 1, minH = 1, maxH = 1)
+                    if tileFlags.autoHeight.contains(id.value) then
+                      l.copy(h = 1, minH = 1, maxH = 1)
                     else l.copy(h = 1, minH = 1)
                   else if (st === TileSizeState.Maximized)
-                    if isAutoHeight(props.tiles, id.value) then
+                    if tileFlags.autoHeight.contains(id.value) then
                       val measuredPx = lastMeasuredPx.get.getOrElse(id.value, 0)
                       resolveAutoHeight(l, measuredPx, vp, false)
                     else
@@ -269,8 +275,8 @@ object TileController:
           gesturing.set(false) *>
             viewportPx.flatMap: vp =>
               currentLayout
-                .mod(applyMeasuredHeights(props.tiles, lastMeasuredPx.get, vp, _))
-                .when_(props.tiles.exists(_.tileProps.autoHeight))
+                .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.get, vp, _))
+                .when_(tileFlags.autoHeight.nonEmpty)
 
         ResponsiveReactGridLayout(
           width = props.gridWidth.toDouble,

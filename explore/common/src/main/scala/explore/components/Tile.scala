@@ -164,8 +164,9 @@ trait TileComponent[P <: Tile[P]](
             ExploreStyles.Tile |+| ExploreStyles.FadeIn |+| props.tileClass,
             ^.key := "tile-${props.id.value}"
           )(
-            // Tile title
-            <.div.withRef(titleResize.ref)(
+            // Tile title. The resize detector only observes auto-height tiles: an attached ref
+            // would trigger a re-render on every title box change for nothing.
+            <.div.withOptionalRef(Option.when(props.autoHeight)(titleResize.ref))(
               ExploreStyles.TileTitle,
               ^.key := s"tileTitle-${props.id.value}"
             )(
