@@ -10,7 +10,6 @@ import clue.data.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
-import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.*
@@ -33,7 +32,6 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Panel
@@ -42,7 +40,6 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
@@ -109,11 +106,6 @@ object GnirsImagingConfigPanel
         val cameraView: View[GnirsCamera] =
           props.observingMode
             .zoom(ObservingMode.GnirsImaging.camera, GnirsImagingInput.camera.modify)
-            .view(_.assign)
-
-        val coaddsView: View[PosInt] =
-          props.observingMode
-            .zoom(ObservingMode.GnirsImaging.coadds, GnirsImagingInput.coadds.modify)
             .view(_.assign)
 
         val readModeView: View[Option[GnirsReadMode]] =
@@ -226,15 +218,7 @@ object GnirsImagingConfigPanel
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
-              ),
-              FormInputTextView(
-                id = "coadds".refined,
-                value = coaddsView,
-                label = "Coadds",
-                validFormat = InputValidSplitEpi.posInt,
-                changeAuditor = ChangeAuditor.int,
-                disabled = disableSimpleEdit
-              )(^.autoComplete.off)
+              )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ImagingVariantEditor(variantView, !props.permissions.isFullEdit)
@@ -247,9 +231,15 @@ object GnirsImagingConfigPanel
                 filtersView = filtersView,
                 filterLens = ObservingMode.GnirsImaging.ImagingFilter.filter,
                 etmLens = ObservingMode.GnirsImaging.ImagingFilter.exposureTimeMode,
+                // `Some`, not `.some`: Monocle's optic `.some` shadows the cats syntax here.
+                coaddsLens = Some(ObservingMode.GnirsImaging.ImagingFilter.coadds),
                 initialFilters = props.mode.initialFilters,
                 allowedFilters = props.allowedFilters,
-                makeImagingFilter = (f, e) => ObservingMode.GnirsImaging.ImagingFilter(f, e),
+                // A new filter starts at 1 coadd: it inherits the observation's
+                // exposure time mode, which is usually signal-to-noise, and that
+                // doesn't support coadds anyway.
+                makeImagingFilter =
+                  (f, e) => ObservingMode.GnirsImaging.ImagingFilter(f, e, 1.refined),
                 requirementsExposureTimeMode = props.requirementsExposureTimeMode,
                 units = props.units,
                 calibrationRole = props.calibrationRole,

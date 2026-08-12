@@ -574,7 +574,8 @@ extension (imagingFilter: ObservingMode.Flamingos2Imaging.ImagingFilter)
 extension (imagingFilter: ObservingMode.GnirsImaging.ImagingFilter)
   def toInput: GnirsImagingFilterInput = GnirsImagingFilterInput(
     filter = imagingFilter.filter,
-    exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
+    exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign,
+    coadds = imagingFilter.coadds.assign
   )
 
 extension (tcg: TelescopeConfigGenerator)
@@ -675,7 +676,6 @@ extension (o: ObservingMode.GnirsImaging)
     variant = o.variant.toInput.assign,
     filters = o.filters.toList.map(_.toInput).assign,
     camera = o.camera.assign,
-    coadds = o.coadds.assign,
     explicitReadMode = o.explicitReadMode.orUnassign,
     explicitWellDepth = o.explicitWellDepth.orUnassign,
     acquisition = o.acquisition.toInput.assign

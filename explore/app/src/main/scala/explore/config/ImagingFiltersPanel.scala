@@ -9,6 +9,7 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.*
@@ -40,6 +41,9 @@ case class ImagingFiltersPanel[ImagingFilter, Filter](
   filtersView:                  View[NonEmptyList[ImagingFilter]],
   filterLens:                   Lens[ImagingFilter, Filter],
   etmLens:                      Lens[ImagingFilter, ExposureTimeMode],
+  // Only the modes that support coadds (GNIRS) supply this; for the others the
+  // column isn't rendered at all.
+  coaddsLens:                   Option[Lens[ImagingFilter, PosInt]],
   initialFilters:               NonEmptyList[ImagingFilter],
   allowedFilters:               Set[Filter],
   makeImagingFilter:            (Filter, ExposureTimeMode) => ImagingFilter,
@@ -102,13 +106,18 @@ object ImagingFiltersPanel:
           toggleable = true,
           collapsed = false
         )(
-          <.div(ExploreStyles.ImagingFilterGrid)(
+          <.div(
+            ExploreStyles.ImagingFilterGrid,
+            ExploreStyles.ImagingFilterGridWithCoadds.when_(props.coaddsLens.isDefined)
+          )(
             <.span(), // the action button
             <.span("Filter", ExploreStyles.ImagingFilterGridHeader),
             <.span("Exposure Mode", ExploreStyles.ImagingFilterGridHeader),
             <.span("Signal/Noise", ExploreStyles.ImagingFilterGridHeader),
             <.span("Exp. Time", ExploreStyles.ImagingFilterGridHeader),
             <.span("Number of Exp.", ExploreStyles.ImagingFilterGridHeader),
+            <.span("Coadds", ExploreStyles.ImagingFilterGridHeader)
+              .when(props.coaddsLens.isDefined),
             localFiltersView.toListOfViews.zipWithIndex
               .toReactFragment(using
                 (imagingFilterView, idx) =>
@@ -139,7 +148,7 @@ object ImagingFiltersPanel:
                       instrument = props.instrument,
                       wavelength = none,
                       exposureTimeMode = imagingFilterView.zoom(props.etmLens),
-                      coadds = none,
+                      coadds = props.coaddsLens.map(imagingFilterView.zoom(_)),
                       scienceMode = ScienceMode.Imaging,
                       readonly = props.readonly,
                       units = props.units,

@@ -228,13 +228,14 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             initialFilters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
             filters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
             camera
-            coadds
             explicitReadMode
             defaultWellDepth
             explicitWellDepth
@@ -552,13 +553,14 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             initialFilters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
             filters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
             camera
-            coadds
             explicitReadMode
             defaultWellDepth
             explicitWellDepth

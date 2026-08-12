@@ -33,7 +33,6 @@ import lucuma.itc.client.GmosCustomMask
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
-import lucuma.refined.*
 
 import scala.collection.immutable.SortedSet
 
@@ -162,7 +161,7 @@ trait syntax:
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                          =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm)                       =>
+        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds)               =>
           InstrumentMode
             .GnirsImaging(
               etm,
@@ -170,7 +169,7 @@ trait syntax:
               camera,
               gnirsReadModeFor(etm),
               GnirsWellDepth.forCamera(camera),
-              coadds = 1.refined
+              coadds = coadds
             )
             .rightNec
         case ItcInstrumentConfig

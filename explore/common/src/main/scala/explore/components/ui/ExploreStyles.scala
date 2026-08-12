@@ -426,6 +426,9 @@ object ExploreStyles:
   val ImagingLowerGridStack: Css           = Css("explore-imaging-lower-grid-stack")
   val ImagingFilter: Css                   = Css("explore-imaging-filter")
   val ImagingFilterGrid: Css               = Css("explore-imaging-filter-grid")
+  // Added alongside ImagingFilterGrid by the imaging modes that carry per-filter
+  // coadds (GNIRS), which need one more column.
+  val ImagingFilterGridWithCoadds: Css     = Css("explore-imaging-filter-grid-with-coadds")
   val ImagingFilterGridHeader: Css         = Css("explore-imaging-filter-grid-header")
   val ImagingFilterGridAction: Css         = Css("explore-imaging-filter-grid-action")
 

@@ -201,6 +201,7 @@ object GmosImagingConfigPanel {
                 filtersView = filtersView,
                 filterLens = filtersFilterLens,
                 etmLens = filtersEtmLens,
+                coaddsLens = none,
                 initialFilters = initialFilters,
                 allowedFilters = allowedFilters,
                 makeImagingFilter = makeImagingFilter,

@@ -147,11 +147,13 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.Flamingos2Imaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.Flamingos2Imaging.apply)
-      case ItcInstrumentConfig.GnirsImaging(_, camera, _)                           =>
+      case ItcInstrumentConfig.GnirsImaging(camera = camera)                        =>
         // Only rows sharing the head's camera can be combined into one configuration.
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GnirsImaging(f, c, _), _)
-              if c === camera =>
+          case InstrumentConfigAndItcResult(
+                ItcInstrumentConfig.GnirsImaging(filter = f, camera = c),
+                _
+              ) if c === camera =>
             f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GnirsImaging(_, camera))
       case ItcInstrumentConfig.GnirsSpectroscopy(grating = grating,

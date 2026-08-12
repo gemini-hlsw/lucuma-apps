@@ -900,7 +900,8 @@ trait ArbObservingMode {
       for {
         filter <- arbitrary[GnirsFilter]
         etm    <- arbitrary[ExposureTimeMode]
-      } yield ObservingMode.GnirsImaging.ImagingFilter(filter, etm)
+        coadds <- arbitrary[PosInt]
+      } yield ObservingMode.GnirsImaging.ImagingFilter(filter, etm, coadds)
     )
 
   @targetName("gnirsImagingAcquisitionArbitrary")
@@ -930,7 +931,6 @@ trait ArbObservingMode {
         initialFilters    <- arbitrary[NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter]]
         filters           <- arbitrary[NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter]]
         camera            <- arbitrary[GnirsCamera]
-        coadds            <- arbitrary[PosInt]
         explicitReadMode  <- arbitrary[Option[GnirsReadMode]]
         defaultWellDepth  <- arbitrary[GnirsWellDepth]
         explicitWellDepth <- arbitrary[Option[GnirsWellDepth]]
@@ -940,7 +940,6 @@ trait ArbObservingMode {
         initialFilters,
         filters,
         camera,
-        coadds,
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
@@ -950,7 +949,9 @@ trait ArbObservingMode {
     )
 
   given cogenGnirsImagingFilter: Cogen[ObservingMode.GnirsImaging.ImagingFilter] =
-    Cogen[(GnirsFilter, ExposureTimeMode)].contramap(i => (i.filter, i.exposureTimeMode))
+    Cogen[(GnirsFilter, ExposureTimeMode, PosInt)].contramap(i =>
+      (i.filter, i.exposureTimeMode, i.coadds)
+    )
 
   given Cogen[ObservingMode.GnirsImaging] =
     Cogen[
@@ -958,7 +959,6 @@ trait ArbObservingMode {
         NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter],
         NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter],
         GnirsCamera,
-        PosInt,
         Option[GnirsReadMode],
         GnirsWellDepth,
         Option[GnirsWellDepth],
@@ -971,7 +971,6 @@ trait ArbObservingMode {
           o.initialFilters,
           o.filters,
           o.camera,
-          o.coadds,
           o.explicitReadMode,
           o.defaultWellDepth,
           o.explicitWellDepth,

@@ -301,7 +301,9 @@ final case class Observation(
             .map(f => ItcInstrumentConfig.Flamingos2Imaging(f.filter, f.exposureTimeMode))
         case g: ObservingMode.GnirsImaging       =>
           g.filters.toList
-            .map(f => ItcInstrumentConfig.GnirsImaging(f.filter, g.camera, f.exposureTimeMode))
+            .map(f =>
+              ItcInstrumentConfig.GnirsImaging(f.filter, g.camera, f.exposureTimeMode, f.coadds)
+            )
         case i: ObservingMode.Igrins2LongSlit    =>
           List(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)

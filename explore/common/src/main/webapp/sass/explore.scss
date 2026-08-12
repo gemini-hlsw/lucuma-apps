@@ -2152,7 +2152,19 @@ svg.fa-check.explore-success-icon {
       display: grid;
       padding-top: 0.5em;
       gap: 0.5em;
+
+      // Column order follows the DOM order of the ExposureTimeMode controls.  They
+      // are placed by column but auto-placed by row, so a column that precedes the
+      // previous control's would push it onto a new row.
       grid-template-columns: [action] auto [filter] 1fr [mode] 1fr [sn] 1fr [time] 1fr [count] 1fr;
+
+      // Modes with per-filter coadds (GNIRS) add a trailing column.  A
+      // signal-to-noise row simply leaves it empty.
+      &.explore-imaging-filter-grid-with-coadds {
+        grid-template-columns:
+          [action] auto [filter] 1fr [mode] 1fr [sn] 1fr [time] 1fr [count] 1fr
+          [coadds] 1fr;
+      }
 
       .pl-form-field {
         width: 100%;
@@ -2185,6 +2197,10 @@ svg.fa-check.explore-success-icon {
 
       .explore-etm-count {
         grid-column: count;
+      }
+
+      .explore-etm-coadds {
+        grid-column: coadds;
       }
     }
 
