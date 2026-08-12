@@ -7,6 +7,6 @@ import lucuma.core.util.Enumerated
 
 enum UnwrapMode(val tag: String) derives Enumerated {
   case Minus extends UnwrapMode("Minus")
-  case Auto extends  UnwrapMode("Auto")
-  case Plus extends UnwrapMode("Plus")
+  case Auto  extends UnwrapMode("Auto")
+  case Plus  extends UnwrapMode("Plus")
 }

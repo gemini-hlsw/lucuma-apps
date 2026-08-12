@@ -19,6 +19,7 @@ import lucuma.core.enums.MountGuideOption
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.TelescopeGuideConfig
@@ -32,7 +33,6 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
-import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -499,12 +499,12 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def ecsDisableShutters: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
-  override def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult] =
+  override def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
   override def ecsCloseEastVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
-  override def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult] =
+  override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
   override def ecsCloseWestVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]

@@ -8,6 +8,7 @@ import io.circe.Encoder
 import io.circe.Json
 import io.circe.syntax.*
 import lucuma.core.enums.GuideProbe
+import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.ProbeGuide
@@ -120,15 +121,16 @@ package object encoder {
       )
   }
 
-  // TODO: properly set values for `domeMode`, `shutterMode`, `eastVentGateAperture` and `westVentGateAperture`
+  given Encoder[IntPercent] = Encoder.encodeInt.contramap[IntPercent](_.value)
+
   given Encoder[EnclosureState] = s =>
     Json.obj(
-      "domeEnabled"          -> s.domeEnabled.asJson,
-      "domeMode"             -> DomeMode.Basic.asJson,
-      "shuttersEnabled"      -> s.shuttersEnabled.asJson,
-      "shuttersMode"         -> ShutterMode.FullyOpen.asJson,
-      "eastVentGateAperture" -> Distance.Zero.asJson,
-      "westVentGateAperture" -> Distance.Zero.asJson
+      "domeEnabled"          -> s.dome.isDefined.asJson,
+      "domeMode"             -> s.dome.asJson,
+      "shuttersEnabled"      -> s.shutters.isDefined.asJson,
+      "shuttersMode"         -> s.shutters.asJson,
+      "eastVentGateAperture" -> s.eastVentGateOpen.asJson,
+      "westVentGateAperture" -> s.westVentGateOpen.asJson
     )
 
   given Encoder[TelescopeState] = s =>

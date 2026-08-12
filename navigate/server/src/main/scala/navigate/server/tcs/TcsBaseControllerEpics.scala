@@ -28,6 +28,7 @@ import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.math.units.Year
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.ProbeGuide
@@ -1620,6 +1621,29 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   ).post
     .verifiedRun(ConnectionTimeout)
 
+  private def getEnclosureState: VerifiedEpics[F, F, EnclosureState] =
+    for {
+      dmEnF <- sys.tcsEpics.status.enclosureAppliedState.domeEnabled
+      dmMdF <- sys.tcsEpics.status.enclosureAppliedState.domeMode
+      shEnF <- sys.tcsEpics.status.enclosureAppliedState.shuttersEnabled
+      shMdF <- sys.tcsEpics.status.enclosureAppliedState.shuttersMode
+      evF   <- sys.ecs.status.eastVentGatePos
+      wvF   <- sys.ecs.status.westVentGatePos
+    } yield
+      for {
+        dmEn <- dmEnF
+        dmMd <- dmMdF
+        shEn <- shEnF
+        shMd <- shMdF
+        ev   <- evF
+        wv   <- wvF
+      } yield EnclosureState(
+        dmEn.filter(identity).flatMap(_ => dmMd),
+        shEn.filter(identity).flatMap(_ => shMd),
+        ev,
+        wv
+      )
+
   override def getTelescopeState: F[TelescopeState] = (
     for {
       mcsfF  <- sys.mcs.getFollowingState
@@ -1631,6 +1655,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       p2pF   <- sys.ags.status.p2Parked
       oifF   <- sys.ags.status.oiFollow
       oipF   <- sys.ags.status.oiParked
+      encF   <- getEnclosureState
     } yield
       for {
         mcsf  <- mcsfF
@@ -1642,6 +1667,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         p2p   <- p2pF
         oif   <- oifF
         oip   <- oipF
+        enc   <- encF
       } yield TelescopeState(
         mount = MechSystemState(NotParked, mcsf),
         scs = MechSystemState(NotParked, scsf),
@@ -1649,7 +1675,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         pwfs1 = MechSystemState(p1p, p1f),
         pwfs2 = MechSystemState(p2p, p2f),
         oiwfs = MechSystemState(oip, oif),
-        enclosure = EnclosureState.default
+        enclosure = enc
       )
   ).verifiedRun(ConnectionTimeout)
 
@@ -2504,6 +2530,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     .post
     .verifiedRun(ConnectionTimeout)
 
+  // All the enclosure control from TCS is commanded from the same CAD. Even if only one parameter is changed, it is necesary that all inputs have valid values, otherwise the command fails.
   private def partialDomeModeCmd(
     timeout:        FiniteDuration,
     domeMode:       Option[DomeMode] = None,
@@ -2511,11 +2538,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     domeEnabled:    Option[Boolean] = None,
     shutterEnabled: Option[Boolean] = None
   ): F[ApplyCommandResult] = (for {
-    dmF   <- sys.tcsEpics.status.ecsCarouselModeParams.domeMode
-    shmF  <- sys.tcsEpics.status.ecsCarouselModeParams.shutterMode
-    slitF <- sys.tcsEpics.status.ecsCarouselModeParams.slitHeight
-    dmenF <- sys.tcsEpics.status.ecsCarouselModeParams.domeEnable
-    shenF <- sys.tcsEpics.status.ecsCarouselModeParams.shutterEnable
+    dmF   <- sys.tcsEpics.status.enclosureCommandsState.domeMode
+    shmF  <- sys.tcsEpics.status.enclosureCommandsState.shuttersMode
+    slitF <- sys.tcsEpics.status.enclosureCommandsState.shuttersAperture
+    dmenF <- sys.tcsEpics.status.enclosureCommandsState.domeEnabled
+    shenF <- sys.tcsEpics.status.enclosureCommandsState.shuttersEnabled
   } yield
     for {
       dm   <- dmF
@@ -2593,34 +2620,45 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     .post
     .verifiedRun(ConnectionTimeout)
 
-  private val ventGateTimeout                                                 = FiniteDuration(60, SECONDS)
-  override def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult] = sys.tcsEpics
-    .startCommand(ventGateTimeout)
-    .ecsVenGatesMoveCmd
-    .setVentGateEast(position)
-    .post
-    .verifiedRun(ConnectionTimeout)
+  // Both ventilation gates are controlled from the same CAD. Even if only one is changed, it is necesary that all inputs have valid values, otherwise the command fails.
+  private def partialVentGateCmd(
+    timeout:         FiniteDuration,
+    eastVentGatePos: Option[IntPercent] = none,
+    westVentGatePos: Option[IntPercent] = none
+  ): F[ApplyCommandResult] = (for {
+    egF <- sys.tcsEpics.status.enclosureCommandsState.eastVentGateAperture
+    wgF <- sys.tcsEpics.status.enclosureCommandsState.westVentGateAperture
+  } yield
+    for {
+      eg <- egF
+      wg <- wgF
+      r  <- {
+        val eastAp = (cmds: TcsCommands[F]) =>
+          eastVentGatePos
+            .map(v => cmds.ecsVenGatesMoveCmd.setVentGateEast(v.value.toDouble / 100.0))
+            .getOrElse(eg.fold(cmds.ecsVenGatesMoveCmd.setVentGateEast(0.0))(_ => cmds))
+        val westAp = (cmds: TcsCommands[F]) =>
+          westVentGatePos
+            .map(v => cmds.ecsVenGatesMoveCmd.setVentGateWest(v.value.toDouble / 100.0))
+            .getOrElse(wg.fold(cmds.ecsVenGatesMoveCmd.setVentGateWest(0.0))(_ => cmds))
 
-  override def ecsCloseEastVentGate: F[ApplyCommandResult] = sys.tcsEpics
-    .startCommand(ventGateTimeout)
-    .ecsVenGatesMoveCmd
-    .setVentGateEast(Distance.Zero)
-    .post
-    .verifiedRun(ConnectionTimeout)
+        (eastAp >>> westAp)(sys.tcsEpics.startCommand(timeout)).post
+          .verifiedRun(ConnectionTimeout)
+      }
+    } yield r).verifiedRun(ConnectionTimeout)
 
-  override def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult] = sys.tcsEpics
-    .startCommand(ventGateTimeout)
-    .ecsVenGatesMoveCmd
-    .setVentGateWest(position)
-    .post
-    .verifiedRun(ConnectionTimeout)
+  private val ventGateTimeout                                                   = FiniteDuration(60, SECONDS)
+  override def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult] =
+    partialVentGateCmd(ventGateTimeout, eastVentGatePos = position.some)
 
-  override def ecsCloseWestVentGate: F[ApplyCommandResult] = sys.tcsEpics
-    .startCommand(ventGateTimeout)
-    .ecsVenGatesMoveCmd
-    .setVentGateWest(Distance.Zero)
-    .post
-    .verifiedRun(ConnectionTimeout)
+  override def ecsCloseEastVentGate: F[ApplyCommandResult] =
+    partialVentGateCmd(ventGateTimeout, eastVentGatePos = IntPercent.unsafeFrom(0).some)
+
+  override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] =
+    partialVentGateCmd(ventGateTimeout, westVentGatePos = position.some)
+
+  override def ecsCloseWestVentGate: F[ApplyCommandResult] =
+    partialVentGateCmd(ventGateTimeout, westVentGatePos = IntPercent.unsafeFrom(0).some)
 
   private val azUnwrapTimeout                       = FiniteDuration(60, SECONDS)
   override def azimuthUnwrap: F[ApplyCommandResult] =

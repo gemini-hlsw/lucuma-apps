@@ -5,14 +5,19 @@ package navigate.model
 
 import cats.Eq
 import cats.derived.*
+import cats.syntax.all.*
+import lucuma.core.model.IntPercent
+import navigate.model.enums.DomeMode
+import navigate.model.enums.ShutterMode
 
 case class EnclosureState(
-  domeEnabled:      Boolean,
-  shuttersEnabled:  Boolean,
-  eastVentGateOpen: Boolean,
-  westVentGateOpen: Boolean
+  dome:             Option[DomeMode],
+  shutters:         Option[ShutterMode],
+  eastVentGateOpen: IntPercent,
+  westVentGateOpen: IntPercent
 ) derives Eq
 
 object EnclosureState {
-  val default: EnclosureState = EnclosureState(false, false, false, false)
+  val default: EnclosureState =
+    EnclosureState(none, none, IntPercent.unsafeFrom(0), IntPercent.unsafeFrom(0))
 }

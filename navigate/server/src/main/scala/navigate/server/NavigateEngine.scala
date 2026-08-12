@@ -23,6 +23,7 @@ import lucuma.core.enums.SlewStage
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.IntPercent
 import lucuma.core.model.LocalObservingNight
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
@@ -36,7 +37,6 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
 import navigate.model.CommandResult
-import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -197,9 +197,9 @@ trait NavigateEngine[F[_]] {
   def ecsEnableShutters(mode:                        ShutterMode): F[CommandResult]
   def ecsDisableShutters: F[CommandResult]
   def ecsShuttersPark: F[CommandResult]
-  def ecsMoveEastVentGate(position:                  Distance): F[CommandResult]
+  def ecsMoveEastVentGate(position:                  IntPercent): F[CommandResult]
   def ecsCloseEastVentGate: F[CommandResult]
-  def ecsMoveWestVentGate(position:                  Distance): F[CommandResult]
+  def ecsMoveWestVentGate(position:                  IntPercent): F[CommandResult]
   def ecsCloseWestVentGate: F[CommandResult]
 
   def getGuideState: F[GuideState]
@@ -871,7 +871,7 @@ object NavigateEngine {
     override def ecsShuttersPark: F[CommandResult] =
       simpleCommand(engine, EcsShuttersPark, systems.tcsCommon.ecsShuttersPark)
 
-    override def ecsMoveEastVentGate(position: Distance): F[CommandResult] = simpleCommand(
+    override def ecsMoveEastVentGate(position: IntPercent): F[CommandResult] = simpleCommand(
       engine,
       EcsEastVentGateMove(position),
       systems.tcsCommon.ecsMoveEastVentGate(position)
@@ -880,7 +880,7 @@ object NavigateEngine {
     override def ecsCloseEastVentGate: F[CommandResult] =
       simpleCommand(engine, EcsCloseEastVentGate, systems.tcsCommon.ecsCloseEastVentGate)
 
-    override def ecsMoveWestVentGate(position: Distance): F[CommandResult] = simpleCommand(
+    override def ecsMoveWestVentGate(position: IntPercent): F[CommandResult] = simpleCommand(
       engine,
       EcsWestVentGateMove(position),
       systems.tcsCommon.ecsMoveWestVentGate(position)

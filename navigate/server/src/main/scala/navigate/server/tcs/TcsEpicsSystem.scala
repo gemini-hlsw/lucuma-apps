@@ -3,7 +3,6 @@
 
 package navigate.server.tcs
 
-import cats.Applicative
 import cats.Monad
 import cats.MonadThrow
 import cats.Parallel
@@ -20,6 +19,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
 import lucuma.core.math.RightAscension
 import lucuma.core.math.Wavelength
+import lucuma.core.model.IntPercent
 import lucuma.core.model.ProbeGuide
 import lucuma.core.util.Enumerated
 import mouse.all.*
@@ -29,6 +29,7 @@ import navigate.epics.EpicsService
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.*
+import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.model.AzimuthAngle
 import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
@@ -324,7 +325,8 @@ object TcsEpicsSystem {
     //   case G3 => g3GuideConfig
     //   case G4 => g4GuideConfig
     // }
-    def ecsCarouselModeParams: CarouselModeParams[F]
+    def enclosureCommandsState: EnclosureCommandsState[F]
+    def enclosureAppliedState: EnclosureAppliedState[F]
     def azimuthDemand: VerifiedEpics[F, F, AzimuthAngle]
     def rotatorDemand: VerifiedEpics[F, F, RotatorAngle]
   }
@@ -556,8 +558,11 @@ object TcsEpicsSystem {
         override def probeGuideSink: VerifiedEpics[F, F, String] =
           readChannel(channels.telltale, channels.guide.probeGuideSink)
 
-        override def ecsCarouselModeParams: CarouselModeParams[F] =
-          CarouselModeParams.build(channels)
+        override def enclosureCommandsState: EnclosureCommandsState[F] =
+          EnclosureCommandsState.build(channels)
+
+        override def enclosureAppliedState: EnclosureAppliedState[F] =
+          EnclosureAppliedState.build(channels)
 
         override def azimuthDemand: VerifiedEpics[F, F, AzimuthAngle] =
           readChannel(channels.telltale, channels.demandAzimuth).map(
@@ -735,12 +740,12 @@ object TcsEpicsSystem {
 
     override val ecsVenGatesMoveCmd: VentGatesMoveCommand[F, TcsCommands[F]] =
       new VentGatesMoveCommand[F, TcsCommands[F]] {
-        override def setVentGateEast(pos: Distance): TcsCommands[F] = addParam(
-          tcsEpics.ventGatesMoveCmd.setParam1(pos.toMeters.value.toDouble)
+        override def setVentGateEast(pos: Double): TcsCommands[F] = addParam(
+          tcsEpics.ventGatesMoveCmd.setParam1(pos)
         )
 
-        override def setVentGateWest(pos: Distance): TcsCommands[F] = addParam(
-          tcsEpics.ventGatesMoveCmd.setParam2(pos.toMeters.value.toDouble)
+        override def setVentGateWest(pos: Double): TcsCommands[F] = addParam(
+          tcsEpics.ventGatesMoveCmd.setParam2(pos)
         )
       }
 
@@ -1860,7 +1865,7 @@ object TcsEpicsSystem {
     def nodBchopB: VerifiedEpics[F, F, BinaryOnOff]
   }
 
-  def buildProbeGuideConfig[F[_]: Applicative](
+  def buildProbeGuideConfig[F[_]: MonadThrow](
     tt:            TelltaleChannel[F],
     probeChannels: ProbeTrackingChannels[F]
   ): ProbeGuideConfig[F] = new ProbeGuideConfig[F] {
@@ -1893,7 +1898,7 @@ object TcsEpicsSystem {
     def nodBchopB: VerifiedEpics[F, F, BinaryOnOff]
   }
 
-  def buildProbeGuideState[F[_]: Applicative](
+  def buildProbeGuideState[F[_]: MonadThrow](
     tt:            TelltaleChannel[F],
     probeChannels: ProbeTrackingStateChannels[F]
   ): ProbeGuideState[F] = new ProbeGuideState[F] {
@@ -1919,56 +1924,115 @@ object TcsEpicsSystem {
         .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
   }
 
-  trait CarouselModeParams[F[_]] {
+  trait EnclosureCommandsState[F[_]] {
     def domeMode: VerifiedEpics[F, F, Option[DomeMode]]
-    def shutterMode: VerifiedEpics[F, F, Option[ShutterMode]]
-    def slitHeight: VerifiedEpics[F, F, Option[Distance]]
-    def domeEnable: VerifiedEpics[F, F, Option[Boolean]]
-    def shutterEnable: VerifiedEpics[F, F, Option[Boolean]]
+    def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]]
+    def shuttersAperture: VerifiedEpics[F, F, Option[Distance]]
+    def domeEnabled: VerifiedEpics[F, F, Option[Boolean]]
+    def shuttersEnabled: VerifiedEpics[F, F, Option[Boolean]]
+    def eastVentGateAperture: VerifiedEpics[F, F, Option[IntPercent]]
+    def westVentGateAperture: VerifiedEpics[F, F, Option[IntPercent]]
   }
 
-  object CarouselModeParams {
-    def build[F[_]: MonadThrow](channels: TcsChannels[F]): CarouselModeParams[F] =
-      new {
-        override def domeMode: VerifiedEpics[F, F, Option[DomeMode]] = VerifiedEpics
-          .readChannel(channels.telltale, channels.enclosure.ecsDomeMode)
-          .map(_.attempt.map(_.toOption.flatMap(Enumerated[DomeMode].fromTag)))
+  object EnclosureCommandsState {
+    def build[F[_]: MonadThrow](channels: TcsChannels[F]): EnclosureCommandsState[F] = new {
 
-        override def shutterMode: VerifiedEpics[F, F, Option[ShutterMode]] = for {
-          tagF <- VerifiedEpics
-                    .readChannel(channels.telltale, channels.enclosure.ecsShutterMode)
-                    .map(_.attempt.map(_.toOption))
-          hgF  <- slitHeight
-        } yield
-          for {
-            tag <- tagF
-            hg  <- hgF
-          } yield tag.flatMap(ShutterMode.fromTag(_, hg))
+      override def domeMode: VerifiedEpics[F, F, Option[DomeMode]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosure.ecsDomeMode)
+        .map(_.map(_.flatMap(dm => Enumerated[DomeMode].fromTag(dm))))
 
-        override def slitHeight: VerifiedEpics[F, F, Option[Distance]] = VerifiedEpics
-          .readChannel(channels.telltale, channels.enclosure.ecsSlitHeight)
-          .map(
-            _.attempt.map(
-              _.toOption
-                .flatMap(_.toDoubleOption.map(d => Distance.fromBigDecimalMeters(BigDecimal(d))))
+      override def shuttersAperture: VerifiedEpics[F, F, Option[Distance]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosure.ecsSlitHeight)
+        .map(
+          _.map(
+            _.flatMap(
+              _.toDoubleOption.map(v => Distance.fromBigDecimalMeters(BigDecimal(v)))
             )
           )
+        )
 
-        override def domeEnable: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
-          .readChannel(channels.telltale, channels.enclosure.ecsDomeEnable)
-          .map(
-            _.attempt
-              .map(_.toOption.flatMap(Enumerated[BinaryOnOff].fromTag(_).map(_ === BinaryOnOff.On)))
+      override def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]] = for {
+        mdF <- VerifiedEpics.readOptionChannel(channels.telltale, channels.enclosure.ecsShutterMode)
+        dF  <- shuttersAperture
+      } yield
+        for {
+          md <- mdF.map(_.getOrElse(""))
+          d  <- dF
+        } yield ShutterMode.fromTag(md, d)
+
+      override def domeEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosure.ecsDomeEnable)
+        .map(
+          _.map(_.flatMap(Enumerated[BinaryOnOff].fromTag).map(_ === BinaryOnOff.On))
+        )
+
+      override def shuttersEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosure.ecsShutterEnable)
+        .map(
+          _.map(_.flatMap(Enumerated[BinaryOnOff].fromTag).map(_ === BinaryOnOff.On))
+        )
+
+      override def eastVentGateAperture: VerifiedEpics[F, F, Option[IntPercent]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosure.ecsVentGateEast)
+        .map(
+          _.map(
+            _.flatMap(_.toDoubleOption.flatMap(v => IntPercent.from((v * 100.0).toInt).toOption))
           )
+        )
 
-        override def shutterEnable: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
-          .readChannel(channels.telltale, channels.enclosure.ecsShutterEnable)
-          .map(
-            _.attempt
-              .map(_.toOption.flatMap(Enumerated[BinaryOnOff].fromTag(_).map(_ === BinaryOnOff.On)))
+      override def westVentGateAperture: VerifiedEpics[F, F, Option[IntPercent]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosure.ecsVentGateWest)
+        .map(
+          _.map(
+            _.flatMap(_.toDoubleOption.flatMap(v => IntPercent.from((v * 100.0).toInt).toOption))
           )
+        )
+    }
+  }
 
-      }
+  trait EnclosureAppliedState[F[_]] {
+    def domeMode: VerifiedEpics[F, F, Option[DomeMode]]
+    def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]]
+    def shuttersAperture: VerifiedEpics[F, F, Option[Distance]]
+    def domeEnabled: VerifiedEpics[F, F, Option[Boolean]]
+    def shuttersEnabled: VerifiedEpics[F, F, Option[Boolean]]
+  }
+
+  object EnclosureAppliedState {
+    def build[F[_]: MonadThrow](channels: TcsChannels[F]): EnclosureAppliedState[F] = new {
+
+      override def domeMode: VerifiedEpics[F, F, Option[DomeMode]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosureState.domeMode)
+        .map(_.map(_.flatMap(dm => Enumerated[DomeMode].fromTag(dm))))
+
+      override def shuttersAperture: VerifiedEpics[F, F, Option[Distance]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosureState.shuttersAperture)
+        .map(
+          _.map(
+            _.flatMap(
+              _.toDoubleOption.map(v => Distance.fromBigDecimalMeters(BigDecimal(v)))
+            )
+          )
+        )
+
+      override def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]] = for {
+        mdF <-
+          VerifiedEpics.readOptionChannel(channels.telltale, channels.enclosureState.shuttersMode)
+        dF  <- shuttersAperture
+      } yield
+        for {
+          md <- mdF.map(_.getOrElse(""))
+          d  <- dF
+        } yield ShutterMode.fromTag(md, d)
+
+      override def domeEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosureState.domeEnabled)
+        .map(_.map(_.map(_ =!= 0)))
+
+      override def shuttersEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
+        .readOptionChannel(channels.telltale, channels.enclosureState.shuttersEnabled)
+        .map(_.map(_.map(_ =!= 0)))
+    }
   }
 
   trait PointingCorrectionState[F[_]] {
@@ -1979,7 +2043,7 @@ object TcsEpicsSystem {
   }
 
   object PointingCorrectionState {
-    def build[F[_]: Applicative](channels: TcsChannels[F]): PointingCorrectionState[F] =
+    def build[F[_]: MonadThrow](channels: TcsChannels[F]): PointingCorrectionState[F] =
       new PointingCorrectionState[F] {
 
         override def localCA: VerifiedEpics[F, F, Angle] = VerifiedEpics
@@ -2103,8 +2167,8 @@ object TcsEpicsSystem {
   }
 
   trait VentGatesMoveCommand[F[_], +S] {
-    def setVentGateEast(pos: Distance): S
-    def setVentGateWest(pos: Distance): S
+    def setVentGateEast(pos: Double): S
+    def setVentGateWest(pos: Double): S
   }
 
   trait TargetCommand[F[_], +S] {

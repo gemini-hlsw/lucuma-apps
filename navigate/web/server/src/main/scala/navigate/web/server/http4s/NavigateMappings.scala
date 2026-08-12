@@ -29,6 +29,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Ephemeris
+import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
@@ -50,7 +51,6 @@ import navigate.model.AutoparkPwfs2
 import navigate.model.BafflesConfig
 import navigate.model.BafflesState
 import navigate.model.CommandResult
-import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
@@ -648,7 +648,7 @@ class NavigateMappings[F[_]: Sync](
 
   def eastVentGateEnable(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[Distance]("position")
+      .get[IntPercent]("position")
       .map(server.ecsMoveEastVentGate(_).attempt.map(convertResult))
       .getOrElse(
         Result
@@ -658,7 +658,7 @@ class NavigateMappings[F[_]: Sync](
 
   def westVentGateEnable(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[Distance]("position")
+      .get[IntPercent]("position")
       .map(server.ecsMoveWestVentGate(_).attempt.map(convertResult))
       .getOrElse(
         Result
@@ -1100,7 +1100,6 @@ class NavigateMappings[F[_]: Sync](
       Elab
         .liftR(
           parseEnumerated[DomeMode](v)
-            .map(_.some)
             .toResult(s"Could not parse ecsEnableDome parameter \"mode\" ${v}")
         )
         .flatMap(m => Elab.env("mode", m))
@@ -1108,25 +1107,16 @@ class NavigateMappings[F[_]: Sync](
       Elab
         .liftR(
           parseShuttersMode(l)
-            .map(_.some)
             .toResult(s"Could not parse ecsEnableShutters parameter \"mode\" ${l}")
         )
         .flatMap(m => Elab.env("mode", m))
-    case (MutationType, "ecsMoveEastVentGate", List(Binding("position", ObjectValue(l))))         =>
+    case (MutationType, "ecsMoveEastVentGate", List(IntPercentBinding("position", v)))            =>
       Elab
-        .liftR(
-          parseDistance(l)
-            .map(_.some)
-            .toResult(s"Could not parse ecsMoveEastVentGate parameter \"position\" ${l}")
-        )
+        .liftR(v)
         .flatMap(d => Elab.env("position", d))
-    case (MutationType, "ecsMoveWestVentGate", List(Binding("position", ObjectValue(l))))         =>
+    case (MutationType, "ecsMoveWestVentGate", List(IntPercentBinding("position", v)))            =>
       Elab
-        .liftR(
-          parseDistance(l)
-            .map(_.some)
-            .toResult(s"Could not parse ecsMoveWestVentGate parameter \"position\" ${l}")
-        )
+        .liftR(v)
         .flatMap(d => Elab.env("position", d))
     case (QueryType, "instrumentPort", List(Binding("instrument", EnumValue(ins))))               =>
       Elab
@@ -1350,9 +1340,15 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("ecsDisableDome")((_, _) =>
             parameterlessCommand(server.ecsDisableDome)
           ),
+          RootEffect.computeEncodable("ecsDomePark")((_, _) =>
+            parameterlessCommand(server.ecsDomePark)
+          ),
           RootEffect.computeEncodable("ecsEnableShutters")((_, env) => shuttersEnable(env)),
           RootEffect.computeEncodable("ecsDisableShutters")((_, _) =>
             parameterlessCommand(server.ecsDisableShutters)
+          ),
+          RootEffect.computeEncodable("ecsShuttersPark")((_, _) =>
+            parameterlessCommand(server.ecsShuttersPark)
           ),
           RootEffect.computeEncodable("ecsMoveEastVentGate")((_, env) => eastVentGateEnable(env)),
           RootEffect.computeEncodable("ecsCloseEastVentGate")((_, _) =>
@@ -1826,16 +1822,17 @@ object NavigateMappings extends GrackleParsers {
 
   def parseDate(s: String): Option[LocalDate] = Validated.catchNonFatal(LocalDate.parse(s)).toOption
 
-  def parseShuttersMode(l: List[(String, Value)]): Option[ShutterMode] = l
-    .collectFirst { case ("mode", EnumValue(v)) => v }
-    .flatMap {
-      case "FULLY_OPEN" => ShutterMode.FullyOpen.some
-      case "TRACKING"   =>
-        for {
-          v <- l.collectFirst { case ("aperture", ObjectValue(v)) => v }
-          d <- parseDistance(v)
-        } yield ShutterMode.Tracking(d)
-      case _            => none
-    }
+  def parseShuttersMode(l: List[(String, Value)]): Option[ShutterMode] =
+    l
+      .collectFirst { case ("mode", EnumValue(v)) => v }
+      .flatMap {
+        case "FULLY_OPEN" => ShutterMode.FullyOpen.some
+        case "TRACKING"   =>
+          for {
+            v <- l.collectFirst { case ("aperture", ObjectValue(v)) => v }
+            d <- parseDistance(v)
+          } yield ShutterMode.Tracking(d)
+        case _            => none
+      }
 
 }

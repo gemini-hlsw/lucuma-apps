@@ -9,12 +9,12 @@ import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.IntPercent
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
-import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -145,9 +145,9 @@ trait TcsBaseController[F[_]] {
   def ecsEnableShutters(mode:       ShutterMode): F[ApplyCommandResult]
   def ecsDisableShutters: F[ApplyCommandResult]
   def ecsShuttersPark: F[ApplyCommandResult]
-  def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult]
+  def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult]
   def ecsCloseEastVentGate: F[ApplyCommandResult]
-  def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult]
+  def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult]
   def ecsCloseWestVentGate: F[ApplyCommandResult]
 
   val acCommands: AcCommands[F]

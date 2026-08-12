@@ -3,7 +3,7 @@
 
 package navigate.server.tcs
 
-import cats.Applicative
+import cats.MonadThrow
 import cats.effect.Resource
 import cats.effect.Temporal
 import cats.syntax.all.*
@@ -19,7 +19,7 @@ trait McsEpicsSystem[F[_]] {
 
 object McsEpicsSystem {
 
-  private[tcs] def buildSystem[F[_]: Applicative](channels: McsChannels[F]): McsEpicsSystem[F] =
+  private[tcs] def buildSystem[F[_]: MonadThrow](channels: McsChannels[F]): McsEpicsSystem[F] =
     new McsEpicsSystem[F] {
       override def getFollowingState: VerifiedEpics[F, F, FollowStatus] =
         VerifiedEpics

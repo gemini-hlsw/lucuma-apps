@@ -3,7 +3,7 @@
 
 package navigate.server.tcs
 
-import cats.Applicative
+import cats.MonadThrow
 import cats.effect.Resource
 import cats.effect.Temporal
 import cats.syntax.all.*
@@ -18,7 +18,7 @@ trait CrcsEpicsSystem[F[_]] {
 }
 
 object CrcsEpicsSystem {
-  private[tcs] def buildSystem[F[_]: Applicative](channels: CrcsChannels[F]): CrcsEpicsSystem[F] =
+  private[tcs] def buildSystem[F[_]: MonadThrow](channels: CrcsChannels[F]): CrcsEpicsSystem[F] =
     new CrcsEpicsSystem[F] {
       override def getFollowingState: VerifiedEpics[F, F, FollowStatus] =
         VerifiedEpics

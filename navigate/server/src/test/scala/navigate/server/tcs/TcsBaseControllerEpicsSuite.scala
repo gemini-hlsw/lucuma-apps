@@ -26,6 +26,7 @@ import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.M2GuideConfig.M2GuideOn
@@ -115,6 +116,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 import TcsBaseController.*
+import TestTcsEpicsSystem.EnclosureStateChannelsState
 import TestTcsEpicsSystem.GuideConfigState
 import TestTcsEpicsSystem.ProbeState
 import TestTcsEpicsSystem.ProbeTrackingState
@@ -195,8 +197,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       (st, ctr) <- createController()
       _         <- ctr.ecsEnableDome(DomeMode.MinVibration)
       _         <- ctr.ecsEnableShutters(shutterMode)
-      _         <- ctr.ecsMoveEastVentGate(Distance.fromBigDecimalMeters(testVentEast))
-      _         <- ctr.ecsMoveWestVentGate(Distance.fromBigDecimalMeters(testVentWest))
+      _         <- ctr.ecsMoveEastVentGate(IntPercent.unsafeFrom((testVentEast * 100.0).toInt))
+      _         <- ctr.ecsMoveWestVentGate(IntPercent.unsafeFrom((testVentWest * 100.0).toInt))
       rs        <- st.tcs.get
     } yield {
       assert(rs.enclosure.ecsDomeMode.connected)
@@ -1299,7 +1301,11 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       pwfs1 = MechSystemState(Parked, NotFollowing),
       pwfs2 = MechSystemState(Parked, NotFollowing),
       oiwfs = MechSystemState(NotParked, Following),
-      enclosure = EnclosureState.default
+      enclosure = EnclosureState(DomeMode.MinVibration.some,
+                                 ShutterMode.Tracking(Distance.fromBigDecimalMeters(1.5)).some,
+                                 IntPercent.unsafeFrom(25),
+                                 IntPercent.unsafeFrom(30)
+      )
     )
 
     for {
@@ -1309,6 +1315,28 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.crcs.update(_.focus(_.follow).replace(TestChannel.State.of("ON")))
       _         <- st.ags.update(
                      _.copy(oiParked = TestChannel.State.of(0), oiFollow = TestChannel.State.of("ON"))
+                   )
+      _         <- st.tcs.update(
+                     _.focus(_.enclosureState).replace(
+                       EnclosureStateChannelsState(
+                         TestChannel.State.of(testTelState.enclosure.dome.map(_.tag).getOrElse("")),
+                         TestChannel.State.of(testTelState.enclosure.shutters.map(_.tag).getOrElse("")),
+                         TestChannel.State.of(
+                           testTelState.enclosure.shutters
+                             .collect { case ShutterMode.Tracking(v) => v.toMeters.value.toDouble.toString }
+                             .getOrElse("")
+                         ),
+                         TestChannel.State.of(testTelState.enclosure.dome.isDefined.fold(1, 0)),
+                         TestChannel.State.of(testTelState.enclosure.shutters.isDefined.fold(1, 0))
+                       )
+                     )
+                   )
+      _         <- st.ecs.update(_ =>
+                     TestEcsEpicsSystem.State(
+                       TestChannel.State.of(0),
+                       TestChannel.State.of(testTelState.enclosure.eastVentGateOpen.value.toDouble / 100.0),
+                       TestChannel.State.of(testTelState.enclosure.westVentGateOpen.value.toDouble / 100.0)
+                     )
                    )
       s         <- ctr.getTelescopeState
       r0        <- st.mcs.get
@@ -2651,6 +2679,41 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
+  test("Setup ventilation gates") {
+    val eastVentPos = 0.5
+    val westVentPos = 0.1
+    for {
+      (st, ctr) <- createController()
+      _         <- st.tcs.update(
+                     _.focus(_.enclosureState).replace(
+                       EnclosureStateChannelsState(
+                         TestChannel.State.of(""),
+                         TestChannel.State.of(""),
+                         TestChannel.State.of(""),
+                         TestChannel.State.of(0),
+                         TestChannel.State.of(0)
+                       )
+                     )
+                   )
+      _         <- ctr.ecsMoveEastVentGate(IntPercent.unsafeFrom((eastVentPos * 100.0).toInt))
+      r1        <- st.tcs.get
+      _         <- ctr.ecsCloseEastVentGate
+      r2        <- st.tcs.get
+      _         <- ctr.ecsMoveWestVentGate(IntPercent.unsafeFrom((westVentPos * 100.0).toInt))
+      r3        <- st.tcs.get
+      _         <- ctr.ecsCloseWestVentGate
+      r4        <- st.tcs.get
+    } yield {
+      assert(r1.enclosure.ecsVentGateEast.connected)
+      assertEquals(r1.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), eastVentPos.some)
+      assertEquals(r1.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), 0.0.some)
+      assertEquals(r2.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), 0.0.some)
+      assert(r3.enclosure.ecsVentGateWest.connected)
+      assertEquals(r3.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), westVentPos.some)
+      assertEquals(r4.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), 0.0.some)
+    }
+  }
+
   case class StateRefs[F[_]](
     tcs:  Ref[F, TestTcsEpicsSystem.State],
     p1:   Ref[F, TestWfsEpicsSystem.State],
@@ -2663,7 +2726,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     scs:  Ref[F, TestScsEpicsSystem.State],
     crcs: Ref[F, TestCrcsEpicsSystem.State],
     ags:  Ref[F, TestAgsEpicsSystem.State],
-    ac:   Ref[F, TestAcquisitionCameraEpicsSystem.State]
+    ac:   Ref[F, TestAcquisitionCameraEpicsSystem.State],
+    ecs:  Ref[F, TestEcsEpicsSystem.State]
   )
 
   def createController(site: Site = Site.GS): IO[(StateRefs[IO], TcsBaseControllerEpics[IO])] =
@@ -2685,11 +2749,12 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         ac   <- Ref.of[IO, TestAcquisitionCameraEpicsSystem.State](
                   TestAcquisitionCameraEpicsSystem.defaultState
                 )
+        ecs  <- Ref.of[IO, TestEcsEpicsSystem.State](TestEcsEpicsSystem.defaultState)
       } yield {
         val oiSys = TestOiwfsEpicsSystem.build(oiw, oi)
 
         (
-          StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac),
+          StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac, ecs),
           (site === Site.GS).fold(
             new TcsSouthControllerEpics[IO](
               EpicsSystemsSouth(
@@ -2704,7 +2769,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                   TestScsEpicsSystem.build(scs),
                   TestCrcsEpicsSystem.build(crcs),
                   TestAgsEpicsSystem.build(ags, Site.GS),
-                  TestAcquisitionCameraEpicsSystem.build(ac)
+                  TestAcquisitionCameraEpicsSystem.build(ac),
+                  TestEcsEpicsSystem.build(ecs)
                 )
               ),
               DefaultTimeout,
@@ -2722,7 +2788,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                   TestScsEpicsSystem.build(scs),
                   TestCrcsEpicsSystem.build(crcs),
                   TestAgsEpicsSystem.build(ags, Site.GN),
-                  TestAcquisitionCameraEpicsSystem.build(ac)
+                  TestAcquisitionCameraEpicsSystem.build(ac),
+                  TestEcsEpicsSystem.build(ecs)
                 )
               ),
               DefaultTimeout,
