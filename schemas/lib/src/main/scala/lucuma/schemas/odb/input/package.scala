@@ -519,6 +519,12 @@ extension (m: ObservingMode.GmosCustomMask)
     slitWidth = m.slitWidth
   )
 
+extension (a: ObservingMode.GmosNorthMos.Acquisition)
+  def toInput: GmosNorthMosAcquisitionInput = GmosNorthMosAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
+
 extension (o: ObservingMode.GmosNorthMos)
   def toInput: GmosNorthMosInput = GmosNorthMosInput(
     grating = o.grating.assign,
@@ -533,7 +539,14 @@ extension (o: ObservingMode.GmosNorthMos)
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign
+    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign,
+    acquisition = o.acquisition.toInput.assign
+  )
+
+extension (a: ObservingMode.GmosSouthMos.Acquisition)
+  def toInput: GmosSouthMosAcquisitionInput = GmosSouthMosAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
   )
 
 extension (o: ObservingMode.GmosSouthMos)
@@ -550,7 +563,8 @@ extension (o: ObservingMode.GmosSouthMos)
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign
+    explicitOffsets = o.explicitOffsets.map(_.map(_.toInput)).orUnassign,
+    acquisition = o.acquisition.toInput.assign
   )
 
 extension (imagingFilter: ObservingMode.GmosNorthImaging.ImagingFilter)

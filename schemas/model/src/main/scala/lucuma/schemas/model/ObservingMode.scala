@@ -542,7 +542,8 @@ object ObservingMode:
     explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
     defaultOffsets:            List[Offset.Q],
     explicitOffsets:           Option[List[Offset.Q]],
-    exposureTimeMode:          ExposureTimeMode
+    exposureTimeMode:          ExposureTimeMode,
+    acquisition:               GmosNorthMos.Acquisition
   ) extends ObservingMode(Instrument.GmosNorth.some) derives Eq:
     val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
@@ -570,7 +571,8 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitOffsets.exists(_ =!= defaultOffsets)
+        explicitOffsets.exists(_ =!= defaultOffsets) ||
+        acquisition.isCustomized
 
     def revertCustomizations: GmosNorthMos =
       this.copy(
@@ -584,10 +586,31 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitOffsets = None
+        explicitOffsets = None,
+        acquisition = acquisition.revertCustomizations
       )
 
   object GmosNorthMos:
+    case class Acquisition(
+      defaultFilter:    GmosNorthFilter,
+      explicitFilter:   Option[GmosNorthFilter],
+      exposureTimeMode: ExposureTimeMode
+    ) derives Decoder,
+          Eq:
+      val filter                            = explicitFilter.getOrElse(defaultFilter)
+      def isCustomized: Boolean             =
+        explicitFilter.exists(_ =!= defaultFilter)
+      def revertCustomizations: Acquisition =
+        this.copy(explicitFilter = None)
+
+    object Acquisition:
+      val defaultFilter: Lens[Acquisition, GmosNorthFilter]          =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[GmosNorthFilter]] =
+        Focus[Acquisition](_.explicitFilter)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]      =
+        Focus[Acquisition](_.exposureTimeMode)
+
     given Decoder[GmosNorthMos] = deriveDecoder
 
     val initialGrating: Lens[GmosNorthMos, GmosNorthGrating]                                  =
@@ -638,6 +661,8 @@ object ObservingMode:
       Focus[GmosNorthMos](_.explicitOffsets)
     val exposureTimeMode: Lens[GmosNorthMos, ExposureTimeMode]                                =
       Focus[GmosNorthMos](_.exposureTimeMode)
+    val acquisition: Lens[GmosNorthMos, GmosNorthMos.Acquisition]                             =
+      Focus[GmosNorthMos](_.acquisition)
 
   case class GmosSouthMos(
     initialGrating:            GmosSouthGrating,
@@ -663,7 +688,8 @@ object ObservingMode:
     explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
     defaultOffsets:            List[Offset.Q],
     explicitOffsets:           Option[List[Offset.Q]],
-    exposureTimeMode:          ExposureTimeMode
+    exposureTimeMode:          ExposureTimeMode,
+    acquisition:               GmosSouthMos.Acquisition
   ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
     val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
@@ -691,7 +717,8 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitOffsets.exists(_ =!= defaultOffsets)
+        explicitOffsets.exists(_ =!= defaultOffsets) ||
+        acquisition.isCustomized
 
     def revertCustomizations: GmosSouthMos =
       this.copy(
@@ -705,10 +732,31 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitOffsets = None
+        explicitOffsets = None,
+        acquisition = acquisition.revertCustomizations
       )
 
   object GmosSouthMos:
+    case class Acquisition(
+      defaultFilter:    GmosSouthFilter,
+      explicitFilter:   Option[GmosSouthFilter],
+      exposureTimeMode: ExposureTimeMode
+    ) derives Decoder,
+          Eq:
+      val filter                            = explicitFilter.getOrElse(defaultFilter)
+      def isCustomized: Boolean             =
+        explicitFilter.exists(_ =!= defaultFilter)
+      def revertCustomizations: Acquisition =
+        this.copy(explicitFilter = None)
+
+    object Acquisition:
+      val defaultFilter: Lens[Acquisition, GmosSouthFilter]          =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[GmosSouthFilter]] =
+        Focus[Acquisition](_.explicitFilter)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]      =
+        Focus[Acquisition](_.exposureTimeMode)
+
     given Decoder[GmosSouthMos] = deriveDecoder
 
     val initialGrating: Lens[GmosSouthMos, GmosSouthGrating]                                  =
@@ -759,6 +807,8 @@ object ObservingMode:
       Focus[GmosSouthMos](_.explicitOffsets)
     val exposureTimeMode: Lens[GmosSouthMos, ExposureTimeMode]                                =
       Focus[GmosSouthMos](_.exposureTimeMode)
+    val acquisition: Lens[GmosSouthMos, GmosSouthMos.Acquisition]                             =
+      Focus[GmosSouthMos](_.acquisition)
 
   case class GmosNorthImaging(
     variant:             ImagingVariant,

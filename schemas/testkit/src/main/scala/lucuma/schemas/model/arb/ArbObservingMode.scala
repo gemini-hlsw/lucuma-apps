@@ -365,6 +365,46 @@ trait ArbObservingMode {
     Cogen[(Option[Attachment.Id], GmosCustomSlitWidth)]
       .contramap(m => (m.attachmentId, m.slitWidth))
 
+  given given_Arbitrary_GmosNorthMos_Acquisition
+    : Arbitrary[ObservingMode.GmosNorthMos.Acquisition] =
+    Arbitrary[ObservingMode.GmosNorthMos.Acquisition](
+      for {
+        defaultFilter    <- arbitrary[GmosNorthFilter]
+        explicitFilter   <- arbitrary[Option[GmosNorthFilter]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.GmosNorthMos.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        exposureTimeMode
+      )
+    )
+
+  given given_Cogen_GmosNorthMos_Acquisition: Cogen[ObservingMode.GmosNorthMos.Acquisition] =
+    Cogen[
+      (GmosNorthFilter, Option[GmosNorthFilter], ExposureTimeMode)
+    ]
+      .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
+
+  given given_Arbitrary_GmosSouthMos_Acquisition
+    : Arbitrary[ObservingMode.GmosSouthMos.Acquisition] =
+    Arbitrary[ObservingMode.GmosSouthMos.Acquisition](
+      for {
+        defaultFilter    <- arbitrary[GmosSouthFilter]
+        explicitFilter   <- arbitrary[Option[GmosSouthFilter]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.GmosSouthMos.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        exposureTimeMode
+      )
+    )
+
+  given given_Cogen_GmosSouthMos_Acquisition: Cogen[ObservingMode.GmosSouthMos.Acquisition] =
+    Cogen[
+      (GmosSouthFilter, Option[GmosSouthFilter], ExposureTimeMode)
+    ]
+      .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
+
   given Arbitrary[ObservingMode.GmosNorthMos] =
     Arbitrary[ObservingMode.GmosNorthMos](
       for
@@ -392,6 +432,7 @@ trait ArbObservingMode {
         defaultOffsets            <- arbitrary[List[Offset.Q]]
         explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        acquisition               <- arbitrary[ObservingMode.GmosNorthMos.Acquisition]
       yield ObservingMode.GmosNorthMos(
         initialGrating,
         grating,
@@ -416,7 +457,8 @@ trait ArbObservingMode {
         explicitWavelengthDithers,
         defaultOffsets,
         explicitOffsets,
-        exposureTimeMode
+        exposureTimeMode,
+        acquisition
       )
     )
 
@@ -447,6 +489,7 @@ trait ArbObservingMode {
         defaultOffsets            <- arbitrary[List[Offset.Q]]
         explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        acquisition               <- arbitrary[ObservingMode.GmosSouthMos.Acquisition]
       yield ObservingMode.GmosSouthMos(
         initialGrating,
         grating,
@@ -471,7 +514,8 @@ trait ArbObservingMode {
         explicitWavelengthDithers,
         defaultOffsets,
         explicitOffsets,
-        exposureTimeMode
+        exposureTimeMode,
+        acquisition
       )
     )
 
@@ -498,7 +542,11 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        List[Offset.Q],
-       (Option[List[Offset.Q]], ExposureTimeMode, GmosMosAcquisitionType)
+       (Option[List[Offset.Q]],
+        ExposureTimeMode,
+        GmosMosAcquisitionType,
+        ObservingMode.GmosNorthMos.Acquisition
+       )
       )
     ]
       .contramap(o =>
@@ -523,7 +571,7 @@ trait ArbObservingMode {
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
          o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType)
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType, o.acquisition)
         )
       )
 
@@ -550,7 +598,11 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        List[Offset.Q],
-       (Option[List[Offset.Q]], ExposureTimeMode, GmosMosAcquisitionType)
+       (Option[List[Offset.Q]],
+        ExposureTimeMode,
+        GmosMosAcquisitionType,
+        ObservingMode.GmosSouthMos.Acquisition
+       )
       )
     ]
       .contramap(o =>
@@ -575,7 +627,7 @@ trait ArbObservingMode {
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
          o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType)
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType, o.acquisition)
         )
       )
 
