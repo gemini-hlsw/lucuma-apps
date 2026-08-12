@@ -18,13 +18,12 @@ object GnirsCrossDispersed:
     Enumerated[GnirsDisperserOrder].all.filter(_.crossDispersed)
 
   /**
-   * The H-band (order 4) equivalent of a wavelength observed in another order, following
-   * λ₂ = λ₁ · m₁ / m₂.  For example 2.20µm, which falls in order 3, becomes
-   * 2.20µm · 3/4 = 1.65µm.
+   * The H-band (order 4) equivalent of a wavelength observed in another order, following λ₂ = λ₁ ·
+   * m₁ / m₂. For example 2.20µm, which falls in order 3, becomes 2.20µm · 3/4 = 1.65µm.
    *
-   * A cross-dispersed setting covers several orders at once, so it is specified by its
-   * H-band wavelength: that makes the acquisition default to the H filter and sends an
-   * H-band wavelength to the TCS, minimizing differential atmospheric refraction.
+   * A cross-dispersed setting covers several orders at once, so it is specified by its H-band
+   * wavelength: that makes the acquisition default to the H filter and sends an H-band wavelength
+   * to the TCS, minimizing differential atmospheric refraction.
    *
    * The wavelength is returned unchanged when it falls outside every cross-dispersed order.
    */
