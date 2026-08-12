@@ -164,8 +164,7 @@ trait TileComponent[P <: Tile[P]](
             ExploreStyles.Tile |+| ExploreStyles.FadeIn |+| props.tileClass,
             ^.key := "tile-${props.id.value}"
           )(
-            // Tile title. The resize detector only observes auto-height tiles: an attached ref
-            // would trigger a re-render on every title box change for nothing.
+            // Tile title. The resize detector only observes auto-height tiles
             <.div.withOptionalRef(Option.when(props.autoHeight)(titleResize.ref))(
               ExploreStyles.TileTitle,
               ^.key := s"tileTitle-${props.id.value}"
@@ -183,8 +182,7 @@ trait TileComponent[P <: Tile[P]](
                 blankButton.when(!tileState.showMinimize && !tileState.showMaximize)
               )
             ),
-            // An auto-height tile's body stays mounted while minimized (hidden via CSS):
-            // remounting on maximize would leave the resize observer unbound.
+            // An auto-height tile's body stays mounted while minimized
             <.div(
               ^.key := s"tileBody-${props.id.value}",
               bodyClass,

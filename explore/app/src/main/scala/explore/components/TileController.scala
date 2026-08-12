@@ -59,12 +59,12 @@ case class TileController(
 object TileController:
   private type Props = TileController
 
-  private def storeLayouts(
+  private def storeLayouts[F[_]: ApplicativeThrow](
     userId:  Option[User.Id],
     section: GridLayoutSection,
     layouts: ResponsiveLayouts
-  )(using FetchClient[IO, UserPreferencesDB]): IO[Unit] =
-    GridLayouts.storeLayoutsPreference[IO](userId, section, layouts)
+  )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+    GridLayouts.storeLayoutsPreference[F](userId, section, layouts)
 
   // Calculate the state out of the height
   private def unsafeSizeToState(
@@ -98,12 +98,10 @@ object TileController:
         tiles.collect { case t if t.tileProps.hidden => t.tileProps.id.value }.toSet
       )
 
-  // The grid container auto-sizes to fit its rows (`autoSize = true` below), so capping against
-  // it would be circular; the window viewport can't be, though it includes other page chrome.
+  // The grid container auto-sizes to fit its rows (`autoSize = true` below)
   private val viewportPx: CallbackTo[Int] = CallbackTo(dom.window.innerHeight.toInt)
 
-  // An auto-height tile's local row span is authoritative: the prefs subscription echoes every
-  // store back ~1s later, and adopting the echoed height would collapse or floor a visible tile.
+  // An auto-height tile's local row span is authoritative
   private def preserveAutoHeights(
     flags:   TileFlags,
     current: LayoutsMap,
@@ -124,8 +122,7 @@ object TileController:
       ))
     }
 
-  // Re-derives auto-height row spans from the last reported measurements, for spans that were
-  // dropped mid-gesture or reset by normalization: the resize detector won't repeat its value.
+  // Re-derives auto-height row spans from the last reported measurements.
   private def applyMeasuredHeights(
     flags:      TileFlags,
     measured:   Map[String, Int],
@@ -172,10 +169,9 @@ object TileController:
         // Make a local copy of the layout fixing the state of minimized layouts
         currentLayout  <- useStateView(updateResizableState(tileFlags, props.layoutMap))
         // Last content height reported per tile id. Survives minimize/maximize so maximizing
-        // can restore the height the content wants instead of the floor.
+        // can restore the height the content wants.
         lastMeasuredPx <- useStateView(Map.empty[String, Int])
-        // Update the current layout if it changes upstream. Auto-height tiles keep their local
-        // row span and replay the last measurements: stored heights are dead data for them.
+        // Update the current layout if it changes upstream. Auto-height tiles keep their local height
         _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
                             (_, layout) =>
                               viewportPx.flatMap: vp =>
@@ -220,8 +216,7 @@ object TileController:
                   else l
                 case l                     => l
 
-        // Measurements arriving while minimized (like the observer's final 0 for an unmounting
-        // node) must not overwrite the last real measurement, which maximize restores from.
+        // Measurements arriving while minimized  must not overwrite the last real measurement.
         def autoHeightCallback(id: Tile.TileId): Int => Callback = measuredPx =>
           val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
           viewportPx.flatMap: vp =>
@@ -269,8 +264,7 @@ object TileController:
         def mergeIntoCurrentLayout(m: Layout): Callback =
           currentLayout.mod(breakpointLayout(breakpoint.value).modify(mergeLayouts(_, m)))
 
-        // Apply the latest measurement recorded mid-gesture; content won't re-report a height
-        // it already has.
+        // Apply the latest measurement recorded mid-gesture
         val endGesture: Callback =
           gesturing.set(false) *>
             viewportPx.flatMap: vp =>
