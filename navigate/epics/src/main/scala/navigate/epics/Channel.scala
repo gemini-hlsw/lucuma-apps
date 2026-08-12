@@ -25,10 +25,10 @@ import scala.concurrent.duration.FiniteDuration
 
 trait Channel[F[_], T] extends RemoteChannel[F] {
   val get: F[T]
-  def get(timeout: FiniteDuration): F[T]
+  def get(timeout:       FiniteDuration): F[T]
   val getOption: F[Option[T]]
   def getOption(timeout: FiniteDuration): F[Option[T]]
-  def put(v:       T): F[Unit]
+  def put(v:             T): F[Unit]
 
   /**
    * Stream of channel values.
@@ -96,7 +96,7 @@ object Channel {
 
     override def getOption(timeout: FiniteDuration): F[Option[T]] = getOption.timeout(timeout)
 
-    override def put(v: T): F[Unit]                 = cv
+    override def put(v: T): F[Unit] = cv
       .toJava(v)
       .map(a => Async[F].fromCompletableFuture(Async[F].delay(caChannel.putAsync(a))))
       .getOrElse(Status.NOCONVERT.pure[F])

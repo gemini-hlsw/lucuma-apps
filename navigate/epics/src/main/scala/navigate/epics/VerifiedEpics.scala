@@ -112,13 +112,17 @@ object VerifiedEpics {
   case class Get[F[_]: MonadThrow, A](tt: TelltaleChannel[F], ch: Channel[F, A])
       extends VerifiedEpics[F, F, A] {
     override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = Map(tt -> Set(ch))
-    override val run: F[A]                                               = ch.getOption.flatMap(_.map(_.pure[F]).getOrElse(MonadThrow[F].raiseError(new Throwable(s"Cannot read value for channel ${ch.getName}"))))
+    override val run: F[A]                                               = ch.getOption.flatMap(
+      _.map(_.pure[F]).getOrElse(
+        MonadThrow[F].raiseError(new Throwable(s"Cannot read value for channel ${ch.getName}"))
+      )
+    )
   }
 
   case class GetOption[F[_], A](tt: TelltaleChannel[F], ch: Channel[F, A])
       extends VerifiedEpics[F, F, Option[A]] {
     override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = Map(tt -> Set(ch))
-    override val run: F[Option[A]]                                               = ch.getOption
+    override val run: F[Option[A]]                                       = ch.getOption
   }
 
   case class Put[F[_]: FlatMap, A](tt: TelltaleChannel[F], ch: Channel[F, A], fa: F[A])
@@ -135,24 +139,30 @@ object VerifiedEpics {
     override val run: Resource[F, Stream[F, StreamEvent[A]]]             = ch.eventStream
   }
 
-  def pureF[F[_], G[_]: Applicative, A](v: A): VerifiedEpics[F, G, A]                         = pure[F, G[A]](v.pure[G])
-  def unit[F[_], G[_]: Applicative]: VerifiedEpics[F, G, Unit]                                =
+  def pureF[F[_], G[_]: Applicative, A](v: A): VerifiedEpics[F, G, A]    = pure[F, G[A]](v.pure[G])
+  def unit[F[_], G[_]: Applicative]: VerifiedEpics[F, G, Unit]           =
     pure[F, G[Unit]](Applicative[G].unit)
-  def liftF[F[_], G[_], A](f:              G[A]): VerifiedEpics[F, G, A]                      = LiftF(f)
-  def readChannel[F[_]: MonadThrow, A](tt: TelltaleChannel[F], ch: Channel[F, A]): VerifiedEpics[F, F, A] =
+  def liftF[F[_], G[_], A](f:              G[A]): VerifiedEpics[F, G, A] = LiftF(f)
+  def readChannel[F[_]: MonadThrow, A](
+    tt: TelltaleChannel[F],
+    ch: Channel[F, A]
+  ): VerifiedEpics[F, F, A]                                              =
     Get(tt, ch)
-  def readOptionChannel[F[_], A](tt: TelltaleChannel[F], ch: Channel[F, A]): VerifiedEpics[F, F, Option[A]] =
+  def readOptionChannel[F[_], A](
+    tt: TelltaleChannel[F],
+    ch: Channel[F, A]
+  ): VerifiedEpics[F, F, Option[A]]                                      =
     GetOption(tt, ch)
   def writeChannel[F[_]: FlatMap, A](tt: TelltaleChannel[F], ch: Channel[F, A])(
     fa: F[A]
-  ): VerifiedEpics[F, F, Unit]                                                                = Put(tt, ch, fa)
+  ): VerifiedEpics[F, F, Unit]                                           = Put(tt, ch, fa)
   def eventStream[F[_]: {Dispatcher, Concurrent}, A](
     tt: TelltaleChannel[F],
     ch: Channel[F, A]
-  ): VerifiedEpics[F, Resource[F, *], Stream[F, StreamEvent[A]]]                              = EventStream(tt, ch)
+  ): VerifiedEpics[F, Resource[F, *], Stream[F, StreamEvent[A]]]         = EventStream(tt, ch)
   def ifF[F[_], G[_]: FlatMap, A](cond: G[Boolean])(trueVal: => VerifiedEpics[F, G, A])(
     falseVal: => VerifiedEpics[F, G, A]
-  ): VerifiedEpics[F, G, A]                                                                   = IfF(cond, trueVal, falseVal)
+  ): VerifiedEpics[F, G, A]                                              = IfF(cond, trueVal, falseVal)
 
   extension [F[_], G[_]: Monad, A](v: VerifiedEpics[F, G, A]) {
     def ap[B](ff: VerifiedEpics[F, G, A => B]): VerifiedEpics[F, G, B] = ApplyF[F, G, A, B](v, ff)
