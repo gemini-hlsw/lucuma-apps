@@ -1199,7 +1199,6 @@ object ObservingMode:
     initialFilters:    NonEmptyList[GnirsImaging.ImagingFilter],
     filters:           NonEmptyList[GnirsImaging.ImagingFilter],
     camera:            GnirsCamera,
-    coadds:            PosInt,
     explicitReadMode:  Option[GnirsReadMode],
     defaultWellDepth:  GnirsWellDepth,
     explicitWellDepth: Option[GnirsWellDepth],
@@ -1224,14 +1223,23 @@ object ObservingMode:
       )
 
   object GnirsImaging:
-    case class ImagingFilter(filter: GnirsFilter, exposureTimeMode: ExposureTimeMode)
-        derives Decoder,
+    /**
+     * One GNIRS imaging science configuration: a filter with the exposure time mode and coadds that
+     * apply to it. Coadds are always 1 for a signal-to-noise exposure time mode, which does not
+     * support them.
+     */
+    case class ImagingFilter(
+      filter:           GnirsFilter,
+      exposureTimeMode: ExposureTimeMode,
+      coadds:           PosInt
+    ) derives Decoder,
           Eq
 
     object ImagingFilter:
       val filter: Lens[ImagingFilter, GnirsFilter]                = Focus[ImagingFilter](_.filter)
       val exposureTimeMode: Lens[ImagingFilter, ExposureTimeMode] =
         Focus[ImagingFilter](_.exposureTimeMode)
+      val coadds: Lens[ImagingFilter, PosInt]                     = Focus[ImagingFilter](_.coadds)
 
     // The acquisition exposure time mode and coadds always have a value (the ODB returns
     // no default for them), so they take no part in isCustomized / revertCustomizations.
@@ -1292,8 +1300,6 @@ object ObservingMode:
       Focus[GnirsImaging](_.filters)
     val camera: Lens[GnirsImaging, GnirsCamera]                         =
       Focus[GnirsImaging](_.camera)
-    val coadds: Lens[GnirsImaging, PosInt]                              =
-      Focus[GnirsImaging](_.coadds)
     val explicitReadMode: Lens[GnirsImaging, Option[GnirsReadMode]]     =
       Focus[GnirsImaging](_.explicitReadMode)
     val defaultWellDepth: Lens[GnirsImaging, GnirsWellDepth]            =

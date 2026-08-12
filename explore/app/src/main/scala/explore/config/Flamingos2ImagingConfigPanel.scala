@@ -132,6 +132,7 @@ object Flamingos2ImagingConfigPanel
               filtersView = filtersView,
               filterLens = ObservingMode.Flamingos2Imaging.ImagingFilter.filter,
               etmLens = ObservingMode.Flamingos2Imaging.ImagingFilter.exposureTimeMode,
+              coaddsLens = none,
               initialFilters = props.mode.initialFilters,
               allowedFilters = props.allowedFilters,
               makeImagingFilter = (f, e) => ObservingMode.Flamingos2Imaging.ImagingFilter(f, e),

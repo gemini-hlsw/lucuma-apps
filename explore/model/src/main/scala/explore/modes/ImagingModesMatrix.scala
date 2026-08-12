@@ -31,7 +31,7 @@ case class ImagingModeRow(
     instrumentConfig match
       case ItcInstrumentConfig.GmosNorthImaging(filter, _)  => filter.filterType.some
       case ItcInstrumentConfig.GmosSouthImaging(filter, _)  => filter.filterType.some
-      case ItcInstrumentConfig.GnirsImaging(filter, _, _)   => filter.filterType.some
+      case ItcInstrumentConfig.GnirsImaging(filter = f)     => f.filterType.some
       case ItcInstrumentConfig.Flamingos2Imaging(filter, _) => filter.filterType.some
       case _                                                => none
 
@@ -81,7 +81,12 @@ object ImagingModeRow {
     for {
       filter <- c.downField("filter").as[GnirsFilter]
       camera <- c.downField("camera").as[GnirsCamera]
-    } yield ItcInstrumentConfig.GnirsImaging(filter, camera, ItcInstrumentConfig.PlaceholderEtm)
+    } yield ItcInstrumentConfig.GnirsImaging(
+      filter,
+      camera,
+      ItcInstrumentConfig.PlaceholderEtm,
+      ItcInstrumentConfig.PlaceholderCoadds
+    )
 
   given Decoder[ImagingModeRow] = c =>
     for {

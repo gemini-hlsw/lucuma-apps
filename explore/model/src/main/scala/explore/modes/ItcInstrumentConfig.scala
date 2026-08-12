@@ -79,6 +79,10 @@ object ItcInstrumentConfig:
   val PlaceholderEtm: ExposureTimeMode =
     ExposureTimeMode.SignalToNoiseMode(SignalToNoise.Max, Wavelength.Min)
 
+  // Likewise for coadds: the modes table carries no exposure time mode, and the
+  // placeholder above is signal-to-noise, which does not support coadds.
+  val PlaceholderCoadds: PosInt = 1.refined
+
   case class GmosNorthSpectroscopy(
     grating:                    GmosNorthGrating,
     fpu:                        Option[GmosNorthFpu],
@@ -409,7 +413,8 @@ object ItcInstrumentConfig:
   case class GnirsImaging(
     filter:           GnirsFilter,
     camera:           GnirsCamera,
-    exposureTimeMode: ExposureTimeMode
+    exposureTimeMode: ExposureTimeMode,
+    coadds:           PosInt
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
     type Filter   = GnirsFilter
