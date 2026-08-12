@@ -125,11 +125,10 @@ object layout {
     math.floor((px + Constants.GridRowPadding).toDouble / RowStridePx).toInt
 
   /**
-   * Derives an auto-height tile's row span from its measured content height (including its title
-   * bar), capped to what fits in `viewportPx`. The min and max row spans are pinned to the
-   * result: the tile keeps the regular corner resize handle, and the pin is what restricts it to
-   * horizontal-only resizing. Left untouched while `minimized`, since a minimized tile's row
-   * span is a different concept (it encodes the minimized state itself).
+   * Derives an auto-height tile's row span from its measured content height (title bar
+   * included), capped to what fits in `viewportPx`. Pinning minH/maxH to the result is what
+   * restricts resizing to horizontal. No-op while `minimized`: that row span encodes the
+   * minimized state itself.
    */
   def resolveAutoHeight(
     item:       LayoutItem,

@@ -182,9 +182,8 @@ trait TileComponent[P <: Tile[P]](
                 blankButton.when(!tileState.showMinimize && !tileState.showMaximize)
               )
             ),
-            // Tile body. An auto-height tile's body stays mounted while minimized (hidden via
-            // CSS): the resize observer binds once to the mounted node, so unmounting would
-            // leave the body remounted on maximize unobserved and freeze its measurements.
+            // An auto-height tile's body stays mounted while minimized (hidden via CSS):
+            // remounting on maximize would leave the resize observer unbound.
             <.div(
               ^.key := s"tileBody-${props.id.value}",
               bodyClass,
