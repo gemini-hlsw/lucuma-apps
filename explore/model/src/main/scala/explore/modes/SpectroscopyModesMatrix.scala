@@ -238,9 +238,13 @@ case class SpectroscopyModeRow(
               case i: ItcInstrumentConfig.GnirsSpectroscopy =>
                 // GNIRS XD coverage spans essentially the full band, so the clipped
                 // interval center is a near-constant value regardless of the requested
-                // wavelength. Use the user's requested wavelength directly instead.
+                // wavelength. Use the user's requested wavelength directly instead,
+                // expressed in the H band, which is how a cross-dispersed setting is
+                // specified. The user remains free to set any central wavelength
+                // afterwards in the advanced configuration.
                 val wavelength2Use =
-                  if i.filter === GnirsFilter.CrossDispersed then CentralWavelength(wavelength)
+                  if i.filter === GnirsFilter.CrossDispersed then
+                    CentralWavelength(GnirsCrossDispersed.toHBandWavelength(wavelength))
                   else cw
                 i.copy(modeOverrides =
                   InstrumentOverrides
