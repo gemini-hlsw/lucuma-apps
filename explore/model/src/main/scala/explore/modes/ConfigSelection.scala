@@ -133,7 +133,10 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
           ) =>
         (gmosCW(overrides), GmosCustomSlitWidth.fromWidth(slitWidth))
           .mapN((cw, sw) => BasicConfiguration.GmosSouthMos(grating, filter, sw, cw))
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _) =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(grating = disperser,
+                                                      filter = filter,
+                                                      fpu = Some(fpu)
+          ) =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
       case ItcInstrumentConfig.GmosNorthImaging(_, _)                               =>
         val filters = configs.collect:
