@@ -3,6 +3,7 @@
 
 package navigate.model
 
+import cats.Eq
 import coulomb.Quantity
 import coulomb.syntax.*
 import coulomb.units.accepted.Millimeter
@@ -41,5 +42,7 @@ object Distance {
   }
 
   given Ordering[Distance] = Ordering.by(_.value)
+
+  given Eq[Distance] = Eq.by(_.value)
 
 }

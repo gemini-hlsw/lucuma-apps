@@ -29,6 +29,7 @@ import lucuma.core.enums.TipTiltSource
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
@@ -40,6 +41,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.horizons.HorizonsClient
 import monocle.Focus.focus
+import mouse.boolean.given
 import munit.CatsEffectSuite
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
@@ -48,7 +50,6 @@ import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.Distance
-import navigate.model.Distance.given
 import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
@@ -111,7 +112,6 @@ import java.time.LocalDate
 import java.util
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.given
-import scala.math.Ordering.Implicits.given
 
 class NavigateMappingsSuite extends CatsEffectSuite {
   import NavigateMappingsTest.*
@@ -1104,12 +1104,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |           micrometers
           |         }
           |       }
-          |       eastVentGateAperture {
-          |         micrometers
-          |       }
-          |       westVentGateAperture {
-          |         micrometers
-          |       }
+          |       eastVentGateAperture
+          |       westVentGateAperture
           |     }
           |   }
           | }
@@ -1265,12 +1261,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
             |           micrometers
             |         }
             |       }
-            |       eastVentGateAperture {
-            |         micrometers
-            |       }
-            |       westVentGateAperture {
-            |         micrometers
-            |       }
+            |       eastVentGateAperture
+            |       westVentGateAperture
             |     }
             |   }
             | }
@@ -2631,6 +2623,55 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Enable dome tracking.") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+            | mutation {
+            |   ecsEnableDome(
+            |     mode: MIN_SCATTER
+            |   ) { result } }
+            """.stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("ecsEnableDome")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
+  test("Enable shutters tracking.") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+          | mutation {
+          |   ecsEnableShutters(
+          |     mode: {
+          |       mode: TRACKING
+          |       aperture: {
+          |         micrometers: 1500000
+          |       }
+          |     }
+          |   ) { result } }
+          """.stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("ecsEnableShutters")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
 }
 
 object NavigateMappingsTest {
@@ -2917,12 +2958,12 @@ object NavigateMappingsTest {
 
     override def ecsDisableShutters: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsMoveEastVentGate(position: Distance): IO[CommandResult] =
+    override def ecsMoveEastVentGate(position: IntPercent): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
     override def ecsCloseEastVentGate: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsMoveWestVentGate(position: Distance): IO[CommandResult] =
+    override def ecsMoveWestVentGate(position: IntPercent): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
     override def ecsCloseWestVentGate: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
@@ -3166,13 +3207,28 @@ object NavigateMappingsTest {
         h.downField("meters").as[BigDecimal].map(Distance.fromBigDecimalMeters)
       )
 
+  given Decoder[ShutterMode] = h =>
+    for {
+      mode <- h.downField("mode").as[String]
+      apt  <- h.downField("aperture").as[Option[Distance]]
+      shMd <- ShutterMode
+                .fromTag(mode, apt)
+                .toRight[DecodingFailure](
+                  DecodingFailure.apply("Unable to decode ShutterMode", h.history)
+                )
+    } yield shMd
+
+  given Decoder[IntPercent] = Decoder[Int].emap(IntPercent.from)
+
   given Decoder[EnclosureState] = h =>
     for {
-      dome <- h.downField("domeEnabled").as[Boolean]
-      shts <- h.downField("shuttersEnabled").as[Boolean]
-      evg  <- h.downField("eastVentGateAperture").as[Distance]
-      wvg  <- h.downField("westVentGateAperture").as[Distance]
-    } yield EnclosureState(dome, shts, evg > Distance.Zero, wvg > Distance.Zero)
+      dmEn <- h.downField("domeEnabled").as[Boolean]
+      dmMd <- dmEn.fold(h.downField("domeMode").as[Option[DomeMode]], none.asRight)
+      shEn <- h.downField("shuttersEnabled").as[Boolean]
+      shMd <- shEn.fold(h.downField("shuttersMode").as[Option[ShutterMode]], none.asRight)
+      evg  <- h.downField("eastVentGateAperture").as[IntPercent]
+      wvg  <- h.downField("westVentGateAperture").as[IntPercent]
+    } yield EnclosureState(dmMd, shMd, evg, wvg)
 
   given Decoder[TelescopeState] = h =>
     for {

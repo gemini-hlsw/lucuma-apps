@@ -99,7 +99,8 @@ case class TcsChannels[F[_]](
   pwfs1UnwrapDir:          Channel[F, CadDirective],
   pwfs2UnwrapDir:          Channel[F, CadDirective],
   demandAzimuth:           Channel[F, String],
-  demandRotator:           Channel[F, Double]
+  demandRotator:           Channel[F, Double],
+  enclosureState:          EnclosureStateChannels[F]
 )
 
 object TcsChannels {
@@ -862,6 +863,33 @@ object TcsChannels {
     } yield PointingConfigChannels(nm, lv, vl)
   }
 
+  case class EnclosureStateChannels[F[_]](
+    domeMode:         Channel[F, String],
+    shuttersMode:     Channel[F, String],
+    shuttersAperture: Channel[F, String],
+    domeEnabled:      Channel[F, Int],
+    shuttersEnabled:  Channel[F, Int]
+  )
+
+  object EnclosureStateChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      top:     TcsTop
+    ): Resource[F, EnclosureStateChannels[F]] = for {
+      dmod  <- service.getChannel[String](top.value, "carousel.VALA")
+      shmod <- service.getChannel[String](top.value, "carousel.VALB")
+      shap  <- service.getChannel[String](top.value, "carousel.VALC")
+      dmen  <- service.getChannel[Int](top.value, "carousel.VALD")
+      shen  <- service.getChannel[Int](top.value, "carousel.VALE")
+    } yield EnclosureStateChannels(
+      dmod,
+      shmod,
+      shap,
+      dmen,
+      shen
+    )
+  }
+
   /**
    * Build all TcsChannels It will construct the desired raw channel or call the build function for
    * channels group
@@ -960,6 +988,7 @@ object TcsChannels {
       chrl  <- ChopRelativeChannels.build(service, tcsTop)
       dmaz  <- service.getChannel[String](tcsTop.value, "demandAz.VAL")
       dmrot <- service.getChannel[Double](tcsTop.value, "demandRma.VAL")
+      encst <- EnclosureStateChannels.build(service, tcsTop)
     } yield TcsChannels[F](
       tt,
       tpd,
@@ -1039,7 +1068,8 @@ object TcsChannels {
       p1uw,
       p2uw,
       demandAzimuth = dmaz,
-      demandRotator = dmrot
+      demandRotator = dmrot,
+      enclosureState = encst
     )
   }
 }

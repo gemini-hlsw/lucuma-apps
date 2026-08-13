@@ -22,9 +22,21 @@ import scala.concurrent.duration.FiniteDuration
 
 class TestChannel[F[_]: Temporal, S, A: Eq](s: Ref[F, S], l: Lens[S, State[A]])
     extends Channel[F, A] {
-  override val get: F[A] = s.get.map(x => l.get(x).value.get)
+  override val get: F[A] = s.get.flatMap(x =>
+    l.get(x)
+      .value
+      .map(_.pure[F])
+      .getOrElse(
+        Temporal[F]
+          .raiseError(new Throwable("TestChannel.get: Cannot read channel, value is empty."))
+      )
+  )
 
   override def get(timeout: FiniteDuration): F[A] = get
+
+  override val getOption: F[Option[A]] = s.get.map(x => l.get(x).value)
+
+  override def getOption(timeout: FiniteDuration): F[Option[A]] = getOption
 
   override def put(v: A): F[Unit] = s.update(l.modify(x => x.copy(value = v.some)))
 

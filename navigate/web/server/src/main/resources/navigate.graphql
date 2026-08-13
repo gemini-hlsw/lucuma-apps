@@ -1,6 +1,6 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
-#import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
+#import Long, BigDecimal, Timestamp, TimeSpanInput, IntPercent from "lucuma/schemas/ObservationDB.graphql"
 #import Instrument, Site, TimeSpan, Date  from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
@@ -122,8 +122,8 @@ type EnclosureState {
     shuttersEnabled: Boolean!
     "shuttersMode is not null if shuttersEnabled is true"
     shuttersMode: ShutterMode
-    eastVentGateAperture: Distance!
-    westVentGateAperture: Distance!
+    eastVentGateAperture: IntPercent!
+    westVentGateAperture: IntPercent!
 }
 
 type TelescopeState {
@@ -594,11 +594,13 @@ type Mutation {
     """ ECS commands """
     ecsEnableDome(mode: DomeMode!): OperationOutcome!
     ecsDisableDome: OperationOutcome!
+    ecsDomePark: OperationOutcome!
     ecsEnableShutters(mode: ShutterModeInput!): OperationOutcome!
     ecsDisableShutters: OperationOutcome!
-    ecsMoveEastVentGate(position: DistanceInput!): OperationOutcome!
+    ecsShuttersPark: OperationOutcome!
+    ecsMoveEastVentGate(position: IntPercent!): OperationOutcome!
     ecsCloseEastVentGate: OperationOutcome!
-    ecsMoveWestVentGate(position: DistanceInput!): OperationOutcome!
+    ecsMoveWestVentGate(position: IntPercent!): OperationOutcome!
     ecsCloseWestVentGate: OperationOutcome!
 }
 

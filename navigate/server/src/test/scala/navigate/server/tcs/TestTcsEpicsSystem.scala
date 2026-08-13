@@ -31,6 +31,7 @@ import navigate.server.tcs.TcsChannels.AgMechChannels
 import navigate.server.tcs.TcsChannels.ChopConfigChannels
 import navigate.server.tcs.TcsChannels.ChopRelativeChannels
 import navigate.server.tcs.TcsChannels.EnclosureChannels
+import navigate.server.tcs.TcsChannels.EnclosureStateChannels
 import navigate.server.tcs.TcsChannels.GuideConfigStatusChannels
 import navigate.server.tcs.TcsChannels.InstrumentOffsetCommandChannels
 import navigate.server.tcs.TcsChannels.M1Channels
@@ -93,6 +94,14 @@ object TestTcsEpicsSystem {
     ecsShutterBottom: TestChannel.State[String],
     ecsVentGateEast:  TestChannel.State[String],
     ecsVentGateWest:  TestChannel.State[String]
+  )
+
+  case class EnclosureStateChannelsState(
+    ecsDomeMode:      TestChannel.State[String],
+    ecsShutterMode:   TestChannel.State[String],
+    ecsSlitHeight:    TestChannel.State[String],
+    ecsDomeEnable:    TestChannel.State[Int],
+    ecsShutterEnable: TestChannel.State[Int]
   )
 
   case class TargetChannelsState(
@@ -370,6 +379,7 @@ object TestTcsEpicsSystem {
     rotFollow:            TestChannel.State[String],
     rotMoveAngle:         TestChannel.State[String],
     enclosure:            EnclosureChannelsState,
+    enclosureState:       EnclosureStateChannelsState,
     sourceA:              TargetChannelsState,
     pwfs1Target:          TargetChannelsState,
     pwfs2Target:          TargetChannelsState,
@@ -464,6 +474,13 @@ object TestTcsEpicsSystem {
       ecsShutterBottom = TestChannel.State.default,
       ecsVentGateEast = TestChannel.State.default,
       ecsVentGateWest = TestChannel.State.default
+    ),
+    enclosureState = EnclosureStateChannelsState(
+      ecsDomeMode = TestChannel.State.default,
+      ecsShutterMode = TestChannel.State.default,
+      ecsSlitHeight = TestChannel.State.default,
+      ecsDomeEnable = TestChannel.State.default,
+      ecsShutterEnable = TestChannel.State.default
     ),
     sourceA = TargetChannelsState.default,
     pwfs1Target = TargetChannelsState.default,
@@ -1260,7 +1277,18 @@ object TestTcsEpicsSystem {
       pwfs1UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs1UnwrapDir)),
       pwfs2UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs2UnwrapDir)),
       demandAzimuth = new TestChannel[F, State, String](s, Focus[State](_.demandAzimuth)),
-      demandRotator = new TestChannel[F, State, Double](s, Focus[State](_.demandRotator))
+      demandRotator = new TestChannel[F, State, Double](s, Focus[State](_.demandRotator)),
+      enclosureState = EnclosureStateChannels(
+        domeMode = new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsDomeMode)),
+        shuttersMode =
+          new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsShutterMode)),
+        shuttersAperture =
+          new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsSlitHeight)),
+        domeEnabled =
+          new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsDomeEnable)),
+        shuttersEnabled =
+          new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsShutterEnable))
+      )
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {

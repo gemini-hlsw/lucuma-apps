@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.model.IntPercent
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
@@ -47,8 +48,8 @@ object NavigateCommand {
   case class Cwfs3Follow(enable: Boolean)                                    extends NavigateCommand
   case class EcsEnableDome(domeMode: DomeMode)                               extends NavigateCommand
   case class EcsEnableShutters(shutterMode: ShutterMode)                     extends NavigateCommand
-  case class EcsEastVentGateMove(gateEast: Distance)                         extends NavigateCommand
-  case class EcsWestVentGateMove(gateWest: Distance)                         extends NavigateCommand
+  case class EcsEastVentGateMove(gateEast: IntPercent)                       extends NavigateCommand
+  case class EcsWestVentGateMove(gateWest: IntPercent)                       extends NavigateCommand
   case class EnableGuide(config: TelescopeGuideConfig)                       extends NavigateCommand
   case class InstSpecifics(instrumentSpecificsParams: InstrumentSpecifics)   extends NavigateCommand
   case class LightPathConfig(from: LightSource, to: LightSink)               extends NavigateCommand
@@ -170,8 +171,8 @@ object NavigateCommand {
       case Cwfs3Follow(enable)                                => s"${self.name}(enable = $enable)"
       case EcsEnableDome(mode)                                => s"${self.name}(mode = $mode)"
       case EcsEnableShutters(mode)                            => s"${self.name}(mode = $mode)"
-      case EcsEastVentGateMove(position)                      => s"${self.name}(position = ${position.toMeters})"
-      case EcsWestVentGateMove(position)                      => s"${self.name}(position = ${position.toMeters})"
+      case EcsEastVentGateMove(position)                      => s"${self.name}(position = ${position.value}%)"
+      case EcsWestVentGateMove(position)                      => s"${self.name}(position = ${position.value}%)"
       case EnableGuide(config)                                => s"${self.name}(config = $config)"
       case InstSpecifics(instrumentSpecificsParams)           =>
         s"${self.name}(instrumentSpecificsParams = ${instrumentSpecificsParams.show})"

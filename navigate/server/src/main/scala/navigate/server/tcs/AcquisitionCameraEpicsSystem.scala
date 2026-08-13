@@ -4,6 +4,7 @@
 package navigate.server.tcs
 
 import cats.Monad
+import cats.MonadThrow
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.Temporal
@@ -177,7 +178,7 @@ object AcquisitionCameraEpicsSystem {
     )
   }
 
-  private[tcs] def buildSystem[F[_]: {Monad, Parallel}](
+  private[tcs] def buildSystem[F[_]: {MonadThrow, Parallel}](
     applyCmd: GeminiApplyCommand[F],
     chs:      AcquisitionCameraChannels[F]
   ): AcquisitionCameraEpicsSystem[F] =

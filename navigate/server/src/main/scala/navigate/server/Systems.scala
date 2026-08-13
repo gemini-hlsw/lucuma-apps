@@ -106,14 +106,16 @@ object Systems {
           crcs <- CrcsEpicsSystem.build(epicsSrv, readTop(tops, "cr".refined))
           ags  <- AgsEpicsSystem.build(epicsSrv, readTop(tops, "ag".refined), Site.GS)
           hr   <- AcquisitionCameraEpicsSystem.build(epicsSrv, readTop(tops, "hrwfs".refined))
+          ecs  <- EcsEpicsSystem.build(epicsSrv, readTop(tops, "ec".refined))
           r    <-
             Resource.eval(
               TcsSouthControllerEpics
-                .build(EpicsSystemsSouth(gmoi,
-                                         f2oi,
-                                         BaseEpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr)
-                       ),
-                       conf.navigateEngine.ioTimeout
+                .build(
+                  EpicsSystemsSouth(gmoi,
+                                    f2oi,
+                                    BaseEpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr, ecs)
+                  ),
+                  conf.navigateEngine.ioTimeout
                 )
             )
         } yield r
@@ -141,13 +143,14 @@ object Systems {
           crcs <- CrcsEpicsSystem.build(epicsSrv, readTop(tops, "cr".refined))
           ags  <- AgsEpicsSystem.build(epicsSrv, readTop(tops, "ag".refined), Site.GN)
           hr   <- AcquisitionCameraEpicsSystem.build(epicsSrv, readTop(tops, "hrwfs".refined))
+          ecs  <- EcsEpicsSystem.build(epicsSrv, readTop(tops, "ec".refined))
           r    <- Resource.eval(
                     TcsNorthControllerEpics.build(
                       EpicsSystemsNorth(new OiwfsEpicsSystem[F] with CircularBufferControl[F] {
                                           export oi.*
                                           export oicb.*
                                         },
-                                        BaseEpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr)
+                                        BaseEpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr, ecs)
                       ),
                       conf.navigateEngine.ioTimeout
                     )

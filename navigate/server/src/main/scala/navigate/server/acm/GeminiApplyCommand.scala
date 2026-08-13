@@ -3,9 +3,8 @@
 
 package navigate.server.acm
 
-import cats.Applicative
 import cats.Eq
-import cats.Monad
+import cats.MonadThrow
 import cats.effect.Concurrent
 import cats.effect.Resource
 import cats.effect.Temporal
@@ -67,7 +66,7 @@ object GeminiApplyCommand {
       val streamsV = for {
         avrs   <- eventStream(telltaleChannel, apply.oval)
         cvrs   <- eventStream(telltaleChannel, car.oval)
-        dwr    <- writeChannel(telltaleChannel, apply.dir)(Applicative[F].pure(CadDirective.START))
+        dwr    <- writeChannel(telltaleChannel, apply.dir)(CadDirective.START.pure[F])
                     .map(Resource.pure[F, F[Unit]])
         msrr   <- readChannel(telltaleChannel, apply.mess)
                     .map(Temporal[F].delayBy(_, MessageReadDelay))
@@ -170,7 +169,7 @@ object GeminiApplyCommand {
       readChannel(telltaleChannel, car.oval).flatMap { g =>
         VerifiedEpics.ifF(g.map(_ != CarState.BUSY))(
           writeChannel(telltaleChannel, apply.dir)(
-            Applicative[F].pure(CadDirective.CLEAR)
+            CadDirective.CLEAR.pure[F]
           ) *> VerifiedEpics.liftF(Temporal[F].sleep(ClearDelay))
         )(
           VerifiedEpics.unit
@@ -247,7 +246,7 @@ object GeminiApplyCommand {
     car   <- CarRecord.build(srv, carName)
   } yield new GeminiApplyCommandImpl[F](telltaleChannel, apply, car)
 
-  def smartSetParam[F[_]: Monad, A, B](
+  def smartSetParam[F[_]: MonadThrow, A, B](
     tt:  TelltaleChannel[F],
     st:  Channel[F, A],
     pr:  Channel[F, B],

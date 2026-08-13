@@ -6,6 +6,7 @@ package navigate
 import cats.Eq
 import cats.Show
 import lucuma.core.enums.Instrument
+import lucuma.core.model.IntPercent
 
 import java.util.UUID
 
@@ -17,5 +18,7 @@ package object model {
   given Eq[ClientId] = Eq.by(x => x.self)
 
   given Show[Instrument] = Show.fromToString
+
+  given Eq[IntPercent] = Eq.by(_.value)
 
 }

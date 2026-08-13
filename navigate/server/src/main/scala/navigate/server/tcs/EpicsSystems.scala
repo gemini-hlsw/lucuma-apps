@@ -13,6 +13,7 @@ trait EpicsSystems[F[_]] {
   val crcs: CrcsEpicsSystem[F]
   val ags: AgsEpicsSystem[F]
   val hrwfs: AcquisitionCameraEpicsSystem[F]
+  val ecs: EcsEpicsSystem[F]
 }
 
 object EpicsSystems {
@@ -25,14 +26,15 @@ object EpicsSystems {
     scs:      ScsEpicsSystem[F],
     crcs:     CrcsEpicsSystem[F],
     ags:      AgsEpicsSystem[F],
-    hrwfs:    AcquisitionCameraEpicsSystem[F]
+    hrwfs:    AcquisitionCameraEpicsSystem[F],
+    ecs:      EcsEpicsSystem[F]
   ) extends EpicsSystems[F]
 
   case class EpicsSystemsNorth[F[_]](
     oiwfs: OiwfsEpicsSystem[F] & CircularBufferControl[F],
     base:  BaseEpicsSystems[F]
   ) extends EpicsSystems[F] {
-    export base.{ags, crcs, hrwfs, mcs, pwfs1, pwfs2, scs, tcsEpics}
+    export base.{ags, crcs, ecs, hrwfs, mcs, pwfs1, pwfs2, scs, tcsEpics}
   }
 
   case class EpicsSystemsSouth[F[_]](

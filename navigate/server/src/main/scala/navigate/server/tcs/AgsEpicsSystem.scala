@@ -4,6 +4,7 @@
 package navigate.server.tcs
 
 import cats.Applicative
+import cats.MonadThrow
 import cats.effect.Concurrent
 import cats.effect.Resource
 import cats.effect.Temporal
@@ -234,7 +235,7 @@ object AgsEpicsSystem {
   }
 
   object PwfsAngles {
-    def build[F[_]: Applicative](
+    def build[F[_]: MonadThrow](
       tt:  TelltaleChannel[F],
       chs: AgsChannels.PwfsAnglesChannels[F]
     ): PwfsAngles[F] =
@@ -253,7 +254,7 @@ object AgsEpicsSystem {
   }
 
   object PwfsMechs {
-    def build[F[_]: Applicative](
+    def build[F[_]: MonadThrow](
       tt:  TelltaleChannel[F],
       chs: AgsChannels.PwfsMechsChannels[F]
     ): PwfsMechs[F] = new PwfsMechs {

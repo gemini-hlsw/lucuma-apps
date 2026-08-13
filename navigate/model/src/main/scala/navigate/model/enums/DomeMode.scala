@@ -12,5 +12,5 @@ enum DomeMode(val tag: String) derives Enumerated {
 }
 
 object DomeMode {
-  val default: DomeMode = DomeMode.Basic
+  val default: DomeMode = DomeMode.MinScatter
 }
