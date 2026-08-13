@@ -54,13 +54,30 @@ object ObsQueriesGQL:
       }
     """
 
+  // The response selects only the mode-view matching the mode being set.
   @GraphQL
   trait UpdateConfigurationMutation extends GraphQLOperation[ObservationDB]:
     val document = s"""
-      mutation ($$input: UpdateObservationsInput!){
+      mutation (
+        $$input: UpdateObservationsInput!,
+        $$includeGmosNorthLongSlit: Boolean!,
+        $$includeGmosSouthLongSlit: Boolean!,
+        $$includeGmosNorthImaging: Boolean!,
+        $$includeGmosSouthImaging: Boolean!,
+        $$includeGmosNorthMos: Boolean!,
+        $$includeGmosSouthMos: Boolean!,
+        $$includeFlamingos2Imaging: Boolean!,
+        $$includeFlamingos2LongSlit: Boolean!,
+        $$includeIgrins2LongSlit: Boolean!,
+        $$includeGnirsImaging: Boolean!,
+        $$includeGnirsSpectroscopy: Boolean!,
+        $$includeGhostIfu: Boolean!,
+        $$includeVisitor: Boolean!,
+        $$includeExchange: Boolean!
+      ){
         updateObservations(input: $$input) {
           observations {
-            observingMode $ObservingModeSubquery
+            observingMode $ObservingModeByTypeSubquery
           }
         }
       }

@@ -383,8 +383,28 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       )
     )
 
+    // No mode assigned means the mode is being removed, so the response's `observingMode` is null
+    // and no mode-view needs selecting.
+    val flags: ModeViewFlags = modeViewFlagsFor(observingMode)
+
     UpdateConfigurationMutation[F]
-      .execute(input)
+      .execute(
+        input,
+        includeGmosNorthLongSlit = flags.gmosNorthLongSlit,
+        includeGmosSouthLongSlit = flags.gmosSouthLongSlit,
+        includeGmosNorthImaging = flags.gmosNorthImaging,
+        includeGmosSouthImaging = flags.gmosSouthImaging,
+        includeGmosNorthMos = flags.gmosNorthMos,
+        includeGmosSouthMos = flags.gmosSouthMos,
+        includeFlamingos2Imaging = flags.flamingos2Imaging,
+        includeFlamingos2LongSlit = flags.flamingos2LongSlit,
+        includeIgrins2LongSlit = flags.igrins2LongSlit,
+        includeGnirsImaging = flags.gnirsImaging,
+        includeGnirsSpectroscopy = flags.gnirsSpectroscopy,
+        includeGhostIfu = flags.ghostIfu,
+        includeVisitor = flags.visitor,
+        includeExchange = flags.exchange
+      )
       .processErrors
       .map(_.updateObservations.observations.headOption.flatMap(_.observingMode))
 
@@ -451,6 +471,24 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     visitor:            Boolean = false,
     exchange:           Boolean = false
   )
+
+  // `ObservingModeInput` is a `@oneOf`, so it names exactly the mode-view to turn on.
+  private def modeViewFlagsFor(input: Input[ObservingModeInput]): ModeViewFlags =
+    input.toOption.fold(ModeViewFlags()):
+      case _: ObservingModeInput.GmosNorthLongSlit  => ModeViewFlags(gmosNorthLongSlit = true)
+      case _: ObservingModeInput.GmosSouthLongSlit  => ModeViewFlags(gmosSouthLongSlit = true)
+      case _: ObservingModeInput.GmosNorthImaging   => ModeViewFlags(gmosNorthImaging = true)
+      case _: ObservingModeInput.GmosSouthImaging   => ModeViewFlags(gmosSouthImaging = true)
+      case _: ObservingModeInput.GmosNorthMos       => ModeViewFlags(gmosNorthMos = true)
+      case _: ObservingModeInput.GmosSouthMos       => ModeViewFlags(gmosSouthMos = true)
+      case _: ObservingModeInput.Flamingos2Imaging  => ModeViewFlags(flamingos2Imaging = true)
+      case _: ObservingModeInput.Flamingos2LongSlit => ModeViewFlags(flamingos2LongSlit = true)
+      case _: ObservingModeInput.Igrins2LongSlit    => ModeViewFlags(igrins2LongSlit = true)
+      case _: ObservingModeInput.GnirsImaging       => ModeViewFlags(gnirsImaging = true)
+      case _: ObservingModeInput.GnirsSpectroscopy  => ModeViewFlags(gnirsSpectroscopy = true)
+      case _: ObservingModeInput.GhostIfu           => ModeViewFlags(ghostIfu = true)
+      case _: ObservingModeInput.Visitor            => ModeViewFlags(visitor = true)
+      case _: ObservingModeInput.Exchange           => ModeViewFlags(exchange = true)
 
   // Every ObservingModeType maps to exactly one `ObservingMode` union view.
   // We turn on only that view's `@include` flag so the server resolves a single mode-view.
