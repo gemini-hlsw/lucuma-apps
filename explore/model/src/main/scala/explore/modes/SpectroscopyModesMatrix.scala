@@ -114,6 +114,8 @@ case class SpectroscopyModeRow(
   private def isMaroonX: Boolean =
     instrumentConfig.instrument === Instrument.MaroonX
 
+  // Flamingos2 MOS rows are deliberately absent here: they display, but the ODB has
+  // no Flamingos2 MOS observing mode yet, so there is nothing to accept them into.
   val enabled =
     (isSingleSlit || isSupportedIfu || isGmosMos || isMaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
@@ -314,7 +316,7 @@ object SpectroscopyModeRow {
     for {
       disperser <- c.downField("disperser").as[Flamingos2Disperser]
       filter    <- c.downField("filter").as[Flamingos2Filter]
-      fpu       <- c.downField("fpu").as[Flamingos2Fpu]
+      fpu       <- c.downField("fpu").as[Option[Flamingos2Fpu]]
     } yield ItcInstrumentConfig.Flamingos2Spectroscopy(
       disperser,
       filter,
@@ -461,7 +463,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                   filter = rFilter,
                   fpu = rFpu
                 ) =>
-              rGrating === disperser && rFilter === filter && rFpu === fpu
+              rGrating === disperser && rFilter === filter && rFpu === fpu.some
             case _ => false
       case ObservingMode.GmosNorthMos(grating = grating, filter = filter, customMask = mask)   =>
         matrix.find: row =>

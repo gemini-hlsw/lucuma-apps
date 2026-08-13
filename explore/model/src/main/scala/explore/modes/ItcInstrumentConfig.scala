@@ -185,13 +185,13 @@ object ItcInstrumentConfig:
   case class Flamingos2Spectroscopy(
     grating:          Flamingos2Disperser,
     filter:           Flamingos2Filter,
-    fpu:              Flamingos2Fpu,
+    fpu:              Option[Flamingos2Fpu],
     readMode:         Flamingos2ReadMode,
     exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Flamingos2Disperser
     type Filter   = Flamingos2Filter
-    type FPU      = Flamingos2Fpu
+    type FPU      = Option[Flamingos2Fpu]
     type Override = Unit
     val gratingDisplay: Display[Grating] = Display.byShortName(_.shortName)
     val filterStr: String                = filter.shortName

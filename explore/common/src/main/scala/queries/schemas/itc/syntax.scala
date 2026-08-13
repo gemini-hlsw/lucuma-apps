@@ -151,17 +151,20 @@ trait syntax:
                   .GmosSouthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm) =>
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, Some(fpu), rm, etm) =>
           InstrumentMode
             .Flamingos2Spectroscopy(etm, disperser, filter, rm, fpu)
             .rightNec
-        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                           =>
+        // MOS rows have no builtin FPU, and the ITC has no Flamingos2 custom mask input.
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(fpu = None)                            =>
+          ItcQueryProblem.UnsupportedMode.leftNec
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                                 =>
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                           =>
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                                 =>
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                          =>
+        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds)               =>
+        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds)                     =>
           InstrumentMode
             .GnirsImaging(
               etm,
@@ -197,11 +200,11 @@ trait syntax:
                     .rightNec
                 .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                =>
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                      =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
-        case g: ItcInstrumentConfig.GhostIfu                                             =>
+        case g: ItcInstrumentConfig.GhostIfu                                                   =>
           validateGhostMode(g, targetCount)
-        case _                                                                           =>
+        case _                                                                                 =>
           ItcQueryProblem.UnsupportedMode.leftNec
 
   // We may consider adjusting this to consider small variations of RV identical for the

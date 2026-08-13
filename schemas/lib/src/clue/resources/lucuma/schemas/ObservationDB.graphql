@@ -3058,7 +3058,7 @@ type Mutation {
   Declines a REQUESTED Target-of-Opportunity trigger (staff), recording that it
   was seen and passed over.  This also clears the observation's READY state, so
   the observation returns to DEFINED.
-  
+
   There is no corresponding mutation to request or withdraw a trigger: a trigger
   is requested by setting a Target-of-Opportunity observation to READY via
   `setObservationWorkflowState`, and withdrawn by clearing that state.
@@ -4190,7 +4190,7 @@ type DemoScience implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4229,7 +4229,7 @@ type DirectorsTime implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4268,7 +4268,7 @@ type FastTurnaround implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4316,7 +4316,7 @@ type LargeProgram implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4378,7 +4378,7 @@ type Queue implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4446,7 +4446,7 @@ type SystemVerification implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -11479,7 +11479,11 @@ type SpectroscopyConfigOption {
 }
 
 type SpectroscopyConfigOptionFlamingos2 {
-  fpu: Flamingos2Fpu!
+  """
+  The builtin FPU, present for single-slit configurations. Null for multislit
+  (MOS) configurations, where the focal-plane unit is a custom mask.
+  """
+  fpu: Flamingos2Fpu
   disperser: Flamingos2Disperser!
   filter: Flamingos2Filter!
 }
