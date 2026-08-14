@@ -9,7 +9,6 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
-import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
@@ -123,16 +122,14 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      modeOverrides = overrides,
                                                      customSlitWidth = Some(slitWidth)
           ) =>
-        (gmosCW(overrides), GmosCustomSlitWidth.fromWidth(slitWidth))
-          .mapN((cw, sw) => BasicConfiguration.GmosNorthMos(grating, filter, sw, cw))
+        gmosCW(overrides).map(BasicConfiguration.GmosNorthMos(grating, filter, slitWidth, _))
       case ItcInstrumentConfig.GmosSouthSpectroscopy(grating = grating,
                                                      fpu = None,
                                                      filter = filter,
                                                      modeOverrides = overrides,
                                                      customSlitWidth = Some(slitWidth)
           ) =>
-        (gmosCW(overrides), GmosCustomSlitWidth.fromWidth(slitWidth))
-          .mapN((cw, sw) => BasicConfiguration.GmosSouthMos(grating, filter, sw, cw))
+        gmosCW(overrides).map(BasicConfiguration.GmosSouthMos(grating, filter, slitWidth, _))
       case ItcInstrumentConfig.Flamingos2Spectroscopy(grating = disperser,
                                                       filter = filter,
                                                       fpu = Some(fpu)

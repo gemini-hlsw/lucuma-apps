@@ -18,7 +18,7 @@ case class ItcResultsCache(
 ) {
   def mode(r: ModeRow): EitherNec[ItcQueryProblem, ItcInstrumentConfig] =
     Either.fromOption(
-      r.enabled.option(r.instrumentConfig),
+      r.itcSupported.option(r.instrumentConfig),
       NonEmptyChain.of(ItcQueryProblem.UnsupportedMode)
     )
 

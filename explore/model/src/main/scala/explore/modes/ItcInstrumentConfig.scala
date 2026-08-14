@@ -11,7 +11,6 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.*
 import lucuma.core.enums.*
-import lucuma.core.math.Angle
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
@@ -89,7 +88,7 @@ object ItcInstrumentConfig:
     filter:                     Option[GmosNorthFilter],
     exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosSpectroscopy],
-    customSlitWidth:            Option[Angle] = None // for MOS
+    customSlitWidth:            Option[GmosCustomSlitWidth] = None // for MOS
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GmosNorthGrating
     type Filter   = Option[GmosNorthFilter]
@@ -115,7 +114,7 @@ object ItcInstrumentConfig:
     filter:                     Option[GmosSouthFilter],
     exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosSpectroscopy],
-    customSlitWidth:            Option[Angle] = None // for MOS
+    customSlitWidth:            Option[GmosCustomSlitWidth] = None // for MOS
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GmosSouthGrating
     type Filter   = Option[GmosSouthFilter]
@@ -187,7 +186,8 @@ object ItcInstrumentConfig:
     filter:           Flamingos2Filter,
     fpu:              Option[Flamingos2Fpu],
     readMode:         Flamingos2ReadMode,
-    exposureTimeMode: ExposureTimeMode
+    exposureTimeMode: ExposureTimeMode,
+    customSlitWidth:  Option[Flamingos2CustomSlitWidth] = None // for MOS
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Flamingos2Disperser
     type Filter   = Flamingos2Filter
