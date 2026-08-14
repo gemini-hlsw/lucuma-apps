@@ -52,11 +52,13 @@ object ModesQueriesGQL:
           }
           gmosNorth {
             fpu
+            customSlitWidth
             grating
             filter
           }
           gmosSouth {
             fpu
+            customSlitWidth
             grating
             filter
           }
@@ -64,6 +66,7 @@ object ModesQueriesGQL:
             disperser
             filter
             fpu
+            customSlitWidth
           }
           ghost {
             resolutionMode

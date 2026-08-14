@@ -18,17 +18,17 @@ import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
 import lucuma.core.enums.Flamingos2ReadMode
 import lucuma.core.enums.GhostResolutionMode
-import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.GnirsWellDepth
-import lucuma.core.math.Angle
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.itc.ItcGhostDetector
+import lucuma.itc.client.Flamingos2CustomMask
+import lucuma.itc.client.Flamingos2FpuMask
 import lucuma.itc.client.GmosCustomMask
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
@@ -114,10 +114,6 @@ trait syntax:
         case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
         case _                                          => GnirsReadMode.Bright
 
-      // Custom masks don't have a real mask file at this stage but the itc doesn't care.
-      def customMaskFor(slitWidth: Angle): Option[GmosCustomMask] =
-        GmosCustomSlitWidth.fromWidth(slitWidth).map(GmosCustomMask.apply)
-
       row match
         case ItcInstrumentConfig
               .GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth) =>
@@ -126,7 +122,7 @@ trait syntax:
           val itcFpu: Option[GmosFpu.North] =
             fpu
               .map(builtinFpu => GmosFpu.North(builtinFpu.asRight))
-              .orElse(customSlitWidth.flatMap(customMaskFor).map(cm => GmosFpu.North(cm.asLeft)))
+              .orElse(customSlitWidth.map(sw => GmosFpu.North(GmosCustomMask(sw).asLeft)))
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
@@ -142,7 +138,7 @@ trait syntax:
           val itcFpu: Option[GmosFpu.South] =
             fpu
               .map(builtinFpu => GmosFpu.South(builtinFpu.asRight))
-              .orElse(customSlitWidth.flatMap(customMaskFor).map(cm => GmosFpu.South(cm.asLeft)))
+              .orElse(customSlitWidth.map(sw => GmosFpu.South(GmosCustomMask(sw).asLeft)))
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
@@ -151,20 +147,25 @@ trait syntax:
                   .GmosSouthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, Some(fpu), rm, etm) =>
-          InstrumentMode
-            .Flamingos2Spectroscopy(etm, disperser, filter, rm, fpu)
-            .rightNec
-        // MOS rows have no builtin FPU, and the ITC has no Flamingos2 custom mask input.
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(fpu = None)                            =>
-          ItcQueryProblem.UnsupportedMode.leftNec
-        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                                 =>
+        case ItcInstrumentConfig
+              .Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm, customSlitWidth) =>
+          val itcFpu: Option[Flamingos2FpuMask] =
+            fpu
+              .map(Flamingos2FpuMask.builtin)
+              .orElse(
+                customSlitWidth.map(sw => Flamingos2FpuMask.customMask(Flamingos2CustomMask(sw)))
+              )
+          itcFpu
+            .map: mask =>
+              InstrumentMode.Flamingos2Spectroscopy(etm, disperser, filter, rm, mask).rightNec
+            .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)             =>
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                                 =>
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)             =>
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                =>
+        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)            =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds)                     =>
+        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds) =>
           InstrumentMode
             .GnirsImaging(
               etm,
@@ -200,11 +201,11 @@ trait syntax:
                     .rightNec
                 .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                      =>
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                  =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
-        case g: ItcInstrumentConfig.GhostIfu                                                   =>
+        case g: ItcInstrumentConfig.GhostIfu                               =>
           validateGhostMode(g, targetCount)
-        case _                                                                                 =>
+        case _                                                             =>
           ItcQueryProblem.UnsupportedMode.leftNec
 
   // We may consider adjusting this to consider small variations of RV identical for the

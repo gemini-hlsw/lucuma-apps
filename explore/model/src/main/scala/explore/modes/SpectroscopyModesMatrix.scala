@@ -111,14 +111,21 @@ case class SpectroscopyModeRow(
       (instrumentConfig.instrument === Instrument.GmosNorth ||
         instrumentConfig.instrument === Instrument.GmosSouth)
 
+  private def isFlamingos2Mos: Boolean =
+    focalPlane === FocalPlane.MultipleSlit &&
+      instrumentConfig.instrument === Instrument.Flamingos2
+
   private def isMaroonX: Boolean =
     instrumentConfig.instrument === Instrument.MaroonX
 
-  // Flamingos2 MOS rows are deliberately absent here: they display, but the ODB has
-  // no Flamingos2 MOS observing mode yet, so there is nothing to accept them into.
+  // Flamingos2 MOS rows are deliberately absent here until the ODB adds support
   val enabled =
     (isSingleSlit || isSupportedIfu || isGmosMos || isMaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
+
+  override val itcSupported: Boolean =
+    enabled ||
+      (isFlamingos2Mos && SupportedInstruments.contains_(instrumentConfig.instrument))
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
   def intervalCenter(cw: Wavelength): Option[CentralWavelength] =
@@ -199,7 +206,7 @@ case class SpectroscopyModeRow(
                       cw,
                       GmosCcdMode.Default.Mos(
                         profiles,
-                        slitWidth,
+                        slitWidth.width,
                         imageQuality.toImageQuality,
                         grating.dispersion,
                         grating.referenceResolution,
@@ -222,7 +229,7 @@ case class SpectroscopyModeRow(
                       cw,
                       GmosCcdMode.Default.Mos(
                         profiles,
-                        slitWidth,
+                        slitWidth.width,
                         imageQuality.toImageQuality,
                         grating.dispersion,
                         grating.referenceResolution,
@@ -298,31 +305,39 @@ object SpectroscopyModeRow {
   private val placeholderEtm = ItcInstrumentConfig.PlaceholderEtm
 
   // decoders for instruments are used locally as they are not lawful
+  // MOS options carry a custom slit width instead of a builtin FPU; exactly one of the
+  // two is present.
   private given Decoder[ItcInstrumentConfig.GmosNorthSpectroscopy] = c =>
     for {
-      grating <- c.downField("grating").as[GmosNorthGrating]
-      fpu     <- c.downField("fpu").as[Option[GmosNorthFpu]]
-      filter  <- c.downField("filter").as[Option[GmosNorthFilter]]
-    } yield ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, placeholderEtm, none)
+      grating         <- c.downField("grating").as[GmosNorthGrating]
+      fpu             <- c.downField("fpu").as[Option[GmosNorthFpu]]
+      filter          <- c.downField("filter").as[Option[GmosNorthFilter]]
+      customSlitWidth <- c.downField("customSlitWidth").as[Option[GmosCustomSlitWidth]]
+    } yield ItcInstrumentConfig
+      .GmosNorthSpectroscopy(grating, fpu, filter, placeholderEtm, none, customSlitWidth)
 
   private given Decoder[ItcInstrumentConfig.GmosSouthSpectroscopy] = c =>
     for {
-      grating <- c.downField("grating").as[GmosSouthGrating]
-      fpu     <- c.downField("fpu").as[Option[GmosSouthFpu]]
-      filter  <- c.downField("filter").as[Option[GmosSouthFilter]]
-    } yield ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, placeholderEtm, none)
+      grating         <- c.downField("grating").as[GmosSouthGrating]
+      fpu             <- c.downField("fpu").as[Option[GmosSouthFpu]]
+      filter          <- c.downField("filter").as[Option[GmosSouthFilter]]
+      customSlitWidth <- c.downField("customSlitWidth").as[Option[GmosCustomSlitWidth]]
+    } yield ItcInstrumentConfig
+      .GmosSouthSpectroscopy(grating, fpu, filter, placeholderEtm, none, customSlitWidth)
 
   private given Decoder[ItcInstrumentConfig.Flamingos2Spectroscopy] = c =>
     for {
-      disperser <- c.downField("disperser").as[Flamingos2Disperser]
-      filter    <- c.downField("filter").as[Flamingos2Filter]
-      fpu       <- c.downField("fpu").as[Option[Flamingos2Fpu]]
+      disperser       <- c.downField("disperser").as[Flamingos2Disperser]
+      filter          <- c.downField("filter").as[Flamingos2Filter]
+      fpu             <- c.downField("fpu").as[Option[Flamingos2Fpu]]
+      customSlitWidth <- c.downField("customSlitWidth").as[Option[Flamingos2CustomSlitWidth]]
     } yield ItcInstrumentConfig.Flamingos2Spectroscopy(
       disperser,
       filter,
       fpu,
       Flamingos2ReadMode.Bright,
-      placeholderEtm
+      placeholderEtm,
+      customSlitWidth
     )
 
   private given Decoder[ItcInstrumentConfig.GhostIfu] = c =>
@@ -397,14 +412,7 @@ object SpectroscopyModeRow {
             site,
             placeholderEtm
           )
-      .map: j =>
-        // MOS rows have no builtin FPU baut carry the row's slit width
-        val i                          = j match
-          case g: ItcInstrumentConfig.GmosNorthSpectroscopy if g.fpu.isEmpty =>
-            g.copy(customSlitWidth = slitWidth.some)
-          case g: ItcInstrumentConfig.GmosSouthSpectroscopy if g.fpu.isEmpty =>
-            g.copy(customSlitWidth = slitWidth.some)
-          case _                                                             => j
+      .map: i =>
         // TODO Maybe a mistake on the phase0 matrix.
         val effectiveSlitLength: Angle =
           if i.instrument === Instrument.MaroonX then slitWidth else slitLength
@@ -474,8 +482,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                   fpu = None,
                   customSlitWidth = Some(rSlitWidth)
                 ) =>
-              rGrating === grating && rFilter === filter &&
-              GmosCustomSlitWidth.fromWidth(rSlitWidth) === mask.slitWidth.some
+              rGrating === grating && rFilter === filter && rSlitWidth === mask.slitWidth
             case _ => false
       case ObservingMode.GmosSouthMos(grating = grating, filter = filter, customMask = mask)   =>
         matrix.find: row =>
@@ -486,8 +493,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                   fpu = None,
                   customSlitWidth = Some(rSlitWidth)
                 ) =>
-              rGrating === grating && rFilter === filter &&
-              GmosCustomSlitWidth.fromWidth(rSlitWidth) === mask.slitWidth.some
+              rGrating === grating && rFilter === filter && rSlitWidth === mask.slitWidth
             case _ => false
       case _: ObservingMode.Igrins2LongSlit                                                    =>
         matrix.find: row =>

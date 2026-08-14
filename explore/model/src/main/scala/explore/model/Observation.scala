@@ -270,7 +270,7 @@ final case class Observation(
                 filter = n.filter,
                 exposureTimeMode = n.exposureTimeMode,
                 modeOverrides = o.some,
-                customSlitWidth = n.customMask.slitWidth.width.some
+                customSlitWidth = n.customMask.slitWidth.some
               )
             )
         case s: GmosSouthMos                     =>
@@ -282,7 +282,7 @@ final case class Observation(
                 filter = s.filter,
                 exposureTimeMode = s.exposureTimeMode,
                 modeOverrides = o.some,
-                customSlitWidth = s.customMask.slitWidth.width.some
+                customSlitWidth = s.customMask.slitWidth.some
               )
             )
         case n: GmosNorthImaging                 =>
