@@ -36,11 +36,6 @@ object HorizonsServer extends WorkerServer[HorizonsMessage.Request] with Horizon
 
   private val CacheRetention: Duration = Duration.ofDays(30)
 
-  // Deliberately untraced, as with the Gaia client in CatalogServer. The trace middleware injects
-  // a `traceparent` header, which is not CORS-safelisted, so every request becomes a preflight
-  // that gpp-horizons.noirlab.edu rejects (it does not list the header in its
-  // Access-Control-Allow-Headers). Propagating it would buy nothing anyway: neither the proxy nor
-  // JPL joins our traces, and the enclosing `worker.handle` span already times the call.
   private def createClient[F[_]: Async]: Client[F] =
     FetchClientBuilder[F].withRequestTimeout(10.seconds).create
 
