@@ -161,3 +161,17 @@ React `Context` provides services to components. Both Explore and Observe define
 - **Components**: `ScalaFnComponent` (functional React components only). React is used via scalajs-react and `lucuma.react.common.*`, with monadic hooks.
 - **Comments**: Don't put comments directly on method or class parameters, those belong to the method or class documentation or scaladoc.
 - **UI library**: PrimeReact via lucuma-react bindings
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, recorded as a `Status:` line in each issue file using their default names. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
