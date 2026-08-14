@@ -11,10 +11,10 @@ import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceColumns
@@ -25,7 +25,7 @@ final case class GmosNorthImagingSequenceTable(
   staticConfig:         gmos.StaticConfig.GmosNorth,
   acquisition:          View[List[Atom[gmos.DynamicConfig.GmosNorth]]],
   science:              View[List[Atom[gmos.DynamicConfig.GmosNorth]]],
-  snPerFilter:          Map[GmosNorthFilter, SignalToNoiseAt],
+  itcPerFilter:         Map[GmosNorthFilter, ItcResultValues],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],

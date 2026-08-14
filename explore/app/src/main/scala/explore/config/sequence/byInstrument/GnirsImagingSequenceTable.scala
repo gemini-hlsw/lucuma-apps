@@ -14,10 +14,10 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceColumns
@@ -28,7 +28,7 @@ final case class GnirsImagingSequenceTable(
   staticConfig:         GnirsStaticConfig,
   acquisition:          View[List[Atom[GnirsDynamicConfig]]],
   science:              View[List[Atom[GnirsDynamicConfig]]],
-  snPerFilter:          Map[GnirsFilter, SignalToNoiseAt],
+  itcPerFilter:         Map[GnirsFilter, ItcResultValues],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],

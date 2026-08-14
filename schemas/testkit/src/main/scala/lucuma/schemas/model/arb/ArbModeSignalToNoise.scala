@@ -11,6 +11,7 @@ import lucuma.core.math.arb.ArbSignalToNoise.given
 import lucuma.core.math.arb.ArbWavelength.given
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.itc.SignalToNoiseAt
+import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -31,56 +32,67 @@ trait ArbModeSignalToNoise:
     Cogen[(Wavelength, SignalToNoise, SignalToNoise)].contramap: a =>
       (a.wavelength, a.single.value, a.total.value)
 
+  given Arbitrary[ItcResultValues] =
+    Arbitrary:
+      for
+        sn   <- arbitrary[Option[SignalToNoiseAt]]
+        peak <- Gen.option(Gen.chooseNum(0.0, 1.0e7))
+      yield ItcResultValues(sn, peak)
+
+  given Cogen[ItcResultValues] =
+    Cogen[(Option[SignalToNoiseAt], Option[Double])].contramap: a =>
+      (a.signalToNoise, a.peakPixelFlux)
+
   given Arbitrary[ModeSignalToNoise.Spectroscopy] = Arbitrary:
     for
-      acquisitionSN <- arbitrary[Option[SignalToNoiseAt]]
-      scienceSN     <- arbitrary[Option[SignalToNoiseAt]]
+      acquisitionSN <- arbitrary[ItcResultValues]
+      scienceSN     <- arbitrary[ItcResultValues]
     yield ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN)
 
   given Cogen[ModeSignalToNoise.Spectroscopy] =
-    Cogen[(Option[SignalToNoiseAt], Option[SignalToNoiseAt])].contramap: sn =>
+    Cogen[(ItcResultValues, ItcResultValues)].contramap: sn =>
       (sn.acquisition, sn.science)
 
   given Arbitrary[ModeSignalToNoise.GmosNorthImaging] = Arbitrary:
-    for scienceSN <- arbitrary[Map[lucuma.core.enums.GmosNorthFilter, SignalToNoiseAt]]
+    for scienceSN <- arbitrary[Map[lucuma.core.enums.GmosNorthFilter, ItcResultValues]]
     yield ModeSignalToNoise.GmosNorthImaging(scienceSN)
 
   given Cogen[ModeSignalToNoise.GmosNorthImaging] =
-    Cogen[List[(lucuma.core.enums.GmosNorthFilter, SignalToNoiseAt)]].contramap: sn =>
+    Cogen[List[(lucuma.core.enums.GmosNorthFilter, ItcResultValues)]].contramap: sn =>
       sn.science.toList
 
   given Arbitrary[ModeSignalToNoise.GmosSouthImaging] = Arbitrary:
-    for scienceSN <- arbitrary[Map[lucuma.core.enums.GmosSouthFilter, SignalToNoiseAt]]
+    for scienceSN <- arbitrary[Map[lucuma.core.enums.GmosSouthFilter, ItcResultValues]]
     yield ModeSignalToNoise.GmosSouthImaging(scienceSN)
 
   given Cogen[ModeSignalToNoise.GmosSouthImaging] =
-    Cogen[List[(lucuma.core.enums.GmosSouthFilter, SignalToNoiseAt)]].contramap: sn =>
+    Cogen[List[(lucuma.core.enums.GmosSouthFilter, ItcResultValues)]].contramap: sn =>
       sn.science.toList
 
   given Arbitrary[ModeSignalToNoise.Flamingos2Imaging] = Arbitrary:
-    for scienceSN <- arbitrary[Map[lucuma.core.enums.Flamingos2Filter, SignalToNoiseAt]]
+    for scienceSN <- arbitrary[Map[lucuma.core.enums.Flamingos2Filter, ItcResultValues]]
     yield ModeSignalToNoise.Flamingos2Imaging(scienceSN)
 
   given Cogen[ModeSignalToNoise.Flamingos2Imaging] =
-    Cogen[List[(lucuma.core.enums.Flamingos2Filter, SignalToNoiseAt)]].contramap: sn =>
+    Cogen[List[(lucuma.core.enums.Flamingos2Filter, ItcResultValues)]].contramap: sn =>
       sn.science.toList
 
   given Arbitrary[ModeSignalToNoise.GnirsImaging] = Arbitrary:
-    for scienceSN <- arbitrary[Map[lucuma.core.enums.GnirsFilter, SignalToNoiseAt]]
+    for scienceSN <- arbitrary[Map[lucuma.core.enums.GnirsFilter, ItcResultValues]]
     yield ModeSignalToNoise.GnirsImaging(scienceSN)
 
   given Cogen[ModeSignalToNoise.GnirsImaging] =
-    Cogen[List[(lucuma.core.enums.GnirsFilter, SignalToNoiseAt)]].contramap: sn =>
+    Cogen[List[(lucuma.core.enums.GnirsFilter, ItcResultValues)]].contramap: sn =>
       sn.science.toList
 
   given Arbitrary[ModeSignalToNoise.GhostIfu] = Arbitrary:
     for
-      redSN  <- arbitrary[Option[SignalToNoiseAt]]
-      blueSN <- arbitrary[Option[SignalToNoiseAt]]
+      redSN  <- arbitrary[ItcResultValues]
+      blueSN <- arbitrary[ItcResultValues]
     yield ModeSignalToNoise.GhostIfu(redSN, blueSN)
 
   given Cogen[ModeSignalToNoise.GhostIfu] =
-    Cogen[(Option[SignalToNoiseAt], Option[SignalToNoiseAt])].contramap: sn =>
+    Cogen[(ItcResultValues, ItcResultValues)].contramap: sn =>
       (sn.red, sn.blue)
 
   given Arbitrary[ModeSignalToNoise] = Arbitrary:

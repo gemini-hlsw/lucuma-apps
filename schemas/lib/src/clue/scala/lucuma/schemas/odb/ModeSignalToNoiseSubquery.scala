@@ -20,11 +20,13 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
           acquisition {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixelFlux
             }
           }
           spectroscopyScience {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixelFlux
             }
           }
         }
@@ -34,6 +36,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixelFlux
               }
             }
           }
@@ -44,6 +47,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixelFlux
               }
             }
           }
@@ -54,6 +58,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixelFlux
               }
             }
           }
@@ -64,6 +69,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixelFlux
               }
             }
           }
@@ -72,6 +78,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
           spectroscopyScience {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixelFlux
             }
           }
         }

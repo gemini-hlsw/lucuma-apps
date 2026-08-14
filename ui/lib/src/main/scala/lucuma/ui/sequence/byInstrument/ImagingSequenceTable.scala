@@ -5,13 +5,17 @@ package lucuma.ui.sequence.byInstrument
 
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
-import lucuma.itc.SignalToNoiseAt
+import lucuma.schemas.model.ItcResultValues
 
 trait ImagingSequenceTable[D, Filter]:
-  def snPerFilter: Map[Filter, SignalToNoiseAt]
+  def itcPerFilter: Map[Filter, ItcResultValues]
   def filterFromDynamicConfig: D => Option[Filter]
 
+  private def itcFor(dynamicConfig: D): Option[ItcResultValues] =
+    filterFromDynamicConfig(dynamicConfig).flatMap(itcPerFilter.get)
+
   def signalToNoise: SequenceType => D => Option[SignalToNoise] =
-    _ =>
-      dynamicConfig =>
-        filterFromDynamicConfig(dynamicConfig).flatMap(snPerFilter.get(_)).map(_.single.value)
+    _ => dynamicConfig => itcFor(dynamicConfig).flatMap(_.signalToNoise).map(_.single.value)
+
+  def peakPixelFlux: SequenceType => D => Option[Double] =
+    _ => dynamicConfig => itcFor(dynamicConfig).flatMap(_.peakPixelFlux)

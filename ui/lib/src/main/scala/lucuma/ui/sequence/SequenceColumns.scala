@@ -340,6 +340,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         .getOrElse(EmptyVdom)
     )
 
+  private lazy val peakCol: colDef.TypeFor[Option[Double]] =
+    colDef(
+      SequenceColumns.PeakColumnId,
+      _.getStep.flatMap(_.peakPixelFlux),
+      header = "Peak",
+      cell = _.value.fold(EmptyVdom)(v => f"$v%.0f e⁻": VdomNode)
+    )
+
   private lazy val readModeCol: colDef.TypeFor[Option[String]] =
     colDef(
       ColumnId("readMode"),
@@ -505,6 +513,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       xBinCol,
       yBinCol,
       roiCol,
+      peakCol,
       snCol
     )
 
@@ -522,6 +531,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       gratingCol,
       filterCol,
       readModeCol,
+      peakCol,
       snCol
     )
 
@@ -535,6 +545,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       guideStateCol,
       pOffsetCol,
       qOffsetCol,
+      peakCol,
       snCol
     )
 
@@ -565,6 +576,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       filterCol,
       readModeCol,
       gcalCol,
+      peakCol,
       snCol
     )
 
@@ -613,6 +625,7 @@ object SequenceColumns:
   val GCalColumnId: ColumnId          = ColumnId("gcal")
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
+  val PeakColumnId: ColumnId          = ColumnId("peak")
 
   val GhostBlueGroupColumnId: ColumnId         = ColumnId("ghostBlueGroup")
   val GhostRedGroupColumnId: ColumnId          = ColumnId("ghostRedGroup")
@@ -647,7 +660,8 @@ object SequenceColumns:
       FPUColumnId        -> Resizable(132.toPx, min = 132.toPx),
       GratingColumnId    -> Resizable(120.toPx, min = 120.toPx),
       FilterColumnId     -> Resizable(90.toPx, min = 90.toPx),
-      SNColumnId         -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
+      SNColumnId         -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx),
+      PeakColumnId       -> Resizable(85.toPx, min = 85.toPx, max = 130.toPx)
     )
 
     val ForGmos: Map[ColumnId, ColumnSize] =
@@ -669,7 +683,8 @@ object SequenceColumns:
         FowlerSamplesColumnId -> Resizable(120.toPx, min = 90.toPx),
         PColumnId             -> FixedSize(95.toPx),
         QColumnId             -> FixedSize(95.toPx),
-        SNColumnId            -> Resizable(75.toPx, min = 75.toPx)
+        SNColumnId            -> Resizable(75.toPx, min = 75.toPx),
+        PeakColumnId          -> Resizable(85.toPx, min = 85.toPx)
       )
 
     val ForGnirs: Map[ColumnId, ColumnSize] =
@@ -719,6 +734,7 @@ object SequenceColumns:
       QColumnId,
       GuideColumnId,
       ExposureColumnId,
+      PeakColumnId,
       SNColumnId,
       ROIColumnId,
       XBinColumnId,
@@ -733,6 +749,7 @@ object SequenceColumns:
       QColumnId,
       GuideColumnId,
       ExposureColumnId,
+      PeakColumnId,
       SNColumnId,
       FilterColumnId,
       GratingColumnId,
@@ -745,6 +762,7 @@ object SequenceColumns:
       GuideColumnId,
       FowlerSamplesColumnId,
       ExposureColumnId,
+      PeakColumnId,
       SNColumnId
     ).reverse
 
@@ -759,6 +777,7 @@ object SequenceColumns:
       PColumnId,
       QColumnId,
       GuideColumnId,
+      PeakColumnId,
       SNColumnId,
       FilterColumnId,
       FPUColumnId

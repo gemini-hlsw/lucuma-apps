@@ -11,9 +11,9 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 import observe.model.ExecutionState
@@ -28,8 +28,8 @@ case class GnirsSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig[GnirsStaticConfig, GnirsDynamicConfig],
-  acquisitionSN:        Option[SignalToNoiseAt],
-  scienceSN:            Option[SignalToNoiseAt],
+  acquisitionItc:       ItcResultValues,
+  scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],

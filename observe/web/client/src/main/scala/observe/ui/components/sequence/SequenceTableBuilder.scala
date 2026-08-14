@@ -255,9 +255,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                       // Only in dev mode, show step id on hover.
                       if (LinkingInfo.developmentMode) {
                         val executionState: Option[StepExecutionState] = step match
-                          case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
+                          case SequenceRow.Executed.ExecutedStep(_, stepRecord, _, _) =>
                             stepRecord.executionState.some
-                          case _                                                   =>
+                          case _                                                      =>
                             none
                         ^.title := s"${selectableRowId.stepId}" +
                           selectableRowId.visitId.fold("")(vid => s" Visit: $vid") +
@@ -317,9 +317,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                   ObserveStyles.BreakpointTableCell
                 case id if id == ExtraRowColumnId   =>
                   stepRow.step match // Extra row is shown in a selected row or in an executed step row.
-                    case SequenceRow.Executed.ExecutedStep(_, _, _) => extraRowMod
-                    case step if step.isSelected || step.isLoaded   => extraRowMod
-                    case _                                          => TagMod.empty
+                    case SequenceRow.Executed.ExecutedStep(_, _, _, _) => extraRowMod
+                    case step if step.isSelected || step.isLoaded      => extraRowMod
+                    case _                                             => TagMod.empty
                 case _                              =>
                   TagMod.empty
 
@@ -345,9 +345,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
-            case Some(Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _, _), _))) =>
+            case Some(
+                  Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _, _, _), _))
+                ) =>
               SequenceRowHeight.WithExtra
-            case _                                                                              =>
+            case _ =>
               SequenceRowHeight.Regular
 
         React.Fragment(

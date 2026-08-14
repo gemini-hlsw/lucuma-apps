@@ -160,3 +160,11 @@ extension [D](step: Step[D])
         signalToNoise(step.instrumentConfig).map(SignalToNoiseValue.Value(_))
       case _                                                                         =>
         none
+
+  // The ODB reports no peak pixel flux at all for a saturated source.
+  def getPeakPixelFlux(peakPixelFlux: D => Option[Double]): Option[Double] =
+    val shows = step.observeClass match
+      case ObserveClass.Acquisition => step.instrumentConfig.shouldShowAcquisitionSn
+      case ObserveClass.Science     => true
+      case _                        => false
+    Option.when(shows)(peakPixelFlux(step.instrumentConfig)).flatten

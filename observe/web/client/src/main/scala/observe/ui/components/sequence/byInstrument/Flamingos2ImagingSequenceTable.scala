@@ -13,9 +13,9 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 import observe.model.ExecutionState
@@ -30,7 +30,7 @@ final case class Flamingos2ImagingSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.Flamingos2,
-  snPerFilter:          Map[Flamingos2Filter, SignalToNoiseAt],
+  itcPerFilter:         Map[Flamingos2Filter, ItcResultValues],
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
