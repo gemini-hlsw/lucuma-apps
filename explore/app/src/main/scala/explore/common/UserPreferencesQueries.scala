@@ -46,7 +46,7 @@ import lucuma.core.util.Enumerated
 import lucuma.itc.GraphType
 import lucuma.react.gridlayout.*
 import lucuma.react.table.*
-import lucuma.typed.tanstackTableCore as raw
+import lucuma.react.table.facade.compat as raw
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.extras.LogLevel
@@ -566,21 +566,27 @@ object UserPreferencesQueries:
     // We do Js-level Json (de)serialization of TableState
     def load(): F[Option[TableState[TF]]] =
       userId
-        .traverse: uid =>
+        .flatTraverse: uid =>
           TablePreferencesQuery[F]
             .query(userId = uid.show, tableId = tableId)
             .raiseGraphQLErrors
+            .map(_.lucumaTablePreferencesByPk.map(_.preferences))
             .recoverWith: t =>
               Logger[F]
                 .error(t)(s"Error loading table preferences for [$tableId]")
-                .as(TablePreferencesQuery.Data(none))
-            .map:
-              _.lucumaTablePreferencesByPk
-                .map(_.preferences)
-                .map: json =>
-                  TableState.fromJs[TF]:
-                    JSON.parse(json.toString).asInstanceOf[raw.buildLibTypesMod.TableState]
-        .map(_.flatten)
+                .as(none)
+            .flatMap:
+              _.flatTraverse: json =>
+                MonadThrow[F]
+                  .catchNonFatal:
+                    TableState.fromJs[TF]:
+                      JSON.parse(json.toString).asInstanceOf[raw.buildLibTypesMod.TableState]
+                  .redeemWith(
+                    Logger[F]
+                      .warn(_)(s"Discarding unreadable table preferences for [$tableId]")
+                      .as(none),
+                    _.some.pure[F]
+                  )
 
     def save(state: TableState[TF]): F[Unit] =
       userId.traverse { uid =>
