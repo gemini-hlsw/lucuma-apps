@@ -15,6 +15,7 @@ import lucuma.core.util.NewType
 trait ModeRow:
   def instrumentConfig: ItcInstrumentConfig
   def enabled: Boolean
+  def itcSupported: Boolean = enabled
 
 object ModeWavelength extends NewType[Wavelength]
 type ModeWavelength = ModeWavelength.Type
