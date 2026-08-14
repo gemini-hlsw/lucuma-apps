@@ -579,8 +579,10 @@ object UserPreferencesQueries:
               _.flatTraverse: json =>
                 MonadThrow[F]
                   .catchNonFatal:
-                    TableState.fromJs[TF]:
+                    val state: TableState[TF] = TableState.fromJs[TF]:
                       JSON.parse(json.toString).asInstanceOf[raw.buildLibTypesMod.TableState]
+                    val _                     = TablePreferences.fromState(state)
+                    state
                   .redeemWith(
                     Logger[F]
                       .warn(_)(s"Discarding unreadable table preferences for [$tableId]")
