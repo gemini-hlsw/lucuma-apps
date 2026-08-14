@@ -6,13 +6,11 @@ package workers
 import boopickle.DefaultBasic.*
 import cats.effect.*
 import cats.effect.unsafe.implicits.*
-import cats.syntax.all.*
 import explore.events.*
 import explore.model.AppConfig
 import explore.model.Constants.HorizonsProxyMod
 import explore.model.boopickle.HorizonsPicklers
 import lucuma.horizons.HorizonsClient
-import lucuma.ui.otel.OtelSdk
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
@@ -38,10 +36,8 @@ object HorizonsServer extends WorkerServer[HorizonsMessage.Request] with Horizon
 
   private val CacheRetention: Duration = Duration.ofDays(30)
 
-  private def createClient[F[_]: {Async, TracerProvider}]: F[Client[F]] =
-    OtelSdk
-      .traceMiddleware[F]
-      .map(_(FetchClientBuilder[F].withRequestTimeout(10.seconds).create))
+  private def createClient[F[_]: Async]: Client[F] =
+    FetchClientBuilder[F].withRequestTimeout(10.seconds).create
 
   protected def handler(
     config: Option[AppConfig]
@@ -49,13 +45,12 @@ object HorizonsServer extends WorkerServer[HorizonsMessage.Request] with Horizon
     given Logger[IO] = LoggerFactory[IO].getLoggerFromName("horizons-server")
 
     for {
-      self       <- IO(dom.DedicatedWorkerGlobalScope.self)
-      cache      <- Cache.withIDB[IO](self.indexedDB.toOption, "explore-horizons")
-      _          <- cache.evict(CacheRetention).start
-      httpClient <- createClient[IO]
-      client      =
+      self  <- IO(dom.DedicatedWorkerGlobalScope.self)
+      cache <- Cache.withIDB[IO](self.indexedDB.toOption, "explore-horizons")
+      _     <- cache.evict(CacheRetention).start
+      client =
         HorizonsClient[IO](
-          httpClient,
+          createClient[IO],
           modUri = HorizonsProxyMod
         )
     } yield { invocation =>
