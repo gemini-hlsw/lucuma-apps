@@ -14,10 +14,10 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceColumns
@@ -28,7 +28,7 @@ final case class Flamingos2ImagingSequenceTable(
   staticConfig:         Flamingos2StaticConfig,
   acquisition:          View[List[Atom[Flamingos2DynamicConfig]]],
   science:              View[List[Atom[Flamingos2DynamicConfig]]],
-  snPerFilter:          Map[Flamingos2Filter, SignalToNoiseAt],
+  itcPerFilter:         Map[Flamingos2Filter, ItcResultValues],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],

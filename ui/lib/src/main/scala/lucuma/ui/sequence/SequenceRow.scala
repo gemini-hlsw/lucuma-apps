@@ -32,6 +32,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.react.table.RowId
+import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
 import monocle.Focus
@@ -56,6 +57,7 @@ sealed trait SequenceRow[+D]:
   def isFinished: Boolean
   def stepEstimate: Option[StepEstimate]
   def signalToNoise: Option[SignalToNoiseValue]
+  def peakPixel: Option[PeakPixel]
   def sequenceType: Option[SequenceType]
 
   lazy val rowId: RowId = RowId:
@@ -210,6 +212,7 @@ object SequenceRow:
     atomId:        Atom.Id,
     firstOf:       Option[Int],
     signalToNoise: Option[SignalToNoiseValue],
+    peakPixel:     Option[PeakPixel],
     seqType:       SequenceType
   ) extends SequenceRow[D]:
     val id               = Ior.right(step.id)
@@ -226,6 +229,7 @@ object SequenceRow:
     def fromAtom[D](
       atom:          Atom[D],
       signalToNoise: D => Option[SignalToNoise],
+      peakPixel:     D => Option[PeakPixel],
       seqType:       SequenceType
     ): List[FutureStep[D]] =
       FutureStep(
@@ -233,25 +237,25 @@ object SequenceRow:
         atom.id,
         atom.steps.length.some.filter(_ > 1),
         atom.steps.head.getSignalToNoise(signalToNoise),
+        atom.steps.head.getPeakPixel(peakPixel),
         seqType
       ) +: atom.steps.tail.map: step =>
-        SequenceRow.FutureStep(step, atom.id, none, step.getSignalToNoise(signalToNoise), seqType)
+        SequenceRow.FutureStep(
+          step,
+          atom.id,
+          none,
+          step.getSignalToNoise(signalToNoise),
+          step.getPeakPixel(peakPixel),
+          seqType
+        )
 
     def fromAtoms[D](
       atoms:         List[Atom[D]],
       signalToNoise: D => Option[SignalToNoise],
+      peakPixel:     D => Option[PeakPixel],
       seqType:       SequenceType
     ): List[FutureStep[D]] =
-      atoms.flatMap(atom =>
-        FutureStep(
-          atom.steps.head,
-          atom.id,
-          atom.steps.length.some.filter(_ > 1),
-          atom.steps.head.getSignalToNoise(signalToNoise),
-          seqType
-        ) +: atom.steps.tail.map: step =>
-          SequenceRow.FutureStep(step, atom.id, none, step.getSignalToNoise(signalToNoise), seqType)
-      )
+      atoms.flatMap(fromAtom(_, signalToNoise, peakPixel, seqType))
 
     given [D: Eq]: Eq[FutureStep[D]] = Eq.derived
 
@@ -266,7 +270,8 @@ object SequenceRow:
   object Executed:
     case class ExecutedVisit[+D](
       visit:         Visit[D],
-      signalToNoise: Option[SignalToNoiseValue]
+      signalToNoise: Option[SignalToNoiseValue],
+      peakPixel:     Option[PeakPixel]
     ) extends Executed[D]:
       val id               = Ior.left(visit.id)
       val instrumentConfig = none
@@ -281,7 +286,8 @@ object SequenceRow:
     case class ExecutedStep[+D](
       visitId:       Visit.Id,
       stepRecord:    StepRecord[D],
-      signalToNoise: Option[SignalToNoiseValue]
+      signalToNoise: Option[SignalToNoiseValue],
+      peakPixel:     Option[PeakPixel]
     ) extends Executed[D]:
       val id               = Ior.both(visitId, stepRecord.id)
       val instrumentConfig = stepRecord.instrumentConfig.some

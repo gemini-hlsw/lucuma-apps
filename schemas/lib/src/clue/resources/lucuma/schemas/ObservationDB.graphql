@@ -11770,6 +11770,32 @@ type ItcResult {
   exposureTime: TimeSpan!
   exposureCount: NonNegInt!
   signalToNoiseAt: SignalToNoiseAt
+
+  """
+  The brightest pixel the ITC found, as computed for a single exposure.  Null
+  when the ITC reported no CCD data. For an acquisition whose exposure time
+  was clamped to the instrument's acquisition limits, this is what the ITC
+  computed for the unclamped time, so it may disagree with the exposure time
+  reported alongside it.
+  """
+  peakPixel: ItcPeakPixel
+}
+
+"""
+The brightest pixel found by the ITC, taken across the CCDs it reported.
+"""
+type ItcPeakPixel {
+  """
+  The maximum, across the CCDs, of each CCD's peak pixel flux: the highest
+  electron count in any single pixel.
+  """
+  flux: Float!
+
+  """
+  The maximum, across the CCDs, of each CCD's peak pixel flux converted to ADU
+  using that CCD's own amplifier gain.
+  """
+  adu: Int!
 }
 
 """A discriminator for the types of ITC results."""

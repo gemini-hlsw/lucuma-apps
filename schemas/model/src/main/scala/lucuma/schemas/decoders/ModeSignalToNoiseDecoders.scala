@@ -3,6 +3,7 @@
 
 package lucuma.schemas.decoders
 
+import io.circe.ACursor
 import io.circe.Decoder
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.GmosNorthFilter
@@ -10,67 +11,66 @@ import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GnirsFilter
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
+import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
+import lucuma.schemas.model.PeakPixel
 
 trait ModeSignalToNoiseDecoders:
+  private given Decoder[PeakPixel] = Decoder.instance: c =>
+    for
+      flux <- c.downField("flux").as[Double]
+      adu  <- c.downField("adu").as[Int]
+    yield PeakPixel(flux, adu)
+
+  private def itcResultValues(c: ACursor): Decoder.Result[ItcResultValues] =
+    for
+      sn   <- c.downField("signalToNoiseAt").as[Option[SignalToNoiseAt]]
+      peak <- c.downField("peakPixel").as[Option[PeakPixel]]
+    yield ItcResultValues(sn, peak)
+
   given Decoder[ModeSignalToNoise.Spectroscopy] = Decoder.instance: c =>
     for
-      acquisitionSn <- c.downField("acquisition")
-                         .downField("selected")
-                         .downField("signalToNoiseAt")
-                         .as[Option[SignalToNoiseAt]]
-      scienceSn     <- c.downField("spectroscopyScience")
-                         .downField("selected")
-                         .downField("signalToNoiseAt")
-                         .as[Option[SignalToNoiseAt]]
-    yield ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+      acquisition <- itcResultValues(c.downField("acquisition").downField("selected"))
+      science     <- itcResultValues(c.downField("spectroscopyScience").downField("selected"))
+    yield ModeSignalToNoise.Spectroscopy(acquisition, science)
 
-  private def snTupleDecoder[Filter: Decoder]: Decoder[(Filter, SignalToNoiseAt)] =
+  private def itcTupleDecoder[Filter: Decoder]: Decoder[(Filter, ItcResultValues)] =
     Decoder.instance: c =>
       for
         filter <- c.downField("filter").as[Filter]
-        sn     <- c.downField("results")
-                    .downField("selected")
-                    .downField("signalToNoiseAt")
-                    .as[SignalToNoiseAt]
-      yield (filter, sn)
+        itc    <- itcResultValues(c.downField("results").downField("selected"))
+      yield (filter, itc)
 
-  private def snTupleListDecoder[Filter: Decoder]: Decoder[List[(Filter, SignalToNoiseAt)]] =
-    summon[Decoder[List[(Filter, SignalToNoiseAt)]]](using
-      Decoder.decodeList(using snTupleDecoder[Filter])
+  private def itcTupleListDecoder[Filter: Decoder]: Decoder[List[(Filter, ItcResultValues)]] =
+    summon[Decoder[List[(Filter, ItcResultValues)]]](using
+      Decoder.decodeList(using itcTupleDecoder[Filter])
     )
 
   given Decoder[ModeSignalToNoise.GmosNorthImaging] = Decoder.instance:
     _.downField("gmosNorthImagingScience")
-      .as[List[(GmosNorthFilter, SignalToNoiseAt)]](using snTupleListDecoder[GmosNorthFilter])
+      .as[List[(GmosNorthFilter, ItcResultValues)]](using itcTupleListDecoder[GmosNorthFilter])
       .map(m => ModeSignalToNoise.GmosNorthImaging(m.toMap))
 
   given Decoder[ModeSignalToNoise.GmosSouthImaging] = Decoder.instance:
     _.downField("gmosSouthImagingScience")
-      .as[List[(GmosSouthFilter, SignalToNoiseAt)]](using snTupleListDecoder[GmosSouthFilter])
+      .as[List[(GmosSouthFilter, ItcResultValues)]](using itcTupleListDecoder[GmosSouthFilter])
       .map(m => ModeSignalToNoise.GmosSouthImaging(m.toMap))
 
   given Decoder[ModeSignalToNoise.Flamingos2Imaging] = Decoder.instance:
     _.downField("flamingos2ImagingScience")
-      .as[List[(Flamingos2Filter, SignalToNoiseAt)]](using snTupleListDecoder[Flamingos2Filter])
+      .as[List[(Flamingos2Filter, ItcResultValues)]](using itcTupleListDecoder[Flamingos2Filter])
       .map(m => ModeSignalToNoise.Flamingos2Imaging(m.toMap))
 
   given Decoder[ModeSignalToNoise.GnirsImaging] = Decoder.instance:
     _.downField("gnirsImagingScience")
-      .as[List[(GnirsFilter, SignalToNoiseAt)]](using snTupleListDecoder[GnirsFilter])
+      .as[List[(GnirsFilter, ItcResultValues)]](using itcTupleListDecoder[GnirsFilter])
       .map(m => ModeSignalToNoise.GnirsImaging(m.toMap))
 
   given Decoder[ModeSignalToNoise.GhostIfu] = Decoder.instance: c =>
     for
-      redSn  <- c.downField("red")
-                  .downField("selected")
-                  .downField("signalToNoiseAt")
-                  .as[Option[SignalToNoiseAt]]
-      blueSn <- c.downField("blue")
-                  .downField("selected")
-                  .downField("signalToNoiseAt")
-                  .as[Option[SignalToNoiseAt]]
-    yield ModeSignalToNoise.GhostIfu(redSn, blueSn)
+      red  <- itcResultValues(c.downField("red").downField("selected"))
+      blue <- itcResultValues(c.downField("blue").downField("selected"))
+    yield ModeSignalToNoise.GhostIfu(red, blue)
 
   given Decoder[ModeSignalToNoise] = Decoder.instance: c =>
     if c.value.isNull then Right(ModeSignalToNoise.Undefined)

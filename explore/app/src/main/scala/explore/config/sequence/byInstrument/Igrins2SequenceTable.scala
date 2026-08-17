@@ -12,9 +12,9 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -24,8 +24,8 @@ final case class Igrins2SequenceTable(
   staticConfig:         Igrins2StaticConfig,
   acquisition:          View[List[Atom[Igrins2DynamicConfig]]],
   science:              View[List[Atom[Igrins2DynamicConfig]]],
-  acquisitionSN:        Option[SignalToNoiseAt],
-  scienceSN:            Option[SignalToNoiseAt],
+  acquisitionItc:       ItcResultValues,
+  scienceItc:           ItcResultValues,
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],

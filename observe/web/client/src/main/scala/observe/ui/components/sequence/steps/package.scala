@@ -77,13 +77,13 @@ extension [D](row: SequenceRow[D])
 
   def isFirstInAtom: Boolean =
     row match
-      case futureStep @ SequenceRow.FutureStep(_, _, _, _, _) => futureStep.firstOf.isDefined
-      case _                                                  => false
+      case futureStep @ SequenceRow.FutureStep(_, _, _, _, _, _) => futureStep.firstOf.isDefined
+      case _                                                     => false
 
   def stepState: StepState =
     row match
-      case SequenceRow.FutureStep(_, _, _, _, _)               => StepState.Pending
-      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
+      case SequenceRow.FutureStep(_, _, _, _, _, _)               => StepState.Pending
+      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _, _) =>
         stepRecord.executionState match
           case StepExecutionState.NotStarted => StepState.Pending
           case StepExecutionState.Ongoing    => StepState.Running
@@ -91,12 +91,12 @@ extension [D](row: SequenceRow[D])
           case StepExecutionState.Completed  => StepState.Completed
           case StepExecutionState.Stopped    => StepState.Completed
           case StepExecutionState.Abandoned  => StepState.Failed("Abandoned")
-      case _                                                   => StepState.Completed
+      case _                                                      => StepState.Completed
 
   def fileIds: Option[NonEmptyChain[ImageFileId]] =
     row match
-      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
+      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _, _) =>
         NonEmptyChain
           .fromSeq(stepRecord.datasets)
           .map(_.map(ds => ImageFileId(ds.filename.format.stripSuffix(".fits"))))
-      case _                                                   => none
+      case _                                                      => none

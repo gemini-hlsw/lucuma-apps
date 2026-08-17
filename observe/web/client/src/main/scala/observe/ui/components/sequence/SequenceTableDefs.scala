@@ -200,7 +200,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
             cell.row.original.value.toOption
               .map(_.step)
               .map[VdomNode]:
-                case step @ SequenceRow.Executed.ExecutedStep(_, _, _) =>
+                case step @ SequenceRow.Executed.ExecutedStep(_, _, _, _) =>
                   renderVisitExtraRow(
                     step,
                     showOngoingLabel = false,
@@ -211,7 +211,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                     allVisits = meta.allVisits,
                     datasetIdsInFlight = meta.datasetIdsInFlight
                   )
-                case step                                              =>
+                case step                                                 =>
                   (step.selectableRowId,
                    step.stepTypeDisplay,
                    step.totalExposureTime,

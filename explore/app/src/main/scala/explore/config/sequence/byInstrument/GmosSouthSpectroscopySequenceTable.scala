@@ -12,9 +12,9 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
-import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -24,8 +24,8 @@ final case class GmosSouthSpectroscopySequenceTable(
   staticConfig:         gmos.StaticConfig.GmosSouth,
   acquisition:          View[List[Atom[gmos.DynamicConfig.GmosSouth]]],
   science:              View[List[Atom[gmos.DynamicConfig.GmosSouth]]],
-  acquisitionSN:        Option[SignalToNoiseAt],
-  scienceSN:            Option[SignalToNoiseAt],
+  acquisitionItc:       ItcResultValues,
+  scienceItc:           ItcResultValues,
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],

@@ -4,7 +4,6 @@
 package explore.config.sequence.byInstrument
 
 import cats.effect.IO
-import cats.syntax.option.*
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
@@ -16,6 +15,7 @@ import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -36,11 +36,11 @@ final case class GhostSequenceTable(
     with SpectroscopySequenceTable[GhostDynamicConfig]:
 
   // No acquisition for GHOST. It is handled by the instrument with its own utility.
-  override val acquisition   = View(List.empty, (_, _) => Callback.empty)
-  override val acquisitionSN = none
+  override val acquisition    = View(List.empty, (_, _) => Callback.empty)
+  override val acquisitionItc = ItcResultValues.Empty
 
   // TBD. We may get two s/n values
-  override val scienceSN = none
+  override val scienceItc = ItcResultValues.Empty
 
   override val toInstrumentVisits =
     case ExecutionVisits.Ghost(visits) => visits

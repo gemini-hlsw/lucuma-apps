@@ -33,11 +33,14 @@ import lucuma.react.primereact.InputNumber
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.SelectItem
 import lucuma.react.primereact.ToggleButton
+import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.tooltip.*
 import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
+import lucuma.schemas.model.PeakPixel
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.formatSN
@@ -340,6 +343,20 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         .getOrElse(EmptyVdom)
     )
 
+  private lazy val peakCol: colDef.TypeFor[Option[PeakPixel]] =
+    colDef(
+      SequenceColumns.PeakColumnId,
+      _.getStep.flatMap(_.peakPixel),
+      header = "Peak",
+      cell = _.value.fold(EmptyVdom): peak =>
+        <.span(f"${peak.flux}%.0f e⁻")
+          .withTooltip(
+            content = f"${peak.adu}%,d ADU",
+            showDelay = 100,
+            position = Tooltip.Position.Top
+          )
+    )
+
   private lazy val readModeCol: colDef.TypeFor[Option[String]] =
     colDef(
       ColumnId("readMode"),
@@ -505,6 +522,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       xBinCol,
       yBinCol,
       roiCol,
+      peakCol,
       snCol
     )
 
@@ -522,6 +540,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       gratingCol,
       filterCol,
       readModeCol,
+      peakCol,
       snCol
     )
 
@@ -535,6 +554,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       guideStateCol,
       pOffsetCol,
       qOffsetCol,
+      peakCol,
       snCol
     )
 
@@ -565,6 +585,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       filterCol,
       readModeCol,
       gcalCol,
+      peakCol,
       snCol
     )
 
@@ -613,6 +634,7 @@ object SequenceColumns:
   val GCalColumnId: ColumnId          = ColumnId("gcal")
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
+  val PeakColumnId: ColumnId          = ColumnId("peak")
 
   val GhostBlueGroupColumnId: ColumnId         = ColumnId("ghostBlueGroup")
   val GhostRedGroupColumnId: ColumnId          = ColumnId("ghostRedGroup")
@@ -647,7 +669,8 @@ object SequenceColumns:
       FPUColumnId        -> Resizable(132.toPx, min = 132.toPx),
       GratingColumnId    -> Resizable(120.toPx, min = 120.toPx),
       FilterColumnId     -> Resizable(90.toPx, min = 90.toPx),
-      SNColumnId         -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
+      SNColumnId         -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx),
+      PeakColumnId       -> Resizable(85.toPx, min = 85.toPx, max = 130.toPx)
     )
 
     val ForGmos: Map[ColumnId, ColumnSize] =
@@ -669,7 +692,8 @@ object SequenceColumns:
         FowlerSamplesColumnId -> Resizable(120.toPx, min = 90.toPx),
         PColumnId             -> FixedSize(95.toPx),
         QColumnId             -> FixedSize(95.toPx),
-        SNColumnId            -> Resizable(75.toPx, min = 75.toPx)
+        SNColumnId            -> Resizable(75.toPx, min = 75.toPx),
+        PeakColumnId          -> Resizable(85.toPx, min = 85.toPx)
       )
 
     val ForGnirs: Map[ColumnId, ColumnSize] =
@@ -719,6 +743,7 @@ object SequenceColumns:
       QColumnId,
       GuideColumnId,
       ExposureColumnId,
+      PeakColumnId,
       SNColumnId,
       ROIColumnId,
       XBinColumnId,
@@ -733,6 +758,7 @@ object SequenceColumns:
       QColumnId,
       GuideColumnId,
       ExposureColumnId,
+      PeakColumnId,
       SNColumnId,
       FilterColumnId,
       GratingColumnId,
@@ -745,6 +771,7 @@ object SequenceColumns:
       GuideColumnId,
       FowlerSamplesColumnId,
       ExposureColumnId,
+      PeakColumnId,
       SNColumnId
     ).reverse
 
@@ -759,6 +786,7 @@ object SequenceColumns:
       PColumnId,
       QColumnId,
       GuideColumnId,
+      PeakColumnId,
       SNColumnId,
       FilterColumnId,
       FPUColumnId

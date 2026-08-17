@@ -20,11 +20,19 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
           acquisition {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixel {
+                flux
+                adu
+              }
             }
           }
           spectroscopyScience {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixel {
+                flux
+                adu
+              }
             }
           }
         }
@@ -34,6 +42,10 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixel {
+                  flux
+                  adu
+                }
               }
             }
           }
@@ -44,6 +56,10 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixel {
+                  flux
+                  adu
+                }
               }
             }
           }
@@ -54,6 +70,10 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixel {
+                  flux
+                  adu
+                }
               }
             }
           }
@@ -64,6 +84,10 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             results {
               selected {
                 signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixel {
+                  flux
+                  adu
+                }
               }
             }
           }
@@ -72,6 +96,10 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
           spectroscopyScience {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixel {
+                flux
+                adu
+              }
             }
           }
         }

@@ -209,7 +209,9 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         (
           effectiveTime,
           steps
-            .map(SequenceRow.Executed.ExecutedStep(visitId, _, none)) // TODO Add SignalToNoise
+            .map(
+              SequenceRow.Executed.ExecutedStep(visitId, _, none, none)
+            )
             .zipWithStepIndex(startIndex),
           datasetIndices.minOption.map(min => (min, datasetIndices.max))
         )

@@ -32,6 +32,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.react.primereact.Message
 import lucuma.refined.*
+import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.ui.sequence.*
 import lucuma.ui.sequence.IsEditing
@@ -174,13 +175,13 @@ object SequenceTile
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms),
                                   props.attachments
                                 )
-                              case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
+                              case ModeSignalToNoise.GmosNorthImaging(itcPerFilter)         =>
                                 GmosNorthImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
                                   gmosNorthExecutionView.flatAcquisition,
                                   gmosNorthExecutionView.flatScience,
-                                  snPerFilter,
+                                  itcPerFilter,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -197,8 +198,8 @@ object SequenceTile
                                   config.static,
                                   gmosNorthExecutionView.flatAcquisition,
                                   gmosNorthExecutionView.flatScience,
-                                  none,
-                                  none,
+                                  ItcResultValues.Empty,
+                                  ItcResultValues.Empty,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -241,13 +242,13 @@ object SequenceTile
                                         .replaceGmosSouthSequence(props.obsId, seqType, atoms),
                                   props.attachments
                                 )
-                              case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
+                              case ModeSignalToNoise.GmosSouthImaging(itcPerFilter)         =>
                                 GmosSouthImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
                                   gmosSouthExecutionView.flatAcquisition,
                                   gmosSouthExecutionView.flatScience,
-                                  snPerFilter,
+                                  itcPerFilter,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -264,8 +265,8 @@ object SequenceTile
                                   config.static,
                                   gmosSouthExecutionView.flatAcquisition,
                                   gmosSouthExecutionView.flatScience,
-                                  none,
-                                  none,
+                                  ItcResultValues.Empty,
+                                  ItcResultValues.Empty,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -307,13 +308,13 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceFlamingos2Sequence(props.obsId, seqType, atoms)
                                 )
-                              case ModeSignalToNoise.Flamingos2Imaging(snPerFilter)         =>
+                              case ModeSignalToNoise.Flamingos2Imaging(itcPerFilter)        =>
                                 Flamingos2ImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
                                   flamingos2ExecutionView.flatAcquisition,
                                   flamingos2ExecutionView.flatScience,
-                                  snPerFilter,
+                                  itcPerFilter,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -378,13 +379,13 @@ object SequenceTile
                           .toOptionView
                           .map: gnirsExecutionView =>
                             signalToNoise match
-                              case ModeSignalToNoise.GnirsImaging(snPerFilter)              =>
+                              case ModeSignalToNoise.GnirsImaging(itcPerFilter)             =>
                                 GnirsImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
                                   gnirsExecutionView.flatAcquisition,
                                   gnirsExecutionView.flatScience,
-                                  snPerFilter,
+                                  itcPerFilter,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -414,8 +415,8 @@ object SequenceTile
                                   config.static,
                                   gnirsExecutionView.flatAcquisition,
                                   gnirsExecutionView.flatScience,
-                                  none,
-                                  none,
+                                  ItcResultValues.Empty,
+                                  ItcResultValues.Empty,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
