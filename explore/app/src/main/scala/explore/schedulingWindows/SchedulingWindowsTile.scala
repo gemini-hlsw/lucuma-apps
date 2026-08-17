@@ -236,10 +236,9 @@ object SchedulingWindowsTile
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               FormEnumDropdownView(
                 id = "observation-scheduling-mode".refined,
-                label =
-                  React.Fragment("Scheduling Mode",
-                                 HelpIcon("scheduling/scheduling-mode.md".refined)
-                  ),
+                label = React.Fragment("Scheduling Mode",
+                                       HelpIcon("scheduling/scheduling-mode.md".refined)
+                ),
                 value = props.schedulingMode,
                 disabledItems =
                   if props.hasTargetOfOpportunity then Set.empty

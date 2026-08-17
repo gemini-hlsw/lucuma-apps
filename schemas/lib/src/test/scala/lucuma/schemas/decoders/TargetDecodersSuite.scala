@@ -14,9 +14,9 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CatalogName
 import lucuma.core.enums.GalaxySpectrum
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.math.Arc
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.math.BrightnessValue
-import lucuma.core.math.Arc
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
 import lucuma.core.math.Epoch
@@ -34,10 +34,10 @@ import lucuma.core.math.dimensional.syntax.*
 import lucuma.core.math.units.*
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.EmissionLine
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.SpectralDefinition
-import lucuma.core.model.Ephemeris
 import lucuma.core.model.Target
 import lucuma.core.model.TargetResolution
 import lucuma.core.model.UnnormalizedSED
