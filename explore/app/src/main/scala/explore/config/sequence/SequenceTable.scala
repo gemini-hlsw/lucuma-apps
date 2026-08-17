@@ -13,6 +13,7 @@ import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
@@ -24,7 +25,7 @@ private trait SequenceTable[S, D]:
   def acquisition: View[List[Atom[D]]]
   def science: View[List[Atom[D]]]
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
-  def peakPixelFlux: SequenceType => D => Option[Double]
+  def peakPixel: SequenceType => D => Option[PeakPixel]
   def isEditEnabled: IsEditEnabled
   def isEditingAcquisition: View[IsEditing]
   def isEditingScience: View[IsEditing]
@@ -50,7 +51,7 @@ private trait SequenceTable[S, D]:
   )(sequence: List[Atom[D]]): List[SequenceRow.FutureStep[D]] =
     val allSteps: List[SequenceRow.FutureStep[D]] =
       SequenceRow.FutureStep
-        .fromAtoms(sequence, signalToNoise(seqType), peakPixelFlux(seqType), seqType)
+        .fromAtoms(sequence, signalToNoise(seqType), peakPixel(seqType), seqType)
     if (currentSeqType.contains_(seqType)) allSteps.drop(1)
     else allSteps
   end futureSteps

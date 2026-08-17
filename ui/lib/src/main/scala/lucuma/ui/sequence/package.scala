@@ -32,6 +32,7 @@ import lucuma.react.primereact.Tag
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.react.syntax.*
+import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
 import lucuma.ui.LucumaStyles
@@ -162,9 +163,9 @@ extension [D](step: Step[D])
         none
 
   // The ODB reports no peak pixel flux at all for a saturated source.
-  def getPeakPixelFlux(peakPixelFlux: D => Option[Double]): Option[Double] =
+  def getPeakPixel(peakPixel: D => Option[PeakPixel]): Option[PeakPixel] =
     val shows = step.observeClass match
       case ObserveClass.Acquisition => step.instrumentConfig.shouldShowAcquisitionSn
       case ObserveClass.Science     => true
       case _                        => false
-    Option.when(shows)(peakPixelFlux(step.instrumentConfig)).flatten
+    Option.when(shows)(peakPixel(step.instrumentConfig)).flatten

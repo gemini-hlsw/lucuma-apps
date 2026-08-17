@@ -16,6 +16,7 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.*
 import observe.model.ExecutionState
@@ -47,7 +48,7 @@ private trait SequenceTable[S, D](
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
-  def peakPixelFlux: SequenceType => D => Option[Double]
+  def peakPixel: SequenceType => D => Option[PeakPixel]
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
 
   protected[sequence] lazy val instrumentVisits: List[Visit[D]] =
@@ -87,7 +88,7 @@ private trait SequenceTable[S, D](
   ): List[SequenceRow.FutureStep[D]] =
     SequenceRow.FutureStep.fromAtoms(atoms,
                                      signalToNoise(seqType),
-                                     peakPixelFlux(seqType),
+                                     peakPixel(seqType),
                                      seqType
     ) match
       case head :: tail if shouldHideFirstFutureStep(tail.headOption.flatMap(_.id.toOption)) =>

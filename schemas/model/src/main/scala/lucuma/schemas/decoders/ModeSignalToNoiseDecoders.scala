@@ -13,12 +13,19 @@ import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
+import lucuma.schemas.model.PeakPixel
 
 trait ModeSignalToNoiseDecoders:
+  private given Decoder[PeakPixel] = Decoder.instance: c =>
+    for
+      flux <- c.downField("flux").as[Double]
+      adu  <- c.downField("adu").as[Int]
+    yield PeakPixel(flux, adu)
+
   private def itcResultValues(c: ACursor): Decoder.Result[ItcResultValues] =
     for
       sn   <- c.downField("signalToNoiseAt").as[Option[SignalToNoiseAt]]
-      peak <- c.downField("peakPixelFlux").as[Option[Double]]
+      peak <- c.downField("peakPixel").as[Option[PeakPixel]]
     yield ItcResultValues(sn, peak)
 
   given Decoder[ModeSignalToNoise.Spectroscopy] = Decoder.instance: c =>

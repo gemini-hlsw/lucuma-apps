@@ -13,6 +13,7 @@ import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.itc.SignalToNoiseAt
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
+import lucuma.schemas.model.PeakPixel
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
@@ -32,16 +33,26 @@ trait ArbModeSignalToNoise:
     Cogen[(Wavelength, SignalToNoise, SignalToNoise)].contramap: a =>
       (a.wavelength, a.single.value, a.total.value)
 
+  given Arbitrary[PeakPixel] =
+    Arbitrary:
+      for
+        flux <- Gen.chooseNum(0.0, 1.0e7)
+        adu  <- Gen.chooseNum(0, 10000000)
+      yield PeakPixel(flux, adu)
+
+  given Cogen[PeakPixel] =
+    Cogen[(Double, Int)].contramap(a => (a.flux, a.adu))
+
   given Arbitrary[ItcResultValues] =
     Arbitrary:
       for
         sn   <- arbitrary[Option[SignalToNoiseAt]]
-        peak <- Gen.option(Gen.chooseNum(0.0, 1.0e7))
+        peak <- arbitrary[Option[PeakPixel]]
       yield ItcResultValues(sn, peak)
 
   given Cogen[ItcResultValues] =
-    Cogen[(Option[SignalToNoiseAt], Option[Double])].contramap: a =>
-      (a.signalToNoise, a.peakPixelFlux)
+    Cogen[(Option[SignalToNoiseAt], Option[PeakPixel])].contramap: a =>
+      (a.signalToNoise, a.peakPixel)
 
   given Arbitrary[ModeSignalToNoise.Spectroscopy] = Arbitrary:
     for

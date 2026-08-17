@@ -7,6 +7,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.itc.SignalToNoiseAt
 import lucuma.schemas.model.ItcResultValues
+import lucuma.schemas.model.PeakPixel
 
 trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
   def acquisitionItc: ItcResultValues
@@ -25,5 +26,5 @@ trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
   def signalToNoise: SequenceType => D => Option[SignalToNoise] =
     seqType => _ => itcForSequenceType(seqType).signalToNoise.map(selectSNValue(seqType))
 
-  def peakPixelFlux: SequenceType => D => Option[Double] =
-    seqType => _ => itcForSequenceType(seqType).peakPixelFlux
+  def peakPixel: SequenceType => D => Option[PeakPixel] =
+    seqType => _ => itcForSequenceType(seqType).peakPixel

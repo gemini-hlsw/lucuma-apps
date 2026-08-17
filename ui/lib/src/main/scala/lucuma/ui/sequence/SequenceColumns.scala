@@ -38,6 +38,7 @@ import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
+import lucuma.schemas.model.PeakPixel
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.formatSN
@@ -340,12 +341,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         .getOrElse(EmptyVdom)
     )
 
-  private lazy val peakCol: colDef.TypeFor[Option[Double]] =
+  private lazy val peakCol: colDef.TypeFor[Option[PeakPixel]] =
     colDef(
       SequenceColumns.PeakColumnId,
-      _.getStep.flatMap(_.peakPixelFlux),
+      _.getStep.flatMap(_.peakPixel),
       header = "Peak",
-      cell = _.value.fold(EmptyVdom)(v => f"$v%.0f e⁻": VdomNode)
+      cell = _.value.fold(EmptyVdom): peak =>
+        <.span(^.title := f"${peak.adu}%d ADU")(f"${peak.flux}%.0f e⁻")
     )
 
   private lazy val readModeCol: colDef.TypeFor[Option[String]] =

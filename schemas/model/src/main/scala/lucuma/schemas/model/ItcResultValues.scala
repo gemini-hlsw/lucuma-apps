@@ -9,15 +9,21 @@ import cats.syntax.all.*
 import lucuma.itc.SignalToNoiseAt
 
 /**
+ * The brightest pixel the ITC found for a single exposure, taken across the CCDs it reported.
+ * Corresponds to `ItcPeakPixel` in the ODB schema.
+ */
+case class PeakPixel(
+  flux: Double,
+  adu:  Int
+) derives Eq
+
+/**
  * The ITC results we display for one sequence type (or, for imaging, one filter). Corresponds to
  * `ItcResult` in the ODB schema.
- *
- * `peakPixelFlux` is the highest electron count in any single pixel for a single exposure, taken as
- * the maximum across the CCDs.
  */
 case class ItcResultValues(
   signalToNoise: Option[SignalToNoiseAt],
-  peakPixelFlux: Option[Double]
+  peakPixel:     Option[PeakPixel]
 ) derives Eq
 
 object ItcResultValues:
