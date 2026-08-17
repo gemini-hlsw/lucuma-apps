@@ -26,14 +26,15 @@ object GhostSkySlot:
 
   // A sky position may be manually assigned right now when:
   //  - IFU2 is free to hold a sky position (no science target mapped to it),
-  //  - IFU1 holds a science target that is *not* a ToO.
+  //  - IFU1 holds a science target with a known position, i.e. not a ToO still awaiting its alert.
+  //    A resolved ToO has coordinates like any other target and is fine here.
   //  - IFU2 doesn't already hold a sky position.
   def skySlotAvailable(
-    viz:                   ConfigurationForVisualization,
-    isTargetOfOpportunity: Target.Id => Boolean
+    viz:                             ConfigurationForVisualization,
+    isUnresolvedTargetOfOpportunity: Target.Id => Boolean
   ): Option[SlotId] =
     val ifu1Science = viz.targetVisualization.slots.collectFirst:
       case InstrumentSlot.Science(tid, SlotId.GhostIfu1) => tid
-    val ifu1Ready   = ifu1Science.exists(!isTargetOfOpportunity(_))
+    val ifu1Ready   = ifu1Science.exists(!isUnresolvedTargetOfOpportunity(_))
     val ifu2Taken   = viz.targetVisualization.slots.exists(_.slotId === SlotId.GhostIfu2)
     Option.when(isIfu2AvailableForSky(viz) && ifu1Ready && !ifu2Taken)(SlotId.GhostIfu2)

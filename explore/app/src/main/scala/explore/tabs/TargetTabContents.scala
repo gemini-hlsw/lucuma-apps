@@ -371,7 +371,8 @@ object TargetTabContents extends TwoPanels:
                 .flatMap: targetId =>
                   props.targets.get
                     .get(targetId)
-                    .filterNot(twid => Target.opportunity.getOption(twid.target).isDefined)
+                    // only an unresolved ToO has nothing to plot
+                    .filterNot(_.isUnresolvedTargetOfOpportunity)
                     .map: targetWithId =>
                       ObjectPlotData.Id(targetId.asRight) -> ObjectPlotData(
                         targetWithId.target.name,

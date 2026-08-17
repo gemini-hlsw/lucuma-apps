@@ -221,8 +221,8 @@ object AladinCell extends ModelOptics with AladinCommon:
       trackingMapResult   <-
         useEffectResultWithDeps((props.obsTargets, props.obsTime, props.site)): (targets, at, s) =>
           import ctx.given
-          // if there is a TOO, don't bother getting tracking
-          if (targets.hasTargetOfOpportunity)
+          // if there is an unresolved ToO, don't bother getting tracking
+          if (targets.hasUnresolvedTargetOfOpportunity)
             RegionOrTrackingMap.Empty.asRight.pure
           else
             // get it for the full semester for visualization purposes, with
@@ -240,7 +240,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                // ObservationTargetsCoordinatesAt alongside base/blind-offset coords.
                                val slots = targetViz.foldMap(_.slots)
                                trPot.map: tr =>
-                                 if (targets.hasTargetOfOpportunity)
+                                 if (targets.hasUnresolvedTargetOfOpportunity)
                                    ObservationTargetsCoordinatesAt.emptyAt(at)
                                  else
                                    tr.flatMap: map =>
@@ -534,7 +534,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           InteractiveRegion.forViz(
             props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
             mergedForMarker,
-            props.allTargets.get.get(_).exists(_.isTargetOfOpportunity),
+            props.allTargets.get.get(_).exists(_.isUnresolvedTargetOfOpportunity),
             guideStar,
             assignSkyOptimistic
           )

@@ -257,7 +257,7 @@ object ObsTabTiles:
             (obsTime,
              // Only non-sidereals need the site for tracking, so only get tracking if we have a site or if there are no non-sidereal targets
              targets.filter: ts =>
-               site.isDefined || ts.forall(TargetWithId.target.andThen(Target.nonsidereal).isEmpty)
+               site.isDefined || ts.forall(_.target.asNonsidereal.isEmpty)
             )
               .traverseN: (i, ts) =>
                 getRegionOrTrackingMapForObservingNight(ts, site, i)
@@ -530,9 +530,8 @@ object ObsTabTiles:
                 // Whether `sky` is within the minimum IFU-arm separation of any science target.
                 def tooCloseToScience(sky: Coordinates): Boolean =
                   scienceTargets.exists: t =>
-                    Target.siderealTracking
-                      .getOption(t.target)
-                      .flatMap(_.at(obsTimeOrNow))
+                    t.target.asSidereal
+                      .flatMap(_.tracking.at(obsTimeOrNow))
                       .exists(GhostGeometry.tooClose(_, sky))
 
                 GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
@@ -591,7 +590,8 @@ object ObsTabTiles:
               .flatMap: siblings =>
                 val targets = siblings.scienceTargetIds.toList
                   .flatMap(tid => props.programSummaries.targets.get(tid).map(_.target))
-                  .filterNot(t => Target.opportunity.getOption(t).isDefined)
+                  // only an unresolved ToO has nothing to plot
+                  .filter(_.resolution.isDefined)
 
                 NonEmptyList
                   .fromList(targets)
@@ -748,6 +748,7 @@ object ObsTabTiles:
           val schedulingWindowsTile =
             ObservationSchedulingWindowsTile(
               props.observation,
+              props.observation.get.hasTargetOfOpportunity(props.programSummaries.targets),
               props.obsIsReadonly,
               false
             )

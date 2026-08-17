@@ -600,7 +600,8 @@ object ExploreStyles:
   // Scheduling and Timing Windows
   val SchedulingTile: Css                       = Css("scheduling-tile")
   val SchedulingTileTitle: Css                  = Css("scheduling-tile-title")
-  val IsSplittableDropdown: Css                 = Css("is-splittable-dropdown")
+  val SchedulingModeDropdown: Css               = Css("scheduling-mode-dropdown")
+  val TargetResolutionControls: Css             = Css("target-resolution-controls")
   val TimingWindowsBody: Css                    = Css("timing-windows-body")
   val TimingWindowsEmpty: Css                   = Css("timing-windows-empty")
   val TimingWindowsList: Css                    = Css("timing-windows-list")

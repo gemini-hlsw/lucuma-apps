@@ -23,7 +23,25 @@ import scala.collection.immutable.SortedMap
 trait TargetWithMetadata:
   val target: Target
   val disposition: TargetDisposition
-  val isTargetOfOpportunity: Boolean = Target.opportunity.getOption(target).isDefined
+
+  // Both of these MUST stay lazy. Implementors are free to satisfy `target` with a `val` in the
+  // class body rather than a constructor parameter -- `MotionCorrectedTarget` and
+  // `TargetSearchResult` both do -- and a trait's initializer runs before those are assigned, so
+  // an eager val here reads a null `target`.
+
+  /**
+   * Is this a Target of Opportunity? True whether or not the alert has arrived: a ToO keeps its
+   * identity, and its approved region, once resolved. Ask this for questions about policy - may it
+   * be searched for, may it share an asterism, may the observation interrupt others.
+   */
+  lazy val isTargetOfOpportunity: Boolean = Target.opportunity.getOption(target).isDefined
+
+  /**
+   * Is this a Target of Opportunity that is still waiting for its alert? Only an unresolved one has
+   * no tracking at all, so this is the question to ask before anything that needs a position -
+   * coordinates, plots, guide stars, sky slots.
+   */
+  lazy val isUnresolvedTargetOfOpportunity: Boolean = target.resolution.isEmpty
 
 case class TargetWithId(
   id:              Target.Id,

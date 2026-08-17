@@ -218,14 +218,13 @@ object TargetColumns:
       colDef:    ColumnDef.Applied[D, TM, CM, CF],
       getTarget: D => Option[Target]
     ):
+      // `asSidereal` rather than the prism, so a Target of Opportunity resolved to a sidereal
+      // target fills these columns in like any other sidereal target.
       def siderealColumnOpt[V](
         id:       ColumnId,
         accessor: Target.Sidereal => Option[V]
       ): colDef.TypeFor[Option[V]] =
-        colDef(id,
-               d => getTarget(d).flatMap(t => Target.sidereal.getOption(t).flatMap(accessor)),
-               SiderealColNames(id)
-        )
+        colDef(id, d => getTarget(d).flatMap(_.asSidereal.flatMap(accessor)), SiderealColNames(id))
 
       def siderealColumn[V](
         id:       ColumnId,

@@ -1,0 +1,35 @@
+{
+  "id": "t-5",
+  "name": "Burst",
+  "opportunity": {
+    "region": {
+      "rightAscensionArc": {
+        "type": "PARTIAL",
+        "start": {
+          "microarcseconds": 36000000000
+        },
+        "end": {
+          "microarcseconds": 72000000000
+        }
+      },
+      "declinationArc": {
+        "type": "FULL",
+        "start": null,
+        "end": null
+      }
+    },
+    "resolution": null
+  },
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": []
+      }
+    }
+  },
+  "disposition": "SCIENCE",
+  "calibrationRole": null
+}

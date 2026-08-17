@@ -5,7 +5,7 @@ package explore.model.arb
 
 import cats.Order.given
 import explore.model.SchedulingConstraints
-import lucuma.core.enums.ExecutionRequirement
+import lucuma.core.enums.SchedulingMode
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.arb.ArbTimingWindow.given
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -16,19 +16,13 @@ import org.scalacheck.Cogen
 trait ArbSchedulingConstraints:
   given Arbitrary[SchedulingConstraints] = Arbitrary(
     for {
-      executionRequirement         <- arbitrary[ExecutionRequirement]
-      explicitExecutionRequirement <- arbitrary[Option[ExecutionRequirement]]
-      timingWindows                <- arbitrary[List[TimingWindow]]
-    } yield SchedulingConstraints(executionRequirement,
-                                  explicitExecutionRequirement,
-                                  timingWindows.sorted
-    )
+      schedulingMode <- arbitrary[SchedulingMode]
+      timingWindows  <- arbitrary[List[TimingWindow]]
+    } yield SchedulingConstraints(schedulingMode, timingWindows.sorted)
   )
 
   given Cogen[SchedulingConstraints] = Cogen[
-    (ExecutionRequirement, Option[ExecutionRequirement], List[TimingWindow])
-  ].contramap(sc =>
-    (sc.executionRequirement, sc.explicitExecutionRequirement, sc.timingWindows)
-  )
+    (SchedulingMode, List[TimingWindow])
+  ].contramap(sc => (sc.schedulingMode, sc.timingWindows))
 
 object ArbSchedulingConstraints extends ArbSchedulingConstraints
