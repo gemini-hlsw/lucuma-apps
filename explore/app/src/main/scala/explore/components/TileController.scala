@@ -16,6 +16,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Constants
 import explore.model.enums.GridLayoutSection
+import explore.model.enums.TileHeightPreset
 import explore.model.enums.TileSizeState
 import explore.model.layout.*
 import explore.model.layout.given
@@ -216,6 +217,25 @@ object TileController:
                   else l
                 case l                     => l
 
+        // Sets the row span directly
+        def setHeightPreset(id: Tile.TileId): TileHeightPreset => Callback = preset =>
+          currentLayout
+            .zoom(allTiles)
+            .mod:
+              case l if l.i === id.value =>
+                l.copy(
+                  h = preset.rows,
+                  minH = l.minH.map(math.min(_, preset.rows)),
+                  maxH = l.maxH.map(math.max(_, preset.rows))
+                )
+              case l                     => l
+
+        // Nearest rather than exact so the slider handle stays meaningful after a manual drag.
+        def activeHeightPreset(id: Tile.TileId): Option[TileHeightPreset] =
+          unsafeTileHeight(id)
+            .headOption(currentLayout.get)
+            .map(h => TileHeightPreset.values.minBy(p => math.abs(p.rows - h)))
+
         // Measurements arriving while minimized  must not overwrite the last real measurement.
         def autoHeightCallback(id: Tile.TileId): Int => Callback = measuredPx =>
           val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
@@ -351,6 +371,10 @@ object TileController:
                   setSizeState(tile.tileProps.id)
                 )
                 .withAutoHeightCallback(autoHeightCallback(tile.tileProps.id))
+                .withHeightPresets(
+                  activeHeightPreset(tile.tileProps.id),
+                  setHeightPreset(tile.tileProps.id)
+                )
             )
           }.toVdomArray
         )

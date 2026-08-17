@@ -83,7 +83,6 @@ sealed abstract class SchedulingWindowsTile(
       "Scheduling",
       canMaximize = !fullSize,
       canMinimize = !fullSize,
-      autoHeight = !fullSize,
       tileClass = ExploreStyles.SchedulingTile
     )(SchedulingWindowsTile):
   val readonly                                = isReadOnly || obsEditInfo.allAreCompleted

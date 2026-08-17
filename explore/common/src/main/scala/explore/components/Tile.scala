@@ -7,12 +7,14 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
+import explore.model.enums.TileHeightPreset
 import explore.model.enums.TileSizeState
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.*
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Slider
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.ui.syntax.all.given
 
@@ -41,6 +43,9 @@ import lucuma.ui.syntax.all.given
  * @param autoHeight
  *   whether the tile's row span is derived from its content instead of stored; disables vertical
  *   resizing
+ * @param heightPresets
+ *   whether to offer height preset slider in the title bar,
+ *   Ignored for autoHeight tiles
  * @param sizeState
  *   the initial size state of the tile
  * @param sizeStateCallback
@@ -64,6 +69,7 @@ abstract class Tile[This <: Tile[This]](
   val canMaximize:      Boolean = true,
   val hidden:           Boolean = false,
   val autoHeight:       Boolean = false,
+  val heightPresets:    Boolean = false,
   val initialSizeState: TileSizeState = TileSizeState.Maximized,
   val controllerClass:  Css = Css.Empty, // applied to wrapping div when in a TileController.
   val bodyClass:        Css = Css.Empty, // applied to tile body
@@ -73,13 +79,15 @@ abstract class Tile[This <: Tile[This]](
   type Type = This
 
 protected[components] case class TileState[P <: Tile[P]](
-  tileProps:          P,
-  renderBackButton:   Option[VdomNode],
-  canMinimize:        Boolean = true,
-  canMaximize:        Boolean = true,
-  sizeState:          TileSizeState,
-  sizeStateCallback:  TileSizeState => Callback = (_ => Callback.empty),
-  autoHeightCallback: Int => Callback = (_ => Callback.empty)
+  tileProps:            P,
+  renderBackButton:     Option[VdomNode],
+  canMinimize:          Boolean = true,
+  canMaximize:          Boolean = true,
+  sizeState:            TileSizeState,
+  sizeStateCallback:    TileSizeState => Callback = (_ => Callback.empty),
+  autoHeightCallback:   Int => Callback = (_ => Callback.empty),
+  heightPreset:         Option[TileHeightPreset] = None,
+  heightPresetCallback: TileHeightPreset => Callback = (_ => Callback.empty)
 ) extends ReactFnProps(tileProps.component.component):
   val fullSize: Boolean = !tileProps.canMinimize && !tileProps.canMaximize
 
@@ -97,6 +105,12 @@ protected[components] case class TileState[P <: Tile[P]](
 
   def withAutoHeightCallback(autoHeightCallback: Int => Callback): TileState[P] =
     copy(autoHeightCallback = autoHeightCallback)
+
+  def withHeightPresets(
+    heightPreset:         Option[TileHeightPreset],
+    heightPresetCallback: TileHeightPreset => Callback
+  ): TileState[P] =
+    copy(heightPreset = heightPreset, heightPresetCallback = heightPresetCallback)
 
   def withFullSize: TileState[P] =
     copy(canMinimize = false, canMaximize = false)
@@ -149,6 +163,44 @@ trait TileComponent[P <: Tile[P]](
           disabled = true
         )
 
+        // The handle sits at the preset closest to the tile's current row span.
+        val heightPresetSlider: VdomNode =
+          val lastOrdinal: Int   = TileHeightPreset.values.length - 1
+          val stopSpan: Double = 100d / lastOrdinal
+
+          def presetFromFraction(frac: Double): TileHeightPreset =
+            TileHeightPreset.fromOrdinal(math.round(frac.max(0d).min(1d) * lastOrdinal).toInt)
+
+          <.div(ExploreStyles.TileHeightPresetSlider, ^.title := "Tile height")(
+            <.span(ExploreStyles.TileHeightPresetLabel)(
+              tileState.heightPreset.fold("")(_.toString)
+            ),
+            // Improve the default click behavior
+            <.div(
+              ExploreStyles.TileHeightPresetTrack,
+              ^.onClick ==> { (e: ReactMouseEventFromHtml) =>
+                val rect = e.currentTarget.getBoundingClientRect()
+                tileState.heightPresetCallback(
+                  presetFromFraction((e.clientX - rect.left) / rect.width)
+                )
+              }
+            )(
+              Slider(
+                value = tileState.heightPreset.fold(0d)(_.ordinal * stopSpan),
+                onChange = v => tileState.heightPresetCallback(presetFromFraction(v / 100d))
+              ),
+              // Step indicators
+              <.div(ExploreStyles.TileHeightPresetTicks)(
+                TileHeightPreset.values.toList
+                  .map(p => <.span(^.key := p.toString, ^.left := s"${p.ordinal * stopSpan}%"))
+                  .toTagMod
+              )
+            )
+          )
+
+        val showHeightPresets: Boolean =
+          props.heightPresets && !props.autoHeight && !tileState.fullSize
+
         val body: TagMod =
           if props.autoHeight then
             <.div.withRef(contentResize.ref)(ExploreStyles.AutoHeightTileContent, tileContents.body)
@@ -177,6 +229,7 @@ trait TileComponent[P <: Tile[P]](
               tileContents.title,
               // Size control buttons
               <.div(ExploreStyles.TileControlButtons)(
+                heightPresetSlider.when(showHeightPresets),
                 minimizeButton.when(tileState.showMinimize).unless(tileState.fullSize),
                 maximizeButton.when(tileState.showMaximize).unless(tileState.fullSize),
                 blankButton.when(!tileState.showMinimize && !tileState.showMaximize)

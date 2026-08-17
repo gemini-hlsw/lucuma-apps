@@ -16,6 +16,7 @@ case class SimpleTile(
   override val canMaximize:      Boolean = true,
   override val hidden:           Boolean = false,
   override val autoHeight:       Boolean = false,
+  override val heightPresets:    Boolean = false,
   override val initialSizeState: TileSizeState = TileSizeState.Maximized,
   override val controllerClass:  Css =
     Css.Empty, // applied to wrapping div when in a TileController.
@@ -32,6 +33,7 @@ case class SimpleTile(
       canMaximize,
       hidden,
       autoHeight,
+      heightPresets,
       initialSizeState,
       controllerClass,
       bodyClass,

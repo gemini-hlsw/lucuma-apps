@@ -35,6 +35,10 @@ object ExploreStyles:
   val AutoHeightTileContent: Css        = Css("explore-auto-height-tile-content")
   val TileButton: Css                   = Css("explore-tile-button")
   val TileStateButton: Css              = Css("explore-tile-state-button")
+  val TileHeightPresetSlider: Css       = Css("explore-tile-height-preset-slider")
+  val TileHeightPresetLabel: Css        = Css("explore-tile-height-preset-label")
+  val TileHeightPresetTrack: Css        = Css("explore-tile-height-preset-track")
+  val TileHeightPresetTicks: Css        = Css("explore-tile-height-preset-ticks")
 
   val Accented: Css    = Css("explore-accented")
   val TextPlain: Css   = Css("explore-text-plain")

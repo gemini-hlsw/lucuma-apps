@@ -626,6 +626,11 @@ thead tr th.sticky-header {
     display: flex;
     align-items: center;
     flex: 0 0 auto;
+
+    // On narrow tiles a short title like "ITC" shouldn't reserve the full 100px width
+    @container tile (max-width: #{exploreCommon.$tile-small-cutoff}) {
+      min-width: unset;
+    }
   }
 }
 
@@ -638,8 +643,9 @@ thead tr th.sticky-header {
 }
 
 .explore-tile-control-buttons {
-  justify-self: end;
-  flex: 0;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .explore-tile-title-constraint-selector {
@@ -689,6 +695,65 @@ thead tr th.sticky-header {
   &:enabled:hover {
     color: var(--site-text-color);
     filter: brightness(100%);
+  }
+}
+
+// Height preset slider in the tile title bar
+.explore-tile-height-preset-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin-right: 1em;
+
+  .explore-tile-height-preset-label {
+    color: var(--site-text-color);
+    filter: brightness(70%);
+    font-size: smaller;
+    min-width: 4em;
+    text-align: right;
+  }
+
+  // the click target
+  .explore-tile-height-preset-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 6em;
+    height: 1.2em;
+    cursor: pointer;
+
+    .p-slider {
+      width: 100%;
+    }
+  }
+
+  .explore-tile-height-preset-ticks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    span {
+      position: absolute;
+      top: 50%;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background-color: var(--site-text-color);
+      opacity: 0.6;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  @container tile (max-width: #{exploreCommon.$tile-small-cutoff}) {
+    margin-right: 0.25em;
+
+    .explore-tile-height-preset-label {
+      display: none;
+    }
+
+    .explore-tile-height-preset-track {
+      width: 3.5em;
+    }
   }
 }
 
