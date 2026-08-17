@@ -33,7 +33,9 @@ import lucuma.react.primereact.InputNumber
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.SelectItem
 import lucuma.react.primereact.ToggleButton
+import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.tooltip.*
 import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
@@ -347,7 +349,12 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.flatMap(_.peakPixel),
       header = "Peak",
       cell = _.value.fold(EmptyVdom): peak =>
-        <.span(^.title := f"${peak.adu}%d ADU")(f"${peak.flux}%.0f e⁻")
+        <.span(f"${peak.flux}%.0f e⁻")
+          .withTooltip(
+            content = f"${peak.adu}%,d ADU",
+            showDelay = 100,
+            position = Tooltip.Position.Top
+          )
     )
 
   private lazy val readModeCol: colDef.TypeFor[Option[String]] =
