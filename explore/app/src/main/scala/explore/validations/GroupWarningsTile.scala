@@ -43,7 +43,8 @@ final case class GroupWarningsTile(
 ) extends Tile[GroupWarningsTile](
       id = OverviewTabTileIds.GroupWarningsId.id,
       title = "Group Warnings",
-      autoHeight = true
+      autoHeight = true,
+      autoHeightMinRows = 4
     )(GroupWarningsTile)
 
 object GroupWarningsTile

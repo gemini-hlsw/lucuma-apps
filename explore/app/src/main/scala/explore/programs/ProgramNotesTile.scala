@@ -42,6 +42,7 @@ final case class ProgramNotesTile(
       ProgramTabTileIds.NotesId.id,
       s"Notes (${notes.get.size})",
       autoHeight = true,
+      autoHeightMinRows = 4,
       bodyClass = ExploreStyles.ProgramNotesTileBody
     )(ProgramNotesTile)
 

@@ -13,7 +13,8 @@ final case class ProposalErrorsTile(errors: List[String])
     extends Tile[ProposalErrorsTile](
       id = ProposalTabTileIds.ErrorsId.id,
       title = s"Errors (${errors.size})",
-      autoHeight = true
+      autoHeight = true,
+      autoHeightMinRows = 4
     )(ProposalErrorsTile)
 
 object ProposalErrorsTile

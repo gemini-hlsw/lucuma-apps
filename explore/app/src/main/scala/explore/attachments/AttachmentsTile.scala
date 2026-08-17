@@ -77,7 +77,8 @@ final case class AttachmentsTile(
 ) extends Tile[AttachmentsTile](
       id = OverviewTabTileIds.AttachmentsId.id,
       title = s"Attachments (${AttachmentsTileHelpers.count(attachments, showObsAttachments)})",
-      autoHeight = true
+      autoHeight = true,
+      autoHeightMinRows = 4
     )(AttachmentsTile)
 
 object AttachmentsTileHelpers {

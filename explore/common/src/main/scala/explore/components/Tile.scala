@@ -9,6 +9,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.enums.TileHeightPreset
 import explore.model.enums.TileSizeState
+import explore.model.layout.AutoHeightMinRows
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps
@@ -43,6 +44,9 @@ import lucuma.ui.syntax.all.given
  * @param autoHeight
  *   whether the tile's row span is derived from its content instead of stored; disables vertical
  *   resizing
+ * @param autoHeightMinRows
+ *   the row span an auto-height tile may never shrink below, e.g. so an empty tile keeps a
+ *   presentable body
  * @param heightPresets
  *   whether to offer height preset slider in the title bar,
  *   Ignored for autoHeight tiles
@@ -62,19 +66,20 @@ import lucuma.ui.syntax.all.given
 // `Tile` needs to know the concrete type so that it can be used to match with the `TileComponent`'s props.
 // Since in Scala there's no way for a subtype to know the concrete type of an instance, we need to specify it in a type parameter.
 abstract class Tile[This <: Tile[This]](
-  val id:               Tile.TileId,
-  val title:            VdomNode,
-  val renderBackButton: Option[VdomNode] = None,
-  val canMinimize:      Boolean = true,
-  val canMaximize:      Boolean = true,
-  val hidden:           Boolean = false,
-  val autoHeight:       Boolean = false,
-  val heightPresets:    Boolean = false,
-  val initialSizeState: TileSizeState = TileSizeState.Maximized,
-  val controllerClass:  Css = Css.Empty, // applied to wrapping div when in a TileController.
-  val bodyClass:        Css = Css.Empty, // applied to tile body
-  val tileClass:        Css = Css.Empty, // applied to the tile
-  val tileTitleClass:   Css = Css.Empty  // applied to the title
+  val id:                Tile.TileId,
+  val title:             VdomNode,
+  val renderBackButton:  Option[VdomNode] = None,
+  val canMinimize:       Boolean = true,
+  val canMaximize:       Boolean = true,
+  val hidden:            Boolean = false,
+  val autoHeight:        Boolean = false,
+  val autoHeightMinRows: Int = AutoHeightMinRows,
+  val heightPresets:     Boolean = false,
+  val initialSizeState:  TileSizeState = TileSizeState.Maximized,
+  val controllerClass:   Css = Css.Empty, // applied to wrapping div when in a TileController.
+  val bodyClass:         Css = Css.Empty, // applied to tile body
+  val tileClass:         Css = Css.Empty, // applied to the tile
+  val tileTitleClass:    Css = Css.Empty  // applied to the title
 )(val component: TileComponent[This]):
   type Type = This
 

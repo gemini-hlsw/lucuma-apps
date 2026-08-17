@@ -81,7 +81,8 @@ object ProgramTabContents
           SimpleTile(
             ProgramTabTileIds.DetailsId.id,
             "Program Details",
-            autoHeight = true
+            autoHeight = true,
+            autoHeightMinRows = 4
           )(_ =>
             TileContents:
               ProgramDetailsTile(
@@ -98,7 +99,8 @@ object ProgramTabContents
           SimpleTile(
             ProgramTabTileIds.DataUsers.id,
             s"Data Sharing ($countOfDataAccess)",
-            autoHeight = true
+            autoHeight = true,
+            autoHeightMinRows = 4
           )(_ =>
             TileContents(
               title = <.div(
@@ -129,7 +131,8 @@ object ProgramTabContents
           SimpleTile(
             ProgramTabTileIds.ChangeRequestsId.id,
             s"Requested Coordinates + Configurations + Constraints (${props.configRequests.get.size})",
-            autoHeight = true
+            autoHeight = true,
+            autoHeightMinRows = 4
           )(_ =>
             for tileState <- useStateView(ProgramConfigRequestsTile.TileState.Empty)
             yield TileContents(
@@ -156,7 +159,8 @@ object ProgramTabContents
           SimpleTile(
             ProgramTabTileIds.UnrequestedConfigsId.id,
             s"Unrequested Coordinates + Configurations + Constraints (${props.configsWithoutRequests.size})",
-            autoHeight = true
+            autoHeight = true,
+            autoHeightMinRows = 4
           )(_ =>
             for tileState <- useStateView(ProgramUnrequestedConfigsTile.TileState.Empty)
             yield TileContents(

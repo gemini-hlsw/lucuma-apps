@@ -89,13 +89,18 @@ object TileController:
       .filter(_.i === id.value)
       .andThen(layoutItemHeight)
 
-  private case class TileFlags(autoHeight: Set[String], hidden: Set[String]):
-    def autoVisible(id: String): Boolean = autoHeight.contains(id) && !hidden.contains(id)
+  private case class TileFlags(autoMinRows: Map[String, Int], hidden: Set[String]):
+    def isAuto(id: String): Boolean      = autoMinRows.contains(id)
+    def minRows(id: String): Int         = autoMinRows.getOrElse(id, AutoHeightMinRows)
+    def autoVisible(id: String): Boolean = isAuto(id) && !hidden.contains(id)
 
   private object TileFlags:
     def of(tiles: List[TileState[?]]): TileFlags =
       TileFlags(
-        tiles.collect { case t if t.tileProps.autoHeight => t.tileProps.id.value }.toSet,
+        tiles.collect {
+          case t if t.tileProps.autoHeight =>
+            t.tileProps.id.value -> t.tileProps.autoHeightMinRows
+        }.toMap,
         tiles.collect { case t if t.tileProps.hidden => t.tileProps.id.value }.toSet
       )
 
@@ -132,7 +137,7 @@ object TileController:
   ): LayoutsMap =
     allTiles.modify { l =>
       if flags.autoVisible(l.i) then
-        measured.get(l.i).fold(l)(px => resolveAutoHeight(l, px, viewportPx, l.h === 1))
+        measured.get(l.i).fold(l)(px => resolveAutoHeight(l, px, viewportPx, l.h === 1, flags.minRows(l.i)))
       else l
     }(layouts)
 
@@ -140,17 +145,18 @@ object TileController:
     allLayouts
       .andThen(layoutItems)
       .modify { r =>
-        val hidden     = flags.hidden.contains(r.i)
-        val autoHeight = flags.autoHeight.contains(r.i)
+        val hidden = flags.hidden.contains(r.i)
         if hidden then
           // height to 0 for hidden tiles
           r.copy(minH = 0, h = 0, isResizable = false)
-        else if autoHeight then
+        else if flags.isAuto(r.i) then
           // An h of 1 is a legitimately minimized tile; any other stored h is stale and reset
           // to the floor until the tile reports a measurement. The pinned minH/maxH restrict
           // the corner handle to horizontal resizing.
           if r.h === 1 then r.copy(minH = 1, maxH = 1)
-          else r.copy(h = AutoHeightMinRows, minH = AutoHeightMinRows, maxH = AutoHeightMinRows)
+          else
+            val floor = flags.minRows(r.i)
+            r.copy(h = floor, minH = floor, maxH = floor)
         else if r.h === 1 then r.copy(minH = 1)
         else r
       }(p)
@@ -200,13 +206,13 @@ object TileController:
               .mod:
                 case l if l.i === id.value =>
                   if (st === TileSizeState.Minimized)
-                    if tileFlags.autoHeight.contains(id.value) then
+                    if tileFlags.isAuto(id.value) then
                       l.copy(h = 1, minH = 1, maxH = 1)
                     else l.copy(h = 1, minH = 1)
                   else if (st === TileSizeState.Maximized)
-                    if tileFlags.autoHeight.contains(id.value) then
+                    if tileFlags.isAuto(id.value) then
                       val measuredPx = lastMeasuredPx.get.getOrElse(id.value, 0)
-                      resolveAutoHeight(l, measuredPx, vp, false)
+                      resolveAutoHeight(l, measuredPx, vp, false, tileFlags.minRows(id.value))
                     else
                       val defaultHeight =
                         unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
@@ -245,7 +251,7 @@ object TileController:
                 .zoom(allTiles)
                 .mod:
                   case l if l.i === id.value =>
-                    resolveAutoHeight(l, measuredPx, vp, false)
+                    resolveAutoHeight(l, measuredPx, vp, false, tileFlags.minRows(id.value))
                   case l                     => l
                 .when_(!gesturing.get)).unless_(minimized)
 
@@ -290,7 +296,7 @@ object TileController:
             viewportPx.flatMap: vp =>
               currentLayout
                 .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.get, vp, _))
-                .when_(tileFlags.autoHeight.nonEmpty)
+                .when_(tileFlags.autoMinRows.nonEmpty)
 
         ResponsiveReactGridLayout(
           width = props.gridWidth.toDouble,
