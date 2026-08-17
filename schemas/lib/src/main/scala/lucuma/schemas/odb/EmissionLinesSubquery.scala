@@ -16,7 +16,7 @@ import lucuma.schemas.ObservationDB
 class EmissionLinesSubquery[T](using
   Decoder[SpectralDefinition.EmissionLines[T]]
 ) extends GraphQLSubquery.Typed[ObservationDB, SpectralDefinition.EmissionLines[T]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           lines {
             wavelength $WavelengthSubquery

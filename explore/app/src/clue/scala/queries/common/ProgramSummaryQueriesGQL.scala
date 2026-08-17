@@ -13,7 +13,7 @@ import lucuma.schemas.odb.*
 object ProgramSummaryQueriesGQL {
   @GraphQL
   trait AllProgramObservations extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$where: WhereObservation!, $$OFFSET: ObservationId) {
         observations(WHERE: $$where, OFFSET: $$OFFSET) {
           matches $ObservationSubquery
@@ -29,7 +29,7 @@ object ProgramSummaryQueriesGQL {
   // bulk summary has loaded.
   @GraphQL
   trait AllProgramObservationsObservingMode extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query(
         $$where: WhereObservation!,
         $$OFFSET: ObservationId,
@@ -61,7 +61,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait AllProgramTargets extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$where: WhereTarget!, $$OFFSET: TargetId) {
         targets(WHERE: $$where, OFFSET: $$OFFSET) {
           matches $TargetWithIdSubquery
@@ -73,7 +73,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait AllProgramConfigurationRequests extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$pid: ProgramId!, $$OFFSET: ConfigurationRequestId) {
         program(programId: $$pid) {
           configurationRequests(OFFSET: $$OFFSET) {
@@ -87,7 +87,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait AllProgramAttachments extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$programId: ProgramId!) {
         program(programId: $$programId) {
           attachments $AttachmentSubquery
@@ -98,7 +98,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait AllPrograms extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$OFFSET: ProgramId) {
         programs(OFFSET: $$OFFSET, includeDeleted: true) {
           matches $ProgramInfoSubquery
@@ -110,7 +110,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait ProgramDetailsQuery extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$programId: ProgramId!) {
         program(programId: $$programId) $ProgramDetailsSubquery
       }
@@ -119,7 +119,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait ProgramTimesQuery extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$programId: ProgramId!) {
         program(programId: $$programId) $ProgramTimesSubquery
       }
@@ -128,7 +128,7 @@ object ProgramSummaryQueriesGQL {
 
   @GraphQL
   trait GroupTimeRangeQuery extends GraphQLOperation[ObservationDB] {
-    val document: String = s"""
+    val document = gql"""
       query($$groupId: GroupId!) {
         group(groupId: $$groupId) {
           timeEstimateRange $CalculatedProgramTimeRangeSubquery

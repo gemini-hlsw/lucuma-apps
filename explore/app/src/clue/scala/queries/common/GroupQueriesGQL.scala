@@ -15,7 +15,7 @@ object GroupQueriesGQL:
 
   @GraphQLType("Group")
   object GroupSubQuery extends GraphQLSubquery.Typed[ObservationDB, Group]:
-    override val subquery: String = s"""
+    override val subquery = gql"""
       {
         id
         name
@@ -34,9 +34,9 @@ object GroupQueriesGQL:
 
   @GraphQL
   trait UpdateGroupsMutation extends GraphQLOperation[ObservationDB]:
-    override val document = """
-      mutation($input: UpdateGroupsInput!) {
-        updateGroups(input: $input) {
+    override val document = gql"""
+      mutation($$input: UpdateGroupsInput!) {
+        updateGroups(input: $$input) {
           groups { id }
         }
       }
@@ -44,7 +44,7 @@ object GroupQueriesGQL:
 
   @GraphQL
   trait CreateGroupMutation extends GraphQLOperation[ObservationDB]:
-    override val document = s"""
+    override val document = gql"""
       mutation($$input: CreateGroupInput!) {
         createGroup(input: $$input) {
           group $GroupSubQuery

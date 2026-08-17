@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("GhostDynamic")
 object GhostDynamicConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, GhostDynamicConfig]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       red {
         exposureTime $TimeSpanSubquery

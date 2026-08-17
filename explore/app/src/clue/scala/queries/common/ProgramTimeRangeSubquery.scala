@@ -12,7 +12,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("CategorizedTimeRange")
 object ProgramTimeRangeSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramTimeRange]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       minimum $ProgramTimeSubquery
       maximum $ProgramTimeSubquery

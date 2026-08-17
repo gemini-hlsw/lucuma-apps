@@ -11,8 +11,7 @@ object SSOQueriesGQL:
 
   @GraphQL
   trait UserQuery extends GraphQLOperation[SSO]:
-    val document =
-      """
+    val document = gql"""
       query {
         user {
           apiKeys {
@@ -31,18 +30,16 @@ object SSOQueriesGQL:
 
   @GraphQL
   trait NewApiKey extends GraphQLOperation[SSO]:
-    val document =
-      """
-        mutation($roleId: RoleId!) {
-          createApiKey(role: $roleId)
+    val document = gql"""
+        mutation($$roleId: RoleId!) {
+          createApiKey(role: $$roleId)
         }
     """
 
   @GraphQL
   trait DeleteApiKey extends GraphQLOperation[SSO]:
-    val document =
-      """
-        mutation($keyId: ApiKeyId!) {
-          deleteApiKey(id: $keyId)
+    val document = gql"""
+        mutation($$keyId: ApiKeyId!) {
+          deleteApiKey(id: $$keyId)
         }
     """

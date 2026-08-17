@@ -11,7 +11,7 @@ import lucuma.schemas.decoders.given
 
 @GraphQLType("TimingWindow")
 object TimingWindowSubquery extends GraphQLSubquery.Typed[ObservationDB, TimingWindow]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           inclusion
           startUtc

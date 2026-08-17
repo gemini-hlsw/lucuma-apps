@@ -12,7 +12,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("Execution")
 object ExecutionSubquery extends GraphQLSubquery.Typed[ObservationDB, Execution] {
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       digest $CalculatedDigestSubquery
       timeCharge $ProgramTimeSubquery

@@ -13,7 +13,7 @@ import lucuma.schemas.odb.TimeSpanSubquery
 @GraphQL
 @GraphQLType("Allocation")
 object AllocationSubquery extends GraphQLSubquery.Typed[ObservationDB, Allocation]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       category
       scienceBand

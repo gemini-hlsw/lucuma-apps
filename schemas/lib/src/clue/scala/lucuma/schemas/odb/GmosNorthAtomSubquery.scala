@@ -16,7 +16,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("GmosNorthAtom")
 object GmosNorthAtomSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Atom[gmos.DynamicConfig.GmosNorth]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           id
           description

@@ -14,7 +14,7 @@ object VisitQueriesGQL:
 
   @GraphQL
   trait ObservationVisits extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       query($$obsId: ObservationId!, $$visitIdOffset: VisitId) {
         observation(observationId: $$obsId) {
           execution $ExecutionVisitsSubquery
@@ -32,9 +32,9 @@ object VisitQueriesGQL:
 
   @GraphQL
   trait UpdateDatasetQa extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($datasetId: DatasetId!, $qaState: DatasetQaState, $comment: NonEmptyString) {
-        updateDatasets( input: {WHERE: {id: {EQ: $datasetId}}, SET: {qaState: $qaState, comment: $comment}} ) {
+    val document = gql"""
+      mutation($$datasetId: DatasetId!, $$qaState: DatasetQaState, $$comment: NonEmptyString) {
+        updateDatasets( input: {WHERE: {id: {EQ: $$datasetId}}, SET: {qaState: $$qaState, comment: $$comment}} ) {
           datasets {
             id
             qaState

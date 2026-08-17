@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("GhostIfuMapping")
 object GhostIfuMappingSubquery extends GraphQLSubquery.Typed[ObservationDB, GhostIfuMapping]:
-  override val subquery: String = """
+  override val subquery = gql"""
     {
       mappingType
       singleTarget {

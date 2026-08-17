@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("ObservationWorkflow")
 object ObservationWorkflowSubquery
     extends GraphQLSubquery.Typed[ObservationDB, ObservationWorkflow]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       state
       validTransitions

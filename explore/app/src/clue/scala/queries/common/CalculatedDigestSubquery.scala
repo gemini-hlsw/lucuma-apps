@@ -19,7 +19,7 @@ import lucuma.schemas.odb.TimeSpanSubquery
 @GraphQLType("CalculatedExecutionDigest")
 object CalculatedDigestSubquery
     extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ExecutionDigest]]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       calculationState
       value {
@@ -39,7 +39,7 @@ object CalculatedDigestSubquery
 @GraphQL
 @GraphQLType("SequenceDigest")
 object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, SequenceDigest]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
       {
         observeClass
         atomCount

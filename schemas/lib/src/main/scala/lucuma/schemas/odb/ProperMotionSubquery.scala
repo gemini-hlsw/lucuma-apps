@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQLType("ProperMotion")
 object ProperMotionSubquery extends GraphQLSubquery.Typed[ObservationDB, ProperMotion]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           ra {
             microarcsecondsPerYear

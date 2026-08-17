@@ -18,7 +18,7 @@ class BandBrightnessSubquery[T](
 ) extends GraphQLSubquery[ObservationDB]:
   override type Data = (Band, BrightnessMeasure[T])
 
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           band
           value

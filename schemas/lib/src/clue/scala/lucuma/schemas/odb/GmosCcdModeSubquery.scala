@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("GmosCcdMode")
 abstract class GmosCcdModeSubquery extends GraphQLSubquery[ObservationDB]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           xBin
           yBin

@@ -14,7 +14,7 @@ import lucuma.schemas.ObservationDB
 object ObservationValidationsSubquery
     extends GraphQLSubquery.Typed[ObservationDB, ObservationValidation]:
 
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       code
       messages

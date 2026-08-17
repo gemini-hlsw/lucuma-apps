@@ -14,7 +14,7 @@ import clue.annotation.GraphQL
 @GraphQLType("Observation")
 object ObservationSummarySubquery extends GraphQLSubquery.Typed[ObservationDB, ObsSummary]:
 
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           id
           program { id }

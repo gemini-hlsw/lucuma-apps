@@ -14,7 +14,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("GmosNorthDynamic")
 object GmosNorthDynamicConfigSubquery
     extends GraphQLSubquery.Typed[ObservationDB, gmos.DynamicConfig.GmosNorth]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       exposure $TimeSpanSubquery
       readout {

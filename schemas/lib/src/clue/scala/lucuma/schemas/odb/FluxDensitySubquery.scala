@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("FluxDensityEntry")
 abstract class FluxDensitySubquery extends GraphQLSubquery[ObservationDB]:
   // FIXME Replace wavelength when subqueries can contain subqueries
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           wavelength {
             picometers

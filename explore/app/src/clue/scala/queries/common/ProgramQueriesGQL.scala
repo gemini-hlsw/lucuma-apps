@@ -13,7 +13,7 @@ import GroupQueriesGQL.*
 object ProgramQueriesGQL:
   @GraphQL
   trait CreateProgramMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$input: CreateProgramInput!) {
         createProgram(input: $$input) {
           program $ProgramInfoSubquery
@@ -23,9 +23,9 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait UpdateProgramsMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = """
-      mutation($input: UpdateProgramsInput!) {
-        updatePrograms(input: $input) {
+    val document = gql"""
+      mutation($$input: UpdateProgramsInput!) {
+        updatePrograms(input: $$input) {
           programs {
             id
           }
@@ -35,9 +35,9 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait UpdateAttachmentMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = """
-    mutation($input: UpdateAttachmentsInput!) {
-      updateAttachments(input: $input) {
+    val document = gql"""
+    mutation($$input: UpdateAttachmentsInput!) {
+      updateAttachments(input: $$input) {
         attachments {
           id
         }
@@ -47,7 +47,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ProgramGroupsQuery extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       query ($$programId: ProgramId!) {
         program(programId: $$programId) {
           allGroupElements {
@@ -59,7 +59,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait GroupEditSubscription extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       subscription($$input: ProgramEditInput!) {
         groupEdit(input: $$input) {
           value $GroupSubQuery
@@ -72,7 +72,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ProgramEditAttachmentSubscription extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       subscription($$input: ProgramEditInput!) {
         programEdit(input: $$input) {
           value {
@@ -88,7 +88,7 @@ object ProgramQueriesGQL:
   // subscription update.
   @GraphQL
   trait ProgramEditDetailsSubscription extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       subscription($$input: ProgramEditInput!) {
         programEdit(input: $$input) {
           value $ProgramDetailsSubquery
@@ -98,7 +98,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ProgramInfoDelta extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription {
         programEdit {
           value $ProgramInfoSubquery
@@ -108,7 +108,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ConfigurationRequestSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription($$input: ConfigurationRequestEditInput!) {
         configurationRequestEdit(input: $$input) {
           configurationRequest $ConfigurationRequestSubquery
@@ -118,7 +118,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ProgramUsersMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: UpdateProgramUsersInput!) {
         updateProgramUsers(input: $$input) {
           programUsers {
@@ -132,7 +132,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ChangeProgramUserRoleMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: ChangeProgramUserRoleInput!) {
         changeProgramUserRole(input: $$input) {
           programUser {
@@ -144,7 +144,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait UpdateConfigurationRequestsMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: UpdateConfigurationRequestsInput!) {
         updateConfigurationRequests(input: $$input) {
           requests {
@@ -156,9 +156,9 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ResolveProgramReference extends GraphQLOperation[ObservationDB]:
-    val document = """
-      query($input: ProgramReferenceLabel) {
-        program(programReference: $input) {
+    val document = gql"""
+      query($$input: ProgramReferenceLabel) {
+        program(programReference: $$input) {
           id
         }
       }
@@ -166,9 +166,9 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait ResolveProposalReference extends GraphQLOperation[ObservationDB]:
-    val document = """
-      query($input: ProposalReferenceLabel) {
-        program(proposalReference: $input) {
+    val document = gql"""
+      query($$input: ProposalReferenceLabel) {
+        program(proposalReference: $$input) {
           id
         }
       }
@@ -176,7 +176,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait CreateProgramNoteMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: CreateProgramNoteInput!) {
         createProgramNote(input: $$input) {
           programNote {
@@ -188,7 +188,7 @@ object ProgramQueriesGQL:
 
   @GraphQL
   trait UpdateProgramNotesMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: UpdateProgramNotesInput!) {
         updateProgramNotes(input: $$input) {
           programNotes {

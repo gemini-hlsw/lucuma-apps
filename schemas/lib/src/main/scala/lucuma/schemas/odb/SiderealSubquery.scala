@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQLType("Sidereal")
 object SiderealSubquery extends GraphQLSubquery.Typed[ObservationDB, SiderealTracking] {
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       ra $RASubquery
       dec $DecSubquery

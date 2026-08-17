@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQLType("Angle")
 object AngleSubquery extends GraphQLSubquery.Typed[ObservationDB, Angle]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           microarcseconds
         }

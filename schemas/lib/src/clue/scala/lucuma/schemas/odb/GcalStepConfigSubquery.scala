@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("Gcal")
 abstract class GcalStepConfigSubquery extends GraphQLSubquery[ObservationDB]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           continuum
           arcs

@@ -13,9 +13,9 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait CreateTargetMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($input: CreateTargetInput!) {
-        createTarget(input: $input) {
+    val document = gql"""
+      mutation($$input: CreateTargetInput!) {
+        createTarget(input: $$input) {
           target {
             id
           }
@@ -25,9 +25,9 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait UpdateTargetsMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($input: UpdateTargetsInput!) {
-        updateTargets(input: $input) {
+    val document = gql"""
+      mutation($$input: UpdateTargetsInput!) {
+        updateTargets(input: $$input) {
           targets {
             id
           }
@@ -37,7 +37,7 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait CloneTargetMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: CloneTargetInput!) {
         cloneTarget(input: $$input) {
           newTarget $TargetWithIdSubquery
@@ -47,7 +47,7 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait SetGuideTargetName extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: SetGuideTargetNameInput!) {
         setGuideTargetName(input: $$input) {
           observation {
@@ -59,9 +59,9 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait TargetEditSubscription extends GraphQLOperation[ObservationDB]:
-    val document = """
-      subscription($targetId: TargetId!) {
-        targetEdit(input: {targetId: $targetId}) {
+    val document = gql"""
+      subscription($$targetId: TargetId!) {
+        targetEdit(input: {targetId: $$targetId}) {
           targetId
         }
       }
@@ -69,7 +69,7 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait ProgramTargetsDelta extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription($$input: TargetEditInput!) {
         targetEdit(input: $$input) {
           targetId

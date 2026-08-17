@@ -16,7 +16,7 @@ import lucuma.schemas.odb.RASubquery
 @GraphQL
 @GraphQLType("Configuration")
 object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Configuration]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       conditions {
         imageQuality

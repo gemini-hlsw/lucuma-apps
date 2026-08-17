@@ -15,7 +15,7 @@ import lucuma.schemas.decoders.given
 @GraphQLType("CalculatedCategorizedTimeRange")
 object CalculatedProgramTimeRangeSubquery
     extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ProgramTimeRange]]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       calculationState
       value $ProgramTimeRangeSubquery

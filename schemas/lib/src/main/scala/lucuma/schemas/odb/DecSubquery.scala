@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQLType("Declination")
 object DecSubquery extends GraphQLSubquery.Typed[ObservationDB, Declination]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           microarcseconds
         }

@@ -13,9 +13,9 @@ object EventsGQL:
 
   @GraphQL
   trait AddSequenceEventMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($vId: VisitId!, $cmd: SequenceCommand!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp) {
-        addSequenceEvent(input: { visitId: $vId, command: $cmd, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
+    val document = gql"""
+      mutation($$vId: VisitId!, $$cmd: SequenceCommand!, $$idempotencyKey: IdempotencyKey!, $$clientTime: Timestamp) {
+        addSequenceEvent(input: { visitId: $$vId, command: $$cmd, idempotencyKey: $$idempotencyKey, clientTime: $$clientTime } ) {
           event { recordedTime }
         }
       }
@@ -23,9 +23,9 @@ object EventsGQL:
 
   @GraphQL
   trait AddStepEventMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($stepId: StepId!, $visitId: VisitId!, $stg: StepStage!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp)  {
-        addStepEvent(input: { stepId: $stepId, visitId: $visitId, stepStage: $stg, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
+    val document = gql"""
+      mutation($$stepId: StepId!, $$visitId: VisitId!, $$stg: StepStage!, $$idempotencyKey: IdempotencyKey!, $$clientTime: Timestamp)  {
+        addStepEvent(input: { stepId: $$stepId, visitId: $$visitId, stepStage: $$stg, idempotencyKey: $$idempotencyKey, clientTime: $$clientTime } ) {
           event { id }
         }
       }
@@ -33,9 +33,9 @@ object EventsGQL:
 
   @GraphQL
   trait AddDatasetEventMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($datasetId: DatasetId!, $stg: DatasetStage!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp)  {
-        addDatasetEvent(input: { datasetId: $datasetId, datasetStage: $stg, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
+    val document = gql"""
+      mutation($$datasetId: DatasetId!, $$stg: DatasetStage!, $$idempotencyKey: IdempotencyKey!, $$clientTime: Timestamp)  {
+        addDatasetEvent(input: { datasetId: $$datasetId, datasetStage: $$stg, idempotencyKey: $$idempotencyKey, clientTime: $$clientTime } ) {
           event { id }
         }
       }
@@ -43,9 +43,9 @@ object EventsGQL:
 
   @GraphQL
   trait RecordDatasetMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($stepId: StepId!, $visitId: VisitId!, $filename: DatasetFilename!, $idempotencyKey: IdempotencyKey!) {
-        recordDataset(input: { stepId: $stepId, visitId: $visitId, filename: $filename, idempotencyKey: $idempotencyKey } ) {
+    val document = gql"""
+      mutation($$stepId: StepId!, $$visitId: VisitId!, $$filename: DatasetFilename!, $$idempotencyKey: IdempotencyKey!) {
+        recordDataset(input: { stepId: $$stepId, visitId: $$visitId, filename: $$filename, idempotencyKey: $$idempotencyKey } ) {
           dataset {
             id
             reference {
@@ -59,9 +59,9 @@ object EventsGQL:
 
   @GraphQL
   trait RecordVisitMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($obsId: ObservationId!, $idempotencyKey: IdempotencyKey!, $clientTime: Timestamp) {
-        recordVisit(input: { observationId: $obsId, idempotencyKey: $idempotencyKey, clientTime: $clientTime } ) {
+    val document = gql"""
+      mutation($$obsId: ObservationId!, $$idempotencyKey: IdempotencyKey!, $$clientTime: Timestamp) {
+        recordVisit(input: { observationId: $$obsId, idempotencyKey: $$idempotencyKey, clientTime: $$clientTime } ) {
           visit { id }
         }
       }

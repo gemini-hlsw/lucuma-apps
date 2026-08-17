@@ -15,7 +15,7 @@ import lucuma.schemas.odb.*
 object ObsQueriesGQL:
   @GraphQL
   trait ProgramCreateObservation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$createObservation: CreateObservationInput!) {
         createObservation(input: $$createObservation) {
           observation $ObservationSubquery
@@ -26,9 +26,9 @@ object ObsQueriesGQL:
   @GraphQL
   trait ObservationEditSubscription extends GraphQLOperation[ObservationDB]:
     // We need to include the `value {id}` to avoid a bug in grackle.
-    val document = """
-      subscription($input: ObservationEditInput!) {
-        observationEdit(input: $input) {
+    val document = gql"""
+      subscription($$input: ObservationEditInput!) {
+        observationEdit(input: $$input) {
           observationId
         }
       }
@@ -36,9 +36,9 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait UpdateObservationMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation ($input: UpdateObservationsInput!){
-        updateObservations(input: $input) {
+    val document = gql"""
+      mutation ($$input: UpdateObservationsInput!){
+        updateObservations(input: $$input) {
           observations { id }
         }
       }
@@ -46,9 +46,9 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait UpdateObservationTimesMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation ($input: UpdateObservationsTimesInput!){
-        updateObservationsTimes(input: $input) {
+    val document = gql"""
+      mutation ($$input: UpdateObservationsTimesInput!){
+        updateObservationsTimes(input: $$input) {
           observations { id }
         }
       }
@@ -57,7 +57,7 @@ object ObsQueriesGQL:
   // The response selects only the mode-view matching the mode being set.
   @GraphQL
   trait UpdateConfigurationMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation (
         $$input: UpdateObservationsInput!,
         $$includeGmosNorthLongSlit: Boolean!,
@@ -85,7 +85,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait SetObservationWorkflowStateMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation ($$input: SetObservationWorkflowStateInput!){
         setObservationWorkflowState(input: $$input) {
           state
@@ -95,7 +95,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait CloneObservationMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation ($$input: CloneObservationInput!){
         cloneObservation(input: $$input) {
           newObservation $ObservationSubquery
@@ -105,7 +105,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait CreateConfigurationRequestMutation extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$input: CreateConfigurationRequestInput!) {
         createConfigurationRequest(input: $$input)
           $ConfigurationRequestSubquery
@@ -115,7 +115,7 @@ object ObsQueriesGQL:
   @GraphQL
   trait ProgramObservationsDelta extends GraphQLOperation[ObservationDB]:
     // The full observe mode is hydrated separately (initial load + mutations),
-    val document = s"""
+    val document = gql"""
       subscription($$input: ObservationEditInput!) {
         observationEdit(input: $$input) {
           observationId
@@ -128,7 +128,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait ObsCalcSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription($$input: ObscalcUpdateInput!) {
         obscalcUpdate(input: $$input) {
           observationId
@@ -148,9 +148,9 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait ResolveObsReference extends GraphQLOperation[ObservationDB]:
-    val document = """
-      query($input: ObservationReferenceLabel) {
-        observation(observationReference: $input) {
+    val document = gql"""
+      query($$input: ObservationReferenceLabel) {
+        observation(observationReference: $$input) {
           id
           program { id }
         }
@@ -164,9 +164,9 @@ object ObsQueriesGQL:
   // One such element is guide target name which tracing shows as very expensive
   @GraphQL
   trait ObservationLoadedElements extends GraphQLOperation[ObservationDB]:
-    val document = """
-      query($obsId: ObservationId!) {
-        observation(observationId: $obsId) {
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
           targetEnvironment {
             guideTargetName
           }
@@ -176,20 +176,20 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait SetBlindOffsetMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
+    val document = gql"""
       mutation(
-        $where: WhereObservation!,
-        $useBlindOffset: Boolean!,
-        $target: TargetPropertiesInput,
-        $blindType: BlindOffsetType!
+        $$where: WhereObservation!,
+        $$useBlindOffset: Boolean!,
+        $$target: TargetPropertiesInput,
+        $$blindType: BlindOffsetType!
       ) {
         updateObservations(input: {
-          WHERE: $where
+          WHERE: $$where
           SET: {
             targetEnvironment: {
-              useBlindOffset: $useBlindOffset
-              blindOffsetTarget: $target
-              blindOffsetType: $blindType
+              useBlindOffset: $$useBlindOffset
+              blindOffsetTarget: $$target
+              blindOffsetType: $$blindType
             }
           }
         }) {
@@ -206,7 +206,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait StepEventSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription($$obsId: ObservationId!) {
         executionEventAdded(input: { observationId: $$obsId, eventType: { EQ: STEP } }) {
           value {
@@ -220,7 +220,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait DatasetEditSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription($$obsId: ObservationId!) {
         datasetEdit(input: { observationId: $$obsId }) {
           value { id }

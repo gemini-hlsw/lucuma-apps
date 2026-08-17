@@ -12,7 +12,7 @@ import lucuma.schemas.odb.*
 
 @GraphQLType("ImagingVariant")
 object ImagingVariantSubquery extends GraphQLSubquery.Typed[ObservationDB, ImagingVariant]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       variantType
       grouped {

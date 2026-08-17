@@ -10,7 +10,7 @@ import lucuma.schemas.ObservationDB
 object ProposalQueriesGQL:
   @GraphQL
   trait CreateProposalMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$input: CreateProposalInput!) {
         createProposal(input: $$input) {
           proposal {
@@ -22,7 +22,7 @@ object ProposalQueriesGQL:
 
   @GraphQL
   trait UpdateProposalMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$input: UpdateProposalInput!) {
         updateProposal(input: $$input) {
           proposal {
@@ -36,7 +36,7 @@ object ProposalQueriesGQL:
 
   @GraphQL
   trait SetProposalStatus extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$input: SetProposalStatusInput!) {
         setProposalStatus(input: $$input) {
           program {
@@ -48,7 +48,7 @@ object ProposalQueriesGQL:
 
   @GraphQL
   trait AddProgramUser extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$input: AddProgramUserInput!) {
         addProgramUser(input: $$input) {
           programUser $ProgramUserSubquery
@@ -58,7 +58,7 @@ object ProposalQueriesGQL:
 
   @GraphQL
   trait DeleteProgramUser extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$input: DeleteProgramUserInput!) {
         deleteProgramUser(input: $$input) {
           result
@@ -69,7 +69,7 @@ object ProposalQueriesGQL:
   // TODO: Do we need this?
   @GraphQL
   trait UnlinkUser extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation ($$input: UnlinkUserInput!) {
         unlinkUser(input: $$input) {
           result
