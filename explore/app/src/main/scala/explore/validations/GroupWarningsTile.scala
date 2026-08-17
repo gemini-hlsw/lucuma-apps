@@ -42,7 +42,8 @@ final case class GroupWarningsTile(
   groupWarnings: Map[Group.Id, NonEmptySet[GroupWarning]]
 ) extends Tile[GroupWarningsTile](
       id = OverviewTabTileIds.GroupWarningsId.id,
-      title = "Group Warnings"
+      title = "Group Warnings",
+      autoHeight = true
     )(GroupWarningsTile)
 
 object GroupWarningsTile

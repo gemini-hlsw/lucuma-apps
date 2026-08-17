@@ -326,7 +326,7 @@ object ProposalEditor
               )
 
           val detailsTile =
-            SimpleTile(ProposalTabTileIds.DetailsId.id, "Details")(tileSize =>
+            SimpleTile(ProposalTabTileIds.DetailsId.id, "Details", autoHeight = true)(tileSize =>
               TileContents(
                 title = ProposalDetailsTitle(
                   props.undoCtx,
@@ -346,7 +346,7 @@ object ProposalEditor
             )
 
           val usersTile =
-            SimpleTile(ProposalTabTileIds.UsersId.id, "Investigators")(_ =>
+            SimpleTile(ProposalTabTileIds.UsersId.id, "Investigators", autoHeight = true)(_ =>
               TileContents(
                 title = <.div(
                   ExploreStyles.AddProgramUserButton,
@@ -386,6 +386,7 @@ object ProposalEditor
             SimpleTile(
               ProposalTabTileIds.AbstractId.id,
               absTitle,
+              autoHeight = true,
               bodyClass = ExploreStyles.ProposalAbstract
             )(_ =>
               TileContents:
@@ -405,6 +406,7 @@ object ProposalEditor
             SimpleTile(
               ProposalTabTileIds.AttachmentsId.id,
               "Attachments",
+              autoHeight = true,
               tileClass = ExploreStyles.ProposalAttachmentsTile
             )(_ =>
               TileContents(

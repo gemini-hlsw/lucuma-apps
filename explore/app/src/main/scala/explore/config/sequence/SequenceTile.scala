@@ -56,7 +56,8 @@ final case class SequenceTile(
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
       "Sequence",
-      canMinimize = !isEditingAcquisition.get && !isEditingScience.get
+      canMinimize = !isEditingAcquisition.get && !isEditingScience.get,
+      autoHeight = true
     )(
       SequenceTile // TODO Move isEditing state here, but we need to be able to change tile state from within tile
     )

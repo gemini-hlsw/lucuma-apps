@@ -12,7 +12,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 final case class ProposalErrorsTile(errors: List[String])
     extends Tile[ProposalErrorsTile](
       id = ProposalTabTileIds.ErrorsId.id,
-      title = s"Errors (${errors.size})"
+      title = s"Errors (${errors.size})",
+      autoHeight = true
     )(ProposalErrorsTile)
 
 object ProposalErrorsTile

@@ -80,7 +80,8 @@ object ProgramTabContents
         val detailsTile =
           SimpleTile(
             ProgramTabTileIds.DetailsId.id,
-            "Program Details"
+            "Program Details",
+            autoHeight = true
           )(_ =>
             TileContents:
               ProgramDetailsTile(
@@ -96,7 +97,8 @@ object ProgramTabContents
         val dataSharingTile =
           SimpleTile(
             ProgramTabTileIds.DataUsers.id,
-            s"Data Sharing ($countOfDataAccess)"
+            s"Data Sharing ($countOfDataAccess)",
+            autoHeight = true
           )(_ =>
             TileContents(
               title = <.div(
@@ -126,7 +128,8 @@ object ProgramTabContents
         val configurationRequestsTile =
           SimpleTile(
             ProgramTabTileIds.ChangeRequestsId.id,
-            s"Requested Coordinates + Configurations + Constraints (${props.configRequests.get.size})"
+            s"Requested Coordinates + Configurations + Constraints (${props.configRequests.get.size})",
+            autoHeight = true
           )(_ =>
             for tileState <- useStateView(ProgramConfigRequestsTile.TileState.Empty)
             yield TileContents(
@@ -152,7 +155,8 @@ object ProgramTabContents
         val unrequestedConfigsTile =
           SimpleTile(
             ProgramTabTileIds.UnrequestedConfigsId.id,
-            s"Unrequested Coordinates + Configurations + Constraints (${props.configsWithoutRequests.size})"
+            s"Unrequested Coordinates + Configurations + Constraints (${props.configsWithoutRequests.size})",
+            autoHeight = true
           )(_ =>
             for tileState <- useStateView(ProgramUnrequestedConfigsTile.TileState.Empty)
             yield TileContents(

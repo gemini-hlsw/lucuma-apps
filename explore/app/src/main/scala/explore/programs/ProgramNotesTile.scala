@@ -41,6 +41,7 @@ final case class ProgramNotesTile(
 ) extends Tile[ProgramNotesTile](
       ProgramTabTileIds.NotesId.id,
       s"Notes (${notes.get.size})",
+      autoHeight = true,
       bodyClass = ExploreStyles.ProgramNotesTileBody
     )(ProgramNotesTile)
 
