@@ -10,6 +10,7 @@ import explore.Icons
 import explore.model.IsActive
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.ConfirmDialog
 import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
@@ -21,7 +22,8 @@ def deleteConfirmation(
   header:      String,
   acceptLabel: String,
   action:      IO[Unit],
-  active:      View[IsActive]
+  active:      View[IsActive],
+  icon:        FontAwesomeIcon = Icons.SkullCrossBones(^.color.red)
 )(using
   Logger[IO]
 ) =
@@ -33,5 +35,5 @@ def deleteConfirmation(
     accept = action.switching(active.async, IsActive(_)).runAsync,
     acceptClass = PrimeStyles.ButtonSmall,
     rejectClass = PrimeStyles.ButtonSmall,
-    icon = Icons.SkullCrossBones(^.color.red)
+    icon = icon
   )

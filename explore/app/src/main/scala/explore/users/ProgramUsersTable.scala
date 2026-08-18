@@ -154,9 +154,19 @@ object ProgramUsersTable:
 
     val userCanChangeCoiAccess: Boolean = mode match
       case Mode.CoIs(vault, proposalIsRo, userIsRoCoi, _) =>
-        !proposalIsRo && (vault.isStaff || userIsPi)
+        !proposalIsRo && (vault.isStaffOrAdmin || userIsPi)
       case Mode.SupportPrimary | Mode.SupportSecondary    => false
       case Mode.DataSharing(_)                            => false
+
+    // The ODB only lets the current PI or a staff (or greater) user transfer the PI
+    // role, and only to a full-access CoI. We additionally require the CoI to have
+    // accepted their invitation, so that the new PI has an actual user account.
+    def canPromoteToPi(pu: ProgramUser): Boolean = mode match
+      case Mode.CoIs(vault, proposalIsRo, _, _)        =>
+        !proposalIsRo && (vault.isStaffOrAdmin || userIsPi) &&
+        pu.role === ProgramUserRole.Coi && pu.isConfirmed
+      case Mode.SupportPrimary | Mode.SupportSecondary => false
+      case Mode.DataSharing(_)                         => false
 
     val canChangeDataAccess: Boolean = mode match
       case Mode.CoIs(_, _, _, _)                       => false
@@ -272,6 +282,46 @@ object ProgramUsersTable:
       disabled = isActive.get.value,
       onClick = delete,
       tooltip = "Remove user from proposal",
+      tooltipOptions = TooltipOptions.Left
+    ).mini.compact
+
+  // `ProgramDetails.allUsers` treats the head of the list as the PI, so the promoted
+  // user has to move to the front as well as have its role changed.
+  private def promotePi(newPiId: ProgramUser.Id)(users: List[ProgramUser]): List[ProgramUser] =
+    val updated        = users.map: pu =>
+      if (pu.id === newPiId) ProgramUser.role.replace(ProgramUserRole.Pi)(pu)
+      else if (pu.role === ProgramUserRole.Pi) ProgramUser.role.replace(ProgramUserRole.Coi)(pu)
+      else pu
+    val (newPi, other) = updated.partition(_.role === ProgramUserRole.Pi)
+    newPi ++ other
+
+  private def promoteToPiButton(
+    newPi:    ProgramUser,
+    users:    View[List[ProgramUser]],
+    isActive: View[IsActive]
+  )(using ctx: AppContext[IO]): VdomNode =
+    import ctx.given
+
+    val action: IO[Unit] =
+      ctx.odbApi.changePrincipalInvestigator(newPi.id) *>
+        users.mod(promotePi(newPi.id)).to[IO]
+
+    val promote: Callback =
+      deleteConfirmation(
+        "Promote CoI to PI? This can only be undone by the new PI or staff.",
+        "Promote to PI",
+        "Yes, promote",
+        action,
+        isActive,
+        icon = Icons.MissingInfoIcon
+      )
+
+    Button(
+      icon = Icons.RocketLaunchLight,
+      severity = Button.Severity.Secondary,
+      disabled = isActive.get.value,
+      onClick = promote,
+      tooltip = "Promote to PI",
       tooltipOptions = TooltipOptions.Left
     ).mini.compact
 
@@ -577,32 +627,40 @@ object ProgramUsersTable:
         cell = cell =>
           cell.table.options.meta.map: meta =>
             val programUserView = cell.value
-            val programUserId   = programUserView.get.id
-            val status          = programUserView.get.status
+            val programUser     = programUserView.get
+            val programUserId   = programUser.id
+            val status          = programUser.status
 
-            if (meta.canManageUser(programUserView.get))
-              <.span(
-                deleteUserButton(
-                  programUserId,
-                  meta.users,
-                  meta.isActive
-                ),
-                inviteUserButton(programUserView, meta)
-                  .when(status === ProgramUser.Status.NotInvited),
-                programUserView.get.activeInvitation
-                  .map(invitation =>
-                    revokeInvitationButton(
-                      programUserView,
-                      invitation,
-                      meta.isActive
+            val manageButtons: TagMod =
+              if (meta.canManageUser(programUser))
+                TagMod(
+                  deleteUserButton(
+                    programUserId,
+                    meta.users,
+                    meta.isActive
+                  ),
+                  inviteUserButton(programUserView, meta)
+                    .when(status === ProgramUser.Status.NotInvited),
+                  programUser.activeInvitation
+                    .map(invitation =>
+                      revokeInvitationButton(
+                        programUserView,
+                        invitation,
+                        meta.isActive
+                      )
+                        .when(status.isInvited)
                     )
-                      .when(status.isInvited)
-                  )
-                  .orEmpty
-              )
-            else EmptyVdom
+                    .orEmpty
+                )
+              else TagMod.empty
+
+            <.span(
+              manageButtons,
+              promoteToPiButton(programUser, meta.users, meta.isActive)
+                .when(meta.canPromoteToPi(programUser))
+            )
         ,
-        size = 85.toPx
+        size = 110.toPx
       )
     )
 
