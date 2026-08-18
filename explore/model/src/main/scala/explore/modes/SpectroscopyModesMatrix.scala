@@ -118,14 +118,9 @@ case class SpectroscopyModeRow(
   private def isMaroonX: Boolean =
     instrumentConfig.instrument === Instrument.MaroonX
 
-  // Flamingos2 MOS rows are deliberately absent here until the ODB adds support
   val enabled =
-    (isSingleSlit || isSupportedIfu || isGmosMos || isMaroonX) &&
+    (isSingleSlit || isSupportedIfu || isGmosMos || isFlamingos2Mos || isMaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
-
-  override val itcSupported: Boolean =
-    enabled ||
-      (isFlamingos2Mos && SupportedInstruments.contains_(instrumentConfig.instrument))
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
   def intervalCenter(cw: Wavelength): Option[CentralWavelength] =
