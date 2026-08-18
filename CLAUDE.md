@@ -78,8 +78,11 @@ cd observe/web/client && pnpm exec vite
 ### CI Lint Checks
 
 ```bash
-# Header check
-sbt -J-Xmx6g 'project rootJVM' '++ 3' headerCheckAll
+# Headers, formatting and scalafix. CI runs these for both matrix legs,
+# so check with rootJS as well as rootJVM.
+sbt -J-Xmx6g 'project rootJVM' '++ 3' headerCheckAll scalafmtCheckAll \
+  'project /' scalafmtSbtCheck lucumaScalafmtCheck lucumaScalafixCheck
+sbt -J-Xmx6g 'project rootJVM' '++ 3' 'scalafixAll --check'
 
 # CSS linting
 sbt -J-Xmx6g '++ 3.8.2' ui_css/lucumaCss
@@ -91,7 +94,9 @@ pnpm exec stylelint ui/lib/src/main/resources/lucuma-css
 pnpm exec prettier --check .
 ```
 
-Note: Scalafmt and Scalafix CI checks are currently disabled in the build.
+Scalafmt and Scalafix are enforced in CI (see `.github/workflows/ci.yml`) for both
+the `rootJS` and `rootJVM` matrix legs. Fix violations with `sbt scalafmtAll
+scalafmtSbt` and `sbt scalafixAll`.
 
 ## Architecture and Patterns
 
