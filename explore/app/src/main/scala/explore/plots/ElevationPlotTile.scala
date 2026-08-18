@@ -58,6 +58,7 @@ final case class ElevationPlotTile(
   refDate:           Option[LocalDate]
 ) extends Tile[ElevationPlotTile](tileId,
                                   "Elevation Plot",
+                                  heightPresets = true,
                                   bodyClass = ExploreStyles.ElevationPlotTileBody
     )(ElevationPlotTile)
 

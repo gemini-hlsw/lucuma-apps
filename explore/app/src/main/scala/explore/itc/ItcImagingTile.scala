@@ -61,6 +61,7 @@ final case class ItcImagingTile(
 ) extends Tile[ItcImagingTile](
       ObsTabTileIds.ItcId.id,
       "ITC",
+      heightPresets = true,
       bodyClass = ExploreStyles.ItcImagingTileBody
     )(ItcImagingTile)
 

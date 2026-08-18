@@ -60,6 +60,7 @@ final case class ItcSpectroscopyTile(
 ) extends Tile[ItcSpectroscopyTile](
       ObsTabTileIds.ItcId.id,
       "ITC",
+      heightPresets = true,
       bodyClass = ExploreStyles.ItcTileBody
     )(ItcSpectroscopyTile)
 

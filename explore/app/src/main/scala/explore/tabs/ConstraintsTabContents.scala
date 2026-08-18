@@ -209,7 +209,8 @@ object ConstraintsTabContents extends TwoPanels:
                   SimpleTile(
                     ObsTabTileIds.ConstraintsId.id,
                     constraintsTitle,
-                    backButton.some
+                    backButton.some,
+                    autoHeight = true
                   )(_ =>
                     TileContents:
                       React.Fragment(

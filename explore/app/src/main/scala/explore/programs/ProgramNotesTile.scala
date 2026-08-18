@@ -41,6 +41,8 @@ final case class ProgramNotesTile(
 ) extends Tile[ProgramNotesTile](
       ProgramTabTileIds.NotesId.id,
       s"Notes (${notes.get.size})",
+      autoHeight = true,
+      autoHeightMinRows = 4,
       bodyClass = ExploreStyles.ProgramNotesTileBody
     )(ProgramNotesTile)
 
@@ -169,7 +171,9 @@ object ProgramNotesTile
                     )
                   )
               ): VdomNode
-            .getOrElse(<.div("No notes have been created."))
+            .getOrElse(
+              <.div(ExploreStyles.TileEmptyMessage, "No notes have been created.")
+            )
 
         TileContents(title, body)
     })

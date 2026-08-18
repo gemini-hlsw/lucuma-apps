@@ -87,7 +87,9 @@ object OverviewTabContents
 
         val warningsAndErrorsTile = SimpleTile(
           OverviewTabTileIds.WarningsAndErrorsId.id,
-          "Warnings And Errors"
+          "Warnings And Errors",
+          autoHeight = true,
+          autoHeightMinRows = 4
         )(tileSize =>
           for tileState <- useStateView(ObservationValidationsTableTileState(_ => Callback.empty))
           yield TileContents(

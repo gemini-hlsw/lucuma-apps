@@ -127,18 +127,21 @@ object layout {
   /**
    * Derives an auto-height tile's row span from its measured content height (title bar included),
    * capped to what fits in `viewportPx`. Pinning minH/maxH to the result is what restricts resizing
-   * to horizontal. No-op while `minimized`
+   * to horizontal. No-op while `minimized`. `minRows` lets a tile declare a taller floor than the
+   * global default (it also wins over the viewport cap).
    */
   def resolveAutoHeight(
     item:       LayoutItem,
     measuredPx: Int,
     viewportPx: Int,
-    minimized:  Boolean
+    minimized:  Boolean,
+    minRows:    Int = AutoHeightMinRows
   ): LayoutItem =
     if minimized then item
     else
-      val contentRows  = math.max(AutoHeightMinRows, rowsNeeded(measuredPx))
-      val viewportRows = math.max(AutoHeightMinRows, rowsAvailable(viewportPx))
+      val floor        = math.max(AutoHeightMinRows, minRows)
+      val contentRows  = math.max(floor, rowsNeeded(measuredPx))
+      val viewportRows = math.max(floor, rowsAvailable(viewportPx))
       val rows         = math.min(contentRows, viewportRows)
       if rows === item.h && item.minH.toOption.contains(rows) && item.maxH.toOption.contains(rows)
       then item

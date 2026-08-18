@@ -42,7 +42,9 @@ final case class GroupWarningsTile(
   groupWarnings: Map[Group.Id, NonEmptySet[GroupWarning]]
 ) extends Tile[GroupWarningsTile](
       id = OverviewTabTileIds.GroupWarningsId.id,
-      title = "Group Warnings"
+      title = "Group Warnings",
+      autoHeight = true,
+      autoHeightMinRows = 4
     )(GroupWarningsTile)
 
 object GroupWarningsTile
@@ -196,16 +198,26 @@ object GroupWarningsTile
               ).compact
             )
 
+        val emptyMessage = <.div("There are no Group Warnings.")
+
         val body =
-          PrimeAutoHeightVirtualizedTable(
-            table,
-            _ => 32.toPx,
-            striped = true,
-            compact = Compact.Very,
-            containerRef = resize.ref,
-            hoverableRows = rows.nonEmpty,
-            emptyMessage = <.div("There are no Group Warnings.")
-          )
+          if rows.isEmpty then
+            PrimeTable(
+              table,
+              striped = true,
+              compact = Compact.Very,
+              hoverableRows = false,
+              emptyMessage = emptyMessage
+            )
+          else
+            PrimeAutoHeightVirtualizedTable(
+              table,
+              _ => 32.toPx,
+              striped = true,
+              compact = Compact.Very,
+              containerRef = resize.ref,
+              emptyMessage = emptyMessage
+            )
 
         TileContents(title = title, body = body)
     })

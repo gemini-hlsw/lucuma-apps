@@ -251,6 +251,21 @@ class LayoutSuite extends FunSuite {
     assertEquals(resolveAutoHeight(autoItem, 200, 1, false).h, AutoHeightMinRows)
   }
 
+  test("Per-tile floor: content shorter than a custom minRows yields minRows") {
+    assertEquals(resolveAutoHeight(autoItem, 1, LargeViewport, false, minRows = 4).h, 4)
+  }
+
+  test("Per-tile floor: wins over the viewport cap") {
+    // Viewport fits 3 rows (118px), but the tile declares a floor of 5.
+    assertEquals(resolveAutoHeight(autoItem, 200, 118, false, minRows = 5).h, 5)
+  }
+
+  test("Per-tile floor: a minRows below the global floor is ignored") {
+    assertEquals(resolveAutoHeight(autoItem, 1, LargeViewport, false, minRows = 1).h,
+                 AutoHeightMinRows
+    )
+  }
+
   test("Deadband: a measurement matching the current row span leaves the item unchanged") {
     val stable = autoItem.copy(h = 3, minH = 3, maxH = 3)
     assertEquals(resolveAutoHeight(stable, 118, LargeViewport, false), stable)

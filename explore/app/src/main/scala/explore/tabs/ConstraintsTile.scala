@@ -36,7 +36,8 @@ final case class ConstraintsTile(
   readonly:                Boolean
 ) extends Tile[ConstraintsTile](
       ObsTabTileIds.ConstraintsId.id,
-      s"Constraints ${obsConditionsLikelihood.foldMap(p => s"(${formatPercentile(p)})")}"
+      s"Constraints ${obsConditionsLikelihood.foldMap(p => s"(${formatPercentile(p)})")}",
+      autoHeight = true
     )(ConstraintsTile)
 
 object ConstraintsTile

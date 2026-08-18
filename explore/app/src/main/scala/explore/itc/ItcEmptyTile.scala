@@ -13,6 +13,7 @@ final case class ItcEmptyTile()
     extends Tile[ItcEmptyTile](
       ObsTabTileIds.ItcId.id,
       "ITC",
+      heightPresets = true,
       bodyClass = ExploreStyles.ItcTileBody
     )(ItcEmptyTile)
 

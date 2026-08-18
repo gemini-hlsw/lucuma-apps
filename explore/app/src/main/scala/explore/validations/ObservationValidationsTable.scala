@@ -167,16 +167,25 @@ object ObservationValidationsTableBody {
       p.tileState.set(ObservationValidationsTableTileState(cb))
     )
     .useResizeDetector()
-    .render((_, _, rows, _, table, resizer) =>
-      PrimeAutoHeightVirtualizedTable(
-        table,
-        _ => 32.toPx,
-        striped = true,
-        compact = Compact.Very,
-        containerRef = resizer.ref,
-        hoverableRows = rows.nonEmpty,
-        emptyMessage = <.div("There are no Observation Errors.")
-      )
+    .render((_, _, _, rows, table, resizer) =>
+      val emptyMessage = <.div("There are no Observation Errors.")
+      if rows.isEmpty then
+        PrimeTable(
+          table,
+          striped = true,
+          compact = Compact.Very,
+          hoverableRows = false,
+          emptyMessage = emptyMessage
+        )
+      else
+        PrimeAutoHeightVirtualizedTable(
+          table,
+          _ => 32.toPx,
+          striped = true,
+          compact = Compact.Very,
+          containerRef = resizer.ref,
+          emptyMessage = emptyMessage
+        )
     )
 
   enum ValidationsTableRow {

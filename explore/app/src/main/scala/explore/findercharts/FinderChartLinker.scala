@@ -126,7 +126,7 @@ object FinderChartLinker extends ObsAttachmentUtils with FinderChartsAttachmentU
             _ => 32.toPx,
             striped = true,
             compact = Compact.Very,
-            emptyMessage = "No charts",
+            emptyMessage = <.div("No charts"),
             headerMod = ExploreStyles.FinderChartsTableHeader,
             tableMod =
               ExploreStyles.FinderChartsTable |+| ExploreStyles.ExploreSelectableTable |+| ExploreStyles.ExploreTable |+| ExploreStyles.FinderChartsTableDisabled
