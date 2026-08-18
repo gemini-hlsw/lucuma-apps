@@ -42,8 +42,8 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.ExchangeInput
-import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2CustomMaskInput
+import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2MosInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
