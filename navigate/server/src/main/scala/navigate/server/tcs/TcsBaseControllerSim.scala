@@ -213,20 +213,6 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-//  override def getInstrumentPorts: F[InstrumentPorts] =
-//    InstrumentPorts(
-//      flamingos2Port = 1,
-//      ghostPort = 0,
-//      gmosPort = 3,
-//      gnirsPort = 0,
-//      gpiPort = 0,
-//      gsaoiPort = 5,
-//      igrins2Port = 0,
-//      nifsPort = 0,
-//      niriPort = 0,
-//      visitorPort = 0
-//    ).pure[F]
-
   override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
     case enums.Instrument.AcqCamNorth  => 1
     case enums.Instrument.AcqCamSouth  => 1
@@ -489,29 +475,65 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def agAllPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
-  override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.dome).replace(mode.some)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsDisableDome: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def ecsDisableDome: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.dome).replace(none)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.shutters).replace(mode.some)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsDisableShutters: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def ecsDisableShutters: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.shutters).replace(none)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.eastVentGateOpen).replace(position)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsCloseEastVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def ecsCloseEastVentGate: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.eastVentGateOpen).replace(EcsEpicsSystem.ventGateClosePos)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.westVentGateOpen).replace(position)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsCloseWestVentGate: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def ecsCloseWestVentGate: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.westVentGateOpen).replace(EcsEpicsSystem.ventGateClosePos)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsDomePark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def ecsDomePark: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.dome).replace(none)
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def ecsShuttersPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def ecsShuttersPark: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.enclosure.shutters).replace(none)
+    )
+    .as(ApplyCommandResult.Completed)
 
   override def azimuthUnwrap: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
