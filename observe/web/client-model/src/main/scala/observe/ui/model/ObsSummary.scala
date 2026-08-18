@@ -74,6 +74,8 @@ case class ObsSummary(
           s"MOS ${grating.shortName} ${sw.shortName}".some
         case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu) =>
           s"${disperser.shortName} ${fpu.shortName}".some
+        case BasicConfiguration.Flamingos2Mos(disperser, _, sw)       =>
+          s"MOS ${disperser.shortName} ${sw.shortName}".some
         case BasicConfiguration.Flamingos2Imaging(filters)            =>
           filters.map(_.shortName).toList.mkString(", ").some
         case BasicConfiguration.GnirsImaging(filters, camera)         =>

@@ -443,7 +443,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
   // Retrieves a row by grating and filter from an observing mode.
   def getRowByInstrumentConfig(observingMode: ObservingMode): Option[SpectroscopyModeRow] =
     observingMode match
-      case ObservingMode.GmosNorthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
+      case ObservingMode.GmosNorthLongSlit(grating = grating, filter = filter, fpu = fpu)         =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosNorthSpectroscopy(
@@ -453,7 +453,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rFpu === fpu.some
             case _ => false
-      case ObservingMode.GmosSouthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
+      case ObservingMode.GmosSouthLongSlit(grating = grating, filter = filter, fpu = fpu)         =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosSouthSpectroscopy(
@@ -463,7 +463,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rFpu === fpu.some
             case _ => false
-      case ObservingMode.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
+      case ObservingMode.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu)    =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.Flamingos2Spectroscopy(
@@ -473,7 +473,18 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === disperser && rFilter === filter && rFpu === fpu.some
             case _ => false
-      case ObservingMode.GmosNorthMos(grating = grating, filter = filter, customMask = mask)   =>
+      case ObservingMode.Flamingos2Mos(disperser = disperser, filter = filter, customMask = mask) =>
+        matrix.find: row =>
+          row.instrumentConfig match
+            case ItcInstrumentConfig.Flamingos2Spectroscopy(
+                  grating = rGrating,
+                  filter = rFilter,
+                  fpu = None,
+                  customSlitWidth = Some(rSlitWidth)
+                ) =>
+              rGrating === disperser && rFilter === filter && rSlitWidth === mask.slitWidth
+            case _ => false
+      case ObservingMode.GmosNorthMos(grating = grating, filter = filter, customMask = mask)      =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosNorthSpectroscopy(
@@ -484,7 +495,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rSlitWidth === mask.slitWidth
             case _ => false
-      case ObservingMode.GmosSouthMos(grating = grating, filter = filter, customMask = mask)   =>
+      case ObservingMode.GmosSouthMos(grating = grating, filter = filter, customMask = mask)      =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosSouthSpectroscopy(
@@ -495,12 +506,12 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rSlitWidth === mask.slitWidth
             case _ => false
-      case _: ObservingMode.Igrins2LongSlit                                                    =>
+      case _: ObservingMode.Igrins2LongSlit                                                       =>
         matrix.find: row =>
           row.instrumentConfig match
             case _: ItcInstrumentConfig.Igrins2Spectroscopy => true
             case _                                          => false
-      case _                                                                                   => none
+      case _                                                                                      => none
 
   def filtered(
     focalPlane:  Option[FocalPlane] = None,

@@ -114,6 +114,7 @@ trait ObservationDB {
     type Flamingos2Filter                    = enums.Flamingos2Filter
     type Flamingos2Fpu                       = enums.Flamingos2Fpu
     type Flamingos2LyotWheel                 = enums.Flamingos2LyotWheel
+    type Flamingos2MosOffsetPreset           = enums.Flamingos2MosOffsetPreset
     type Flamingos2ReadMode                  = enums.Flamingos2ReadMode
     type Flamingos2ReadoutMode               = enums.Flamingos2ReadoutMode
     type Flamingos2Reads                     = enums.Flamingos2Reads

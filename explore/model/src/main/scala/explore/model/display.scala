@@ -346,6 +346,8 @@ trait DisplayImplicits:
       s"GMOS-S Imaging $filterStr"
     case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)                  =>
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
+    case BasicConfiguration.Flamingos2Mos(disperser, _, slitWidth)                 =>
+      s"Flamingos2 MOS ${disperser.shortName} ${slitWidth.shortName}"
     case BasicConfiguration.Flamingos2Imaging(filters)                             =>
       val filterStr = filters.map(_.shortName).toList.mkString(", ")
       s"Flamingos2 Imaging $filterStr"

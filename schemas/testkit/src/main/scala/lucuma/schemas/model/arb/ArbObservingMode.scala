@@ -843,6 +843,98 @@ trait ArbObservingMode {
         )
       )
 
+  given Arbitrary[ObservingMode.Flamingos2CustomMask] =
+    Arbitrary[ObservingMode.Flamingos2CustomMask](
+      for
+        attachmentId <- Gen.option(arbitrary[Attachment.Id])
+        slitWidth    <- arbitrary[Flamingos2CustomSlitWidth]
+      yield ObservingMode.Flamingos2CustomMask(attachmentId, slitWidth)
+    )
+
+  given Cogen[ObservingMode.Flamingos2CustomMask] =
+    Cogen[(Option[Attachment.Id], Flamingos2CustomSlitWidth)]
+      .contramap(m => (m.attachmentId, m.slitWidth))
+
+  given Arbitrary[ObservingMode.Flamingos2Mos] =
+    Arbitrary[ObservingMode.Flamingos2Mos](
+      for {
+        initialDisperser         <- arbitrary[Flamingos2Disperser]
+        disperser                <- arbitrary[Flamingos2Disperser]
+        initialFilter            <- arbitrary[Flamingos2Filter]
+        filter                   <- arbitrary[Flamingos2Filter]
+        initialSlitWidth         <- arbitrary[Flamingos2CustomSlitWidth]
+        customMask               <- arbitrary[ObservingMode.Flamingos2CustomMask]
+        offsetPreset             <- arbitrary[Flamingos2MosOffsetPreset]
+        explicitReadMode         <- arbitrary[Option[Flamingos2ReadMode]]
+        explicitReads            <- arbitrary[Option[Flamingos2Reads]]
+        defaultDecker            <- arbitrary[Flamingos2Decker]
+        explicitDecker           <- arbitrary[Option[Flamingos2Decker]]
+        defaultReadoutMode       <- arbitrary[Flamingos2ReadoutMode]
+        explicitReadoutMode      <- arbitrary[Option[Flamingos2ReadoutMode]]
+        defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
+        explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
+        exposureTimeMode         <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.Flamingos2Mos(
+        initialDisperser,
+        disperser,
+        initialFilter,
+        filter,
+        initialSlitWidth,
+        customMask,
+        offsetPreset,
+        explicitReadMode,
+        explicitReads,
+        defaultDecker,
+        explicitDecker,
+        defaultReadoutMode,
+        explicitReadoutMode,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
+        exposureTimeMode
+      )
+    )
+
+  given Cogen[ObservingMode.Flamingos2Mos] =
+    Cogen[
+      (Flamingos2Disperser,
+       Flamingos2Disperser,
+       Flamingos2Filter,
+       Flamingos2Filter,
+       Flamingos2CustomSlitWidth,
+       ObservingMode.Flamingos2CustomMask,
+       Flamingos2MosOffsetPreset,
+       Option[Flamingos2ReadMode],
+       Option[Flamingos2Reads],
+       Flamingos2Decker,
+       Option[Flamingos2Decker],
+       Flamingos2ReadoutMode,
+       Option[Flamingos2ReadoutMode],
+       SlitTelescopeConfigs,
+       Option[SlitTelescopeConfigs],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(o =>
+        (
+          o.initialDisperser,
+          o.disperser,
+          o.initialFilter,
+          o.filter,
+          o.initialSlitWidth,
+          o.customMask,
+          o.offsetPreset,
+          o.explicitReadMode,
+          o.explicitReads,
+          o.defaultDecker,
+          o.explicitDecker,
+          o.defaultReadoutMode,
+          o.explicitReadoutMode,
+          o.defaultTelescopeConfigs,
+          o.explicitTelescopeConfigs,
+          o.exposureTimeMode
+        )
+      )
+
   given cogenGmosNorthImagingFilter: Cogen[ObservingMode.GmosNorthImaging.ImagingFilter] =
     Cogen[(GmosNorthFilter, ExposureTimeMode)].contramap(i => (i.filter, i.exposureTimeMode))
 
@@ -1379,6 +1471,7 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
+      arbitrary[ObservingMode.Flamingos2Mos],
       arbitrary[ObservingMode.Flamingos2Imaging],
       arbitrary[ObservingMode.GnirsImaging],
       arbitrary[ObservingMode.Igrins2LongSlit],
@@ -1413,12 +1506,15 @@ trait ArbObservingMode {
                         ObservingMode.Flamingos2Imaging,
                         Either[
                           ObservingMode.Visitor,
-                          Either[ObservingMode.KeckExchange,
-                                 Either[ObservingMode.SubaruExchange,
-                                        Either[ObservingMode.GmosNorthMos,
-                                               ObservingMode.GmosSouthMos
-                                        ]
-                                 ]
+                          Either[
+                            ObservingMode.KeckExchange,
+                            Either[ObservingMode.SubaruExchange,
+                                   Either[ObservingMode.GmosNorthMos,
+                                          Either[ObservingMode.GmosSouthMos,
+                                                 ObservingMode.Flamingos2Mos
+                                          ]
+                                   ]
+                            ]
                           ]
                         ]
                       ]
@@ -1456,7 +1552,9 @@ trait ArbObservingMode {
         case n: ObservingMode.GmosNorthMos       =>
           n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: ObservingMode.GmosSouthMos       =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case f: ObservingMode.Flamingos2Mos      =>
+          f.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

@@ -125,6 +125,15 @@ trait ArbBasicConfiguration {
       } yield BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu)
     )
 
+  given Arbitrary[BasicConfiguration.Flamingos2Mos] =
+    Arbitrary[BasicConfiguration.Flamingos2Mos](
+      for {
+        disperser <- arbitrary[Flamingos2Disperser]
+        filter    <- arbitrary[Flamingos2Filter]
+        slitWidth <- arbitrary[Flamingos2CustomSlitWidth]
+      } yield BasicConfiguration.Flamingos2Mos(disperser, filter, slitWidth)
+    )
+
   given Arbitrary[BasicConfiguration.Flamingos2Imaging] =
     Arbitrary[BasicConfiguration.Flamingos2Imaging](
       for {
@@ -211,6 +220,7 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GmosSouthImaging],
       arbitrary[BasicConfiguration.GnirsSpectroscopy],
       arbitrary[BasicConfiguration.Flamingos2LongSlit],
+      arbitrary[BasicConfiguration.Flamingos2Mos],
       arbitrary[BasicConfiguration.Flamingos2Imaging],
       arbitrary[BasicConfiguration.GnirsImaging],
       arbitrary[BasicConfiguration.Igrins2LongSlit.type],
@@ -268,6 +278,18 @@ trait ArbBasicConfiguration {
           o.filter,
           o.slitWidth,
           o.centralWavelength.value
+        )
+      )
+
+  given Cogen[BasicConfiguration.Flamingos2Mos] =
+    Cogen[
+      (Flamingos2Disperser, Flamingos2Filter, Flamingos2CustomSlitWidth)
+    ]
+      .contramap(o =>
+        (
+          o.disperser,
+          o.filter,
+          o.slitWidth
         )
       )
 
@@ -351,7 +373,10 @@ trait ArbBasicConfiguration {
                               BasicConfiguration.SubaruExchange,
                               Either[
                                 BasicConfiguration.GmosNorthMos,
-                                BasicConfiguration.GmosSouthMos
+                                Either[
+                                  BasicConfiguration.GmosSouthMos,
+                                  BasicConfiguration.Flamingos2Mos
+                                ]
                               ]
                             ]
                           ]
@@ -391,7 +416,9 @@ trait ArbBasicConfiguration {
         case n: BasicConfiguration.GmosNorthMos       =>
           n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: BasicConfiguration.GmosSouthMos       =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case f: BasicConfiguration.Flamingos2Mos      =>
+          f.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 
 }
 

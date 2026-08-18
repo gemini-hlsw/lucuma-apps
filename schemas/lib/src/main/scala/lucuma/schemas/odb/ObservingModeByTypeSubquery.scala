@@ -13,7 +13,7 @@ import lucuma.schemas.model.ObservingMode
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
-    "($includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsSpectroscopy: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
+    "($includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsSpectroscopy: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
 
   override val subquery = gql"""
         {
@@ -227,6 +227,27 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               explicitFilter
               exposureTimeMode $ExposureTimeModeSubquery
             }
+          }
+          flamingos2Mos @include(if: $$includeFlamingos2Mos) {
+            initialDisperser
+            initialFilter
+            initialSlitWidth
+            disperser
+            filter
+            customMask {
+              attachmentId
+              slitWidth
+            }
+            offsetPreset
+            explicitReadMode
+            explicitReads
+            defaultDecker
+            explicitDecker
+            defaultReadoutMode
+            explicitReadoutMode
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
           }
           igrins2LongSlit @include(if: $$includeIgrins2LongSlit) {
             exposureTimeMode $ExposureTimeModeSubquery

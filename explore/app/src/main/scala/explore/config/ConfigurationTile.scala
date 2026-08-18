@@ -672,6 +672,11 @@ object ConfigurationTile
                       props.units,
                       props.isStaffOrAdmin
                     ),
+                  // Flamingos2 MOS (read only)
+                  props.observingMode
+                    .flatMap(ObservingMode.flamingos2Mos.getOption)
+                    .map: f2Mos =>
+                      Flamingos2MosConfigPanel(f2Mos, revertConfig, props.permissions),
                   // Flamingos2 Imaging
                   optFlamingos2ImagingAligner.map: f2ImgAligner =>
                     Flamingos2ImagingConfigPanel(
