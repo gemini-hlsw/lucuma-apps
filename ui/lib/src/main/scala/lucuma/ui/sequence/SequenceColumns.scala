@@ -323,12 +323,6 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       header = "ROI",
       cell = _.value.orEmpty
     )
-  colDef(
-    SequenceColumns.ROIColumnId,
-    _.getStep.flatMap(_.roi),
-    header = "ROI",
-    cell = _.value.orEmpty
-  )
 
   private lazy val snCol: colDef.TypeFor[Option[SignalToNoiseValue]] =
     colDef(
