@@ -224,6 +224,8 @@ extension (conf: BasicConfiguration)
           AgsParams
             .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
             .some
+        case BasicConfiguration.Flamingos2Mos(_, _, _)                                       =>
+          none
         case BasicConfiguration.Flamingos2Imaging(_)                                         =>
           AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port).some
         case BasicConfiguration.Igrins2LongSlit                                              =>

@@ -57,6 +57,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
   def siteFor: Option[Site] = this match
     case _: BasicConfiguration.Flamingos2Imaging  => Site.GS.some
     case _: BasicConfiguration.Flamingos2LongSlit => Site.GS.some
+    case _: BasicConfiguration.Flamingos2Mos      => Site.GS.some
     case _: BasicConfiguration.GhostIfu           => Site.GS.some
     case _: BasicConfiguration.GmosNorthImaging   => Site.GN.some
     case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN.some
@@ -74,6 +75,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
   def obsModeType: ObservingModeType = this match
     case _: BasicConfiguration.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
     case _: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
+    case _: BasicConfiguration.Flamingos2Mos      => ObservingModeType.Flamingos2Mos
     case _: BasicConfiguration.GhostIfu           => ObservingModeType.GhostIfu
     case _: BasicConfiguration.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
     case _: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
@@ -98,6 +100,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
       cw.some
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
+      CentralWavelength(filter.wavelength).some
+    case BasicConfiguration.Flamingos2Mos(filter = filter)            =>
       CentralWavelength(filter.wavelength).some
     case BasicConfiguration.Igrins2LongSlit                           =>
       CentralWavelength(Igrins2CentralWavelength).some
@@ -128,6 +132,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GnirsImaging(filters = filters)           =>
       AGSWavelength(filters.maximumBy(_.centralWavelength).centralWavelength)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
+      AGSWavelength(filter.wavelength)
+    case BasicConfiguration.Flamingos2Mos(filter = filter)            =>
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
       AGSWavelength(Igrins2CentralWavelength)
@@ -160,6 +166,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GnirsImaging(filters = filters)           =>
       filters.minimumBy(_.centralWavelength).centralWavelength
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
+      filter.wavelength
+    case BasicConfiguration.Flamingos2Mos(filter = filter)            =>
       filter.wavelength
     case BasicConfiguration.Igrins2LongSlit                           =>
       Igrins2CentralWavelength
@@ -229,6 +237,8 @@ object BasicConfiguration:
             c.downField("flamingos2Imaging").as[Flamingos2Imaging]
           .orElse:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
+          .orElse:
+            c.downField("flamingos2Mos").as[Flamingos2Mos]
           .orElse:
             c.downField("igrins2LongSlit").as[Igrins2LongSlit.type]
           .orElse:
@@ -322,6 +332,21 @@ object BasicConfiguration:
 
   object Flamingos2LongSlit:
     given Decoder[Flamingos2LongSlit] = deriveDecoder
+
+  case class Flamingos2Mos(
+    disperser: Flamingos2Disperser,
+    filter:    Flamingos2Filter,
+    slitWidth: Flamingos2CustomSlitWidth
+  ) extends BasicConfiguration derives Eq
+
+  object Flamingos2Mos:
+    given Decoder[Flamingos2Mos] = Decoder.instance: c =>
+      for
+        disperser <- c.downField("disperser").as[Flamingos2Disperser]
+        filter    <- c.downField("filter").as[Flamingos2Filter]
+        slitWidth <-
+          c.downField("customMask").downField("slitWidth").as[Flamingos2CustomSlitWidth]
+      yield Flamingos2Mos(disperser, filter, slitWidth)
 
   case class Flamingos2Imaging(
     filters: NonEmptyList[Flamingos2Filter]
@@ -522,6 +547,9 @@ object BasicConfiguration:
 
   val gmosSouthMos: Prism[BasicConfiguration, GmosSouthMos] =
     GenPrism[BasicConfiguration, GmosSouthMos]
+
+  val flamingos2Mos: Prism[BasicConfiguration, Flamingos2Mos] =
+    GenPrism[BasicConfiguration, Flamingos2Mos]
 
   val gmosNorthImaging: Prism[BasicConfiguration, GmosNorthImaging] =
     GenPrism[BasicConfiguration, GmosNorthImaging]

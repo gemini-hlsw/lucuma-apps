@@ -135,6 +135,12 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                       fpu = Some(fpu)
           ) =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(grating = disperser,
+                                                      filter = filter,
+                                                      fpu = None,
+                                                      customSlitWidth = Some(slitWidth)
+          ) =>
+        BasicConfiguration.Flamingos2Mos(disperser, filter, slitWidth).some
       case ItcInstrumentConfig.GmosNorthImaging(_, _)                               =>
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _), _) => f

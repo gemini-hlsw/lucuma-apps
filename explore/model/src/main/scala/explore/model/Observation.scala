@@ -301,6 +301,17 @@ final case class Observation(
                                       f.exposureTimeMode
               )
           )
+        case f: ObservingMode.Flamingos2Mos      =>
+          List(
+            ItcInstrumentConfig
+              .Flamingos2Spectroscopy(f.disperser,
+                                      f.filter,
+                                      none,
+                                      f.readMode,
+                                      f.exposureTimeMode,
+                                      f.customMask.slitWidth.some
+              )
+          )
         case f: ObservingMode.Flamingos2Imaging  =>
           f.filters.toList
             .map(f => ItcInstrumentConfig.Flamingos2Imaging(f.filter, f.exposureTimeMode))

@@ -479,6 +479,7 @@ object ObsTabTiles:
                   Some(_: BasicConfiguration.GmosNorthMos) |
                   Some(_: BasicConfiguration.GmosSouthMos) |
                   Some(_: BasicConfiguration.Flamingos2LongSlit) |
+                  Some(_: BasicConfiguration.Flamingos2Mos) |
                   Some(_: BasicConfiguration.Igrins2LongSlit.type) |
                   Some(_: BasicConfiguration.GhostIfu) |
                   Some(_: BasicConfiguration.GnirsSpectroscopy) =>

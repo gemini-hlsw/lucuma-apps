@@ -68,6 +68,7 @@ object ObsQueriesGQL:
         $$includeGmosSouthMos: Boolean!,
         $$includeFlamingos2Imaging: Boolean!,
         $$includeFlamingos2LongSlit: Boolean!,
+        $$includeFlamingos2Mos: Boolean!,
         $$includeIgrins2LongSlit: Boolean!,
         $$includeGnirsImaging: Boolean!,
         $$includeGnirsSpectroscopy: Boolean!,

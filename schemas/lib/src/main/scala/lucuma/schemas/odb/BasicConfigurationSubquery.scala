@@ -56,6 +56,13 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             filter
             fpu
           }
+          flamingos2Mos {
+            disperser
+            filter
+            customMask {
+              slitWidth
+            }
+          }
           flamingos2Imaging {
             filters {
               filter

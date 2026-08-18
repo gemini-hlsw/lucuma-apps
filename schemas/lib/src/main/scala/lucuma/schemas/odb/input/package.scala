@@ -735,6 +735,26 @@ extension (o: ObservingMode.Flamingos2LongSlit)
     acquisition = o.acquisition.toInput.assign
   )
 
+extension (m: ObservingMode.Flamingos2CustomMask)
+  def toInput: Flamingos2CustomMaskInput = Flamingos2CustomMaskInput(
+    attachmentId = m.attachmentId.orUnassign,
+    slitWidth = m.slitWidth
+  )
+
+extension (o: ObservingMode.Flamingos2Mos)
+  def toInput: Flamingos2MosInput = Flamingos2MosInput(
+    disperser = o.disperser.assign,
+    filter = o.filter.assign,
+    customMask = o.customMask.toInput.assign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    offsetPreset = o.offsetPreset.assign,
+    explicitReadMode = o.explicitReadMode.orUnassign,
+    explicitReads = o.explicitReads.orUnassign,
+    explicitDecker = o.explicitDecker.orUnassign,
+    explicitReadoutMode = o.explicitReadoutMode.orUnassign,
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign
+  )
+
 extension (o: ObservingMode.Igrins2LongSlit)
   def toInput: Igrins2LongSlitInput = Igrins2LongSlitInput(
     exposureTimeMode = o.exposureTimeMode.toInput.assign,
@@ -857,6 +877,8 @@ extension (b: ObservingMode)
       ObservingModeInput.Flamingos2Imaging(o.toInput)
     case o: ObservingMode.Flamingos2LongSlit =>
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
+    case o: ObservingMode.Flamingos2Mos      =>
+      ObservingModeInput.Flamingos2Mos(o.toInput)
     case o: ObservingMode.GnirsImaging       =>
       ObservingModeInput.GnirsImaging(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
@@ -958,6 +980,17 @@ extension (i: BasicConfiguration)
           disperser = disperser.assign,
           filter = filter.assign,
           fpu = fpu.assign
+        )
+    // The mask's attachment is left unassigned: it is designed in Phase 2.
+    case BasicConfiguration.Flamingos2Mos(disperser = disperser,
+                                          filter = filter,
+                                          slitWidth = slitWidth
+        ) =>
+      ObservingModeInput.Flamingos2Mos:
+        Flamingos2MosInput(
+          disperser = disperser.assign,
+          filter = filter.assign,
+          customMask = Flamingos2CustomMaskInput(slitWidth = slitWidth).assign
         )
     // TODO: should we consider offset mode and saveSVCImages?
     case BasicConfiguration.Igrins2LongSlit                                                       =>
