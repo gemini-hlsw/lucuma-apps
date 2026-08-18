@@ -9,7 +9,9 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ObservingMode
 
 // Each instrument-mode view is gated behind an `@include(if:)` directive, so a caller selects
-// only the mode it needs.
+// only the mode it needs. `mode` is always selected: a caller removing the observing mode turns
+// off every flag, and an empty selection set on the non-leaf `observingMode` field is a server
+// error.
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
@@ -17,6 +19,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
 
   override val subquery = gql"""
         {
+          mode
           gmosNorthLongSlit @include(if: $$includeGmosNorthLongSlit) {
             initialGrating
             initialFilter
