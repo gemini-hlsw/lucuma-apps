@@ -2652,13 +2652,13 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     partialVentGateCmd(ventGateTimeout, eastVentGatePos = position.some)
 
   override def ecsCloseEastVentGate: F[ApplyCommandResult] =
-    partialVentGateCmd(ventGateTimeout, eastVentGatePos = IntPercent.unsafeFrom(0).some)
+    partialVentGateCmd(ventGateTimeout, eastVentGatePos = EcsEpicsSystem.ventGateClosePos.some)
 
   override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] =
     partialVentGateCmd(ventGateTimeout, westVentGatePos = position.some)
 
   override def ecsCloseWestVentGate: F[ApplyCommandResult] =
-    partialVentGateCmd(ventGateTimeout, westVentGatePos = IntPercent.unsafeFrom(0).some)
+    partialVentGateCmd(ventGateTimeout, westVentGatePos = EcsEpicsSystem.ventGateClosePos.some)
 
   private val azUnwrapTimeout                       = FiniteDuration(60, SECONDS)
   override def azimuthUnwrap: F[ApplyCommandResult] =
