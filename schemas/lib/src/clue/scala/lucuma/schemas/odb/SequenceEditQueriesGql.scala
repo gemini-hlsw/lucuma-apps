@@ -16,7 +16,7 @@ import lucuma.schemas.ObservationDB
 object SequenceEditQueriesGql:
   @GraphQL
   trait ReplaceGmosNorthSequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GmosNorthAtomInput!]!) {
         replaceGmosNorthSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $GmosNorthAtomSubquery
@@ -26,7 +26,7 @@ object SequenceEditQueriesGql:
 
   @GraphQL
   trait ReplaceGmosSouthSequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GmosSouthAtomInput!]!) {
         replaceGmosSouthSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $GmosSouthAtomSubquery
@@ -36,7 +36,7 @@ object SequenceEditQueriesGql:
 
   @GraphQL
   trait ReplaceFlamingos2Sequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [Flamingos2AtomInput!]!) {
         replaceFlamingos2Sequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $Flamingos2AtomSubquery
@@ -46,7 +46,7 @@ object SequenceEditQueriesGql:
 
   @GraphQL
   trait ReplaceIgrins2Sequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [Igrins2AtomInput!]!) {
         replaceIgrins2Sequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $Igrins2AtomSubquery
@@ -56,7 +56,7 @@ object SequenceEditQueriesGql:
 
   @GraphQL
   trait ReplaceGnirsSequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GnirsAtomInput!]!) {
         replaceGnirsSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $GnirsAtomSubquery
@@ -66,7 +66,7 @@ object SequenceEditQueriesGql:
 
   @GraphQL
   trait ReplaceGhostSequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GhostAtomInput!]!) {
         replaceGhostSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $GhostAtomSubquery

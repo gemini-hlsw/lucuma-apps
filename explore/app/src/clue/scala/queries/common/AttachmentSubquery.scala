@@ -12,7 +12,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("Attachment")
 object AttachmentSubquery extends GraphQLSubquery.Typed[ObservationDB, Attachment]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       id
       attachmentType

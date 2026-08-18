@@ -11,7 +11,7 @@ import lucuma.schemas.decoders.given
 
 @GraphQLType("ConstraintSet")
 object ConstraintSetSubquery extends GraphQLSubquery.Typed[ObservationDB, ConstraintSet]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           cloudExtinction
           imageQuality

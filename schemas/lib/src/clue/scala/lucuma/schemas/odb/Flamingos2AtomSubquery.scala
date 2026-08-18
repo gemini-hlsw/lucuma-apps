@@ -16,7 +16,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("Flamingos2Atom")
 object Flamingos2AtomSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Atom[Flamingos2DynamicConfig]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           id
           description

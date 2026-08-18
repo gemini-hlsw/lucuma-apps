@@ -11,7 +11,7 @@ object ObsQueriesGQL {
 
   @GraphQL
   trait ActiveObservationIdsQuery extends GraphQLOperation[ObservationDB] {
-    val document = s"""
+    val document = gql"""
       query($$site: Site!, $$date: Date!) {
         observations(
           WHERE: {
@@ -38,7 +38,7 @@ object ObsQueriesGQL {
 
   @GraphQL
   trait ObservationEditSubscription extends GraphQLOperation[ObservationDB] {
-    val document = """
+    val document = gql"""
       subscription {
         observationEdit {
           value {
@@ -51,9 +51,9 @@ object ObsQueriesGQL {
 
   @GraphQL
   trait SingleObservationEditSubscription extends GraphQLOperation[ObservationDB] {
-    val document = """
-      subscription($input: ObservationEditInput!) {
-        observationEdit(input: $input) {
+    val document = gql"""
+      subscription($$input: ObservationEditInput!) {
+        observationEdit(input: $$input) {
           value {
             id
           }
@@ -64,7 +64,7 @@ object ObsQueriesGQL {
 
   @GraphQL
   trait DatasetEditSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       subscription($$obsId: ObservationId!) {
         datasetEdit(input: { observationId: $$obsId }) {
           value { id }

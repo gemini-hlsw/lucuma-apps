@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQLType("Coordinates")
 object CoordinatesSubquery extends GraphQLSubquery.Typed[ObservationDB, Coordinates] {
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       ra $RASubquery
       dec $DecSubquery

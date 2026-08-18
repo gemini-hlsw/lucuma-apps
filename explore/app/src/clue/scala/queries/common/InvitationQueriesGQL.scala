@@ -14,7 +14,7 @@ import explore.model.RedeemInvitationResult
 object InvitationQueriesGQL:
   @GraphQL
   trait CreateInviteMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$programUserId: ProgramUserId!, $$recipientEmail: EmailAddress!) {
         createUserInvitation(input: {
           programUserId: $$programUserId,
@@ -39,7 +39,7 @@ object InvitationQueriesGQL:
 
   @GraphQL
   trait RevokeInvitationMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$id: UserInvitationId!) {
         revokeUserInvitation(input: { id: $$id }) {
           invitation {
@@ -51,7 +51,7 @@ object InvitationQueriesGQL:
 
   @GraphQL
   trait RedeemInvitationMutation extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       mutation($$key: UserInvitationKey!) {
         redeemUserInvitation(input: { key: $$key }) {
           invitation {

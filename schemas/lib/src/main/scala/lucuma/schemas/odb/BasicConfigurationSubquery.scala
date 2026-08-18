@@ -10,7 +10,7 @@ import lucuma.schemas.model.BasicConfiguration
 
 @GraphQLType("ObservingMode")
 object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, BasicConfiguration]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           instrument
           gmosNorthLongSlit {

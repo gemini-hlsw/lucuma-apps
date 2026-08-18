@@ -12,7 +12,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("CallForProposals")
 object CallForProposalsSubquery extends GraphQLSubquery.Typed[ObservationDB, CallForProposal]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       id
       semester

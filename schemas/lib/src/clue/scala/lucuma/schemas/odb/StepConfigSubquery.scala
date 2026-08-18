@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("StepConfig")
 object StepConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, StepConfig]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           stepType
           ... on Gcal {

@@ -11,7 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQLType("UnnormalizedSed")
 object UnnormalizedSEDSubquery extends GraphQLSubquery.Typed[ObservationDB, UnnormalizedSED]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           stellarLibrary
           coolStar

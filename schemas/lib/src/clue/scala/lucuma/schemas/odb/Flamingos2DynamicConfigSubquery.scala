@@ -14,7 +14,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("Flamingos2Dynamic")
 object Flamingos2DynamicConfigSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Flamingos2DynamicConfig]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       exposure $TimeSpanSubquery
       disperser

@@ -12,7 +12,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("Program")
 object ProgramInfoSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramInfo]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       id
       name

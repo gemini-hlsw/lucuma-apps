@@ -16,8 +16,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("GhostAtom")
 object GhostAtomSubquery extends GraphQLSubquery.Typed[ObservationDB, Atom[GhostDynamicConfig]]:
 
-  override val subquery: String =
-    s"""
+  override val subquery = gql"""
         {
           id
           description

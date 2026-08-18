@@ -13,7 +13,7 @@ import lucuma.schemas.decoders.given
 @GraphQL
 @GraphQLType("TimestampInterval")
 object TimestampIntervalSubquery extends GraphQLSubquery.Typed[ObservationDB, TimestampInterval]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           start
           end

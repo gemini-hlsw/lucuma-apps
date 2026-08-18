@@ -14,7 +14,7 @@ import lucuma.schemas.model.ExecutionVisits
 @GraphQLType("Execution")
 object ExecutionVisitsSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Option[ExecutionVisits]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       visits(OFFSET: $$visitIdOffset) {
         matches {

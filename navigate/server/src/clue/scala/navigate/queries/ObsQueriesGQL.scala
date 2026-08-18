@@ -11,9 +11,9 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait AddSlewEventMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($obsId: ObservationId!, $stg: SlewStage!, $clientTime: Timestamp)  {
-        addSlewEvent(input: { observationId: $obsId, slewStage: $stg, clientTime: $clientTime } ) {
+    val document = gql"""
+      mutation($$obsId: ObservationId!, $$stg: SlewStage!, $$clientTime: Timestamp)  {
+        addSlewEvent(input: { observationId: $$obsId, slewStage: $$stg, clientTime: $$clientTime } ) {
           event {
             id
           }
@@ -23,15 +23,15 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait ActiveNonsiderealTargetsQuery extends GraphQLOperation[ObservationDB] {
-    val document = """
-      query($site: Site!, $startDate: Date!, $endDate: Date!) {
+    val document = gql"""
+      query($$site: Site!, $$startDate: Date!, $$endDate: Date!) {
         observations(
           WHERE: {
-            site: { EQ: $site },
+            site: { EQ: $$site },
             program: {
               AND: [
-                { activeStart: { LTE: $endDate } },
-                { activeEnd: { GTE: $startDate } }
+                { activeStart: { LTE: $$endDate } },
+                { activeEnd: { GTE: $$startDate } }
               ]
             },
             reference: { IS_NULL: false },
@@ -83,10 +83,10 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait NonsiderealGuideTargetsQuery extends GraphQLOperation[ObservationDB] {
-    val document = """
-      query($obsId: ObservationId!) {
+    val document = gql"""
+      query($$obsId: ObservationId!) {
         observation(
-          observationId: $obsId
+          observationId: $$obsId
         ) {
           id
           targetEnvironment {

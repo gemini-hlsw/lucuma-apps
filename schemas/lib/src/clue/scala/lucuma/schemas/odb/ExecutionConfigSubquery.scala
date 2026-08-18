@@ -16,7 +16,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("ExecutionConfig")
 object ExecutionConfigSubquery
     extends GraphQLSubquery.Typed[ObservationDB, InstrumentExecutionConfig]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       instrument
       gmosNorth {

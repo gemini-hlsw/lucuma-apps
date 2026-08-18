@@ -12,7 +12,7 @@ import lucuma.schemas.decoders.SlitTelescopeConfigsDecoders.given
 @GraphQLType("SlitTelescopeConfigs")
 object SlitTelescopeConfigsSubquery
     extends GraphQLSubquery.Typed[ObservationDB, SlitTelescopeConfigs]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           offsetMode
           alongSlit {

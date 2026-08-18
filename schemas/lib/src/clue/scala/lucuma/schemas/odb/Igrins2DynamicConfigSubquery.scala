@@ -14,7 +14,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("Igrins2Dynamic")
 object Igrins2DynamicConfigSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Igrins2DynamicConfig]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       exposure $TimeSpanSubquery
     }

@@ -16,7 +16,7 @@ import lucuma.odb.json.limits.decoder.given
 @GraphQLType("CoordinateLimits")
 object SiteCoordinatesLimitsSubquery
     extends GraphQLSubquery.Typed[ObservationDB, SiteCoordinatesLimits]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       raStart $RASubquery
       raEnd $RASubquery

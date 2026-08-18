@@ -13,7 +13,7 @@ import lucuma.sso.client.codec.userProfile.given
 @GraphQL
 @GraphQLType("UserProfile")
 object UserProfileSubquery extends GraphQLSubquery.Typed[ObservationDB, UserProfile]:
-  override val subquery: String = """
+  override val subquery = gql"""
     {
       givenName
       creditName

@@ -16,7 +16,7 @@ import lucuma.schemas.ObservationDB
 class BandNormalizedSubquery[T](using
   Decoder[SpectralDefinition.BandNormalized[T]]
 ) extends GraphQLSubquery.Typed[ObservationDB, SpectralDefinition.BandNormalized[T]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           sed $UnnormalizedSEDSubquery
           brightnesses $BandBrightnessIntegratedSubquery

@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("TimeSpan")
 object TimeSpanSubquery extends GraphQLSubquery.Typed[ObservationDB, TimeSpan]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           microseconds
         }

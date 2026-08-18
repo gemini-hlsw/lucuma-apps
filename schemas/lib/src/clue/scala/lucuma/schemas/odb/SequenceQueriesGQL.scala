@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 object SequenceQueriesGql:
   @GraphQL
   trait SequenceQuery extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
         query($$obsId: ObservationId!, $$includeItc: Boolean!) {
           observation(observationId: $$obsId) @include(if: $$includeItc) {
             signalToNoise:itc $ModeSignalToNoiseSubquery
@@ -26,7 +26,7 @@ object SequenceQueriesGql:
   // query for the per-detector time estimate of a GHOST science step. Just one atom
   @GraphQL
   trait GhostScienceStepEstimateQuery extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
         query($$obsId: ObservationId!) {
           executionConfig(observationId: $$obsId, futureLimit: 0) {
             ghost {

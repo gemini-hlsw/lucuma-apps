@@ -13,7 +13,7 @@ import lucuma.schemas.model.ModeSignalToNoise
 @GraphQL
 @GraphQLType("Itc")
 object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, ModeSignalToNoise]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       itcType
         ... on ItcSpectroscopy {

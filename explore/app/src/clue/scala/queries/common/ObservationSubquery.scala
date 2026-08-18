@@ -17,7 +17,7 @@ import lucuma.schemas.odb.*
 @GraphQLType("Observation")
 object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observation]:
 
-  override val subquery: String = s"""
+  override val subquery = gql"""
         {
           id
           title

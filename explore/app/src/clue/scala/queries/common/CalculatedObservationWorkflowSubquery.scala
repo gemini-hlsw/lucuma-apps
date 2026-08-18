@@ -15,7 +15,7 @@ import lucuma.schemas.decoders.given
 @GraphQLType("CalculatedObservationWorkflow")
 object CalculatedObservationWorkflowSubquery
     extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[ObservationWorkflow]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       calculationState
       value $ObservationWorkflowSubquery

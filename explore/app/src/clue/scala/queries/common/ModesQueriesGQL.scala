@@ -13,7 +13,7 @@ object ModesQueriesGQL:
 
   @GraphQL
   trait ScienceModes extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       query($$supportedInstruments: [Instrument!]!) {
         spectroscopyConfigOptions(
           WHERE: {

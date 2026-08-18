@@ -19,7 +19,7 @@ object ObsQueriesGql:
   // Query observations with targets.
   @GraphQL
   trait ObsQuery extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       query($$obsId: ObservationId!, $$skipTargets: Boolean!) {
         observation(observationId: $$obsId) {
           id
@@ -77,7 +77,7 @@ object ObsQueriesGql:
   // Query observations with targets.
   @GraphQL
   trait ObsExecutionQuery extends GraphQLOperation[ObservationDB] {
-    val document = s"""
+    val document = gql"""
       query($$obsId: ObservationId!) {
         observation(observationId: $$obsId) {
           id
@@ -92,9 +92,9 @@ object ObsQueriesGql:
   // Lightweight query to determine the skipTargets parameter in the query above.
   @GraphQL
   trait ObsCalibrationRoleQuery extends GraphQLOperation[ObservationDB]:
-    val document = """
-      query($obsId: ObservationId!) {
-        observation(observationId: $obsId) {
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
           calibrationRole
         }
       }
@@ -102,9 +102,9 @@ object ObsQueriesGql:
 
   @GraphQL
   trait ResetAcquisitionMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($obsId: ObservationId!) {
-        resetAcquisition(input: { observationId: $obsId } ) {
+    val document = gql"""
+      mutation($$obsId: ObservationId!) {
+        resetAcquisition(input: { observationId: $$obsId } ) {
           observation { id }
         }
       }

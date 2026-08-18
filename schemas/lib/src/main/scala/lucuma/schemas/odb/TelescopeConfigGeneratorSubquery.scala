@@ -13,7 +13,7 @@ import lucuma.schemas.odb.*
 @GraphQLType("TelescopeConfigGenerator")
 object TelescopeConfigGeneratorSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Option[TelescopeConfigGenerator]]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       generatorType
       enumerated {

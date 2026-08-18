@@ -10,7 +10,7 @@ import lucuma.schemas.ObservationDB
 object DeleteSequenceQueryGql:
   @GraphQL
   trait DeleteSequence extends GraphQLOperation[ObservationDB]:
-    val document = s"""
+    val document = gql"""
       mutation($$obsId: ObservationId!) {
         deleteSequence(input: { observationId: $$obsId }) {
           observation {

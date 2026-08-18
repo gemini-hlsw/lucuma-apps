@@ -10,7 +10,7 @@ import lucuma.schemas.ObservationDB
 object CallsQueriesGQL:
   @GraphQL
   trait ReadOpenCFPs extends GraphQLOperation[ObservationDB]:
-    val document: String = s"""
+    val document = gql"""
       query {
         callsForProposals(WHERE: {isOpen: {EQ: true}}) {
           matches $CallForProposalsSubquery

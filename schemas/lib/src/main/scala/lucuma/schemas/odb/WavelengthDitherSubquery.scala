@@ -11,7 +11,7 @@ import lucuma.schemas.decoders.given
 
 @GraphQLType("WavelengthDither")
 object WavelengthDitherSubquery extends GraphQLSubquery.Typed[ObservationDB, WavelengthDither]:
-  override val subquery: String = """
+  override val subquery = gql"""
         {
           picometers
         }

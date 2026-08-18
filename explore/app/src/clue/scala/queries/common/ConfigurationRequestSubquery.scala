@@ -14,7 +14,7 @@ import lucuma.schemas.ObservationDB
 @GraphQLType("ConfigurationRequest")
 object ConfigurationRequestSubquery
     extends GraphQLSubquery.Typed[ObservationDB, ConfigurationRequest]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       id
       status

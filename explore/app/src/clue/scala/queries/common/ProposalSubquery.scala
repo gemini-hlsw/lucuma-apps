@@ -13,7 +13,7 @@ import lucuma.schemas.ObservationDB
 @GraphQL
 @GraphQLType("Proposal")
 object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
-  override val subquery: String = s"""
+  override val subquery = gql"""
     {
       call $CallForProposalsSubquery
       category
@@ -96,7 +96,7 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
 @GraphQL
 @GraphQLType("PartnerSplit")
 object PartnerSplitSubquery extends GraphQLSubquery.Typed[ObservationDB, PartnerSplit]:
-  override val subquery: String = """
+  override val subquery = gql"""
     {
       partner
       percent

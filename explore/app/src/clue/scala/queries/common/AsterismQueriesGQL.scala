@@ -10,9 +10,9 @@ import lucuma.schemas.ObservationDB
 object AsterismQueriesGQL {
   @GraphQL
   trait UpdateAsterismsMutation extends GraphQLOperation[ObservationDB] {
-    val document = """
-      mutation($input: UpdateAsterismsInput!) {
-        updateAsterisms(input: $input) {
+    val document = gql"""
+      mutation($$input: UpdateAsterismsInput!) {
+        updateAsterisms(input: $$input) {
           observations {
             id
           }
@@ -25,15 +25,15 @@ object AsterismQueriesGQL {
   // close together and get grouped by the programCache so we don't have an invalid state for the UI.
   @GraphQL
   trait UpdateTargetsAndAsterismsMutation extends GraphQLOperation[ObservationDB] {
-    val document = """
-      mutation($targetInput: UpdateTargetsInput!,$asterismInput: UpdateAsterismsInput!) {
-        updateTargets(input: $targetInput) {
+    val document = gql"""
+      mutation($$targetInput: UpdateTargetsInput!,$$asterismInput: UpdateAsterismsInput!) {
+        updateTargets(input: $$targetInput) {
           targets {
             id
           }
         }
 
-        updateAsterisms(input: $asterismInput) {
+        updateAsterisms(input: $$asterismInput) {
           observations {
             id
           }
