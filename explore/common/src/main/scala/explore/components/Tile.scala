@@ -48,8 +48,7 @@ import lucuma.ui.syntax.all.given
  *   the row span an auto-height tile may never shrink below, e.g. so an empty tile keeps a
  *   presentable body
  * @param heightPresets
- *   whether to offer height preset slider in the title bar,
- *   Ignored for autoHeight tiles
+ *   whether to offer height preset slider in the title bar, Ignored for autoHeight tiles
  * @param sizeState
  *   the initial size state of the tile
  * @param sizeStateCallback
@@ -170,7 +169,7 @@ trait TileComponent[P <: Tile[P]](
 
         // The handle sits at the preset closest to the tile's current row span.
         val heightPresetSlider: VdomNode =
-          val lastOrdinal: Int   = TileHeightPreset.values.length - 1
+          val lastOrdinal: Int = TileHeightPreset.values.length - 1
           val stopSpan: Double = 100d / lastOrdinal
 
           def presetFromFraction(frac: Double): TileHeightPreset =

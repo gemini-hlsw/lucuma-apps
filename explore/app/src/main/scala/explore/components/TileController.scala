@@ -90,8 +90,8 @@ object TileController:
       .andThen(layoutItemHeight)
 
   private case class TileFlags(autoMinRows: Map[String, Int], hidden: Set[String]):
-    def isAuto(id: String): Boolean      = autoMinRows.contains(id)
-    def minRows(id: String): Int         = autoMinRows.getOrElse(id, AutoHeightMinRows)
+    def isAuto(id:      String): Boolean = autoMinRows.contains(id)
+    def minRows(id:     String): Int     = autoMinRows.getOrElse(id, AutoHeightMinRows)
     def autoVisible(id: String): Boolean = isAuto(id) && !hidden.contains(id)
 
   private object TileFlags:
@@ -137,7 +137,9 @@ object TileController:
   ): LayoutsMap =
     allTiles.modify { l =>
       if flags.autoVisible(l.i) then
-        measured.get(l.i).fold(l)(px => resolveAutoHeight(l, px, viewportPx, l.h === 1, flags.minRows(l.i)))
+        measured
+          .get(l.i)
+          .fold(l)(px => resolveAutoHeight(l, px, viewportPx, l.h === 1, flags.minRows(l.i)))
       else l
     }(layouts)
 
@@ -206,8 +208,7 @@ object TileController:
               .mod:
                 case l if l.i === id.value =>
                   if (st === TileSizeState.Minimized)
-                    if tileFlags.isAuto(id.value) then
-                      l.copy(h = 1, minH = 1, maxH = 1)
+                    if tileFlags.isAuto(id.value) then l.copy(h = 1, minH = 1, maxH = 1)
                     else l.copy(h = 1, minH = 1)
                   else if (st === TileSizeState.Maximized)
                     if tileFlags.isAuto(id.value) then
