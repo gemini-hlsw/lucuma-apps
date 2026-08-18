@@ -78,7 +78,7 @@ trait ModeSignalToNoiseDecoders:
       c.downField("itcType")
         .as[String]
         .flatMap:
-          case "SPECTROSCOPY" | "IGRINS_2_SPECTROSCOPY" | "GNIRS_SPECTROSCOPY" =>
+          case "SPECTROSCOPY" | "SCIENCE_ONLY_SPECTROSCOPY" | "GNIRS_SPECTROSCOPY" =>
             c.as[ModeSignalToNoise.Spectroscopy]
           case "GMOS_NORTH_IMAGING"                                            =>
             c.as[ModeSignalToNoise.GmosNorthImaging]

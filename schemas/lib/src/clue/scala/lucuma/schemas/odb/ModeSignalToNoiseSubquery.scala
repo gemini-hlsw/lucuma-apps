@@ -92,7 +92,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             }
           }
         }
-        ... on ItcIgrins2Spectroscopy {
+        ... on ItcScienceOnlySpectroscopy {
           spectroscopyScience {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery
