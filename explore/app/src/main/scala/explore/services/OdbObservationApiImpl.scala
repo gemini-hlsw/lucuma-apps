@@ -483,6 +483,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case _: ObservingModeInput.GmosSouthMos       => ModeViewFlags(gmosSouthMos = true)
       case _: ObservingModeInput.Flamingos2Imaging  => ModeViewFlags(flamingos2Imaging = true)
       case _: ObservingModeInput.Flamingos2LongSlit => ModeViewFlags(flamingos2LongSlit = true)
+      case _: ObservingModeInput.Flamingos2Mos      =>
+        sys.error("Flamingos2Mos is not yet supported in the ODB API")
       case _: ObservingModeInput.Igrins2LongSlit    => ModeViewFlags(igrins2LongSlit = true)
       case _: ObservingModeInput.GnirsImaging       => ModeViewFlags(gnirsImaging = true)
       case _: ObservingModeInput.GnirsSpectroscopy  => ModeViewFlags(gnirsSpectroscopy = true)

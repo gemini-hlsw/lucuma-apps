@@ -4745,6 +4745,16 @@ input ProposalPropertiesInput {
   callId: CallForProposalsId
 
   """
+  The observing time this proposal requests.  Optional: when unspecified the
+  request is the sum of the time estimates of the program's observations (see
+  'timeRequest' on the proposal itself).  Set it when that sum does not describe
+  the real ask -- most obviously for a Target of Opportunity proposal, whose
+  observations cannot all be written down before the targets are known.  May be
+  unset by assigning a null value, which returns it to the derived sum.
+  """
+  explicitTimeRequest: TimeSpanInput
+
+  """
   Specifies the properties that depend on the Gemini call type. If none of
   'gemini', 'keck' or 'subaru' is set on creation, a regular semester queue
   proposal is assumed.  The selected call properties must match the call (see
@@ -4964,6 +4974,11 @@ input ObservingModeInput @oneOf {
   The flamingos2LongSlit field must be either specified or skipped altogether.  It cannot be unset with a null value.
   """
   flamingos2LongSlit: Flamingos2LongSlitInput
+
+  """
+  The flamingos2Mos field must be either specified or skipped altogether.  It cannot be unset with a null value.
+  """
+  flamingos2Mos: Flamingos2MosInput
 
   """
   The ghostIfu field must be either specified or skipped altogether.  It cannot be unset with a null value.
@@ -8125,6 +8140,18 @@ enum Flamingos2CustomSlitWidth {
   OTHER
 }
 
+"""
+Flamingos 2 MOS offset preset, which selects the default telescope configs for
+the science sequence.
+"""
+enum Flamingos2MosOffsetPreset {
+  """Nod along the slit, ABBA at +/- 1.2 arcsec, all offsets guided."""
+  SPARSE_FIELD
+
+  """Nod to sky, with guiding disabled on the two sky offsets."""
+  CROWDED_FIELD
+}
+
 """Flamingos 2 Lyot Wheel"""
 enum Flamingos2LyotWheel {
   F16
@@ -8503,6 +8530,173 @@ input Flamingos2LongSlitInput {
 
   """Acquisition properties that, when set, override default values."""
   acquisition: Flamingos2LongSlitAcquisitionInput
+}
+
+"""
+Flamingos 2 MOS mode.
+
+This is Flamingos 2 long slit with the builtin FPU replaced by a custom mask and
+with no acquisition.  Sequence generation is not yet implemented for this mode.
+"""
+type Flamingos2Mos {
+  """Flamingos2 Disperser"""
+  disperser: Flamingos2Disperser!
+
+  """Flamingos2 Filter"""
+  filter: Flamingos2Filter!
+
+  """
+  The custom mask through which the observation is taken.  Its `attachmentId` is
+  null until the mask has been designed.
+  """
+  customMask: Flamingos2CustomMask!
+
+  """The exposure time mode used for ITC lookup for the science sequence."""
+  exposureTimeMode: ExposureTimeMode!
+
+  """
+  Optional explicitly specified F2 ReadMode. If set it overrides the
+  default.
+  """
+  explicitReadMode: Flamingos2ReadMode
+
+  """
+  Optional explicitly specified F2 Reads. If set it overrides the
+  default.
+  """
+  explicitReads: Flamingos2Reads
+
+  """
+  The decker field is either explicitly specified in explicitDecker or else taken
+  from defaultDecker
+  """
+  decker: Flamingos2Decker!
+
+  """Default decker, which for a custom mask is MOS."""
+  defaultDecker: Flamingos2Decker!
+
+  """
+  Optional explicitly specified F2 Decker. If set it overrides the
+  default.
+  """
+  explicitDecker: Flamingos2Decker
+
+  """
+  The readoutMode field is either explicitly specified in explicitReadoutMode or else taken
+  from defaultReadoutMode
+  """
+  readoutMode: Flamingos2ReadoutMode!
+
+  """Default readout mode, science"""
+  defaultReadoutMode: Flamingos2ReadoutMode!
+
+  """
+  Optional explicitly specified F2 Readout mode. If set it overrides the
+  default.
+  """
+  explicitReadoutMode: Flamingos2ReadoutMode
+
+  """The offset preset from which the default telescope configs are taken."""
+  offsetPreset: Flamingos2MosOffsetPreset!
+
+  """
+  Effective telescope configs (explicit override coalesced with the default).
+  """
+  telescopeConfigs: SlitTelescopeConfigs!
+
+  """Default telescope configs for the selected offset preset."""
+  defaultTelescopeConfigs: SlitTelescopeConfigs!
+
+  """
+  Optional explicitly specified telescope configs. If set they override the
+  preset default.
+  """
+  explicitTelescopeConfigs: SlitTelescopeConfigs
+
+  """Telluric type configuration for this observation."""
+  telluricType: TelluricType!
+
+  """
+  The disperser as it was initially selected.  See the `disperser` field for the
+  disperser that will be used in the observation.
+  """
+  initialDisperser: Flamingos2Disperser!
+
+  """
+  The filter as it was initially selected.  See the `filter` field for the filter
+  that will be used in the observation.
+  """
+  initialFilter: Flamingos2Filter!
+
+  """
+  The custom slit width as it was initially selected.  See the `customMask` field
+  for the mask that will be used in the observation.
+  """
+  initialSlitWidth: Flamingos2CustomSlitWidth!
+}
+
+"""Edit or create Flamingos 2 MOS advanced configuration"""
+input Flamingos2MosInput {
+  """
+  The disperser field must be specified.  It cannot be unset with a null value.
+  """
+  disperser: Flamingos2Disperser
+
+  """
+  The filter field must be specified.  It cannot be unset with a null value.
+  """
+  filter: Flamingos2Filter
+
+  """
+  The custom mask through which the observation is taken.  Supply it complete or
+  skip it altogether; `slitWidth` must be resent even when only the attachment
+  changes.  `OTHER` is not an accepted slit width for this mode.
+  """
+  customMask: Flamingos2CustomMaskInput
+
+  """
+  Exposure time mode for the science sequence.  If not specified, the exposure
+  time mode of the observation's science requirements are used.
+  """
+  exposureTimeMode: ExposureTimeModeInput
+
+  """
+  The read mode field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitReadMode: Flamingos2ReadMode
+
+  """
+  The reads field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitReads: Flamingos2Reads
+
+  """
+  The decker field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitDecker: Flamingos2Decker
+
+  """
+  The readoutMode field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitReadoutMode: Flamingos2ReadoutMode
+
+  """
+  The offset preset from which the default telescope configs are taken.  It may be
+  specified or skipped altogether, but not unset with a null value.  On create the
+  default is SPARSE_FIELD.
+  """
+  offsetPreset: Flamingos2MosOffsetPreset
+
+  """
+  Explicit telescope configs. May be unset by assigning null, or ignored by skipping.
+  """
+  explicitTelescopeConfigs: SlitTelescopeConfigsInput
+
+  """
+  The telluricType field must be either specified or skipped altogether. It cannot be unset with
+  a null value. On create the default is HOT.
+  """
+  telluricType: TelluricTypeInput
 }
 
 """Imaging filters combine an actual filter with an exposure time mode."""
@@ -11825,7 +12019,7 @@ enum ItcType {
   GMOS_NORTH_IMAGING
   GMOS_SOUTH_IMAGING
   GNIRS_IMAGING
-  IGRINS_2_SPECTROSCOPY
+  SCIENCE_ONLY_SPECTROSCOPY
   GNIRS_SPECTROSCOPY
   SPECTROSCOPY
 }
@@ -11961,10 +12155,11 @@ type ItcSpectroscopy implements Itc {
 }
 
 """
-ITC results for IGRINS-2 spectroscopy observations. IGRINS-2 has no acquisition estimate.
-SVC  acquisition sequence, when present, uses the SVC exposure time configuration.
+ITC results for spectroscopy observations that have no acquisition estimate:
+IGRINS-2, GMOS MOS and Flamingos 2 MOS.  For IGRINS-2 the SVC acquisition
+sequence, when present, uses the SVC exposure time configuration.
 """
-type ItcIgrins2Spectroscopy implements Itc {
+type ItcScienceOnlySpectroscopy implements Itc {
   itcType: ItcType!
   spectroscopyScience: ItcResultSet!
 }
@@ -12301,12 +12496,6 @@ type ArchiveMatch {
   instrument: Instrument
 
   """
-  Observation type as the archive reports it.  Always present, and in practice
-  always OBJECT
-  """
-  observationType: String!
-
-  """
   Observation class as the archive reports it, e.g. science.  This is the
   legacy GOA class.
   """
@@ -12509,6 +12698,7 @@ type ConfigurationObservingMode {
   gmosNorthImaging: ConfigurationGmosNorthImaging
   gmosSouthImaging: ConfigurationGmosSouthImaging
   flamingos2LongSlit: ConfigurationFlamingos2LongSlit
+  flamingos2Mos: ConfigurationFlamingos2Mos
   gnirsLongSlit: ConfigurationGnirsLongSlit
   gnirsIfu: ConfigurationGnirsIfu
   igrins2LongSlit: ConfigurationIgrins2LongSlit
@@ -12545,6 +12735,10 @@ type ConfigurationGmosSouthImaging {
 }
 
 type ConfigurationFlamingos2LongSlit {
+  disperser: Flamingos2Disperser!
+}
+
+type ConfigurationFlamingos2Mos {
   disperser: Flamingos2Disperser!
 }
 
@@ -13395,6 +13589,29 @@ type Proposal {
   category: TacCategory
 
   """
+  The observing time this proposal requests: `explicitTimeRequest` if set,
+  otherwise `defaultTimeRequest`.
+  """
+  timeRequest: CalculatedCategorizedTimeRange
+
+  """
+  The request that applies when none is explicitly set: the sum of the time
+  estimates of the program's observations, the same figure reported by the
+  program's `timeEstimateRange`.  Observations that are not fully defined have
+  no estimate and so contribute nothing to it.
+  """
+  defaultTimeRequest: CalculatedCategorizedTimeRange
+
+  """
+  The time explicitly requested for this proposal, if any: by the PI before
+  submission, or by staff during review.  Set it when the sum of the
+  observations' estimates does not describe the real ask -- most obviously for a
+  Target of Opportunity proposal, whose observations cannot all be written down
+  before the targets are known.
+  """
+  explicitTimeRequest: TimeSpan
+
+  """
   Properties of a Gemini proposal that depend upon the Call for Proposals type.
   Set for Gemini proposals; null otherwise (when `keck` or `subaru` is set).
   """
@@ -13917,6 +14134,9 @@ type ObservingMode {
 
   """Flamingos 2 Long Slit mode"""
   flamingos2LongSlit: Flamingos2LongSlit
+
+  """Flamingos 2 MOS mode"""
+  flamingos2Mos: Flamingos2Mos
 
   """GHOST IFU mode"""
   ghostIfu: GhostIfu

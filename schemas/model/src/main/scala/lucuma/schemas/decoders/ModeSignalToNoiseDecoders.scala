@@ -78,17 +78,17 @@ trait ModeSignalToNoiseDecoders:
       c.downField("itcType")
         .as[String]
         .flatMap:
-          case "SPECTROSCOPY" | "IGRINS_2_SPECTROSCOPY" | "GNIRS_SPECTROSCOPY" =>
+          case "SPECTROSCOPY" | "SCIENCE_ONLY_SPECTROSCOPY" | "GNIRS_SPECTROSCOPY" =>
             c.as[ModeSignalToNoise.Spectroscopy]
-          case "GMOS_NORTH_IMAGING"                                            =>
+          case "GMOS_NORTH_IMAGING"                                                =>
             c.as[ModeSignalToNoise.GmosNorthImaging]
-          case "GMOS_SOUTH_IMAGING"                                            =>
+          case "GMOS_SOUTH_IMAGING"                                                =>
             c.as[ModeSignalToNoise.GmosSouthImaging]
-          case "FLAMINGOS_2_IMAGING"                                           =>
+          case "FLAMINGOS_2_IMAGING"                                               =>
             c.as[ModeSignalToNoise.Flamingos2Imaging]
-          case "GNIRS_IMAGING"                                                 =>
+          case "GNIRS_IMAGING"                                                     =>
             c.as[ModeSignalToNoise.GnirsImaging]
-          case "GHOST_IFU"                                                     =>
+          case "GHOST_IFU"                                                         =>
             c.as[ModeSignalToNoise.GhostIfu]
-          case other                                                           =>
+          case other                                                               =>
             Left(io.circe.DecodingFailure(s"Unknown itcType: $other", c.history))
