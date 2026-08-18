@@ -165,6 +165,13 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
       .processErrors
       .void
 
+  def changePrincipalInvestigator(programUserId: ProgramUser.Id): F[Unit] =
+    ChangePrincipalInvestigatorMutation[F]
+      .execute:
+        ChangePrincipalInvestigatorInput(programUserId = programUserId)
+      .processErrors
+      .void
+
   // Note: If justification is none, it is ignored, not un-set. We
   // (currently, at least) do not allow unsetting justifications in explore.
   def updateConfigurationRequestStatus(

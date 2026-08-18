@@ -69,6 +69,9 @@ trait OdbProgramApi[F[_]]:
 
   def changeProgramUserRole(programUserId: ProgramUser.Id, role: ProgramUserRole): F[Unit]
 
+  /** Promotes a coinvestigator to PI, demoting the current PI to coinvestigator. */
+  def changePrincipalInvestigator(programUserId: ProgramUser.Id): F[Unit]
+
   def updateConfigurationRequestStatus(
     rids:          List[ConfigurationRequest.Id],
     newStatus:     ConfigurationRequestStatus,
