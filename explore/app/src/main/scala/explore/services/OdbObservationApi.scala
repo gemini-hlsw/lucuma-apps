@@ -8,6 +8,8 @@ import cats.syntax.option.*
 import clue.data.Input
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.Attachment
+import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import lucuma.core.enums.ObservationWorkflowState
@@ -95,6 +97,7 @@ trait OdbObservationApi[F[_]]:
   ): F[Unit]
   def setGuideTargetName(obsId: Observation.Id, targetName: Option[NonEmptyString]): F[Unit]
   def guideTargetName(obsId:    Observation.Id): F[Option[NonEmptyString]]
+  def maskDesign(obsId:         Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]]
 
   def createConfigurationRequest(
     obsId:         Observation.Id,

@@ -734,7 +734,7 @@ input CallForProposalsPropertiesInput {
   Active period start date (inclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-  
+
   The start date is required on create and must be before the `activeEnd` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -744,7 +744,7 @@ input CallForProposalsPropertiesInput {
   Active period end date (exclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-  
+
   The end date is required on create and must be after the `activeStart` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3058,7 +3058,7 @@ type Mutation {
   Declines a REQUESTED Target-of-Opportunity trigger (staff), recording that it
   was seen and passed over.  This also clears the observation's READY state, so
   the observation returns to DEFINED.
-  
+
   There is no corresponding mutation to request or withdraw a trigger: a trigger
   is requested by setting a Target-of-Opportunity observation to READY via
   `setObservationWorkflowState`, and withdrawn by clearing that state.
@@ -3176,7 +3176,7 @@ type Mutation {
   """
   Re-runs the Archive Duplication Search for an observation, replacing its
   stored result with what the Gemini Observatory Archive holds now.
-  
+
   Rejected once the observation's proposal has been submitted.
   """
   refreshArchiveDuplication(input: RefreshArchiveDuplicationInput!): RefreshArchiveDuplicationResult!
@@ -3523,7 +3523,7 @@ input ObservationPropertiesInput {
   Deprecated in favor of the `schedulingConstraints` field — use that instead.
   If both this field and `schedulingConstraints` are specified in the same
   mutation, the mutation will be rejected with a validation error.
-  
+
   Specifies one or more timing windows during which the observation may execute.
   Defaults to empty (unconstrained) if omitted. To modify, supply the complete
   desired array — it replaces the previous value entirely.
@@ -3916,7 +3916,7 @@ input ProgramPropertiesInput {
   Active period start date (inclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-  
+
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3926,7 +3926,7 @@ input ProgramPropertiesInput {
   Active period end date (exclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-  
+
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -4171,7 +4171,7 @@ type DemoScience implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4210,7 +4210,7 @@ type DirectorsTime implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4249,7 +4249,7 @@ type FastTurnaround implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4297,7 +4297,7 @@ type LargeProgram implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4359,7 +4359,7 @@ type Queue implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4427,7 +4427,7 @@ type SystemVerification implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-  
+
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -5343,7 +5343,7 @@ input OpportunityInput {
   creation and editing, but meaning different things: omitting it when creating
   approves the whole sky, while omitting it when editing leaves the existing
   region alone.
-  
+
   It may not be set to null.  Every opportunity target has a region, so unlike
   `resolution` there is nothing for null to mean.  Note in particular that
   resolving a target does not require restating its region; supplying one here
@@ -5355,7 +5355,7 @@ input OpportunityInput {
   How this Target of Opportunity is tracked.  Supplying it resolves the target,
   which keeps the region intact; assigning null unsets it, returning the target
   to the unresolved state.  Omit it to leave the resolution unchanged.
-  
+
   To stop being a Target of Opportunity altogether, supply the top-level
   `sidereal` or `nonsidereal` field instead -- that changes the target's subtype
   and discards the region.
@@ -6470,6 +6470,11 @@ type AirMassRange {
   max: PosBigDecimal!
 }
 
+"""
+An angle in a variety of units.  Values are normalized to [0, 360°) unless
+the field documents a signed quantity, in which case negative values are
+rendered negative (as with `Declination`) rather than wrapped.
+"""
 type Angle {
   """Angle in µas"""
   microarcseconds: Long!
@@ -14032,7 +14037,7 @@ type Query {
   Obtains a list of program references for which the user with ORCiD `orcidId`
   has GOA data-download access privileges.  These will be those for which the
   user is a ProgramUser of any role with the `hasDataAccess` flag set.
-  
+
   This query is for use by staff and the GOA and will fail for other users.
   """
   goaDataDownloadAccess(orcidId: String!): [ProgramReferenceLabel!]!
@@ -15748,7 +15753,7 @@ type Opportunity {
   """
   How this Target of Opportunity is tracked, once the alert has arrived and
   identified it -- or null while it is still unresolved.
-  
+
   A Target of Opportunity does not stop being one when it is resolved.  It keeps
   its `region` (which is what the accepted proposal authorized) and continues to
   appear here rather than moving to the top-level `sidereal` or `nonsidereal`

@@ -175,6 +175,21 @@ object ObsQueriesGQL:
       }
     """
 
+  // The mask design is fetched on demand, only when a MOS observation with a
+  // bound mask attachment is displayed.
+  @GraphQL
+  trait ObservationMaskDesignQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          attachments {
+            id
+            mask $MaskDesignSubquery
+          }
+        }
+      }
+    """
+
   @GraphQL
   trait SetBlindOffsetMutation extends GraphQLOperation[ObservationDB]:
     val document = gql"""

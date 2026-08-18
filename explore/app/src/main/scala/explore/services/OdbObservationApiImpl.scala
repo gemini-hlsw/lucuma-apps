@@ -14,6 +14,8 @@ import crystal.Pot
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.Attachment
+import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
@@ -359,6 +361,13 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .query(obsId)
       .processErrors
       .map(_.observation.flatMap(_.targetEnvironment.guideTargetName))
+
+  def maskDesign(obsId: Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]] =
+    ObservationMaskDesignQuery[F]
+      .query(obsId)
+      .processErrors
+      .map:
+        _.observation.flatMap(_.attachments.find(_.id === attachmentId).flatMap(_.mask))
 
   def createConfigurationRequest(
     obsId:         Observation.Id,
