@@ -94,7 +94,6 @@ trait ObservationDB {
     type SubaruCallForProposalsType          = enums.SubaruCallForProposalsType
     type Observatory                         = enums.Observatory
     type ExchangePartner                     = enums.ExchangePartner
-    type ExecutionRequirement                = enums.ExecutionRequirement
     type KeckInstrument                      = enums.KeckInstrument
     type SubaruInstrument                    = enums.SubaruInstrument
     type CatalogName                         = enums.CatalogName
@@ -190,6 +189,7 @@ trait ObservationDB {
     type ProgramUserRole                     = enums.ProgramUserRole
     type ProposalStatus                      = enums.ProposalStatus
     type QuasarSpectrum                      = enums.QuasarSpectrum
+    type SchedulingMode                      = enums.SchedulingMode
     type ScienceBand                         = enums.ScienceBand
     type ScienceMode                         = enums.ScienceMode
     type SequenceCommand                     = enums.SequenceCommand

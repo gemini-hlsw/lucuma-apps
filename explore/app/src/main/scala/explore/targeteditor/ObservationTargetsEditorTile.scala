@@ -113,15 +113,15 @@ case class SkyAssignmentState private (
 
 object SkyAssignmentState:
   def apply(
-    obsConf:               ObsConfiguration,
-    isTargetOfOpportunity: Target.Id => Boolean,
-    readonly:              Boolean,
-    allAreExecuted:        Boolean,
-    hasScienceTargets:     Boolean
+    obsConf:                         ObsConfiguration,
+    isUnresolvedTargetOfOpportunity: Target.Id => Boolean,
+    readonly:                        Boolean,
+    allAreExecuted:                  Boolean,
+    hasScienceTargets:               Boolean
   ): SkyAssignmentState =
     val configForViz     = ConfigurationForVisualization.fromObsConfiguration(obsConf)
     val skyAvailableSlot =
-      configForViz.flatMap(GhostSkySlot.skySlotAvailable(_, isTargetOfOpportunity))
+      configForViz.flatMap(GhostSkySlot.skySlotAvailable(_, isUnresolvedTargetOfOpportunity))
     // Whether we can allow assigning a sky position
     val isAssignable     = !readonly && !allAreExecuted && hasScienceTargets
     new SkyAssignmentState(configForViz, skyAvailableSlot, isAssignable)
@@ -193,7 +193,7 @@ object ObservationTargetsEditorTile
                                  ): (obsConf, targets, readonly, allAreExecuted, hasScienceTargets) =>
                                    SkyAssignmentState(
                                      obsConf,
-                                     targets.get(_).exists(_.isTargetOfOpportunity),
+                                     targets.get(_).exists(_.isUnresolvedTargetOfOpportunity),
                                      readonly,
                                      allAreExecuted,
                                      hasScienceTargets

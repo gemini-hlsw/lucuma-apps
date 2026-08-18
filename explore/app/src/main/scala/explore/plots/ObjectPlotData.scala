@@ -44,8 +44,10 @@ case class ObjectPlotData(
 ) derives Eq:
   private val PlotEvery: Duration = Duration.ofMinutes(1)
 
+  // A ToO resolved to a nonsidereal target needs an ephemeris just like a plain one, so this
+  // asks how the target tracks rather than which subtype it is.
   val hasNonSidereal: Boolean =
-    targets.exists(Target.nonsidereal.getOption(_).isDefined)
+    targets.exists(_.asNonsidereal.isDefined)
 
   def pointsAtInstant(
     site:      Site,

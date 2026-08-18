@@ -32,6 +32,12 @@ object TargetWithIdSubquery extends GraphQLSubquery.Typed[ObservationDB, TargetW
             end $DecSubquery
           }
         }
+        resolution {
+          sidereal $SiderealSubquery
+          nonsidereal {
+            key
+          }
+        }
       }
       sourceProfile {
         point {

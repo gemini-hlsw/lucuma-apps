@@ -1009,6 +1009,14 @@ thead tr th.sticky-header {
   }
 }
 
+// Spans the label/field columns of the target form, so the resolve button sits under the
+// region editor rather than in the label gutter.
+.target-form .target-resolution-controls {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 0.25em;
+}
+
 .target-rv-controls {
   justify-self: stretch;
 
@@ -3541,10 +3549,8 @@ $help-title-height: 40px;
     height: 100%;
     padding: 0.5em;
 
-    .is-splittable-dropdown {
-      width: 9em;
-      margin-left: 0.5em;
-      margin-right: 0.5em;
+    .scheduling-mode-dropdown {
+      width: 12em;
     }
 
     .p-divider {

@@ -406,27 +406,30 @@ final case class Observation(
     if (newConfigurationRequestApplies(request.configuration)) updateToPending(request.id)
     else this
 
-  // The targets needed to find a tracking for the asterism. If there are any
-  // ToOs, a None is returned because the asterism can't be tracked.
+  private def scienceTargets(allTargets: TargetList): List[Target] =
+    scienceTargetIds.toList.map(id => allTargets.get(id).map(_.target)).flattenOption
+
+  // The targets needed to find a tracking for the asterism. If any target is an unresolved ToO,
+  // a None is returned because the asterism can't be tracked. A resolved ToO tracks like whatever
+  // it resolved to, so it is kept.
   def scienceTargetsForTracking(allTargets: TargetList): Option[NonEmptyList[Target]] =
-    scienceTargetIds.toList
-      .map(id => allTargets.get(id).map(_.target))
-      .flattenOption
-      .traverse:
-        case Target.Opportunity(_, _, _) => none
-        case t                           => t.some
+    scienceTargets(allTargets)
+      .traverse(t => Option.when(t.resolution.isDefined)(t))
       .flatMap(NonEmptyList.fromList)
 
+  // Is this observation a Target of Opportunity? True once the asterism holds an opportunity
+  // target, resolved or not -- that is exactly what makes an observation a ToO.
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =
-    scienceTargetIds.toList
-      .map(id => allTargets.get(id).map(_.target).flatMap(Target.opportunity.getOption))
-      .flattenOption
-      .nonEmpty
+    scienceTargets(allTargets).exists(Target.opportunity.getOption(_).isDefined)
+
+  // Is the asterism still waiting on an alert? Only then is there no position to work from.
+  def hasUnresolvedTargetOfOpportunity(allTargets: TargetList): Boolean =
+    scienceTargets(allTargets).exists(_.resolution.isEmpty)
 
   def needsAGS(allTargets: TargetList): Boolean =
     // revert logic, question should we run ags for asterisms with a combination
     // of sidereal and ToOs?
-    calibrationRole.forall(_.needsAGS) && !hasTargetOfOpportunity(allTargets)
+    calibrationRole.forall(_.needsAGS) && !hasUnresolvedTargetOfOpportunity(allTargets)
 
 object Observation:
   type Id = lucuma.core.model.Observation.Id

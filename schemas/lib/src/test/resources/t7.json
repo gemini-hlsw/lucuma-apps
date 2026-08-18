@@ -1,0 +1,38 @@
+{
+  "id": "t-7",
+  "name": "Burst",
+  "opportunity": {
+    "region": {
+      "rightAscensionArc": {
+        "type": "FULL",
+        "start": null,
+        "end": null
+      },
+      "declinationArc": {
+        "type": "FULL",
+        "start": null,
+        "end": null
+      }
+    },
+    "resolution": {
+      "sidereal": null,
+      "nonsidereal": {
+        "des": "Ceres",
+        "keyType": "ASTEROID_NEW",
+        "key": "AsteroidNew_Ceres"
+      }
+    }
+  },
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": []
+      }
+    }
+  },
+  "disposition": "SCIENCE",
+  "calibrationRole": null
+}

@@ -21,7 +21,7 @@ object RegionOrTracking:
   extension (torR: RegionOrTracking)
     // If being a region is an error for your use case
     def toTracking: ErrorMsgOr[Tracking] =
-      torR.left.map(_ => "Targets of Opportunities have no coordinates")
+      torR.left.map(_ => "Unresolved Targets of Opportunity have no coordinates")
 
     def toRegion: Option[Region] =
       // errors really only happen for ephemeris failures, so we can ignore them here

@@ -170,9 +170,8 @@ object TargetSelectionPopup:
                           aladinRef.value
                             .map: a =>
                               sel
-                                .collect:
-                                  case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
-                                    tracking.baseCoordinates
+                                .flatMap: st =>
+                                  st.target.asSidereal.map(_.tracking.baseCoordinates)
                                 .map(a.gotoRaDecCB)
                                 .orEmpty
                             .orEmpty
@@ -263,9 +262,8 @@ object TargetSelectionPopup:
             <.div(ExploreStyles.TargetSearchPreview)(
               aladinRef.value.map(AladinZoomControl(_, factor = 1.5)),
               selectedTarget.get
-                .collect:
-                  case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
-                    tracking.baseCoordinates
+                .flatMap: st =>
+                  st.target.asSidereal.map(_.tracking.baseCoordinates)
                 .map[VdomNode] { case coordinates =>
                   ReactAladin(
                     ExploreStyles.TargetSearchAladin, // required placeholder

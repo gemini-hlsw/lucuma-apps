@@ -36,6 +36,7 @@ import lucuma.core.math.RightAscension
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.GuestRole
 import lucuma.core.model.Target
+import lucuma.core.model.TargetResolution
 import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
@@ -189,35 +190,45 @@ extension (icon: FontAwesomeIcon)
     <.span(icon.withFixedWidth()).withTooltip(content = tooltip)
 
 extension (target: Target)
-  def iconWithTooltip: VdomNode                                     =
+  // The icon says what kind of target this is, and a resolved Target of Opportunity is still one,
+  // so it keeps the hourglass whether or not the alert has arrived.
+  def iconWithTooltip: VdomNode =
     target match
-      case Target.Sidereal(_, _, _, _) => Icons.Star.fixedWidthWithTooltip("Sidereal")
-      case Target.Nonsidereal(_, _, _) => Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
-      case Target.Opportunity(_, _, _) =>
+      case Target.Sidereal(_, _, _, _)    => Icons.Star.fixedWidthWithTooltip("Sidereal")
+      case Target.Nonsidereal(_, _, _)    =>
+        Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
+      case Target.Opportunity(_, _, _, _) =>
         Icons.HourglassClock.fixedWidthWithTooltip("Target of Opportunity")
-  def catalogId: Option[String]                                     = target match
-    case s: Target.Sidereal     => s.catalogInfo.map(_.id.value)
-    case ns: Target.Nonsidereal => ns.ephemerisKey.des.some
-    case o: Target.Opportunity  => none
-  def catalogName: Option[String]                                   = target match
-    case s: Target.Sidereal     => s.catalogInfo.map(_.catalog.shortName)
-    case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName.some
-    case o: Target.Opportunity  => none
-  def catalogUriString: Option[String]                              = target match
-    case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectUrl).map(_.toString)
-    case ns: Target.Nonsidereal => ns.ephemerisKey.catalogUri.map(_.toString)
-    case o: Target.Opportunity  => none
-  def catalogObjectType: Option[String]                             = target match
-    case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectType).map(_.value)
-    case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.simplifiedName.some
-    case o: Target.Opportunity  => none
-  def regionOrBaseCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]] = target match
-    // actually returns an ErrorOrRegionOrCoords to be compatible with the extension methods
-    // below, but there wll never be an error. Non-sidereals return a none.
-    case Target.Sidereal(_, tracking, _, _) =>
-      CoordinatesAt(tracking.epoch.toInstant, tracking.baseCoordinates).asRight.asRight.some
-    case Target.Nonsidereal(_, _, _)        => none
-    case Target.Opportunity(_, region, _)   => region.asLeft.asRight.some
+
+  // The catalog accessors below go through the resolution rather than the subtype, so a resolved
+  // Target of Opportunity reports the catalog entry or ephemeris key it resolved to.
+  def catalogId: Option[String]         =
+    target.asSidereal
+      .flatMap(_.catalogInfo.map(_.id.value))
+      .orElse(target.asNonsidereal.map(_.ephemerisKey.des))
+  def catalogName: Option[String]       =
+    target.asSidereal
+      .flatMap(_.catalogInfo.map(_.catalog.shortName))
+      .orElse(target.asNonsidereal.map(_.ephemerisKey.catalogName))
+  def catalogUriString: Option[String]  =
+    target.asSidereal
+      .flatMap(_.catalogInfo.flatMap(_.objectUrl).map(_.toString))
+      .orElse(target.asNonsidereal.flatMap(_.ephemerisKey.catalogUri.map(_.toString)))
+  def catalogObjectType: Option[String] =
+    target.asSidereal
+      .flatMap(_.catalogInfo.flatMap(_.objectType).map(_.value))
+      .orElse(target.asNonsidereal.map(_.ephemerisKey.keyType.simplifiedName))
+
+  // actually returns an ErrorOrRegionOrCoords to be compatible with the extension methods
+  // below, but there wll never be an error. Non-sidereals return a none. Only an unresolved
+  // Target of Opportunity falls back to its region.
+  def regionOrBaseCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]] =
+    target.resolution match
+      case Some(TargetResolution.Sidereal(tracking, _)) =>
+        CoordinatesAt(tracking.epoch.toInstant, tracking.baseCoordinates).asRight.asRight.some
+      case Some(TargetResolution.Nonsidereal(_))        => none
+      case None                                         =>
+        Target.region.getOption(target).map(_.asLeft.asRight)
 
 extension (ekt: EphemerisKeyType)
   // Andy didn't want the distiction between old and new asteroids in displays

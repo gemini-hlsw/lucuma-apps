@@ -53,6 +53,12 @@ trait DisplayImplicits:
   given Display[TooActivation] =
     Display.byShortName(_.label)
 
+  given Display[SchedulingMode] = Display.byShortName:
+    case SchedulingMode.Unconstrained   => "Unconstrained"
+    case SchedulingMode.NoSplitting     => "No Splitting"
+    case SchedulingMode.Uninterruptible => "Uninterruptible"
+    case SchedulingMode.Interrupting    => "Interrupting"
+
   given Display[ConsiderForBand3] = Display.byShortName:
     case ConsiderForBand3.Unset         => "Not Selected"
     case ConsiderForBand3.Consider      => "Yes"

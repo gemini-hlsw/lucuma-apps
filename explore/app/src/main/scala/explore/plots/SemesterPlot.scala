@@ -77,10 +77,11 @@ object SemesterPlot:
                         )
                         .as(none[Tracking])
                     case Right(Left(_))   =>
-                      // ToOs should already be filtered out, but just in case...
+                      // unresolved ToOs should already be filtered out, but just in case...
                       ToastCtx[IO]
-                        .showToast("Cannot show semester plot for Targets of Opportunity",
-                                   Message.Severity.Error
+                        .showToast(
+                          "Cannot show semester plot for unresolved Targets of Opportunity",
+                          Message.Severity.Error
                         )
                         .as(none)
                     case Right(Right(ot)) => ot.some.pure

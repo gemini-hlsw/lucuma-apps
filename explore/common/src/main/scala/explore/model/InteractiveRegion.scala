@@ -48,15 +48,15 @@ object InteractiveRegion:
 
   // ghost only for now but we could add more regions for other instruments
   def forViz(
-    vizConf:               Option[ConfigurationForVisualization],
-    coordsAt:              ObservationTargetsCoordinatesAt,
-    isTargetOfOpportunity: Target.Id => Boolean,
-    selectedGS:            Option[AgsAnalysis.Usable],
-    assignSky:             Option[(SlotId, Coordinates) => IO[Unit]]
+    vizConf:                         Option[ConfigurationForVisualization],
+    coordsAt:                        ObservationTargetsCoordinatesAt,
+    isUnresolvedTargetOfOpportunity: Target.Id => Boolean,
+    selectedGS:                      Option[AgsAnalysis.Usable],
+    assignSky:                       Option[(SlotId, Coordinates) => IO[Unit]]
   ): List[InteractiveRegion] =
     (vizConf, assignSky).tupled.toList.flatMap: (viz, assign) =>
       GhostSkySlot
-        .skySlotAvailable(viz, isTargetOfOpportunity)
+        .skySlotAvailable(viz, isUnresolvedTargetOfOpportunity)
         .map: slot =>
           val pa      = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
           val offsets = coordsAt.scienceOffsetsFromBase

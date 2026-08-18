@@ -30,16 +30,22 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   val length: Int = targets.length
 
   lazy val hasTargetOfOpportunity: Boolean =
-    science.collect { case TargetWithId(_, Target.Opportunity(_, _, _), _, _) => true }.nonEmpty
+    science.exists(_.isTargetOfOpportunity)
+
+  // A Target of Opportunity that is still waiting for its alert has no coordinates at all, which
+  // is what blocks tracking, plots and guide star selection. A resolved one is as good as the
+  // target it resolved to.
+  lazy val hasUnresolvedTargetOfOpportunity: Boolean =
+    science.exists(_.isUnresolvedTargetOfOpportunity)
 
   // checks if the science targets are of different kind
   def isMixed: Boolean =
     science
       .map {
         _.target match
-          case Target.Sidereal(_, _, _, _) => 0
-          case Target.Nonsidereal(_, _, _) => 1
-          case Target.Opportunity(_, _, _) => 2
+          case Target.Sidereal(_, _, _, _)    => 0
+          case Target.Nonsidereal(_, _, _)    => 1
+          case Target.Opportunity(_, _, _, _) => 2
       }
       .distinct
       .size > 1
@@ -51,7 +57,7 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   def focusOn(tid: Target.Id): ObservationTargets =
     targets.findFocus(_.id === tid).map(ObservationTargets.apply).getOrElse(this)
 
-  // Will return a Left[String] if there are any ToOs
+  // Will return a Left[String] if there are any unresolved ToOs
   def asterismTracking(
     trackingMap: RegionOrTrackingMap
   ): Option[ErrorMsgOr[Tracking]] =
@@ -60,7 +66,7 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
       .map: nel =>
         trackingMap.trackingFor(nel.map(_.id))
 
-  // Will return a None if there are any ToOs
+  // Will return a None if there are any unresolved ToOs
   def optAsterismTracking(trackingMap: RegionOrTrackingMap): Option[Tracking] =
     asterismTracking(trackingMap).flatMap(_.toOption)
 

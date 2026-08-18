@@ -1,0 +1,54 @@
+{
+  "id": "t-6",
+  "name": "Burst",
+  "opportunity": {
+    "region": {
+      "rightAscensionArc": {
+        "type": "PARTIAL",
+        "start": {
+          "microarcseconds": 36000000000
+        },
+        "end": {
+          "microarcseconds": 72000000000
+        }
+      },
+      "declinationArc": {
+        "type": "FULL",
+        "start": null,
+        "end": null
+      }
+    },
+    "resolution": {
+      "sidereal": {
+        "ra": {
+          "microarcseconds": 835210020000
+        },
+        "dec": {
+          "microarcseconds": 233147400000
+        },
+        "epoch": "J2000.000",
+        "properMotion": null,
+        "radialVelocity": null,
+        "parallax": null,
+        "catalogInfo": {
+          "name": "SIMBAD",
+          "id": "M   1",
+          "objectType": "SNR"
+        }
+      },
+      "nonsidereal": null
+    }
+  },
+  "sourceProfile": {
+    "point": {
+      "bandNormalized": {
+        "sed": {
+          "galaxy": "SPIRAL"
+        },
+        "brightnesses": []
+      }
+    }
+  },
+  "disposition": "SCIENCE",
+  "calibrationRole": null
+}

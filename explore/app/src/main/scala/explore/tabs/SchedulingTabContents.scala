@@ -164,8 +164,20 @@ object SchedulingTabContents extends TwoPanels:
                 <.div("Select a scheduling group from the list.")
               )
             } { case (obsEditInfo, schedulingGroup) =>
+              // The tile edits every selected observation at once, so `Interrupting` is only
+              // offered when all of them are Targets of Opportunity.
+              val allHaveTargetOfOpportunity =
+                obsEditInfo.editing.idSet.toList
+                  .flatMap(props.programSummaries.get.observations.get)
+                  .forall(_.hasTargetOfOpportunity(props.programSummaries.get.targets))
+
               val schedulingWindowsTile =
-                ObsIdSetSchedulingWindowsTile(obsEditInfo, observations, props.readonly, true)
+                ObsIdSetSchedulingWindowsTile(obsEditInfo,
+                                              observations,
+                                              allHaveTargetOfOpportunity,
+                                              props.readonly,
+                                              true
+                )
 
               TileController(
                 props.userId,

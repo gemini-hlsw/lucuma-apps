@@ -20,7 +20,6 @@ import lucuma.core.enums.ObserveClass
 import lucuma.core.math.Coordinates
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
-import lucuma.core.model.Target
 import lucuma.core.model.Target as GemTarget
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
@@ -72,8 +71,10 @@ sealed trait GhostConfig extends GhostLUT {
 
   def targetConfig(t: GemTarget, i: Int): Configuration =
     // Note the base coordinates are already PM corrected in the OT
-    t match {
-      case GemTarget.Sidereal(_, SiderealTracking(baseCoordinates, _, _, _, _), _, _) =>
+    // Keyed on how the target tracks, so a resolved Target of Opportunity supplies coordinates
+    // like the sidereal target it resolved to.
+    t.asSidereal match {
+      case Some(GemTarget.Sidereal(_, SiderealTracking(baseCoordinates, _, _, _, _), _, _)) =>
         GhostConfig.UserTargetsApply
           .get(i + 1)
           .map { case (name, ra, dec) =>
@@ -82,7 +83,7 @@ sealed trait GhostConfig extends GhostLUT {
               GhostConfig.giapiConfig(dec, baseCoordinates.dec.toAngle.toSignedDoubleDegrees)
           }
           .combineAll
-      case _                                                                          =>
+      case None                                                                             =>
         Configuration.Zero
     }
 
@@ -732,22 +733,14 @@ object GhostConfig {
     tid: GemTarget.Id
   ): Getter[TargetEnvironment, Option[GemTarget.Sidereal]] =
     Getter[TargetEnvironment, Option[GemTarget.Sidereal]](
-      _.asterism.find(_.id === tid).collect {
-        _.target match {
-          case t: Target.Sidereal => t
-        }
-      }
+      _.asterism.find(_.id === tid).flatMap(_.target.asSidereal)
     )
 
   def NonsiderealOptionalGetter(
     tid: GemTarget.Id
   ): Getter[TargetEnvironment, Option[GemTarget.Nonsidereal]] =
     Getter[TargetEnvironment, Option[GemTarget.Nonsidereal]](
-      _.asterism.find(_.id === tid).collect {
-        _.target match {
-          case t: Target.Nonsidereal => t
-        }
-      }
+      _.asterism.find(_.id === tid).flatMap(_.target.asNonsidereal)
     )
 
 }

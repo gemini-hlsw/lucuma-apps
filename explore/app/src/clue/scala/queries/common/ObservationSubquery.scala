@@ -38,8 +38,7 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           }
           constraintSet $ConstraintSetSubquery
           schedulingConstraints {
-            executionRequirement
-            explicitExecutionRequirement
+            schedulingMode
             timingWindows $TimingWindowSubquery
           }
           attachments { id }

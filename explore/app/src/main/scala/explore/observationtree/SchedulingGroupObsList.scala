@@ -321,7 +321,7 @@ object SchedulingGroupObsList:
           val csHeader = <.span(ExploreStyles.ObsTreeGroupHeader)(
             icon,
             <.ul(ExploreStyles.ObsGroupTitleWithList)(
-              (executionRequirementBadge(s.executionRequirement)
+              (schedulingModeBadge(s.schedulingMode)
                 .map(badge => <.li(badge): VdomNode)
                 .toList ++
                 timingWindows.map(tw => <.li(tw.renderVdom))).toTagMod

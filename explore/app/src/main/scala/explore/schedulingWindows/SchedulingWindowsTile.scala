@@ -22,6 +22,7 @@ import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.SchedulingConstraints
+import explore.model.display.given
 import explore.model.enums.TileSizeState
 import explore.model.formats.*
 import explore.model.reusability.given
@@ -33,7 +34,7 @@ import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.ExecutionRequirement
+import lucuma.core.enums.SchedulingMode
 import lucuma.core.enums.TimingWindowInclusion
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.TimingWindowEnd
@@ -68,18 +69,15 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
-// Only `Unconstrained` and `NoSplitting` are user selectable here, and they read as the
-// "may"/"may not" options of the "This observation ... be split." sentence.
-// private given Display[ExecutionRequirement] = Display.byShortName:
-//   case ExecutionRequirement.Unconstrained   => "may"
-//   case ExecutionRequirement.NoSplitting     => "may not"
-//   case ExecutionRequirement.Uninterruptible => "may not be split or interrupted"
-
 sealed abstract class SchedulingWindowsTile(
-  val obsEditInfo:           ObsIdSetEditInfo,
-  val schedulingConstraints: View[SchedulingConstraints],
-  isReadOnly:                Boolean,
-  fullSize:                  Boolean
+  val obsEditInfo:            ObsIdSetEditInfo,
+  val schedulingConstraints:  View[SchedulingConstraints],
+  // `Interrupting` is reserved to Targets of Opportunity, so it is offered only when every
+  // observation being edited has one. The ODB rejects the combination too; this just keeps the
+  // user from reaching for it.
+  val hasTargetOfOpportunity: Boolean,
+  isReadOnly:                 Boolean,
+  fullSize:                   Boolean
 ) extends Tile[SchedulingWindowsTile](
       ObsTabTileIds.TimingWindowsId.id,
       "Scheduling",
@@ -87,10 +85,10 @@ sealed abstract class SchedulingWindowsTile(
       canMinimize = !fullSize,
       tileClass = ExploreStyles.SchedulingTile
     )(SchedulingWindowsTile):
-  val readonly                                         = isReadOnly || obsEditInfo.allAreCompleted
-  val executionRequirement: View[ExecutionRequirement] =
-    schedulingConstraints.zoom(SchedulingConstraints.executionRequirement)
-  val timingWindows: View[List[TimingWindow]]          =
+  val readonly                                = isReadOnly || obsEditInfo.allAreCompleted
+  val schedulingMode: View[SchedulingMode]    =
+    schedulingConstraints.zoom(SchedulingConstraints.schedulingMode)
+  val timingWindows: View[List[TimingWindow]] =
     schedulingConstraints.zoom(SchedulingConstraints.timingWindows)
 
 object SchedulingWindowsTile
@@ -218,7 +216,7 @@ object SchedulingWindowsTile
             ExploreStyles.SchedulingTileTitle,
             addButton,
             <.span(s"${props.timingWindows.get.length} Windows"),
-            <.span(executionRequirementBadge(props.executionRequirement.get).whenDefined)
+            <.span(schedulingModeBadge(props.schedulingMode.get).whenDefined)
           )
 
         val pos: Option[Int] = table.getSelectedRowModel().rows.headOption.map(_.original._2)
@@ -232,35 +230,24 @@ object SchedulingWindowsTile
                 .asView
             )
 
-        // TODO: Restore the splitting editor once the ODB settles on the semantics of the
-        // effective / default / explicit execution requirement triple. It now has to edit
-        // `explicitExecutionRequirement`, and the default is a floor rather than a fallback,
-        // so an explicit value more permissive than the default has no effect.
-        // val subject: String =
-        //   if props.obsEditInfo.editing.length > 1 then "These observations" else "This observation"
-
         val body =
           React.Fragment(
             msg.map(msg => <.div(msg, ExploreStyles.SharedEditWarning)),
-            // <.h3("Splitting", HelpIcon("scheduling/splitting.md".refined)),
-            // <.div(
-            //   subject,
-            //   // `Uninterruptible` cannot be set here, so it is shown as plain text instead.
-            //   if props.executionRequirement.get === ExecutionRequirement.Uninterruptible then
-            //     TagMod(" may not be split or interrupted.")
-            //   else
-            //     TagMod(
-            //       EnumDropdownView(
-            //         id = "observation-execution-requirement".refined,
-            //         value = props.executionRequirement,
-            //         exclude = Set(ExecutionRequirement.Uninterruptible),
-            //         clazz = ExploreStyles.IsSplittableDropdown,
-            //         disabled = props.readonly
-            //       ),
-            //       "be split."
-            //     )
-            // ),
-            // Divider(),
+            <.div(LucumaPrimeStyles.FormColumnCompact)(
+              FormEnumDropdownView(
+                id = "observation-scheduling-mode".refined,
+                label = React.Fragment("Scheduling Mode",
+                                       HelpIcon("scheduling/scheduling-mode.md".refined)
+                ),
+                value = props.schedulingMode,
+                disabledItems =
+                  if props.hasTargetOfOpportunity then Set.empty
+                  else Set(SchedulingMode.Interrupting),
+                clazz = ExploreStyles.SchedulingModeDropdown,
+                disabled = props.readonly
+              )
+            ),
+            Divider(),
             <.h3(s"Windows (${props.timingWindows.get.length})",
                  HelpIcon("scheduling/windows.md".refined)
             ),
@@ -498,9 +485,10 @@ object SchedulingWindowsTile
 final case class ObservationSchedulingWindowsTile[F[
   _
 ]: {OdbObservationApi, MonadThrow, Dispatch, Logger, ToastCtx}](
-  observation: UndoSetter[Observation],
-  isReadonly:  Boolean,
-  fullSize:    Boolean
+  observation:                         UndoSetter[Observation],
+  override val hasTargetOfOpportunity: Boolean,
+  isReadonly:                          Boolean,
+  fullSize:                            Boolean
 ) extends SchedulingWindowsTile(
       ObsIdSetEditInfo.of(observation.get),
       TimingWindowsQueries.viewWithRemoteMod(
@@ -509,6 +497,7 @@ final case class ObservationSchedulingWindowsTile[F[
           Observation.schedulingConstraints
         )
       ),
+      hasTargetOfOpportunity,
       isReadonly,
       fullSize
     )
@@ -516,10 +505,11 @@ final case class ObservationSchedulingWindowsTile[F[
 final case class ObsIdSetSchedulingWindowsTile[F[
   _
 ]: {OdbObservationApi, MonadThrow, Dispatch, Logger, ToastCtx}](
-  override val obsEditInfo: ObsIdSetEditInfo,
-  observations:             UndoSetter[ObservationList],
-  isReadonly:               Boolean,
-  fullSize:                 Boolean
+  override val obsEditInfo:            ObsIdSetEditInfo,
+  observations:                        UndoSetter[ObservationList],
+  override val hasTargetOfOpportunity: Boolean,
+  isReadonly:                          Boolean,
+  fullSize:                            Boolean
 ) extends SchedulingWindowsTile(
       obsEditInfo, {
         // We will only edit the incomplete observations, but we noed something to pass
@@ -542,6 +532,7 @@ final case class ObsIdSetSchedulingWindowsTile[F[
             )
         )
       },
+      hasTargetOfOpportunity,
       isReadonly,
       fullSize
     )
