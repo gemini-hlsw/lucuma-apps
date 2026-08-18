@@ -266,15 +266,16 @@ def useVisualizationShapes(
         def withMaskShapes(
           shapes: Option[SortedMap[Css, ShapeExpression]]
         ): Option[SortedMap[Css, ShapeExpression]] =
+          val nominalAreas =
+            List(VisualizationStyles.GmosScienceCcd, VisualizationStyles.Flamingos2ScienceArea)
+              .map(_.htmlClass)
           (shapes, maskShapes) match
             case (Some(s), Some(m)) =>
-              (s.filterNot((css, _) =>
-                css.htmlClass.contains(VisualizationStyles.GmosScienceCcd.htmlClass)
-              ) ++ m).some
+              (s.filterNot((css, _) => nominalAreas.exists(css.htmlClass.contains)) ++ m).some
             case (s, m)             => s.orElse(m)
 
         conf match
-          case ObservingModeType.Flamingos2LongSlit                                    =>
+          case ObservingModeType.Flamingos2LongSlit                                      =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
@@ -295,7 +296,7 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case ObservingModeType.Flamingos2Imaging                                     =>
+          case ObservingModeType.Flamingos2Imaging                                       =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
@@ -316,7 +317,30 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case ObservingModeType.Flamingos2Mos                                         =>
+          case ObservingModeType.Flamingos2Mos                                           =>
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                VisualizationStyles.Flamingos2ProbeArmVisible
+
+            (probeVisibilityCss,
+             withMaskShapes(
+               Flamingos2Geometry.f2Geometry(
+                 baseCoords,
+                 blindOffset,
+                 vizConf.flatMap(_.guidedSciOffsets),
+                 vizConf.flatMap(_.guidedAcqOffsets),
+                 vizConf.map(_.posAngle),
+                 vizConf.map(_.configuration),
+                 PortDisposition.Side,
+                 vizConf.flatMap(_.trackType),
+                 selectedGS,
+                 candidatesVisibilityCss
+               )
+             )
+            ).some
+          case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
@@ -337,7 +361,7 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
+          case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
@@ -358,7 +382,7 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos         =>
+          case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos           =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
@@ -381,7 +405,7 @@ def useVisualizationShapes(
                )
              )
             ).some
-          case ObservingModeType.Igrins2LongSlit                                       =>
+          case ObservingModeType.Igrins2LongSlit                                         =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
@@ -400,7 +424,7 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case ObservingModeType.GhostIfu                                              =>
+          case ObservingModeType.GhostIfu                                                =>
             val probeVisibilityCss = VisualizationStyles.GhostIfuPatrolFieldVisible |+|
               (vizConf.flatMap(_.guideProbe) match
                 case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -453,7 +477,7 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case _: VisitorObservingModeType                                             =>
+          case _: VisitorObservingModeType                                               =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
@@ -472,6 +496,6 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case _: ExchangeObservingModeType                                            =>
+          case _: ExchangeObservingModeType                                              =>
             none
   }.map(_.value)
