@@ -734,7 +734,7 @@ input CallForProposalsPropertiesInput {
   Active period start date (inclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-
+  
   The start date is required on create and must be before the `activeEnd` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -744,7 +744,7 @@ input CallForProposalsPropertiesInput {
   Active period end date (exclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-
+  
   The end date is required on create and must be after the `activeStart` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3058,7 +3058,7 @@ type Mutation {
   Declines a REQUESTED Target-of-Opportunity trigger (staff), recording that it
   was seen and passed over.  This also clears the observation's READY state, so
   the observation returns to DEFINED.
-
+  
   There is no corresponding mutation to request or withdraw a trigger: a trigger
   is requested by setting a Target-of-Opportunity observation to READY via
   `setObservationWorkflowState`, and withdrawn by clearing that state.
@@ -3176,7 +3176,7 @@ type Mutation {
   """
   Re-runs the Archive Duplication Search for an observation, replacing its
   stored result with what the Gemini Observatory Archive holds now.
-
+  
   Rejected once the observation's proposal has been submitted.
   """
   refreshArchiveDuplication(input: RefreshArchiveDuplicationInput!): RefreshArchiveDuplicationResult!
@@ -3473,9 +3473,7 @@ type SchedulingConstraints {
   """
   tooActivation: TooActivation!
 
-  """
-  What the Scheduler may do with this observation.
-  """
+  """What the Scheduler may do with this observation."""
   schedulingMode: SchedulingMode!
 
   """
@@ -3525,7 +3523,7 @@ input ObservationPropertiesInput {
   Deprecated in favor of the `schedulingConstraints` field — use that instead.
   If both this field and `schedulingConstraints` are specified in the same
   mutation, the mutation will be rejected with a validation error.
-
+  
   Specifies one or more timing windows during which the observation may execute.
   Defaults to empty (unconstrained) if omitted. To modify, supply the complete
   desired array — it replaces the previous value entirely.
@@ -3918,7 +3916,7 @@ input ProgramPropertiesInput {
   Active period start date (inclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-
+  
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3928,7 +3926,7 @@ input ProgramPropertiesInput {
   Active period end date (exclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-
+  
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -4173,7 +4171,7 @@ type DemoScience implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4212,7 +4210,7 @@ type DirectorsTime implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4251,7 +4249,7 @@ type FastTurnaround implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4299,7 +4297,7 @@ type LargeProgram implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4361,7 +4359,7 @@ type Queue implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -4429,7 +4427,7 @@ type SystemVerification implements GeminiProposalType {
   The ceiling that applies when none is explicitly set: the most disruptive
   activation among the program's own observations, capped by what this proposal
   type permits.
-
+  
   Note this continues to track the observations after the proposal is accepted,
   at which point it no longer has any effect -- acceptance freezes the ceiling
   into `explicitTooActivationCeiling`, so that adding a more disruptive
@@ -5330,7 +5328,7 @@ input OpportunityInput {
   creation and editing, but meaning different things: omitting it when creating
   approves the whole sky, while omitting it when editing leaves the existing
   region alone.
-
+  
   It may not be set to null.  Every opportunity target has a region, so unlike
   `resolution` there is nothing for null to mean.  Note in particular that
   resolving a target does not require restating its region; supplying one here
@@ -5342,7 +5340,7 @@ input OpportunityInput {
   How this Target of Opportunity is tracked.  Supplying it resolves the target,
   which keeps the region intact; assigning null unsets it, returning the target
   to the unresolved state.  Omit it to leave the resolution unchanged.
-
+  
   To stop being a Target of Opportunity altogether, supply the top-level
   `sidereal` or `nonsidereal` field instead -- that changes the target's subtype
   and discards the region.
@@ -6560,7 +6558,12 @@ type Attachment {
   fileName: NonEmptyString!
 
   """
-  The identifier of the physical mask plate this attachment describes, derived from the attachment itself and not settable. Null when the attachment is not a MOS_MASK, always present when it is.
+  The identifier of the physical mask plate this attachment describes.  It is
+  derived from the file name by dropping the `_ODF.fits` suffix.
+  The file name must follow the standard ODF naming convention, either
+  `G(N|S)YYYY(A|B)<type>PPP-XX_ODF.fits` or
+  `GYYYY(A|B)PPPP<type>-XX_ODF.fits`.
+  Not settable.  Null when the attachment is not a MOS_MASK, always present when it is.
   """
   maskName: NonEmptyString
   description: NonEmptyString
@@ -11510,7 +11513,6 @@ type SpectroscopyConfigOptionFlamingos2 {
   for single-slit configurations, where the width is implied by `fpu`.
   """
   customSlitWidth: Flamingos2CustomSlitWidth
-
   disperser: Flamingos2Disperser!
   filter: Flamingos2Filter!
 }
@@ -11532,7 +11534,6 @@ type SpectroscopyConfigOptionGmosNorth {
   for single-slit configurations, where the width is implied by `fpu`.
   """
   customSlitWidth: GmosCustomSlitWidth
-
   grating: GmosNorthGrating!
   filter: GmosNorthFilter
 }
@@ -11549,7 +11550,6 @@ type SpectroscopyConfigOptionGmosSouth {
   for single-slit configurations, where the width is implied by `fpu`.
   """
   customSlitWidth: GmosCustomSlitWidth
-
   grating: GmosSouthGrating!
   filter: GmosSouthFilter
 }
@@ -11793,10 +11793,10 @@ type ItcResult {
 
   """
   The brightest pixel the ITC found, as computed for a single exposure.  Null
-  when the ITC reported no CCD data. For an acquisition whose exposure time
-  was clamped to the instrument's acquisition limits, this is what the ITC
-  computed for the unclamped time, so it may disagree with the exposure time
-  reported alongside it.
+  when the ITC reported no CCD data or a frozen row.
+  For an acquisition whose exposure time was clamped to the instrument's acquisition
+  limits, this is what the ITC computed for the unclamped time, so it may disagree
+  with the exposure time reported alongside it.
   """
   peakPixel: ItcPeakPixel
 }
@@ -13080,6 +13080,12 @@ type Program {
   """
   active: DateInterval!
 
+  """
+  Whether the program is currently active, i.e. whether the current UTC date
+  falls within the `active` period (inclusive of both bounds).
+  """
+  isActive: Boolean!
+
   """Proposal status of the program"""
   proposalStatus: ProposalStatus!
 
@@ -13596,7 +13602,7 @@ type Query {
   Obtains a list of program references for which the user with ORCiD `orcidId`
   has GOA data-download access privileges.  These will be those for which the
   user is a ProgramUser of any role with the `hasDataAccess` flag set.
-
+  
   This query is for use by staff and the GOA and will fail for other users.
   """
   goaDataDownloadAccess(orcidId: String!): [ProgramReferenceLabel!]!
@@ -15309,7 +15315,7 @@ type Opportunity {
   """
   How this Target of Opportunity is tracked, once the alert has arrived and
   identified it -- or null while it is still unresolved.
-
+  
   A Target of Opportunity does not stop being one when it is resolved.  It keeps
   its `region` (which is what the accepted proposal authorized) and continues to
   appear here rather than moving to the top-level `sidereal` or `nonsidereal`
@@ -15324,10 +15330,14 @@ The types are the same ones an ordinary target uses, since a resolution differs
 from a plain target only in that its name and source profile live on the Target.
 """
 type TargetResolution {
-  """Sidereal tracking information, if the target resolved to a sidereal target."""
+  """
+  Sidereal tracking information, if the target resolved to a sidereal target.
+  """
   sidereal: Sidereal
 
-  """Nonsidereal tracking information, if the target resolved to a nonsidereal target."""
+  """
+  Nonsidereal tracking information, if the target resolved to a nonsidereal target.
+  """
   nonsidereal: Nonsidereal
 }
 
@@ -16143,7 +16153,9 @@ input WhereAttachment {
   """Matches the attachment file name."""
   fileName: WhereString
 
-  """Matches the mask name, which is null for attachments that are not MOS masks."""
+  """
+  Matches the mask name, which is null for attachments that are not MOS masks.
+  """
   maskName: WhereOptionString
 
   """Matches the description."""
@@ -16748,6 +16760,18 @@ input WhereObservation {
 
   """Matches the calibration role."""
   calibrationRole: WhereOptionEqCalibrationRole
+
+  """
+  Matches if the observation's stored base position lies within the angular
+  `distance` of `center`. The stored position is the
+  explicit base if set, otherwise the asterism composite with every target
+  proper-motion corrected to epoch J2000.
+  An observation has no stored position when its asterism contains a
+  non-sidereal or opportunity target and no explicit base is set, or when the
+  background calculation has not yet caught up with recent edits; such
+  observations never match, and always match the negation.
+  """
+  targetCoordinates: WhereCone
 }
 
 """Configuration request filter options.  All specified items must match."""
@@ -16787,6 +16811,25 @@ input WhereConfigurationRequest {
 
   """Matches the last update time."""
   updatedAt: WhereOrderTimestamp
+
+  """Matches the configuration's observing mode type, if any."""
+  observingModeType: WhereOptionEqObservingModeType
+
+  """
+  Matches if the configuration's target reference coordinates lie within the
+  angular `distance` of `center` (exact great-circle). Resolved out of band.
+  """
+  targetCoordinates: WhereCone
+}
+
+"""A cone (angular-distance) match over a sky position."""
+input WhereCone {
+  center: CoordinatesInput!
+
+  """
+  Maximum angular separation between `center` and the target reference coords. Must be between 0° and 180°.
+  """
+  distance: AngleInput!
 }
 
 input WhereObservationReference {
@@ -18152,6 +18195,13 @@ input WhereProgram {
 
   """Matches the active period end."""
   activeEnd: WhereOrderDate
+
+  """
+  When true, matches programs whose active period `[activeStart, activeEnd]` contains the
+  current UTC date; when false, matches the complement. Evaluated in the database, so the
+  date is taken at transaction start.
+  """
+  isActive: Boolean
 }
 
 input WhereProgramReference {

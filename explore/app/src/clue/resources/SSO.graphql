@@ -1,33 +1,80 @@
 scalar UserId
 
+"""A String value that cannot be empty"""
 scalar NonEmptyString
 
 input WhereOrderUserId {
+  """Matches if the user id is exactly the supplied value."""
   EQ: UserId
+
+  """Matches if the user id is not the supplied value."""
   NEQ: UserId
+
+  """Matches if the user id is any of the supplied options."""
   IN: [UserId!]
+
+  """Matches if the user id is none of the supplied values."""
   NIN: [UserId!]
+
+  """Matches if the user id is ordered after (>) the supplied value."""
   GT: UserId
+
+  """Matches if the user id is ordered before (<) the supplied value."""
   LT: UserId
+
+  """
+  Matches if the user id is ordered after or equal (>=) the supplied value.
+  """
   GTE: UserId
+
+  """
+  Matches if the user id is ordered before or equal (<=) the supplied value.
+  """
   LTE: UserId
 }
 
+"""
+Filters on equality (or not) of the user type value and the supplied criteria.
+All supplied criteria must match, but usually only one is selected.
+"""
 input WhereEqUserType {
+  """Matches if the user type is exactly the supplied value."""
   EQ: UserType
+
+  """Matches if the user type is not the supplied value."""
   NEQ: UserType
+
+  """Matches if the user type is any of the supplied options."""
   IN: [UserType!]
+
+  """Matches if the user type is none of the supplied values."""
   NIN: [UserType!]
 }
 
+"""String matching options."""
 input WhereOptionString {
+  """
+  When `true` the string must not be defined.  When `false` the string must be defined.
+  """
   IS_NULL: Boolean
   EQ: NonEmptyString
   NEQ: NonEmptyString
   IN: [NonEmptyString!]
   NIN: [NonEmptyString!]
+
+  """
+  Performs string matching with wildcard patterns.  The entire string must be matched.  Use % to match a sequence of any characters and _ to match any single character.
+  """
   LIKE: NonEmptyString
+
+  """
+  Performs string matching with wildcard patterns.  The entire string must not match.  Use % to match a sequence of any characters and _ to match any single character.
+  """
   NLIKE: NonEmptyString
+
+  """
+  Set to `true` (the default) for case sensitive matches, `false` to ignore case.
+  """
   MATCH_CASE: Boolean = true
 }
 
@@ -38,13 +85,27 @@ input WhereUserProfile {
   email: WhereOptionString
 }
 
+"""Gemini Partners"""
 enum Partner {
+  """Argentina"""
   AR
+
+  """Brazil"""
   BR
+
+  """Canada"""
   CA
+
+  """Chile"""
   CL
+
+  """Korea"""
   KR
+
+  """University of Hawaii"""
   UH
+
+  """United States"""
   US
 }
 
@@ -61,36 +122,100 @@ enum UserType {
   SERVICE
 }
 
+"""User filter options.  All specified items must match."""
 input WhereUser {
+  """
+  When `true`, matches if the user is not defined. When `false` matches if the
+  user is defined.
+  """
   IS_NULL: Boolean
+
+  """
+  A list of nested user filters that all must match in order for the AND group
+  as a whole to match.
+  """
   AND: [WhereUser!]
+
+  """
+  A list of nested user filters that all must match in order for the OR group
+  as a whole to match.
+  """
   OR: [WhereUser!]
+
+  """
+  A nested user filter that must not match in order for the NOT itself to match.
+  """
   NOT: WhereUser
+
+  """Matches the user Id."""
   id: WhereOrderUserId
+
+  """Matches the user type."""
   type: WhereEqUserType
   orcidId: WhereOptionString
   profile: WhereUserProfile
 }
 
 type Query {
+  """The current user."""
   user: User!
+
+  """The current user's active role."""
   role: Role!
-  users(WHERE: WhereUser, OFFSET: UserId, LIMIT: NonNegInt, includeDisabled: Boolean! = false): UserSelectResult!
+
+  """Select users. Available only to admin and staff roles."""
+  users(
+    """Filters the selection of users."""
+    WHERE: WhereUser
+
+    """Starts the result set at (or after if not existent) the given id."""
+    OFFSET: UserId
+
+    """
+    Limits the result to at most this number of matches (but never more than 1000).
+    """
+    LIMIT: NonNegInt
+
+    """Set to true to include disabled values"""
+    includeDisabled: Boolean! = false
+  ): UserSelectResult!
 }
 
+"""The user results, limited to a maximum of 1000 entries."""
 type UserSelectResult {
+  """Matching users up to the return size limit of 1000"""
   matches: [User!]!
+
+  """`true` when there were additional matches that were not returned."""
   hasMore: Boolean!
 }
 
 type Mutation {
+  """
+  Create and return an API key for the specified role, if owned by the current user.
+  """
   createApiKey(role: RoleId!): String!
+
+  """
+  Delete the specified API key, if owned by the current user. Returns the constant value `true`.
+  """
   deleteApiKey(id: ApiKeyId!): Boolean!
+
+  """
+  Add a user role, or look up the role if it already exists. Available only to admin and service users.
+  """
   addRole(userId: UserId!, roleType: RoleType!, partner: Partner): RoleId!
+
+  """
+  Delete the specified role. Available only to admin and service users. Sessions
+  associated with this role will be deleted and will fail to renew on the next attempt. Note
+  that the PI role cannot be deleted.
+  """
   deleteRole(roleId: RoleId!): Boolean!
 }
 
 type Subscription {
+  """A subscription that yields revoked API key identifiers."""
   apiKeyRevocation: ApiKeyId!
 }
 
