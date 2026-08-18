@@ -568,6 +568,20 @@ thead tr th.sticky-header {
   align-self: start;
   flex-shrink: 0;
   width: 100%;
+
+  // The empty message is positioned below the table, which leaves it outside a tile sized to its
+  // content, so it goes back in flow here.
+  .p-datatable-emptymessage {
+    text-align: center;
+
+    div {
+      position: static;
+      transform: none;
+      display: inline-block;
+      margin: 1.25em 0;
+      padding: 0;
+    }
+  }
 }
 
 .explore-tile {

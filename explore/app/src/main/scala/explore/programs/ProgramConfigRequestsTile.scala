@@ -156,23 +156,35 @@ object ProgramConfigRequestsTile:
         _           <- useEffectOnMount:
                          props.tileState.zoom(TileState.table).set(table.some)
         resizer     <- useResizeDetector
-      yield PrimeAutoHeightVirtualizedTable(
-        table,
-        _ => 32.toPx,
-        striped = true,
-        compact = Compact.Very,
-        innerContainerMod = ^.width := "100%",
-        containerRef = resizer.ref,
-        tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable,
-        hoverableRows = rows.nonEmpty,
-        rowMod = rowTagMod: row =>
-          TagMod(
-            ExploreStyles.TableRowSelected.when(row.getIsSelected()),
-            ^.onClick ==> table
-              .getMultiRowSelectedHandler(RowId(row.original.request.id.toString))
-          ),
-        emptyMessage = <.div("There are no requests.")
-      )
+      yield
+        val emptyMessage = <.div("There are no requests.")
+        val tableMod     = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable
+        if rows.isEmpty then
+          PrimeTable(
+            table,
+            striped = true,
+            compact = Compact.Very,
+            tableMod = tableMod,
+            hoverableRows = false,
+            emptyMessage = emptyMessage
+          )
+        else
+          PrimeAutoHeightVirtualizedTable(
+            table,
+            _ => 32.toPx,
+            striped = true,
+            compact = Compact.Very,
+            innerContainerMod = ^.width := "100%",
+            containerRef = resizer.ref,
+            tableMod = tableMod,
+            rowMod = rowTagMod: row =>
+              TagMod(
+                ExploreStyles.TableRowSelected.when(row.getIsSelected()),
+                ^.onClick ==> table
+                  .getMultiRowSelectedHandler(RowId(row.original.request.id.toString))
+              ),
+            emptyMessage = emptyMessage
+          )
     )
 
   case class Title(
