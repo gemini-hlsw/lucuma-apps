@@ -171,7 +171,9 @@ object ProgramNotesTile
                     )
                   )
               ): VdomNode
-            .getOrElse(<.div("No notes have been created."))
+            .getOrElse(
+              <.div(ExploreStyles.TileEmptyMessage, "No notes have been created.")
+            )
 
         TileContents(title, body)
     })

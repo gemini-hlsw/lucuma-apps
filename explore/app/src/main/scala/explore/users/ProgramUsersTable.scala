@@ -660,7 +660,7 @@ object ProgramUsersTable:
             table,
             striped = true,
             compact = Compact.Very,
-            emptyMessage = "No users defined"
+            emptyMessage = <.div("No users defined")
           ),
           popupProgUser.map(progUser =>
             InviteUserPopup(progUser, createInviteStatus, overlayPanelRef) // : VdomNode

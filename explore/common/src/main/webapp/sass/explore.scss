@@ -558,6 +558,19 @@ thead tr th.sticky-header {
   scrollbar-gutter: stable;
 }
 
+// A tile's "nothing here yet" text. `fit-content` plus auto margins center it while keeping the
+// accent underline the width of the text.
+@mixin tile-empty-message {
+  width: fit-content;
+  margin: 1.25em auto;
+  font-size: 1.3em;
+  border-bottom: var(--explore-accent-color) solid 2px;
+}
+
+.explore-tile-empty-message {
+  @include tile-empty-message;
+}
+
 // The measurement wrapper must report the height its content *wants*, so the body's own layout
 // must not get a say in it. A flex or grid body would otherwise size it to the height already
 // available and the derived row span would settle wherever it started rather than converging on
@@ -571,16 +584,18 @@ thead tr th.sticky-header {
 
   // The empty message is positioned below the table, which leaves it outside a tile sized to its
   // content, so it goes back in flow here.
-  .p-datatable-emptymessage {
-    text-align: center;
+  .p-datatable-emptymessage div {
+    @include tile-empty-message;
 
-    div {
-      position: static;
-      transform: none;
-      display: inline-block;
-      margin: 1.25em 0;
-      padding: 0;
-    }
+    position: static;
+    transform: none;
+    padding: 0;
+  }
+
+  // The tile can't shrink below its minimum row span, so a short empty table never fills it. The
+  // theme's row background would end mid-tile, so let the tile's own background show through.
+  .p-datatable-tbody > tr:has(> .p-datatable-emptymessage) {
+    background: transparent;
   }
 }
 

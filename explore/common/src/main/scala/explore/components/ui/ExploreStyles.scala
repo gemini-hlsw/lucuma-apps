@@ -39,6 +39,7 @@ object ExploreStyles:
   val TileHeightPresetLabel: Css        = Css("explore-tile-height-preset-label")
   val TileHeightPresetTrack: Css        = Css("explore-tile-height-preset-track")
   val TileHeightPresetTicks: Css        = Css("explore-tile-height-preset-ticks")
+  val TileEmptyMessage: Css             = Css("explore-tile-empty-message")
 
   val Accented: Css    = Css("explore-accented")
   val TextPlain: Css   = Css("explore-text-plain")
