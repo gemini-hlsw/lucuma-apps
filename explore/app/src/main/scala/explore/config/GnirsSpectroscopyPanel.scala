@@ -430,7 +430,7 @@ object GnirsSpectroscopyPanel
                     defaultConfigs = gnirs.defaultIfuTelescopeConfigs(fpu),
                     helpId = "configuration/ifu-spatial-offsets.md".refined,
                     presetsReadonly = !props.permissions.isFullEdit,
-                    editingReadonly = disableSimpleEdit
+                    editingReadonly = !props.permissions.isFullEdit
                   )
               ,
               slitTelescopeConfigsViewOpt.map: v =>
@@ -453,7 +453,7 @@ object GnirsSpectroscopyPanel
                   ),
                   helpId = "configuration/slit-spatial-offsets.md".refined,
                   presetsReadonly = !props.permissions.isFullEdit,
-                  editingReadonly = disableSimpleEdit
+                  editingReadonly = !props.permissions.isFullEdit
                 )
             )
           ),
