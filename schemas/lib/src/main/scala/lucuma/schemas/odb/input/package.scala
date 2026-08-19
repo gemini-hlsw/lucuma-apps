@@ -747,7 +747,6 @@ extension (o: ObservingMode.Flamingos2Mos)
     filter = o.filter.assign,
     customMask = o.customMask.toInput.assign,
     exposureTimeMode = o.exposureTimeMode.toInput.assign,
-    offsetPreset = o.offsetPreset.assign,
     explicitReadMode = o.explicitReadMode.orUnassign,
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,

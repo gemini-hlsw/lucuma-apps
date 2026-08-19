@@ -864,7 +864,6 @@ trait ArbObservingMode {
         filter                   <- arbitrary[Flamingos2Filter]
         initialSlitWidth         <- arbitrary[Flamingos2CustomSlitWidth]
         customMask               <- arbitrary[ObservingMode.Flamingos2CustomMask]
-        offsetPreset             <- arbitrary[Flamingos2MosOffsetPreset]
         explicitReadMode         <- arbitrary[Option[Flamingos2ReadMode]]
         explicitReads            <- arbitrary[Option[Flamingos2Reads]]
         defaultDecker            <- arbitrary[Flamingos2Decker]
@@ -881,7 +880,6 @@ trait ArbObservingMode {
         filter,
         initialSlitWidth,
         customMask,
-        offsetPreset,
         explicitReadMode,
         explicitReads,
         defaultDecker,
@@ -902,7 +900,6 @@ trait ArbObservingMode {
        Flamingos2Filter,
        Flamingos2CustomSlitWidth,
        ObservingMode.Flamingos2CustomMask,
-       Flamingos2MosOffsetPreset,
        Option[Flamingos2ReadMode],
        Option[Flamingos2Reads],
        Flamingos2Decker,
@@ -922,7 +919,6 @@ trait ArbObservingMode {
           o.filter,
           o.initialSlitWidth,
           o.customMask,
-          o.offsetPreset,
           o.explicitReadMode,
           o.explicitReads,
           o.defaultDecker,

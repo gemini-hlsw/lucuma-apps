@@ -1079,7 +1079,6 @@ object ObservingMode:
     filter:                   Flamingos2Filter,
     initialSlitWidth:         Flamingos2CustomSlitWidth,
     customMask:               Flamingos2CustomMask,
-    offsetPreset:             Flamingos2MosOffsetPreset,
     explicitReadMode:         Option[Flamingos2ReadMode],
     explicitReads:            Option[Flamingos2Reads],
     defaultDecker:            Flamingos2Decker,
@@ -1136,8 +1135,6 @@ object ObservingMode:
       Focus[Flamingos2Mos](_.initialSlitWidth)
     val customMask: Lens[Flamingos2Mos, Flamingos2CustomMask]                       =
       Focus[Flamingos2Mos](_.customMask)
-    val offsetPreset: Lens[Flamingos2Mos, Flamingos2MosOffsetPreset]                =
-      Focus[Flamingos2Mos](_.offsetPreset)
     val explicitReadMode: Lens[Flamingos2Mos, Option[Flamingos2ReadMode]]           =
       Focus[Flamingos2Mos](_.explicitReadMode)
     val explicitReads: Lens[Flamingos2Mos, Option[Flamingos2Reads]]                 =
