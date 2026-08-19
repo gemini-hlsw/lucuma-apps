@@ -100,7 +100,7 @@ object Ghost {
     static:            GhostStaticConfig,
     step:              Step[GhostDynamicConfig],
     targetEnvironment: TargetEnvironment,
-    observingTime:     Timestamp
+    observingTime:     Option[Timestamp]
   ): Either[ObserveFailure, GhostConfig] =
     GhostConfig(
       static,

@@ -448,169 +448,236 @@ object GhostConfig {
     staticConfig:      GhostStaticConfig,
     step:              Step[GhostDynamicConfig],
     targetEnvironment: TargetEnvironment,
-    observingTime:     Timestamp
+    observingTime:     Option[Timestamp]
   ): Either[ObserveFailure, GhostConfig] = {
     if (step.stepConfig.isScience) {
+      observingTime
+        .map { obsTime =>
+          val obsType = step.stepConfig
 
-      val obsType = step.stepConfig
+          val basePosition = retrieveBasePosition(targetEnvironment, obsTime)
 
-      val basePosition = retrieveBasePosition(targetEnvironment, observingTime)
+          val scienceMag = calculateScienceMagnitude(targetEnvironment.asterism.map(_.target))
 
-      val scienceMag = calculateScienceMagnitude(targetEnvironment.asterism.map(_.target))
-
-      (staticConfig.resolutionMode match {
-        case GhostResolutionMode.Standard =>
-          staticConfig.ifuMapping match {
-            case GhostIfuMapping.SingleTarget(ifu1)        =>
-              SiderealOptionalGetter(ifu1)
-                .get(targetEnvironment)
-                .map { t =>
-                  t.tracking
-                    .at(observingTime.toInstant)
-                    .map {
-                      StandardResolutionMode
-                        .SingleTarget(
-                          obsType,
-                          step.observeClass,
-                          step.instrumentConfig.blue,
-                          step.instrumentConfig.red,
-                          basePosition,
-                          step.instrumentConfig.ifu1FiberAgitator,
-                          step.instrumentConfig.ifu2FiberAgitator,
-                          IFUTargetType.SiderealTarget(t.name.value),
-                          _,
-                          List.empty,
-                          scienceMag,
-                          retrieveGuideCameraOverride(staticConfig),
-                          staticConfig.slitViewingCameraExposureTime,
-                          targetEnvironment.explicitBase
+          (staticConfig.resolutionMode match {
+            case GhostResolutionMode.Standard =>
+              staticConfig.ifuMapping match {
+                case GhostIfuMapping.SingleTarget(ifu1)        =>
+                  SiderealOptionalGetter(ifu1)
+                    .get(targetEnvironment)
+                    .map { t =>
+                      t.tracking
+                        .at(obsTime.toInstant)
+                        .map {
+                          StandardResolutionMode
+                            .SingleTarget(
+                              obsType,
+                              step.observeClass,
+                              step.instrumentConfig.blue,
+                              step.instrumentConfig.red,
+                              basePosition,
+                              step.instrumentConfig.ifu1FiberAgitator,
+                              step.instrumentConfig.ifu2FiberAgitator,
+                              IFUTargetType.SiderealTarget(t.name.value),
+                              _,
+                              List.empty,
+                              scienceMag,
+                              retrieveGuideCameraOverride(staticConfig),
+                              staticConfig.slitViewingCameraExposureTime,
+                              targetEnvironment.explicitBase
+                            )
+                        }
+                        .toRight[String](
+                          s"Cannot calculate position for IFU1 target ${ifu1} (${t.name})"
                         )
                     }
-                    .toRight[String](
-                      s"Cannot calculate position for IFU1 target ${ifu1} (${t.name})"
+                    .orElse(
+                      NonsiderealOptionalGetter(ifu1).get(targetEnvironment).map { t =>
+                        // Single, nonsidereal target
+                        StandardResolutionMode
+                          .NonSiderealTarget(
+                            obsType,
+                            step.observeClass,
+                            step.instrumentConfig.blue,
+                            step.instrumentConfig.red,
+                            basePosition,
+                            step.instrumentConfig.ifu1FiberAgitator,
+                            step.instrumentConfig.ifu2FiberAgitator,
+                            IFUTargetType.NonsiderealTarget(t.name.value),
+                            List.empty,
+                            scienceMag,
+                            retrieveGuideCameraOverride(staticConfig),
+                            staticConfig.slitViewingCameraExposureTime,
+                            targetEnvironment.explicitBase
+                          )
+                          .asRight[ObserveFailure]
+                      }
                     )
-                }
-                .orElse(
-                  NonsiderealOptionalGetter(ifu1).get(targetEnvironment).map { t =>
-                    // Single, nonsidereal target
-                    StandardResolutionMode
-                      .NonSiderealTarget(
-                        obsType,
-                        step.observeClass,
-                        step.instrumentConfig.blue,
-                        step.instrumentConfig.red,
-                        basePosition,
-                        step.instrumentConfig.ifu1FiberAgitator,
-                        step.instrumentConfig.ifu2FiberAgitator,
-                        IFUTargetType.NonsiderealTarget(t.name.value),
-                        List.empty,
-                        scienceMag,
-                        retrieveGuideCameraOverride(staticConfig),
-                        staticConfig.slitViewingCameraExposureTime,
-                        targetEnvironment.explicitBase
-                      )
-                      .asRight[ObserveFailure]
-                  }
-                )
-                .getOrElse(
-                  s"IFU1 target ${ifu1} does not exist or is of the wrong type)".asLeft[GhostConfig]
-                )
-            // Target and Sky
-            case GhostIfuMapping.TargetPlusSky(ifu1, ifu2) =>
-              SiderealOptionalGetter(ifu1)
-                .get(targetEnvironment)
-                .map { t =>
-                  t.tracking
-                    .at(observingTime.toInstant)
-                    .map {
-                      StandardResolutionMode.TargetPlusSky(
-                        obsType,
-                        step.observeClass,
-                        step.instrumentConfig.blue,
-                        step.instrumentConfig.red,
-                        basePosition,
-                        step.instrumentConfig.ifu1FiberAgitator,
-                        step.instrumentConfig.ifu2FiberAgitator,
-                        IFUTargetType.SiderealTarget(t.name.value),
-                        _,
-                        ifu2,
-                        List.empty,
-                        scienceMag,
-                        retrieveGuideCameraOverride(staticConfig),
-                        staticConfig.slitViewingCameraExposureTime,
-                        targetEnvironment.explicitBase
-                      )
-                    }
-                    .toRight[String](
-                      s"Cannot calculate position for IFU1 target ${ifu1} (${t.name})"
+                    .getOrElse(
+                      s"IFU1 target ${ifu1} does not exist or is of the wrong type)"
+                        .asLeft[GhostConfig]
                     )
-                }
-                .getOrElse(
-                  s"IFU1 target ${ifu1} does not exist or is of the wrong type)".asLeft[GhostConfig]
-                )
-            // Sky and Target
-            case GhostIfuMapping.SkyPlusTarget(ifu1, ifu2) =>
-              SiderealOptionalGetter(ifu2)
-                .get(targetEnvironment)
-                .map { t =>
-                  t.tracking
-                    .at(observingTime.toInstant)
-                    .map {
-                      StandardResolutionMode
-                        .SkyPlusTarget(
-                          obsType,
-                          step.observeClass,
-                          step.instrumentConfig.blue,
-                          step.instrumentConfig.red,
-                          basePosition,
-                          step.instrumentConfig.ifu1FiberAgitator,
-                          step.instrumentConfig.ifu2FiberAgitator,
-                          ifu1,
-                          IFUTargetType.SiderealTarget(t.name.value),
-                          _,
-                          List.empty,
-                          scienceMag,
-                          retrieveGuideCameraOverride(staticConfig),
-                          staticConfig.slitViewingCameraExposureTime,
-                          targetEnvironment.explicitBase
+                // Target and Sky
+                case GhostIfuMapping.TargetPlusSky(ifu1, ifu2) =>
+                  SiderealOptionalGetter(ifu1)
+                    .get(targetEnvironment)
+                    .map { t =>
+                      t.tracking
+                        .at(obsTime.toInstant)
+                        .map {
+                          StandardResolutionMode.TargetPlusSky(
+                            obsType,
+                            step.observeClass,
+                            step.instrumentConfig.blue,
+                            step.instrumentConfig.red,
+                            basePosition,
+                            step.instrumentConfig.ifu1FiberAgitator,
+                            step.instrumentConfig.ifu2FiberAgitator,
+                            IFUTargetType.SiderealTarget(t.name.value),
+                            _,
+                            ifu2,
+                            List.empty,
+                            scienceMag,
+                            retrieveGuideCameraOverride(staticConfig),
+                            staticConfig.slitViewingCameraExposureTime,
+                            targetEnvironment.explicitBase
+                          )
+                        }
+                        .toRight[String](
+                          s"Cannot calculate position for IFU1 target ${ifu1} (${t.name})"
                         )
                     }
-                    .toRight[String](
-                      s"Cannot calculate position for IFU2 target ${ifu2} (${t.name})"
+                    .getOrElse(
+                      s"IFU1 target ${ifu1} does not exist or is of the wrong type)"
+                        .asLeft[GhostConfig]
                     )
-                }
-                .getOrElse(
-                  s"Error reading GHOST configuration: IFU2 target ${ifu2} does not exist or is of the wrong type)"
-                    .asLeft[GhostConfig]
-                )
-            // Two targets
-            case GhostIfuMapping.DualTarget(ifu1, ifu2)    =>
-              (SiderealOptionalGetter(ifu1).get(targetEnvironment),
-               SiderealOptionalGetter(ifu2).get(targetEnvironment)
-              ) match {
-                case (None, None)         =>
-                  s"IFU1 target $ifu1 and IFU2 target $ifu2 do not exist or are of the wrong type"
-                    .asLeft[GhostConfig]
-                case (Some(_), None)      =>
-                  s"IFU2 target ${ifu2} does not exist or is of the wrong type)".asLeft[GhostConfig]
-                case (None, Some(_))      =>
-                  s"IFU1 target ${ifu1} does not exist or is of the wrong type)".asLeft[GhostConfig]
-                case (Some(t1), Some(t2)) =>
-                  (t1.tracking.at(observingTime.toInstant),
-                   t2.tracking.at(observingTime.toInstant)
+                // Sky and Target
+                case GhostIfuMapping.SkyPlusTarget(ifu1, ifu2) =>
+                  SiderealOptionalGetter(ifu2)
+                    .get(targetEnvironment)
+                    .map { t =>
+                      t.tracking
+                        .at(obsTime.toInstant)
+                        .map {
+                          StandardResolutionMode
+                            .SkyPlusTarget(
+                              obsType,
+                              step.observeClass,
+                              step.instrumentConfig.blue,
+                              step.instrumentConfig.red,
+                              basePosition,
+                              step.instrumentConfig.ifu1FiberAgitator,
+                              step.instrumentConfig.ifu2FiberAgitator,
+                              ifu1,
+                              IFUTargetType.SiderealTarget(t.name.value),
+                              _,
+                              List.empty,
+                              scienceMag,
+                              retrieveGuideCameraOverride(staticConfig),
+                              staticConfig.slitViewingCameraExposureTime,
+                              targetEnvironment.explicitBase
+                            )
+                        }
+                        .toRight[String](
+                          s"Cannot calculate position for IFU2 target ${ifu2} (${t.name})"
+                        )
+                    }
+                    .getOrElse(
+                      s"Error reading GHOST configuration: IFU2 target ${ifu2} does not exist or is of the wrong type)"
+                        .asLeft[GhostConfig]
+                    )
+                // Two targets
+                case GhostIfuMapping.DualTarget(ifu1, ifu2)    =>
+                  (SiderealOptionalGetter(ifu1).get(targetEnvironment),
+                   SiderealOptionalGetter(ifu2).get(targetEnvironment)
                   ) match {
-                    case (None, None)             =>
-                      s"Cannot calculate position neither IFU1 target ${ifu1} (${t1.name}) nor IFU2 target ${ifu2} (${t2.name})"
+                    case (None, None)         =>
+                      s"IFU1 target $ifu1 and IFU2 target $ifu2 do not exist or are of the wrong type"
                         .asLeft[GhostConfig]
-                    case (Some(_), None)          =>
-                      s"Error reading GHOST configuration: Cannot calculate position for IFU2 target ${ifu2} (${t2.name})"
+                    case (Some(_), None)      =>
+                      s"IFU2 target ${ifu2} does not exist or is of the wrong type)"
                         .asLeft[GhostConfig]
-                    case (None, Some(_))          =>
-                      s"Error reading GHOST configuration: Cannot calculate position for IFU1 target ${ifu1} (${t1.name})"
+                    case (None, Some(_))      =>
+                      s"IFU1 target ${ifu1} does not exist or is of the wrong type)"
                         .asLeft[GhostConfig]
-                    case (Some(pos1), Some(pos2)) =>
-                      StandardResolutionMode
-                        .DualTarget(
+                    case (Some(t1), Some(t2)) =>
+                      (t1.tracking.at(obsTime.toInstant), t2.tracking.at(obsTime.toInstant)) match {
+                        case (None, None)             =>
+                          s"Cannot calculate position neither IFU1 target ${ifu1} (${t1.name}) nor IFU2 target ${ifu2} (${t2.name})"
+                            .asLeft[GhostConfig]
+                        case (Some(_), None)          =>
+                          s"Error reading GHOST configuration: Cannot calculate position for IFU2 target ${ifu2} (${t2.name})"
+                            .asLeft[GhostConfig]
+                        case (None, Some(_))          =>
+                          s"Error reading GHOST configuration: Cannot calculate position for IFU1 target ${ifu1} (${t1.name})"
+                            .asLeft[GhostConfig]
+                        case (Some(pos1), Some(pos2)) =>
+                          StandardResolutionMode
+                            .DualTarget(
+                              obsType,
+                              step.observeClass,
+                              step.instrumentConfig.blue,
+                              step.instrumentConfig.red,
+                              basePosition,
+                              step.instrumentConfig.ifu1FiberAgitator,
+                              step.instrumentConfig.ifu2FiberAgitator,
+                              IFUTargetType.SiderealTarget(t1.name.value),
+                              pos1,
+                              IFUTargetType.SiderealTarget(t2.name.value),
+                              pos2,
+                              List.empty,
+                              scienceMag,
+                              retrieveGuideCameraOverride(staticConfig),
+                              staticConfig.slitViewingCameraExposureTime,
+                              targetEnvironment.explicitBase
+                            )
+                            .asRight[String]
+                      }
+                  }
+              }
+            case GhostResolutionMode.High     =>
+              // Target and Sky
+              staticConfig.ifuMapping match {
+                case GhostIfuMapping.TargetPlusSky(ifu1, ifu2) =>
+                  SiderealOptionalGetter(ifu1)
+                    .get(targetEnvironment)
+                    .map { t =>
+                      t.tracking
+                        .at(obsTime.toInstant)
+                        .map {
+                          HighResolutionMode.TargetPlusSky(
+                            obsType,
+                            step.observeClass,
+                            step.instrumentConfig.blue,
+                            step.instrumentConfig.red,
+                            basePosition,
+                            step.instrumentConfig.ifu1FiberAgitator,
+                            step.instrumentConfig.ifu2FiberAgitator,
+                            IFUTargetType.SiderealTarget(t.name.value),
+                            _,
+                            ifu2,
+                            List.empty,
+                            scienceMag,
+                            retrieveGuideCameraOverride(staticConfig),
+                            staticConfig.slitViewingCameraExposureTime,
+                            targetEnvironment.explicitBase
+                          )
+                        }
+                        .toRight[String](
+                          s"Cannot calculate position for IFU1 target ${ifu1} (${t.name})"
+                        )
+                    }
+                    .getOrElse(
+                      s"IFU1 target ${ifu1} does not exist or is of the wrong type)"
+                        .asLeft[GhostConfig]
+                    )
+                // Single, nonsidereal target
+                case GhostIfuMapping.SingleTarget(ifu1)        =>
+                  NonsiderealOptionalGetter(ifu1)
+                    .get(targetEnvironment)
+                    .map { t =>
+                      HighResolutionMode
+                        .NonSidereal(
                           obsType,
                           step.observeClass,
                           step.instrumentConfig.blue,
@@ -618,10 +685,7 @@ object GhostConfig {
                           basePosition,
                           step.instrumentConfig.ifu1FiberAgitator,
                           step.instrumentConfig.ifu2FiberAgitator,
-                          IFUTargetType.SiderealTarget(t1.name.value),
-                          pos1,
-                          IFUTargetType.SiderealTarget(t2.name.value),
-                          pos2,
+                          IFUTargetType.NonsiderealTarget(t.name.value),
                           List.empty,
                           scienceMag,
                           retrieveGuideCameraOverride(staticConfig),
@@ -629,82 +693,28 @@ object GhostConfig {
                           targetEnvironment.explicitBase
                         )
                         .asRight[String]
-                  }
-              }
-          }
-        case GhostResolutionMode.High     =>
-          // Target and Sky
-          staticConfig.ifuMapping match {
-            case GhostIfuMapping.TargetPlusSky(ifu1, ifu2) =>
-              SiderealOptionalGetter(ifu1)
-                .get(targetEnvironment)
-                .map { t =>
-                  t.tracking
-                    .at(observingTime.toInstant)
-                    .map {
-                      HighResolutionMode.TargetPlusSky(
-                        obsType,
-                        step.observeClass,
-                        step.instrumentConfig.blue,
-                        step.instrumentConfig.red,
-                        basePosition,
-                        step.instrumentConfig.ifu1FiberAgitator,
-                        step.instrumentConfig.ifu2FiberAgitator,
-                        IFUTargetType.SiderealTarget(t.name.value),
-                        _,
-                        ifu2,
-                        List.empty,
-                        scienceMag,
-                        retrieveGuideCameraOverride(staticConfig),
-                        staticConfig.slitViewingCameraExposureTime,
-                        targetEnvironment.explicitBase
-                      )
                     }
-                    .toRight[String](
-                      s"Cannot calculate position for IFU1 target ${ifu1} (${t.name})"
+                    .getOrElse(
+                      s"IFU1 target ${ifu1} does not exist or is of the wrong type)"
+                        .asLeft[GhostConfig]
                     )
-                }
-                .getOrElse(
-                  s"IFU1 target ${ifu1} does not exist or is of the wrong type)".asLeft[GhostConfig]
-                )
-            // Single, nonsidereal target
-            case GhostIfuMapping.SingleTarget(ifu1)        =>
-              NonsiderealOptionalGetter(ifu1)
-                .get(targetEnvironment)
-                .map { t =>
-                  HighResolutionMode
-                    .NonSidereal(
-                      obsType,
-                      step.observeClass,
-                      step.instrumentConfig.blue,
-                      step.instrumentConfig.red,
-                      basePosition,
-                      step.instrumentConfig.ifu1FiberAgitator,
-                      step.instrumentConfig.ifu2FiberAgitator,
-                      IFUTargetType.NonsiderealTarget(t.name.value),
-                      List.empty,
-                      scienceMag,
-                      retrieveGuideCameraOverride(staticConfig),
-                      staticConfig.slitViewingCameraExposureTime,
-                      targetEnvironment.explicitBase
-                    )
-                    .asRight[String]
-                }
-                .getOrElse(
-                  s"IFU1 target ${ifu1} does not exist or is of the wrong type)".asLeft[GhostConfig]
-                )
-            case _                                         =>
-              s"Invalid IFU mapping ${staticConfig.ifuMapping} for resolution ${staticConfig.resolutionMode}"
-                .asLeft[GhostConfig]
-          }
-      }).leftMap(m => ObserveFailure.OdbSeqError(s"Error reading GHOST configuration: $m"))
+                case _                                         =>
+                  s"Invalid IFU mapping ${staticConfig.ifuMapping} for resolution ${staticConfig.resolutionMode}"
+                    .asLeft[GhostConfig]
+              }
+          }).leftMap(m => ObserveFailure.OdbSeqError(s"Error reading GHOST configuration: $m"))
+        }
+        .getOrElse(
+          ObserveFailure
+            .OdbSeqError(s"Observing time not set for GHOST observation.")
+            .asLeft[GhostConfig]
+        )
     } else
       GhostCalibration(
         step.stepConfig,
         step.observeClass,
         step.instrumentConfig.blue,
         step.instrumentConfig.red,
-        retrieveBasePosition(targetEnvironment, observingTime),
         step.instrumentConfig.ifu1FiberAgitator,
         step.instrumentConfig.ifu2FiberAgitator,
         staticConfig.resolutionMode,
@@ -750,7 +760,6 @@ case class GhostCalibration(
   override val obsClass:       ObserveClass,
   override val blueConfig:     GhostDetector.Blue,
   override val redConfig:      GhostDetector.Red,
-  override val baseCoords:     Option[Coordinates],
   override val fiberAgitator1: GhostIfu1FiberAgitator,
   override val fiberAgitator2: GhostIfu2FiberAgitator,
   override val resolutionMode: GhostResolutionMode,
@@ -764,6 +773,8 @@ case class GhostCalibration(
 
   override val baseConfiguration: Configuration =
     Configuration.Zero
+
+  override val baseCoords: Option[Coordinates] = None
 
   override def ifu1TargetType: IFUTargetType =
     IFUTargetType.NoTarget
