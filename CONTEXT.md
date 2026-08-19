@@ -42,6 +42,24 @@ Configurations column heading.
 A minimum slit length an observation requires, in arcseconds. A separate Science
 Requirement from Focal Plane, despite sharing the form row.
 
+**MOS Mask**:
+A fabricated plate carrying many slits, used by a Multiple Slits observation in place of a
+builtin FPU. Uploaded as an attachment, and normally absent until well after the Observing
+Mode is created — an unbound mask is the ordinary state, not an error.
+_Avoid_: custom mask (that is the Observing Mode field holding the binding plus the slit
+width), plate
+
+**Mask Binding**:
+The link from an Observing Mode to the MOS Mask its observation is taken through. It is
+authoritative and part of the instrument's dynamic config, so it reaches every sequence
+step — binding a mask is an instrument change, not bookkeeping. Distinct from tagging the
+same attachment onto the observation, which is cosmetic and additive only.
+_Avoid_: mask assignment, attachment link
+
+**Custom Slit Width**:
+The slit width of a MOS Mask, chosen from a per-instrument enum. Stated by hand while the
+mask is unbound; once a mask is bound the plate defines it and the control is withdrawn.
+
 ### Pointing
 
 **Base Position**:
