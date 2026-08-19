@@ -29,6 +29,7 @@ import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
+import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
 final case class Flamingos2MosConfigPanel(
@@ -130,9 +131,10 @@ object Flamingos2MosConfigPanel
 
         val maskIsBound = attachmentIdView.get.isDefined
 
-        // Once a mask is bound the plate defines the slit width, so the control goes away.
-        // Before the proposal is reviewed there is no mask to pick, so only the width is offered.
-        val showSlitWidth = !props.maskContext.pickerActive || !maskIsBound
+        // Once a mask is bound the plate defines the slit width, so the value is shown but
+        // not editable. Before the proposal is reviewed there is no mask to pick, so the
+        // width is stated by hand.
+        val slitWidthReadonly = props.maskContext.pickerActive && maskIsBound
 
         val maskPicker: VdomNode =
           if (props.maskContext.pickerActive)
@@ -146,7 +148,18 @@ object Flamingos2MosConfigPanel
           else EmptyVdom
 
         val slitWidthControl: VdomNode =
-          if (showSlitWidth)
+          if (slitWidthReadonly)
+            React.Fragment(
+              FormLabel(htmlFor = "slit-width".refined)(
+                "Custom Slit Width",
+                HelpIcon("configuration/f2/mos-slit-width.md".refined)
+              ),
+              <.label(^.id := "slit-width",
+                      ExploreStyles.FormValue |+| ExploreStyles.FormValueRight,
+                      slitWidthView.get.shortName
+              )
+            )
+          else
             CustomizableEnumSelect(
               id = "slit-width".refined,
               view = slitWidthView,
@@ -158,7 +171,6 @@ object Flamingos2MosConfigPanel
               showCustomization = showCustomization,
               allowRevertCustomization = allowRevertCustomization
             )
-          else EmptyVdom
 
         val fpuControl: VdomNode = React.Fragment(maskPicker, slitWidthControl)
 

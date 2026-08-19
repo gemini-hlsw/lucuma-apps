@@ -58,7 +58,9 @@ _Avoid_: mask assignment, attachment link
 
 **Custom Slit Width**:
 The slit width of a MOS Mask, chosen from a per-instrument enum. Stated by hand while the
-mask is unbound; once a mask is bound the plate defines it and the control is withdrawn.
+mask is unbound; once a mask is bound the plate defines it, so the stored value is shown as
+read-only information rather than edited. It is the value last stated by hand, not read back
+from the plate.
 
 ### Pointing
 

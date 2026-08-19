@@ -602,6 +602,8 @@ object ExploreStyles:
 
   val FormValue: Css = Css("explore-value-field")
 
+  val FormValueRight: Css = Css("explore-value-field-right")
+
   // Scheduling and Timing Windows
   val SchedulingTile: Css                       = Css("scheduling-tile")
   val SchedulingTileTitle: Css                  = Css("scheduling-tile-title")
