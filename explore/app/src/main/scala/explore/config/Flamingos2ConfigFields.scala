@@ -31,8 +31,8 @@ import lucuma.ui.syntax.all.given
  * a custom mask — so it is supplied as a slot rather than described by a flag. Everything else is
  * identical, including the exposure time mode block, the wavelength readout and the offsets editor.
  *
- * The caller owns the `ConfigEditState` machinery and passes the resolved flags in, and owns its own
- * lower grid: long slit has an acquisition panel, MOS has none.
+ * The caller owns the `ConfigEditState` machinery and passes the resolved flags in, and owns its
+ * own lower grid: long slit has an acquisition panel, MOS has none.
  */
 final case class Flamingos2ConfigFields[P <: SlitOffsetPreset](
   fpuControl:                   VdomNode,

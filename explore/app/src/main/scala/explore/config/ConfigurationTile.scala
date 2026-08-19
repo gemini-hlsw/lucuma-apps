@@ -258,6 +258,8 @@ object ConfigurationTile
         ObservingModeInput.GmosSouthMos(GmosSouthMosInput())
       val EmptyF2LongSlitInput: ObservingModeInput        =
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
+      val EmptyF2MosInput: ObservingModeInput             =
+        ObservingModeInput.Flamingos2Mos(Flamingos2MosInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
       val EmptyGnirsSpectroscopyInput: ObservingModeInput =
@@ -412,6 +414,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.flamingos2LongSlit
                   .andThen(ObservingModeInput.Flamingos2LongSlit.value)
+                  .modify
+            )
+
+        val optFlamingos2MosAligner: Option[Aligner[Flamingos2Mos, Flamingos2MosInput]] =
+          optModeAligner(EmptyF2MosInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.flamingos2Mos,
+              modInput:
+                ObservingModeInput.flamingos2Mos
+                  .andThen(ObservingModeInput.Flamingos2Mos.value)
                   .modify
             )
 
@@ -672,11 +684,19 @@ object ConfigurationTile
                       props.units,
                       props.isStaffOrAdmin
                     ),
-                  // Flamingos2 MOS (read only)
-                  props.observingMode
-                    .flatMap(ObservingMode.flamingos2Mos.getOption)
-                    .map: f2Mos =>
-                      Flamingos2MosConfigPanel(f2Mos, revertConfig, props.permissions),
+                  // Flamingos2 MOS
+                  optFlamingos2MosAligner.map: f2MosAligner =>
+                    Flamingos2MosConfigPanel(
+                      props.obsConf.calibrationRole,
+                      f2MosAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units,
+                      props.isStaffOrAdmin,
+                      props.maskContext
+                    ),
                   // Flamingos2 Imaging
                   optFlamingos2ImagingAligner.map: f2ImgAligner =>
                     Flamingos2ImagingConfigPanel(
