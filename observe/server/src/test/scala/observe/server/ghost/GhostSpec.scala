@@ -187,7 +187,6 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
                       GhostReadMode.Slow
         )
       ),
-      none,
       GhostIfu1FiberAgitator.Enabled,
       GhostIfu2FiberAgitator.Disabled,
       GhostResolutionMode.Standard,

@@ -34,7 +34,6 @@ import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
-import lucuma.schemas.ObservationDB.Scalars.Timestamp
 import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
@@ -240,7 +239,6 @@ object SeqTranslate {
 
     private def buildStep[S, D](
       observation:     OdbObservation,
-      obsTime:         Timestamp,
       executionConfig: ExecutionConfig[S, D],
       // Either a Step.Id is specified, or a sequence type to pick the next step from.
       stepIdFrom:      Either[SequenceType, OdbStep.Id],
@@ -264,7 +262,7 @@ object SeqTranslate {
                 observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
                 executionConfig.static,
                 step,
-                obsTime,
+                observation.observationTime,
                 CustomMasks.fromAttachments(observation.attachments)
               )
             )
@@ -702,76 +700,59 @@ object SeqTranslate {
       odbObsData: OdbObservationData,
       stepIdFrom: Either[SequenceType, OdbStep.Id]
     ): (List[Throwable], Option[StepGen[F]]) =
-      odbObsData.observation.observationTime
-        .map { obsTime =>
-          odbObsData.executionConfig match {
-            case InstrumentExecutionConfig.GmosNorth(executionConfig)  =>
-              buildStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
-                odbObsData.observation,
-                obsTime,
-                executionConfig,
-                stepIdFrom,
-                instrumentStepBuilders.gmosNorth,
-                StepGen.GmosNorth[F]
-              )
-            case InstrumentExecutionConfig.GmosSouth(executionConfig)  =>
-              buildStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
-                odbObsData.observation,
-                obsTime,
-                executionConfig,
-                stepIdFrom,
-                instrumentStepBuilders.gmosSouth,
-                StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _)
-              )
-            case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
-              buildStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
-                odbObsData.observation,
-                obsTime,
-                executionConfig,
-                stepIdFrom,
-                instrumentStepBuilders.flamingos2,
-                StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _)
-              )
-            case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
-              buildStep(
-                odbObsData.observation,
-                obsTime,
-                executionConfig,
-                stepIdFrom,
-                instrumentStepBuilders.igrins2,
-                StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _)
-              )
-            case InstrumentExecutionConfig.Ghost(executionConfig)      =>
-              buildStep(
-                odbObsData.observation,
-                obsTime,
-                executionConfig,
-                stepIdFrom,
-                instrumentStepBuilders.ghost,
-                StepGen.Ghost[F](_, _, _, _, _, _, _, _, _, _, _)
-              )
-            case InstrumentExecutionConfig.Gnirs(executionConfig)      =>
-              buildStep(
-                odbObsData.observation,
-                obsTime,
-                executionConfig,
-                stepIdFrom,
-                instrumentStepBuilders.gnirs,
-                StepGen.Gnirs[F](_, _, _, _, _, _, _, _, _, _, _)
-              )
-            case InstrumentExecutionConfig.Visitor(_)                  => ???
-            case InstrumentExecutionConfig.Exchange                    =>
-              throw new NotImplementedError("Exchange instrument not supported")
-          }
-        }
-        .getOrElse(
-          (List(
-             ObserveFailure
-               .OdbSeqError(s"Observing time not set for observation ${odbObsData.observation.id}")
-           ),
-           none
+      odbObsData.executionConfig match {
+        case InstrumentExecutionConfig.GmosNorth(executionConfig)  =>
+          buildStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
+            odbObsData.observation,
+            executionConfig,
+            stepIdFrom,
+            instrumentStepBuilders.gmosNorth,
+            StepGen.GmosNorth[F]
           )
-        )
+        case InstrumentExecutionConfig.GmosSouth(executionConfig)  =>
+          buildStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+            odbObsData.observation,
+            executionConfig,
+            stepIdFrom,
+            instrumentStepBuilders.gmosSouth,
+            StepGen.GmosSouth[F]
+          )
+        case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
+          buildStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
+            odbObsData.observation,
+            executionConfig,
+            stepIdFrom,
+            instrumentStepBuilders.flamingos2,
+            StepGen.Flamingos2[F]
+          )
+        case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
+          buildStep(
+            odbObsData.observation,
+            executionConfig,
+            stepIdFrom,
+            instrumentStepBuilders.igrins2,
+            StepGen.Igrins2[F]
+          )
+        case InstrumentExecutionConfig.Ghost(executionConfig)      =>
+          buildStep(
+            odbObsData.observation,
+            executionConfig,
+            stepIdFrom,
+            instrumentStepBuilders.ghost,
+            StepGen.Ghost[F]
+          )
+        case InstrumentExecutionConfig.Gnirs(executionConfig)      =>
+          buildStep(
+            odbObsData.observation,
+            executionConfig,
+            stepIdFrom,
+            instrumentStepBuilders.gnirs,
+            StepGen.Gnirs[F]
+          )
+        case InstrumentExecutionConfig.Visitor(_)                  => ???
+        case InstrumentExecutionConfig.Exchange                    =>
+          throw new NotImplementedError("Exchange instrument not supported")
+      }
   }
 
   def apply[F[_]: {Async, Logger}](

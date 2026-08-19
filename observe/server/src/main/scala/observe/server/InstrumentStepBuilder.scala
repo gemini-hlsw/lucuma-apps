@@ -16,7 +16,7 @@ final case class StepBuildContext[F[_], S, D](
   targetEnvironment: TargetEnvironment,
   staticConf:        S,
   step:              Step[D],
-  observingTime:     Timestamp,
+  observingTime:     Option[Timestamp],
   customMasks:       CustomMasks
 ) {
 
