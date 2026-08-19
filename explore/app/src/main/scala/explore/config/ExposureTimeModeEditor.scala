@@ -22,17 +22,20 @@ import lucuma.react.common.ReactFnProps
 
 // See parameter comments on `ExposureTimeModeEditorOptional`
 final case class ExposureTimeModeEditor(
-  instrument:       Option[Instrument],
-  wavelength:       Option[Wavelength],
-  exposureTimeMode: View[ExposureTimeMode],
-  coadds:           Option[View[PosInt]] = none,
-  scienceMode:      ScienceMode,
-  readonly:         Boolean,
-  units:            WavelengthUnits,
-  calibrationRole:  Option[CalibrationRole],
-  idPrefix:         NonEmptyString,
-  forceCount:       Option[PosInt] = none,
-  forGridRow:       Boolean = false
+  instrument:               Option[Instrument],
+  wavelength:               Option[Wavelength],
+  exposureTimeMode:         View[ExposureTimeMode],
+  coadds:                   Option[View[PosInt]] = none,
+  scienceMode:              ScienceMode,
+  readonly:                 Boolean,
+  units:                    WavelengthUnits,
+  calibrationRole:          Option[CalibrationRole],
+  idPrefix:                 NonEmptyString,
+  forceCount:               Option[PosInt] = none,
+  forGridRow:               Boolean = false,
+  isCustomized:             Boolean = false,
+  revertCustomization:      Callback = Callback.empty,
+  allowRevertCustomization: Boolean = true
 ) extends ReactFnProps(ExposureTimeModeEditor)
 
 object ExposureTimeModeEditor
@@ -56,6 +59,9 @@ object ExposureTimeModeEditor
           props.calibrationRole,
           props.idPrefix,
           props.forceCount,
-          props.forGridRow
+          props.forGridRow,
+          props.isCustomized,
+          props.revertCustomization,
+          props.allowRevertCustomization
         )
     )

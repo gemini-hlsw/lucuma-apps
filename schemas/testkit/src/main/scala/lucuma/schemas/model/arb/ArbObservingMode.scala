@@ -1051,19 +1051,35 @@ trait ArbObservingMode {
         explicitAcquisitionMode <- arbitrary[Option[GnirsAcquisitionMode]]
         explicitFilter          <- arbitrary[Option[GnirsFilter]]
         exposureTimeMode        <- arbitrary[ExposureTimeMode]
+        explicitEtm             <- arbitrary[Option[ExposureTimeMode]]
         coadds                  <- arbitrary[PosInt]
       } yield ObservingMode.GnirsImaging.Acquisition(
         explicitAcquisitionMode,
         explicitFilter,
         exposureTimeMode,
+        explicitEtm,
         coadds
       )
     )
 
   @targetName("gnirsImagingAcquisitionCogen")
   given Cogen[ObservingMode.GnirsImaging.Acquisition] =
-    Cogen[(Option[GnirsAcquisitionMode], Option[GnirsFilter], ExposureTimeMode, PosInt)]
-      .contramap(a => (a.explicitAcquisitionMode, a.explicitFilter, a.exposureTimeMode, a.coadds))
+    Cogen[
+      (
+        Option[GnirsAcquisitionMode],
+        Option[GnirsFilter],
+        ExposureTimeMode,
+        Option[ExposureTimeMode],
+        PosInt
+      )
+    ].contramap(a =>
+      (a.explicitAcquisitionMode,
+       a.explicitFilter,
+       a.exposureTimeMode,
+       a.explicitExposureTimeMode,
+       a.coadds
+      )
+    )
 
   given Arbitrary[ObservingMode.GnirsImaging] =
     Arbitrary[ObservingMode.GnirsImaging](
@@ -1205,11 +1221,13 @@ trait ArbObservingMode {
         explicitAcquisitionMode <- arbitrary[Option[GnirsAcquisitionMode]]
         explicitFilter          <- arbitrary[Option[GnirsFilter]]
         exposureTimeMode        <- arbitrary[ExposureTimeMode]
+        explicitEtm             <- arbitrary[Option[ExposureTimeMode]]
         coadds                  <- arbitrary[PosInt]
       } yield ObservingMode.GnirsSpectroscopy.Acquisition(
         explicitAcquisitionMode,
         explicitFilter,
         exposureTimeMode,
+        explicitEtm,
         coadds
       )
     )
@@ -1217,8 +1235,21 @@ trait ArbObservingMode {
   @targetName("gnirsLongSlitAcquisitionCogen")
   given Cogen[ObservingMode.GnirsSpectroscopy.Acquisition] =
     Cogen[
-      (Option[GnirsAcquisitionMode], Option[GnirsFilter], ExposureTimeMode, PosInt)
-    ].contramap(a => (a.explicitAcquisitionMode, a.explicitFilter, a.exposureTimeMode, a.coadds))
+      (
+        Option[GnirsAcquisitionMode],
+        Option[GnirsFilter],
+        ExposureTimeMode,
+        Option[ExposureTimeMode],
+        PosInt
+      )
+    ].contramap(a =>
+      (a.explicitAcquisitionMode,
+       a.explicitFilter,
+       a.exposureTimeMode,
+       a.explicitExposureTimeMode,
+       a.coadds
+      )
+    )
 
   given Arbitrary[SubMode.Slit] =
     Arbitrary:

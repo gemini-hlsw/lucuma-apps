@@ -40,6 +40,7 @@ import lucuma.odb.json.stepconfig.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
+import lucuma.refined.*
 import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
@@ -1341,20 +1342,32 @@ object ObservingMode:
         Focus[ImagingFilter](_.exposureTimeMode)
       val coadds: Lens[ImagingFilter, PosInt]                     = Focus[ImagingFilter](_.coadds)
 
-    // The acquisition exposure time mode and coadds always have a value (the ODB returns
-    // no default for them), so they take no part in isCustomized / revertCustomizations.
+    /**
+     * GNIRS imaging acquisition customization. `exposureTimeMode` is the effective mode: the
+     * signal-to-noise value the ODB derives from the ITC brightness classification, unless
+     * `explicitExposureTimeMode` overrides it. `coadds` always has a value (the ODB returns no
+     * default for it) so it takes no part in isCustomized, but reverting resets it to 1, since a
+     * derived mode is always signal-to-noise, which does not support coadds.
+     */
     case class Acquisition(
-      explicitAcquisitionMode: Option[GnirsAcquisitionMode],
-      explicitFilter:          Option[GnirsFilter],
-      exposureTimeMode:        ExposureTimeMode,
-      coadds:                  PosInt
+      explicitAcquisitionMode:  Option[GnirsAcquisitionMode],
+      explicitFilter:           Option[GnirsFilter],
+      exposureTimeMode:         ExposureTimeMode,
+      explicitExposureTimeMode: Option[ExposureTimeMode],
+      coadds:                   PosInt
     ) derives Eq {
       def isCustomized: Boolean =
         explicitAcquisitionMode.isDefined ||
-          explicitFilter.isDefined
+          explicitFilter.isDefined ||
+          explicitExposureTimeMode.isDefined
 
       def revertCustomizations: Acquisition =
-        this.copy(explicitAcquisitionMode = none, explicitFilter = none)
+        this.copy(
+          explicitAcquisitionMode = none,
+          explicitFilter = none,
+          explicitExposureTimeMode = none,
+          coadds = 1.refined
+        )
     }
 
     object Acquisition {
@@ -1374,11 +1387,14 @@ object ObservingMode:
               )
           explicitFilter          <- c.downField("explicitFilter").as[Option[GnirsFilter]]
           exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+          explicitEtm             <-
+            c.downField("explicitExposureTimeMode").as[Option[ExposureTimeMode]]
           coadds                  <- c.downField("coadds").as[PosInt]
         yield Acquisition(
           explicitAcquisitionMode,
           explicitFilter,
           exposureTimeMode,
+          explicitEtm,
           coadds
         )
 
@@ -1388,6 +1404,8 @@ object ObservingMode:
         Focus[Acquisition](_.explicitFilter)
       val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                    =
         Focus[Acquisition](_.exposureTimeMode)
+      val explicitExposureTimeMode: Lens[Acquisition, Option[ExposureTimeMode]]    =
+        Focus[Acquisition](_.explicitExposureTimeMode)
       val coadds: Lens[Acquisition, PosInt]                                        =
         Focus[Acquisition](_.coadds)
     }
@@ -1501,18 +1519,32 @@ object ObservingMode:
       val coadds: Lens[CentralWavelengthConfig, PosInt]                       =
         Focus[CentralWavelengthConfig](_.coadds)
 
+    /**
+     * GNIRS spectroscopy acquisition customization. `exposureTimeMode` is the effective mode: the
+     * signal-to-noise value the ODB derives from the ITC brightness classification, unless
+     * `explicitExposureTimeMode` overrides it. `coadds` always has a value (the ODB returns no
+     * default for it) so it takes no part in isCustomized, but reverting resets it to 1, since a
+     * derived mode is always signal-to-noise, which does not support coadds.
+     */
     case class Acquisition(
-      explicitAcquisitionMode: Option[GnirsAcquisitionMode],
-      explicitFilter:          Option[GnirsFilter],
-      exposureTimeMode:        ExposureTimeMode,
-      coadds:                  PosInt
+      explicitAcquisitionMode:  Option[GnirsAcquisitionMode],
+      explicitFilter:           Option[GnirsFilter],
+      exposureTimeMode:         ExposureTimeMode,
+      explicitExposureTimeMode: Option[ExposureTimeMode],
+      coadds:                   PosInt
     ) derives Eq {
       def isCustomized: Boolean =
         explicitAcquisitionMode.isDefined ||
-          explicitFilter.isDefined
+          explicitFilter.isDefined ||
+          explicitExposureTimeMode.isDefined
 
       def revertCustomizations: Acquisition =
-        this.copy(explicitAcquisitionMode = none, explicitFilter = none)
+        this.copy(
+          explicitAcquisitionMode = none,
+          explicitFilter = none,
+          explicitExposureTimeMode = none,
+          coadds = 1.refined
+        )
     }
 
     object Acquisition {
@@ -1530,11 +1562,14 @@ object ObservingMode:
               )
           explicitFilter          <- c.downField("explicitFilter").as[Option[GnirsFilter]]
           exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+          explicitEtm             <-
+            c.downField("explicitExposureTimeMode").as[Option[ExposureTimeMode]]
           coadds                  <- c.downField("coadds").as[PosInt]
         yield Acquisition(
           explicitAcquisitionMode,
           explicitFilter,
           exposureTimeMode,
+          explicitEtm,
           coadds
         )
 
@@ -1544,6 +1579,8 @@ object ObservingMode:
         Focus[Acquisition](_.explicitFilter)
       val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                    =
         Focus[Acquisition](_.exposureTimeMode)
+      val explicitExposureTimeMode: Lens[Acquisition, Option[ExposureTimeMode]]    =
+        Focus[Acquisition](_.explicitExposureTimeMode)
       val coadds: Lens[Acquisition, PosInt]                                        =
         Focus[Acquisition](_.coadds)
     }
