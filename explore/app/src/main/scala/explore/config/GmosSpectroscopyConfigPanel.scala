@@ -181,13 +181,14 @@ object GmosSpectroscopyConfigPanel {
     ): VdomNode
 
     /**
-     * Whether the FPU select is shown at all. Hidden for MOS if the mask is setup
+     * Whether the FPU value is shown as read-only information instead of an editable select. True
+     * for MOS once the mask is bound, since the plate then defines the slit width.
      */
-    protected def fpuControlVisible(props: Props)(using
+    protected def fpuControlReadonly(props: Props)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): Boolean = true
+    ): Boolean = false
 
     protected val initialGratingLens: Lens[T, Grating]
     protected val initialFilterLens: Lens[T, Option[Filter]]
@@ -297,18 +298,30 @@ object GmosSpectroscopyConfigPanel {
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
-                CustomizableEnumSelect(
-                  id = "fpu".refined,
-                  view = fpu(props.observingMode),
-                  defaultValue = initialFpuLens.get(props.observingMode.get),
-                  label = fpuLabel.some,
-                  helpId = fpuHelpId,
-                  disabled = disableAdvancedEdit,
-                  exclude = excludedFpus,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
-                ).when(fpuControlVisible(props)),
                 maskControl(props),
+                if (fpuControlReadonly(props))
+                  React.Fragment(
+                    FormLabel(htmlFor = "fpu".refined)(
+                      fpuLabel,
+                      fpuHelpId.map(HelpIcon(_)).whenDefined
+                    ),
+                    <.label(^.id := "fpu",
+                            ExploreStyles.FormValue |+| ExploreStyles.FormValueRight,
+                            Display[Fpu].shortName(fpu(props.observingMode).get)
+                    )
+                  )
+                else
+                  CustomizableEnumSelect(
+                    id = "fpu".refined,
+                    view = fpu(props.observingMode),
+                    defaultValue = initialFpuLens.get(props.observingMode.get),
+                    label = fpuLabel.some,
+                    helpId = fpuHelpId,
+                    disabled = disableAdvancedEdit,
+                    exclude = excludedFpus,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization = allowRevertCustomization
+                  ),
                 OffsetsControl(
                   explicitOffsets(props.observingMode),
                   defaultOffsetsLens.get(props.observingMode.get),
@@ -1149,16 +1162,17 @@ object GmosSpectroscopyConfigPanel {
           attachmentIdView = customMaskAttachmentId(props.observingMode),
           attachments = props.maskContext.attachments,
           obsAttachmentIds = props.maskContext.obsAttachmentIds,
+          helpId = "configuration/gmos/mos-mask.md".refined,
           disabled = !props.permissions.isFullEdit
         )
       else EmptyVdom
 
-    override protected def fpuControlVisible(props: Props)(using
+    override protected def fpuControlReadonly(props: Props)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): Boolean =
-      !props.maskContext.pickerActive || !maskIsBound(props)
+      props.maskContext.pickerActive && maskIsBound(props)
   }
 
   // Gmos North MOS

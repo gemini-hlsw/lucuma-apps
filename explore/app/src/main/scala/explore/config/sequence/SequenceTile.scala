@@ -306,7 +306,8 @@ object SequenceTile
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
-                                        .replaceFlamingos2Sequence(props.obsId, seqType, atoms)
+                                        .replaceFlamingos2Sequence(props.obsId, seqType, atoms),
+                                  props.attachments
                                 )
                               case ModeSignalToNoise.Flamingos2Imaging(itcPerFilter)        =>
                                 Flamingos2ImagingSequenceTable(

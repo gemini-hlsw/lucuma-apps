@@ -11,7 +11,6 @@ import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
@@ -61,7 +60,6 @@ object Flamingos2LongslitConfigPanel
         editState <- useStateView(ConfigEditState.View)
       yield
         import ctx.given
-        import Flamingos2Givens.given
 
         val disableAdvancedEdit      =
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
@@ -151,104 +149,42 @@ object Flamingos2LongslitConfigPanel
         val excludedAcquistionFilters =
           Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
-        val excludedSpectroscopyFilters =
-          Enumerated[Flamingos2Filter].all.filterNot(_.supportsSpectroscopy).toSet
-
-        val defaultDecker = props.observingMode.get.defaultDecker
-
         React.Fragment(
-          <.div(
-            ExploreStyles.Flamingos2UpperGrid
-          )(
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              CustomizableEnumSelect(
-                id = "fpu".refined,
-                view = fpuView,
-                defaultValue = props.observingMode.get.initialFpu,
-                label = "FPU".some,
-                helpId = Some("configuration/f2/fpu.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              FormLabel(htmlFor = "decker".refined)("Decker",
-                                                    HelpIcon("configuration/f2/decker.md".refined)
-              ),
-              if (props.isStaff)
-                CustomizableEnumSelectOptional(
-                  id = "decker".refined,
-                  view = deckerView.withDefault(defaultDecker),
-                  defaultValue = defaultDecker.some,
-                  disabled = disableAdvancedEdit,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
-                )
-              else
-                <.label(^.id := "decker",
-                        ExploreStyles.FormValue,
-                        deckerView.get.getOrElse(defaultDecker).shortName
-                ),
-              CustomizableEnumSelect(
-                id = "filter".refined,
-                view = filterView,
-                defaultValue = props.observingMode.get.initialFilter,
-                label = "Filter".some,
-                exclude = excludedSpectroscopyFilters,
-                helpId = Some("configuration/f2/filter.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              CustomizableEnumSelect(
-                id = "disperser".refined,
-                view = disperserView,
-                defaultValue = props.observingMode.get.initialDisperser,
-                label = "Disperser".some,
-                helpId = Some("configuration/f2/disperser.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              CustomizableEnumSelect(
-                id = "read-mode".refined,
-                view = readModeView,
-                defaultValue = None,
-                label = "Read Mode".some,
-                helpId = Some("configuration/f2/read-mode.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              )
+          Flamingos2ConfigFields(
+            fpuControl = CustomizableEnumSelect(
+              id = "fpu".refined,
+              view = fpuView,
+              defaultValue = props.observingMode.get.initialFpu,
+              label = "FPU".some,
+              helpId = Some("configuration/f2/fpu.md".refined),
+              disabled = disableSimpleEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization
             ),
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              ExposureTimeModeEditor(
-                instrument = props.observingMode.get.instrument,
-                wavelength = none,
-                exposureTimeMode = exposureTimeMode,
-                coadds = none,
-                scienceMode = ScienceMode.Spectroscopy,
-                readonly = !props.permissions.isFullEdit,
-                units = props.units,
-                calibrationRole = props.calibrationRole,
-                idPrefix = "f2LongSlit".refined
-              ),
-              // Per Andy, we'll use the wavelength of the filter as the central wavelength
-              LambdaAndIntervalFormValues(
-                modeData = modeData,
-                centralWavelength = filterView.get.wavelength,
-                units = props.units
-              )
-            ),
-            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-              SlitTelescopeConfigsEditor(
-                explicitValue = explicitTelescopeConfigsView,
-                defaultValue = props.observingMode.get.defaultTelescopeConfigs,
-                defaultForPreset = flamingos2.defaultSlitTelescopeConfigs,
-                helpId = "configuration/f2/spatial-offsets.md".refined,
-                presetsReadonly = !props.permissions.isFullEdit,
-                editingReadonly = disableSimpleEdit
-              )
-            )
+            deckerView = deckerView,
+            defaultDecker = props.observingMode.get.defaultDecker,
+            filterView = filterView,
+            initialFilter = props.observingMode.get.initialFilter,
+            disperserView = disperserView,
+            initialDisperser = props.observingMode.get.initialDisperser,
+            readModeView = readModeView,
+            exposureTimeMode = exposureTimeMode,
+            explicitTelescopeConfigsView = explicitTelescopeConfigsView,
+            defaultTelescopeConfigs = props.observingMode.get.defaultTelescopeConfigs,
+            defaultForPreset = flamingos2.defaultSlitTelescopeConfigs,
+            offsetsHelpId = "configuration/f2/spatial-offsets.md".refined,
+            instrument = props.observingMode.get.instrument,
+            modeData = modeData,
+            units = props.units,
+            calibrationRole = props.calibrationRole,
+            etmIdPrefix = "f2LongSlit".refined,
+            isStaff = props.isStaff,
+            disableSimpleEdit = disableSimpleEdit,
+            disableAdvancedEdit = disableAdvancedEdit,
+            showCustomization = showCustomization,
+            allowRevertCustomization = allowRevertCustomization,
+            etmReadonly = !props.permissions.isFullEdit,
+            presetsReadonly = !props.permissions.isFullEdit
           ),
           <.div(
             ExploreStyles.Flamingos2LowerGrid,

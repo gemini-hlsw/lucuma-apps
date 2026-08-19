@@ -73,6 +73,11 @@ body.hide-reusability {
   text-transform: none;
 }
 
+.explore-value-field-right {
+  justify-self: stretch;
+  text-align: right;
+}
+
 tfoot {
   background-color: var(--table-footer-background);
 }

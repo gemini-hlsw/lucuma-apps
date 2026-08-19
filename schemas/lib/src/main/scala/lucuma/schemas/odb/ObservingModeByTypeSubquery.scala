@@ -241,7 +241,6 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               attachmentId
               slitWidth
             }
-            offsetPreset
             explicitReadMode
             explicitReads
             defaultDecker

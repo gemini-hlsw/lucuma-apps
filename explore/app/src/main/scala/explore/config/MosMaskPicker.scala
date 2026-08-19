@@ -18,7 +18,6 @@ import lucuma.core.enums.AttachmentType
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.SelectItem
-import lucuma.refined.*
 import lucuma.ui.primereact.*
 
 import scala.collection.immutable.SortedSet
@@ -30,13 +29,12 @@ final case class MosMaskPicker(
   attachmentIdView: View[Option[Attachment.Id]],
   attachments:      View[AttachmentList],
   obsAttachmentIds: View[SortedSet[Attachment.Id]],
+  helpId:           Help.Id,
   disabled:         Boolean
 ) extends ReactFnProps(MosMaskPicker.component)
 
 object MosMaskPicker:
   private type Props = MosMaskPicker
-
-  private val HelpId: Help.Id = "configuration/gmos/mos-mask.md".refined
 
   private val component =
     ScalaFnComponent[Props]: props =>
@@ -66,7 +64,7 @@ object MosMaskPicker:
           ^.htmlFor := "mos-mask",
           LucumaPrimeStyles.FormFieldLabel,
           "MOS Mask",
-          HelpIcon(HelpId)
+          HelpIcon(props.helpId)
         ),
         if (dangling)
           // The bound id survives in the observing mode even though no attachment matches it.

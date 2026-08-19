@@ -7,8 +7,10 @@ import cats.effect.IO
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
+import explore.model.AttachmentList
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
+import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -32,12 +34,16 @@ final case class Flamingos2SequenceTable(
   isUserStaffOrAdmin:   Boolean,
   remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
     List[Atom[Flamingos2DynamicConfig]]
-  ]
+  ],
+  attachments:          AttachmentList
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:
   val toInstrumentVisits =
     case ExecutionVisits.Flamingos2(visits) => visits
+
+  override def maskName(attachmentId: Attachment.Id) =
+    attachments.get(attachmentId).flatMap(_.maskName)
 
 object Flamingos2SequenceTable
     extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
