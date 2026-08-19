@@ -133,11 +133,18 @@ trait TileComponent[P <: Tile[P]](
         tileContents  <- useTileContents(props, tileState.sizeState)
         titleResize   <- useResizeDetector
         contentResize <- useResizeDetector
+        // A body that declares its height is not measured, and keeps a body box that fills the
+        // tile, so a table inside it can still size itself to the space it is given.
+        declaredHeight = tileContents.contentHeightPx
         _             <-
-          useEffectWithDeps((props.autoHeight, titleResize.height, contentResize.height)):
-            case (true, Some(titleH), Some(contentH)) =>
+          useEffectWithDeps(
+            (props.autoHeight, titleResize.height, contentResize.height, declaredHeight)
+          ):
+            case (true, Some(titleH), _, Some(declaredH))   =>
+              tileState.autoHeightCallback(titleH + declaredH)
+            case (true, Some(titleH), Some(contentH), None) =>
               tileState.autoHeightCallback(titleH + contentH)
-            case _                                    =>
+            case _                                          =>
               Callback.empty
       yield
         val maximizeButton: Button =
@@ -205,14 +212,16 @@ trait TileComponent[P <: Tile[P]](
         val showHeightPresets: Boolean =
           props.heightPresets && !props.autoHeight && !tileState.fullSize
 
+        val measured: Boolean = props.autoHeight && declaredHeight.isEmpty
+
         val body: TagMod =
-          if props.autoHeight then
+          if measured then
             <.div.withRef(contentResize.ref)(ExploreStyles.AutoHeightTileContent, tileContents.body)
           else tileContents.body
 
         val bodyClass: Css =
           ExploreStyles.TileBody |+| props.bodyClass |+|
-            (if props.autoHeight then ExploreStyles.AutoHeightTileBody else Css.Empty)
+            (if measured then ExploreStyles.AutoHeightTileBody else Css.Empty)
 
         // Tile wrapper
         if (!props.hidden) {

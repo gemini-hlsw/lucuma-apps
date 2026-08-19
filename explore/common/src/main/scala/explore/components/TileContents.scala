@@ -11,8 +11,15 @@ import japgolly.scalajs.react.vdom.html_<^.*
  *   title of the tile
  * @param body
  *   body of the tile
+ * @param contentHeightPx
+ *   the height the body wants, in pixels. Only meaningful on an auto-height tile, where it replaces
+ *   the measurement of the rendered body.
  */
-final case class TileContents(title: TagMod, body: TagMod)
+final case class TileContents(
+  title:           TagMod,
+  body:            TagMod,
+  contentHeightPx: Option[Int] = None
+)
 
 object TileContents:
   def apply(body: TagMod): TileContents =

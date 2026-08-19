@@ -151,7 +151,8 @@ object ProgramTabContents
                 props.obs4ConfigRequests,
                 props.targets,
                 tileState
-              )
+              ),
+              contentHeightPx = AutoHeightTable.heightPx(props.configRequests.get.size).some
             )
           )
 
@@ -179,7 +180,8 @@ object ProgramTabContents
                 props.configsWithoutRequests,
                 props.targets,
                 tileState
-              )
+              ),
+              contentHeightPx = AutoHeightTable.heightPx(props.configsWithoutRequests.size).some
             )
           )
 

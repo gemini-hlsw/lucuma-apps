@@ -12,6 +12,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.attachments.AttachmentsTile
 import explore.common.Aligner
+import explore.components.AutoHeightTable
 import explore.components.SimpleTile
 import explore.components.Tile
 import explore.components.TileContents
@@ -91,7 +92,7 @@ object OverviewTabContents
           autoHeight = true,
           autoHeightMinRows = 4
         )(tileSize =>
-          for tileState <- useStateView(ObservationValidationsTableTileState(_ => Callback.empty))
+          for tileState <- useStateView(ObservationValidationsTableTileState.Empty)
           yield TileContents(
             ObservationValidationsTableTitle(tileState, tileSize),
             ObservationValidationsTableBody(
@@ -99,7 +100,8 @@ object OverviewTabContents
               props.programId,
               props.observations,
               tileState
-            )
+            ),
+            contentHeightPx = AutoHeightTable.heightPx(tileState.get.visibleRowCount).some
           )
         )
 
