@@ -14,7 +14,7 @@ SKIP_SLACK=false
 DEBUG=false
 DEBUG_CURL=()
 
-all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE" "ResourceUI")
+all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE" "ResourceUI" "AdminUI")
 docker_systems=("SSO" "ITC" "ODB" "RESOURCE")
 
 # Parse optional arguments
@@ -102,15 +102,12 @@ get_github_task() {
   echo "${github_task["$system"]:-deploy:${system}}"
 }
 
-# Resolve the Firebase hosting site for the Resource UI in a given environment.
-get_resource_ui_firebase_site() {
-  local env=$1
-  case $env in
-    "dev") echo "resource-ae0b7-dev" ;;
-    "staging") echo "resource-ae0b7-staging" ;;
-    "production") echo "resource-ae0b7" ;;
-    *) echo "resource-ae0b7-${env}" ;;
-  esac
+# Resolve the Firebase hosting site for a system in a given environment. Sites are
+# declared per system/environment in the firebase_site associative array.
+get_firebase_site() {
+  local system=$1
+  local env=$2
+  echo "${firebase_site["${system}-${env}"]}"
 }
 
 # Slack notification functions
@@ -297,7 +294,7 @@ send_slack_notification() {
   local message="✅ $service deployed from $source_env → $target_env\nTime: $timestamp"
 
   # Include changes link for SSO, ODB and Explore
-  if [ "$service" = "SSO" ] || [ "$service" = "ODB" ] || [ "$service" = "Explore" ] || [ "$service" = "ResourceUI" ]; then
+  if [ "$service" = "SSO" ] || [ "$service" = "ODB" ] || [ "$service" = "Explore" ] || [ "$service" = "ResourceUI" ] || [ "$service" = "AdminUI" ]; then
     if [ -n "$compare_link" ]; then
       message="✅ $service deployed from $source_env → $target_env\nChanges: $compare_link"
     else
@@ -474,6 +471,40 @@ promote_heroku_docker_images() {
   done
 }
 
+# Promote a Firebase-hosted UI by cloning the source site onto the target site.
+promote_firebase_ui() {
+  local system=$1
+  local label=$2
+
+  if [ "${promote["$system"]}" != true ]; then
+    echo "## Skipping $label promotion (no changes)"
+    echo
+    return 0
+  fi
+
+  echo "## Promote $label from $SOURCE_ENV to $TARGET_ENV"
+
+  local source_site=$(get_firebase_site "$system" "$SOURCE_ENV")
+  local target_site=$(get_firebase_site "$system" "$TARGET_ENV")
+
+  if [ -z "$source_site" ] || [ -z "$target_site" ]; then
+    echo "  ! No Firebase site configured for $label in $SOURCE_ENV or $TARGET_ENV"
+    exit 1
+  fi
+
+  if firebase hosting:clone "$source_site:live" "$target_site:live"; then
+    echo "  ✓ $label promoted successfully"
+  else
+    echo "  ! $label promotion FAILED"
+    exit 1
+  fi
+  echo "  Recording deployment to GitHub..."
+
+  record_github_deployment "$system"
+
+  send_slack_notification "$system" "$SOURCE_ENV" "$TARGET_ENV"
+}
+
 # Declare variables
 
 PROMOTE_HASURA=false
@@ -484,6 +515,7 @@ declare -A process_types
 declare -A backup
 declare -A github_task
 declare -A github_env_prefix
+declare -A firebase_site
 declare -A source_sha
 declare -A docker_image_shas_object
 declare -A target_sha
@@ -515,6 +547,17 @@ repo["ResourceUI"]="gemini-hlsw/lucuma-ts"
 github_env_prefix["ResourceUI"]="resource-ui"
 github_task["ResourceUI"]="deploy"
 backup["ResourceUI"]=false
+firebase_site["ResourceUI-dev"]="resource-ae0b7-dev"
+firebase_site["ResourceUI-staging"]="resource-ae0b7-staging"
+firebase_site["ResourceUI-production"]="resource-ae0b7"
+
+repo["AdminUI"]="gemini-hlsw/lucuma-ts"
+github_env_prefix["AdminUI"]="admin-ui"
+github_task["AdminUI"]="deploy"
+backup["AdminUI"]=false
+firebase_site["AdminUI-dev"]="admin-679f7-dev"
+firebase_site["AdminUI-staging"]="admin-679f7-staging"
+firebase_site["AdminUI-production"]="admin-679f7"
 
 echo "##### Checking for changes between $SOURCE_ENV and $TARGET_ENV"
 echo
@@ -527,7 +570,12 @@ fi
 
 echo
 
-if [ "$promote["SSO"]" = false ] && [ "$promote["ITC"]" = false ] && [ "$promote["ODB"]" = false ] && [ "$PROMOTE_HASURA" = false ] && [ "$promote["Explore"]" = false ] && [ "$promote["ResourceUI"]" = false ]; then
+ANY_PROMOTION=$PROMOTE_HASURA
+for display_name in "${all_systems[@]}"; do
+  [ "${promote["$display_name"]}" = true ] && ANY_PROMOTION=true
+done
+
+if [ "$ANY_PROMOTION" = false ]; then
   echo "##### No changes detected - nothing to promote!"
   echo "All services are already up to date between $SOURCE_ENV and $TARGET_ENV"
   exit 0
@@ -622,27 +670,9 @@ else
   echo
 fi
 
-# Promote Resource UI Firebase hosting (resource-ae0b7 project)
-if [ "${promote["ResourceUI"]}" = true ]; then
-  echo "## Promote Resource UI from $SOURCE_ENV to $TARGET_ENV"
-
-  source_site=$(get_resource_ui_firebase_site "$SOURCE_ENV")
-  target_site=$(get_resource_ui_firebase_site "$TARGET_ENV")
-  if firebase hosting:clone "$source_site:live" "$target_site:live"; then
-    echo "  ✓ Resource UI promoted successfully"
-  else
-    echo "  ! Resource UI promotion FAILED"
-    exit 1
-  fi
-  echo "  Recording deployment to GitHub..."
-
-  record_github_deployment "ResourceUI"
-
-  send_slack_notification "ResourceUI" "$SOURCE_ENV" "$TARGET_ENV"
-else
-  echo "## Skipping Resource UI promotion (no changes)"
-  echo
-fi
+# Promote the Firebase hosting sites of the lucuma-ts UIs
+promote_firebase_ui "ResourceUI" "Resource UI"
+promote_firebase_ui "AdminUI" "Admin UI"
 
 # Final summary
 echo "##### Promotion completed!"
