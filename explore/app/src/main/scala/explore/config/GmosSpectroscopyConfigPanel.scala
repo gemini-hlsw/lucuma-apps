@@ -1149,6 +1149,7 @@ object GmosSpectroscopyConfigPanel {
           attachmentIdView = customMaskAttachmentId(props.observingMode),
           attachments = props.maskContext.attachments,
           obsAttachmentIds = props.maskContext.obsAttachmentIds,
+          helpId = "configuration/gmos/mos-mask.md".refined,
           disabled = !props.permissions.isFullEdit
         )
       else EmptyVdom

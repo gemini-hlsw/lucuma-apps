@@ -194,6 +194,8 @@ trait DisplayImplicits:
 
   given Display[Flamingos2Fpu] = Display.by(_.shortName, _.longName)
 
+  given Display[Flamingos2CustomSlitWidth] = Display.by(_.shortName, _.longName)
+
   given Display[Flamingos2ReadMode] = Display.by(_.shortName.capitalize, _.longName)
 
   given Display[Flamingos2Decker] = Display.by(_.shortName, _.longName)
