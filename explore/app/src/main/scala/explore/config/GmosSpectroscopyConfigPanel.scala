@@ -181,8 +181,8 @@ object GmosSpectroscopyConfigPanel {
     ): VdomNode
 
     /**
-     * Whether the FPU value is shown as read-only information instead of an editable select.
-     * True for MOS once the mask is bound, since the plate then defines the slit width.
+     * Whether the FPU value is shown as read-only information instead of an editable select. True
+     * for MOS once the mask is bound, since the plate then defines the slit width.
      */
     protected def fpuControlReadonly(props: Props)(using
       MonadError[IO, Throwable],

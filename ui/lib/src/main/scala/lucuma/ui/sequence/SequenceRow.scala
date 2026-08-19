@@ -162,6 +162,7 @@ sealed trait SequenceRow[+D]:
   lazy val fpuCustomMaskAttachmentId: Option[Attachment.Id] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
     case gmos.DynamicConfig.GmosSouth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
+    case Flamingos2DynamicConfig(fpu = Flamingos2FpuMask.Custom(Defined(id), _))      => id
 
   lazy val deckerName: Option[String] = instrumentConfig.flatMap:
     case Flamingos2DynamicConfig(decker = decker) => decker.shortName.some
