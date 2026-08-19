@@ -58,6 +58,8 @@ object Flamingos2Geometry extends WithPwfsGeometry:
            scienceArea.shapeAt(posAngle, offset, Flamingos2LyotWheel.F16, Flamingos2FpuMask.Imaging)
           )
         )
+      case Some(_: BasicConfiguration.Flamingos2Mos)      =>
+        SortedMap((Flamingos2ScienceArea, scienceArea.mosMode.shapeAt(posAngle, offset)))
       case _                                              =>
         SortedMap.empty
 
@@ -97,7 +99,8 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     trackType:     Option[TrackType]
   ): ShapeExpression =
     configuration match
-      case _: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging =>
+      case _: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging |
+          _: BasicConfiguration.Flamingos2Mos =>
         configuration.guideProbe(trackType) match
           case Some(GuideProbe.Flamingos2OIWFS)                =>
             flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
@@ -105,7 +108,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             pwfs.patrolField.patrolFieldAt(posAngle, offset)
           case _                                               =>
             ShapeExpression.Empty
-      case _                                                                                  =>
+      case _ =>
         ShapeExpression.Empty
 
   // Shape to display always
@@ -120,7 +123,8 @@ object Flamingos2Geometry extends WithPwfsGeometry:
   ): SortedMap[Css, ShapeExpression] =
     mode match
       case Some(
-            m @ (_: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging)
+            m @ (_: BasicConfiguration.Flamingos2LongSlit |
+            _: BasicConfiguration.Flamingos2Imaging | _: BasicConfiguration.Flamingos2Mos)
           ) =>
         m.guideProbe(trackType).fold(SortedMap.empty[Css, ShapeExpression]) { p =>
           p match

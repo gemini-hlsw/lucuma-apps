@@ -166,7 +166,7 @@ def usePatrolFieldShapes(
           case ObservingModeType.Flamingos2Imaging                                       =>
             flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16).some
           case ObservingModeType.Flamingos2Mos                                           =>
-            none
+            flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16).some
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
             gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
@@ -259,7 +259,26 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.Flamingos2Mos                                           =>
-            none
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                VisualizationStyles.Flamingos2ProbeArmVisible
+
+            (probeVisibilityCss,
+             Flamingos2Geometry.f2Geometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.flatMap(_.guidedAcqOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               PortDisposition.Side,
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            ).some
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
