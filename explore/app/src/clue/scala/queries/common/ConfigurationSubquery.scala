@@ -51,6 +51,12 @@ object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Config
         gmosSouthLongSlit {
           grating
         }
+        gmosNorthMos {
+          grating
+        }
+        gmosSouthMos {
+          grating
+        }
         flamingos2LongSlit {
           disperser
         }
