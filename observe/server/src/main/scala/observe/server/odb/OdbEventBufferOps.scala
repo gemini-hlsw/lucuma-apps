@@ -6,6 +6,7 @@ package observe.server.odb
 import cats.Endo
 import cats.effect.Async
 import cats.effect.Ref
+import cats.effect.std.AtomicCell
 import cats.effect.std.Mutex
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
@@ -33,8 +34,8 @@ type PendingEvents = Map[Observation.Id, Vector[AddEventBatchEntryInput]]
  * `clientTime` and `idempotencyKey`, captured at emission.
  */
 trait OdbEventBufferOps[F[_]: {Logger as L, Async, UUIDGen as U}](
-  buffer:     Ref[F, PendingEvents],
-  flushMutex: Mutex[F]
+  buffer:       Ref[F, PendingEvents],
+  flushMutexes: AtomicCell[F, Map[Observation.Id, Mutex[F]]]
 )(using FetchClientWithPars[F, Request[F], ObservationDB]):
 
   private val FlushRetryPolicy: RetryPolicy[F, Throwable] =
@@ -48,32 +49,46 @@ trait OdbEventBufferOps[F[_]: {Logger as L, Async, UUIDGen as U}](
   protected def pendingEventCount(obsId: Observation.Id): F[Int] =
     buffer.get.map(_.get(obsId).foldMap(_.size))
 
+  // Ordering only matters within one observation, so each gets its own mutex
+  // Entries are never removed, like idTracker's.
+  private def mutexFor(obsId: Observation.Id): F[Mutex[F]] =
+    flushMutexes.evalModify: m =>
+      m.get(obsId) match
+        case Some(mtx) => (m, mtx).pure[F]
+        case None      => Mutex[F].map(mtx => (m.updated(obsId, mtx), mtx))
+
   /**
-   * Flush the observation's buffered events as one atomic batch. The mutex serializes flushes so
-   * batches reach the ODB in the order their events were taken from the buffer.
+   * Flush the observation's buffered events as one atomic batch. The observation's mutex serializes
+   * its flushes so batches reach the ODB in the order their events were taken from the buffer.
    */
   protected def flushEvents(obsId: Observation.Id): F[Unit] =
-    flushMutex.lock.surround:
-      buffer
-        .modify(b => (b - obsId, b.getOrElse(obsId, Vector.empty)))
-        .flatMap: events =>
-          sendBatch(obsId, events).whenA(events.nonEmpty)
+    mutexFor(obsId).flatMap: mtx =>
+      mtx.lock.surround:
+        buffer
+          .modify(b => (b - obsId, b.getOrElse(obsId, Vector.empty)))
+          .flatMap: events =>
+            sendBatch(obsId, events).whenA(events.nonEmpty)
 
   /** Best-effort flush of every observation's pending events, for graceful shutdown. */
   protected def flushAllPendingEvents: F[Unit] =
-    flushMutex.lock.surround:
-      buffer
-        .getAndSet(Map.empty)
-        .flatMap:
-          _.toList.traverse_ : (obsId, events) =>
-            AddEventBatchMutation[F]
-              .execute(AddEventBatchInput(events.toList))
-              .raiseGraphQLErrors
-              .void
-              .handleErrorWith: e =>
-                L.error(e)(
-                  s"Failed to flush ${events.size} pending ODB events for [$obsId] on shutdown"
-                )
+    buffer.get
+      .map(_.keys.toList)
+      .flatMap:
+        _.traverse_ : obsId =>
+          mutexFor(obsId).flatMap: mtx =>
+            mtx.lock.surround:
+              buffer
+                .modify(b => (b - obsId, b.getOrElse(obsId, Vector.empty)))
+                .flatMap: events =>
+                  AddEventBatchMutation[F]
+                    .execute(AddEventBatchInput(events.toList))
+                    .raiseGraphQLErrors
+                    .void
+                    .whenA(events.nonEmpty)
+                    .handleErrorWith: e =>
+                      L.error(e)(
+                        s"Failed to flush ${events.size} pending ODB events for [$obsId] on shutdown"
+                      )
 
   private def sendBatch(obsId: Observation.Id, events: Vector[AddEventBatchEntryInput]): F[Unit] =
     U.randomUUID

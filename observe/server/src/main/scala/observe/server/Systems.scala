@@ -10,6 +10,7 @@ import cats.effect.IO
 import cats.effect.Resource
 import cats.effect.Temporal
 import cats.effect.kernel.Ref
+import cats.effect.std.AtomicCell
 import cats.effect.std.Mutex
 import cats.effect.std.SecureRandom
 import cats.effect.std.UUIDGen
@@ -27,6 +28,7 @@ import giapi.client.ghost.GhostClient
 import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
+import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
 import observe.model.CurrentConditions
@@ -145,14 +147,14 @@ object Systems {
             (
               Ref.of[F, ObsRecordedIds](ObsRecordedIds.Empty),
               Ref.of[F, PendingEvents](Map.empty),
-              Mutex[F]
-            ).mapN: (idTracker, pendingEvents, flushMutex) =>
+              AtomicCell[F].of(Map.empty[Observation.Id, Mutex[F]])
+            ).mapN: (idTracker, pendingEvents, flushMutexes) =>
               val impl =
                 OdbCommandsImpl[F](
                   idTracker,
                   settings.odbEventBatching,
                   pendingEvents,
-                  flushMutex
+                  flushMutexes
                 )
               (impl: OdbCommands[F], impl.flushAllPending.whenA(settings.odbEventBatching))
           else

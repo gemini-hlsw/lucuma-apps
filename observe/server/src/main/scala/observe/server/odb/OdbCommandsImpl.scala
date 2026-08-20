@@ -7,6 +7,7 @@ import cats.Endo
 import cats.effect.Async
 import cats.effect.Sync
 import cats.effect.kernel.Ref
+import cats.effect.std.AtomicCell
 import cats.effect.std.Mutex
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
@@ -40,11 +41,11 @@ case class OdbCommandsImpl[F[_]: {UUIDGen as U, Logger as L, Async as F}](
   idTracker:     Ref[F, ObsRecordedIds],
   eventBatching: Boolean,
   pendingEvents: Ref[F, PendingEvents],
-  flushMutex:    Mutex[F]
+  flushMutexes:  AtomicCell[F, Map[Observation.Id, Mutex[F]]]
 )(using client: FetchClientWithPars[F, Request[F], ObservationDB])
     extends OdbCommands[F]
     with IdTrackerOps[F](idTracker)
-    with OdbEventBufferOps[F](pendingEvents, flushMutex) {
+    with OdbEventBufferOps[F](pendingEvents, flushMutexes) {
 
   private val FitsFileExtension: String = ".fits"
 

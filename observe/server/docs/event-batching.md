@@ -59,7 +59,9 @@ Interventions are never left sitting in the buffer:
   the sequence itself is not errored. Only the `END_STEP` flush is the hard barrier,
   because it alone gates fetching the next atom.
 
-Main pieces: `OdbEventBufferOps.scala` (buffer + mutex-serialized flush + retry),
+Main pieces: `OdbEventBufferOps.scala` (buffer + retry + a per-observation mutex, so one
+observation's flushes are ordered but never stall another observation's — ready for
+parallel sequences),
 `OdbCommandsImpl.scala` (per-event branching), `AddEventBatchMutation` in `EventsGQL.scala`,
 wiring and a graceful-shutdown flush in `Systems.scala`. Flag off, the code path is
 unchanged. `OdbCommandsImplSuite` pins both modes.

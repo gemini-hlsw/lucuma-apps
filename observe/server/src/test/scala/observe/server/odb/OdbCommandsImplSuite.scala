@@ -5,6 +5,7 @@ package observe.server.odb
 
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.std.AtomicCell
 import cats.effect.std.Mutex
 import cats.effect.testkit.TestControl
 import cats.syntax.all.*
@@ -29,12 +30,14 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
 import java.util.UUID
+import scala.concurrent.duration.*
 
 class OdbCommandsImplSuite extends CatsEffectSuite:
 
   private given Logger[IO] = NoOpLogger.impl[IO]
 
   private val obsId  = Observation.Id(1L.refined)
+  private val obsId2 = Observation.Id(2L.refined)
   private val stepId = Step.Id.fromUuid(UUID.fromString("00000000-0000-0000-0000-000000000001"))
   private val fileId = ImageFileId("S20260820S0001")
 
@@ -98,10 +101,10 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       client        <- Http4sHttpClient.of[IO, ObservationDB](uri"http://odb", "ODB")
       idTracker     <- Ref.of[IO, ObsRecordedIds](ObsRecordedIds.Empty)
       pendingEvents <- Ref.of[IO, PendingEvents](Map.empty)
-      flushMutex    <- Mutex[IO]
+      flushMutexes  <- AtomicCell[IO].of(Map.empty[Observation.Id, Mutex[IO]])
     yield
       given FetchClientWithPars[IO, Request[IO], ObservationDB] = client
-      OdbCommandsImpl[IO](idTracker, batching, pendingEvents, flushMutex)
+      OdbCommandsImpl[IO](idTracker, batching, pendingEvents, flushMutexes)
 
   private def setup(
     batching:            Boolean,
@@ -335,6 +338,30 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
           batchEntries(batches.last.variables),
           List("step" -> "START_CONFIGURE", "step" -> "END_STEP")
         )
+    )
+
+  test("flag on: a flush stalled in retry does not delay another observation's flush"):
+    TestControl.executeEmbed(
+      for
+        (cmds, recorded) <- setup(batching = true, batchTransportFails = 1)
+        _                <- cmds.visitStart(obsId)
+        _                <- cmds.stepStartStep(obsId, stepId)
+        _                <- cmds.stepStartConfigure(obsId, stepId)
+        _                <- cmds.visitStart(obsId2)
+        _                <- cmds.stepStartStep(obsId2, stepId)
+        _                <- cmds.stepEndConfigure(obsId2, stepId)
+        fiberA           <- cmds.stepEndStep(obsId, stepId).start
+        _                <- IO.sleep(100.millis) // A has failed once and sits in its 1s backoff
+        _                <- cmds.stepEndStep(obsId2, stepId)
+        _                <- fiberA.joinWithNever
+        all              <- recorded.get
+        batches           = all.filter(_.op === "addEventBatch")
+      yield
+        assertEquals(batches.size, 3)
+        // A's failed attempt, then B completing during A's backoff, then A's retry.
+        assertEquals(batchEntries(batches(0).variables).head, "step" -> "START_CONFIGURE")
+        assertEquals(batchEntries(batches(1).variables).head, "step" -> "END_CONFIGURE")
+        assertEquals(batchEntries(batches(2).variables).head, "step" -> "START_CONFIGURE")
     )
 
   test("flag on: a GraphQL rejection raises without retry and drops the events"):
