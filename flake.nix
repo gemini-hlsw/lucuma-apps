@@ -40,6 +40,7 @@
             pkgs.yq
             pkgs.direnv
             pkgs.websocat
+            pkgs.github-cli
           ];
           typelevelShell = {
             nodejs.enable = true;
