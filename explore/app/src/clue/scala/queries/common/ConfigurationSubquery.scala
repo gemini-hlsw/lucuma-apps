@@ -60,6 +60,9 @@ object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Config
         flamingos2LongSlit {
           disperser
         }
+        flamingos2Mos {
+          disperser
+        }
         gmosNorthImaging {
           filters
         }
