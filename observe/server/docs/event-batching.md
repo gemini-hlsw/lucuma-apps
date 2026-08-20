@@ -122,7 +122,7 @@ sE/eE Start/EndExpose · sR/eR Start/EndReadout · sW/eW Start/EndWrite
 EO EndObserve · ES END_STEP · BATCH addEventBatch carrying SC…ES
 ```
 
-The same comparison as a Gantt chart (renders on GitHub):
+The same comparison as a Gantt chart:
 
 ```mermaid
 gantt
