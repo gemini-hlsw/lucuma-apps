@@ -126,8 +126,7 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    // Returns the proxy plus a shutdown action that flushes any events still buffered by
-    // odb-event-batching.
+    // Returns the proxy plus a shutdown action that flushes any buffered execution events.
     def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]
       : F[(OdbProxy[F], F[Unit])] =
       for
@@ -149,14 +148,8 @@ object Systems {
               Ref.of[F, PendingEvents](Map.empty),
               AtomicCell[F].of(Map.empty[Observation.Id, Mutex[F]])
             ).mapN: (idTracker, pendingEvents, flushMutexes) =>
-              val impl =
-                OdbCommandsImpl[F](
-                  idTracker,
-                  settings.odbEventBatching,
-                  pendingEvents,
-                  flushMutexes
-                )
-              (impl: OdbCommands[F], impl.flushAllPending.whenA(settings.odbEventBatching))
+              val impl = OdbCommandsImpl[F](idTracker, pendingEvents, flushMutexes)
+              (impl: OdbCommands[F], impl.flushAllPending)
           else
             (DummyOdbCommands[F]: OdbCommands[F], Applicative[F].unit).pure[F]
         (odbCommands, shutdown)                                 = odbCommandsAndShutdown

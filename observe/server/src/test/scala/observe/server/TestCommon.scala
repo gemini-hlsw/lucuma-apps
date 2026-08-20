@@ -182,7 +182,6 @@ object TestCommon {
       tcs = ControlStrategy.Simulated
     ),
     odbNotifications = false,
-    odbEventBatching = false,
     instForceError = false,
     failAt = 0,
     10.seconds,

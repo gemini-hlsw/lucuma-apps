@@ -92,10 +92,7 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
           Response[IO](Status.Ok).withEntity(json"""{"errors": [{"message": "rejected"}]}""")
         else Response[IO](Status.Ok).withEntity(cannedResponse(op))
 
-  private def mkCommands(
-    batching: Boolean,
-    app:      HttpApp[IO]
-  ): IO[OdbCommandsImpl[IO]] =
+  private def mkCommands(app: HttpApp[IO]): IO[OdbCommandsImpl[IO]] =
     given Http4sHttpBackend[IO] = Http4sHttpBackend(Client.fromHttpApp(app))
     for
       client        <- Http4sHttpClient.of[IO, ObservationDB](uri"http://odb", "ODB")
@@ -104,17 +101,16 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       flushMutexes  <- AtomicCell[IO].of(Map.empty[Observation.Id, Mutex[IO]])
     yield
       given FetchClientWithPars[IO, Request[IO], ObservationDB] = client
-      OdbCommandsImpl[IO](idTracker, batching, pendingEvents, flushMutexes)
+      OdbCommandsImpl[IO](idTracker, pendingEvents, flushMutexes)
 
   private def setup(
-    batching:            Boolean,
     batchTransportFails: Int = 0,
     batchGraphQLRejects: Boolean = false
   ): IO[(OdbCommandsImpl[IO], Ref[IO, Vector[Recorded]])] =
     for
       recorded <- Ref.of[IO, Vector[Recorded]](Vector.empty)
       fails    <- Ref.of[IO, Int](batchTransportFails)
-      cmds     <- mkCommands(batching, fakeOdb(recorded, fails, batchGraphQLRejects))
+      cmds     <- mkCommands(fakeOdb(recorded, fails, batchGraphQLRejects))
     yield (cmds, recorded)
 
   private def ops(recorded: Ref[IO, Vector[Recorded]]): IO[List[String]] =
@@ -174,44 +170,17 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
           .orElse(c.downField("dataset").get[String]("idempotencyKey"))
           .toOption
 
-  test("flag off: a full step sends only per-event mutations, never a batch"):
+  test("START_STEP is sent synchronously, before anything buffers"):
     for
-      (cmds, recorded) <- setup(batching = false)
-      _                <- runFullStep(cmds)
-      opList           <- ops(recorded)
-    yield
-      assertEquals(
-        opList,
-        List(
-          "recordVisit",
-          "addStepEvent",    // StartStep
-          "addStepEvent",    // StartConfigure
-          "addStepEvent",    // EndConfigure
-          "addStepEvent",    // StartObserve
-          "recordDataset",
-          "addDatasetEvent", // StartExpose
-          "addDatasetEvent", // EndExpose
-          "addDatasetEvent", // StartReadout
-          "addDatasetEvent", // EndReadout
-          "addDatasetEvent", // StartWrite
-          "addDatasetEvent", // EndWrite
-          "addStepEvent",    // EndObserve
-          "addStepEvent"     // EndStep
-        )
-      )
-      assert(!opList.contains("addEventBatch"))
-
-  test("flag on: START_STEP is sent synchronously, before anything buffers"):
-    for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.stepStartStep(obsId, stepId)
       opList           <- ops(recorded)
     yield assertEquals(opList, List("recordVisit", "addStepEvent"))
 
-  test("flag on: intermediate events buffer without any request"):
+  test("intermediate events buffer without any request"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.stepStartStep(obsId, stepId)
       before           <- ops(recorded)
@@ -221,9 +190,9 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       after            <- ops(recorded)
     yield assertEquals(after, before)
 
-  test("flag on: recordDataset stays synchronous and only StartExpose buffers"):
+  test("recordDataset stays synchronous and only StartExpose buffers"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.stepStartStep(obsId, stepId)
       dataset          <- cmds.datasetStartExposure(obsId, stepId, fileId)
@@ -232,9 +201,9 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       assertEquals(dataset.id.toString, "d-65")
       assertEquals(opList, List("recordVisit", "addStepEvent", "recordDataset"))
 
-  test("flag on: END_STEP flushes one atomic ordered batch with distinct keys"):
+  test("END_STEP flushes one atomic ordered batch with distinct keys"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- runFullStep(cmds)
       all              <- recorded.get
       opList            = all.map(_.op).toList
@@ -266,9 +235,9 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       assertEquals(keys.size, entries.size)
       assertEquals(keys.distinct.size, keys.size)
 
-  test("flag on: sequence events flush the buffer first, then send"):
+  test("sequence events flush the buffer first, then send"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.stepStartStep(obsId, stepId)
       _                <- cmds.stepStartConfigure(obsId, stepId)
@@ -279,17 +248,17 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       List("recordVisit", "addStepEvent", "addEventBatch", "addSequenceEvent")
     )
 
-  test("flag on: sequence event with empty buffer sends no batch"):
+  test("sequence event with empty buffer sends no batch"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.obsContinue(obsId)
       opList           <- ops(recorded)
     yield assertEquals(opList, List("recordVisit", "addSequenceEvent"))
 
-  test("flag on: step abort appends the event and flushes immediately"):
+  test("step abort appends the event and flushes immediately"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.stepStartStep(obsId, stepId)
       _                <- cmds.stepStartConfigure(obsId, stepId)
@@ -303,10 +272,10 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
         List("step" -> "START_CONFIGURE", "step" -> "ABORT")
       )
 
-  test("flag on: transport failure retries with identical payload, then succeeds"):
+  test("transport failure retries with identical payload, then succeeds"):
     TestControl.executeEmbed(
       for
-        (cmds, recorded) <- setup(batching = true, batchTransportFails = 2)
+        (cmds, recorded) <- setup(batchTransportFails = 2)
         _                <- cmds.visitStart(obsId)
         _                <- cmds.stepStartStep(obsId, stepId)
         _                <- cmds.stepStartConfigure(obsId, stepId)
@@ -318,10 +287,10 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
         assertEquals(batches.map(_.variables).distinct.size, 1)
     )
 
-  test("flag on: retry exhaustion raises and re-buffers; next flush re-attempts the events"):
+  test("retry exhaustion raises and re-buffers; next flush re-attempts the events"):
     TestControl.executeEmbed(
       for
-        (cmds, recorded) <- setup(batching = true, batchTransportFails = 5)
+        (cmds, recorded) <- setup(batchTransportFails = 5)
         _                <- cmds.visitStart(obsId)
         _                <- cmds.stepStartStep(obsId, stepId)
         _                <- cmds.stepStartConfigure(obsId, stepId)
@@ -340,10 +309,10 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
         )
     )
 
-  test("flag on: a flush stalled in retry does not delay another observation's flush"):
+  test("a flush stalled in retry does not delay another observation's flush"):
     TestControl.executeEmbed(
       for
-        (cmds, recorded) <- setup(batching = true, batchTransportFails = 1)
+        (cmds, recorded) <- setup(batchTransportFails = 1)
         _                <- cmds.visitStart(obsId)
         _                <- cmds.stepStartStep(obsId, stepId)
         _                <- cmds.stepStartConfigure(obsId, stepId)
@@ -364,9 +333,9 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
         assertEquals(batchEntries(batches(2).variables).head, "step" -> "START_CONFIGURE")
     )
 
-  test("flag on: a GraphQL rejection raises without retry and drops the events"):
+  test("a GraphQL rejection raises without retry and drops the events"):
     for
-      (cmds, recorded) <- setup(batching = true, batchGraphQLRejects = true)
+      (cmds, recorded) <- setup(batchGraphQLRejects = true)
       _                <- cmds.visitStart(obsId)
       _                <- cmds.stepStartStep(obsId, stepId)
       _                <- cmds.stepStartConfigure(obsId, stepId)
@@ -378,9 +347,9 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
       assert(result.left.exists(_.isInstanceOf[ResponseException[?]]))
       assertEquals(batches.size, 1)
 
-  test("flag on: obsStop clears the current visit"):
+  test("obsStop clears the current visit"):
     for
-      (cmds, recorded) <- setup(batching = true)
+      (cmds, recorded) <- setup()
       _                <- cmds.visitStart(obsId)
       _                <- cmds.obsStop(obsId)
       ids              <- cmds.getCurrentRecordedIds

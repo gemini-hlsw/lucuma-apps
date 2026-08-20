@@ -4,7 +4,7 @@ August 2026.
 
 **Summary: Observe now records a step's execution events as one atomic `addEventBatch`
 mutation instead of ~13 individual mutations, cutting the event cost of a step against a
-remote ODB from ~2.2 s to ~0.7 s.** Off by default, behind the `odb-event-batching` flag.
+remote ODB from ~2.2 s to ~0.7 s.** Batching is always on; there is no flag.
 
 ---
 
@@ -16,7 +16,7 @@ a blocking action inside the step pipeline — so every event paid a full networ
 before the sequence could proceed, and the ODB executes requests from one client strictly
 one at a time, so nothing overlapped.
 
-With `odb-event-batching = true` (in the `observe-engine` config block):
+With batching:
 
 - **`START_STEP` is still sent synchronously** at step start. This is required: a Postgres
   trigger in the ODB rejects `recordDataset` for a step with no recorded event, and it
@@ -62,9 +62,9 @@ Interventions are never left sitting in the buffer:
 Main pieces: `OdbEventBufferOps.scala` (buffer + retry + a per-observation mutex, so one
 observation's flushes are ordered but never stall another observation's — ready for
 parallel sequences),
-`OdbCommandsImpl.scala` (per-event branching), `AddEventBatchMutation` in `EventsGQL.scala`,
-wiring and a graceful-shutdown flush in `Systems.scala`. Flag off, the code path is
-unchanged. `OdbCommandsImplSuite` pins both modes.
+`OdbCommandsImpl.scala` (per-event handling), `AddEventBatchMutation` in `EventsGQL.scala`,
+wiring and a graceful-shutdown flush in `Systems.scala`. `OdbCommandsImplSuite` pins the
+behavior.
 
 ## Measurements
 
@@ -166,11 +166,8 @@ Verified with consumers before implementation:
 
 ## Status and follow-ups
 
-- Flag `odb-event-batching` defaults to **false** everywhere. Rollout:
-  sim → one instrument at one site for a real observing period → default on. The flag is
-  the instant rollback.
 - Follow-up (separate change): http4s `Retry` middleware on the ODB client — the comments
-  claimed it existed, it never did — benefiting the flag-off path and
-  `recordVisit`/`recordDataset`.
+  claimed it existed, it never did — benefiting the synchronous mutations
+  (`recordVisit`/`recordDataset`/`START_STEP`).
 - For the ODB team: an integration test for the "dataset before any step event" rejection
   path (none exists), and the single-`INSERT` batch optimization above.
