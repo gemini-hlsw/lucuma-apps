@@ -10,6 +10,7 @@ import clue.data.syntax.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.archiveDuplication.ArchiveDuplicationTile
 import explore.attachments.AttachmentsTile
 import explore.common.Aligner
 import explore.components.AutoHeightTable
@@ -29,6 +30,7 @@ import explore.model.ObservationList
 import explore.model.OverviewTabTileIds
 import explore.model.ProgramDetails
 import explore.model.TargetAttachmentAssignmentMap
+import explore.model.TargetList
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.GroupWarning
 import explore.model.layout.LayoutsMap
@@ -66,6 +68,7 @@ case class OverviewTabContents(
   obsAttachmentAssignments:    ObsAttachmentAssignmentMap,
   targetAttachmentAssignments: TargetAttachmentAssignmentMap,
   observations:                View[ObservationList],
+  targets:                     TargetList,
   targetObservations:          Map[Target.Id, SortedSet[Observation.Id]],
   groups:                      GroupList,
   groupWarnings:               Map[Group.Id, NonEmptySet[GroupWarning]],
@@ -108,8 +111,11 @@ object OverviewTabContents
         val groupWarningsTile =
           GroupWarningsTile(props.userId, props.programId, props.groups, props.groupWarnings)
 
+        val isScienceProgram =
+          props.detailsUndoSetter.get.programType === ProgramType.Science
+
         val showObsAttachments =
-          props.proposalIsAccepted || props.detailsUndoSetter.get.programType =!= ProgramType.Science
+          props.proposalIsAccepted || !isScienceProgram
 
         val attachmentsTile: Tile[?] =
           props.userVault.fold(Tile.Dummy(OverviewTabTileIds.AttachmentsId.id))(userVault =>
@@ -129,8 +135,7 @@ object OverviewTabContents
         // only edit program description here for non-science programs. For science programs it
         // is edited as the abstract on the proposals tab.
         val descriptionTile: Tile[?] =
-          if (props.detailsUndoSetter.get.programType === ProgramType.Science)
-            Tile.Dummy(OverviewTabTileIds.DescriptionId.id)
+          if (isScienceProgram) Tile.Dummy(OverviewTabTileIds.DescriptionId.id)
           else
             val descriptionAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
               Aligner(
@@ -162,6 +167,19 @@ object OverviewTabContents
               )
             )
 
+        // A duplication check is a proposal concern, so it is offered on science programs only.
+        val archiveDuplicationTile: Tile[?] =
+          if (isScienceProgram)
+            ArchiveDuplicationTile(
+              props.userId,
+              props.programId,
+              props.observations.get,
+              props.targets,
+              props.detailsUndoSetter.get.proposalStatus,
+              props.readonly
+            )
+          else Tile.Dummy(OverviewTabTileIds.ArchiveDuplicationId.id)
+
         <.div(ExploreStyles.MultiPanelTile)(
           TileController(
             props.userId,
@@ -172,7 +190,8 @@ object OverviewTabContents
               warningsAndErrorsTile,
               groupWarningsTile,
               attachmentsTile,
-              descriptionTile
+              descriptionTile,
+              archiveDuplicationTile
             ),
             GridLayoutSection.OverviewLayout
           )

@@ -20,3 +20,4 @@ enum TableId(val tag: String) derives Enumerated:
   case GroupWarnings          extends TableId("group_warnings")
   case ImagingModes           extends TableId("imaging_modes")
   case ProgramsSelector       extends TableId("programs_selector")
+  case ArchiveDuplication     extends TableId("archive_duplication")

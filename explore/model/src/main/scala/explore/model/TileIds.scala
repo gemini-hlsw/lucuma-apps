@@ -64,7 +64,8 @@ enum ConstraintTabTileIds(val id: NonEmptyString):
   case Summary extends ConstraintTabTileIds("constraints".refined)
 
 enum OverviewTabTileIds(val id: NonEmptyString):
-  case WarningsAndErrorsId extends OverviewTabTileIds("warningsAndErrors".refined)
-  case GroupWarningsId     extends OverviewTabTileIds("groupWarnings".refined)
-  case AttachmentsId       extends OverviewTabTileIds("attachments".refined)
-  case DescriptionId       extends OverviewTabTileIds("programDescription".refined)
+  case WarningsAndErrorsId  extends OverviewTabTileIds("warningsAndErrors".refined)
+  case GroupWarningsId      extends OverviewTabTileIds("groupWarnings".refined)
+  case AttachmentsId        extends OverviewTabTileIds("attachments".refined)
+  case DescriptionId        extends OverviewTabTileIds("programDescription".refined)
+  case ArchiveDuplicationId extends OverviewTabTileIds("archiveDuplication".refined)

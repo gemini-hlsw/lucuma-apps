@@ -437,10 +437,11 @@ object ExploreGridLayouts:
 
   object overview:
 
-    private lazy val WarningsAndErrorsHeight: NonNegInt = 8.refined
-    private lazy val GroupWarningsHeight: NonNegInt     = 8.refined
-    private lazy val AttachmentsHeight: NonNegInt       = 8.refined
-    private lazy val DescriptionHeight: NonNegInt       = 8.refined
+    private lazy val WarningsAndErrorsHeight: NonNegInt  = 8.refined
+    private lazy val GroupWarningsHeight: NonNegInt      = 8.refined
+    private lazy val AttachmentsHeight: NonNegInt        = 8.refined
+    private lazy val DescriptionHeight: NonNegInt        = 8.refined
+    private lazy val ArchiveDuplicationHeight: NonNegInt = 10.refined
 
     private lazy val layoutMedium: Layout = Layout(
       List(
@@ -471,6 +472,13 @@ object ExploreGridLayouts:
           y = (WarningsAndErrorsHeight |+| AttachmentsHeight).value,
           w = DefaultWidth.value,
           h = DescriptionHeight.value
+        ),
+        LayoutItem(
+          i = OverviewTabTileIds.ArchiveDuplicationId.id.value,
+          x = 0,
+          y = (WarningsAndErrorsHeight |+| AttachmentsHeight |+| DescriptionHeight).value,
+          w = DefaultWidth.value,
+          h = ArchiveDuplicationHeight.value
         )
       )
     )
