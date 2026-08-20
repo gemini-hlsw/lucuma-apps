@@ -8,6 +8,7 @@ import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.ExposureTimeModeType.modeType
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
@@ -32,6 +33,7 @@ final case class ExposureTimeModeEditor(
   calibrationRole:          Option[CalibrationRole],
   idPrefix:                 NonEmptyString,
   forceCount:               Option[PosInt] = none,
+  forceModeType:            Option[ExposureTimeModeType] = none,
   forGridRow:               Boolean = false,
   isCustomized:             Boolean = false,
   revertCustomization:      Callback = Callback.empty,
@@ -59,6 +61,7 @@ object ExposureTimeModeEditor
           props.calibrationRole,
           props.idPrefix,
           props.forceCount,
+          props.forceModeType,
           props.forGridRow,
           props.isCustomized,
           props.revertCustomization,

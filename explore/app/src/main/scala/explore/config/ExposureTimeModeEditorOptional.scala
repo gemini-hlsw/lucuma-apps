@@ -38,6 +38,9 @@ import lucuma.ui.syntax.all.given
  *    a prefix to the control ids.
  * @param forceCount - Forces the count for Time & Count to the provided value and does not display the
  *    count control. Used for acquisition customization where count is always 1.
+ * @param forceModeType - Pins the exposure time mode to the given type and hides the mode
+ *    selector. Used where the ODB accepts only one of the two modes, e.g. MOS acquisition. The
+ *    customized addon lives on that selector, so it is hidden along with it.
  * @param forGridRow - Creates the controls suitable to laying them all out in a CSS Grid. Essentially,
  *    it wraps the Label/Input pairs in a `span` so there is only DOM element. The spans have a class
  *    so they can be assigned to a grid column via Css. It also adds the `HiddenLabel` class to the
@@ -62,6 +65,7 @@ case class ExposureTimeModeEditorOptional(
   calibrationRole:          Option[CalibrationRole],
   idPrefix:                 NonEmptyString,
   forceCount:               Option[PosInt] = none,
+  forceModeType:            Option[ExposureTimeModeType] = none,
   forGridRow:               Boolean = false,
   isCustomized:             Boolean = false,
   revertCustomization:      Callback = Callback.empty,
@@ -171,9 +175,14 @@ object ExposureTimeModeEditorOptional:
             disabled = props.readonly
           )
 
+        val effectiveModeType =
+          props.forceModeType.getOrElse(props.exposureTimeModeType.get)
+
         React.Fragment(
-          controlsWrapper(modeSelector, ExploreStyles.ExposureTimeModeMode),
-          if (props.exposureTimeModeType.get === ExposureTimeModeType.SignalToNoise)
+          if props.forceModeType.isEmpty then
+            controlsWrapper(modeSelector, ExploreStyles.ExposureTimeModeMode)
+          else EmptyVdom,
+          if (effectiveModeType === ExposureTimeModeType.SignalToNoise)
             SignalToNoiseAtEditor(
               snModeView,
               props.scienceMode,
