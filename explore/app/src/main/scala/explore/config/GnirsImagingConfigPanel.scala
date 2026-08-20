@@ -44,6 +44,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import monocle.Lens
 
 case class GnirsImagingConfigPanel(
   programId:                    Program.Id,
@@ -182,13 +183,33 @@ object GnirsImagingConfigPanel
             )
             .view(_.orUnassign)
 
+        // The editor shows the effective mode, but entering a value makes it explicit.
         val acquisitionExposureTimeView: View[ExposureTimeMode] =
           acquisition
             .zoom(
-              ObservingMode.GnirsImaging.Acquisition.exposureTimeMode,
-              GnirsImagingAcquisitionInput.exposureTimeMode.modify
+              Lens[ObservingMode.GnirsImaging.Acquisition, ExposureTimeMode](_.exposureTimeMode)(
+                etm => _.copy(exposureTimeMode = etm, explicitExposureTimeMode = etm.some)
+              ),
+              GnirsImagingAcquisitionInput.explicitExposureTimeMode.modify
             )
             .view(_.toInput.assign)
+
+        // Reverting only clears the override. The effective mode keeps showing the old value
+        // until the server answers with the derived one, which it always pairs with coadds of
+        // 1 -- but coadds are not rendered for a signal-to-noise mode, so that is invisible.
+        val revertAcquisitionExposureTime: Callback =
+          acquisition
+            .zoom(
+              ObservingMode.GnirsImaging.Acquisition.explicitExposureTimeMode,
+              GnirsImagingAcquisitionInput.explicitExposureTimeMode.modify
+            )
+            .view(_.map(_.toInput).orUnassign)
+            .set(none)
+
+        // Reverts every acquisition customization at once. The per-field addons all live inside
+        // the Acquisition panel, which is collapsed by default, so the section needs its own.
+        val revertAcquisition: Callback =
+          acquisition.view(_.toInput).mod(_.revertCustomizations)
 
         React.Fragment(
           <.div(ExploreStyles.ImagingUpperGrid)(
@@ -250,7 +271,12 @@ object GnirsImagingConfigPanel
               Panel(
                 header = <.span(
                   "Acquisition",
-                  HelpIcon("configuration/gnirs/acquisition-customization.md".refined)
+                  HelpIcon("configuration/gnirs/acquisition-customization.md".refined),
+                  CustomizedGroupAddon(
+                    "automatic",
+                    revertAcquisition,
+                    allowRevertCustomization
+                  ).when(showCustomization && acquisition.get.isCustomized)
                 ),
                 toggleable = true,
                 collapsed = true
@@ -296,7 +322,11 @@ object GnirsImagingConfigPanel
                       units = props.units,
                       calibrationRole = props.calibrationRole,
                       idPrefix = "gnirsImgAcq".refined,
-                      forceCount = Some(1.refined)
+                      forceCount = Some(1.refined),
+                      isCustomized =
+                        showCustomization && acquisition.get.explicitExposureTimeMode.isDefined,
+                      revertCustomization = revertAcquisitionExposureTime,
+                      allowRevertCustomization = allowRevertCustomization
                     )
                   )
                 )

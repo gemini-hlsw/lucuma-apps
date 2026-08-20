@@ -283,6 +283,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               explicitFilter
               skyOffset $OffsetSubquery
               exposureTimeMode $ExposureTimeModeSubquery
+              explicitExposureTimeMode $ExposureTimeModeSubquery
               coadds
             }
           }
@@ -327,6 +328,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               explicitFilter
               skyOffset $OffsetSubquery
               exposureTimeMode $ExposureTimeModeSubquery
+              explicitExposureTimeMode $ExposureTimeModeSubquery
               coadds
             }
           }

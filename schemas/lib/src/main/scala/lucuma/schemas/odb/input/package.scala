@@ -703,7 +703,7 @@ extension (a: ObservingMode.GnirsImaging.Acquisition)
       .map(_.toInput)
       .orUnassign,
     explicitFilter = a.explicitFilter.orUnassign,
-    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    explicitExposureTimeMode = a.explicitExposureTimeMode.map(_.toInput).orUnassign,
     coadds = a.coadds.assign
   )
 
@@ -775,7 +775,7 @@ extension (a: ObservingMode.GnirsSpectroscopy.Acquisition)
       .map(_.toInput)
       .orUnassign,
     explicitFilter = a.explicitFilter.orUnassign,
-    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    explicitExposureTimeMode = a.explicitExposureTimeMode.map(_.toInput).orUnassign,
     coadds = a.coadds.assign
   )
 

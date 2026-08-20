@@ -8,6 +8,7 @@ import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.components.CustomizedGroupAddon
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.SignalToNoiseModeInfo
@@ -41,20 +42,30 @@ import lucuma.ui.syntax.all.given
  *    it wraps the Label/Input pairs in a `span` so there is only DOM element. The spans have a class
  *    so they can be assigned to a grid column via Css. It also adds the `HiddenLabel` class to the
  *    labels so they will be hidden from view while still being accessible to screen readers.
+ * @param isCustomized - Shows the customized addon on the exposure mode dropdown, which reverts to
+ *    the automatic value when clicked. The editor has no notion of a default, so the caller decides.
+ *    Has no visible effect together with `forGridRow`, which hides the label the addon sits in.
+ * @param revertCustomization - What the customized addon does when clicked. Only used when
+ *    `isCustomized`.
+ * @param allowRevertCustomization - Whether clicking the customized addon actually reverts. When
+ *    false the addon still shows, but only to report that the value is customized.
  */
 case class ExposureTimeModeEditorOptional(
-  instrument:           Option[Instrument],
-  wavelength:           Option[Wavelength],
-  exposureTimeMode:     View[Option[ExposureTimeMode]],
-  exposureTimeModeType: View[ExposureTimeModeType],
-  coadds:               Option[View[PosInt]] = none,
-  scienceMode:          ScienceMode,
-  readonly:             Boolean,
-  units:                WavelengthUnits,
-  calibrationRole:      Option[CalibrationRole],
-  idPrefix:             NonEmptyString,
-  forceCount:           Option[PosInt] = none,
-  forGridRow:           Boolean = false
+  instrument:               Option[Instrument],
+  wavelength:               Option[Wavelength],
+  exposureTimeMode:         View[Option[ExposureTimeMode]],
+  exposureTimeModeType:     View[ExposureTimeModeType],
+  coadds:                   Option[View[PosInt]] = none,
+  scienceMode:              ScienceMode,
+  readonly:                 Boolean,
+  units:                    WavelengthUnits,
+  calibrationRole:          Option[CalibrationRole],
+  idPrefix:                 NonEmptyString,
+  forceCount:               Option[PosInt] = none,
+  forGridRow:               Boolean = false,
+  isCustomized:             Boolean = false,
+  revertCustomization:      Callback = Callback.empty,
+  allowRevertCustomization: Boolean = true
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
 
 object ExposureTimeModeEditorOptional:
@@ -118,13 +129,25 @@ object ExposureTimeModeEditorOptional:
           case _                                                       =>
             Callback.empty
 
+        // A derived mode is always signal-to-noise, so there is no single control the
+        // customization belongs to; the dropdown leads the group, so it carries the addon.
+        val customizedAddon: VdomNode =
+          if props.isCustomized then
+            CustomizedGroupAddon(
+              "automatic",
+              props.revertCustomization,
+              props.allowRevertCustomization
+            )
+          else EmptyVdom
+
         val modeSelector =
           FormEnumDropdownView(
             id = makeId("ExposureMode".refined),
             value = props.exposureTimeModeType,
             label = ReactFragment(
               "Exposure Mode",
-              HelpIcon("configuration/exposure-mode.md".refined)
+              HelpIcon("configuration/exposure-mode.md".refined),
+              customizedAddon
             ),
             labelClass = ExploreStyles.HiddenLabel.when_(props.forGridRow),
             onChangeE = (v, _) =>

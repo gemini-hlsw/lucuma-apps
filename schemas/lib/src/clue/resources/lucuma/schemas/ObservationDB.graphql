@@ -9270,7 +9270,18 @@ GNIRS Imaging acquisition customization.  Every field overrides an otherwise
 automatic choice.
 """
 type GnirsImagingAcquisition {
+  """
+  The effective acquisition exposure time mode.  When `explicitExposureTimeMode` is
+  null this is a signal-to-noise mode whose value follows the ITC brightness
+  classification -- VERY_BRIGHT 30, BRIGHT 20, FAINT 10 -- and is maintained
+  automatically.
+  """
   exposureTimeMode: ExposureTimeMode!
+
+  """
+  An explicitly specified acquisition exposure time mode.  When null the mode is derived from the acquisition type (see `exposureTimeMode`).
+  """
+  explicitExposureTimeMode: ExposureTimeMode
   coadds: PosInt!
 
   """
@@ -9337,7 +9348,13 @@ input GnirsImagingAcquisitionInput {
   explicitAcquisitionType: GnirsAcquisitionType
   coadds: PosInt
   skyOffset: OffsetInput
-  exposureTimeMode: ExposureTimeModeInput
+
+  """
+  An explicitly specified acquisition exposure time mode.  Assign null to revert to
+  the mode derived from the acquisition brightness classification, or skip it
+  altogether to leave it alone.
+  """
+  explicitExposureTimeMode: ExposureTimeModeInput
 }
 
 """GNIRS Imaging creation and edit input parameters."""
@@ -9373,7 +9390,18 @@ input GnirsImagingInput {
 }
 
 type GnirsSpectroscopyAcquisition {
+  """
+  The effective acquisition exposure time mode.  When `explicitExposureTimeMode` is
+  null this is a signal-to-noise mode whose value follows the ITC brightness
+  classification -- VERY_BRIGHT 30, BRIGHT 20, FAINT 10 -- and is maintained
+  automatically.
+  """
   exposureTimeMode: ExposureTimeMode!
+
+  """
+  An explicitly specified acquisition exposure time mode.  When null the mode is derived from the acquisition type (see `exposureTimeMode`).
+  """
+  explicitExposureTimeMode: ExposureTimeMode
   coadds: PosInt!
   explicitAcquisitionType: GnirsAcquisitionType
 
@@ -9505,7 +9533,13 @@ input GnirsSpectroscopyAcquisitionInput {
   explicitAcquisitionType: GnirsAcquisitionType
   coadds: PosInt
   skyOffset: OffsetInput
-  exposureTimeMode: ExposureTimeModeInput
+
+  """
+  An explicitly specified acquisition exposure time mode.  Assign null to revert to
+  the mode derived from the acquisition brightness classification, or skip it
+  altogether to leave it alone.
+  """
+  explicitExposureTimeMode: ExposureTimeModeInput
 }
 
 """
