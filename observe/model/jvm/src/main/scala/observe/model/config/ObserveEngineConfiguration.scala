@@ -32,6 +32,8 @@ type Igrins2UriSettings = Igrins2UriSettings.Type
  *   Control of the subsystems
  * @param odbNotifications
  *   Indicates if we notify the odb of sequence events
+ * @param odbEventBatching
+ *   Buffer step/dataset events and record them as one atomic batch per step
  * @param instForceError
  *   Used for testing to simulate errors
  * @param failAt
@@ -67,6 +69,7 @@ case class ObserveEngineConfiguration(
   dhsServer:               Uri,
   systemControl:           SystemsControlConfiguration,
   odbNotifications:        Boolean,
+  odbEventBatching:        Boolean = false,
   instForceError:          Boolean,
   failAt:                  Int,
   odbQueuePollingInterval: FiniteDuration,
