@@ -13,7 +13,7 @@ enum GroupWarning(val shortMsg: String, val longMsg: String) derives Order:
       )
   case SiteMismatch
       extends GroupWarning("Mismatched Sites",
-                           "All observations in a consecutive AND group must be at the same site."
+                           "All observations in an AND group must be at the same site."
       )
   case UndefinedObservations
       extends GroupWarning("Undefined Observations", "Group contains undefined observations.")
