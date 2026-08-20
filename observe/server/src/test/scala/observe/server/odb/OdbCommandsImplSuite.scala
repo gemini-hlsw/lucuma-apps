@@ -181,10 +181,10 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
         opList,
         List(
           "recordVisit",
-          "addStepEvent",   // StartStep
-          "addStepEvent",   // StartConfigure
-          "addStepEvent",   // EndConfigure
-          "addStepEvent",   // StartObserve
+          "addStepEvent",    // StartStep
+          "addStepEvent",    // StartConfigure
+          "addStepEvent",    // EndConfigure
+          "addStepEvent",    // StartObserve
           "recordDataset",
           "addDatasetEvent", // StartExpose
           "addDatasetEvent", // EndExpose
@@ -192,8 +192,8 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
           "addDatasetEvent", // EndReadout
           "addDatasetEvent", // StartWrite
           "addDatasetEvent", // EndWrite
-          "addStepEvent",   // EndObserve
-          "addStepEvent"    // EndStep
+          "addStepEvent",    // EndObserve
+          "addStepEvent"     // EndStep
         )
       )
       assert(!opList.contains("addEventBatch"))
@@ -259,7 +259,7 @@ class OdbCommandsImplSuite extends CatsEffectSuite:
           "step"    -> "END_STEP"
         )
       )
-      val keys = batchIdempotencyKeys(batches.head.variables)
+      val keys    = batchIdempotencyKeys(batches.head.variables)
       assertEquals(keys.size, entries.size)
       assertEquals(keys.distinct.size, keys.size)
 

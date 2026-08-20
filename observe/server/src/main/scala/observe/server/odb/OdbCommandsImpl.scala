@@ -41,7 +41,8 @@ case class OdbCommandsImpl[F[_]: {UUIDGen as U, Logger as L, Async as F}](
   eventBatching: Boolean,
   pendingEvents: Ref[F, PendingEvents],
   flushMutex:    Mutex[F]
-)(using client: FetchClientWithPars[F, Request[F], ObservationDB]) extends OdbCommands[F]
+)(using client: FetchClientWithPars[F, Request[F], ObservationDB])
+    extends OdbCommands[F]
     with IdTrackerOps[F](idTracker)
     with OdbEventBufferOps[F](pendingEvents, flushMutex) {
 
@@ -146,11 +147,11 @@ case class OdbCommandsImpl[F[_]: {UUIDGen as U, Logger as L, Async as F}](
   override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
     if (eventBatching)
       // START_STEP is never buffered: the ODB refuses datasets for a step with no recorded
-      // event, and this anchors the step's record before anything else can fail. 
+      // event, and this anchors the step's record before anything else can fail.
       // Also explore needs the starte event to update the UI
       for
         pending        <- pendingEventCount(obsId)
-        _              <- (warn"Flushing $pending stale buffered ODB events for obsId: $obsId")
+        _              <- warn"Flushing $pending stale buffered ODB events for obsId: $obsId"
                             .whenA(pending > 0)
         _              <- flushEvents(obsId)
         visitId        <- getCurrentVisitId(obsId)
@@ -186,7 +187,8 @@ case class OdbCommandsImpl[F[_]: {UUIDGen as U, Logger as L, Async as F}](
     fileId: ImageFileId
   ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] =
     for
-      _              <- debug"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
+      _              <-
+        debug"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
       visitId        <- getCurrentVisitId(obsId)
       dataset        <- recordDataset(stepId, visitId, fileId)
       _              <- setCurrentDatasetId(obsId, fileId, dataset.id.some)

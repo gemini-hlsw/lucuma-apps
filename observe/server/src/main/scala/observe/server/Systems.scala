@@ -14,6 +14,7 @@ import cats.effect.std.Mutex
 import cats.effect.std.SecureRandom
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
+import clue.FetchClientWithPars
 import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import clue.http4s.Http4sWebSocketBackend
@@ -57,6 +58,7 @@ import observe.server.tcs.*
 import org.http4s.AuthScheme
 import org.http4s.Credentials
 import org.http4s.Headers
+import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.JdkWSClient
@@ -65,8 +67,6 @@ import org.typelevel.otel4s.trace.Tracer
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
-import org.http4s.Request
-import clue.FetchClientWithPars
 
 case class Systems[F[_]] private[server] (
   odb:                 OdbProxy[F],
