@@ -7,6 +7,7 @@ import cats.syntax.all.*
 import crystal.react.View
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
+import explore.components.AutoHeightTable
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Focused
@@ -24,7 +25,6 @@ import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.Program
 import lucuma.core.model.User
-import lucuma.core.util.NewType
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.*
 import lucuma.react.primereact.tooltip.*
@@ -34,11 +34,20 @@ import lucuma.react.table.*
 import lucuma.ui.primereact.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
+import monocle.Focus
 
 import scala.scalajs.js
 
-object ObservationValidationsTableTileState extends NewType[Boolean => Callback]
-type ObservationValidationsTableTileState = ObservationValidationsTableTileState.Type
+case class ObservationValidationsTableTileState(
+  toggleAllRows:   Boolean => Callback,
+  visibleRowCount: Int
+)
+
+object ObservationValidationsTableTileState:
+  val Empty: ObservationValidationsTableTileState =
+    ObservationValidationsTableTileState(_ => Callback.empty, 0)
+
+  val visibleRowCount = Focus[ObservationValidationsTableTileState](_.visibleRowCount)
 
 case class ObservationValidationsTableBody(
   userId:       Option[User.Id],
@@ -164,8 +173,14 @@ object ObservationValidationsTableBody {
     )
     .useEffectOnMountBy((p, _, _, _, table) =>
       val cb = (a: Boolean) => table.toggleAllRowsExpanded(a)
-      p.tileState.set(ObservationValidationsTableTileState(cb))
+      p.tileState.mod(_.copy(toggleAllRows = cb))
     )
+    // Expanding or collapsing rows changes the height the tile has to give the table
+    .useEffectWithDepsBy((_, _, _, _, table) => table.getRowModel().rows.length): (p, _, _, _, _) =>
+      rowCount =>
+        p.tileState
+          .zoom(ObservationValidationsTableTileState.visibleRowCount)
+          .set(rowCount)
     .useResizeDetector()
     .render((_, _, _, rows, table, resizer) =>
       val emptyMessage = <.div("There are no Observation Errors.")
@@ -180,7 +195,7 @@ object ObservationValidationsTableBody {
       else
         PrimeAutoHeightVirtualizedTable(
           table,
-          _ => 32.toPx,
+          _ => AutoHeightTable.RowHeightPx.toPx,
           striped = true,
           compact = Compact.Very,
           containerRef = resizer.ref,
@@ -273,12 +288,12 @@ object ObservationValidationsTableTitle:
           size = Button.Size.Small,
           icon = Icons.SquarePlus,
           tooltip = "Expand All",
-          onClick = p.tileState.get.value(true)
+          onClick = p.tileState.get.toggleAllRows(true)
         ).compact,
         Button(
           size = Button.Size.Small,
           icon = Icons.SquareMinus,
           tooltip = "Collapse All",
-          onClick = p.tileState.get.value(false)
+          onClick = p.tileState.get.toggleAllRows(false)
         ).compact
       )

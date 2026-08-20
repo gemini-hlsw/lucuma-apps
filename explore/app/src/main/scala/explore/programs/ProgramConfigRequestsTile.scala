@@ -10,6 +10,7 @@ import crystal.react.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
+import explore.components.AutoHeightTable
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ConfigurationRequestList
@@ -171,7 +172,7 @@ object ProgramConfigRequestsTile:
         else
           PrimeAutoHeightVirtualizedTable(
             table,
-            _ => 32.toPx,
+            _ => AutoHeightTable.RowHeightPx.toPx,
             striped = true,
             compact = Compact.Very,
             innerContainerMod = ^.width := "100%",

@@ -212,12 +212,16 @@ object GroupWarningsTile
           else
             PrimeAutoHeightVirtualizedTable(
               table,
-              _ => 32.toPx,
+              _ => AutoHeightTable.RowHeightPx.toPx,
               striped = true,
               compact = Compact.Very,
               containerRef = resize.ref,
               emptyMessage = emptyMessage
             )
 
-        TileContents(title = title, body = body)
+        TileContents(
+          title = title,
+          body = body,
+          contentHeightPx = AutoHeightTable.heightPx(table.getRowModel().rows.length).some
+        )
     })
