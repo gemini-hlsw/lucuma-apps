@@ -10,7 +10,6 @@ import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
 import clue.js.FetchJsBackend
-import clue.js.FetchMethod
 import clue.js.WebSocketJsBackend
 import clue.websocket.ReconnectionStrategy
 import explore.components.ui.ExploreStyles
@@ -146,7 +145,7 @@ object ExploreMain {
       bc:            BroadcastChannel[IO, ExploreEvent],
       configJson:    String
     )(using Logger[IO], Tracer[IO], TracerProvider[IO]): IO[Unit] = {
-      given FetchJsBackend[IO]     = FetchJsBackend[IO](FetchMethod.GET)
+      given FetchJsBackend[IO]     = FetchJsBackend[IO]()
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
 
       val (router, routerCtl) =
