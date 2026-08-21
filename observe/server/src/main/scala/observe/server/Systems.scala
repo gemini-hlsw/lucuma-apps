@@ -452,7 +452,6 @@ object Systems {
       else GwsKeywordsReaderDummy[IO].pure[IO]
 
     def build(site: Site, httpClient: Client[IO]): Resource[IO, Systems[IO]] =
-      given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
       for {
         odbProxy                                          <- odbProxy[IO](httpClient)
         dhsClient                                         <- Resource.eval(dhs[IO](site, httpClient))
