@@ -25,8 +25,10 @@ class OdbEventSenderSuite extends CatsEffectSuite:
 
   // Records the order in which sends complete, each one taking `delay` to be acknowledged.
   private def recorder: IO[(Ref[IO, List[String]], (String, FiniteDuration) => IO[Unit])] =
-    Ref.of[IO, List[String]](List.empty).map: ref =>
-      (ref, (name, delay) => IO.sleep(delay) >> ref.update(name :: _))
+    Ref
+      .of[IO, List[String]](List.empty)
+      .map: ref =>
+        (ref, (name, delay) => IO.sleep(delay) >> ref.update(name :: _))
 
   test("submit returns without waiting for the acknowledgement"):
     TestControl.executeEmbed:

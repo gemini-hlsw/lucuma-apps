@@ -85,7 +85,8 @@ object OdbEventSender:
           .modify: pendings =>
             (
               pendings.updatedWith(obsId):
-                _.flatMap(p => Option.when(p.outstanding > 0)(p.copy(failure = none))),
+                _.flatMap(p => Option.when(p.outstanding > 0)(p.copy(failure = none)))
+              ,
               pendings.get(obsId).flatMap(_.failure)
             )
           .flatMap(_.fold(F.unit)(F.raiseError))
