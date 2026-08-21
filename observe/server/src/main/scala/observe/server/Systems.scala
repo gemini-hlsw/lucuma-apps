@@ -47,7 +47,9 @@ import observe.server.igrins2.Igrins2ControllerSim
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
+import observe.server.odb.OdbCommands
 import observe.server.odb.OdbCommandsImpl
+import observe.server.odb.OdbEventSender
 import observe.server.odb.OdbProxy
 import observe.server.tcs.*
 import org.http4s.AuthScheme
@@ -118,26 +120,34 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]: F[OdbProxy[F]] =
+    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]
+      : Resource[F, OdbProxy[F]] =
       for
-        fetchClient                    <- // Http client used ONLY for recording events.
-          Http4sHttpClient.of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
+        fetchClient                    <- Resource.eval: // Http client used ONLY for recording events.
+                                            Http4sHttpClient
+                                              .of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
         tracingFetch                    = Otel4sMiddleware(fetchClient)
-        wsClient                       <- JdkWSClient.simple[F].allocated.map(_._1)
+        wsClient                       <- Resource.eval(JdkWSClient.simple[F].allocated.map(_._1))
         given Http4sWebSocketBackend[F] = Http4sWebSocketBackend[F](wsClient)
-        innerClient                    <-
-          Http4sWebSocketClient.of[F, ObservationDB](settings.odbWs, "ODB-WS", WsReconnectStrategy)
+        innerClient                    <- Resource.eval:
+                                            Http4sWebSocketClient.of[F, ObservationDB](
+                                              settings.odbWs,
+                                              "ODB-WS",
+                                              WsReconnectStrategy
+                                            )
         tracingWS                       = Otel4sMiddleware(innerClient)
-        _                              <-
-          tracingWS.connect:
-            Map(Authorization.name.toString -> authHeader.credentials.renderString.asJson).pure[F]
-        odbCommands                    <-
+        _                              <- Resource.eval:
+                                            tracingWS.connect:
+                                              Map(
+                                                Authorization.name.toString -> authHeader.credentials.renderString.asJson
+                                              ).pure[F]
+        idTracker                      <- Resource.eval(Ref.of[F, ObsRecordedIds](ObsRecordedIds.Empty))
+        eventSender                    <- OdbEventSender[F]
+        odbCommands: OdbCommands[F]     =
           if (settings.odbNotifications)
-            Ref
-              .of[F, ObsRecordedIds](ObsRecordedIds.Empty)
-              .map(OdbCommandsImpl[F](_)(using tracingFetch))
+            OdbCommandsImpl[F](idTracker, eventSender)(using tracingFetch)
           else
-            DummyOdbCommands[F].pure[F]
+            DummyOdbCommands[F]
       yield OdbProxy[F](odbCommands)(using tracingWS)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
@@ -427,7 +437,7 @@ object Systems {
     def build(site: Site, httpClient: Client[IO]): Resource[IO, Systems[IO]] =
       given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
       for {
-        odbProxy                                          <- Resource.eval[IO, OdbProxy[IO]](odbProxy[IO])
+        odbProxy                                          <- odbProxy[IO]
         dhsClient                                         <- Resource.eval(dhs[IO](site, httpClient))
         gcdb                                              <- Resource.eval(GuideConfigDb.newDb[IO])
         gcals                                             <- Resource.eval(gcal)
