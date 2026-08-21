@@ -313,6 +313,9 @@ trait DisplayImplicits:
   given Display[ConfigurationRequestStatus] = Display.byShortName(_.tag.capitalize)
   given Display[ObservationWorkflowState]   = Display.byShortName(_.tag.capitalize)
 
+  // The long name matches the prefix used by the instrument column of the modes tables.
+  given Display[Instrument] = Display.byShortName(_.longName)
+
   given Display[ItcInstrumentConfig] = Display.byShortName:
     case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating, fpu = fpu) =>
       s"GMOS-N ${grating.shortName} ${fpu.fold("Custom Mask")(_.shortName)}"

@@ -71,7 +71,8 @@ case class SpectroscopyModesTable(
   baseCoordinates:          Option[Coordinates],
   matrix:                   SpectroscopyModesMatrix,
   customSedTimestamps:      List[Timestamp],
-  units:                    WavelengthUnits
+  units:                    WavelengthUnits,
+  instrument:               Option[Instrument]
 ) extends ReactFnProps(SpectroscopyModesTable.component)
 
 private object SpectroscopyModesTable extends ModesTableCommon:
@@ -276,9 +277,10 @@ private object SpectroscopyModesTable extends ModesTableCommon:
        itcResults.get.cache.size,
        props.targets,
        props.constraints,
-       props.customSedTimestamps
+       props.customSedTimestamps,
+       props.instrument
       )
-    ) { (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps) =>
+    ) { (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps, instrument) =>
       val rows: List[SpectroscopyModeRow] =
         matrix
           .filtered(
@@ -288,7 +290,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             slitLength = s.focalPlaneAngle.map(s => SlitLength(ModeSlitSize(s))),
             resolution = s.resolution,
             range = s.wavelengthCoverage,
-            declination = dec
+            declination = dec,
+            instrument = instrument
           )
 
       val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)

@@ -32,6 +32,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ImagingCapability
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.enums.Site
 import lucuma.core.enums.VisitorObservingModeType
@@ -39,6 +40,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.User
+import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
@@ -84,28 +86,32 @@ private object BasicConfigurationPanel:
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx                  <- useContext(AppContext.ctx)
-        configModeType       <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
-        _                    <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
-                                  configModeType.mod: current =>
-                                    // Visitor and exchange modes have no backing science mode.
-                                    if current === ConfigurationMode.Visitor ||
-                                      current === ConfigurationMode.Keck ||
-                                      current === ConfigurationMode.Subaru
-                                    then current
-                                    else ConfigurationMode.fromScienceMode(modeType)
-        creating             <- useStateView(Creating(false))
-        imagingCap           <- useStateView(none[ImagingCapability])
-        exposureTimeModeType <- useStateView(
-                                  props.requirementsView.get.exposureTimeMode
-                                    .map(ExposureTimeModeType.fromExposureTimeMode)
-                                    .getOrElse(ExposureTimeModeType.SignalToNoise)
-                                )
+        ctx                     <- useContext(AppContext.ctx)
+        configModeType          <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
+        _                       <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
+                                     configModeType.mod: current =>
+                                       // Visitor and exchange modes have no backing science mode.
+                                       if current === ConfigurationMode.Visitor ||
+                                         current === ConfigurationMode.Keck ||
+                                         current === ConfigurationMode.Subaru
+                                       then current
+                                       else ConfigurationMode.fromScienceMode(modeType)
+        creating                <- useStateView(Creating(false))
+        imagingCap              <- useStateView(none[ImagingCapability])
+        // Instrument filters for the tables. Kept per mode, since each mode offers a
+        // different set of instruments.
+        specInstrumentFilter    <- useStateView(none[Instrument])
+        imagingInstrumentFilter <- useStateView(none[Instrument])
+        exposureTimeModeType    <- useStateView(
+                                     props.requirementsView.get.exposureTimeMode
+                                       .map(ExposureTimeModeType.fromExposureTimeMode)
+                                       .getOrElse(ExposureTimeModeType.SignalToNoise)
+                                   )
         // Local preview state for alien visitors.
-        alienVisitor         <- useStateView(AlienVisitorState.Empty)
+        alienVisitor            <- useStateView(AlienVisitorState.Empty)
         // Local preview state for Keck/Subaru exchange modes.
-        keckExchange         <- useStateView(ObservingMode.KeckExchange.Default)
-        subaruExchange       <- useStateView(ObservingMode.SubaruExchange.Default)
+        keckExchange            <- useStateView(ObservingMode.KeckExchange.Default)
+        subaruExchange          <- useStateView(ObservingMode.SubaruExchange.Default)
       yield
         import ctx.given
 
@@ -248,6 +254,19 @@ private object BasicConfigurationPanel:
             disabled = props.readonly
           )
 
+        def instrumentFilterDropdown(
+          filter:    View[Option[Instrument]],
+          available: Set[Instrument]
+        ): VdomNode =
+          FormEnumDropdownOptionalView(
+            id = "configuration-instrument".refined,
+            label = "Instrument",
+            placeholder = "All",
+            value = filter,
+            exclude = Enumerated[Instrument].all.toSet -- available,
+            disabled = props.readonly
+          )
+
         <.div(
           ExploreStyles.BasicConfigurationGrid,
           ExploreStyles.BasicConfigurationGridVisitor.when(isAlienVisitor || isExchange)
@@ -276,6 +295,14 @@ private object BasicConfigurationPanel:
               <.div(
                 ExploreStyles.BasicConfigurationForm,
                 modeDropdown,
+                spectroscopyView.mapValue: _ =>
+                  instrumentFilterDropdown(specInstrumentFilter,
+                                           props.confMatrix.spectroscopy.instruments
+                  ),
+                imagingView.mapValue: _ =>
+                  instrumentFilterDropdown(imagingInstrumentFilter,
+                                           props.confMatrix.imaging.instruments
+                  ),
                 spectroscopyView.mapValue: s =>
                   SpectroscopyConfigurationPanel(
                     props.selectedConfig.get.headOption.map(_.instrument),
@@ -310,7 +337,8 @@ private object BasicConfigurationPanel:
                     props.baseCoordinates,
                     props.confMatrix.spectroscopy,
                     props.customSedTimestamps,
-                    props.units
+                    props.units,
+                    specInstrumentFilter.get
                   )
                 ),
               imagingView.mapValue(s =>
@@ -326,7 +354,8 @@ private object BasicConfigurationPanel:
                   props.customSedTimestamps,
                   props.units,
                   props.targetView,
-                  imagingCap.get
+                  imagingCap.get,
+                  imagingInstrumentFilter.get
                 )
               )
             )
