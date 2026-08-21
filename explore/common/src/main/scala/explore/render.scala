@@ -4,6 +4,7 @@
 package explore
 
 import cats.syntax.all.given
+import explore.model.enums.ObsValidationSeverity
 import explore.model.enums.TargetType
 import explore.model.formats.durationHMS
 import japgolly.scalajs.react.*
@@ -48,6 +49,15 @@ object render:
   given Render[TargetType] = Render.by:
     case TargetType.Sidereal    => React.Fragment(Icons.Star, "Sidereal")
     case TargetType.Nonsidereal => React.Fragment(Icons.PlanetRinged, "Nonsidereal")
+
+  def validationSeverityIcon(severity: ObsValidationSeverity): VdomNode =
+    severity match
+      case ObsValidationSeverity.Error               => Icons.ErrorIcon
+      case ObsValidationSeverity.AcknowledgedWarning => Icons.AcknowledgedWarningIcon
+      case ObsValidationSeverity.Warning             => Icons.MissingInfoIcon
+
+  given Render[ObsValidationSeverity] = Render.by: severity =>
+    React.Fragment(validationSeverityIcon(severity), " ", severity.fullLabel)
 
   // Empty when the scheduler is unconstrained, so that callers can omit the badge altogether.
   def schedulingModeBadge(schedulingMode: SchedulingMode): Option[VdomNode] =

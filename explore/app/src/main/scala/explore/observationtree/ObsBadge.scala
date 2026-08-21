@@ -16,6 +16,7 @@ import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.syntax.all.*
+import explore.render.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -108,6 +109,7 @@ object ObsBadge:
       case ObservationWorkflowState.Ready      => "R"
       case ObservationWorkflowState.Ongoing    => "O"
       case ObservationWorkflowState.Completed  => "C"
+      case ObservationWorkflowState.ForReview  => "F"
 
   private def stateTag(state: ObservationWorkflowState): VdomNode =
     <.span(
@@ -226,11 +228,20 @@ object ObsBadge:
           <.div(
             obs.workflow.value.validationErrors
               .toTagMod(using
-                ov => <.div(ov.code.name, <.ul(ov.messages.toList.toTagMod(using i => <.li(i))))
+                ov =>
+                  <.div(
+                    ov.code.name + obs.severityOf(ov.code).acknowledgedSuffix,
+                    <.ul(ov.messages.toList.toTagMod(using i => <.li(i)))
+                  )
               )
           )
 
-      lazy val validationIcon = <.span(Icons.ErrorIcon).withTooltip(content = validationTooltip)
+      lazy val validationIcon: VdomNode =
+        obs.validationSeverity
+          .map(severity =>
+            <.span(validationSeverityIcon(severity)).withTooltip(content = validationTooltip)
+          )
+          .getOrElse(EmptyVdom)
 
       React.Fragment(
         <.div(
@@ -278,7 +289,7 @@ object ObsBadge:
                   TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
                     .withMods(props.executionTime.staleClass)
                 ),
-                if (obs.hasValidationErrors) validationIcon else EmptyVdom
+                validationIcon
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
                 props.associatedObss

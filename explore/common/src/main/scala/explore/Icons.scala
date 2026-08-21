@@ -640,7 +640,15 @@ object Icons {
   val MissingInfoIcon  = ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
   val ErrorIcon        = ExclamationTriangle.withClass(ExploreStyles.ErrorIcon)
   val SuccessCheckmark = Checkmark.withClass(ExploreStyles.SuccessIcon)
-  val DoNotSplitIcon   = LayeredIcon(fixedWidth = true)(
+
+  // Warnings that have been acknowledged: a checkmark over the warning triangle.
+  val AcknowledgedWarningIcon =
+    LayeredIcon(fixedWidth = true, clazz = ExploreStyles.AcknowledgedWarningIcon)(
+      MissingInfoIcon,
+      SuccessCheckmark
+    )
+
+  val DoNotSplitIcon = LayeredIcon(fixedWidth = true)(
     Icons.Scissors,
     Icons.Ban
       .withClass(ExploreStyles.TrashIcon)
