@@ -3,7 +3,9 @@
 
 package explore.archiveDuplication
 
+import cats.Eq
 import cats.Order.given
+import cats.derived.*
 import cats.effect.IO
 import cats.syntax.all.*
 import explore.Icons
@@ -38,7 +40,7 @@ import lucuma.ui.table.*
 import scala.collection.immutable.TreeSeqMap
 
 /** Whether the Search controls are live, and why not when they are not. */
-case class ArchiveDuplicationControls(enabled: Boolean, disabledReason: Option[String])
+case class ArchiveDuplicationControls(enabled: Boolean, disabledReason: Option[String]) derives Eq
 
 /**
  * One semantic column set for both row kinds: a column means the same kind of thing on an
@@ -132,7 +134,7 @@ object ArchiveDuplicationColumns:
       case BasicConfiguration.Flamingos2LongSlit(disperser = d) => d.shortName.some
       case BasicConfiguration.Flamingos2Mos(disperser = d)      => d.shortName.some
       case BasicConfiguration.GnirsSpectroscopy(grating = g)    => g.shortName.some
-      case _                                                   => none
+      case _                                                    => none
 
   private def filterOf(config: BasicConfiguration): Option[String] =
     config match
@@ -349,8 +351,7 @@ object ArchiveDuplicationColumns:
                 ,
                 onClick = onRecheck(entry.id)
               ).tiny.compact
-            )
-        ,
+            ),
         header = ColumnNames(ActionsColumnId)
       ).withSize(70.toPx).setEnableSorting(false.some)
     )

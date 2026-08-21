@@ -19,11 +19,11 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ArchiveDuplication
 import explore.model.ArchiveDuplicationEntry
-import explore.model.ProgramArchiveDuplications
 import explore.model.ArchiveMatch
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.OverviewTabTileIds
+import explore.model.ProgramArchiveDuplications
 import explore.model.TargetList
 import explore.model.enums.TableId
 import explore.model.enums.TileSizeState
@@ -48,6 +48,10 @@ import lucuma.ui.table.hooks.*
 // equivalence group, so four concurrent observations is already a dozen or more archive queries in
 // flight.
 private val MaxConcurrentSearches = 4
+
+private given Reusability[ArchiveDuplicationControls]                   = Reusability.byEq
+private given Reusability[List[ArchiveDuplicationEntry]]                = Reusability.byEq
+private given Reusability[Map[Observation.Id, Pot[List[ArchiveMatch]]]] = Reusability.byEq
 
 /**
  * The Archive Duplication Search tile: the program's observations with their Match Count,
@@ -119,6 +123,9 @@ object ArchiveDuplicationTile
                                           matches.async.mod(_ - obsId)
                                       case Left(t)      =>
                                         duplications.async.mod(_.updated(obsId, Pot.error(t)))
+          // A ref rather than the state view: `onExpand` is captured by the memoized columns, so a
+          // render-time snapshot of the match cache would go stale and re-fetch on every expand.
+          requested        <- useRef(Set.empty[Observation.Id])
           // Collapsing and re-expanding a row does not re-fetch.
           onExpand         <- HookResult: (obsId: Observation.Id) =>
                                 val load: IO[Unit] =
@@ -129,26 +136,28 @@ object ArchiveDuplicationTile
                                       .flatMap: result =>
                                         matches.async.mod:
                                           _.updated(obsId, result.fold(Pot.error, Pot.apply))
-                                if matches.get.get(obsId).exists(_.isReady) then Callback.empty
-                                else load.runAsyncAndForget
-          cols             <- HookResult:
+                                if requested.value.contains(obsId) then Callback.empty
+                                else requested.mod(_ + obsId) >> load.runAsyncAndForget
+          controls         <- HookResult:
+                                ArchiveDuplicationControls(
+                                  search.controlsEnabled && !search.searchInFlight,
+                                  search.disabledReason
+                                )
+          cols             <- useMemo(controls): ctrls =>
                                 columns(
                                   props.programId,
                                   ctx,
-                                  ArchiveDuplicationControls(
-                                    search.controlsEnabled && !search.searchInFlight,
-                                    search.disabledReason
-                                  ),
+                                  ctrls,
                                   onExpand,
                                   obsId => runSearch(obsId).runAsyncAndForget
                                 )
-          rows             <- HookResult:
+          rows             <- useMemo((search.entries, matches.get)): (entries, matchCache) =>
                                 def subRows(
                                   entry: ArchiveDuplicationEntry
                                 ): List[Expandable[ArchiveDuplicationRow]] =
                                   if !entry.hasMatches then Nil
                                   else
-                                    matches.get.get(entry.id) match
+                                    matchCache.get(entry.id) match
                                       case Some(Pot.Ready(found)) =>
                                         found.map(m => Expandable(MatchRow(entry.id, m)))
                                       case Some(Pot.Error(t))     =>
@@ -168,18 +177,15 @@ object ArchiveDuplicationTile
                                           Expandable(StatusRow(entry.id, "Loading matches…", true))
                                         )
 
-                                search.entries.map: entry =>
+                                entries.map: entry =>
                                   Expandable(ObsRow(entry), subRows(entry))
           tableState       <- useMemo(columnVisibility.get): cv =>
                                 PartialTableState(columnVisibility = cv)
-          // Columns and rows are rebuilt on every render, rather than memoized as the sibling
-          // tables do: the cell callbacks read the current match cache, and a memo would hand
-          // them a snapshot from an earlier render.
           table            <- useReactTableWithStateStore:
                                 TableOptionsWithStateStore(
                                   TableOptions(
-                                    Reusable.always(cols),
-                                    Reusable.always(rows),
+                                    cols,
+                                    rows,
                                     enableExpanding = true,
                                     getSubRows = (row, _) => row.subRows,
                                     getRowId = (row, _, _) => RowId(row.value.rowId),

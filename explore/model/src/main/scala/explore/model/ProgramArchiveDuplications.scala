@@ -49,10 +49,10 @@ case class ArchiveDuplicationEntry(
   duplication:  Pot[ArchiveDuplication]
 ) derives Eq:
   val id: Observation.Id                  = observation.id
-  lazy val matchCountCell: MatchCountCell  = MatchCountCell.fromPot(duplication)
-  lazy val matchCount: Int                 = duplication.toOption.foldMap(_.matchCount.value)
-  lazy val hasMatches: Boolean             = matchCount > 0
-  lazy val searchArea: Option[SearchArea]  = duplication.toOption.flatMap(_.searchArea)
+  lazy val matchCountCell: MatchCountCell = MatchCountCell.fromPot(duplication)
+  lazy val matchCount: Int                = duplication.toOption.foldMap(_.matchCount.value)
+  lazy val hasMatches: Boolean            = matchCount > 0
+  lazy val searchArea: Option[SearchArea] = duplication.toOption.flatMap(_.searchArea)
 
 /**
  * Everything the Archive Duplication Search tile decides about a program, in one pure place: which
@@ -87,7 +87,9 @@ case class ProgramArchiveDuplications(
       obsId,
       if headersLoaded then
         Pot.error(
-          new RuntimeException("The Archive Duplication query reported nothing for this observation")
+          new RuntimeException(
+            "The Archive Duplication query reported nothing for this observation"
+          )
         )
       else Pot.pending
     )
