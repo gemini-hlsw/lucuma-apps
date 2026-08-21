@@ -1088,7 +1088,8 @@ object ObservingMode:
     explicitReadoutMode:      Option[Flamingos2ReadoutMode],
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
-    exposureTimeMode:         ExposureTimeMode
+    exposureTimeMode:         ExposureTimeMode,
+    acquisition:              Flamingos2Mos.Acquisition
   ) extends ObservingMode(Instrument.Flamingos2.some) derives Eq:
     val decker: Flamingos2Decker               =
       explicitDecker.getOrElse(defaultDecker)
@@ -1107,7 +1108,8 @@ object ObservingMode:
         explicitReads.isDefined ||
         explicitDecker.exists(_ =!= defaultDecker) ||
         explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        acquisition.isCustomized
 
     def revertCustomizations: Flamingos2Mos =
       this.copy(
@@ -1118,10 +1120,30 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitTelescopeConfigs = None
+        explicitTelescopeConfigs = None,
+        acquisition = this.acquisition.revertCustomizations
       )
 
   object Flamingos2Mos:
+    case class Acquisition(
+      defaultFilter:    Flamingos2Filter,
+      explicitFilter:   Option[Flamingos2Filter],
+      exposureTimeMode: ExposureTimeMode
+    ) derives Decoder,
+          Eq:
+      def isCustomized: Boolean             =
+        explicitFilter.exists(_ =!= defaultFilter)
+      def revertCustomizations: Acquisition =
+        this.copy(explicitFilter = None)
+
+    object Acquisition:
+      val defaultFilter: Lens[Acquisition, Flamingos2Filter]          =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[Flamingos2Filter]] =
+        Focus[Acquisition](_.explicitFilter)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]       =
+        Focus[Acquisition](_.exposureTimeMode)
+
     given Decoder[Flamingos2Mos] = deriveDecoder
 
     val initialDisperser: Lens[Flamingos2Mos, Flamingos2Disperser]                  =
@@ -1154,6 +1176,8 @@ object ObservingMode:
       Focus[Flamingos2Mos](_.explicitTelescopeConfigs)
     val exposureTimeMode: Lens[Flamingos2Mos, ExposureTimeMode]                     =
       Focus[Flamingos2Mos](_.exposureTimeMode)
+    val acquisition: Lens[Flamingos2Mos, Acquisition]                               =
+      Focus[Flamingos2Mos](_.acquisition)
 
   case class Flamingos2Imaging(
     initialFilters:      NonEmptyList[Flamingos2Imaging.ImagingFilter],

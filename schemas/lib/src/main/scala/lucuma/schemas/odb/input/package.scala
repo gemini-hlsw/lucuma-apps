@@ -741,6 +741,12 @@ extension (m: ObservingMode.Flamingos2CustomMask)
     slitWidth = m.slitWidth
   )
 
+extension (a: ObservingMode.Flamingos2Mos.Acquisition)
+  def toInput: Flamingos2MosAcquisitionInput = Flamingos2MosAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
+
 extension (o: ObservingMode.Flamingos2Mos)
   def toInput: Flamingos2MosInput = Flamingos2MosInput(
     disperser = o.disperser.assign,
@@ -751,7 +757,8 @@ extension (o: ObservingMode.Flamingos2Mos)
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
     explicitReadoutMode = o.explicitReadoutMode.orUnassign,
-    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign,
+    acquisition = o.acquisition.toInput.assign
   )
 
 extension (o: ObservingMode.Igrins2LongSlit)
