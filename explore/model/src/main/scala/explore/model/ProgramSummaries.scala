@@ -319,10 +319,9 @@ case class ProgramSummaries(
           val bandMismatch = // for all AND groups
             (group.isAnd && nel.tail.exists(_.scienceBand =!= nel.head.scienceBand))
               .mkSet(GroupWarning.BandMismatch)
-          val siteMismatch = // for "consecutive" AND groups
-            // maximum interval starts out as empty
-            (group.isAnd && group.maximumInterval.forall(_.isZero) &&
-              nel.tail.exists(_.site =!= nel.head.site)).mkSet(GroupWarning.SiteMismatch)
+          val siteMismatch = // for AND groups if there are both GN and GS sites
+            (group.isAnd && nel.tail.exists(_.site =!= nel.head.site))
+              .mkSet(GroupWarning.SiteMismatch)
           bandMismatch ++ siteMismatch
 
         NonEmptySet
