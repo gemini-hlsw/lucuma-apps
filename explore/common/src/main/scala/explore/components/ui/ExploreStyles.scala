@@ -348,14 +348,15 @@ object ExploreStyles:
   val OrcidIconMenu: Css = Css("explore-orcid-icon-menu")
 
   // Labels
-  val WarningLabel: Css       = Css("explore-warning-label")
-  val WarningIcon: Css        = Css("explore-warning-icon")
-  val WarningItcIcon: Css     = Css("explore-warning-itc-icon")
-  val WarningInput: Css       = Css("explore-warning-input")
-  val ErrorIcon: Css          = Css("explore-error-icon")
-  val SuccessIcon: Css        = Css("explore-success-icon")
-  val IndentLabel: Css        = Css("explore-indent-label")
-  val RequiredForItcText: Css = Css("required-for-itc-text")
+  val WarningLabel: Css            = Css("explore-warning-label")
+  val WarningIcon: Css             = Css("explore-warning-icon")
+  val WarningItcIcon: Css          = Css("explore-warning-itc-icon")
+  val WarningInput: Css            = Css("explore-warning-input")
+  val ErrorIcon: Css               = Css("explore-error-icon")
+  val SuccessIcon: Css             = Css("explore-success-icon")
+  val AcknowledgedWarningIcon: Css = Css("explore-acknowledged-warning-icon")
+  val IndentLabel: Css             = Css("explore-indent-label")
+  val RequiredForItcText: Css      = Css("required-for-itc-text")
 
   val BrightnessesTableWrapper: Css            = Css("explore-brightnesses-wrapper")
   val BrightnessesContainer: Css               = Css("explore-brightnesses-container")

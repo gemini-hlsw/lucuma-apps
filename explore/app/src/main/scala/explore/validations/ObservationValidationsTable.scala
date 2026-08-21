@@ -14,10 +14,12 @@ import explore.model.Focused
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.enums.AppTab
+import explore.model.enums.ObsValidationSeverity
 import explore.model.enums.TableId
 import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import explore.observationtree.focusObs
+import explore.render.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.ImplicitsFromRaw.vdomNodeFromRawReactNode
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -32,6 +34,7 @@ import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.primereact.*
+import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
 import monocle.Focus
@@ -63,18 +66,20 @@ object ObservationValidationsTableBody {
 
   private val ColDef = ColumnDef[Expandable[ValidationsTableRow]]
 
-  private val ObservationIdColumnId     = ColumnId("observation_id")
-  private val ObservationTitleColumnId  = ColumnId("observation_title")
-  private val ObservationStateColumnId  = ColumnId("observation_state")
-  private val ValidationCodeColumnId    = ColumnId("validation_code")
-  private val ValidationMessageColumnId = ColumnId("validation_message")
+  private val ObservationIdColumnId      = ColumnId("observation_id")
+  private val ObservationTitleColumnId   = ColumnId("observation_title")
+  private val ObservationStateColumnId   = ColumnId("observation_state")
+  private val ValidationCodeColumnId     = ColumnId("validation_code")
+  private val ValidationSeverityColumnId = ColumnId("validation_severity")
+  private val ValidationMessageColumnId  = ColumnId("validation_message")
 
   private val columnNames: Map[ColumnId, String] = Map(
-    ObservationIdColumnId     -> "Observation Id",
-    ObservationTitleColumnId  -> "Title",
-    ObservationStateColumnId  -> "State",
-    ValidationCodeColumnId    -> "Category",
-    ValidationMessageColumnId -> "Validation"
+    ObservationIdColumnId      -> "Observation Id",
+    ObservationTitleColumnId   -> "Title",
+    ObservationStateColumnId   -> "State",
+    ValidationCodeColumnId     -> "Category",
+    ValidationSeverityColumnId -> "Severity",
+    ValidationMessageColumnId  -> "Validation"
   )
 
   private def messagesTailRows(
@@ -130,6 +135,11 @@ object ObservationValidationsTableBody {
           header = columnNames(ValidationCodeColumnId)
         ),
         ColDef(
+          ValidationSeverityColumnId,
+          cell = cell => cell.row.original.value.severity(cell.row.getIsExpanded()),
+          header = columnNames(ValidationSeverityColumnId)
+        ).withSize(180.toPx),
+        ColDef(
           ValidationMessageColumnId,
           cell = cell => cell.row.original.value.message(cell.row.getIsExpanded()),
           header = columnNames(ValidationMessageColumnId)
@@ -150,7 +160,7 @@ object ObservationValidationsTableBody {
               obs.workflow.value.validationErrors.tail
                 .map(v =>
                   Expandable(
-                    ValidationRow(obs.id, v),
+                    ValidationRow(obs, v),
                     messagesTailRows(obs.id, v)
                   )
                 )
@@ -183,7 +193,7 @@ object ObservationValidationsTableBody {
           .set(rowCount)
     .useResizeDetector()
     .render((_, _, _, rows, table, resizer) =>
-      val emptyMessage = <.div("There are no Observation Errors.")
+      val emptyMessage = <.div("There are no Observation Warnings or Errors.")
       if rows.isEmpty then
         PrimeTable(
           table,
@@ -209,7 +219,7 @@ object ObservationValidationsTableBody {
     )
 
     case ValidationRow(
-      obsId:      Observation.Id,
+      obs:        Observation,
       validation: ObservationValidation
     )
 
@@ -236,7 +246,7 @@ object ObservationValidationsTableBody {
     def rowId: String =
       fold(
         _.obs.id.toString,
-        r => s"${r.obsId}-${r.validation.code.tag}",
+        r => s"${r.obs.id}-${r.validation.code.tag}",
         r => s"${r.obsId}-${r.code.tag}-${r.message}"
       )
 
@@ -253,6 +263,23 @@ object ObservationValidationsTableBody {
             categoryCell(r.obs.workflow.value.validationErrors.head) // head is safe here
           else categoryCell(r.obs.workflow.value.validationErrors*),
         r => categoryCell(r.validation),
+        _ => <.span()
+      )
+
+    private def severityCell(severity: ObsValidationSeverity): VdomElement =
+      <.span(severity.renderVdom)
+
+    def severity(isExpanded: Boolean): VdomElement =
+      fold(
+        r =>
+          // Collapsed observation rows aggregate all of the observation's validations, so they
+          // show the observation-level (most severe) severity. Expanded ones show only the head,
+          // mirroring the category and message cells.
+          if (isExpanded)
+            r.obs.workflow.value.validationErrors.headOption
+              .fold(<.span())(ov => severityCell(r.obs.severityOf(ov.code)))
+          else r.obs.validationSeverity.fold(<.span())(severityCell),
+        r => severityCell(r.obs.severityOf(r.validation.code)),
         _ => <.span()
       )
 

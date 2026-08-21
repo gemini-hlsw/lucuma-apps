@@ -13,6 +13,7 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.givens.given
+import explore.model.enums.ObsValidationSeverity
 import explore.model.syntax.all.*
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
@@ -390,6 +391,42 @@ final case class Observation(
 
   inline def hasValidationCode(code: ObservationValidationCode): Boolean =
     workflow.value.validationErrors.exists(_.code === code)
+
+  lazy val fatalValidations: List[ObservationValidation] =
+    workflow.value.validationErrors.filter(_.code.isFatal)
+
+  lazy val nonfatalValidations: List[ObservationValidation] =
+    workflow.value.validationErrors.filterNot(_.code.isFatal)
+
+  def hasFatalValidations: Boolean    = fatalValidations.nonEmpty
+  def hasNonfatalValidations: Boolean = nonfatalValidations.nonEmpty
+
+  // `ObservationWorkflowState` derives `Enumerated`, which extends `Order`, and `Ready` is
+  // declared after `ForReview`, so this is a "Ready or beyond" test. An inactive observation
+  // that can transition to `Ready` or beyond counts too, the same way `isOngoing` treats it.
+  lazy val isReadyOrLater: Boolean =
+    workflow.value.state >= ObservationWorkflowState.Ready ||
+      (workflow.value.state === ObservationWorkflowState.Inactive &&
+        workflow.value.validTransitions.exists(_ >= ObservationWorkflowState.Ready))
+
+  // For now, warnings are acknowledged all-or-none: an observation with warnings but no errors
+  // that has advanced to `Ready` or beyond is taken to have acknowledged them. This may become
+  // a per-validation determination later.
+  lazy val warningsAcknowledged: Boolean =
+    hasNonfatalValidations && !hasFatalValidations && isReadyOrLater
+
+  // The severity of one of this observation's validations, in this observation's context.
+  def severityOf(code: ObservationValidationCode): ObsValidationSeverity =
+    if (code.isFatal) ObsValidationSeverity.Error
+    else if (warningsAcknowledged) ObsValidationSeverity.AcknowledgedWarning
+    else ObsValidationSeverity.Warning
+
+  // The single, most severe, severity for the whole observation, if it has any validations.
+  lazy val validationSeverity: Option[ObsValidationSeverity] =
+    if (hasFatalValidations) ObsValidationSeverity.Error.some
+    else if (warningsAcknowledged) ObsValidationSeverity.AcknowledgedWarning.some
+    else if (hasNonfatalValidations) ObsValidationSeverity.Warning.some
+    else none
 
   // If an observation has a ConfigurationRequest* error, it is the only error they will have
   inline def hasPendingRequestCode: Boolean =

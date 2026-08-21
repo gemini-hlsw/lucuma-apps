@@ -2903,6 +2903,15 @@ img.partner-split-flag {
   color: var(--warning-background-color);
 }
 
+.explore-acknowledged-warning-icon {
+  // Outline the checkmark so it reads against the warning triangle underneath.
+  svg.fa-check.explore-success-icon {
+    paint-order: stroke;
+    stroke: var(--site-page-background);
+    stroke-width: 48px;
+  }
+}
+
 // ------
 // Generic table
 // ------
