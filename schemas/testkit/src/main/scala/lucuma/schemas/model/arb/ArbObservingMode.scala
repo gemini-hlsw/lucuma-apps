@@ -855,6 +855,25 @@ trait ArbObservingMode {
     Cogen[(Option[Attachment.Id], Flamingos2CustomSlitWidth)]
       .contramap(m => (m.attachmentId, m.slitWidth))
 
+  given arbFlamingos2MosAcquisition: Arbitrary[ObservingMode.Flamingos2Mos.Acquisition] =
+    Arbitrary[ObservingMode.Flamingos2Mos.Acquisition](
+      for {
+        defaultFilter    <- arbitrary[Flamingos2Filter]
+        explicitFilter   <- arbitrary[Option[Flamingos2Filter]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.Flamingos2Mos.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        exposureTimeMode
+      )
+    )
+
+  given cogenFlamingos2MosAcquisition: Cogen[ObservingMode.Flamingos2Mos.Acquisition] =
+    Cogen[
+      (Flamingos2Filter, Option[Flamingos2Filter], ExposureTimeMode)
+    ]
+      .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
+
   given Arbitrary[ObservingMode.Flamingos2Mos] =
     Arbitrary[ObservingMode.Flamingos2Mos](
       for {
@@ -873,6 +892,7 @@ trait ArbObservingMode {
         defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
         explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode         <- arbitrary[ExposureTimeMode]
+        acquisition              <- arbitrary[ObservingMode.Flamingos2Mos.Acquisition]
       } yield ObservingMode.Flamingos2Mos(
         initialDisperser,
         disperser,
@@ -888,7 +908,8 @@ trait ArbObservingMode {
         explicitReadoutMode,
         defaultTelescopeConfigs,
         explicitTelescopeConfigs,
-        exposureTimeMode
+        exposureTimeMode,
+        acquisition
       )
     )
 
@@ -908,7 +929,8 @@ trait ArbObservingMode {
        Option[Flamingos2ReadoutMode],
        SlitTelescopeConfigs,
        Option[SlitTelescopeConfigs],
-       ExposureTimeMode
+       ExposureTimeMode,
+       ObservingMode.Flamingos2Mos.Acquisition
       )
     ]
       .contramap(o =>
@@ -927,7 +949,8 @@ trait ArbObservingMode {
           o.explicitReadoutMode,
           o.defaultTelescopeConfigs,
           o.explicitTelescopeConfigs,
-          o.exposureTimeMode
+          o.exposureTimeMode,
+          o.acquisition
         )
       )
 

@@ -250,6 +250,11 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           igrins2LongSlit @include(if: $$includeIgrins2LongSlit) {
             exposureTimeMode $ExposureTimeModeSubquery

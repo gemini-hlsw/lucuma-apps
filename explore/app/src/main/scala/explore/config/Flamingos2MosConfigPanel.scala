@@ -14,8 +14,11 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Attachment
 import explore.model.display.given
+import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
+import explore.model.syntax.all.*
 import explore.modes.SpectroscopyModesMatrix
+import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -23,8 +26,10 @@ import lucuma.core.enums.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.flamingos2
+import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
@@ -57,8 +62,10 @@ object Flamingos2MosConfigPanel
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
         val disableSimpleEdit        =
           disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
+        val disableAdvancedAcqEdit   = disableAdvancedEdit && !props.permissions.isOnlyForOngoing
         val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
+        val showAcquisitionConfig    = props.calibrationRole.needsAcquisitionConfig
 
         val disperserView: View[Flamingos2Disperser] = props.observingMode
           .zoom(
@@ -125,6 +132,35 @@ object Flamingos2MosConfigPanel
             Flamingos2MosInput.explicitDecker.modify
           )
           .view(_.orUnassign)
+
+        val acquisition
+          : Aligner[ObservingMode.Flamingos2Mos.Acquisition, Flamingos2MosAcquisitionInput] =
+          props.observingMode.zoom(
+            ObservingMode.Flamingos2Mos.acquisition,
+            forceAssign(Flamingos2MosInput.acquisition.modify)(
+              Flamingos2MosAcquisitionInput()
+            )
+          )
+
+        val acquisitionExposureTimeView: View[ExposureTimeMode] =
+          acquisition
+            .zoom(ObservingMode.Flamingos2Mos.Acquisition.exposureTimeMode,
+                  Flamingos2MosAcquisitionInput.exposureTimeMode.modify
+            )
+            .view(_.toInput.assign)
+
+        val explicitAcquisitionFilterView: View[Option[Flamingos2Filter]] =
+          acquisition
+            .zoom(ObservingMode.Flamingos2Mos.Acquisition.explicitFilter,
+                  Flamingos2MosAcquisitionInput.explicitFilter.modify
+            )
+            .view(_.orUnassign)
+
+        val defaultAcquisitionFilter =
+          props.observingMode.get.acquisition.defaultFilter
+
+        val excludedAcquisitionFilters =
+          Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
         // OTHER is not an accepted slit width for this mode.
         val excludedSlitWidths = Set(Flamingos2CustomSlitWidth.Other)
@@ -204,6 +240,50 @@ object Flamingos2MosConfigPanel
           ),
           <.div(
             ExploreStyles.Flamingos2LowerGrid,
+            Panel(
+              header = <.span("Acquisition",
+                              HelpIcon("configuration/f2/acquisition-customization.md".refined)
+              ),
+              toggleable = true,
+              collapsed = true
+            )(
+              <.div(
+                ExploreStyles.AcquisitionCustomizationGrid,
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  CustomizableEnumSelectOptional(
+                    id = "f2-mos-acq-filter".refined,
+                    view = explicitAcquisitionFilterView.withDefault(defaultAcquisitionFilter),
+                    defaultValue = defaultAcquisitionFilter.some,
+                    label = "Filter".some,
+                    helpId = Some("configuration/f2/acquisition-filter.md".refined),
+                    exclude = excludedAcquisitionFilters,
+                    disabled = disableAdvancedAcqEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization =
+                      allowRevertCustomization || props.permissions.isOnlyForOngoing
+                  )
+                ),
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  // F2 MOS acquisition is always a single exposure and the ODB rejects a
+                  // signal-to-noise mode, so only the exposure time is offered.
+                  ExposureTimeModeEditor(
+                    instrument = props.observingMode.get.instrument,
+                    wavelength = none,
+                    exposureTimeMode = acquisitionExposureTimeView,
+                    coadds = none,
+                    scienceMode = ScienceMode.Imaging,
+                    readonly = props.permissions.isReadonly,
+                    units = props.units,
+                    calibrationRole = props.calibrationRole,
+                    idPrefix = "f2MosAcq".refined,
+                    forceCount = Some(1.refined),
+                    forceModeType = Some(ExposureTimeModeType.TimeAndCount)
+                  )
+                )
+              )
+            ).when(showAcquisitionConfig),
             AdvancedConfigButtons(
               editState = editState,
               isCustomized = props.observingMode.get.isCustomized,
