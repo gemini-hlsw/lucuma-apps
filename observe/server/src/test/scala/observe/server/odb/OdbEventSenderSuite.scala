@@ -7,11 +7,14 @@ import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
 import cats.effect.testkit.TestControl
+import cats.syntax.all.*
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Step
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
+import java.util.UUID
 import scala.concurrent.duration.*
 
 class OdbEventSenderSuite extends CatsEffectSuite:
@@ -21,9 +24,14 @@ class OdbEventSenderSuite extends CatsEffectSuite:
   private val obs1: Observation.Id = Observation.Id.fromLong(1).get
   private val obs2: Observation.Id = Observation.Id.fromLong(2).get
 
+  private val step1: Step.Id =
+    Step.Id.fromUuid(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+  private val step2: Step.Id =
+    Step.Id.fromUuid(UUID.fromString("00000000-0000-0000-0000-000000000002"))
+
   private val sender: Resource[IO, OdbEventSender[IO]] = OdbEventSender[IO]
 
-  // Records the order in which sends complete, each one taking `delay` to be acknowledged.
+  // Records which sends completed, each one taking `delay` to be acknowledged.
   private def recorder: IO[(Ref[IO, List[String]], (String, FiniteDuration) => IO[Unit])] =
     Ref
       .of[IO, List[String]](List.empty)
@@ -37,37 +45,40 @@ class OdbEventSenderSuite extends CatsEffectSuite:
           for
             _   <- s.submit(obs1, "slow", send("slow", 1.hour))
             now <- IO.monotonic
-            _   <- IO(assertEquals(now, 0.nanos))
             ack <- recorded.get
-            _   <- IO(assertEquals(ack, List.empty))
-          yield ()
+          yield
+            assertEquals(now, 0.nanos)
+            assertEquals(ack, List.empty)
 
-  test("events of an observation are acknowledged in submission order"):
+  test("events of an observation are sent concurrently, so a flush costs one round trip"):
     TestControl.executeEmbed:
       sender.use: s =>
         recorder.flatMap: (recorded, send) =>
           for
-            // Decreasing delays: parallel sends would complete in the opposite order.
-            _ <- s.submit(obs1, "first", send("first", 3.seconds))
-            _ <- s.submit(obs1, "second", send("second", 2.seconds))
-            _ <- s.submit(obs1, "third", send("third", 1.second))
-            _ <- s.flush(obs1)
-            r <- recorded.get
-          yield assertEquals(r.reverse, List("first", "second", "third"))
+            _   <- (1 to 11).toList.traverse_(i =>
+                     s.submit(obs1, s"event$i", send(s"event$i", 1.second))
+                   )
+            _   <- s.flush(obs1)
+            now <- IO.monotonic
+            r   <- recorded.get
+          yield
+            assertEquals(r.size, 11)
+            // Serially this would be 11 seconds.
+            assertEquals(now, 1.second)
 
-  test("flush awaits all the events submitted so far"):
+  test("flush awaits the slowest event in flight"):
     TestControl.executeEmbed:
       sender.use: s =>
         recorder.flatMap: (recorded, send) =>
           for
-            _     <- s.submit(obs1, "one", send("one", 1.second))
-            _     <- s.submit(obs1, "two", send("two", 1.second))
-            _     <- s.flush(obs1)
-            r     <- recorded.get
-            after <- IO.monotonic
+            _   <- s.submit(obs1, "quick", send("quick", 1.second))
+            _   <- s.submit(obs1, "slow", send("slow", 5.seconds))
+            _   <- s.flush(obs1)
+            now <- IO.monotonic
+            r   <- recorded.get
           yield
             assertEquals(r.size, 2)
-            assertEquals(after, 2.seconds)
+            assertEquals(now, 5.seconds)
 
   test("flush of an observation ignores the events of another one"):
     TestControl.executeEmbed:
@@ -80,6 +91,54 @@ class OdbEventSenderSuite extends CatsEffectSuite:
             now <- IO.monotonic
           yield assertEquals(now, 1.second)
 
+  test("a second flush after new events awaits those too"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (recorded, send) =>
+          for
+            _   <- s.submit(obs1, "first", send("first", 1.second))
+            _   <- s.flush(obs1)
+            _   <- s.submit(obs1, "second", send("second", 2.seconds))
+            _   <- s.flush(obs1)
+            now <- IO.monotonic
+            r   <- recorded.get
+          yield
+            assertEquals(r.size, 2)
+            assertEquals(now, 3.seconds)
+
+  test("dataset events of an observation are serialized, one round trip each"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (recorded, send) =>
+          for
+            // Decreasing delays: run in parallel these would finish in the opposite order.
+            _   <- s.submitDatasetEvent(obs1, "first", send("first", 3.seconds))
+            _   <- s.submitDatasetEvent(obs1, "second", send("second", 2.seconds))
+            _   <- s.submitDatasetEvent(obs1, "third", send("third", 1.second))
+            _   <- s.flush(obs1)
+            now <- IO.monotonic
+            r   <- recorded.get
+          yield
+            assertEquals(r.reverse, List("first", "second", "third"))
+            assertEquals(now, 6.seconds)
+
+  test("dataset events don't hold up step events, nor another observation's datasets"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (recorded, send) =>
+          for
+            _   <- s.submitDatasetEvent(obs1, "ds1a", send("ds1a", 1.second))
+            _   <- s.submitDatasetEvent(obs1, "ds1b", send("ds1b", 1.second))
+            _   <- s.submitStepEvent(obs1, step1, "step", send("step", 1.second))
+            _   <- s.submitDatasetEvent(obs2, "ds2", send("ds2", 1.second))
+            _   <- s.flush(obs1)
+            now <- IO.monotonic
+            r   <- recorded.get
+          yield
+            // Only the two obs1 dataset events are serialized; everything else overlaps.
+            assertEquals(now, 2.seconds)
+            assert(r.contains("step"), "the step event should not wait on the dataset chain")
+
   test("flush raises a failed send, and doesn't report it twice"):
     TestControl.executeEmbed:
       sender.use: s =>
@@ -90,7 +149,7 @@ class OdbEventSenderSuite extends CatsEffectSuite:
           again  <- s.flush(obs1).attempt
         yield assert(again.isRight, "expected the failure to be reported only once")
 
-  test("a failed send doesn't prevent the following ones"):
+  test("a failed send doesn't prevent the others"):
     TestControl.executeEmbed:
       sender.use: s =>
         recorder.flatMap: (recorded, send) =>
@@ -101,6 +160,83 @@ class OdbEventSenderSuite extends CatsEffectSuite:
             r <- recorded.get
           yield assertEquals(r, List("after"))
 
+  test("a failure in one observation is not reported to another"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        for
+          _   <- s.submit(obs1, "boom", IO.raiseError(new RuntimeException("boom")))
+          _   <- s.submit(obs2, "fine", IO.unit)
+          ok  <- s.flush(obs2).attempt
+          _   <- IO(assert(ok.isRight, "obs2 should not see obs1's failure"))
+          bad <- s.flush(obs1).attempt
+        yield assert(bad.isLeft, "obs1 should still report its own failure")
+
+  test("two observations run their steps concurrently"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (recorded, send) =>
+          def step(obs: Observation.Id, stepId: Step.Id, tag: String): IO[Unit] =
+            for
+              _ <- s.submitStepEvent(obs, stepId, "start", send(s"$tag-start", 1.second))
+              _ <- s.awaitStepRecorded(obs, stepId)
+              _ <- s.submitDatasetEvent(obs, "expose", send(s"$tag-expose", 1.second))
+              _ <- s.submitDatasetEvent(obs, "write", send(s"$tag-write", 1.second))
+              _ <- s.submitStepEvent(obs, stepId, "end", send(s"$tag-end", 1.second))
+              _ <- s.flush(obs)
+            yield ()
+
+          for
+            _   <- (step(obs1, step1, "a"), step(obs2, step2, "b")).parTupled
+            now <- IO.monotonic
+            r   <- recorded.get
+          yield
+            assertEquals(r.size, 8)
+            // Per observation: 1s waiting for the step marker, then a 2-event dataset chain.
+            // Sequentially the two observations would take 6s.
+            assertEquals(now, 3.seconds)
+
   test("flush of an observation without events returns immediately"):
     TestControl.executeEmbed:
       sender.use(_.flush(obs1)) >> IO.monotonic.map(assertEquals(_, 0.nanos))
+
+  test("awaitStepRecorded waits for that step's event only"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (_, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.second))
+            _   <- s.submit(obs1, "unrelated", send("unrelated", 1.hour))
+            _   <- s.awaitStepRecorded(obs1, step1)
+            now <- IO.monotonic
+          yield assertEquals(now, 1.second)
+
+  test("awaitStepRecorded is released by a failed step event rather than hanging"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        for
+          _   <-
+            s.submitStepEvent(obs1, step1, "StartStep", IO.raiseError(new RuntimeException("no")))
+          _   <- s.awaitStepRecorded(obs1, step1)
+          now <- IO.monotonic
+        yield assertEquals(now, 0.nanos)
+
+  test("awaitStepRecorded returns immediately for a step with no submitted event"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (_, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.hour))
+            _   <- s.awaitStepRecorded(obs1, step2)
+            now <- IO.monotonic
+          yield assertEquals(now, 0.nanos)
+
+  test("forgetStep drops the step's marker"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (_, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.hour))
+            _   <- s.forgetStep(obs1, step1)
+            _   <- s.awaitStepRecorded(obs1, step1)
+            now <- IO.monotonic
+          yield assertEquals(now, 0.nanos)

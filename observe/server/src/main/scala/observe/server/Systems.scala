@@ -56,12 +56,15 @@ import org.http4s.AuthScheme
 import org.http4s.Credentials
 import org.http4s.Headers
 import org.http4s.client.Client
+import org.http4s.client.middleware.Retry
+import org.http4s.client.middleware.RetryPolicy
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.JdkWSClient
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 case class Systems[F[_]] private[server] (
@@ -120,10 +123,24 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]
-      : Resource[F, OdbProxy[F]] =
+    /**
+     * Retries the event mutations when the ODB fails them with a 5xx or a timeout. Ember's own
+     * policy only covers dead pooled connections, and the ODB does return a 500 under write
+     * contention. `defaultRetriable` only retries requests carrying an `Idempotency-Key`, which is
+     * exactly the set of calls that are safe to repeat.
+     */
+    private def retryingOdbEvents[F[_]: Temporal](base: Client[F]): Client[F] =
+      Retry[F](RetryPolicy[F](RetryPolicy.exponentialBackoff(maxWait = 5.seconds, maxRetry = 20)))(
+        base
+      )
+
+    def odbProxy[F[_]: {Async, Logger, SecureRandom, Tracer}](
+      httpClient: Client[F]
+    ): Resource[F, OdbProxy[F]] =
       for
-        fetchClient                    <- Resource.eval: // Http client used ONLY for recording events.
+        // Http client used ONLY for recording events, hence the retries.
+        given Http4sHttpBackend[F]      = Http4sHttpBackend(retryingOdbEvents(httpClient))
+        fetchClient                    <- Resource.eval:
                                             Http4sHttpClient
                                               .of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
         tracingFetch                    = Otel4sMiddleware(fetchClient)
@@ -437,7 +454,7 @@ object Systems {
     def build(site: Site, httpClient: Client[IO]): Resource[IO, Systems[IO]] =
       given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
       for {
-        odbProxy                                          <- odbProxy[IO]
+        odbProxy                                          <- odbProxy[IO](httpClient)
         dhsClient                                         <- Resource.eval(dhs[IO](site, httpClient))
         gcdb                                              <- Resource.eval(GuideConfigDb.newDb[IO])
         gcals                                             <- Resource.eval(gcal)
