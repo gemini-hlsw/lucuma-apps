@@ -112,11 +112,16 @@ object ImagingModeRow {
 }
 
 case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
+  // The instruments that can appear in this matrix, for the UI's instrument filter.
+  lazy val instruments: Set[Instrument] =
+    matrix.map(_.instrumentConfig.instrument).toSet
+
   def filtered(
     minimumFov:  Option[Angle],
     filterTypes: Set[FilterType],
     capability:  Option[ImagingCapability],
-    declination: Option[Declination] = None
+    declination: Option[Declination] = None,
+    instrument:  Option[Instrument] = None
   ): List[ImagingModeRow] =
     import explore.model.syntax.all.*
     given Order[Angle]                    = Angle.AngleOrder
@@ -124,7 +129,8 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
       minimumFov.forall(fov => r.fov >= fov) &&
         (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
         capability.forall(r.capability.contains) &&
-        declination.forall(r.instrumentConfig.site.inPreferredDeclination)
+        declination.forall(r.instrumentConfig.site.inPreferredDeclination) &&
+        instrument.forall(_ === r.instrumentConfig.instrument)
     matrix.filter(filter)
 
 object ImagingModesMatrix:

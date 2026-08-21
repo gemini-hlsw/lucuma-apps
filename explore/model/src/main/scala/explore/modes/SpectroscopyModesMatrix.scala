@@ -435,6 +435,10 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
   val ScoreBump   = Rational(1, 2)
   val FilterLimit = Wavelength.fromIntNanometers(650)
 
+  // The instruments that can appear in this matrix, for the UI's instrument filter.
+  lazy val instruments: Set[Instrument] =
+    matrix.map(_.instrumentConfig.instrument).toSet
+
   // Retrieves a row by grating and filter from an observing mode.
   def getRowByInstrumentConfig(observingMode: ObservingMode): Option[SpectroscopyModeRow] =
     observingMode match
@@ -516,7 +520,8 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
     resolution:  Option[PosInt] = None,
     range:       Option[WavelengthDelta] = None,
     slitLength:  Option[SlitLength] = None,
-    declination: Option[Declination] = None
+    declination: Option[Declination] = None,
+    instrument:  Option[Instrument] = None
   ): List[SpectroscopyModeRow] = {
     // Only allow modes with a long slit FPU.
     // TODO: Remove when NS and IFU are supported.
@@ -545,7 +550,8 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
       resolution.forall(_ <= r.resolution) &&
       (range, rowRangePM).mapN(_.pm.value <= _).forall(identity) &&
       slitLength.forall(_ <= r.slitLength) &&
-      declination.forall(r.instrumentConfig.site.inPreferredDeclination)
+      declination.forall(r.instrumentConfig.site.inPreferredDeclination) &&
+      instrument.forall(_ === r.instrumentConfig.instrument)
 
     // Calculates a score for each mode for sorting purposes. It is down in Rational space, we may change it to double as we don't really need high precission for this
     val score: SpectroscopyModeRow => Rational = { r =>
