@@ -21,6 +21,7 @@ import explore.model.ExploreModelValidators
 import explore.model.Help
 import explore.model.Observation
 import explore.model.display.given
+import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
 import explore.model.syntax.all.*
 import explore.modes.ModeWavelength
@@ -505,12 +506,13 @@ object GmosSpectroscopyConfigPanel {
    * The MOS Acquisition panel contents same for GN and GS
    */
   private def mosAcquisitionPanel[Filter: Enumerated: Display](
-    props:           GmosSpectroscopyConfigPanel[?, ?],
-    disabled:        Boolean,
-    acquisitionType: View[GmosMosAcquisitionType],
-    filterView:      View[Option[Filter]],
-    defaultFilter:   Filter,
-    excludedFilters: Set[Filter]
+    props:            GmosSpectroscopyConfigPanel[?, ?],
+    disabled:         Boolean,
+    acquisitionType:  View[GmosMosAcquisitionType],
+    filterView:       View[Option[Filter]],
+    defaultFilter:    Filter,
+    excludedFilters:  Set[Filter],
+    exposureTimeMode: View[ExposureTimeMode]
   ): VdomNode =
     <.div(
       ExploreStyles.AcquisitionCustomizationGrid,
@@ -533,6 +535,24 @@ object GmosSpectroscopyConfigPanel {
           showCustomization = props.showCustomization,
           allowRevertCustomization =
             props.allowRevertCustomization || props.permissions.isOnlyForOngoing
+        )
+      ),
+      <.div(
+        LucumaPrimeStyles.FormColumnCompact,
+        // MOS acquisition is always a single exposure and the ODB rejects a
+        // signal-to-noise mode, so only the exposure time is offered.
+        ExposureTimeModeEditor(
+          instrument = props.observingMode.get.instrument,
+          wavelength = none,
+          exposureTimeMode = exposureTimeMode,
+          coadds = none,
+          scienceMode = ScienceMode.Imaging,
+          readonly = props.permissions.isReadonly,
+          units = props.units,
+          calibrationRole = props.calibrationRole,
+          idPrefix = "gmosMosAcq".refined,
+          forceCount = Some(1.refined),
+          forceModeType = Some(ExposureTimeModeType.TimeAndCount)
         )
       )
     )
@@ -1306,6 +1326,16 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.orUnassign)
 
+    inline private def acquisitionExposureTimeModeView(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode] = acquisition(aligner)
+      .zoom(ObservingMode.GmosNorthMos.Acquisition.exposureTimeMode,
+            GmosNorthMosAcquisitionInput.exposureTimeMode.modify
+      )
+      .view(_.toInput.assign)
+
     private val excludedAcquisitionFilters: Set[GmosNorthFilter] =
       Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
 
@@ -1415,7 +1445,8 @@ object GmosSpectroscopyConfigPanel {
         acquisitionType(props.observingMode),
         explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
         defaultAcquisitionFilter,
-        excludedAcquisitionFilters
+        excludedAcquisitionFilters,
+        acquisitionExposureTimeModeView(props.observingMode)
       )
 
     override protected val initialGratingLens           = ObservingMode.GmosNorthMos.initialGrating
@@ -1576,6 +1607,16 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.orUnassign)
 
+    inline private def acquisitionExposureTimeModeView(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode] = acquisition(aligner)
+      .zoom(ObservingMode.GmosSouthMos.Acquisition.exposureTimeMode,
+            GmosSouthMosAcquisitionInput.exposureTimeMode.modify
+      )
+      .view(_.toInput.assign)
+
     private val excludedAcquisitionFilters: Set[GmosSouthFilter] =
       Enumerated[GmosSouthFilter].all.toSet -- GmosSouthFilter.acquisition.toList.toSet
 
@@ -1685,7 +1726,8 @@ object GmosSpectroscopyConfigPanel {
         acquisitionType(props.observingMode),
         explicitAcquisitionFilter(props.observingMode).withDefault(defaultAcquisitionFilter),
         defaultAcquisitionFilter,
-        excludedAcquisitionFilters
+        excludedAcquisitionFilters,
+        acquisitionExposureTimeModeView(props.observingMode)
       )
 
     override protected val initialGratingLens           = ObservingMode.GmosSouthMos.initialGrating
