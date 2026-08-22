@@ -28,35 +28,39 @@ object OdbProxy {
   )(using FetchClient[F, ObservationDB])(using F: Sync[F]): OdbProxy[F] =
     new OdbProxy[F] {
       override def read(oid: Observation.Id): F[OdbObservationData] =
-        ObsCalibrationRoleQuery[F]
-          .query(oid)
-          .raiseGraphQLErrors
-          .map(_.observation.flatMap(_.calibrationRole))
-          .flatMap: calibrationRole =>
-            val skipTargets: Boolean = calibrationRole.contains_(CalibrationRole.DaytimePinhole)
-            ObsQuery[F]
-              .query(oid, skipTargets)
-              .raiseGraphQLErrors
-              .flatMap: data =>
-                (data.observation, data.executionConfig).tupled
-                  .fold(
-                    F.raiseError[OdbObservationData]:
-                      ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
-                  )((obs, ec) => OdbObservationData(obs, ec).pure[F])
+        evCmds.flushEvents(oid) >>
+          ObsCalibrationRoleQuery[F]
+            .query(oid)
+            .raiseGraphQLErrors
+            .map(_.observation.flatMap(_.calibrationRole))
+            .flatMap: calibrationRole =>
+              val skipTargets: Boolean = calibrationRole.contains_(CalibrationRole.DaytimePinhole)
+              ObsQuery[F]
+                .query(oid, skipTargets)
+                .raiseGraphQLErrors
+                .flatMap: data =>
+                  (data.observation, data.executionConfig).tupled
+                    .fold(
+                      F.raiseError[OdbObservationData]:
+                        ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
+                    )((obs, ec) => OdbObservationData(obs, ec).pure[F])
 
+      // The sequence the ODB generates depends on the events we sent, so they have to be in first.
       override def readExecutionConfig(oid: Observation.Id): F[InstrumentExecutionConfig] =
-        ObsExecutionQuery[F]
-          .query(oid)
-          .raiseGraphQLErrors
-          .flatMap {
-            _.executionConfig.fold(
-              F.raiseError[InstrumentExecutionConfig]:
-                ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
-            )(_.pure[F])
-          }
+        evCmds.flushEvents(oid) >>
+          ObsExecutionQuery[F]
+            .query(oid)
+            .raiseGraphQLErrors
+            .flatMap {
+              _.executionConfig.fold(
+                F.raiseError[InstrumentExecutionConfig]:
+                  ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
+              )(_.pure[F])
+            }
 
       override def resetAcquisition(obsId: Observation.Id): F[Unit] =
-        ResetAcquisitionMutation[F].execute(obsId = obsId).void
+        evCmds.flushEvents(obsId) >>
+          ResetAcquisitionMutation[F].execute(obsId = obsId).void
 
       export evCmds.*
     }

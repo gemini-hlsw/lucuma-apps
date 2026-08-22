@@ -37,4 +37,11 @@ trait OdbCommands[F[_]] private[odb] () {
   def obsStop(obsId:             Observation.Id): F[Boolean]
 
   def getCurrentRecordedIds: F[ObsRecordedIds]
+
+  /**
+   * Waits until the ODB has acknowledged every event sent so far for the observation, raising the
+   * first failure among them. Needed before anything that reads back ODB state the events affect,
+   * since events are sent in the background.
+   */
+  def flushEvents(obsId: Observation.Id): F[Unit]
 }

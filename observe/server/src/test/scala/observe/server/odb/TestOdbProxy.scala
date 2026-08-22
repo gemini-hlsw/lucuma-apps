@@ -333,6 +333,8 @@ object TestOdbProxy {
           override def outCapture: F[List[OdbEvent]] = rf.get.map(_.out)
 
           override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure[F]
+
+          override def flushEvents(obsId: Observation.Id): F[Unit] = Async[F].unit
         }
       )
 

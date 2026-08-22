@@ -4,11 +4,15 @@
 package observe.server.odb
 
 import cats.Endo
+import cats.MonadThrow
+import cats.data.Ior
 import cats.effect.Sync
 import cats.effect.kernel.Ref
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import clue.FetchClientWithPars
+import clue.ResponseException
+import clue.model.GraphQLResponse
 import clue.syntax.*
 import lucuma.core.enums.DatasetStage
 import lucuma.core.enums.SequenceCommand
@@ -29,11 +33,22 @@ import org.http4s.Request
 import org.http4s.headers.`Idempotency-Key`
 import org.typelevel.log4cats.Logger
 
+/**
+ * Events are handed over to `eventSender`, which sends them in the background: the sequence doesn't
+ * pay for the round trip. The commands that terminate a step (or the sequence) flush the pending
+ * events, so that everything a step produced is in the ODB before the next step starts. Any send
+ * failure surfaces there.
+ *
+ * Everything the ODB needs to be told about an event (visit id, dataset id, client time,
+ * idempotency key) is resolved before submitting, so that a background send is unaffected by later
+ * state changes.
+ */
 case class OdbCommandsImpl[F[_]: UUIDGen](
-  idTracker: Ref[F, ObsRecordedIds]
+  idTracker:   Ref[F, ObsRecordedIds],
+  eventSender: OdbEventSender[F]
 )(using client: FetchClientWithPars[F, Request[F], ObservationDB])(using
-  val F:     Sync[F],
-  L:         Logger[F]
+  val F:       Sync[F],
+  L:           Logger[F]
 ) extends OdbCommands[F]
     with IdTrackerOps[F](idTracker) {
 
@@ -50,6 +65,30 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   private def addIdempotencyKey(idempotencyKey: IdempotencyKey): Endo[Request[F]] = req =>
     req.putHeaders(`Idempotency-Key`(idempotencyKey.toString))
 
+  override def flushEvents(obsId: Observation.Id): F[Unit] =
+    L.debug(s"Awaiting pending ODB events for obsId: $obsId") >>
+      eventSender.flush(obsId) >>
+      L.debug(s"All ODB events acknowledged for obsId: $obsId")
+
+  /** Submits an event mutation to be sent in the background, checking that the ODB recorded it. */
+  private def submitEvent[D](obsId: Observation.Id, description: String)(
+    mutation: F[GraphQLResponse[D]]
+  ): F[Unit] =
+    eventSender.submit(obsId, description, checked(description)(mutation))
+
+  private def submitStepEvent[D](obsId: Observation.Id, stepId: Step.Id, description: String)(
+    mutation: F[GraphQLResponse[D]]
+  ): F[Unit] =
+    eventSender.submitStepEvent(obsId, stepId, description, checked(description)(mutation))
+
+  private def submitDatasetEvent[D](obsId: Observation.Id, description: String)(
+    mutation: F[GraphQLResponse[D]]
+  ): F[Unit] =
+    eventSender.submitDatasetEvent(obsId, description, checked(description)(mutation))
+
+  private def checked[D](description: String)(mutation: F[GraphQLResponse[D]]): F[Unit] =
+    mutation.flatMap(OdbCommandsImpl.checkEventRecorded(description))
+
   override def visitStart(obsId: Observation.Id): F[Unit] =
     for
       _   <- L.debug(s"Record visit for obsId: [$obsId]")
@@ -58,22 +97,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     yield ()
 
   override def sequenceStart(obsId: Observation.Id): F[Unit] =
-    for
-      visitId        <- getCurrentVisitId(obsId)
-      _              <- L.debug(s"Send ODB event sequenceStart for obsId: $obsId, visitId: $visitId")
-      idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimeNow
-      _              <-
-        AddSequenceEventMutation[F]
-          .execute(
-            visitId,
-            SequenceCommand.Start,
-            idempotencyKey,
-            clientTime,
-            addIdempotencyKey(idempotencyKey)
-          )
-      _              <- L.debug(s"ODB event sequenceStart sent for obsId: $obsId")
-    yield ()
+    recordSequenceEvent(obsId, SequenceCommand.Start).void
 
   private def recordStepEvent(
     obsId:  Observation.Id,
@@ -82,19 +106,19 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   ): F[Boolean] =
     for
       visitId        <- getCurrentVisitId(obsId)
-      _              <- L.debug(s"Send ODB event $stage for obsId: $obsId, step $stepId")
+      _              <- L.debug(s"Queue ODB event $stage for obsId: $obsId, step $stepId")
       idempotencyKey <- newIdempotencyKey
       clientTime     <- clientTimeNow
-      _              <- AddStepEventMutation[F]
-                          .execute(
-                            stepId,
-                            visitId,
-                            stage,
-                            idempotencyKey,
-                            clientTime,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug(s"ODB event for step $stage sent")
+      _              <- submitStepEvent(obsId, stepId, s"step $stage for step $stepId"):
+                          AddStepEventMutation[F]
+                            .execute(
+                              stepId,
+                              visitId,
+                              stage,
+                              idempotencyKey,
+                              clientTime,
+                              addIdempotencyKey(idempotencyKey)
+                            )
     yield true
 
   override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
@@ -115,24 +139,36 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     fileId: ImageFileId
   ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] =
     for
-      _              <- L.debug:
-                          s"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
-      visitId        <- getCurrentVisitId(obsId)
-      dataset        <- recordDataset(stepId, visitId, fileId)
-      _              <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
-      _              <- L.debug(s"Recorded dataset id ${dataset.id}")
+      _       <- L.debug:
+                   s"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
+      visitId <- getCurrentVisitId(obsId)
+      // The ODB refuses to record a dataset for a step it has no event for yet, so we wait for
+      // this step's first event, and only that one.
+      _       <- eventSender.awaitStepRecorded(obsId, stepId)
+      dataset <- recordDataset(stepId, visitId, fileId)
+      _       <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
+      _       <- L.debug(s"Recorded dataset id ${dataset.id}")
+      _       <- submitDatasetEvent(obsId, dataset.id, DatasetStage.StartExpose)
+    yield dataset
+
+  private def submitDatasetEvent(
+    obsId:     Observation.Id,
+    datasetId: Dataset.Id,
+    stage:     DatasetStage
+  ): F[Unit] =
+    for
       idempotencyKey <- newIdempotencyKey
       clientTime     <- clientTimeNow
-      _              <- AddDatasetEventMutation[F]
-                          .execute(
-                            dataset.id,
-                            DatasetStage.StartExpose,
-                            idempotencyKey,
-                            clientTime,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event datasetStartExposure sent")
-    yield dataset
+      _              <- submitDatasetEvent(obsId, s"dataset $stage for dataset $datasetId"):
+                          AddDatasetEventMutation[F]
+                            .execute(
+                              datasetId,
+                              stage,
+                              idempotencyKey,
+                              clientTime,
+                              addIdempotencyKey(idempotencyKey)
+                            )
+    yield ()
 
   private def recordDatasetEvent(
     obsId:  Observation.Id,
@@ -140,19 +176,9 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     stage:  DatasetStage
   ): F[Boolean] =
     for
-      datasetId      <- getCurrentDatasetId(obsId, fileId)
-      _              <- L.debug(s"Send ODB event $stage for obsId: $obsId datasetId: $datasetId")
-      idempotencyKey <- newIdempotencyKey
-      clientTime     <- clientTimeNow
-      _              <- AddDatasetEventMutation[F]
-                          .execute(
-                            datasetId,
-                            stage,
-                            idempotencyKey,
-                            clientTime,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug(s"ODB event for dataset $stage sent")
+      datasetId <- getCurrentDatasetId(obsId, fileId)
+      _         <- L.debug(s"Queue ODB event $stage for obsId: $obsId datasetId: $datasetId")
+      _         <- submitDatasetEvent(obsId, datasetId, stage)
     yield true
 
   override def datasetEndExposure(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
@@ -177,16 +203,20 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     recordStepEvent(obsId, stepId, StepStage.EndObserve)
 
   override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    recordStepEvent(obsId, stepId, StepStage.EndStep)
+    recordStepEvent(obsId, stepId, StepStage.EndStep) <*
+      flushEvents(obsId) <*
+      eventSender.forgetStep(obsId, stepId)
 
   override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    recordStepEvent(obsId, stepId, StepStage.Abort)
+    recordStepEvent(obsId, stepId, StepStage.Abort) <*
+      flushEvents(obsId) <*
+      eventSender.forgetStep(obsId, stepId)
 
   override def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    recordStepEvent(obsId, stepId, StepStage.Stop)
+    recordStepEvent(obsId, stepId, StepStage.Stop) <* flushEvents(obsId)
 
   override def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    recordStepEvent(obsId, stepId, StepStage.Pause)
+    recordStepEvent(obsId, stepId, StepStage.Pause) <* flushEvents(obsId)
 
   override def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.Continue)
@@ -196,30 +226,31 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     sequenceCommand: SequenceCommand
   ): F[Boolean] =
     for
-      _              <- L.debug(s"Send ODB event $sequenceCommand for obsId: $obsId")
+      _              <- L.debug(s"Queue ODB event $sequenceCommand for obsId: $obsId")
       visitId        <- getCurrentVisitId(obsId)
       idempotencyKey <- newIdempotencyKey
       clientTime     <- clientTimeNow
-      _              <- AddSequenceEventMutation[F]
-                          .execute(
-                            visitId,
-                            sequenceCommand,
-                            idempotencyKey,
-                            clientTime,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug(s"ODB event for sequence $sequenceCommand sent")
+      _              <- submitEvent(obsId, s"sequence $sequenceCommand"):
+                          AddSequenceEventMutation[F]
+                            .execute(
+                              visitId,
+                              sequenceCommand,
+                              idempotencyKey,
+                              clientTime,
+                              addIdempotencyKey(idempotencyKey)
+                            )
     yield true
 
   override def obsContinue(obsId: Observation.Id): F[Boolean] =
     recordSequenceEvent(obsId, SequenceCommand.Continue)
 
   override def obsPause(obsId: Observation.Id): F[Boolean] =
-    recordSequenceEvent(obsId, SequenceCommand.Pause)
+    recordSequenceEvent(obsId, SequenceCommand.Pause) <* flushEvents(obsId)
 
   override def obsStop(obsId: Observation.Id): F[Boolean] =
     for
       result <- recordSequenceEvent(obsId, SequenceCommand.Stop)
+      _      <- flushEvents(obsId)
       _      <- setCurrentVisitId(obsId, none)
     yield result
 
@@ -255,3 +286,20 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
 
   override def getCurrentRecordedIds: F[ObsRecordedIds] = idTracker.get
 }
+
+object OdbCommandsImpl:
+
+  /**
+   * Checks that the ODB recorded an event. A response without data means it didn't, which is a hard
+   * failure. Errors that come along with data mean the event was recorded, so those are only
+   * logged: failing a step over them would be worse than the warning they carry.
+   */
+  private[odb] def checkEventRecorded[F[_]: {MonadThrow as F, Logger}, D](
+    description: String
+  )(response: GraphQLResponse[D]): F[Unit] =
+    response.result match
+      case Ior.Right(_)        => F.unit
+      case Ior.Both(errors, _) =>
+        Logger[F].warn:
+          s"ODB reported errors recording $description: ${errors.map(_.message).mkString_("; ")}"
+      case Ior.Left(errors)    => F.raiseError(ResponseException(errors, none))
