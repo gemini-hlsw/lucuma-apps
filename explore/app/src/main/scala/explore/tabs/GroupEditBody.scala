@@ -236,13 +236,18 @@ object GroupEditBody
             "minRequiredInput",
             placeholder = "1",
             value = minRequiredV.get.fold(js.undefined)(_.value),
-            disabled = isDisabled,
-            min = 0,
+            // An empty group has nothing to choose from, so there's nothing to edit.
+            disabled = isDisabled || props.elementsLength === 0,
+            min = 1,
             max = props.elementsLength,
             size = minRequiredV.get.fold(js.undefined)(_.toString.length),
             onValueChange = e =>
+              // Clamp to [1, elementsLength]. Note that clearing the input must not result in an
+              // unset minimumRequired, which would turn the group into an AND group.
               val newMin = e.valueOption
-                .flatMap(s => NonNegShort.from(s.toShort).toOption)
+                .map(v => v.toInt.min(props.elementsLength).max(1))
+                .orElse(1.some)
+                .flatMap(v => NonNegShort.from(v.toShort).toOption)
               minRequiredV.set(newMin)
           ),
           s" of ${props.elementsLength} observations/subgroups"
