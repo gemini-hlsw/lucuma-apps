@@ -623,6 +623,7 @@ lazy val observe_server = project
         ClueHttp4s.value ++
         ClueOtel4s.value ++
         CatsParse.value ++
+        CatsRetry.value ++
         Acm.value ++
         GiapiScala.value ++
         Coulomb.value ++
@@ -637,7 +638,8 @@ lazy val observe_server = project
         In(Test)(
           MUnit.value ++
             Log4CatsNoop.value ++
-            LucumaCoreTestkit.value
+            LucumaCoreTestkit.value ++
+            CatsEffectTestkit.value
         ),
     headerSources / excludeFilter := HiddenFileFilter || (file(
       "observe/server"

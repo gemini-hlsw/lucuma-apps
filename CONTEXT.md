@@ -155,3 +155,40 @@ _Avoid_: template, mode
 **Telluric**:
 A preset (and a calibration target role) for observing a standard star to
 correct atmospheric absorption. F2's default nod pattern.
+
+# Observe — Execution Event Recording
+
+How Observe reports what happened during sequence execution to the ODB, which keeps
+the permanent record.
+
+## Language
+
+**Execution Event**:
+The durable record of one moment of sequence execution (a step stage, dataset stage,
+sequence command, or slew), timestamped with the moment it happened. The ODB's step
+state machine and time accounting are derived from these.
+_Avoid_: log, notification (events are the record, not a byproduct)
+
+**Event Batch**:
+A group of Execution Events for a single observation recorded by the ODB atomically,
+in the order given. Either the whole batch is recorded or none of it.
+
+**Event Buffer**:
+Execution Events held in Observe, already timestamped and keyed, awaiting transmission
+as an Event Batch. Buffered events are not yet part of the permanent record. A step's
+start event is never buffered — it is recorded immediately, because the ODB refuses
+datasets (and shows no sign of execution) for a step with no recorded event yet.
+
+**Flush**:
+Transmitting the Event Buffer as one Event Batch. Happens when a step ends, and is
+forced early by any Out-of-band Operation.
+
+**Flush Barrier**:
+The rule that execution never proceeds past an unflushed step: the next atom is never
+requested until the step's Flush has been confirmed. Exists because the ODB considers
+a step incomplete — and will serve it again — until it receives the step's end event.
+
+**Out-of-band Operation**:
+Any operation for an observation that must not overtake buffered events: a sequence
+command (pause, stop, abort, continue), a step error, sequence completion, or
+shutdown. Each forces a Flush first, so the ODB always receives history in true order.

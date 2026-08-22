@@ -42,6 +42,17 @@ object EventsGQL:
       """
 
   @GraphQL
+  trait AddEventBatchMutation extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation($$input: AddEventBatchInput!) {
+        addEventBatch(input: $$input) {
+          events { id }
+          hasMore
+        }
+      }
+      """
+
+  @GraphQL
   trait RecordDatasetMutation extends GraphQLOperation[ObservationDB]:
     val document = gql"""
       mutation($$stepId: StepId!, $$visitId: VisitId!, $$filename: DatasetFilename!, $$idempotencyKey: IdempotencyKey!) {

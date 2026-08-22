@@ -19,3 +19,4 @@ pnpm-lock.yaml
 *.graphql
 secrets.yaml
 CONTEXT.md
+observe/server/docs/

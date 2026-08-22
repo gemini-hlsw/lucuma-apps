@@ -3,15 +3,19 @@
 
 package observe.server
 
+import cats.Applicative
 import cats.Monad
 import cats.effect.Async
 import cats.effect.IO
 import cats.effect.Resource
 import cats.effect.Temporal
 import cats.effect.kernel.Ref
+import cats.effect.std.AtomicCell
+import cats.effect.std.Mutex
 import cats.effect.std.SecureRandom
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
+import clue.FetchClientWithPars
 import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import clue.http4s.Http4sWebSocketBackend
@@ -24,6 +28,7 @@ import giapi.client.ghost.GhostClient
 import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
+import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
 import observe.model.CurrentConditions
@@ -47,12 +52,15 @@ import observe.server.igrins2.Igrins2ControllerSim
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
+import observe.server.odb.OdbCommands
 import observe.server.odb.OdbCommandsImpl
 import observe.server.odb.OdbProxy
+import observe.server.odb.PendingEvents
 import observe.server.tcs.*
 import org.http4s.AuthScheme
 import org.http4s.Credentials
 import org.http4s.Headers
+import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.JdkWSClient
@@ -118,27 +126,34 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]: F[OdbProxy[F]] =
+    // Returns the proxy plus a shutdown action that flushes any buffered execution events.
+    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]
+      : F[(OdbProxy[F], F[Unit])] =
       for
-        fetchClient                    <- // Http client used ONLY for recording events.
+        fetchClient                                            <- // Http client used ONLY for recording events.
           Http4sHttpClient.of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
-        tracingFetch                    = Otel4sMiddleware(fetchClient)
-        wsClient                       <- JdkWSClient.simple[F].allocated.map(_._1)
-        given Http4sWebSocketBackend[F] = Http4sWebSocketBackend[F](wsClient)
-        innerClient                    <-
+        given FetchClientWithPars[F, Request[F], ObservationDB] = Otel4sMiddleware(fetchClient)
+        wsClient                                               <- JdkWSClient.simple[F].allocated.map(_._1)
+        given Http4sWebSocketBackend[F]                         = Http4sWebSocketBackend[F](wsClient)
+        innerClient                                            <-
           Http4sWebSocketClient.of[F, ObservationDB](settings.odbWs, "ODB-WS", WsReconnectStrategy)
-        tracingWS                       = Otel4sMiddleware(innerClient)
-        _                              <-
+        tracingWS                                               = Otel4sMiddleware(innerClient)
+        _                                                      <-
           tracingWS.connect:
             Map(Authorization.name.toString -> authHeader.credentials.renderString.asJson).pure[F]
-        odbCommands                    <-
+        odbCommandsAndShutdown                                 <-
           if (settings.odbNotifications)
-            Ref
-              .of[F, ObsRecordedIds](ObsRecordedIds.Empty)
-              .map(OdbCommandsImpl[F](_)(using tracingFetch))
+            (
+              Ref.of[F, ObsRecordedIds](ObsRecordedIds.Empty),
+              Ref.of[F, PendingEvents](Map.empty),
+              AtomicCell[F].of(Map.empty[Observation.Id, Mutex[F]])
+            ).mapN: (idTracker, pendingEvents, flushMutexes) =>
+              val impl = OdbCommandsImpl[F](idTracker, pendingEvents, flushMutexes)
+              (impl: OdbCommands[F], impl.flushAllPending)
           else
-            DummyOdbCommands[F].pure[F]
-      yield OdbProxy[F](odbCommands)(using tracingWS)
+            (DummyOdbCommands[F]: OdbCommands[F], Applicative[F].unit).pure[F]
+        (odbCommands, shutdown)                                 = odbCommandsAndShutdown
+      yield (OdbProxy[F](odbCommands)(using tracingWS), shutdown)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
@@ -427,7 +442,8 @@ object Systems {
     def build(site: Site, httpClient: Client[IO]): Resource[IO, Systems[IO]] =
       given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
       for {
-        odbProxy                                          <- Resource.eval[IO, OdbProxy[IO]](odbProxy[IO])
+        odbProxy                                          <-
+          Resource.make(odbProxy[IO])((_, flushPending) => flushPending.attempt.void).map(_._1)
         dhsClient                                         <- Resource.eval(dhs[IO](site, httpClient))
         gcdb                                              <- Resource.eval(GuideConfigDb.newDb[IO])
         gcals                                             <- Resource.eval(gcal)
