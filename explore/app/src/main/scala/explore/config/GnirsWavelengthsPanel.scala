@@ -28,7 +28,7 @@ import lucuma.react.primereact.Panel
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig
+import lucuma.schemas.model.ObservingMode.GnirsCentralWavelengthConfig
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -41,8 +41,8 @@ import lucuma.ui.utils.*
  */
 case class GnirsWavelengthsPanel(
   instrument:                   Option[Instrument],
-  wavelengthsView:              View[NonEmptyList[CentralWavelengthConfig]],
-  initialWavelengths:           NonEmptyList[CentralWavelengthConfig],
+  wavelengthsView:              View[NonEmptyList[GnirsCentralWavelengthConfig]],
+  initialWavelengths:           NonEmptyList[GnirsCentralWavelengthConfig],
   requirementsExposureTimeMode: Option[ExposureTimeMode],
   units:                        WavelengthUnits,
   calibrationRole:              Option[CalibrationRole],
@@ -58,13 +58,15 @@ case class GnirsWavelengthsPanel(
 
 object GnirsWavelengthsPanel:
 
-  private given Reusability[CentralWavelengthConfig] = Reusability.byEq
+  private given Reusability[GnirsCentralWavelengthConfig] = Reusability.byEq
 
   // A new row starts one "step" above the longest current wavelength, so it lands
   // somewhere sensible and never collides with an existing entry.
   private val NewWavelengthStepPm: Int = 100_000
 
-  private def nextWavelength(current: NonEmptyList[CentralWavelengthConfig]): Option[Wavelength] =
+  private def nextWavelength(
+    current: NonEmptyList[GnirsCentralWavelengthConfig]
+  ): Option[Wavelength] =
     Wavelength.fromIntPicometers(
       current.toList
         .map(_.centralWavelength.value.toPicometers.value.value)
@@ -76,10 +78,10 @@ object GnirsWavelengthsPanel:
       for
         // As in ImagingFiltersPanel, edit through a plain list so a row can be
         // removed even though the model requires at least one.
-        unModdedView <- useStateView(List.empty[CentralWavelengthConfig])
+        unModdedView <- useStateView(List.empty[GnirsCentralWavelengthConfig])
         _            <- useEffectWithDeps(props.wavelengthsView.get.toList)(unModdedView.set)
       yield
-        val localView: View[List[CentralWavelengthConfig]] =
+        val localView: View[List[GnirsCentralWavelengthConfig]] =
           unModdedView
             .withModPatch(_.sortBy(_.centralWavelength.value))
             .withOnMod: l =>
@@ -129,7 +131,9 @@ object GnirsWavelengthsPanel:
                       FormInputTextView(
                         id = NonEmptyString.unsafeFrom(s"gnirsCentralWavelength$idx"),
                         value = swView.zoom(
-                          CentralWavelengthConfig.centralWavelength.andThen(CentralWavelength.Value)
+                          GnirsCentralWavelengthConfig.centralWavelength.andThen(
+                            CentralWavelength.Value
+                          )
                         ),
                         label = "λ Center",
                         labelClass = ExploreStyles.HiddenLabel,
@@ -142,8 +146,8 @@ object GnirsWavelengthsPanel:
                     ExposureTimeModeEditor(
                       instrument = props.instrument,
                       wavelength = wavelength.value.some,
-                      exposureTimeMode = swView.zoom(CentralWavelengthConfig.exposureTimeMode),
-                      coadds = swView.zoom(CentralWavelengthConfig.coadds).some,
+                      exposureTimeMode = swView.zoom(GnirsCentralWavelengthConfig.exposureTimeMode),
+                      coadds = swView.zoom(GnirsCentralWavelengthConfig.coadds).some,
                       scienceMode = ScienceMode.Spectroscopy,
                       readonly = props.exposureTimeModeReadonly,
                       units = props.units,
@@ -162,7 +166,7 @@ object GnirsWavelengthsPanel:
                 props.wavelengthReadonly || nextWavelength(props.wavelengthsView.get).isEmpty,
               onClick = nextWavelength(props.wavelengthsView.get).foldMap: w =>
                 localView.mod(
-                  _ :+ CentralWavelengthConfig(
+                  _ :+ GnirsCentralWavelengthConfig(
                     CentralWavelength(w),
                     // There should always be one, but fall back to the last row's.
                     props.requirementsExposureTimeMode

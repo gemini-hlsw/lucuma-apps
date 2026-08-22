@@ -401,7 +401,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         includeFlamingos2Mos = flags.flamingos2Mos,
         includeIgrins2LongSlit = flags.igrins2LongSlit,
         includeGnirsImaging = flags.gnirsImaging,
-        includeGnirsSpectroscopy = flags.gnirsSpectroscopy,
+        includeGnirsLongSlit = flags.gnirsLongSlit,
+        includeGnirsIfu = flags.gnirsIfu,
         includeGhostIfu = flags.ghostIfu,
         includeVisitor = flags.visitor,
         includeExchange = flags.exchange
@@ -468,7 +469,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     flamingos2Mos:      Boolean = false,
     igrins2LongSlit:    Boolean = false,
     gnirsImaging:       Boolean = false,
-    gnirsSpectroscopy:  Boolean = false,
+    gnirsLongSlit:      Boolean = false,
+    gnirsIfu:           Boolean = false,
     ghostIfu:           Boolean = false,
     visitor:            Boolean = false,
     exchange:           Boolean = false
@@ -488,7 +490,11 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case _: ObservingModeInput.Flamingos2Mos      => ModeViewFlags(flamingos2Mos = true)
       case _: ObservingModeInput.Igrins2LongSlit    => ModeViewFlags(igrins2LongSlit = true)
       case _: ObservingModeInput.GnirsImaging       => ModeViewFlags(gnirsImaging = true)
-      case _: ObservingModeInput.GnirsSpectroscopy  => ModeViewFlags(gnirsSpectroscopy = true)
+      case _: ObservingModeInput.GnirsLongSlit      => ModeViewFlags(gnirsLongSlit = true)
+      case _: ObservingModeInput.GnirsIfu           => ModeViewFlags(gnirsIfu = true)
+      // Deprecated in favor of gnirsLongSlit / gnirsIfu, and never built here.
+      case _: ObservingModeInput.GnirsSpectroscopy  =>
+        sys.error("Deprecated gnirsSpectroscopy input; use gnirsLongSlit or gnirsIfu")
       case _: ObservingModeInput.GhostIfu           => ModeViewFlags(ghostIfu = true)
       case _: ObservingModeInput.Visitor            => ModeViewFlags(visitor = true)
       case _: ObservingModeInput.Exchange           => ModeViewFlags(exchange = true)
@@ -519,8 +525,10 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(gmosSouthMos = true)
       case ObservingModeType.GnirsImaging                                    =>
         ModeViewFlags(gnirsImaging = true)
-      case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu      =>
-        ModeViewFlags(gnirsSpectroscopy = true)
+      case ObservingModeType.GnirsLongSlit                                   =>
+        ModeViewFlags(gnirsLongSlit = true)
+      case ObservingModeType.GnirsIfu                                        =>
+        ModeViewFlags(gnirsIfu = true)
       case ObservingModeType.GhostIfu                                        =>
         ModeViewFlags(ghostIfu = true)
       case ObservingModeType.ExchangeKeck | ObservingModeType.ExchangeSubaru =>
@@ -557,7 +565,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeFlamingos2Mos = flags.flamingos2Mos,
             includeIgrins2LongSlit = flags.igrins2LongSlit,
             includeGnirsImaging = flags.gnirsImaging,
-            includeGnirsSpectroscopy = flags.gnirsSpectroscopy,
+            includeGnirsLongSlit = flags.gnirsLongSlit,
+            includeGnirsIfu = flags.gnirsIfu,
             includeGhostIfu = flags.ghostIfu,
             includeVisitor = flags.visitor,
             includeExchange = flags.exchange

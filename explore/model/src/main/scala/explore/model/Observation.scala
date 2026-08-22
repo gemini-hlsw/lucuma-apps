@@ -45,6 +45,7 @@ import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
@@ -325,7 +326,7 @@ final case class Observation(
           List(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)
           )
-        case g: ObservingMode.GnirsSpectroscopy  =>
+        case g: ObservingMode.GnirsLongSlit      =>
           // Each central wavelength is a separate configuration with its own ITC
           // calculation, as each imaging filter is.
           g.centralWavelengths.toList
@@ -333,7 +334,22 @@ final case class Observation(
               ItcInstrumentConfig
                 .GnirsSpectroscopy(
                   g.grating,
-                  g.fpu,
+                  GnirsFpu.Spectroscopy.Slit(g.fpu),
+                  g.filter,
+                  g.prism,
+                  g.camera,
+                  w.exposureTimeMode,
+                  InstrumentOverrides.GnirsSpectroscopy(w.centralWavelength, w.coadds).some
+                )
+        case g: ObservingMode.GnirsIfu           =>
+          // Each central wavelength is a separate configuration with its own ITC
+          // calculation, as each imaging filter is.
+          g.centralWavelengths.toList
+            .map: w =>
+              ItcInstrumentConfig
+                .GnirsSpectroscopy(
+                  g.grating,
+                  GnirsFpu.Spectroscopy.Ifu(g.fpu),
                   g.filter,
                   g.prism,
                   g.camera,

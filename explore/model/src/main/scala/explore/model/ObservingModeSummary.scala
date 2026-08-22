@@ -57,8 +57,7 @@ import lucuma.schemas.ObservationDB.Types.GmosSouthMosInput
 import lucuma.schemas.ObservationDB.Types.GnirsCentralWavelengthConfigInput
 import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
 import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
-import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
-import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
+import lucuma.schemas.ObservationDB.Types.GnirsLongSlitInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
@@ -289,28 +288,35 @@ enum ObservingModeSummary derives Order:
         Igrins2LongSlitInput(exposureTimeMode = etm.toInput.assign)
       )
     case GnirsSpectroscopy(filter, fpu, prism, grating, camera, centralWavelength, etm)    =>
-      ObservingModeInput.GnirsSpectroscopy(
-        GnirsSpectroscopyInput(
-          filter = filter.assign,
-          slit = GnirsFpu.Spectroscopy.slit
-            .getOption(fpu)
-            .map(f => GnirsSlitInput(fpu = f.assign))
-            .orUnassign,
-          ifu = GnirsFpu.Spectroscopy.ifu
-            .getOption(fpu)
-            .map(f => GnirsIfuInput(fpu = f.assign))
-            .orUnassign,
-          prism = prism.assign,
-          grating = grating.assign,
-          camera = camera.assign,
-          centralWavelengths = List(
-            GnirsCentralWavelengthConfigInput(
-              centralWavelength = centralWavelength.value.toInput,
-              exposureTimeMode = etm.toInput.assign
-            )
-          ).assign
+      val centralWavelengths = List(
+        GnirsCentralWavelengthConfigInput(
+          centralWavelength = centralWavelength.value.toInput,
+          exposureTimeMode = etm.toInput.assign
         )
-      )
+      ).assign
+      fpu match
+        case GnirsFpu.Spectroscopy.Slit(f) =>
+          ObservingModeInput.GnirsLongSlit(
+            GnirsLongSlitInput(
+              filter = filter.assign,
+              fpu = f.assign,
+              prism = prism.assign,
+              grating = grating.assign,
+              camera = camera.assign,
+              centralWavelengths = centralWavelengths
+            )
+          )
+        case GnirsFpu.Spectroscopy.Ifu(f)  =>
+          ObservingModeInput.GnirsIfu(
+            GnirsIfuInput(
+              filter = filter.assign,
+              fpu = f.assign,
+              prism = prism.assign,
+              grating = grating.assign,
+              camera = camera.assign,
+              centralWavelengths = centralWavelengths
+            )
+          )
     case GhostIfu(resolutionMode, stepCount, red, blue)                                    =>
       ObservingModeInput.GhostIfu(
         GhostIfuInput(
@@ -534,16 +540,29 @@ object ObservingModeSummary:
         )
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
-      case g: ObservingMode.GnirsSpectroscopy  =>
+      case g: ObservingMode.GnirsLongSlit      =>
         // The summary keeps one representative wavelength (the first, i.e. the
         // shortest) with its exposure time mode.
-        GnirsSpectroscopy(g.filter,
-                          g.fpu,
-                          g.prism,
-                          g.grating,
-                          g.camera,
-                          g.centralWavelengths.head.centralWavelength,
-                          g.centralWavelengths.head.exposureTimeMode
+        GnirsSpectroscopy(
+          g.filter,
+          GnirsFpu.Spectroscopy.Slit(g.fpu),
+          g.prism,
+          g.grating,
+          g.camera,
+          g.centralWavelengths.head.centralWavelength,
+          g.centralWavelengths.head.exposureTimeMode
+        )
+      case g: ObservingMode.GnirsIfu           =>
+        // The summary keeps one representative wavelength (the first, i.e. the
+        // shortest) with its exposure time mode.
+        GnirsSpectroscopy(
+          g.filter,
+          GnirsFpu.Spectroscopy.Ifu(g.fpu),
+          g.prism,
+          g.grating,
+          g.camera,
+          g.centralWavelengths.head.centralWavelength,
+          g.centralWavelengths.head.exposureTimeMode
         )
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)

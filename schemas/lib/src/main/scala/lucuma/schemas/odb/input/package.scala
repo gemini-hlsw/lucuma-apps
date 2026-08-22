@@ -774,7 +774,7 @@ extension (svc: ObservingMode.Igrins2LongSlit.Svc)
     explicitTelescopeConfigs = svc.explicitTelescopeConfigs.map(_.toList.map(_.toInput)).orUnassign
   )
 
-extension (a: ObservingMode.GnirsSpectroscopy.Acquisition)
+extension (a: ObservingMode.GnirsSpectroscopyAcquisition)
   def toInput: GnirsSpectroscopyAcquisitionInput = GnirsSpectroscopyAcquisitionInput(
     explicitAcquisitionType = a.explicitAcquisitionMode.map(_.acquisitionType).orUnassign,
     skyOffset = a.explicitAcquisitionMode
@@ -794,26 +794,12 @@ extension (a: SlitTelescopeConfigs)
       case SlitTelescopeConfigs.ToSky(value)     =>
         SlitTelescopeConfigsInput(toSky = value.toList.map(_.toInput).assign)
 
-extension (a: ObservingMode.GnirsSpectroscopy)
-  def toInput: GnirsSpectroscopyInput = GnirsSpectroscopyInput(
+extension (a: ObservingMode.GnirsLongSlit)
+  def toInput: GnirsLongSlitInput = GnirsLongSlitInput(
     grating = a.grating.assign,
     filter = a.filter.assign,
-    slit = GnirsFpu.Spectroscopy.slit
-      .getOption(a.fpu)
-      .map: f =>
-        GnirsSlitInput(
-          fpu = f.assign,
-          explicitTelescopeConfigs = a.explicitTelescopeConfigsSlit.map(_.toInput).orUnassign
-        )
-      .orUnassign,
-    ifu = GnirsFpu.Spectroscopy.ifu
-      .getOption(a.fpu)
-      .map: f =>
-        GnirsIfuInput(
-          fpu = f.assign,
-          telescopeConfigs = a.telescopeConfigsIfu.map(_.toList.map(_.toInput)).orUnassign
-        )
-      .orUnassign,
+    fpu = a.fpu.assign,
+    explicitTelescopeConfigs = a.explicitTelescopeConfigs.map(_.toInput).orUnassign,
     prism = a.prism.assign,
     camera = a.camera.assign,
     centralWavelengths = a.centralWavelengths.toList.map(_.toInput).assign,
@@ -823,7 +809,22 @@ extension (a: ObservingMode.GnirsSpectroscopy)
     acquisition = a.acquisition.toInput.assign
   )
 
-extension (a: ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig)
+extension (a: ObservingMode.GnirsIfu)
+  def toInput: GnirsIfuInput = GnirsIfuInput(
+    grating = a.grating.assign,
+    filter = a.filter.assign,
+    fpu = a.fpu.assign,
+    telescopeConfigs = a.telescopeConfigs.toList.map(_.toInput).assign,
+    prism = a.prism.assign,
+    camera = a.camera.assign,
+    centralWavelengths = a.centralWavelengths.toList.map(_.toInput).assign,
+    explicitDecker = a.explicitDecker.orUnassign,
+    explicitReadMode = a.explicitReadMode.orUnassign,
+    explicitWellDepth = a.explicitWellDepth.orUnassign,
+    acquisition = a.acquisition.toInput.assign
+  )
+
+extension (a: ObservingMode.GnirsCentralWavelengthConfig)
   def toInput: GnirsCentralWavelengthConfigInput = GnirsCentralWavelengthConfigInput(
     centralWavelength = a.centralWavelength.value.toInput,
     exposureTimeMode = a.exposureTimeMode.toInput.assign,
@@ -889,8 +890,10 @@ extension (b: ObservingMode)
       ObservingModeInput.GnirsImaging(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
       ObservingModeInput.Igrins2LongSlit(o.toInput)
-    case o: ObservingMode.GnirsSpectroscopy  =>
-      ObservingModeInput.GnirsSpectroscopy(o.toInput)
+    case o: ObservingMode.GnirsLongSlit      =>
+      ObservingModeInput.GnirsLongSlit(o.toInput)
+    case o: ObservingMode.GnirsIfu           =>
+      ObservingModeInput.GnirsIfu(o.toInput)
     case o: ObservingMode.GhostIfu           =>
       ObservingModeInput.GhostIfu(o.toInput)
     case v: ObservingMode.Visitor            =>
@@ -1027,26 +1030,32 @@ extension (i: BasicConfiguration)
                                               camera,
                                               centralWavelength
         ) =>
-      ObservingModeInput.GnirsSpectroscopy:
-        // Only the FPU is specified here; telescope configs are defaulted (slit) or seeded
-        // from the FPU (IFU) server-side on create.
-        GnirsSpectroscopyInput(
-          filter = filter.assign,
-          slit = GnirsFpu.Spectroscopy.slit
-            .getOption(fpu)
-            .map(f => GnirsSlitInput(fpu = f.assign))
-            .orUnassign,
-          ifu = GnirsFpu.Spectroscopy.ifu
-            .getOption(fpu)
-            .map(f => GnirsIfuInput(fpu = f.assign))
-            .orUnassign,
-          prism = prism.assign,
-          grating = grating.assign,
-          camera = camera.assign,
-          centralWavelengths = List(
-            GnirsCentralWavelengthConfigInput(centralWavelength = centralWavelength.value.toInput)
-          ).assign
-        )
+      // Only the FPU is specified here; telescope configs are defaulted (slit) or seeded
+      // from the FPU (IFU) server-side on create.
+      val centralWavelengths = List(
+        GnirsCentralWavelengthConfigInput(centralWavelength = centralWavelength.value.toInput)
+      ).assign
+      fpu match
+        case GnirsFpu.Spectroscopy.Slit(f) =>
+          ObservingModeInput.GnirsLongSlit:
+            GnirsLongSlitInput(
+              filter = filter.assign,
+              fpu = f.assign,
+              prism = prism.assign,
+              grating = grating.assign,
+              camera = camera.assign,
+              centralWavelengths = centralWavelengths
+            )
+        case GnirsFpu.Spectroscopy.Ifu(f)  =>
+          ObservingModeInput.GnirsIfu:
+            GnirsIfuInput(
+              filter = filter.assign,
+              fpu = f.assign,
+              prism = prism.assign,
+              grating = grating.assign,
+              camera = camera.assign,
+              centralWavelengths = centralWavelengths
+            )
     case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter, scienceFovDiameter)     =>
       ObservingModeInput.Visitor:
         VisitorInput(

@@ -77,10 +77,19 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             }
             camera
           }
-          gnirsSpectroscopy {
+          gnirsLongSlit {
             filter
-            slit { fpu }
-            ifu { fpu }
+            fpu
+            prism
+            grating
+            camera
+            centralWavelengths {
+              centralWavelength $WavelengthSubquery
+            }
+          }
+          gnirsIfu {
+            filter
+            fpu
             prism
             grating
             camera
