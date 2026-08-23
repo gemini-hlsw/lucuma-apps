@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.1.0",
-    "sass": "1.103.0",
+    "sass": "1.103.1",
     "unplugin-fonts": "2.0.0",
     "vite": "8.2.2",
     "vite-plugin-mkcert": "2.1.0"

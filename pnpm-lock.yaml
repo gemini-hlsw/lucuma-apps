@@ -155,22 +155,22 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: 6.1.0
-        version: 6.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 6.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
       sass:
-        specifier: 1.103.0
-        version: 1.103.0
+        specifier: 1.103.1
+        version: 1.103.1
       unplugin-fonts:
         specifier: 2.0.0
-        version: 2.0.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 2.0.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
       vite:
         specifier: 8.2.2
-        version: 8.2.2(sass@1.103.0)(terser@5.46.0)
+        version: 8.2.2(sass@1.103.1)(terser@5.46.0)
       vite-plugin-mkcert:
         specifier: 2.1.0
-        version: 2.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 2.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
       vite-plugin-pwa:
         specifier: 1.3.0
-        version: 1.3.0(supports-color@10.2.2)(vite@8.2.2(sass@1.103.0)(terser@5.46.0))(workbox-build@7.4.1(supports-color@10.2.2))(workbox-window@7.4.1)
+        version: 1.3.0(supports-color@10.2.2)(vite@8.2.2(sass@1.103.1)(terser@5.46.0))(workbox-build@7.4.1(supports-color@10.2.2))(workbox-window@7.4.1)
       workbox-build:
         specifier: 7.4.1
         version: 7.4.1(supports-color@10.2.2)
@@ -249,19 +249,19 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: 6.1.0
-        version: 6.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 6.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
       sass:
-        specifier: 1.103.0
-        version: 1.103.0
+        specifier: 1.103.1
+        version: 1.103.1
       unplugin-fonts:
         specifier: 2.0.0
-        version: 2.0.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 2.0.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
       vite:
         specifier: 8.2.2
-        version: 8.2.2(sass@1.103.0)(terser@5.46.0)
+        version: 8.2.2(sass@1.103.1)(terser@5.46.0)
       vite-plugin-mkcert:
         specifier: 2.1.0
-        version: 2.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 2.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
 
   schemas:
     devDependencies:
@@ -316,7 +316,7 @@ importers:
         version: 9.1.2
       '@vitejs/plugin-react':
         specifier: 6.1.0
-        version: 6.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))
+        version: 6.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))
       loglevel:
         specifier: 1.9.2
         version: 1.9.2
@@ -336,14 +336,14 @@ importers:
         specifier: 2.2.4
         version: 2.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       sass:
-        specifier: 1.103.0
-        version: 1.103.0
+        specifier: 1.103.1
+        version: 1.103.1
       ua-parser-js:
         specifier: 2.0.10
         version: 2.0.10
       vite:
         specifier: 8.2.2
-        version: 8.2.2(sass@1.103.0)(terser@5.46.0)
+        version: 8.2.2(sass@1.103.1)(terser@5.46.0)
 
   ui/tests:
     dependencies:
@@ -3128,8 +3128,8 @@ packages:
     resolution: {integrity: sha512-x/+Cz4YrimQxQccJf5mKEbIa1NzeCRNI5Ecl/ekmlYaampdNLPalVyIcCZNNH3MvmqBugV5TMYZXv0ljslUlaw==}
     engines: {node: '>= 0.4'}
 
-  sass@1.103.0:
-    resolution: {integrity: sha512-+QpdXUDw19lVqRDlYIyje1Lq/0gHsnNHIl4x1CqeUg13zRhaQN11UvTvouwHWLXc9Q3rQVT6oBhFGRYJ5Z8gHw==}
+  sass@1.103.1:
+    resolution: {integrity: sha512-9icZURbP51S6S0QGoyaeqk9uB06GNWxsFYWfH5RgpFgqK5FA8tJcM3AdVxrZEVJ7dz+L87nG95gBKf4VuaMHGw==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -5037,10 +5037,10 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@vitejs/plugin-react@6.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0))':
+  '@vitejs/plugin-react@6.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.2.2(sass@1.103.0)(terser@5.46.0)
+      vite: 8.2.2(sass@1.103.1)(terser@5.46.0)
 
   acorn@8.16.0: {}
 
@@ -6884,7 +6884,7 @@ snapshots:
       es-errors: 1.3.0
       is-regex: 1.2.1
 
-  sass@1.103.0:
+  sass@1.103.1:
     dependencies:
       chokidar: 5.0.0
       immutable: 5.1.5
@@ -7353,7 +7353,7 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unplugin-fonts@2.0.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0)):
+  unplugin-fonts@2.0.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0)):
     dependencies:
       css-tree: 3.2.1
       fast-glob: 3.3.3
@@ -7361,7 +7361,7 @@ snapshots:
       magic-string: 0.30.21
       pathe: 2.0.3
       unplugin: 3.0.0
-      vite: 8.2.2(sass@1.103.0)(terser@5.46.0)
+      vite: 8.2.2(sass@1.103.1)(terser@5.46.0)
 
   unplugin@2.3.11:
     dependencies:
@@ -7405,25 +7405,25 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plugin-mkcert@2.1.0(vite@8.2.2(sass@1.103.0)(terser@5.46.0)):
+  vite-plugin-mkcert@2.1.0(vite@8.2.2(sass@1.103.1)(terser@5.46.0)):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       supports-color: 10.2.2
       undici: 8.3.0
-      vite: 8.2.2(sass@1.103.0)(terser@5.46.0)
+      vite: 8.2.2(sass@1.103.1)(terser@5.46.0)
 
-  vite-plugin-pwa@1.3.0(supports-color@10.2.2)(vite@8.2.2(sass@1.103.0)(terser@5.46.0))(workbox-build@7.4.1(supports-color@10.2.2))(workbox-window@7.4.1):
+  vite-plugin-pwa@1.3.0(supports-color@10.2.2)(vite@8.2.2(sass@1.103.1)(terser@5.46.0))(workbox-build@7.4.1(supports-color@10.2.2))(workbox-window@7.4.1):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       pretty-bytes: 6.1.1
       tinyglobby: 0.2.16
-      vite: 8.2.2(sass@1.103.0)(terser@5.46.0)
+      vite: 8.2.2(sass@1.103.1)(terser@5.46.0)
       workbox-build: 7.4.1(supports-color@10.2.2)
       workbox-window: 7.4.1
     transitivePeerDependencies:
       - supports-color
 
-  vite@8.2.2(sass@1.103.0)(terser@5.46.0):
+  vite@8.2.2(sass@1.103.1)(terser@5.46.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.5
@@ -7432,7 +7432,7 @@ snapshots:
       tinyglobby: 0.2.17
     optionalDependencies:
       fsevents: 2.3.3
-      sass: 1.103.0
+      sass: 1.103.1
       terser: 5.46.0
 
   web-namespaces@2.0.1: {}
