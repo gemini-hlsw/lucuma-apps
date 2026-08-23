@@ -22,12 +22,14 @@ case class Attachment(
   id:             Attachment.Id,
   attachmentType: AttachmentType,
   fileName:       NonEmptyString,
-  maskName:       Option[NonEmptyString],
+  mask:           Option[Attachment.Mask],
   description:    Option[NonEmptyString],
   checked:        Boolean,
   fileSize:       Long,
   updatedAt:      Timestamp
 ) derives Eq:
+  def maskName: Option[NonEmptyString] = mask.map(_.name)
+
   def isForPurpose(purpose: AttachmentPurpose): Boolean        =
     attachmentType.purpose === purpose
   def isForPurposes(purposes: Set[AttachmentPurpose]): Boolean =
@@ -40,10 +42,15 @@ object Attachment:
   val id: Lens[Attachment, Id]                              = Focus[Attachment](_.id)
   val attachmentType: Lens[Attachment, AttachmentType]      = Focus[Attachment](_.attachmentType)
   val fileName: Lens[Attachment, NonEmptyString]            = Focus[Attachment](_.fileName)
-  val maskName: Lens[Attachment, Option[NonEmptyString]]    = Focus[Attachment](_.maskName)
+  val mask: Lens[Attachment, Option[Mask]]                  = Focus[Attachment](_.mask)
   val description: Lens[Attachment, Option[NonEmptyString]] = Focus[Attachment](_.description)
   val checked: Lens[Attachment, Boolean]                    = Focus[Attachment](_.checked)
   val fileSize: Lens[Attachment, Long]                      = Focus[Attachment](_.fileSize)
   val updatedAt: Lens[Attachment, Timestamp]                = Focus[Attachment](_.updatedAt)
+
+  // The design read from a MOS mask attachment's file. Only the mask name is queried.
+  case class Mask(name: NonEmptyString) derives Eq
+  object Mask:
+    given Decoder[Mask] = deriveDecoder
 
   given Decoder[Attachment] = deriveDecoder

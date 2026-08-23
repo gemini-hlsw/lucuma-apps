@@ -58,7 +58,7 @@ object ObsQueriesGql:
           }
           attachments {
             id
-            maskName
+            mask { name }
           }
         }
 

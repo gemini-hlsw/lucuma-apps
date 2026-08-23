@@ -27,7 +27,7 @@ object ObservationSummarySubquery extends GraphQLSubquery.Typed[ObservationDB, O
           constraintSet $ConstraintSetSubquery
           attachments { 
             id 
-            maskName 
+            mask { name }
           }
           observingMode $BasicConfigurationSubquery
           reference { label }
