@@ -17,7 +17,7 @@ object AttachmentSubquery extends GraphQLSubquery.Typed[ObservationDB, Attachmen
       id
       attachmentType
       fileName
-      maskName
+      mask { name }
       description
       checked
       fileSize

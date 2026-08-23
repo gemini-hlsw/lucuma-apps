@@ -29,6 +29,6 @@ object CustomMasks {
   val Empty: CustomMasks = CustomMasks(Map.empty)
 
   def fromAttachments(attachments: List[Attachments]): CustomMasks = CustomMasks(
-    attachments.flatMap(a => a.maskName.map(n => a.id -> n.value)).toMap
+    attachments.flatMap(a => a.mask.map(_.name).map(n => a.id -> n.value)).toMap
   )
 }

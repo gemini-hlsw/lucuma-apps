@@ -145,7 +145,11 @@ object ObsSummary:
   val posAngleConstraint = Focus[ObsSummary](_.posAngleConstraint)
   val obsReference       = Focus[ObsSummary](_.obsReference)
 
-  private case class AttachmentWrapper(id: Attachment.Id, maskName: Option[NonEmptyString])
+  private case class MaskWrapper(name: NonEmptyString)
+  private object MaskWrapper:
+    given Decoder[MaskWrapper] = deriveDecoder
+
+  private case class AttachmentWrapper(id: Attachment.Id, mask: Option[MaskWrapper])
   private object AttachmentWrapper:
     given Decoder[AttachmentWrapper] = deriveDecoder
 
@@ -177,7 +181,9 @@ object ObsSummary:
       instrument.getOrElse(Instrument.VisitorSouth),
       constraints,
       SortedSet.from(attachments.map(_.id)),
-      SortedMap.from(attachments.collect { case AttachmentWrapper(id, Some(name)) => id -> name }),
+      SortedMap.from(attachments.collect { case AttachmentWrapper(id, Some(MaskWrapper(name))) =>
+        id -> name
+      }),
       observingMode,
       observationTime.map(_.toInstant),
       calibrationRole,
