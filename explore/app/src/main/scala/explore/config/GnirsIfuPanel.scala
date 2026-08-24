@@ -10,7 +10,7 @@ import clue.data.*
 import clue.data.syntax.*
 import crystal.react.View
 import explore.common.Aligner
-import explore.config.offsets.IfuTelescopeConfigsEditor
+import explore.config.offsets.PresettableTelescopeConfigsEditor
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
@@ -169,7 +169,7 @@ case class GnirsIfuPanel(
     wavelength: Wavelength
   )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
     val fpu = observingMode.get.fpu
-    IfuTelescopeConfigsEditor(
+    PresettableTelescopeConfigsEditor(
       telescopeConfigs = observingMode
         .zoom(ObservingMode.GnirsIfu.telescopeConfigs, GnirsIfuInput.telescopeConfigs.modify)
         .view(_.toList.map(_.toInput).assign),

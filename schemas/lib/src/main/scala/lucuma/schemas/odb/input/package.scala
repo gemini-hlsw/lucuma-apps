@@ -532,6 +532,7 @@ extension (o: ObservingMode.GmosSouthLongSlit)
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
     explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
     acquisition = o.acquisition.toInput.assign
   )
 

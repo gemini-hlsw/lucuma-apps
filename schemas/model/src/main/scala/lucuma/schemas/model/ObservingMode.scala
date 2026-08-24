@@ -259,7 +259,7 @@ object ObservingMode:
       explicitRoi.getOrElse(defaultRoi)
     val wavelengthDithers: NonEmptyList[WavelengthDither] =
       explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
-    val telescopeConfigs: SlitTelescopeConfigs             =
+    val telescopeConfigs: SlitTelescopeConfigs            =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
@@ -410,7 +410,7 @@ object ObservingMode:
       explicitRoi.getOrElse(defaultRoi)
     val wavelengthDithers: NonEmptyList[WavelengthDither] =
       explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
-    val telescopeConfigs: SlitTelescopeConfigs             =
+    val telescopeConfigs: SlitTelescopeConfigs            =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
@@ -574,7 +574,7 @@ object ObservingMode:
       explicitRoi.getOrElse(defaultRoi)
     val wavelengthDithers: NonEmptyList[WavelengthDither] =
       explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
-    val telescopeConfigs: NonEmptyList[TelescopeConfig]    =
+    val telescopeConfigs: NonEmptyList[TelescopeConfig]   =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
@@ -672,9 +672,9 @@ object ObservingMode:
       Focus[GmosNorthMos](_.defaultWavelengthDithers)
     val explicitWavelengthDithers: Lens[GmosNorthMos, Option[NonEmptyList[WavelengthDither]]] =
       Focus[GmosNorthMos](_.explicitWavelengthDithers)
-    val defaultTelescopeConfigs: Lens[GmosNorthMos, NonEmptyList[TelescopeConfig]]                     =
+    val defaultTelescopeConfigs: Lens[GmosNorthMos, NonEmptyList[TelescopeConfig]]            =
       Focus[GmosNorthMos](_.defaultTelescopeConfigs)
-    val explicitTelescopeConfigs: Lens[GmosNorthMos, Option[NonEmptyList[TelescopeConfig]]]            =
+    val explicitTelescopeConfigs: Lens[GmosNorthMos, Option[NonEmptyList[TelescopeConfig]]]   =
       Focus[GmosNorthMos](_.explicitTelescopeConfigs)
     val exposureTimeMode: Lens[GmosNorthMos, ExposureTimeMode]                                =
       Focus[GmosNorthMos](_.exposureTimeMode)
@@ -720,7 +720,7 @@ object ObservingMode:
       explicitRoi.getOrElse(defaultRoi)
     val wavelengthDithers: NonEmptyList[WavelengthDither] =
       explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
-    val telescopeConfigs: NonEmptyList[TelescopeConfig]    =
+    val telescopeConfigs: NonEmptyList[TelescopeConfig]   =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
@@ -818,9 +818,9 @@ object ObservingMode:
       Focus[GmosSouthMos](_.defaultWavelengthDithers)
     val explicitWavelengthDithers: Lens[GmosSouthMos, Option[NonEmptyList[WavelengthDither]]] =
       Focus[GmosSouthMos](_.explicitWavelengthDithers)
-    val defaultTelescopeConfigs: Lens[GmosSouthMos, NonEmptyList[TelescopeConfig]]                     =
+    val defaultTelescopeConfigs: Lens[GmosSouthMos, NonEmptyList[TelescopeConfig]]            =
       Focus[GmosSouthMos](_.defaultTelescopeConfigs)
-    val explicitTelescopeConfigs: Lens[GmosSouthMos, Option[NonEmptyList[TelescopeConfig]]]            =
+    val explicitTelescopeConfigs: Lens[GmosSouthMos, Option[NonEmptyList[TelescopeConfig]]]   =
       Focus[GmosSouthMos](_.explicitTelescopeConfigs)
     val exposureTimeMode: Lens[GmosSouthMos, ExposureTimeMode]                                =
       Focus[GmosSouthMos](_.exposureTimeMode)

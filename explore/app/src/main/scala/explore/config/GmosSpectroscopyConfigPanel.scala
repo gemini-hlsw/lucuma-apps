@@ -15,7 +15,7 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
-import explore.config.offsets.IfuTelescopeConfigsEditor
+import explore.config.offsets.PresettableTelescopeConfigsEditor
 import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.Attachment
@@ -35,7 +35,7 @@ import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-import lucuma.core.enums.GmosLongSlitOffsetPreset
+import lucuma.core.enums.GmosSlitOffsetPreset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
@@ -722,7 +722,7 @@ object GmosSpectroscopyConfigPanel {
         ExploreStyles.SlitTelescopeConfigEditor,
         ExploreStyles.SlitTelescopeConfigEditorInline
       )(
-        SlitTelescopeConfigsEditor[GmosLongSlitOffsetPreset](
+        SlitTelescopeConfigsEditor[GmosSlitOffsetPreset](
           explicitValue = props.observingMode
             .zoom(
               ObservingMode.GmosNorthLongSlit.explicitTelescopeConfigs,
@@ -1025,7 +1025,7 @@ object GmosSpectroscopyConfigPanel {
         ExploreStyles.SlitTelescopeConfigEditor,
         ExploreStyles.SlitTelescopeConfigEditorInline
       )(
-        SlitTelescopeConfigsEditor[GmosLongSlitOffsetPreset](
+        SlitTelescopeConfigsEditor[GmosSlitOffsetPreset](
           explicitValue = props.observingMode
             .zoom(
               ObservingMode.GmosSouthLongSlit.explicitTelescopeConfigs,
@@ -1450,7 +1450,7 @@ object GmosSpectroscopyConfigPanel {
     ): VdomNode =
       // A MOS mask has no single slit to nod along, so the positions are a plain list
       // and the only preset is the default.
-      IfuTelescopeConfigsEditor(
+      PresettableTelescopeConfigsEditor(
         telescopeConfigs = props.observingMode
           .zoom(
             ObservingMode.GmosNorthMos.explicitTelescopeConfigs,
@@ -1748,7 +1748,7 @@ object GmosSpectroscopyConfigPanel {
     ): VdomNode =
       // A MOS mask has no single slit to nod along, so the positions are a plain list
       // and the only preset is the default.
-      IfuTelescopeConfigsEditor(
+      PresettableTelescopeConfigsEditor(
         telescopeConfigs = props.observingMode
           .zoom(
             ObservingMode.GmosSouthMos.explicitTelescopeConfigs,
