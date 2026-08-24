@@ -95,7 +95,7 @@ trait OdbObservationApi[F[_]]:
     groupId:    Option[Group.Id],
     groupIndex: NonNegShort
   ): F[Unit]
-  def setGuideTargetName(obsId: Observation.Id, targetName: Option[NonEmptyString]): F[Unit]
+  def setGuideTargetName(obsId: Observation.Id, targetName:   Option[NonEmptyString]): F[Unit]
   def guideTargetName(obsId:    Observation.Id): F[Option[NonEmptyString]]
   def maskDesign(obsId:         Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]]
 

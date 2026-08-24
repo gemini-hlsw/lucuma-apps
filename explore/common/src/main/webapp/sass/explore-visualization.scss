@@ -96,6 +96,7 @@ $brightness: var(--aladin-image-brightness);
       stroke-width: 2px;
       fill: hsl(210deg 100% 60% / 25%);
       vector-effect: non-scaling-stroke;
+      pointer-events: all;
     }
 
     .mos-mask-acq-box {
@@ -104,6 +105,7 @@ $brightness: var(--aladin-image-brightness);
       stroke-width: 2px;
       fill: hsl(300deg 100% 60% / 25%);
       vector-effect: non-scaling-stroke;
+      pointer-events: all;
     }
   }
 

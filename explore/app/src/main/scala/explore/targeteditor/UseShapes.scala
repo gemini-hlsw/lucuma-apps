@@ -34,10 +34,10 @@ import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
 import lucuma.core.geom.mos.MosMaskGeometry
 import lucuma.core.geom.offsets.GeometryType
-import lucuma.core.geom.syntax.all.*
 import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.geom.pwfs
+import lucuma.core.geom.syntax.all.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset

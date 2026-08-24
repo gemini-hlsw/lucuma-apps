@@ -35,6 +35,7 @@ import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
 import lucuma.core.enums.GuideSpeed
+import lucuma.core.enums.MosSlitPriority
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
@@ -55,6 +56,7 @@ import lucuma.core.model.Tracking
 import lucuma.core.util.Timestamp
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Tooltip
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
@@ -746,6 +748,17 @@ object AladinContainer extends AladinCommon {
               props.agsState.exists(_ === AgsState.Calculating)
             )
 
+            // One tooltip per MOS mask aperture, attached by the aperture's css class
+            val maskSlitTooltips: List[VdomNode] =
+              props.vizConf
+                .flatMap(_.maskDesign)
+                .foldMap(_.slits.filter(_.priority =!= MosSlitPriority.Ignore))
+                .map: slit =>
+                  Tooltip(
+                    clazz = VisualizationStyles.VisualizationTooltip,
+                    targetCss = Css(s"mos-mask-aperture-${slit.id}")
+                  )(MaskSlitTooltip(slit))
+
             ReactFragment(
               aladinRef.value.map(AladinZoomControl(_)),
               HelpIcon("aladin-cell.md".refined, ExploreStyles.AladinHelpIcon),
@@ -794,6 +807,7 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
+              React.Fragment(maskSlitTooltips*),
               // Sky keep-out zone
               keepOutZone
                 .filter(_ =>
