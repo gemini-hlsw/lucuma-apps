@@ -23,7 +23,6 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.ui.aladin.*
 import lucuma.ui.aladin.facade.ViewMode
-import lucuma.ui.reusability
 import lucuma.ui.visualization.*
 import monocle.macros.GenLens
 
@@ -276,9 +275,6 @@ object AladinContainer {
       val offsetTargets =
         // order is important, scienc to be drawn above acq
         (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
-
-      // Use explicit reusability that excludes target changes
-      given Reusability[AladinOptions] = reusability.withoutTarget
 
       <.div(
         Css("react-aladin-container"),
