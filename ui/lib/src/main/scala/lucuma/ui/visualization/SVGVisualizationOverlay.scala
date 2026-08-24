@@ -15,6 +15,7 @@ import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.ui.aladin.Fov
 import lucuma.ui.syntax.all.given
+import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryCollection
 import org.locationtech.jts.geom.Polygon
@@ -72,17 +73,32 @@ object SvgVisualizationOverlay {
 
   private def forGeometry(css: Css, g: Geometry): VdomNode =
     g match {
-      case p: Polygon            =>
+      case p: Polygon if p.getNumInteriorRing === 0 =>
         val points = p.getCoordinates
           .map(c => s"${scale(c.x)},${scale(c.y)}")
           .mkString(" ")
         <.polygon(css |+| VisualizationStyles.JtsPolygon, ^.points := points)
-      case p: GeometryCollection =>
+      case p: Polygon                               =>
+        // A polygon with holes cannot be a single <polygon>: its coordinates would run the
+        // hole rings onto the shell, drawing spurious connecting lines. Each ring becomes a
+        // subpath instead, and evenodd leaves the holes unfilled.
+        def subpath(cs: Array[Coordinate]): String =
+          cs.map(c => s"${scale(c.x)},${scale(c.y)}").mkString("M", " L", " Z")
+
+        val rings =
+          p.getExteriorRing +: (0 until p.getNumInteriorRing).map(p.getInteriorRingN)
+
+        <.path(
+          css |+| VisualizationStyles.JtsPolygon,
+          ^.d        := rings.map(r => subpath(r.getCoordinates)).mkString(" "),
+          ^.fillRule := "evenodd"
+        )
+      case p: GeometryCollection                    =>
         <.g(
           css |+| VisualizationStyles.JtsCollection,
           p.geometries.map(forGeometry(css, _)).toTagMod
         )
-      case _                     => EmptyVdom
+      case _                                        => EmptyVdom
     }
 
   private val hatchLine    = Css("hatch-line")
