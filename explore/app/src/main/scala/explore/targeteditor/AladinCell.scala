@@ -471,8 +471,8 @@ object AladinCell extends ModelOptics with AladinCommon:
           true,
           _ => true,
           o =>
-            // Don't save if the change is less than 1 arcse
-            o.fov.isDifferentEnough(newFov)
+            // Don't save if the change is less than 10 arcsec on both axes
+            o.fov.isCloseTo(newFov)
         )
         if (newFov.x.toMicroarcseconds === 0L) Callback.empty
         else

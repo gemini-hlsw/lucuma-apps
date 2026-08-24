@@ -48,4 +48,5 @@ class JsAladin(val aladinDiv: Element, val options: AladinOptions) extends js.Ob
   def pix2world(x:                Double, y:        Double): js.Array[Double]         = js.native
   def world2pix(x:                Double, y:        Double): js.Array[Double]         = js.native
   def on(n:                       String, f:        js.Function): Unit                = js.native
+  var callbacksByEventName: js.Dictionary[js.Function]                                = js.native
 }
