@@ -4,7 +4,6 @@
 package explore.model
 
 import cats.data.NonEmptyChain
-import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
@@ -14,17 +13,14 @@ import explore.model.display.given
 import lucuma.core.data.EmailAddress
 import lucuma.core.data.EmailPred
 import lucuma.core.math.Angle
-import lucuma.core.math.Axis
 import lucuma.core.math.BrightnessValue
 import lucuma.core.math.BrightnessValueRefinement
-import lucuma.core.math.Offset
 import lucuma.core.math.Parallax
 import lucuma.core.math.ProperMotion
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.WavelengthDither
-import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
 import lucuma.core.optics.Format
 import lucuma.core.optics.ValidFilter
@@ -86,14 +82,6 @@ object ExploreModelValidators:
     λmax:     Wavelength
   ): InputValidWedge[WavelengthDither] =
     ditherValidWedge.andThen(ditherInRange(λcentral, λmin, λmax).asValidWedge)
-
-  val offsetQListValidWedge: InputValidWedge[Option[List[Offset.Q]]] =
-    MathValidators.truncatedAngleSignedArcSec
-      .andThen(Offset.Component.angle[Axis.Q].reverse)
-      .toNel(",".refined)
-      .withErrorMessage(_ => "Invalid offsets".refined)
-      .optional
-      .imapB(_.flatMap(NonEmptyList.fromList), _.map(_.toList))
 
   val hoursValidWedge: InputValidWedge[BigDecimal Refined HourRange] =
     InputValidWedge

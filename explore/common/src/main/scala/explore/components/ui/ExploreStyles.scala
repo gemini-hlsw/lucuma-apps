@@ -479,6 +479,7 @@ object ExploreStyles:
   val GnirsConfigEditor: Css               = Css("explore-gnirs-config-editor")
   val GnirsAcqSkyOffsetEditor: Css         = Css("explore-gnirs-acq-sky-offset-editor")
   val SlitTelescopeConfigEditor: Css       = Css("explore-slit-telescope-config-editor")
+  val SlitTelescopeConfigEditorInline: Css = Css("explore-slit-telescope-config-editor-inline")
   val SlitTelescopeConfigEditorHeader: Css = Css("explore-slit-telescope-config-editor-header")
 
   // ExposureTimeModeEditor

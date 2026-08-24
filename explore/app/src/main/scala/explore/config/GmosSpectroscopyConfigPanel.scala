@@ -11,12 +11,12 @@ import clue.data.syntax.*
 import coulomb.Quantity
 import crystal.react.View
 import crystal.react.hooks.*
-import explore.config.offsets.SlitTelescopeConfigsEditor
-import explore.config.offsets.IfuTelescopeConfigsEditor
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.config.offsets.IfuTelescopeConfigsEditor
+import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.Attachment
 import explore.model.ExploreModelValidators
@@ -34,12 +34,13 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.GnirsSlitOffsetPreset
 import lucuma.core.enums.*
+import lucuma.core.enums.GmosLongSlitOffsetPreset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.gmos.longslit.defaultSlitTelescopeConfigs
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
@@ -329,7 +330,7 @@ object GmosSpectroscopyConfigPanel {
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
                   ),
-                offsetsControl(props, disableSimpleEdit)
+                offsetsControl(props, false)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableInputText(
@@ -716,25 +717,25 @@ object GmosSpectroscopyConfigPanel {
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode =
-      // TODO: GMOS has no offset presets of its own.  Giving it a single "Default"
-      // preset means adding a GmosLongSlitOffsetPreset to lucuma-core, since
-      // SlitOffsetPreset is sealed there, and core publishing is currently blocked in
-      // the pipeline by the pending "for_review" changes.  The GNIRS presets have the
-      // same two shapes, so they keep the along-slit / to-sky toggle working meanwhile.
-      SlitTelescopeConfigsEditor[GnirsSlitOffsetPreset](
-        explicitValue = props.observingMode
-          .zoom(
-            ObservingMode.GmosNorthLongSlit.explicitTelescopeConfigs,
-            GmosNorthLongSlitInput.explicitTelescopeConfigs.modify
-          )
-          .view(_.map(_.toInput).orUnassign),
-        defaultValue =
-          ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
-        defaultForPreset =
-          _ => ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
-        helpId = "configuration/offsets.md".refined,
-        presetsReadonly = disabled,
-        editingReadonly = disabled
+      <.div(
+        LucumaPrimeStyles.FormColumnCompact,
+        ExploreStyles.SlitTelescopeConfigEditor,
+        ExploreStyles.SlitTelescopeConfigEditorInline
+      )(
+        SlitTelescopeConfigsEditor[GmosLongSlitOffsetPreset](
+          explicitValue = props.observingMode
+            .zoom(
+              ObservingMode.GmosNorthLongSlit.explicitTelescopeConfigs,
+              GmosNorthLongSlitInput.explicitTelescopeConfigs.modify
+            )
+            .view(_.map(_.toInput).orUnassign),
+          defaultValue =
+            ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
+          defaultForPreset = defaultSlitTelescopeConfigs,
+          helpId = "configuration/offsets.md".refined,
+          presetsReadonly = disabled,
+          editingReadonly = disabled
+        )
       )
 
     inline protected def exposureTimeMode(aligner: AA)(using
@@ -1019,25 +1020,25 @@ object GmosSpectroscopyConfigPanel {
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode =
-      // TODO: GMOS has no offset presets of its own.  Giving it a single "Default"
-      // preset means adding a GmosLongSlitOffsetPreset to lucuma-core, since
-      // SlitOffsetPreset is sealed there, and core publishing is currently blocked in
-      // the pipeline by the pending "for_review" changes.  The GNIRS presets have the
-      // same two shapes, so they keep the along-slit / to-sky toggle working meanwhile.
-      SlitTelescopeConfigsEditor[GnirsSlitOffsetPreset](
-        explicitValue = props.observingMode
-          .zoom(
-            ObservingMode.GmosSouthLongSlit.explicitTelescopeConfigs,
-            GmosSouthLongSlitInput.explicitTelescopeConfigs.modify
-          )
-          .view(_.map(_.toInput).orUnassign),
-        defaultValue =
-          ObservingMode.GmosSouthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
-        defaultForPreset =
-          _ => ObservingMode.GmosSouthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
-        helpId = "configuration/offsets.md".refined,
-        presetsReadonly = disabled,
-        editingReadonly = disabled
+      <.div(
+        LucumaPrimeStyles.FormColumnCompact,
+        ExploreStyles.SlitTelescopeConfigEditor,
+        ExploreStyles.SlitTelescopeConfigEditorInline
+      )(
+        SlitTelescopeConfigsEditor[GmosLongSlitOffsetPreset](
+          explicitValue = props.observingMode
+            .zoom(
+              ObservingMode.GmosSouthLongSlit.explicitTelescopeConfigs,
+              GmosSouthLongSlitInput.explicitTelescopeConfigs.modify
+            )
+            .view(_.map(_.toInput).orUnassign),
+          defaultValue =
+            ObservingMode.GmosSouthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
+          defaultForPreset = defaultSlitTelescopeConfigs,
+          helpId = "configuration/offsets.md".refined,
+          presetsReadonly = disabled,
+          editingReadonly = disabled
+        )
       )
 
     inline protected def exposureTimeMode(aligner: AA)(using

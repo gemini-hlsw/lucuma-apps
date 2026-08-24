@@ -19,7 +19,6 @@ import lucuma.core.math.arb.ArbCoordinates
 import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
-import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs.given
 import lucuma.core.model.Attachment
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
