@@ -1159,6 +1159,8 @@ object GmosSpectroscopyConfigPanel {
     override protected val fpuHelpId: Option[Help.Id] =
       Some("configuration/gmos/mos-slit-width.md".refined)
 
+    protected val maskInstrument: Instrument
+
     protected def customMaskAttachmentId(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
@@ -1179,6 +1181,7 @@ object GmosSpectroscopyConfigPanel {
       // Only shown once the proposal is accepted
       if (props.maskContext.pickerActive)
         MosMaskPicker(
+          instrument = maskInstrument,
           attachmentIdView = customMaskAttachmentId(props.observingMode),
           attachments = props.maskContext.attachments,
           obsAttachmentIds = props.maskContext.obsAttachmentIds,
@@ -1223,6 +1226,8 @@ object GmosSpectroscopyConfigPanel {
         GmosNorthGrating,
         GmosNorthFilter
       ] {
+
+    override protected val maskInstrument: Instrument = Instrument.GmosNorth
 
     inline override protected def revertCustomizations(
       aligner: AA
@@ -1504,6 +1509,8 @@ object GmosSpectroscopyConfigPanel {
         GmosSouthGrating,
         GmosSouthFilter
       ] {
+
+    override protected val maskInstrument: Instrument = Instrument.GmosSouth
 
     inline override protected def revertCustomizations(
       aligner: AA

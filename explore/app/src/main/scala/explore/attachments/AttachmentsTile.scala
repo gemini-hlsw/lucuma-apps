@@ -47,6 +47,7 @@ import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.ConfirmPopup
 import lucuma.react.primereact.Dialog
+import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
 import lucuma.ui.primereact.CheckboxView
@@ -301,8 +302,11 @@ object AttachmentsTile
           column(FileNameColumnId, Attachment.fileName.get)
             .withCell(_.value.value)
             .sortableBy(_.value.toUpperCase),
-          column(AttachmentTypeColumnId, Attachment.attachmentType.get)
-            .withCell(_.value.shortName),
+          // For parsed MOS masks the type is qualified by the instrument the mask was cut for.
+          column(
+            AttachmentTypeColumnId,
+            a => a.attachmentType.shortName + a.maskInstrument.foldMap(i => s" (${i.shortName})")
+          ).withSize(190.toPx),
           column(SizeColumnId, Attachment.fileSize.get)
             .withCell(cell =>
               // The fileSize will always be > 0, the api should be changed to reflect this
@@ -387,7 +391,7 @@ object AttachmentsTile
                   label = "",
                   disabled = meta.readOnly || !meta.isStaffOrAdmin
                 )
-          ).sortableBy(_.get.checked)
+          ).sortableBy(_.get.checked).withSize(80.toPx)
         )
       }
 

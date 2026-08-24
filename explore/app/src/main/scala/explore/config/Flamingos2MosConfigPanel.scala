@@ -175,6 +175,7 @@ object Flamingos2MosConfigPanel
         val maskPicker: VdomNode =
           if (props.maskContext.pickerActive)
             MosMaskPicker(
+              instrument = Instrument.Flamingos2,
               attachmentIdView = attachmentIdView,
               attachments = props.maskContext.attachments,
               obsAttachmentIds = props.maskContext.obsAttachmentIds,

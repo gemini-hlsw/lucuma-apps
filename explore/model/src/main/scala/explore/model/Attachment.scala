@@ -13,6 +13,7 @@ import io.circe.generic.semiauto.*
 import io.circe.refined.given
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
+import lucuma.core.enums.Instrument
 import lucuma.core.model
 import lucuma.core.util.Timestamp
 import monocle.Focus
@@ -28,7 +29,9 @@ case class Attachment(
   fileSize:       Long,
   updatedAt:      Timestamp
 ) derives Eq:
-  def maskName: Option[NonEmptyString] = mask.map(_.name)
+  def maskName: Option[NonEmptyString]   = mask.map(_.name)
+  def maskInstrument: Option[Instrument] = mask.map(_.instrument)
+  def displayName: NonEmptyString        = maskName.getOrElse(fileName)
 
   def isForPurpose(purpose: AttachmentPurpose): Boolean        =
     attachmentType.purpose === purpose
@@ -48,8 +51,8 @@ object Attachment:
   val fileSize: Lens[Attachment, Long]                      = Focus[Attachment](_.fileSize)
   val updatedAt: Lens[Attachment, Timestamp]                = Focus[Attachment](_.updatedAt)
 
-  // The design read from a MOS mask attachment's file. Only the mask name is queried.
-  case class Mask(name: NonEmptyString) derives Eq
+  // The design read from a MOS mask attachment's file.
+  case class Mask(name: NonEmptyString, instrument: Instrument) derives Eq
   object Mask:
     given Decoder[Mask] = deriveDecoder
 
