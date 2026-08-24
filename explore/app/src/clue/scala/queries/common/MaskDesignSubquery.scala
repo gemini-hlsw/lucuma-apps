@@ -20,6 +20,7 @@ object MaskDesignSubquery extends GraphQLSubquery.Typed[ObservationDB, MaskDesig
       instrument
       pointing $CoordinatesSubquery
       positionAngle $AngleSubquery
+      dispersionDirection
       slits {
         id
         coordinates $CoordinatesSubquery

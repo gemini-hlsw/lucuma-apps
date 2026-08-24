@@ -65,17 +65,13 @@ object MaskDesignSlit:
  * The design read from a MOS mask attachment's file, as served by the ODB's `MaskDefinition`.
  */
 case class MaskDesign(
-  name:          NonEmptyString,
-  instrument:    Instrument,
-  pointing:      Coordinates,
-  positionAngle: Angle,
-  slits:         List[MaskDesignSlit]
-) derives Eq:
-  // Fixed per instrument: mask design software only accepts these orientations.
-  def dispersionDirection: MosDispersionDirection =
-    instrument match
-      case Instrument.Flamingos2 => MosDispersionDirection.Vertical
-      case _                     => MosDispersionDirection.Horizontal
+  name:                NonEmptyString,
+  instrument:          Instrument,
+  pointing:            Coordinates,
+  positionAngle:       Angle,
+  dispersionDirection: MosDispersionDirection,
+  slits:               List[MaskDesignSlit]
+) derives Eq
 
 object MaskDesign:
   given Decoder[MaskDesign] = Decoder.instance: c =>
@@ -84,5 +80,6 @@ object MaskDesign:
       instrument    <- c.downField("instrument").as[Instrument]
       pointing      <- c.downField("pointing").as[Coordinates]
       positionAngle <- c.downField("positionAngle").as[Angle]
+      dispersion    <- c.downField("dispersionDirection").as[MosDispersionDirection]
       slits         <- c.downField("slits").as[List[MaskDesignSlit]]
-    yield MaskDesign(name, instrument, pointing, positionAngle, slits)
+    yield MaskDesign(name, instrument, pointing, positionAngle, dispersion, slits)
