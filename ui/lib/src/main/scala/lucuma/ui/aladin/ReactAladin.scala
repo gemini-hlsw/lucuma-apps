@@ -48,8 +48,7 @@ extension (a: Aladin)
   def onZoomCB(cb: Fov => Callback): Callback =
     Callback(a.on("zoomChanged", (_: Double) => cb(fov).runNow()))
 
-  // aladin only emits zoomChanged when the horizontal fov changes; a resize that only
-  // changes the height alters the vertical fov silently, so listen to resizeChanged too
+  // aladin only emits zoomChanged when the horizontal fov changes.
   def onResizeChangedCB(cb: Fov => Callback): Callback =
     Callback(a.on("resizeChanged", (_: Double, _: Double) => cb(fov).runNow()))
 
@@ -118,9 +117,6 @@ case class ReactAladin(
   inline def withMods(mods:          TagMod*)     = addModifiers(mods)
   inline def apply(mods:             TagMod*)     = addModifiers(mods)
 
-// The aladin instance is created exactly once per mount: `options` are initial values and
-// the view (target/fov) belongs to aladin afterwards. Runtime changes are applied in place
-// (survey, panning); to force a fresh instance, remount with a different react key.
 object ReactAladin
     extends ReactFnComponent[ReactAladin](props =>
       def cleanupListener(
@@ -152,11 +148,10 @@ object ReactAladin
       ): Callback =
         abortRef.value.map(c => Callback(c.abort())).getOrEmpty *> setupListener(aladin, abortRef)
 
-      // aladin-lite has no destroy API: without this, an unmounted instance keeps its
-      // ResizeObserver on the div and keeps firing zoom/position callbacks with stale values
       def disposeAladin(a: Aladin): Callback =
         Callback {
           a.view.resizeObserver.foreach(_.disconnect())
+          // aladin-lite has no destroy API we need to reach into the internals to clean listeners
           a.callbacksByEventName = js.Dictionary.empty
         }
 
@@ -180,7 +175,6 @@ object ReactAladin
 
       for {
         aladinRef <- useState(none[Aladin])
-        // useState can't be read at unmount time, mirror the instance on a ref for disposal
         instance  <- useRef(none[Aladin])
         r         <- useRefToVdom[html.Div]
         abortRef  <- useState(none[AbortController])
@@ -189,6 +183,7 @@ object ReactAladin
                          createAladin(r.get, aladinRef, instance, abortRef, props)
                      }
         _         <- useEffectOnMount(
+                       // Cleanup listeners on unmount.
                        CallbackTo(instance.get.flatMap(_.map(disposeAladin).getOrEmpty))
                      )
         _         <- useEffectWithDeps(props.options.survey.toOption): survey =>

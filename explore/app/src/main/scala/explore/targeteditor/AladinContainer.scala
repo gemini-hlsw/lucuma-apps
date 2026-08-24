@@ -587,10 +587,8 @@ object AladinContainer extends AladinCommon {
 
         val includeSvg: Aladin => Callback = (v: Aladin) =>
           aladinRef.setState(v.some) *>
-            v.onZoomCB(onZoom) *> // re render on zoom
-            v.onResizeChangedCB(
-              onZoom
-            ) *>                  // a resize can change the vertical fov without a zoom event
+            v.onZoomCB(onZoom) *>          // re render on zoom
+            v.onResizeChangedCB(onZoom) *> // Force a resize change event
             v.onPositionChangedCB(onPositionChanged) *>
             v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec))) *>
             v.onClickCB(onAladinClick)
