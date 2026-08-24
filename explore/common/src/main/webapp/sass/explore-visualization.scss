@@ -79,9 +79,7 @@ $brightness: var(--aladin-image-brightness);
       display: inline;
     }
 
-    // MOS mask design: slit placement area outline plus the apertures.
-    // The body gets a faint fill so the mask plate reads as a surface without
-    // hiding the sky behind it; the apertures are cut out of it.
+    // MOS mask outline and slit placement styling.
     .mos-mask-outline {
       display: inline;
       stroke: hsl(180deg 100% 45% / 85%);

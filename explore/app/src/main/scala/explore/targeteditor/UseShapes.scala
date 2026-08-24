@@ -195,16 +195,15 @@ def usePatrolFieldShapes(
       )
   }.map(_.value)
 
-// On-sky shapes for a MOS mask design: the slit placement area and the apertures.
+// On-sky shapes for a mask
 // The geometry is fitted from the slits themselves, already in its true sky
-// orientation, so no PA rotation is applied.
+// orientation. PA may not match the observation PA
 private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpression]] =
   MosMaskGeometry
     .fromSlits(
       design.instrument,
       design.dispersionDirection,
       design.pointing,
-      // Every slit goes into the fit, Ignore ones included; only their shapes are dropped.
       design.slits.map: s =>
         MosMaskGeometry.Slit(
           coordinates = s.coordinates,
@@ -219,8 +218,7 @@ private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpres
     )
     .map: geometry =>
       // The shapes are offsets from the design's pointing, drawn anchored at the base
-      // coordinates: identical for a properly configured observation (target = pointing)
-      // and still visible when the bound mask belongs to another field.
+      // coordinates
       val apertures: List[(MaskDesignSlit, ShapeExpression)] =
         design.slits
           .zip(geometry.slits)
@@ -233,8 +231,7 @@ private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpres
             else ExploreStyles.MosMaskSlit
           (css |+| Css(s"mos-mask-aperture-${s.id}"), shape)
 
-      // The apertures are cut out of the plate, as in the physical mask, so the
-      // body's hatch fill does not run beneath the openings.
+      // The apertures are cut out of the plate, as in the physical mask.
       val body: ShapeExpression =
         apertures.foldLeft(geometry.outline)((b, aperture) => b - aperture._2)
 
@@ -272,16 +269,15 @@ def useVisualizationShapes(
 
         // The fitted mask replaces the nominal slit placement area the instrument
         // geometry draws, so drop the latter when a design is available.
-        def withMaskShapes(
-          shapes: Option[SortedMap[Css, ShapeExpression]]
-        ): Option[SortedMap[Css, ShapeExpression]] =
-          val nominalAreas =
-            List(VisualizationStyles.GmosScienceCcd, VisualizationStyles.Flamingos2ScienceArea)
-              .map(_.htmlClass)
-          (shapes, maskShapes) match
-            case (Some(s), Some(m)) =>
-              (s.filterNot((css, _) => nominalAreas.exists(css.htmlClass.contains)) ++ m).some
-            case (s, m)             => s.orElse(m)
+        extension (shapes: Option[SortedMap[Css, ShapeExpression]])
+          def withMaskShapes: Option[SortedMap[Css, ShapeExpression]] =
+            val nominalAreas =
+              List(VisualizationStyles.GmosScienceCcd, VisualizationStyles.Flamingos2ScienceArea)
+                .map(_.htmlClass)
+            (shapes, maskShapes) match
+              case (Some(s), Some(m)) =>
+                (s.filterNot((css, _) => nominalAreas.exists(css.htmlClass.contains)) ++ m).some
+              case (s, m)             => s.orElse(m)
 
         conf match
           case ObservingModeType.Flamingos2LongSlit                                      =>
@@ -334,8 +330,8 @@ def useVisualizationShapes(
                 VisualizationStyles.Flamingos2ProbeArmVisible
 
             (probeVisibilityCss,
-             withMaskShapes(
-               Flamingos2Geometry.f2Geometry(
+             Flamingos2Geometry
+               .f2Geometry(
                  baseCoords,
                  blindOffset,
                  vizConf.flatMap(_.guidedSciOffsets),
@@ -347,7 +343,7 @@ def useVisualizationShapes(
                  selectedGS,
                  candidatesVisibilityCss
                )
-             )
+               .withMaskShapes
             ).some
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
@@ -399,8 +395,8 @@ def useVisualizationShapes(
                 VisualizationStyles.GmosCcdVisible
 
             (probeVisibilityCss,
-             withMaskShapes(
-               GmosGeometry.gmosGeometry(
+             GmosGeometry
+               .gmosGeometry(
                  baseCoords,
                  blindOffset,
                  vizConf.flatMap(_.guidedSciOffsets),
@@ -412,7 +408,7 @@ def useVisualizationShapes(
                  selectedGS,
                  candidatesVisibilityCss
                )
-             )
+               .withMaskShapes
             ).some
           case ObservingModeType.Igrins2LongSlit                                         =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match

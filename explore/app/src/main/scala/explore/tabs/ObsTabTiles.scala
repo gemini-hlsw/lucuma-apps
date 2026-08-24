@@ -316,8 +316,7 @@ object ObsTabTiles:
                                         guideStarSelection.set(
                                           name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
                                         )).toAsync
-        // The mask design is only stored on the attachment, fetched on demand
-        // when a MOS observation has a mask bound to its observing mode.
+        // The mask design is only stored on the attachment, fetched on demand for MOS obs.
         maskDesignPot        <-
           useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
             (obsId, maskId) =>
