@@ -172,7 +172,7 @@ object Flamingos2LongslitConfigPanel
             explicitTelescopeConfigsView = explicitTelescopeConfigsView,
             defaultTelescopeConfigs = props.observingMode.get.defaultTelescopeConfigs,
             defaultForPreset = flamingos2.defaultSlitTelescopeConfigs,
-            offsetsHelpId = "configuration/f2/spatial-offsets.md".refined,
+            offsetsHelpId = "configuration/f2/slit-spatial-offsets.md".refined,
             instrument = props.observingMode.get.instrument,
             modeData = modeData,
             units = props.units,

@@ -732,7 +732,7 @@ object GmosSpectroscopyConfigPanel {
           defaultValue =
             ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
           defaultForPreset = defaultSlitTelescopeConfigs,
-          helpId = "configuration/offsets.md".refined,
+          helpId = "configuration/slit-spatial-offsets.md".refined,
           presetsReadonly = disabled,
           editingReadonly = disabled
         )
@@ -1035,7 +1035,7 @@ object GmosSpectroscopyConfigPanel {
           defaultValue =
             ObservingMode.GmosSouthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
           defaultForPreset = defaultSlitTelescopeConfigs,
-          helpId = "configuration/offsets.md".refined,
+          helpId = "configuration/slit-spatial-offsets.md".refined,
           presetsReadonly = disabled,
           editingReadonly = disabled
         )
@@ -1466,7 +1466,7 @@ object GmosSpectroscopyConfigPanel {
         ),
         defaultConfigs =
           ObservingMode.GmosNorthMos.defaultTelescopeConfigs.get(props.observingMode.get),
-        helpId = "configuration/offsets.md".refined,
+        helpId = "configuration/mos-spatial-offsets.md".refined,
         presetsReadonly = disabled,
         editingReadonly = disabled
       )
@@ -1764,7 +1764,7 @@ object GmosSpectroscopyConfigPanel {
         ),
         defaultConfigs =
           ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(props.observingMode.get),
-        helpId = "configuration/offsets.md".refined,
+        helpId = "configuration/mos-spatial-offsets.md".refined,
         presetsReadonly = disabled,
         editingReadonly = disabled
       )
