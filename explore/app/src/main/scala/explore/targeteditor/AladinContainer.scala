@@ -61,7 +61,6 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.aladin.*
-import lucuma.ui.reusability
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
@@ -573,9 +572,9 @@ object AladinContainer extends AladinCommon {
         def onZoom: Fov => Callback =
           (v: Fov) => {
             // Sometimes get 0 fov, ignore those
-            val ignore =
-              (v.x === Angle.Angle0 && v.y === Angle.Angle0) ||
-                fov.value.exists(_.isDifferentEnough(v))
+            val ignore = v.x === Angle.Angle0 && v.y === Angle.Angle0
+            // The local fov must track aladin exactly or the overlays get out of scale,
+            // e.g. on a resize that only changes one axis
             (fov.setState(v.some) *> props.updateFov(v)).unless_(ignore)
           }
 
@@ -588,7 +587,8 @@ object AladinContainer extends AladinCommon {
 
         val includeSvg: Aladin => Callback = (v: Aladin) =>
           aladinRef.setState(v.some) *>
-            v.onZoomCB(onZoom) *> // re render on zoom
+            v.onZoomCB(onZoom) *>          // re render on zoom
+            v.onResizeChangedCB(onZoom) *> // Force a resize change event
             v.onPositionChangedCB(onPositionChanged) *>
             v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec))) *>
             v.onClickCB(onAladinClick)
@@ -724,9 +724,6 @@ object AladinContainer extends AladinCommon {
             val css    = ExploreStyles.SkyPositionPending.when_(props.pendingSlots.contains(slot))
             SvgTarget
               .SkyPositionTarget(c, css, TargetSize, s"${slot.shortName} sky: $raStr $decStr".some)
-
-        // Use explicit reusability that excludes target changes
-        given Reusability[AladinOptions] = reusability.withoutTarget
 
         <.div.withRef(resize.ref)(
           ExploreStyles.AladinContainerBody |+|

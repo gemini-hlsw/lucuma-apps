@@ -219,15 +219,18 @@ object AladinCell extends ModelOptics with AladinCommon:
     for {
       ctx                 <- useContext(AppContext.ctx)
       trackingMapResult   <-
-        useEffectResultWithDeps((props.obsTargets, props.obsTime, props.site)): (targets, at, s) =>
-          import ctx.given
-          // if there is an unresolved ToO, don't bother getting tracking
-          if (targets.hasUnresolvedTargetOfOpportunity)
-            RegionOrTrackingMap.Empty.asRight.pure
-          else
-            // get it for the full semester for visualization purposes, with
-            // high resolution around the obsTime.
-            getMixedResolutionRegionOrTrackingMap(targets.allTargets.toList, s, at)
+        // Keep the previous tracking map while recomputing: reverting to Pending would unmount
+        // aladin and reload the whole image on every coordinate edit
+        useEffectKeepResultWithDeps((props.obsTargets, props.obsTime, props.site)):
+          (targets, at, s) =>
+            import ctx.given
+            // if there is an unresolved ToO, don't bother getting tracking
+            if (targets.hasUnresolvedTargetOfOpportunity)
+              RegionOrTrackingMap.Empty.asRight.pure
+            else
+              // get it for the full semester for visualization purposes, with
+              // high resolution around the obsTime.
+              getMixedResolutionRegionOrTrackingMap(targets.allTargets.toList, s, at)
       obsTargetsCoordsPot <- useMemo(
                                (props.obsTargets,
                                 props.obsTime,
@@ -471,8 +474,8 @@ object AladinCell extends ModelOptics with AladinCommon:
           true,
           _ => true,
           o =>
-            // Don't save if the change is less than 1 arcse
-            o.fov.isDifferentEnough(newFov)
+            // Don't save if the change is less than 10 arcsec on both axes
+            o.fov.isCloseTo(newFov)
         )
         if (newFov.x.toMicroarcseconds === 0L) Callback.empty
         else

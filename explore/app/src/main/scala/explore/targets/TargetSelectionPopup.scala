@@ -40,7 +40,6 @@ import lucuma.ui.aladin.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
-import lucuma.ui.reusability
 import lucuma.ui.syntax.all.given
 import org.typelevel.log4cats.Logger
 
@@ -81,7 +80,6 @@ object TargetSelectionPopup:
   ) derives Eq
 
   private given Reusability[SelectedTarget] = Reusability.byEq
-  private given Reusability[AladinOptions]  = reusability.all
 
   private given orderTargetSource[F[_]]: Order[TargetSource[F]] = Order.by(_.kind)
 

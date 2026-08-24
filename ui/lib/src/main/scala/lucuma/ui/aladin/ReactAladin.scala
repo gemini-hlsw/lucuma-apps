@@ -48,6 +48,10 @@ extension (a: Aladin)
   def onZoomCB(cb: Fov => Callback): Callback =
     Callback(a.on("zoomChanged", (_: Double) => cb(fov).runNow()))
 
+  // aladin only emits zoomChanged when the horizontal fov changes.
+  def onResizeChangedCB(cb: Fov => Callback): Callback =
+    Callback(a.on("resizeChanged", (_: Double, _: Double) => cb(fov).runNow()))
+
   def onZoomCB(cb: => Callback): Callback =
     Callback(a.on("zoomChanged", (_: Double) => cb.runNow()))
 
@@ -108,19 +112,13 @@ case class ReactAladin(
   customize:      js.UndefOr[Aladin => Callback] = js.undefined,
   panningEnabled: Boolean = true,
   modifiers:      Seq[TagMod] = Seq.empty
-)(using val R: Reusability[AladinOptions])
-    extends ReactFnProps(ReactAladin):
+) extends ReactFnProps(ReactAladin):
   inline def addModifiers(modifiers: Seq[TagMod]) = copy(modifiers = this.modifiers ++ modifiers)
   inline def withMods(mods:          TagMod*)     = addModifiers(mods)
   inline def apply(mods:             TagMod*)     = addModifiers(mods)
 
 object ReactAladin
     extends ReactFnComponent[ReactAladin](props =>
-      given Reusability[ReactAladin] = {
-        given Reusability[AladinOptions] = props.R
-        Reusability.by[ReactAladin, (Css, AladinOptions)](x => (x.clazz, x.options))
-      }
-
       def cleanupListener(
         abortRef: UseState[Option[AbortController]]
       ): Callback =
@@ -150,39 +148,49 @@ object ReactAladin
       ): Callback =
         abortRef.value.map(c => Callback(c.abort())).getOrEmpty *> setupListener(aladin, abortRef)
 
-      def resetAladin(
+      def disposeAladin(a: Aladin): Callback =
+        Callback {
+          a.view.resizeObserver.foreach(_.disconnect())
+          // aladin-lite has no destroy API we need to reach into the internals to clean listeners
+          a.callbacksByEventName = js.Dictionary.empty
+        }
+
+      def createAladin(
         r:         CallbackTo[Option[html.Div]],
-        state:     UseState[Boolean],
         aladinRef: UseState[Option[Aladin]],
+        instance:  Hooks.UseRef[Option[Aladin]],
         abortRef:  UseState[Option[AbortController]],
-        props:     ReactAladin,
-        force:     Boolean
+        props:     ReactAladin
       ): Callback =
         r.flatMap {
-          case Some(e) if force || !state.value =>
-            // Clean up the listener before creating new Aladin instance
-            cleanupListener(abortRef) *>
-              CallbackTo(A.aladin(e, props.options)).flatMap { a =>
-                state.setState(true) *>
-                  aladinRef.setState(Some(a)) *>
-                  props.customize.fold(Callback.empty)(f => f(a)) *>
-                  disablePanning(a, abortRef).unless_(props.panningEnabled)
-              }
-          case _                                => Callback.empty
+          case Some(e) =>
+            CallbackTo(A.aladin(e, props.options)).flatMap { a =>
+              aladinRef.setState(Some(a)) *>
+                instance.set(Some(a)) *>
+                props.customize.fold(Callback.empty)(f => f(a)) *>
+                disablePanning(a, abortRef).unless_(props.panningEnabled)
+            }
+          case _       => Callback.empty
         }
 
       for {
-        init      <- useState(false)
         aladinRef <- useState(none[Aladin])
+        instance  <- useRef(none[Aladin])
         r         <- useRefToVdom[html.Div]
         abortRef  <- useState(none[AbortController])
-        _         <- useEffectWithDeps(props) { _ =>
-                       init.setState(true) *> resetAladin(r.get, init, aladinRef, abortRef, props, true)
-                     }
         _         <- useLayoutEffectOnMount {
                        AsyncCallback.fromCallbackToJsPromise(CallbackTo(A.init)).toCallback *>
-                         resetAladin(r.get, init, aladinRef, abortRef, props, false)
+                         createAladin(r.get, aladinRef, instance, abortRef, props)
                      }
+        _         <- useEffectOnMount(
+                       // Cleanup listeners on unmount.
+                       CallbackTo(instance.get.flatMap(_.map(disposeAladin).getOrEmpty))
+                     )
+        _         <- useEffectWithDeps(props.options.survey.toOption): survey =>
+                       aladinRef.value
+                         .zip(survey)
+                         .map((a, s) => Callback(a.setBaseImageLayer(s)))
+                         .getOrEmpty
         _         <- useEffectWithDeps(props.panningEnabled): enabled =>
                        aladinRef.value
                          .map: aladin =>

@@ -49,8 +49,8 @@ private def emptySpectralDefinitionSurfaceInput(
 extension (options: AsterismVisualOptions) inline def fov: Fov = Fov(options.fovRA, options.fovDec)
 
 extension (fov: Fov)
-  def isDifferentEnough(newFov: Fov): Boolean =
-    (fov.x.toMicroarcseconds - newFov.x.toMicroarcseconds).abs < 1e7 ||
+  def isCloseTo(newFov: Fov): Boolean =
+    (fov.x.toMicroarcseconds - newFov.x.toMicroarcseconds).abs < 1e7 &&
       (fov.y.toMicroarcseconds - newFov.y.toMicroarcseconds).abs < 1e7
 
 val domRoot: Option[HTMLElement] =
