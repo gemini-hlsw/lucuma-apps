@@ -262,8 +262,10 @@ object ConfigurationTile
         ObservingModeInput.Flamingos2Mos(Flamingos2MosInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
-      val EmptyGnirsSpectroscopyInput: ObservingModeInput =
-        ObservingModeInput.GnirsSpectroscopy(GnirsSpectroscopyInput())
+      val EmptyGnirsLongSlitInput: ObservingModeInput     =
+        ObservingModeInput.GnirsLongSlit(GnirsLongSlitInput())
+      val EmptyGnirsIfuInput: ObservingModeInput          =
+        ObservingModeInput.GnirsIfu(GnirsIfuInput())
       val EmptyGhostIfuInput: ObservingModeInput          =
         ObservingModeInput.GhostIfu(GhostIfuInput())
       val EmptyVisitorInput: ObservingModeInput           =
@@ -447,14 +449,23 @@ object ConfigurationTile
                   .modify
             )
 
-        val optGnirsSpectroscopyAligner
-          : Option[Aligner[GnirsSpectroscopy, GnirsSpectroscopyInput]] =
-          optModeAligner(EmptyGnirsSpectroscopyInput).flatMap:
+        val optGnirsLongSlitAligner: Option[Aligner[GnirsLongSlit, GnirsLongSlitInput]] =
+          optModeAligner(EmptyGnirsLongSlitInput).flatMap:
             _.zoomOpt(
-              ObservingMode.gnirsSpectroscopy,
+              ObservingMode.gnirsLongSlit,
               modInput:
-                ObservingModeInput.gnirsSpectroscopy
-                  .andThen(ObservingModeInput.GnirsSpectroscopy.value)
+                ObservingModeInput.gnirsLongSlit
+                  .andThen(ObservingModeInput.GnirsLongSlit.value)
+                  .modify
+            )
+
+        val optGnirsIfuAligner: Option[Aligner[GnirsIfu, GnirsIfuInput]] =
+          optModeAligner(EmptyGnirsIfuInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gnirsIfu,
+              modInput:
+                ObservingModeInput.gnirsIfu
+                  .andThen(ObservingModeInput.GnirsIfu.value)
                   .modify
             )
 
@@ -739,8 +750,22 @@ object ConfigurationTile
                       props.isStaffOrAdmin
                     ),
                   // GNIRS Long Slit
-                  optGnirsSpectroscopyAligner.map: gnirsAligner =>
-                    GnirsSpectroscopyPanel(
+                  optGnirsLongSlitAligner.map: gnirsAligner =>
+                    GnirsLongSlitPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      gnirsAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.isStaffOrAdmin,
+                      props.units
+                    ),
+                  // GNIRS IFU
+                  optGnirsIfuAligner.map: gnirsAligner =>
+                    GnirsIfuPanel(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,

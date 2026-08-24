@@ -3,6 +3,7 @@
 
 package explore.config
 
+import cats.MonadError
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
@@ -15,9 +16,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.offsets.IfuTelescopeConfigsEditor
 import explore.config.offsets.OffsetInput
-import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
@@ -27,6 +26,7 @@ import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
@@ -34,538 +34,492 @@ import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
-import lucuma.core.model.SlitTelescopeConfigs
-import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.model.sequence.gnirs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
-import lucuma.core.model.sequence.gnirs.GnirsFpu
-import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
-import lucuma.react.common.ReactFnComponent
-import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
-import lucuma.schemas.model.ObservingMode.GnirsSpectroscopy.SubMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import monocle.Lens
+import org.typelevel.log4cats.Logger
 
-final case class GnirsSpectroscopyPanel(
-  programId:       Program.Id,
-  obsId:           Observation.Id,
-  calibrationRole: Option[CalibrationRole],
-  observingMode:   Aligner[ObservingMode.GnirsSpectroscopy, GnirsSpectroscopyInput],
-  revertConfig:    IO[Unit],
-  confMatrix:      SpectroscopyModesMatrix,
-  sequenceChanged: Callback,
-  permissions:     ConfigEditPermissions,
-  isStaffOrAdmin:  Boolean,
-  units:           WavelengthUnits
-) extends ReactFnProps(GnirsSpectroscopyPanel)
+/**
+ * A GNIRS spectroscopy panel's props.
+ *
+ * Long slit and IFU are edited by one form but are separate model and input types, so each mode
+ * resolves its own zooms and reads here. The form below only ever sees plain views, and the only
+ * thing it is generic in is the FPU.
+ */
+trait GnirsSpectroscopyPanelProps[Fpu]:
+  def programId: Program.Id
+  def obsId: Observation.Id
+  def calibrationRole: Option[CalibrationRole]
+  def revertConfig: IO[Unit]
+  def confMatrix: SpectroscopyModesMatrix
+  def sequenceChanged: Callback
+  def permissions: ConfigEditPermissions
+  def isStaffOrAdmin: Boolean
+  def units: WavelengthUnits
 
-object GnirsSpectroscopyPanel
-    extends ReactFnComponent[GnirsSpectroscopyPanel](props =>
-      for
-        ctx       <- useContext(AppContext.ctx)
-        modeData  <- useModeData(props.confMatrix, props.observingMode.get)
-        editState <- useStateView(ConfigEditState.View)
-      yield
-        import ctx.given
+  def mode: ObservingMode
+  def isCustomized: Boolean
+  def initialFilter: GnirsFilter
+  def initialPrism: GnirsPrism
+  def initialGrating: GnirsGrating
+  def initialCamera: GnirsCamera
+  def initialFpu: Fpu
+  def initialCentralWavelengths: NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
+  def defaultDecker: GnirsDecker
+  def defaultWellDepth: GnirsWellDepth
 
-        val disableAdvancedEdit: Boolean      =
-          editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
-        val disableSimpleEdit: Boolean        =
-          disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
-        val disableAdvancedAcqEdit: Boolean   =
-          disableAdvancedEdit && !props.permissions.isOnlyForOngoing
-        val showCustomization: Boolean        = props.calibrationRole.isEmpty
-        val allowRevertCustomization: Boolean = props.permissions.isFullEdit
-        val showAcquisitionConfig: Boolean    = props.calibrationRole.needsAcquisitionConfig
+  /** Selecting FAINT seeds the sky offset, and the slit and the IFU place the sky differently. */
+  def defaultFaintSkyOffset: Offset
 
-        given readModeEnum: Enumerated[Option[GnirsReadMode]] =
-          deriveOptionalEnumerated[GnirsReadMode]("Auto")
-        given readModeDisplay: Display[Option[GnirsReadMode]] =
-          deriveOptionalDisplay[GnirsReadMode]("Auto")
+  /** A zoom, so unlike the views below this needs no effect context. */
+  def acquisitionAligner
+    : Aligner[ObservingMode.GnirsSpectroscopyAcquisition, GnirsSpectroscopyAcquisitionInput]
 
-        given acquisitionTypeEnum: Enumerated[Option[GnirsAcquisitionType]] =
-          deriveOptionalEnumerated[GnirsAcquisitionType]("Auto")
-        given acquisitionTypeDisplay: Display[Option[GnirsAcquisitionType]] =
-          deriveOptionalDisplay[GnirsAcquisitionType]("Auto")
+  def revertCustomizations(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): Callback
+  def filterView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[GnirsFilter]
+  def deckerView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[Option[GnirsDecker]]
+  def fpuView(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): View[Fpu]
+  def prismView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[GnirsPrism]
+  def gratingView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[GnirsGrating]
+  def cameraView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[GnirsCamera]
+  def readModeView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[Option[GnirsReadMode]]
+  def wellDepthView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[Option[GnirsWellDepth]]
+  def focusMotorStepsView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[Option[GnirsFocusMotorStepsValue]]
 
-        given acquisitionFilterEnum: Enumerated[Option[GnirsFilter]] =
-          deriveOptionalEnumerated[GnirsFilter]("Auto")(using
-            Enumerated.fromNEL(GnirsFilter.AcquisitionFilters).withTag(_.tag)
-          )
-        given acquisitionFilterDisplay: Display[Option[GnirsFilter]] =
-          deriveOptionalDisplay[GnirsFilter]("Auto")
+  def centralWavelengthsView(using
+    MonadError[IO, Throwable],
+    Effect.Dispatch[IO],
+    Logger[IO]
+  ): View[
+    NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
+  ]
 
-        val filterView: View[GnirsFilter] = props.observingMode
+  /** The offsets editor: along-slit presets for the slit, plain p/q offsets for the IFU. */
+  def telescopeConfigsEditor(
+    prism:      GnirsPrism,
+    camera:     GnirsCamera,
+    wavelength: Wavelength
+  )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode
+
+/** The form itself, which differs between the two modes only in the FPU type. */
+abstract class GnirsSpectroscopyPanelBuilder[
+  Fpu: Enumerated: Display,
+  Props <: GnirsSpectroscopyPanelProps[Fpu]
+]:
+  val component = ScalaFnComponent[Props]: props =>
+    for
+      ctx       <- useContext(AppContext.ctx)
+      modeData  <- useModeData(props.confMatrix, props.mode)
+      editState <- useStateView(ConfigEditState.View)
+    yield
+      import ctx.given
+      val disableAdvancedEdit: Boolean      =
+        editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
+      val disableSimpleEdit: Boolean        =
+        disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
+      val disableAdvancedAcqEdit: Boolean   =
+        disableAdvancedEdit && !props.permissions.isOnlyForOngoing
+      val showCustomization: Boolean        = props.calibrationRole.isEmpty
+      val allowRevertCustomization: Boolean = props.permissions.isFullEdit
+      val showAcquisitionConfig: Boolean    = props.calibrationRole.needsAcquisitionConfig
+
+      given readModeEnum: Enumerated[Option[GnirsReadMode]] =
+        deriveOptionalEnumerated[GnirsReadMode]("Auto")
+      given readModeDisplay: Display[Option[GnirsReadMode]] =
+        deriveOptionalDisplay[GnirsReadMode]("Auto")
+
+      given acquisitionTypeEnum: Enumerated[Option[GnirsAcquisitionType]] =
+        deriveOptionalEnumerated[GnirsAcquisitionType]("Auto")
+      given acquisitionTypeDisplay: Display[Option[GnirsAcquisitionType]] =
+        deriveOptionalDisplay[GnirsAcquisitionType]("Auto")
+
+      given acquisitionFilterEnum: Enumerated[Option[GnirsFilter]] =
+        deriveOptionalEnumerated[GnirsFilter]("Auto")(using
+          Enumerated.fromNEL(GnirsFilter.AcquisitionFilters).withTag(_.tag)
+        )
+      given acquisitionFilterDisplay: Display[Option[GnirsFilter]] =
+        deriveOptionalDisplay[GnirsFilter]("Auto")
+
+      val filterView: View[GnirsFilter] = props.filterView
+
+      val deckerView: View[Option[GnirsDecker]] = props.deckerView
+
+      val fpuView: View[Fpu] = props.fpuView
+
+      val prismView: View[GnirsPrism] = props.prismView
+
+      val gratingView: View[GnirsGrating] = props.gratingView
+
+      val centralWavelengthsView: View[NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]] =
+        props.centralWavelengthsView
+
+      // Where a single representative wavelength is needed (the along-slit offset
+      // defaults are computed from the grating setting), use the first, which is
+      // the shortest and the one the sequence starts at.
+      val primaryWavelength: Wavelength =
+        centralWavelengthsView.get.head.centralWavelength.value
+
+      val cameraView: View[GnirsCamera] = props.cameraView
+
+      val readModeView: View[Option[GnirsReadMode]] = props.readModeView
+
+      val wellDepthView: View[Option[GnirsWellDepth]] = props.wellDepthView
+
+      val focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] =
+        props.focusMotorStepsView
+
+      val focusModeView: View[GnirsFocusMode] =
+        focusMotorStepsView.zoom(GnirsFocusMode.fromMotorSteps(_))(mod =>
+          steps => mod(GnirsFocusMode.fromMotorSteps(steps)).toMotorSteps
+        )
+
+      val focusMotorStepsViewOpt: Option[View[GnirsFocusMotorStepsValue]] =
+        focusMotorStepsView.toOptionView
+
+      val acquisition
+        : Aligner[ObservingMode.GnirsSpectroscopyAcquisition, GnirsSpectroscopyAcquisitionInput] =
+        props.acquisitionAligner
+
+      // In our local model, we use GnirsAcquisitionMode, which maps to 2 fields in the API.
+      val acquisitionModeView: View[Option[GnirsAcquisitionMode]] =
+        acquisition
           .zoom(
-            ObservingMode.GnirsSpectroscopy.filter,
-            GnirsSpectroscopyInput.filter.modify
+            ObservingMode.GnirsSpectroscopyAcquisition.explicitAcquisitionMode,
+            GnirsSpectroscopyAcquisitionInput.explicitAcquisitionType
+              .disjointZip(GnirsSpectroscopyAcquisitionInput.skyOffset)
+              .modify
           )
-          .view(_.assign)
-
-        val deckerView: View[Option[GnirsDecker]] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.explicitDecker,
-            GnirsSpectroscopyInput.explicitDecker.modify
-          )
-          .view(_.orUnassign)
-
-        val slitAlignerOpt: Option[Aligner[SubMode.Slit, GnirsSlitInput]] =
-          props.observingMode.zoomOpt(
-            ObservingMode.GnirsSpectroscopy.subMode.andThen(SubMode.slit),
-            forceAssign(GnirsSpectroscopyInput.slit.modify)(GnirsSlitInput())
-          )
-
-        val ifuAlignerOpt: Option[Aligner[SubMode.Ifu, GnirsIfuInput]] =
-          props.observingMode.zoomOpt(
-            ObservingMode.GnirsSpectroscopy.subMode.andThen(SubMode.ifu),
-            forceAssign(GnirsSpectroscopyInput.ifu.modify)(GnirsIfuInput())
-          )
-
-        val fpuSlitViewOpt: Option[View[GnirsFpuSlit]] =
-          slitAlignerOpt.map(_.zoom(SubMode.Slit.fpu, GnirsSlitInput.fpu.modify).view(_.assign))
-
-        val fpuIfuViewOpt: Option[View[GnirsFpuIfu]] =
-          ifuAlignerOpt.map(_.zoom(SubMode.Ifu.fpu, GnirsIfuInput.fpu.modify).view(_.assign))
-
-        val prismView: View[GnirsPrism] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.prism,
-            GnirsSpectroscopyInput.prism.modify
-          )
-          .view(_.assign)
-
-        val gratingView: View[GnirsGrating] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.grating,
-            GnirsSpectroscopyInput.grating.modify
-          )
-          .view(_.assign)
-
-        val centralWavelengthsView
-          : View[NonEmptyList[ObservingMode.GnirsSpectroscopy.CentralWavelengthConfig]] =
-          props.observingMode
-            .zoom(
-              ObservingMode.GnirsSpectroscopy.centralWavelengths,
-              GnirsSpectroscopyInput.centralWavelengths.modify
-            )
-            .view(_.toList.map(_.toInput).assign)
-
-        // Where a single representative wavelength is needed (the along-slit offset
-        // defaults are computed from the grating setting), use the first, which is
-        // the shortest and the one the sequence starts at.
-        val primaryWavelength: Wavelength =
-          centralWavelengthsView.get.head.centralWavelength.value
-
-        val cameraView: View[GnirsCamera] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.camera,
-            GnirsSpectroscopyInput.camera.modify
-          )
-          .view(_.assign)
-
-        val readModeView: View[Option[GnirsReadMode]] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.explicitReadMode,
-            GnirsSpectroscopyInput.explicitReadMode.modify
-          )
-          .view(_.orUnassign)
-
-        val wellDepthView: View[Option[GnirsWellDepth]] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.explicitWellDepth,
-            GnirsSpectroscopyInput.explicitWellDepth.modify
-          )
-          .view(_.orUnassign)
-
-        val slitTelescopeConfigsViewOpt: Option[View[Option[SlitTelescopeConfigs]]] =
-          slitAlignerOpt.map(
-            _.zoom(
-              SubMode.Slit.explicitTelescopeConfigs,
-              GnirsSlitInput.explicitTelescopeConfigs.modify
-            ).view(_.map(_.toInput).orUnassign)
-          )
-
-        val ifuTelescopeConfigsViewOpt: Option[View[NonEmptyList[TelescopeConfig]]] =
-          ifuAlignerOpt.map(
-            _.zoom(SubMode.Ifu.telescopeConfigs, GnirsIfuInput.telescopeConfigs.modify)
-              .view(_.toList.map(_.toInput).assign)
-          )
-
-        val focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsSpectroscopy.explicitFocusMotorSteps,
-            GnirsSpectroscopyInput.explicitFocusMotorSteps.modify
-          )
-          .view(_.map(_.value.value).orUnassign)
-
-        val focusModeView: View[GnirsFocusMode] =
-          focusMotorStepsView.zoom(GnirsFocusMode.fromMotorSteps(_))(mod =>
-            steps => mod(GnirsFocusMode.fromMotorSteps(steps)).toMotorSteps
-          )
-
-        val focusMotorStepsViewOpt: Option[View[GnirsFocusMotorStepsValue]] =
-          focusMotorStepsView.toOptionView
-
-        val acquisition: Aligner[ObservingMode.GnirsSpectroscopy.Acquisition,
-                                 GnirsSpectroscopyAcquisitionInput
-        ] =
-          props.observingMode.zoom(
-            ObservingMode.GnirsSpectroscopy.acquisition,
-            forceAssign(GnirsSpectroscopyInput.acquisition.modify)(
-              GnirsSpectroscopyAcquisitionInput()
-            )
-          )
-
-        // In our local model, we use GnirsAcquisitionMode, which maps to 2 fields in the API.
-        val acquisitionModeView: View[Option[GnirsAcquisitionMode]] =
-          acquisition
-            .zoom(
-              ObservingMode.GnirsSpectroscopy.Acquisition.explicitAcquisitionMode,
-              GnirsSpectroscopyAcquisitionInput.explicitAcquisitionType
-                .disjointZip(GnirsSpectroscopyAcquisitionInput.skyOffset)
-                .modify
-            )
-            .view:
-              _.map: acqMode =>
-                (acqMode.acquisitionType.assign,
-                 GnirsAcquisitionMode.skyOffset.getOption(acqMode).map(_.toInput).orUnassign
-                )
-              .getOrElse((Input.unassign, Input.unassign))
-
-        // Selecting FAINT seeds the sky offset with the default for this sub-mode; the
-        // slit and the IFU place the sky in different directions.
-        val defaultFaintSkyOffset: Offset =
-          props.observingMode.get.subMode match
-            case _: SubMode.Slit => GnirsAcquisitionMode.Faint.DefaultSlitSkyOffset
-            case _: SubMode.Ifu  => GnirsAcquisitionMode.Faint.DefaultIfuSkyOffset
-
-        val acquisitionTypeView: View[Option[GnirsAcquisitionType]] =
-          acquisitionModeView.zoom(_.map(_.acquisitionType))(mod =>
-            mode =>
-              mod(mode.map(_.acquisitionType))
-                .map(newType =>
-                  GnirsAcquisitionMode.forTypeAndOffset(newType, defaultFaintSkyOffset)
-                )
-          )
-
-        val acquisitionSkyOffsetViewOpt: Option[View[Offset]] =
-          acquisitionModeView.toOptionView
-            .flatMap(_.zoom(GnirsAcquisitionMode.skyOffset).toOptionView)
-
-        val acquisitionCoaddsView: View[PosInt] =
-          acquisition
-            .zoom(
-              ObservingMode.GnirsSpectroscopy.Acquisition.coadds,
-              GnirsSpectroscopyAcquisitionInput.coadds.modify
-            )
-            .view(_.assign)
-
-        val acquisitionFilterView: View[Option[GnirsFilter]] =
-          acquisition
-            .zoom(
-              ObservingMode.GnirsSpectroscopy.Acquisition.explicitFilter,
-              GnirsSpectroscopyAcquisitionInput.explicitFilter.modify
-            )
-            .view(_.orUnassign)
-
-        // The editor shows the effective mode, but entering a value makes it explicit.
-        val acquisitionExposureTimeView: View[ExposureTimeMode] =
-          acquisition
-            .zoom(
-              Lens[ObservingMode.GnirsSpectroscopy.Acquisition, ExposureTimeMode](
-                _.exposureTimeMode
-              )(etm => _.copy(exposureTimeMode = etm, explicitExposureTimeMode = etm.some)),
-              GnirsSpectroscopyAcquisitionInput.explicitExposureTimeMode.modify
-            )
-            .view(_.toInput.assign)
-
-        // Reverting only clears the override. The effective mode keeps showing the old value
-        // until the server answers with the derived one, which it always pairs with coadds of
-        // 1 -- but coadds are not rendered for a signal-to-noise mode, so that is invisible.
-        val revertAcquisitionExposureTime: Callback =
-          acquisition
-            .zoom(
-              ObservingMode.GnirsSpectroscopy.Acquisition.explicitExposureTimeMode,
-              GnirsSpectroscopyAcquisitionInput.explicitExposureTimeMode.modify
-            )
-            .view(_.map(_.toInput).orUnassign)
-            .set(none)
-
-        // Reverts every acquisition customization at once. The per-field addons all live inside
-        // the Acquisition panel, which is collapsed by default, so the section needs its own.
-        val revertAcquisition: Callback =
-          acquisition.view(_.toInput).mod(_.revertCustomizations)
-
-        val defaultDecker: GnirsDecker       = props.observingMode.get.defaultDecker
-        val defaultWellDepth: GnirsWellDepth = props.observingMode.get.defaultWellDepth
-
-        React.Fragment(
-          <.div(ExploreStyles.GnirsUpperGrid)(
-            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.GnirsConfigEditor)(
-              CustomizableEnumSelect(
-                id = "filter".refined,
-                view = filterView,
-                defaultValue = props.observingMode.get.initialFilter,
-                label = "Filter".some,
-                helpId = Some("configuration/gnirs/filter.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization,
-                useLongName = true
-              ),
-              CustomizableEnumSelectOptional(
-                id = "decker".refined,
-                view = deckerView.withDefault(defaultDecker),
-                defaultValue = defaultDecker.some,
-                label = "Decker".some,
-                helpId = Some("configuration/gnirs/decker.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization,
-                useLongName = true
-              ),
-              fpuSlitViewOpt
-                .map[VdomNode]: v =>
-                  CustomizableEnumSelect(
-                    id = "fpu".refined,
-                    view = v,
-                    defaultValue = GnirsFpu.Spectroscopy.slit
-                      .getOption(props.observingMode.get.initialFpu)
-                      .getOrElse(v.get),
-                    label = "FPU".some,
-                    helpId = Some("configuration/gnirs/fpu.md".refined),
-                    disabled = disableAdvancedEdit,
-                    showCustomization = showCustomization,
-                    allowRevertCustomization = allowRevertCustomization,
-                    useLongName = true
-                  )
-                .orElse:
-                  fpuIfuViewOpt.map[VdomNode]: v =>
-                    CustomizableEnumSelect(
-                      id = "fpu".refined,
-                      view = v,
-                      defaultValue = GnirsFpu.Spectroscopy.ifu
-                        .getOption(props.observingMode.get.initialFpu)
-                        .getOrElse(v.get),
-                      label = "FPU".some,
-                      helpId = Some("configuration/gnirs/fpu.md".refined),
-                      disabled = disableAdvancedEdit,
-                      showCustomization = showCustomization,
-                      allowRevertCustomization = allowRevertCustomization,
-                      useLongName = true
-                    )
-                .getOrElse(EmptyVdom),
-              CustomizableEnumSelect(
-                id = "prism".refined,
-                view = prismView,
-                defaultValue = props.observingMode.get.initialPrism,
-                label = "Prism".some,
-                helpId = Some("configuration/gnirs/prism.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              CustomizableEnumSelect(
-                id = "grating".refined,
-                view = gratingView,
-                defaultValue = props.observingMode.get.initialGrating,
-                label = "Grating".some,
-                helpId = Some("configuration/gnirs/grating.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization,
-                useLongName = true
-              ),
-              CustomizableEnumSelect(
-                id = "camera".refined,
-                view = cameraView,
-                defaultValue = props.observingMode.get.initialCamera,
-                label = "Camera".some,
-                helpId = Some("configuration/gnirs/camera.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization,
-                useLongName = true
-              ),
-              CustomizableEnumSelect(
-                id = "focus-mode".refined,
-                view = focusModeView,
-                defaultValue = GnirsFocusMode.Best,
-                label = "Focus".some,
-                helpId = Some("configuration/gnirs/focus.md".refined),
-                disabled = disableSimpleEdit || !props.isStaffOrAdmin,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              focusMotorStepsViewOpt.map: focusMotorStepsView =>
-                FormInputTextView(
-                  id = "focus-motor-steps".refined,
-                  value = focusMotorStepsView.as(GnirsFocusMotorStepsValue.Value),
-                  label =
-                    React.Fragment("Focus Motor Steps",
-                                   HelpIcon("configuration/gnirs/focus-motor-steps.md".refined)
-                    ),
-                  validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
-                  disabled = disableSimpleEdit || !props.isStaffOrAdmin
-                ),
-              CustomizableEnumSelect(
-                id = "read-mode".refined,
-                view = readModeView,
-                defaultValue = None,
-                label = "Read Mode".some,
-                helpId = Some("configuration/gnirs/read-mode.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              CustomizableEnumSelectOptional(
-                id = "well-depth".refined,
-                view = wellDepthView.withDefault(defaultWellDepth),
-                defaultValue = defaultWellDepth.some,
-                label = "Well Depth".some,
-                helpId = Some("configuration/gnirs/well-depth.md".refined),
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
+          .view:
+            _.map: acqMode =>
+              (acqMode.acquisitionType.assign,
+               GnirsAcquisitionMode.skyOffset.getOption(acqMode).map(_.toInput).orUnassign
               )
+            .getOrElse((Input.unassign, Input.unassign))
+
+      val defaultFaintSkyOffset: Offset = props.defaultFaintSkyOffset
+
+      val acquisitionTypeView: View[Option[GnirsAcquisitionType]] =
+        acquisitionModeView.zoom(_.map(_.acquisitionType))(mod =>
+          mode =>
+            mod(mode.map(_.acquisitionType))
+              .map(newType => GnirsAcquisitionMode.forTypeAndOffset(newType, defaultFaintSkyOffset))
+        )
+
+      val acquisitionSkyOffsetViewOpt: Option[View[Offset]] =
+        acquisitionModeView.toOptionView
+          .flatMap(_.zoom(GnirsAcquisitionMode.skyOffset).toOptionView)
+
+      val acquisitionCoaddsView: View[PosInt] =
+        acquisition
+          .zoom(
+            ObservingMode.GnirsSpectroscopyAcquisition.coadds,
+            GnirsSpectroscopyAcquisitionInput.coadds.modify
+          )
+          .view(_.assign)
+
+      val acquisitionFilterView: View[Option[GnirsFilter]] =
+        acquisition
+          .zoom(
+            ObservingMode.GnirsSpectroscopyAcquisition.explicitFilter,
+            GnirsSpectroscopyAcquisitionInput.explicitFilter.modify
+          )
+          .view(_.orUnassign)
+
+      // The editor shows the effective mode, but entering a value makes it explicit.
+      val acquisitionExposureTimeView: View[ExposureTimeMode] =
+        acquisition
+          .zoom(
+            Lens[ObservingMode.GnirsSpectroscopyAcquisition, ExposureTimeMode](
+              _.exposureTimeMode
+            )(etm => _.copy(exposureTimeMode = etm, explicitExposureTimeMode = etm.some)),
+            GnirsSpectroscopyAcquisitionInput.explicitExposureTimeMode.modify
+          )
+          .view(_.toInput.assign)
+
+      // Reverting only clears the override. The effective mode keeps showing the old value
+      // until the server answers with the derived one, which it always pairs with coadds of
+      // 1 -- but coadds are not rendered for a signal-to-noise mode, so that is invisible.
+      val revertAcquisitionExposureTime: Callback =
+        acquisition
+          .zoom(
+            ObservingMode.GnirsSpectroscopyAcquisition.explicitExposureTimeMode,
+            GnirsSpectroscopyAcquisitionInput.explicitExposureTimeMode.modify
+          )
+          .view(_.map(_.toInput).orUnassign)
+          .set(none)
+
+      // Reverts every acquisition customization at once. The per-field addons all live inside
+      // the Acquisition panel, which is collapsed by default, so the section needs its own.
+      val revertAcquisition: Callback =
+        acquisition.view(_.toInput).mod(_.revertCustomizations)
+
+      val defaultDecker: GnirsDecker                                                          =
+        props.defaultDecker
+      val defaultWellDepth: GnirsWellDepth                                                    =
+        props.defaultWellDepth
+      val gnirsInstrument: Option[Instrument]                                                 =
+        props.mode.instrument
+      val isCustomized: Boolean                                                               =
+        props.isCustomized
+      val initialFilter: GnirsFilter                                                          =
+        props.initialFilter
+      val initialPrism: GnirsPrism                                                            =
+        props.initialPrism
+      val initialGrating: GnirsGrating                                                        =
+        props.initialGrating
+      val initialCamera: GnirsCamera                                                          =
+        props.initialCamera
+      val initialCentralWavelengths: NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig] =
+        props.initialCentralWavelengths
+      val revertAllCustomizations: Callback                                                   =
+        props.revertCustomizations
+
+      React.Fragment(
+        <.div(ExploreStyles.GnirsUpperGrid)(
+          <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.GnirsConfigEditor)(
+            CustomizableEnumSelect(
+              id = "filter".refined,
+              view = filterView,
+              defaultValue = initialFilter,
+              label = "Filter".some,
+              helpId = Some("configuration/gnirs/filter.md".refined),
+              disabled = disableAdvancedEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization,
+              useLongName = true
             ),
-            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-              ifuTelescopeConfigsViewOpt.flatMap: v =>
-                fpuIfuViewOpt.map: fpuView =>
-                  val fpu = fpuView.get
-                  IfuTelescopeConfigsEditor(
-                    telescopeConfigs = v,
-                    presets = gnirs.gnirsIfuTelescopeConfigPresets(fpu),
-                    defaultConfigs = gnirs.defaultIfuTelescopeConfigs(fpu),
-                    helpId = "configuration/ifu-spatial-offsets.md".refined,
-                    presetsReadonly = !props.permissions.isFullEdit,
-                    editingReadonly = !props.permissions.isFullEdit
-                  )
-              ,
-              slitTelescopeConfigsViewOpt.map: v =>
-                SlitTelescopeConfigsEditor(
-                  explicitValue = v,
-                  defaultValue = props.observingMode.get.defaultTelescopeConfigsSlit
-                    .getOrElse(
-                      gnirs.defaultSlitTelescopeConfigs(
-                        GnirsSlitOffsetPreset.NodAlongSlit,
-                        prismView.get,
-                        cameraView.get,
-                        GnirsGratingWavelength(primaryWavelength)
-                      )
-                    ),
-                  defaultForPreset = gnirs.defaultSlitTelescopeConfigs(
-                    _,
-                    prismView.get,
-                    cameraView.get,
-                    GnirsGratingWavelength(primaryWavelength)
-                  ),
-                  helpId = "configuration/slit-spatial-offsets.md".refined,
-                  presetsReadonly = !props.permissions.isFullEdit,
-                  editingReadonly = !props.permissions.isFullEdit
-                )
+            CustomizableEnumSelectOptional(
+              id = "decker".refined,
+              view = deckerView.withDefault(defaultDecker),
+              defaultValue = defaultDecker.some,
+              label = "Decker".some,
+              helpId = Some("configuration/gnirs/decker.md".refined),
+              disabled = disableSimpleEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization,
+              useLongName = true
+            ),
+            CustomizableEnumSelect(
+              id = "fpu".refined,
+              view = fpuView,
+              defaultValue = props.initialFpu,
+              label = "FPU".some,
+              helpId = Some("configuration/gnirs/fpu.md".refined),
+              disabled = disableAdvancedEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization,
+              useLongName = true
+            ),
+            CustomizableEnumSelect(
+              id = "prism".refined,
+              view = prismView,
+              defaultValue = initialPrism,
+              label = "Prism".some,
+              helpId = Some("configuration/gnirs/prism.md".refined),
+              disabled = disableAdvancedEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization
+            ),
+            CustomizableEnumSelect(
+              id = "grating".refined,
+              view = gratingView,
+              defaultValue = initialGrating,
+              label = "Grating".some,
+              helpId = Some("configuration/gnirs/grating.md".refined),
+              disabled = disableAdvancedEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization,
+              useLongName = true
+            ),
+            CustomizableEnumSelect(
+              id = "camera".refined,
+              view = cameraView,
+              defaultValue = initialCamera,
+              label = "Camera".some,
+              helpId = Some("configuration/gnirs/camera.md".refined),
+              disabled = disableAdvancedEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization,
+              useLongName = true
+            ),
+            CustomizableEnumSelect(
+              id = "focus-mode".refined,
+              view = focusModeView,
+              defaultValue = GnirsFocusMode.Best,
+              label = "Focus".some,
+              helpId = Some("configuration/gnirs/focus.md".refined),
+              disabled = disableSimpleEdit || !props.isStaffOrAdmin,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization
+            ),
+            focusMotorStepsViewOpt.map: focusMotorStepsView =>
+              FormInputTextView(
+                id = "focus-motor-steps".refined,
+                value = focusMotorStepsView.as(GnirsFocusMotorStepsValue.Value),
+                label = React.Fragment("Focus Motor Steps",
+                                       HelpIcon("configuration/gnirs/focus-motor-steps.md".refined)
+                ),
+                validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
+                disabled = disableSimpleEdit || !props.isStaffOrAdmin
+              ),
+            CustomizableEnumSelect(
+              id = "read-mode".refined,
+              view = readModeView,
+              defaultValue = None,
+              label = "Read Mode".some,
+              helpId = Some("configuration/gnirs/read-mode.md".refined),
+              disabled = disableSimpleEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization
+            ),
+            CustomizableEnumSelectOptional(
+              id = "well-depth".refined,
+              view = wellDepthView.withDefault(defaultWellDepth),
+              defaultValue = defaultWellDepth.some,
+              label = "Well Depth".some,
+              helpId = Some("configuration/gnirs/well-depth.md".refined),
+              disabled = disableSimpleEdit,
+              showCustomization = showCustomization,
+              allowRevertCustomization = allowRevertCustomization
             )
           ),
-          GnirsWavelengthsPanel(
-            instrument = props.observingMode.get.instrument,
-            wavelengthsView = centralWavelengthsView,
-            initialWavelengths = props.observingMode.get.initialCentralWavelengths,
-            // A new row with no explicit exposure time mode falls back to the
-            // observation's requirements, as the imaging filters do.
-            requirementsExposureTimeMode = none,
-            units = props.units,
-            calibrationRole = props.calibrationRole,
-            allowRevertCustomization = allowRevertCustomization,
-            wavelengthReadonly = disableSimpleEdit,
-            exposureTimeModeReadonly = !props.permissions.isFullEdit,
-            showCustomization = showCustomization
-          ),
-          <.div(ExploreStyles.GnirsLowerGrid)(
-            Panel(
-              header = <.span(
-                "Acquisition",
-                HelpIcon("configuration/gnirs/acquisition-customization.md".refined),
-                CustomizedGroupAddon(
-                  "automatic",
-                  revertAcquisition,
-                  allowRevertCustomization
-                ).when(showCustomization && acquisition.get.isCustomized)
-              ),
-              toggleable = true,
-              collapsed = true
-            )(
-              <.div(ExploreStyles.AcquisitionCustomizationGrid)(
-                <.div(LucumaPrimeStyles.FormColumnCompact)(
-                  CustomizableEnumSelect(
-                    id = "acq-type".refined,
-                    view = acquisitionTypeView,
-                    defaultValue = none,
-                    label = "Type".some,
-                    helpId = Some("configuration/gnirs/acquisition-type.md".refined),
-                    disabled = disableAdvancedAcqEdit,
-                    showCustomization = showCustomization,
-                    allowRevertCustomization = allowRevertCustomization
-                  ),
-                  acquisitionSkyOffsetViewOpt.map: acquisitionOffsetView =>
-                    OffsetInput(
-                      id = "acq-offset".refined,
-                      offset = acquisitionOffsetView,
-                      readonly = disableAdvancedAcqEdit,
-                      clazz = LucumaPrimeStyles.FormField
-                    ),
-                  CustomizableEnumSelect(
-                    id = "acq-filter".refined,
-                    view = acquisitionFilterView,
-                    defaultValue = none,
-                    label = "Filter".some,
-                    helpId = Some("configuration/gnirs/acquisition-filter.md".refined),
-                    disabled = disableSimpleEdit,
-                    showCustomization = showCustomization,
-                    allowRevertCustomization = allowRevertCustomization
-                  )
+          <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
+            props.telescopeConfigsEditor(prismView.get, cameraView.get, primaryWavelength)
+          )
+        ),
+        GnirsWavelengthsPanel(
+          instrument = gnirsInstrument,
+          wavelengthsView = centralWavelengthsView,
+          initialWavelengths = initialCentralWavelengths,
+          // A new row with no explicit exposure time mode falls back to the
+          // observation's requirements, as the imaging filters do.
+          requirementsExposureTimeMode = none,
+          units = props.units,
+          calibrationRole = props.calibrationRole,
+          allowRevertCustomization = allowRevertCustomization,
+          wavelengthReadonly = disableSimpleEdit,
+          exposureTimeModeReadonly = !props.permissions.isFullEdit,
+          showCustomization = showCustomization
+        ),
+        <.div(ExploreStyles.GnirsLowerGrid)(
+          Panel(
+            header = <.span(
+              "Acquisition",
+              HelpIcon("configuration/gnirs/acquisition-customization.md".refined),
+              CustomizedGroupAddon(
+                "automatic",
+                revertAcquisition,
+                allowRevertCustomization
+              ).when(showCustomization && acquisition.get.isCustomized)
+            ),
+            toggleable = true,
+            collapsed = true
+          )(
+            <.div(ExploreStyles.AcquisitionCustomizationGrid)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                CustomizableEnumSelect(
+                  id = "acq-type".refined,
+                  view = acquisitionTypeView,
+                  defaultValue = none,
+                  label = "Type".some,
+                  helpId = Some("configuration/gnirs/acquisition-type.md".refined),
+                  disabled = disableAdvancedAcqEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
                 ),
-                <.div(LucumaPrimeStyles.FormColumnCompact)(
-                  ExposureTimeModeEditor(
-                    instrument = props.observingMode.get.instrument,
-                    wavelength = none,
-                    exposureTimeMode = acquisitionExposureTimeView,
-                    coadds = acquisitionCoaddsView.some,
-                    scienceMode = ScienceMode.Imaging,
-                    readonly = props.permissions.isReadonly,
-                    units = props.units,
-                    calibrationRole = props.calibrationRole,
-                    idPrefix = "gnirsAcq".refined,
-                    forceCount = Some(1.refined),
-                    isCustomized =
-                      showCustomization && acquisition.get.explicitExposureTimeMode.isDefined,
-                    revertCustomization = revertAcquisitionExposureTime,
-                    allowRevertCustomization = allowRevertCustomization
-                  )
+                acquisitionSkyOffsetViewOpt.map: acquisitionOffsetView =>
+                  OffsetInput(
+                    id = "acq-offset".refined,
+                    offset = acquisitionOffsetView,
+                    readonly = disableAdvancedAcqEdit,
+                    clazz = LucumaPrimeStyles.FormField
+                  ),
+                CustomizableEnumSelect(
+                  id = "acq-filter".refined,
+                  view = acquisitionFilterView,
+                  defaultValue = none,
+                  label = "Filter".some,
+                  helpId = Some("configuration/gnirs/acquisition-filter.md".refined),
+                  disabled = disableSimpleEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                )
+              ),
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                ExposureTimeModeEditor(
+                  instrument = gnirsInstrument,
+                  wavelength = none,
+                  exposureTimeMode = acquisitionExposureTimeView,
+                  coadds = acquisitionCoaddsView.some,
+                  scienceMode = ScienceMode.Imaging,
+                  readonly = props.permissions.isReadonly,
+                  units = props.units,
+                  calibrationRole = props.calibrationRole,
+                  idPrefix = "gnirsAcq".refined,
+                  forceCount = Some(1.refined),
+                  isCustomized =
+                    showCustomization && acquisition.get.explicitExposureTimeMode.isDefined,
+                  revertCustomization = revertAcquisitionExposureTime,
+                  allowRevertCustomization = allowRevertCustomization
                 )
               )
-            ).when(showAcquisitionConfig),
-            AdvancedConfigButtons(
-              editState = editState,
-              isCustomized = props.observingMode.get.isCustomized,
-              revertConfig = props.revertConfig,
-              revertCustomizations =
-                props.observingMode.view(_.toInput).mod(_.revertCustomizations),
-              sequenceChanged = props.sequenceChanged,
-              !props.permissions.isFullEdit,
-              showAdvancedButton = true
             )
+          ).when(showAcquisitionConfig),
+          AdvancedConfigButtons(
+            editState = editState,
+            isCustomized = isCustomized,
+            revertConfig = props.revertConfig,
+            revertCustomizations = revertAllCustomizations,
+            sequenceChanged = props.sequenceChanged,
+            !props.permissions.isFullEdit,
+            showAdvancedButton = true
           )
         )
-    )
+      )

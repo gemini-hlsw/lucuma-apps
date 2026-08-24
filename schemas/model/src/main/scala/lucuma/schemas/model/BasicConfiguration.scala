@@ -244,7 +244,9 @@ object BasicConfiguration:
           .orElse:
             c.downField("gnirsImaging").as[GnirsImaging]
           .orElse:
-            c.downField("gnirsSpectroscopy").as[GnirsSpectroscopy]
+            c.downField("gnirsLongSlit").as[GnirsSpectroscopy]
+          .orElse:
+            c.downField("gnirsIfu").as[GnirsSpectroscopy]
           .orElse:
             c.downField("ghostIfu").as[GhostIfu]
           .orElse:
@@ -391,29 +393,24 @@ object BasicConfiguration:
         case GnirsFpu.Spectroscopy.Ifu(_)  => ObservingModeType.GnirsIfu
 
   object GnirsSpectroscopy:
+    // Decodes either `gnirsLongSlit` or `gnirsIfu`; the two differ only in the FPU type,
+    // and the slit and IFU FPU tags are disjoint, so reading whichever parses is exact.
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
       for
-        filter   <- c.downField("filter").as[GnirsFilter]
-        slitJson <- c.downField("slit").as[Option[Json]]
-        ifuJson  <- c.downField("ifu").as[Option[Json]]
-        fpu      <- (slitJson, ifuJson) match
-                      case (Some(s), None) =>
-                        s.hcursor.downField("fpu").as[GnirsFpuSlit].map(GnirsFpu.Spectroscopy.Slit(_))
-                      case (None, Some(i)) =>
-                        i.hcursor.downField("fpu").as[GnirsFpuIfu].map(GnirsFpu.Spectroscopy.Ifu(_))
-                      case _               =>
-                        DecodingFailure(
-                          "GNIRS spectroscopy: exactly one of slit / ifu expected",
-                          c.history
-                        ).asLeft
-        prism    <- c.downField("prism").as[GnirsPrism]
-        grating  <- c.downField("grating").as[GnirsGrating]
-        camera   <- c.downField("camera").as[GnirsCamera]
+        filter  <- c.downField("filter").as[GnirsFilter]
+        fpu     <- c.downField("fpu")
+                     .as[GnirsFpuSlit]
+                     .map(GnirsFpu.Spectroscopy.Slit(_): GnirsFpu.Spectroscopy)
+                     .orElse:
+                       c.downField("fpu").as[GnirsFpuIfu].map(GnirsFpu.Spectroscopy.Ifu(_))
+        prism   <- c.downField("prism").as[GnirsPrism]
+        grating <- c.downField("grating").as[GnirsGrating]
+        camera  <- c.downField("camera").as[GnirsCamera]
         // The basic configuration keeps a single representative wavelength (the
         // first, i.e. the shortest); the full per-wavelength list lives on the
         // observing mode.
-        cws      <- c.downField("centralWavelengths").as[NonEmptyList[Json]]
-        cw       <- cws.head.hcursor.downField("centralWavelength").as[CentralWavelength]
+        cws     <- c.downField("centralWavelengths").as[NonEmptyList[Json]]
+        cw      <- cws.head.hcursor.downField("centralWavelength").as[CentralWavelength]
       yield GnirsSpectroscopy(filter, fpu, prism, grating, camera, cw)
 
   case class GhostIfu(

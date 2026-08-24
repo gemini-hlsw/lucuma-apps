@@ -15,7 +15,7 @@ import lucuma.schemas.model.ObservingMode
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
-    "($includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsSpectroscopy: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
+    "($includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
 
   override val subquery = gql"""
         {
@@ -292,24 +292,54 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               coadds
             }
           }
-          gnirsSpectroscopy @include(if: $$includeGnirsSpectroscopy) {
+          gnirsLongSlit @include(if: $$includeGnirsLongSlit) {
             initialGrating
             initialFilter
             initialPrism
             initialCamera
             grating
             filter
-            slit {
-              fpu
-              initialFpu
-              defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
-              explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            fpu
+            initialFpu
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            prism
+            camera
+            centralWavelengths {
+              centralWavelength $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
-            ifu {
-              fpu
-              initialFpu
-              telescopeConfigs $TelescopeConfigSubquery
+            initialCentralWavelengths {
+              centralWavelength $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
+            defaultDecker
+            explicitDecker
+            explicitReadMode
+            defaultWellDepth
+            explicitWellDepth
+            explicitFocusMotorSteps
+            acquisition {
+              explicitAcquisitionType
+              explicitFilter
+              skyOffset $OffsetSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              explicitExposureTimeMode $ExposureTimeModeSubquery
+              coadds
+            }
+          }
+          gnirsIfu @include(if: $$includeGnirsIfu) {
+            initialGrating
+            initialFilter
+            initialPrism
+            initialCamera
+            grating
+            filter
+            fpu
+            initialFpu
+            telescopeConfigs $TelescopeConfigSubquery
             prism
             camera
             centralWavelengths {

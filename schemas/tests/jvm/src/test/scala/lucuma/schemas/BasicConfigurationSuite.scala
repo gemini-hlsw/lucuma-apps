@@ -6,6 +6,7 @@ package lucuma.schemas.model
 import io.circe.parser.decode
 import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsFilter
+import lucuma.core.enums.ObservingModeType
 import munit.FunSuite
 
 class BasicConfigurationSuite extends FunSuite:
@@ -75,37 +76,37 @@ class BasicConfigurationSuite extends FunSuite:
         assertEquals(g.camera, GnirsCamera.ShortBlue)
       case other                                     => fail(s"Expected GnirsImaging, got: $other")
 
-  test("gnirsSpectroscopy (long slit) decodes as GnirsSpectroscopy"):
+  test("gnirsLongSlit decodes as GnirsSpectroscopy with a slit FPU"):
     val json = """{
       "igrins2LongSlit": null,
       "gnirsImaging": null,
-      "gnirsSpectroscopy": {
+      "gnirsLongSlit": {
         "filter": "CROSS_DISPERSED",
-        "slit": { "fpu": "LONG_SLIT_0_10" },
-        "ifu": null,
+        "fpu": "LONG_SLIT_0_10",
         "prism": "SXD",
         "grating": "D10",
         "camera": "SHORT_BLUE",
         "centralWavelengths": [
           { "centralWavelength": { "picometers": 1600000 } }
         ]
-      }
+      },
+      "gnirsIfu": null
     }"""
     decode[BasicConfiguration](json) match
-      case Right(_: BasicConfiguration.GnirsSpectroscopy) => ()
+      case Right(g: BasicConfiguration.GnirsSpectroscopy) =>
+        assertEquals(g.gnirsObsModeType, ObservingModeType.GnirsLongSlit)
       case other                                          => fail(s"Expected GnirsSpectroscopy, got: $other")
 
-  test("gnirsSpectroscopy (IFU) decodes as GnirsSpectroscopy"):
-    // Reproduces the reported bug: the ODB always returns both `slit` and `ifu`
-    // keys with one of them null, and the double `downField("ifu").downField("fpu")`
-    // hop through that null used to hard-fail instead of yielding `None`.
+  test("gnirsIfu decodes as GnirsSpectroscopy with an IFU FPU"):
+    // The ODB returns both mode fields with the inapplicable one null, so the decoder has
+    // to skip past the null `gnirsLongSlit` rather than fail on it.
     val json = """{
       "igrins2LongSlit": null,
       "gnirsImaging": null,
-      "gnirsSpectroscopy": {
+      "gnirsLongSlit": null,
+      "gnirsIfu": {
         "filter": "CROSS_DISPERSED",
-        "slit": null,
-        "ifu": { "fpu": "HIGH_RESOLUTION" },
+        "fpu": "HIGH_RESOLUTION",
         "prism": "SXD",
         "grating": "D10",
         "camera": "SHORT_BLUE",
@@ -115,7 +116,8 @@ class BasicConfigurationSuite extends FunSuite:
       }
     }"""
     decode[BasicConfiguration](json) match
-      case Right(_: BasicConfiguration.GnirsSpectroscopy) => ()
+      case Right(g: BasicConfiguration.GnirsSpectroscopy) =>
+        assertEquals(g.gnirsObsModeType, ObservingModeType.GnirsIfu)
       case other                                          => fail(s"Expected GnirsSpectroscopy, got: $other")
 
   test("exchange decodes as SubaruExchange"):
