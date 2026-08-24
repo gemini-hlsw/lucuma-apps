@@ -9,10 +9,12 @@ import cats.effect.Resource
 import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Step
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
+import java.util.UUID
 import scala.concurrent.duration.*
 
 class OdbEventSenderSuite extends CatsEffectSuite:
@@ -21,6 +23,11 @@ class OdbEventSenderSuite extends CatsEffectSuite:
 
   private val obs1: Observation.Id = Observation.Id.fromLong(1).get
   private val obs2: Observation.Id = Observation.Id.fromLong(2).get
+
+  private val step1: Step.Id =
+    Step.Id.fromUuid(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+  private val step2: Step.Id =
+    Step.Id.fromUuid(UUID.fromString("00000000-0000-0000-0000-000000000002"))
 
   private val sender: Resource[IO, OdbEventSender[IO]] = OdbEventSender[IO]
 
@@ -148,6 +155,65 @@ class OdbEventSenderSuite extends CatsEffectSuite:
           _   <- IO(assert(ok.isRight, "obs2 should not see obs1's failure"))
           bad <- s.flush(obs1).attempt
         yield assert(bad.isLeft, "obs1 should still report its own failure")
+
+  test("awaitStepRecorded waits for that step's event only"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (_, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.second))
+            _   <- s.submit(obs1, "unrelated", send("unrelated", 1.hour))
+            _   <- s.awaitStepRecorded(obs1, step1)
+            now <- IO.monotonic
+          yield assertEquals(now, 1.second)
+
+  test("awaitStepRecorded is released by a failed step event rather than hanging"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        for
+          _   <-
+            s.submitStepEvent(obs1, step1, "StartStep", IO.raiseError(new RuntimeException("no")))
+          _   <- s.awaitStepRecorded(obs1, step1)
+          now <- IO.monotonic
+        yield assertEquals(now, 0.nanos)
+
+  test("awaitStepRecorded returns immediately for a step with no submitted event"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (_, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.hour))
+            _   <- s.awaitStepRecorded(obs1, step2)
+            now <- IO.monotonic
+          yield assertEquals(now, 0.nanos)
+
+  test("forgetStep drops the step's marker"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (_, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.hour))
+            _   <- s.forgetStep(obs1, step1)
+            _   <- s.awaitStepRecorded(obs1, step1)
+            now <- IO.monotonic
+          yield assertEquals(now, 0.nanos)
+
+  test("a step event does not hold up the other events of its step"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        recorder.flatMap: (recorded, send) =>
+          for
+            _   <- s.submitStepEvent(obs1, step1, "StartStep", send("start", 1.second))
+            _   <- (1 to 10).toList.traverse_(i =>
+                     s.submit(obs1, s"event$i", send(s"event$i", 1.second))
+                   )
+            _   <- s.flush(obs1)
+            now <- IO.monotonic
+            r   <- recorded.get
+          yield
+            assertEquals(r.size, 11)
+            // The marker gates recordDataset, not the other events.
+            assertEquals(now, 1.second)
 
   test("flush of an observation without events returns immediately"):
     TestControl.executeEmbed:

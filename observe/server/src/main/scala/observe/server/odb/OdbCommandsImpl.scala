@@ -76,6 +76,11 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   ): F[Unit] =
     eventSender.submit(obsId, description, checked(description)(mutation))
 
+  private def submitStepEvent[D](obsId: Observation.Id, stepId: Step.Id, description: String)(
+    mutation: F[GraphQLResponse[D]]
+  ): F[Unit] =
+    eventSender.submitStepEvent(obsId, stepId, description, checked(description)(mutation))
+
   private def checked[D](description: String)(mutation: F[GraphQLResponse[D]]): F[Unit] =
     mutation.flatMap(OdbCommandsImpl.checkEventRecorded(description))
 
@@ -99,7 +104,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- L.debug(s"Queue ODB event $stage for obsId: $obsId, step $stepId")
       idempotencyKey <- newIdempotencyKey
       clientTime     <- clientTimeNow
-      _              <- submitEvent(obsId, s"step $stage for step $stepId"):
+      _              <- submitStepEvent(obsId, stepId, s"step $stage for step $stepId"):
                           AddStepEventMutation[F]
                             .execute(
                               stepId,
@@ -132,6 +137,10 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _       <- L.debug:
                    s"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
       visitId <- getCurrentVisitId(obsId)
+      // The ODB refuses to record a dataset for a step it has no event for yet. Waiting here keeps
+      // that ordering out of the ODB, where creating the step's execution row would drag the
+      // dataset path into the observation-execution mutex.
+      _       <- eventSender.awaitStepRecorded(obsId, stepId)
       dataset <- recordDataset(stepId, visitId, fileId)
       _       <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
       _       <- L.debug(s"Recorded dataset id ${dataset.id}")
@@ -190,10 +199,14 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     recordStepEvent(obsId, stepId, StepStage.EndObserve)
 
   override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    recordStepEvent(obsId, stepId, StepStage.EndStep) <* flushEvents(obsId)
+    recordStepEvent(obsId, stepId, StepStage.EndStep) <*
+      flushEvents(obsId) <*
+      eventSender.forgetStep(obsId, stepId)
 
   override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    recordStepEvent(obsId, stepId, StepStage.Abort) <* flushEvents(obsId)
+    recordStepEvent(obsId, stepId, StepStage.Abort) <*
+      flushEvents(obsId) <*
+      eventSender.forgetStep(obsId, stepId)
 
   override def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.Stop) <* flushEvents(obsId)
