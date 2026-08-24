@@ -9,7 +9,6 @@ import lucuma.core.arb.*
 import lucuma.core.math.Angle
 import lucuma.core.math.BrightnessValue
 import lucuma.core.math.arb.ArbAngle.given
-import lucuma.core.math.arb.ArbOffset.given
 import lucuma.core.math.arb.ArbParallax.given
 import lucuma.core.math.arb.ArbProperMotion.given
 import lucuma.core.math.arb.ArbWavelengthDither.given
