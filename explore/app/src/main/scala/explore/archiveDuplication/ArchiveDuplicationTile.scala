@@ -245,7 +245,7 @@ object ArchiveDuplicationTile
                 ColumnSelectorInTitle(SelectableColumnNames, columnVisibility)
               )
 
-          val footer: VdomNode =
+          val notApplicableNote: VdomNode =
             if search.notApplicable.isEmpty then EmptyVdom
             else
               <.div(
@@ -256,6 +256,7 @@ object ArchiveDuplicationTile
 
           val body: VdomNode =
             React.Fragment(
+              notApplicableNote,
               PrimeAutoHeightVirtualizedTable(
                 table,
                 _ => 32.toPx,
@@ -267,8 +268,7 @@ object ArchiveDuplicationTile
                   if showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
                 headerCellMod = _ => ExploreStyles.StickyHeader,
                 emptyMessage = <.div("No observations to check against the archive.")
-              ),
-              footer
+              )
             )
 
           TileContents(title, body)
