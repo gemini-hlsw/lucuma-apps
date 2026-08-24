@@ -79,28 +79,30 @@ $brightness: var(--aladin-image-brightness);
       display: inline;
     }
 
-    // MOS mask design: slit placement area outline plus the design's apertures
+    // MOS mask design: slit placement area outline plus the apertures.
+    // The body gets a faint fill so the mask plate reads as a surface without
+    // hiding the sky behind it; the apertures are cut out of it.
     .mos-mask-outline {
       display: inline;
-      stroke: hsl(180deg 100% 45%);
-      stroke-width: 2px;
-      fill: none;
+      stroke: hsl(180deg 100% 45% / 85%);
+      stroke-width: 1.2px;
+      fill: hsl(180deg 100% 45% / 8%);
       vector-effect: non-scaling-stroke;
     }
 
     .mos-mask-slit {
       display: inline;
-      stroke: hsl(210deg 100% 60%);
+      stroke: hsl(210deg 100% 75%);
       stroke-width: 2px;
-      fill: hsl(210deg 100% 60% / 90%);
+      fill: hsl(210deg 100% 60% / 25%);
       vector-effect: non-scaling-stroke;
     }
 
     .mos-mask-acq-box {
       display: inline;
-      stroke: hsl(300deg 100% 60%);
-      stroke-width: 1px;
-      fill: hsl(300deg 100% 60% / 40%);
+      stroke: hsl(300deg 100% 75%);
+      stroke-width: 2px;
+      fill: hsl(300deg 100% 60% / 25%);
       vector-effect: non-scaling-stroke;
     }
   }

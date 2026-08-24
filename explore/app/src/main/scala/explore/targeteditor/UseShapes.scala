@@ -11,6 +11,7 @@ import explore.model.AGSVisibility
 import explore.model.ConfigurationForVisualization
 import explore.model.GhostSkySlot
 import explore.model.MaskDesign
+import explore.model.MaskDesignSlit
 import explore.model.enums.AgsState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
@@ -33,6 +34,7 @@ import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
 import lucuma.core.geom.mos.MosMaskGeometry
 import lucuma.core.geom.offsets.GeometryType
+import lucuma.core.geom.syntax.all.*
 import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.geom.pwfs
@@ -219,18 +221,25 @@ private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpres
       // The shapes are offsets from the design's pointing, drawn anchored at the base
       // coordinates: identical for a properly configured observation (target = pointing)
       // and still visible when the bound mask belongs to another field.
-      val slits: List[(Css, ShapeExpression)] =
+      val apertures: List[(MaskDesignSlit, ShapeExpression)] =
         design.slits
           .zip(geometry.slits)
-          .collect:
-            case (s, shape) if s.priority =!= MosSlitPriority.Ignore =>
-              val css =
-                if (s.isAcquisition) ExploreStyles.MosMaskAcquisitionBox
-                else ExploreStyles.MosMaskSlit
-              (css |+| Css(s"mos-mask-aperture-${s.id}"), shape)
+          .filter(_._1.priority =!= MosSlitPriority.Ignore)
+
+      val slits: List[(Css, ShapeExpression)] =
+        apertures.map: (s, shape) =>
+          val css =
+            if (s.isAcquisition) ExploreStyles.MosMaskAcquisitionBox
+            else ExploreStyles.MosMaskSlit
+          (css |+| Css(s"mos-mask-aperture-${s.id}"), shape)
+
+      // The apertures are cut out of the plate, as in the physical mask, so the
+      // body's hatch fill does not run beneath the openings.
+      val body: ShapeExpression =
+        apertures.foldLeft(geometry.outline)((b, aperture) => b - aperture._2)
 
       SortedMap.from(
-        (ExploreStyles.MosMaskOutline, geometry.outline) :: slits
+        (ExploreStyles.MosMaskOutline, body) :: slits
       )
 
 def useVisualizationShapes(
