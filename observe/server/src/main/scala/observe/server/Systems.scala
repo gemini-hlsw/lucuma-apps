@@ -144,7 +144,7 @@ object Systems {
                                             Http4sHttpClient
                                               .of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
         tracingFetch                    = Otel4sMiddleware(fetchClient)
-        wsClient                       <- Resource.eval(JdkWSClient.simple[F].allocated.map(_._1))
+        wsClient                       <- JdkWSClient.simple[F]
         given Http4sWebSocketBackend[F] = Http4sWebSocketBackend[F](wsClient)
         innerClient                    <- Resource.eval:
                                             Http4sWebSocketClient.of[F, ObservationDB](

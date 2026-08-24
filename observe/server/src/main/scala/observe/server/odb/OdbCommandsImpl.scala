@@ -135,7 +135,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] =
     for
       _       <- L.debug:
-                   s"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
+                   s"Record dataset and queue ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
       visitId <- getCurrentVisitId(obsId)
       // The ODB refuses to record a dataset for a step it has no event for yet. Waiting here keeps
       // that ordering out of the ODB, where creating the step's execution row would drag the
