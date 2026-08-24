@@ -6470,6 +6470,11 @@ type AirMassRange {
   max: PosBigDecimal!
 }
 
+"""
+An angle in a variety of units.  Values are normalized to [0, 360°) unless
+the field documents a signed quantity, in which case negative values are
+rendered negative (as with `Declination`) rather than wrapped.
+"""
 type Angle {
   """Angle in µas"""
   microarcseconds: Long!
@@ -8687,9 +8692,7 @@ type Flamingos2MosAcquisition {
   """An explicitly specified filter to use in acquisition (if any)."""
   explicitFilter: Flamingos2Filter
 
-  """
-  The exposure time mode used for ITC lookup for the acquisition sequence.
-  """
+  """The Time & Count exposure time mode used for the acquisition sequence."""
   exposureTimeMode: ExposureTimeMode!
 }
 
@@ -8708,8 +8711,9 @@ input Flamingos2MosAcquisitionInput {
   explicitFilter: Flamingos2Filter
 
   """
-  Exposure time mode for the acquisition sequence.  If not specified, a default
-  exposure time mode is used.
+  Exposure time mode for the acquisition sequence.  MOS acquisition must be
+  Time & Count; a signal-to-noise mode is rejected.  If not specified, the
+  default is 5 seconds with a count of 1.
   """
   exposureTimeMode: ExposureTimeModeInput
 }
@@ -12982,17 +12986,48 @@ enum ConfigurationRequestStatus {
 scalar TooTriggerId
 
 """
-Lifecycle status of a Target-of-Opportunity trigger.  A trigger is REQUESTED
-while its observation carries the READY workflow state, and WITHDRAWN when that
-state is cleared; DECLINED records that an observer saw it and chose not to
-observe.  Both terminal statuses are equivalent to never having been triggered:
-setting the observation READY again produces a new trigger, never a transition
-out of a terminal state.
+Lifecycle status of a Target-of-Opportunity trigger.
+
+A trigger is not requested directly.  It comes into being when a ToO observation
+is set to the READY workflow state with a resolved opportunity target.  REQUESTED
+is the only non-terminal status.
 """
 enum TooTriggerStatus {
+  """
+  A live, open, request. The observation is ready to be observed and the
+  observatory has it under consideration.  The only non-terminal status. At most
+  one trigger per observation is REQUESTED at a time. A trigger stops being
+  REQUESTED the moment its observation begins executing (see ACCEPTED).
+  """
   REQUESTED
+
+  """
+  An ACCEPTED request is one that the observatory has acted upon.  A ToO trigger
+  is marked ACCEPTED recorded when execution begins. Specifically, when its
+  first non-slew execution event arrives.
+  """
+  ACCEPTED
+
+  """
+  A DECLINED request is one that the observer has rejected for a reason, perhaps
+  setting a `resolutionReason` to explain why. Declining also returns the
+  observation to a DEFINED workflow state so it may be re-triggered in the
+  future.
+  """
   DECLINED
+
+  """
+  A WITHDRAWN ToO is one that has been rescinded before it was acted upon,
+  typically by the PI marking the observation DEFINED.
+  """
   WITHDRAWN
+
+  """
+  When the observation's scheduling mode is adjusted after a trigger has already
+  been fired, any existing ToOs in REQUESTED status are SUPERSEDED by a new
+  ToO trigger record.
+  """
+  SUPERSEDED
 }
 
 """
@@ -13024,6 +13059,16 @@ input TooTriggerEditInput {
 
   """If provided, only edits for this specific trigger are delivered."""
   tooTriggerId: TooTriggerId
+
+  """
+  If provided, only edits for triggers requested at a matching activation are
+  delivered.  Ordered, so `EQ: INTERRRUPTING` follows just the requests that
+  cannot wait for the ordinary queue.  Matched against the activation the
+  trigger carries, which is fixed when it is created -- so a supersession
+  reports the predecessor's own activation on its closing event, not the
+  successor's.
+  """
+  tooActivation: WhereOrderTooActivation
 }
 
 """
@@ -13039,6 +13084,23 @@ type TooTrigger {
 
   """The trigger's lifecycle status."""
   status: TooTriggerStatus!
+
+  """
+  The ToO activation this request was made at.  Fixed when the trigger is created
+  and never changed: a request at a different activation is a different request,
+  since who is notified, how fast, and what they are expected to drop all differ.
+  If the observation's activation moves while this request is outstanding, this
+  trigger becomes SUPERSEDED and a successor carries the new value.  Never NONE.
+  """
+  tooActivation: TooActivation!
+
+  """
+  The request this one replaced, null for a first request.  Following the chain
+  back gives the moment the observation first went live at any activation, which
+  `requestedAt` deliberately does not -- it is the age of this request, at this
+  activation.
+  """
+  supersedes: TooTrigger
 
   """
   Reason accompanying a terminal transition (e.g. a denial or withdrawal), if any.
@@ -13113,8 +13175,9 @@ input WhereOrderTooTriggerId {
 
 """
 Filters on equality or order comparisons of the TooTriggerStatus property.  Order
-follows the lifecycle declaration: REQUESTED < ACCEPTED < DENIED < WITHDRAWN, so
-`GTE: REQUESTED` matches every status.
+follows the lifecycle declaration: REQUESTED < ACCEPTED < DECLINED < WITHDRAWN <
+SUPERSEDED,
+so `GTE: REQUESTED` matches every status.
 """
 input WhereOrderTooTriggerStatus {
   """Matches if the property is exactly the supplied value."""
@@ -13146,6 +13209,43 @@ input WhereOrderTooTriggerStatus {
   LTE: TooTriggerStatus
 }
 
+"""
+Filters on equality or order comparisons of the TooActivation property.  Order
+follows the declaration NONE < STANDARD < RAPID < INTERRUPTING, so `GTE: RAPID`
+matches the activations that cannot wait for the ordinary queue.  Note that only
+INTERRUPTING may displace work already under way; RAPID is observed as soon as
+possible but takes its turn.
+"""
+input WhereOrderTooActivation {
+  """Matches if the property is exactly the supplied value."""
+  EQ: TooActivation
+
+  """Matches if the property is not the supplied value."""
+  NEQ: TooActivation
+
+  """Matches if the property value is any of the supplied options."""
+  IN: [TooActivation!]
+
+  """Matches if the property value is none of the supplied values."""
+  NIN: [TooActivation!]
+
+  """Matches if the property is ordered after (>) the supplied value."""
+  GT: TooActivation
+
+  """Matches if the property is ordered before (<) the supplied value."""
+  LT: TooActivation
+
+  """
+  Matches if the property is ordered after or equal (>=) the supplied value.
+  """
+  GTE: TooActivation
+
+  """
+  Matches if the property is ordered before or equal (<=) the supplied value.
+  """
+  LTE: TooActivation
+}
+
 input WhereTooTrigger {
   """A list of nested trigger filters that all must match."""
   AND: [WhereTooTrigger!]
@@ -13169,6 +13269,12 @@ input WhereTooTrigger {
 
   """Matches the trigger status."""
   status: WhereOrderTooTriggerStatus
+
+  """
+  Matches the activation the trigger was requested at.  Ordered, so
+  `EQ: INTERRUPTING` selects the requests that cannot wait for the ordinary queue.
+  """
+  tooActivation: WhereOrderTooActivation
 
   """Matches the request (creation) time."""
   requestedAt: WhereOrderTimestamp
@@ -13203,10 +13309,21 @@ type TooTriggerChronicleEntry {
   modProgramId: Boolean!
   modStatus: Boolean!
   modResolutionReason: Boolean!
+
+  """
+  Always false on an update -- a trigger's activation never changes -- so this is
+  true exactly on the row that recorded the trigger's creation.
+  """
+  modTooActivation: Boolean!
+
+  """As `modTooActivation`: only ever true on a creation."""
+  modSupersedes: Boolean!
   newObservationId: ObservationId
   newProgramId: ProgramId
   newStatus: TooTriggerStatus
   newResolutionReason: NonEmptyString
+  newTooActivation: TooActivation
+  newSupersedes: TooTriggerId
 }
 
 """
@@ -13243,6 +13360,8 @@ input WhereTooTriggerChronicleEntry {
   modProgramId: WhereBoolean
   modStatus: WhereBoolean
   modResolutionReason: WhereBoolean
+  modTooActivation: WhereBoolean
+  modSupersedes: WhereBoolean
 }
 
 """
