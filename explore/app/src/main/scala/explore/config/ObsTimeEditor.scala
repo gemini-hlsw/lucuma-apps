@@ -39,12 +39,13 @@ case class ObsTimeEditor(
   obsDurationView:        View[Option[TimeSpan]],
   obsTimeAndDurationView: View[(Instant, Option[TimeSpan])],
   calcDigest:             CalculatedValue[Option[ExecutionDigest]],
-  forMultipleObs:         Boolean
+  forMultipleObs:         Boolean,
+  readonly:               Boolean
 ) extends ReactFnProps(ObsTimeEditor):
   val pendingTime: Option[TimeSpan] = calcDigest.remainingObsTime.value
   val setupTime: Option[TimeSpan]   = calcDigest.fullSetupTime.value
   val timesAreLoading: Boolean      = calcDigest.isStale
-  val isReadonly: Boolean           = forMultipleObs || timesAreLoading
+  val isReadonly: Boolean           = readonly || forMultipleObs || timesAreLoading
 
 object ObsTimeEditor
     extends ReactFnComponent[ObsTimeEditor](props =>
@@ -107,14 +108,15 @@ object ObsTimeEditor
                       min = props.setupTime.map(_ +| TimeSpan.fromSeconds(1).get).orUndefined,
                       max = props.pendingTime.orUndefined,
                       tooltip = tooltip.orUndefined,
-                      disabled = props.timesAreLoading
+                      disabled = props.isReadonly
                     ),
                     Button(
                       text = true,
                       icon = Icons.ClockRotateLeft,
                       tooltip =
                         staleTooltipString.getOrElse("Set duration to full remaining sequence"),
-                      onClick = props.obsDurationView.set(props.pendingTime)
+                      onClick = props.obsDurationView.set(props.pendingTime),
+                      disabled = props.isReadonly
                     ).tiny.compact.when(
                       props.pendingTime.isDefined && props.obsDurationView.get =!= props.pendingTime
                     )
@@ -129,7 +131,7 @@ object ObsTimeEditor
                         "Set an explicit duration instead of using the remaining sequence"
                       ),
                       clazz = ExploreStyles.TargetTileObsDuration,
-                      disabled = props.timesAreLoading
+                      disabled = props.isReadonly
                     ).tiny.compact,
                     props.pendingTime
                       .map(pt =>
