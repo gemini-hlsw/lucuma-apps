@@ -333,6 +333,7 @@ lazy val exploreCommonLibSettings = Seq(
       CatsRetry.value ++
       Circe.value ++
       Clue.value ++
+      ClueHttp4s.value ++
       Crystal.value ++
       Fs2.value ++
       Http4sCore.value ++

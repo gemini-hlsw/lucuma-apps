@@ -87,7 +87,7 @@ object Dependencies {
   )
 
   val ClueHttp4s = Def.setting(
-    depsJVM("edu.gemini" %% "clue-http4s")(clue)
+    deps("edu.gemini" %%% "clue-http4s")(clue)
   )
 
   val ClueScalaJs = Def.setting(
