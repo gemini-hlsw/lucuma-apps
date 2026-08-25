@@ -11803,7 +11803,11 @@ input GroupPropertiesInput {
   description: NonEmptyString
 
   """
-  Minimum number of elements to be observed. If unspecified then all elements will be observed.
+  Minimum number of elements to be observed. If unspecified then all elements
+  will be observed. If specified it must be at least 1. For a non-empty group it
+  may not exceed the number of elements the group already has; an empty group
+  accepts any positive value. It is lowered automatically if elements are later
+  removed, but is left alone once the group is empty.
   """
   minimumRequired: NonNegShort
 
@@ -13652,6 +13656,12 @@ enum ObservationValidationCode {
   program's accepted proposal.
   """
   TOO_ACTIVATION_UNAPPROVED
+
+  """
+  A non-fatal condition worth the submitter's attention.  It does not prevent
+  the observation from being executed.
+  """
+  GENERIC_WARNING
 }
 
 """
@@ -19360,6 +19370,7 @@ enum ObservationWorkflowState {
   UNDEFINED
   UNAPPROVED
   DEFINED
+  FOR_REVIEW
   READY
   ONGOING
   COMPLETED
