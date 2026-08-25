@@ -70,6 +70,8 @@ case class ArchiveDuplication(
   saturated:     Boolean,
   lastCheckedAt: Option[Timestamp],
   error:         Option[NonEmptyString],
+  attemptedAt:   Option[Timestamp],
+  stale:         Boolean,
   searchArea:    Option[SearchArea]
 ) derives Eq:
   def isNotApplicable: Boolean =
@@ -90,6 +92,8 @@ object ArchiveDuplication:
       saturated     <- c.get[Boolean]("saturated")
       lastCheckedAt <- c.get[Option[Timestamp]]("lastCheckedAt")
       error         <- c.get[Option[NonEmptyString]]("error")
+      attemptedAt   <- c.get[Option[Timestamp]]("attemptedAt")
+      stale         <- c.get[Boolean]("stale")
       coordinates   <- c.get[Option[Coordinates]]("searchCoordinates")
       targetName    <- c.get[Option[NonEmptyString]]("searchTargetName")
       radius        <- c.get[Option[Angle]]("searchRadius")
@@ -104,6 +108,8 @@ object ArchiveDuplication:
         saturated,
         lastCheckedAt,
         error,
+        attemptedAt,
+        stale,
         center.map(SearchArea(_, radius))
       )
 

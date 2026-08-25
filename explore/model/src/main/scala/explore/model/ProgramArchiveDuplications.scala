@@ -25,8 +25,13 @@ enum MatchCountCell derives Eq:
   case InFlight
   case NotChecked
   case NotApplicable
-  case Counted(count: NonNegInt, saturated: Boolean)
-  case SearchFailed(count: NonNegInt, saturated: Boolean, error: Option[NonEmptyString])
+  case Counted(count: NonNegInt, saturated: Boolean, stale: Boolean)
+  case SearchFailed(
+    count:     NonNegInt,
+    saturated: Boolean,
+    error:     Option[NonEmptyString],
+    stale:     Boolean
+  )
   case CallFailed(message: String)
 
 object MatchCountCell:
@@ -38,9 +43,10 @@ object MatchCountCell:
         dupli.state match
           case ArchiveDuplicationState.NotChecked    => NotChecked
           case ArchiveDuplicationState.NotApplicable => NotApplicable
-          case ArchiveDuplicationState.Checked       => Counted(dupli.matchCount, dupli.saturated)
+          case ArchiveDuplicationState.Checked       =>
+            Counted(dupli.matchCount, dupli.saturated, dupli.stale)
           case ArchiveDuplicationState.Error         =>
-            SearchFailed(dupli.matchCount, dupli.saturated, dupli.error)
+            SearchFailed(dupli.matchCount, dupli.saturated, dupli.error, dupli.stale)
 
 /** One observation's row in the Archive Duplication Search tile. */
 case class ArchiveDuplicationEntry(

@@ -24,6 +24,8 @@ object ArchiveDuplicationSubquery
       saturated
       lastCheckedAt
       error
+      attemptedAt
+      stale
       searchCoordinates $CoordinatesSubquery
       searchTargetName
       searchRadius $AngleSubquery

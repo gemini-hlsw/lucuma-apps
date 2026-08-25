@@ -161,6 +161,12 @@ object ArchiveDuplicationColumns:
   private def formatDistance(a: Angle): String =
     f"${Angle.signedDecimalArcseconds.get(a).toDouble}%.1f\""
 
+  // The ODB computes staleness against the observation as it now stands; the observer resolves it
+  // with the row's re-check action. Explore never fires the Search on its own.
+  private val StaleTooltip =
+    "The observation has changed since this Search ran, so these matches were gathered for a " +
+      "different configuration. Re-check the row to bring it up to date."
+
   private def matchCountText(count: Int, saturated: Boolean): String =
     if saturated then s"$count+" else count.toString
 
@@ -168,20 +174,24 @@ object ArchiveDuplicationColumns:
   // answer, and a saturated count is a floor rather than an exact figure.
   private def matchCountCell(cell: MatchCountCell): VdomNode =
     cell match
-      case MatchCountCell.InFlight                          =>
+      case MatchCountCell.InFlight                                 =>
         Icons.Spinner.withSpin(true)
-      case MatchCountCell.NotChecked                        =>
+      case MatchCountCell.NotChecked                               =>
         <.span("—").withTooltip(content = "Not checked yet")
-      case MatchCountCell.NotApplicable                     =>
+      case MatchCountCell.NotApplicable                            =>
         <.span("n/a")
-      case MatchCountCell.Counted(count, saturated)         =>
-        <.span(matchCountText(count.value, saturated))
-      case MatchCountCell.SearchFailed(count, saturated, e) =>
+      case MatchCountCell.Counted(count, saturated, stale)         =>
+        if stale then
+          <.span(matchCountText(count.value, saturated), " ", Icons.ClockRotateLeft)
+            .withTooltip(content = StaleTooltip)
+        else <.span(matchCountText(count.value, saturated))
+      case MatchCountCell.SearchFailed(count, saturated, e, stale) =>
         <.span(matchCountText(count.value, saturated), " ", Icons.ExclamationTriangle)
           .withTooltip(content =
-            s"The last Search failed, so these matches may be out of date. ${e.foldMap(_.value)}"
+            s"The last Search failed, so these matches may be out of date. ${e.foldMap(_.value)}" +
+              (if stale then s" $StaleTooltip" else "")
           )
-      case MatchCountCell.CallFailed(message)               =>
+      case MatchCountCell.CallFailed(message)                      =>
         <.span(Icons.ExclamationTriangle).withTooltip(content = message)
 
   def columns(

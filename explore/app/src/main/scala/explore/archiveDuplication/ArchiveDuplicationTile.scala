@@ -38,6 +38,7 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -49,9 +50,12 @@ import lucuma.ui.table.hooks.*
 // flight.
 private val MaxConcurrentSearches = 4
 
-private given Reusability[ArchiveDuplicationControls]                   = Reusability.byEq
-private given Reusability[List[ArchiveDuplicationEntry]]                = Reusability.byEq
-private given Reusability[Map[Observation.Id, Pot[List[ArchiveMatch]]]] = Reusability.byEq
+private given configsReuse: Reusability[Map[Observation.Id, Option[BasicConfiguration]]] =
+  Reusability.byEq
+private given controlsReuse: Reusability[ArchiveDuplicationControls]                     = Reusability.byEq
+private given entriesReuse: Reusability[List[ArchiveDuplicationEntry]]                   = Reusability.byEq
+private given matchCacheReuse: Reusability[Map[Observation.Id, Pot[List[ArchiveMatch]]]] =
+  Reusability.byEq
 
 /**
  * The Archive Duplication Search tile: the program's observations with their Match Count,
@@ -86,14 +90,25 @@ object ArchiveDuplicationTile
           columnVisibility <- useStateView(DefaultColumnVisibility)
           showFilters      <- useStateView(Visible.Hidden)
           headersLoaded    <- useStateView(false)
-          _                <- useEffectOnMount:
+          // The ODB reports NOT_APPLICABLE for an observation with no observing mode, and nothing
+          // pushes a new result once one is set (ADR 0007). Re-reading the headers when a
+          // configuration changes is what lets such an observation join the table.
+          _                <- useEffectWithDeps(
+                                props.observations.view.mapValues(_.basicConfiguration).toMap
+                              ): _ =>
                                 ctx.odbApi
                                   .programArchiveDuplications(props.programId)
                                   .attempt
                                   .flatMap:
                                     case Right(headers) =>
-                                      duplications.async.set:
-                                        headers.view.mapValues(Pot.apply).toMap
+                                      // A Search in flight outranks the stored header it is about
+                                      // to replace.
+                                      duplications.async.mod: current =>
+                                        headers.map: (obsId, header) =>
+                                          obsId -> current
+                                            .get(obsId)
+                                            .filter(_.isPending)
+                                            .getOrElse(Pot(header))
                                     case Left(t)        =>
                                       duplications.async.set:
                                         props.observations.keys

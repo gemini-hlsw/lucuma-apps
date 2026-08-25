@@ -13069,6 +13069,22 @@ type ArchiveDuplication {
   """Why the most recent attempt failed.  Set when `state` is ERROR."""
   error: NonEmptyString
 
+  """
+  When a search last ran, successfully or not.  Diverges from `lastCheckedAt`
+  after a failure: `lastCheckedAt` describes the matches still being served,
+  `attemptedAt` the failed try.
+  """
+  attemptedAt: Timestamp
+
+  """
+  Whether the stored snapshot no longer describes the observation as it now
+  stands: something could be searched today, and it is not what was searched.
+  Computed against `Configuration.subsumes` with conditions excluded, so a
+  conditions edit never stales a snapshot.  False when nothing was ever searched
+  or nothing can be searched now, so a NOT_CHECKED snapshot is never stale.
+  """
+  stale: Boolean!
+
   """Coordinates searched around, for a sidereal pointing."""
   searchCoordinates: Coordinates
 
