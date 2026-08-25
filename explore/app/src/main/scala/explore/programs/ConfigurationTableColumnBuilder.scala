@@ -142,6 +142,8 @@ object ConfigurationTableColumnBuilder {
       case GmosSouthLongSlit(_)   => "LongSlit"
       case GmosSouthImaging(_)    => "Imaging"
       case GmosSouthMos(_)        => "MOS"
+      case GmosNorthIfu(_, _)     => "IFU"
+      case GmosSouthIfu(_, _)     => "IFU"
       case GnirsLongSlit(_, _, _) => "LongSlit"
       case GnirsIfu(_, _)         => "IFU"
       case Visitor(_, _)          => ""
@@ -156,6 +158,8 @@ object ConfigurationTableColumnBuilder {
       case GmosSouthLongSlit(grating)    => grating.shortName
       case GmosSouthImaging(_)           => ""
       case GmosSouthMos(grating)         => grating.shortName
+      case GmosNorthIfu(grating, _)      => grating.shortName
+      case GmosSouthIfu(grating, _)      => grating.shortName
       case GnirsLongSlit(grating, _, _)  => grating.shortName
       case GnirsIfu(grating, _)          => grating.shortName
       case Igrins2LongSlit               => ""

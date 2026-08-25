@@ -178,6 +178,8 @@ def usePatrolFieldShapes(
             gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos           =>
             gmos.candidatesArea.candidatesArea.some
+          case ObservingModeType.GmosNorthIfu | ObservingModeType.GmosSouthIfu           =>
+            sys.error("GMOS IFU visualization is not implemented")
           case ObservingModeType.Igrins2LongSlit                                         =>
             pwfs.patrolField.patrolField.some
           case ObservingModeType.GhostIfu                                                =>
@@ -410,6 +412,8 @@ def useVisualizationShapes(
                )
                .withMaskShapes
             ).some
+          case ObservingModeType.GmosNorthIfu | ObservingModeType.GmosSouthIfu           =>
+            sys.error("GMOS IFU visualization is not implemented")
           case ObservingModeType.Igrins2LongSlit                                         =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
