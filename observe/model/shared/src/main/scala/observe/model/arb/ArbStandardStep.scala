@@ -4,10 +4,6 @@
 package observe.model.arb
 
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.model.sequence.arb.ArbStepConfig.given
-import lucuma.core.model.sequence.arb.ArbTelescopeConfig.given
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbUid.given
 import observe.model.*
@@ -16,9 +12,6 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 
-import ArbDhsTypes.given
-import ArbInstrumentDynamicConfig.given
-import ArbStepState.given
 import ArbSubsystem.given
 
 trait ArbStandardStep {
@@ -26,20 +19,10 @@ trait ArbStandardStep {
   given Arbitrary[ObserveStep.Standard] = Arbitrary[ObserveStep.Standard] {
     for {
       id <- arbitrary[Step.Id]
-      d  <- arbitrary[InstrumentDynamicConfig]
-      t  <- arbitrary[StepConfig]
-      s  <- arbitrary[StepState]
-      tc <- arbitrary[TelescopeConfig]
-      f  <- arbitrary[Option[dhs.ImageFileId]]
       cs <- arbitrary[Map[Subsystem, ActionStatus]]
       os <- arbitrary[ActionStatus]
     } yield ObserveStep.Standard(
       id = id,
-      instConfig = d,
-      stepConfig = t,
-      telescopeConfig = tc,
-      status = s,
-      fileId = f,
       configStatus = cs,
       observeStatus = os
     )
@@ -49,21 +32,12 @@ trait ArbStandardStep {
     Cogen[
       (
         Step.Id,
-        InstrumentDynamicConfig,
-        StepConfig,
-        TelescopeConfig,
-        StepState,
-        Option[dhs.ImageFileId],
         List[(Subsystem, ActionStatus)],
         ActionStatus
       )
     ].contramap(s =>
-      (s.id,
-       s.instConfig,
-       s.stepConfig,
-       s.telescopeConfig,
-       s.status,
-       s.fileId,
+      (
+        s.id,
        s.configStatus.toList,
        s.observeStatus
       )

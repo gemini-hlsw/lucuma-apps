@@ -60,38 +60,33 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
   private def cancelPause(id: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.No))
 
-  def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
-    EngineHandle.getState.flatMap { st =>
-      val resultStream: Option[Stream[F, Result]] =
-        for
-          seq <- EngineState.sequenceStateAt(c.obsId).getOption(st)
-          if (seq.status.isIdle || seq.status.isError) && !seq.getSingleState(c.actCoords).active
-          act <- seq.rollback.getSingleAction(c.actCoords)
-        yield act.gen
+  def startSingle(c: ConfigActionCoords, seq: SequenceState[F], act: Action[F]): EngineHandle[F, Outcome] = {
+    val resultStream: Option[Stream[F, Result]] =
+      ((seq.status.isIdle || seq.status.isError) && !seq.getSingleState(c).active).option(act.gen)
 
-      resultStream
-        .map { p =>
-          EngineHandle.modifySequenceState[F](c.obsId)(u => u.startSingle(c.actCoords)) *>
-            EngineHandle
-              .fromEventStream(
-                p.attempt.flatMap {
-                  case Right(r @ Result.OK(_))    =>
-                    Stream.emit(Event.singleRunCompleted(c, r))
-                  case Right(e @ Result.Error(_)) =>
-                    Stream.emit(Event.singleRunFailed(c, e))
-                  case Right(r)                   =>
-                    Stream.emit(
-                      Event.singleRunFailed(
-                        c,
-                        Result.Error(s"Unhandled result for single run action: $r")
-                      )
+    resultStream
+      .map { p =>
+        EngineHandle.modifySequenceState[F](seq.obsId)(u => u.startSingle(c)) *>
+          EngineHandle
+            .fromEventStream(
+              p.attempt.flatMap {
+                case Right(r @ Result.OK(_))    =>
+                  Stream.emit(Event.singleRunCompleted(ActionCoords(seq.obsId, c), r))
+                case Right(e @ Result.Error(_)) =>
+                  Stream.emit(Event.singleRunFailed(ActionCoords(seq.obsId, c), e))
+                case Right(r)                   =>
+                  Stream.emit(
+                    Event.singleRunFailed(
+                      ActionCoords(seq.obsId, c),
+                      Result.Error(s"Unhandled result for single run action: $r")
                     )
-                  case Left(t: Throwable)         => Stream.raiseError[F](t)
-                }
-              )
-              .as[Outcome](Outcome.Ok)
-        }
-        .getOrElse(EngineHandle.pure(Outcome.Failure))
+                  )
+                case Left(t: Throwable)         => Stream.raiseError[F](t)
+              }
+            )
+            .as[Outcome](Outcome.Ok)
+      }
+      .getOrElse(EngineHandle.pure(Outcome.Failure))
     }
 
   private def completeSingleRun[V <: RetVal](c: ActionCoords, r: V): EngineHandle[F, Unit] =

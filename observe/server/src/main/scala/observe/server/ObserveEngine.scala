@@ -248,14 +248,7 @@ object ObserveEngine {
   private def systemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
     observations(st)
       .filter(d => d.seq.status.isError || d.seq.status.isIdle)
-      .flatMap(s =>
-        s.seq.getSingleActionStates
-          .filter(_._2.started)
-          .keys
-          .toList
-          .mapFilter(s.resourceAtCoords)
-      )
-      .toSet
+      .flatMap(_.seq.getSingleActionStates.view.values.flatMap(_.filter(_._2.started).keys).toList).toSet
 
   /**
    * Resource in use = Resources used by running sequences, plus the systems that are being

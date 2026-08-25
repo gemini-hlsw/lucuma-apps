@@ -8,12 +8,12 @@ import cats.data.OptionT
 import cats.effect.IO
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
-import lucuma.core.enums.Breakpoint
-import lucuma.core.enums.SequenceType
+import lucuma.core.enums.{Breakpoint, Instrument, SequenceType}
 import lucuma.core.model.Observation as LObservation
 import lucuma.core.model.sequence.Step
 import observe.common.test.*
 import observe.model.ActionType
+import observe.model.enums.Resource
 import observe.model.SequenceStatus
 import observe.server.EngineState
 import observe.server.SeqEvent
@@ -153,7 +153,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
       Breakpoints(Set(stepId(1)))
     )
 
-    val c = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(1))
+    val c = ConfigActionCoords(stepId(1), Resource.TCS)
 
     assert(
       seq
@@ -172,27 +172,27 @@ class SequenceSuite extends munit.CatsEffectSuite {
       breakpoints = Breakpoints.empty,
       singleRuns = Map.empty
     )
-    val c1   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
+    val c1   = ConfigActionCoords(stepId(1), Resource.TCS)
 
     assert(seq1.startSingle(c1).getSingleState(c1).isIdle)
   }
 
   test("failSingle should mark a single running Action as failed") {
-    val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
+    val c   = ConfigActionCoords(stepId(1), Resource.TCS)
     val seq = initSeqState(
       obsId,
       simpleStep(stepId(1)),
       SequenceType.Science,
       Breakpoints.empty
     ).startSingle(c)
-    val c2  = ActionCoordsInSeq(stepId(1), ExecutionIndex(1), ActionIndex(0))
+    val c2  = ConfigActionCoords(stepId(1), Instrument.GmosNorth)
 
     assert(seq.failSingle(c, Result.Error("")).getSingleState(c).errored)
     assert(seq.failSingle(c2, Result.Error("")).getSingleState(c2).isIdle)
   }
 
   test("failSingle should mark a single running Action as completed") {
-    val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
+    val c   = ConfigActionCoords(stepId(1), Resource.TCS)
     val seq = initSeqState(
       obsId,
       simpleStep(stepId(1)),

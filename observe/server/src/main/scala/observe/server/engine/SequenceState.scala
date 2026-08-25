@@ -10,10 +10,9 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
-import observe.model.SequenceStatus
+import observe.model.{SequenceStatus, Subsystem, SystemOverrides}
 import observe.model.SequenceStatus.HasInternalStop
 import observe.model.SequenceStatus.HasUserStop
-import observe.model.SystemOverrides
 import observe.server.HeaderExtraData
 import observe.server.StepGen
 import observe.server.engine.Action.ActionState
@@ -26,7 +25,7 @@ final case class SequenceState[F[_]](
   loadedStep:          Option[LoadedStep[F]], // None = idle/done, Some = executing
   currentSequenceType: SequenceType,
   breakpoints:         Breakpoints,
-  singleRuns:          Map[ActionCoordsInSeq, ActionState]
+  singleRuns:          Map[Step.Id, Map[Subsystem, ActionState]]
 ):
   /**
    * Advances execution within the current step's execution groups. Returns `None` if the step is
@@ -69,7 +68,7 @@ final case class SequenceState[F[_]](
   def start(i: Int): SequenceState[F] =
     loadedStep match
       case None     => this
-      case Some(ls) => copy(loadedStep = Some(ls.start(i)), singleRuns = Map.empty)
+      case Some(ls) => copy(loadedStep = Some(ls.start(i)), singleRuns = singleRuns.updated(ls.id, ls.resources.map(_ -> ActionState.Idle).toMap))
 
   def update(stepDef: Option[List[ParallelActions[F]]]): SequenceState[F] =
     (loadedStep, stepDef) match
@@ -77,36 +76,34 @@ final case class SequenceState[F[_]](
       case _                  => this
 
   // Functions to handle single run of Actions
-  def startSingle(c: ActionCoordsInSeq): SequenceState[F] =
+  def startSingle(c: ConfigActionCoords): SequenceState[F] =
     loadedStep match
       case Some(z) if z.done.nonEmpty => this // already past initial execution
       case _                          =>
-        copy(singleRuns = singleRuns + (c -> ActionState.Started))
+        copy(singleRuns = singleRuns.updatedWith(c.stepId)( _.map(_.updatedWith(c.system)(_ => ActionState.Started.some))))
 
-  def failSingle(c: ActionCoordsInSeq, err: Result.Error): SequenceState[F] =
+  def failSingle(c: ConfigActionCoords, err: Result.Error): SequenceState[F] =
     if getSingleState(c).started
-    then copy(singleRuns = singleRuns + (c -> ActionState.Failed(err)))
+    then copy(singleRuns = singleRuns.updatedWith(c.stepId)( _.map(_.updatedWith(c.system)(_ => ActionState.Failed(err).some))))
     else this
 
-  def completeSingle[V <: RetVal](c: ActionCoordsInSeq, r: V): SequenceState[F] =
+  def completeSingle[V <: RetVal](c: ConfigActionCoords, r: V): SequenceState[F] =
     if getSingleState(c).started
-    then copy(singleRuns = singleRuns + (c -> ActionState.Completed(r)))
+    then copy(singleRuns = singleRuns.updatedWith(c.stepId)( _.map(_.updatedWith(c.system)(_ => ActionState.Completed(r).some))))
     else this
 
-  def getSingleState(c: ActionCoordsInSeq): ActionState =
-    singleRuns.getOrElse(c, ActionState.Idle)
+  def getSingleState(c: ConfigActionCoords): ActionState =
+    singleRuns.get(c.stepId).flatMap(_.get(c.system)).getOrElse(ActionState.Idle)
 
-  def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] =
-    for
-      step <- loadedStep.filter(_.id === c.stepId)
-      exec <- step.executionZipper.toEngineStep.executions.get(c.execIdx.value)
-      act  <- exec.get(c.actIdx.value)
-    yield act
+//  def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] =
+//    for
+//      step <- loadedStep.filter(_.id === c.stepId)
+//      exec <- step.executionZipper.toEngineStep.executions.get(c.execIdx.value)
+//      act  <- exec.get(c.actIdx.value)
+//    yield act
 
-  val getSingleActionStates: Map[ActionCoordsInSeq, ActionState] = singleRuns
-
-  def clearSingles: SequenceState[F] = copy(singleRuns = Map.empty)
-
+  val getSingleActionStates: Map[Step.Id, Map[Subsystem, ActionState]] = singleRuns
+  
   def withLoadedStepGen(
     stepGenOpt:  Option[StepGen[F]],
     overrides:   SystemOverrides,

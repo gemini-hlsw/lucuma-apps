@@ -44,18 +44,10 @@ import observe.model.enums.Resource.Gcal
 import observe.model.enums.Resource.TCS
 import observe.model.enums.RunOverride
 import observe.server.SeqEvent.RequestConfirmation
-import observe.server.engine.DummyExecutionZipper
-import observe.server.engine.DummyStepGen
-import observe.server.engine.EngineHandle
-import observe.server.engine.Event
-import observe.server.engine.EventResult
+import observe.server.engine.{ConfigActionCoords, DummyExecutionZipper, DummyStepGen, EngineHandle, Event, EventResult, LoadedStep, SequenceState, SystemEvent, user}
 import observe.server.engine.EventResult.Outcome
 import observe.server.engine.EventResult.SystemUpdate
-import observe.server.engine.LoadedStep
-import observe.server.engine.SequenceState
-import observe.server.engine.SystemEvent
 import observe.server.engine.SystemEvent.SequenceComplete
-import observe.server.engine.user
 import observe.server.odb.OdbObservationData
 import observe.server.odb.TestOdbProxy
 import observe.server.tcs.DummyTargetKeywordsReader
@@ -428,7 +420,7 @@ class ObserveEngineSuite extends TestCommon {
              )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId1).getOption)
-      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .map(_.seq.getSingleState(ConfigActionCoords(stepId(1), TCS)))
       .exists(_.started)).assert
   }
 
@@ -476,7 +468,7 @@ class ObserveEngineSuite extends TestCommon {
              )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId1).getOption)
-      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .map(_.seq.getSingleState(ConfigActionCoords(stepId(1), TCS)))
       .exists(_.isIdle)).assert
   }
 
@@ -511,7 +503,7 @@ class ObserveEngineSuite extends TestCommon {
           .atSequence(seqObsId2)
           .getOption
       )
-      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .map(_.seq.getSingleState(ConfigActionCoords(stepId(1), TCS)))
       .exists(_.isIdle)).assert
   }
 
@@ -560,7 +552,7 @@ class ObserveEngineSuite extends TestCommon {
              )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId2).getOption)
-      .flatMap(s => s.configActionCoord(stepId(1), Gcal).map(s.seq.getSingleState))
+      .map(_.seq.getSingleState(ConfigActionCoords(stepId(1), TCS)))
       .exists(_.started)).assert
   }
 

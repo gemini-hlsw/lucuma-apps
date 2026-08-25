@@ -9,6 +9,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Optional
+import observe.model.enums.ActionStatus
 
 case class SequenceView(
   obsId:           Observation.Id,
@@ -18,7 +19,8 @@ case class SequenceView(
   sequenceType:    SequenceType,
   loadedStep:      Option[ObserveStep],
   willStopIn:      Option[Int],
-  breakpoints:     Set[Step.Id]
+  breakpoints:     Set[Step.Id],
+  singleRuns: Map[Step.Id, Map[Subsystem, ActionStatus]]
 ) derives Eq:
   def pausedStep: Option[PausedStep] =
     loadedStep.filter(_.isObservePaused).map(_.id).map(PausedStep(_))

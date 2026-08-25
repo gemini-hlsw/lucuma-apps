@@ -9,7 +9,6 @@ import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.Instrument.*
 import observe.model.ActionType
-import observe.model.InstrumentDynamicConfig
 import observe.model.ObserveStep
 import observe.model.StepState
 import observe.model.Subsystem
@@ -148,13 +147,8 @@ object StepsView {
 
       ObserveStep.Standard(
         id = step.id,
-        instConfig = InstrumentDynamicConfig.fromDynamicConfig(stepg.instConfig),
-        stepConfig = stepg.config,
-        telescopeConfig = stepg.telescopeConfig,
-        status = status,
         configStatus = configStatus.toMap,
-        observeStatus = observeStatus(step.executions),
-        fileId = fileId(step.executions)
+        observeStatus = observeStatus(step.executions)
       )
     }
 

@@ -111,7 +111,7 @@ trait ObserveModelArbitraries {
       t  <- arbitrary[Option[ObserveStep]]
       i  <- arbitrary[Option[Int]]
       b  <- arbitrary[Set[Step.Id]]
-    } yield SequenceView(id, m, s, o, st, t, i, b)
+    } yield SequenceView(id, m, s, o, st, t, i, b, Map.empty)
   }
   given Arbitrary[SequencesQueue[SequenceView]] = sequencesQueueArb[SequenceView]
 

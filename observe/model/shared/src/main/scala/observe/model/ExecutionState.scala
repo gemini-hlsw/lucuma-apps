@@ -7,11 +7,14 @@ import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.*
+import io.circe.*
 import io.circe.Decoder
 import io.circe.Encoder
-import io.circe.refined.*
+import io.circe.refined.given
+import io.circe.derivation.*
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
+import mouse.boolean.*
 import monocle.Focus
 import monocle.Lens
 import observe.model.enums.ActionStatus
@@ -27,18 +30,16 @@ case class ExecutionState(
   loadedStep:      Option[ObserveStep],
   nsState:         Option[NsRunningState],
   systemOverrides: SystemOverrides,
+  singleRuns:      Map[Step.Id, Map[Subsystem, ActionStatus]],
   breakpoints:     Set[Step.Id] = Set.empty,
   pausedStep:      Option[PausedStep] = None
-) derives Eq,
-      Encoder.AsObject,
-      Decoder:
-  lazy val stepResources: Option[Map[Subsystem, ActionStatus]] =
-    loadedStep.map(_.configStatus)
+) derives Eq, Encoder.AsObject, Decoder:
+  def stepResources(stepId: Step.Id): Option[Map[Subsystem, ActionStatus]] = loadedStep.flatMap(l => (l.id === stepId).option(l.configStatus)).orElse(singleRuns.get(stepId))
 
   // If there's a running step or resource, the step is considered locked.
   lazy val isLocked: Boolean =
     sequenceStatus.isRunning ||
-      stepResources.exists:
+      loadedStep.flatMap(ld => stepResources(ld.id)).exists:
         _.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
 
   lazy val isWaitingAcquisitionPrompt: Boolean =

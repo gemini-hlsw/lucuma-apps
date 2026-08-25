@@ -3,12 +3,10 @@
 
 package observe.server
 
-import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
@@ -26,7 +24,6 @@ import observe.model.Observer
 import observe.model.Subsystem
 import observe.model.SystemOverrides
 import observe.model.enums.PendingObserveCmd
-import observe.server.engine.ActionCoordsInSeq
 import observe.server.engine.LoadedStep
 import observe.server.engine.SequenceState
 
@@ -54,20 +51,6 @@ sealed trait SequenceData[F[_]]:
 
   lazy val resources: Set[Subsystem] =
     loadedStep.map(_.resources).getOrElse(Set.empty)
-
-  def configActionCoord(
-    stepId: Step.Id,
-    r:      Subsystem
-  ): Option[ActionCoordsInSeq] =
-    loadedStep
-      .filter(_.id === stepId)
-      .flatMap(_.generator.configActionCoord(r))
-      .map { case (ex, ac) => ActionCoordsInSeq(stepId, ex, ac) }
-
-  def resourceAtCoords(c: ActionCoordsInSeq): Option[Subsystem] =
-    loadedStep
-      .filter(_.id === c.stepId)
-      .flatMap(_.generator.resourceAtCoords(c.execIdx, c.actIdx))
 
 object SequenceData:
   type Aux[F[_], S0, D0] = SequenceData[F] { type S = S0; type D = D0 }

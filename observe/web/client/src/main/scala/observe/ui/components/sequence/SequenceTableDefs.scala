@@ -244,7 +244,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             isPausedInStep =
                               meta.executionState.pausedStep.exists(_.value === stepId),
                             subsystemStatus =
-                              meta.executionState.stepResources.getOrElse(inactiveStepResourceMap),
+                              meta.executionState.stepResources(stepId).getOrElse(inactiveStepResourceMap),
                             systemOverrides = meta.executionState.systemOverrides,
                             exposureTime = exposureTime,
                             progress = meta.progress,

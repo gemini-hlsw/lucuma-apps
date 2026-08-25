@@ -4,10 +4,6 @@
 package observe.model.arb
 
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.model.sequence.arb.ArbStepConfig.given
-import lucuma.core.model.sequence.arb.ArbTelescopeConfig.given
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbNewType.given
@@ -23,10 +19,7 @@ import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
-import ArbDhsTypes.given
-import ArbInstrumentDynamicConfig.given
 import ArbNsRunningState.given
-import ArbStepState.given
 import ArbSubsystem.given
 
 trait ArbNodAndShuffleStep {
@@ -55,21 +48,11 @@ trait ArbNodAndShuffleStep {
     Arbitrary[ObserveStep.NodAndShuffle] {
       for {
         id <- arbitrary[Step.Id]
-        d  <- arbitrary[InstrumentDynamicConfig]
-        t  <- arbitrary[StepConfig]
-        tc <- arbitrary[TelescopeConfig]
-        s  <- arbitrary[StepState]
-        f  <- arbitrary[Option[dhs.ImageFileId]]
         cs <- arbitrary[Map[Subsystem, ActionStatus]]
         os <- arbitrary[NodAndShuffleStatus]
         oc <- arbitrary[Option[PendingObserveCmd]]
       } yield ObserveStep.NodAndShuffle(
         id = id,
-        instConfig = d,
-        stepConfig = t,
-        telescopeConfig = tc,
-        status = s,
-        fileId = f,
         configStatus = cs,
         nsStatus = os,
         pendingObserveCmd = oc
@@ -80,21 +63,12 @@ trait ArbNodAndShuffleStep {
     Cogen[
       (
         Step.Id,
-        InstrumentDynamicConfig,
-        StepConfig,
-        TelescopeConfig,
-        StepState,
-        Option[dhs.ImageFileId],
         List[(Subsystem, ActionStatus)],
         NodAndShuffleStatus
       )
     ].contramap(s =>
-      (s.id,
-       s.instConfig,
-       s.stepConfig,
-       s.telescopeConfig,
-       s.status,
-       s.fileId,
+      (
+        s.id,
        s.configStatus.toList,
        s.nsStatus
       )

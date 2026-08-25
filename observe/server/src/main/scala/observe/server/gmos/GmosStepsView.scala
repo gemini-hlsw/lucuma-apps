@@ -51,10 +51,11 @@ class GmosStepsView[F[_]] extends StepsView[F] {
 
         ObserveStep.NodAndShuffle(
           id = step.id,
-          instConfig = InstrumentDynamicConfig.fromDynamicConfig(stepg.instConfig),
-          stepConfig = stepg.config,
-          telescopeConfig = stepg.telescopeConfig,
-          status = status,
+//          instConfig = InstrumentDynamicConfig.fromDynamicConfig(stepg.instConfig),
+//          stepConfig = stepg.config,
+//          telescopeConfig = stepg.telescopeConfig,
+//          status = status,
+//          fileId = StepsView.fileId(step.executions),
           configStatus = configStatus.toMap,
           nsStatus = NodAndShuffleStatus(
             observeStatus(step.executions),
@@ -63,7 +64,6 @@ class GmosStepsView[F[_]] extends StepsView[F] {
             e.cycles,
             runningState.flatten
           ),
-          fileId = StepsView.fileId(step.executions),
           pendingObserveCmd =
             (observeStatus(step.executions) === ActionStatus.Running).option(pendingObsCmd).flatten
         )

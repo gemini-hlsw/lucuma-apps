@@ -26,6 +26,7 @@ extension (q: SequenceView)
       q.loadedStep,
       None,
       q.systemOverrides,
+      q.singleRuns,
       q.breakpoints,
       q.pausedStep
     )

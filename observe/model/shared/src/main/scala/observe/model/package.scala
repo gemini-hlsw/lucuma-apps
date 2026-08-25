@@ -3,9 +3,12 @@
 
 package observe.model
 
+import cats.Eq
+import cats.syntax.all.*
 import io.circe.KeyDecoder
 import io.circe.KeyEncoder
 import lucuma.core.enums.Instrument
+import lucuma.core.model.sequence.Step
 import lucuma.core.util.Enumerated
 import observe.model.enums.Resource
 
@@ -19,6 +22,12 @@ enum Server(val tag: String) derives Enumerated:
   case Gws extends Server("Gws")
 
 type Subsystem         = Resource | Instrument
+given Eq[Subsystem] = Eq.instance {
+  case (a: Resource, b: Resource) => a === b
+  case (a: Instrument, b: Instrument) => a === b
+  case _ => false
+}
+
 type SubsystemOrServer = Subsystem | Server
 object SubsystemOrServer:
   def fromSubsystem(s: Subsystem): SubsystemOrServer = s
@@ -67,3 +76,7 @@ given Enumerated[SubsystemOrServer] = Enumerated
     case r: Resource   => r.tag
     case i: Instrument => i.tag
     case s: Server     => s.tag
+
+given KeyEncoder[Step.Id] = _.toString
+
+given KeyDecoder[Step.Id] = Step.Id.parse(_)
