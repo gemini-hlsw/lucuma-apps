@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import io.circe.ACursor
 import io.circe.Decoder
+import io.circe.Json
 import io.circe.refined.*
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ExchangePartner
@@ -445,6 +446,11 @@ object ProposalType:
     val systemVerification: Prism[GeminiProposalType, SystemVerification] =
       GenPrism[GeminiProposalType, SystemVerification]
 
+    // The ODB models AEON membership as a nullable `AeonMultiFacility` object;
+    // Explore only tracks membership, so presence maps to `true`.
+    private def aeonMultiFacilityDecoder(c: ACursor): Decoder.Result[Boolean] =
+      c.downField("aeonMultiFacility").as[Option[Json]].map(_.isDefined)
+
     given Decoder[GeminiProposalType] = {
 
       def toProposalType(tpe: ScienceSubtype, c: ACursor): Decoder.Result[GeminiProposalType] =
@@ -454,7 +460,7 @@ object ProposalType:
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
               exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
-              aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
+              aeonMultiFacility <- aeonMultiFacilityDecoder(c)
               jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
             } yield Classical(tpe,
@@ -498,7 +504,7 @@ object ProposalType:
               minPercentTime      <- c.downField("minPercentTime").as[IntPercent]
               minPercentTotalTime <- c.downField("minPercentTotalTime").as[IntPercent]
               totalTime           <- c.downField("totalTime").as[TimeSpan]
-              aeonMultiFacility   <- c.downField("aeonMultiFacility").as[Boolean]
+              aeonMultiFacility   <- aeonMultiFacilityDecoder(c)
               jwstSynergy         <- c.downField("jwstSynergy").as[Boolean]
             } yield LargeProgram(tpe,
                                  ceiling,
@@ -516,7 +522,7 @@ object ProposalType:
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
               exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
-              aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
+              aeonMultiFacility <- aeonMultiFacilityDecoder(c)
               jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
               considerForBand3  <- c.downField("considerForBand3").as[ConsiderForBand3]
