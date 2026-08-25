@@ -78,6 +78,33 @@ $brightness: var(--aladin-image-brightness);
     .visitor-candidates-area {
       display: inline;
     }
+
+    // MOS mask outline and slit placement styling.
+    .mos-mask-outline {
+      display: inline;
+      stroke: hsl(180deg 100% 45% / 85%);
+      stroke-width: 1.2px;
+      fill: hsl(180deg 100% 45% / 8%);
+      vector-effect: non-scaling-stroke;
+    }
+
+    .mos-mask-slit {
+      display: inline;
+      stroke: hsl(210deg 100% 75%);
+      stroke-width: 2px;
+      fill: hsl(210deg 100% 60% / 25%);
+      vector-effect: non-scaling-stroke;
+      pointer-events: all;
+    }
+
+    .mos-mask-acq-box {
+      display: inline;
+      stroke: hsl(300deg 100% 75%);
+      stroke-width: 2px;
+      fill: hsl(300deg 100% 60% / 25%);
+      vector-effect: non-scaling-stroke;
+      pointer-events: all;
+    }
   }
 
   .p-tieredmenu.p-component.explore-aladin-settings-menu {

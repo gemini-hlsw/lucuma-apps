@@ -316,6 +316,12 @@ object ObsTabTiles:
                                         guideStarSelection.set(
                                           name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
                                         )).toAsync
+        // The mask design is only stored on the attachment, fetched on demand for MOS obs.
+        maskDesignPot        <-
+          useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
+            (obsId, maskId) =>
+              import ctx.given
+              maskId.flatTraverse(odbApi.maskDesign(obsId, _))
         roleLayouts          <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
         _                    <- useEffectWithDeps(props.calibrationRole): role =>
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))
@@ -574,7 +580,8 @@ object ObsTabTiles:
               trackType,
               targetVisualization,
               props.observation.get.explicitBase,
-              props.observation.get.cassRotator
+              props.observation.get.cassRotator,
+              maskDesignPot.value.toOption.flatten
             )
 
           // If we have an observation calibration group we want to plot the targets together

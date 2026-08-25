@@ -113,6 +113,14 @@ final case class Observation(
   val hasMaterializedSequence: Boolean =
     execution.acquisitionSequenceIsMaterialized || execution.scienceSequenceIsMaterialized
 
+  // The MOS mask attachment bound to the observing mode, if any.
+  lazy val maskAttachmentId: Option[Attachment.Id] =
+    observingMode.toOption.flatten.flatMap:
+      case ObservingMode.GmosNorthMos(customMask = m)  => m.attachmentId
+      case ObservingMode.GmosSouthMos(customMask = m)  => m.attachmentId
+      case ObservingMode.Flamingos2Mos(customMask = m) => m.attachmentId
+      case _                                           => none
+
   private def profiles(targets: TargetList): Option[NonEmptyList[SourceProfile]] =
     NonEmptyList.fromList:
       scienceTargetIds.toList.map(targets.get).flattenOption.map(_.target.sourceProfile)
