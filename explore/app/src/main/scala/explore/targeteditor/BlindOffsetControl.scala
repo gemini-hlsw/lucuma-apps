@@ -195,7 +195,12 @@ object BlindOffsetControl
 
               val oList = candidates.value.toOption.flatten.flatMap(_.toOption)
 
-              (oList, Option.when(blindOffset.value.get.isAutomatic)(props.obsTargets.blindOffset))
+              // Skip while readonly
+              (oList,
+               Option.when(!props.readonly && blindOffset.value.get.isAutomatic)(
+                 props.obsTargets.blindOffset
+               )
+              )
                 .mapN: (list, oCurrent) =>
                   // if the list is empty, delete the current blind offset, if any
                   list.headOption.fold(
