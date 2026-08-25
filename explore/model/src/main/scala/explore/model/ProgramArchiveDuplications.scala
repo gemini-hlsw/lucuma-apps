@@ -116,7 +116,7 @@ case class ProgramArchiveDuplications(
   lazy val withMatchesCount: Int =
     entries.count(_.hasMatches)
 
-  /** The observations the sweep asks about: never checked, or last attempt failed. */
+  /** The observations the sweep asks about: never checked, last attempt failed, or stale. */
   lazy val sweepObservations: List[Observation.Id] =
     allEntries.filter(_.duplication.toOption.exists(_.needsSearch)).map(_.id)
 

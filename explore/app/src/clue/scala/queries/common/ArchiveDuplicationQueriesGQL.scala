@@ -25,6 +25,19 @@ object ArchiveDuplicationQueriesGQL:
       }
     """
 
+  // One observation's header, for the refetch driven by an obscalc READY transition. The bulk
+  // query above is for first paint; re-running it on every calculation would re-read the whole
+  // program to learn about one row.
+  @GraphQL
+  trait ObservationArchiveDuplication extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          archiveDuplication $ArchiveDuplicationSubquery
+        }
+      }
+    """
+
   @GraphQL
   trait ObservationArchiveMatches extends GraphQLOperation[ObservationDB]:
     val document = gql"""

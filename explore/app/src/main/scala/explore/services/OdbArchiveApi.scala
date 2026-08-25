@@ -15,6 +15,10 @@ trait OdbArchiveApi[F[_]]:
     programId: Program.Id
   ): F[Map[Observation.Id, ArchiveDuplication]]
 
+  // One observation's header. Used to bring a single row up to date after the ODB recalculates
+  // it, rather than re-reading the whole program.
+  def observationArchiveDuplication(obsId: Observation.Id): F[Option[ArchiveDuplication]]
+
   def observationArchiveMatches(obsId: Observation.Id): F[List[ArchiveMatch]]
 
   // Runs the Archive Duplication Search for one observation and returns its new result. Rejected

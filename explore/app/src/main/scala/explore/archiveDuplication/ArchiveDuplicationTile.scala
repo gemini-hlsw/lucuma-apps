@@ -33,6 +33,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.User
+import lucuma.core.util.CalculationState
 import lucuma.react.primereact.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.react.resizeDetector.hooks.*
@@ -90,31 +91,45 @@ object ArchiveDuplicationTile
           columnVisibility <- useStateView(DefaultColumnVisibility)
           showFilters      <- useStateView(Visible.Hidden)
           headersLoaded    <- useStateView(false)
-          // The ODB reports NOT_APPLICABLE for an observation with no observing mode, and nothing
-          // pushes a new result once one is set (ADR 0007). Re-reading the headers when a
-          // configuration changes is what lets such an observation join the table.
-          _                <- useEffectWithDeps(
-                                props.observations.view.mapValues(_.basicConfiguration).toMap
-                              ): _ =>
+          _                <- useEffectOnMount:
                                 ctx.odbApi
                                   .programArchiveDuplications(props.programId)
                                   .attempt
                                   .flatMap:
                                     case Right(headers) =>
-                                      // A Search in flight outranks the stored header it is about
-                                      // to replace.
-                                      duplications.async.mod: current =>
-                                        headers.map: (obsId, header) =>
-                                          obsId -> current
-                                            .get(obsId)
-                                            .filter(_.isPending)
-                                            .getOrElse(Pot(header))
+                                      duplications.async.set:
+                                        headers.view.mapValues(Pot.apply).toMap
                                     case Left(t)        =>
                                       duplications.async.set:
                                         props.observations.keys
                                           .map(_ -> Pot.error[ArchiveDuplication](t))
                                           .toMap
                                   .guarantee(headersLoaded.async.set(true))
+          // Nothing pushes an archive result (ADR 0007), but `state` and `stale` are both derived
+          // from the observation, and the ODB materializes them in the background calculation. So
+          // a READY transition is the moment this tile's view of a row can have changed: it is
+          // what lets a newly-configured observation join the table and a stale snapshot say so.
+          _                <- useEffectStreamResourceOnMount:
+                                ctx.odbApi
+                                  .obsCalcSubscription(props.programId)
+                                  .map:
+                                    _.filter(_.newCalculationState.contains(CalculationState.Ready))
+                                      .evalMap: update =>
+                                        val obsId = update.observationId
+                                        ctx.odbApi
+                                          .observationArchiveDuplication(obsId)
+                                          .attempt
+                                          .flatMap:
+                                            case Right(Some(header)) =>
+                                              // A Search in flight outranks the stored header it
+                                              // is about to replace.
+                                              duplications.async.mod: current =>
+                                                if current.get(obsId).exists(_.isPending) then current
+                                                else current.updated(obsId, Pot(header))
+                                            // A row this tile cannot refresh is left as it stands
+                                            // rather than blanked: the stale snapshot on screen is
+                                            // more use than nothing.
+                                            case _                   => IO.unit
           search           <- HookResult:
                                 ProgramArchiveDuplications(
                                   props.observations,
@@ -127,17 +142,29 @@ object ArchiveDuplicationTile
           // The mutation hands back the new result, so it is merged straight into local state: no
           // refetch, no cache invalidation. A cached match set is dropped, since it now describes
           // an older Search. Failures are isolated per observation, so a sweep goes on.
-          runSearch        <- HookResult: (obsId: Observation.Id) =>
-                                duplications.async.mod(_.updated(obsId, Pot.pending)) >>
-                                  ctx.odbApi
-                                    .refreshArchiveDuplication(obsId)
-                                    .attempt
-                                    .flatMap:
-                                      case Right(dupli) =>
-                                        duplications.async.mod(_.updated(obsId, Pot(dupli))) >>
-                                          matches.async.mod(_ - obsId)
-                                      case Left(t)      =>
-                                        duplications.async.mod(_.updated(obsId, Pot.error(t)))
+          runSearch        <-
+            HookResult: (obsId: Observation.Id) =>
+              // Logged because this is the only thing in Explore that makes the ODB query the
+              // archive: several GOA queries per call, and the only client-side cost worth
+              // tracing when the tile feels slow.
+              ctx.logger.info(s"Requesting Archive Duplication Search for $obsId") >>
+                duplications.async.mod(_.updated(obsId, Pot.pending)) >>
+                ctx.odbApi
+                  .refreshArchiveDuplication(obsId)
+                  .attempt
+                  .flatMap:
+                    case Right(dupli) =>
+                      ctx.logger.info(
+                        s"Archive Duplication Search for $obsId returned ${dupli.state}" +
+                          s" with ${dupli.matchCount.value} match(es)"
+                      ) >>
+                        duplications.async.mod(_.updated(obsId, Pot(dupli))) >>
+                        matches.async.mod(_ - obsId)
+                    case Left(t)      =>
+                      ctx.logger.warn(t)(
+                        s"Archive Duplication Search for $obsId failed"
+                      ) >>
+                        duplications.async.mod(_.updated(obsId, Pot.error(t)))
           // A ref rather than the state view: `onExpand` is captured by the memoized columns, so a
           // render-time snapshot of the match cache would go stale and re-fetch on every expand.
           requested        <- useRef(Set.empty[Observation.Id])
@@ -222,15 +249,32 @@ object ArchiveDuplicationTile
             search.disabledReason.getOrElse:
               if !headersLoaded.get then "Loading the stored Search results…"
               else if search.searchInFlight then "A Search is already running."
-              else if search.sweepObservations.isEmpty then "Every observation has been checked."
+              else if search.sweepObservations.isEmpty then
+                "Every observation has an up-to-date result."
               else
-                s"Run the Archive Duplication Search for ${search.sweepObservations.length} unchecked observation(s)"
+                s"Run the Archive Duplication Search for ${search.sweepObservations.length} " +
+                  "observation(s) that have never been checked, failed, or have changed since " +
+                  "they were checked"
 
           val sweep: Callback =
-            search.sweepObservations
-              .parTraverseN(MaxConcurrentSearches)(runSearch)
-              .void
-              .runAsyncAndForget
+            (ctx.logger.info(
+              s"Sweeping Archive Duplication Search over ${search.sweepObservations.length}" +
+                s" observation(s), $MaxConcurrentSearches at a time"
+            ) >>
+              search.sweepObservations
+                .parTraverseN(MaxConcurrentSearches)(runSearch)
+                .void).runAsyncAndForget
+
+          // Both kinds of wait the tile can be in: reading the stored results on open, and running
+          // a Search. They are told apart in the tooltip rather than by two different icons.
+          val busyIndicator: VdomNode =
+            if !headersLoaded.get then
+              <.span(Icons.Spinner.withSpin(true))
+                .withTooltip(content = "Loading the stored Search results…")
+            else if search.searchInFlight then
+              <.span(Icons.Spinner.withSpin(true))
+                .withTooltip(content = "Searching the archive…")
+            else EmptyVdom
 
           val title: VdomNode =
             if tileSize === TileSizeState.Minimized then EmptyVdom
@@ -238,10 +282,15 @@ object ArchiveDuplicationTile
               React.Fragment(
                 <.span(ExploreStyles.TableSelectionToolbar)(
                   <.span(s"${search.withMatchesCount} of ${search.entries.length} with matches"),
+                  busyIndicator,
                   Button(
                     size = Button.Size.Small,
-                    icon = Icons.ListCheck,
-                    label = "Check Unchecked",
+                    // The sweep runs several observations at a time and each one takes seconds, so
+                    // the button says it is working rather than only going disabled.
+                    icon =
+                      if search.searchInFlight then Icons.Spinner.withSpin(true)
+                      else Icons.ListCheck,
+                    label = "Check Outdated",
                     disabled = sweepDisabled,
                     tooltip = sweepTooltip,
                     onClick = sweep

@@ -80,9 +80,13 @@ case class ArchiveDuplication(
   def hasMatches: Boolean =
     matchCount.value > 0
 
-  // An observation the sweep should ask about: never checked, or checked and failed.
+  // An observation the sweep should ask about: never checked, last attempt failed, or checked
+  // against a configuration the observation has since moved away from. A NOT_APPLICABLE one is
+  // skipped because the ODB would report the same thing back, and an up-to-date CHECKED one
+  // because re-running costs an archive round trip to be told what is already stored.
   def needsSearch: Boolean =
-    state === ArchiveDuplicationState.NotChecked || state === ArchiveDuplicationState.Error
+    state === ArchiveDuplicationState.NotChecked || state === ArchiveDuplicationState.Error ||
+      stale
 
 object ArchiveDuplication:
   given Decoder[ArchiveDuplication] = Decoder.instance: c =>

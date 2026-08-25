@@ -38,6 +38,12 @@ trait OdbArchiveApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
       _.id
     ).map(_.map(m => m.id -> m.archiveDuplication).toMap)
 
+  def observationArchiveDuplication(obsId: Observation.Id): F[Option[ArchiveDuplication]] =
+    ObservationArchiveDuplication[F]
+      .query(obsId)
+      .processErrors
+      .map(_.observation.map(_.archiveDuplication))
+
   def observationArchiveMatches(obsId: Observation.Id): F[List[ArchiveMatch]] =
     ObservationArchiveMatches[F]
       .query(obsId)
