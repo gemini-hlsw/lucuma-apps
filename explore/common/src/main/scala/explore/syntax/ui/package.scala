@@ -192,13 +192,19 @@ extension (icon: FontAwesomeIcon)
 extension (target: Target)
   // The icon says what kind of target this is, and a resolved Target of Opportunity is still one,
   // so it keeps the hourglass whether or not the alert has arrived.
-  def iconWithTooltip: VdomNode =
+  def kindIcon: FontAwesomeIcon =
     target match
-      case Target.Sidereal(_, _, _, _)    => Icons.Star.fixedWidthWithTooltip("Sidereal")
-      case Target.Nonsidereal(_, _, _)    =>
-        Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
-      case Target.Opportunity(_, _, _, _) =>
-        Icons.HourglassClock.fixedWidthWithTooltip("Target of Opportunity")
+      case Target.Sidereal(_, _, _, _)    => Icons.Star
+      case Target.Nonsidereal(_, _, _)    => Icons.PlanetRinged
+      case Target.Opportunity(_, _, _, _) => Icons.HourglassClock
+
+  def kindLabel: String =
+    target match
+      case Target.Sidereal(_, _, _, _)    => "Sidereal"
+      case Target.Nonsidereal(_, _, _)    => "Non-sidereal"
+      case Target.Opportunity(_, _, _, _) => "Target of Opportunity"
+
+  def iconWithTooltip: VdomNode = kindIcon.fixedWidthWithTooltip(kindLabel)
 
   // The catalog accessors below go through the resolution rather than the subtype, so a resolved
   // Target of Opportunity reports the catalog entry or ephemeris key it resolved to.

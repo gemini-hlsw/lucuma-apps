@@ -4177,16 +4177,21 @@ div.spectroscopy-table-emptymessage {
   .explore-target-summary-delete {
     left: 0;
 
-    ~ .explore-target-summary-type {
+    ~ .explore-target-summary-icon {
       left: 35px;
 
+      ~ .explore-target-summary-type {
+        left: 70px;
+
+        ~ .explore-target-summary-name {
+          left: 170px;
+        }
+      }
+
+      // The type column can be hidden, in which case name follows the icon.
       ~ .explore-target-summary-name {
         left: 70px;
       }
-    }
-
-    ~ .explore-target-summary-name {
-      left: 35px;
     }
   }
 
@@ -4199,16 +4204,20 @@ div.spectroscopy-table-emptymessage {
       justify-content: space-evenly;
     }
 
-    ~ .explore-target-summary-type {
+    ~ .explore-target-summary-icon {
       left: 75px;
+
+      ~ .explore-target-summary-type {
+        left: 110px;
+
+        ~ .explore-target-summary-name {
+          left: 210px;
+        }
+      }
 
       ~ .explore-target-summary-name {
-        left: 109px;
+        left: 110px;
       }
-    }
-
-    ~ .explore-target-summary-name {
-      left: 75px;
     }
   }
 
@@ -4217,23 +4226,40 @@ div.spectroscopy-table-emptymessage {
     width: 55px;
     min-width: 55px;
 
-    ~ .explore-target-summary-type {
+    ~ .explore-target-summary-icon {
       left: 55px;
+
+      ~ .explore-target-summary-type {
+        left: 90px;
+
+        ~ .explore-target-summary-name {
+          left: 190px;
+        }
+      }
 
       ~ .explore-target-summary-name {
-        left: 89px;
+        left: 90px;
       }
-    }
-
-    ~ .explore-target-summary-name {
-      left: 55px;
     }
   }
 
+  .explore-target-summary-icon,
   .explore-target-summary-type,
   .explore-constraints-summary-edit {
     left: 0;
   }
+}
+
+// The icon column has no header text, so the div carrying the sort click handler is only as
+// big as the sort indicator, leaving most of the header cell dead. The cell is positioned,
+// so stretch the wrapper over all of it. The resizer is a sibling div and must keep its own
+// geometry.
+.pl-react-table .p-datatable-thead th.explore-target-summary-icon > div:not(.pl-resizer) {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toast-portal {

@@ -33,6 +33,7 @@ import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.Target
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
+import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.CoordinatesAt
@@ -43,6 +44,7 @@ import lucuma.ui.react.given
 import scala.collection.immutable.TreeSeqMap
 
 object TargetColumns:
+  val IconColumnId: ColumnId       = ColumnId("icon")
   val TypeColumnId: ColumnId       = ColumnId("type")
   val NameColumnId: ColumnId       = ColumnId("name")
   val RAColumnId: ColumnId         = ColumnId("ra")
@@ -280,18 +282,27 @@ object TargetColumns:
           case Some(_) => super.getTypeLabel(d)
           case None    => if getSlotFn(d).contains(SlotId.Base) then "Base" else "Sky"
 
-      def icon(d: D): VdomNode =
+      // The tooltip doubles as the sort key, so sorting the icon column groups rows by kind.
+      def iconAndTooltip(d: D): (FontAwesomeIcon, String) =
         getTargetFn(d) match
           case None                                                                   =>
             if getSlotFn(d).contains(SlotId.Base)
-            then Icons.Bullseye.fixedWidthWithTooltip("Base position")
-            else Icons.LocationDot.fixedWidthWithTooltip("Sky position")
-          case Some(t) if getDispositionFn(d).contains(TargetDisposition.BlindOffset) =>
-            Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
-          case Some(t)                                                                => t.iconWithTooltip
+            then (Icons.Bullseye, "Base position")
+            else (Icons.LocationDot, "Sky position")
+          case Some(_) if getDispositionFn(d).contains(TargetDisposition.BlindOffset) =>
+            (Icons.LocationDot, "Blind Offset")
+          case Some(t)                                                                =>
+            (t.kindIcon, t.kindLabel)
+
+      lazy val IconColumn: colDef.Type =
+        colDef(IconColumnId, iconAndTooltip).withoutHeader
+          .withCell(cell => cell.value._1.fixedWidthWithTooltip(cell.value._2))
+          .withSize(35.toPx)
+          .sortableBy(_._2)
 
       lazy val AllColumns: List[colDef.Type] =
-        List(TypeColumn,
+        List(IconColumn,
+             TypeColumn,
              NameColumn
         ) ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns
 
@@ -315,7 +326,6 @@ object TargetColumns:
       def getTarget(d:      D): Option[Target]            = d.target.some
       def getDisposition(d: D): Option[TargetDisposition] = d.disposition.some
       def getName(d:        D): String                    = d.target.name.value
-      def icon(d:           D): VdomNode                  = d.target.iconWithTooltip
 
       lazy val AllColumns: List[colDef.Type] =
         List(TypeColumn,
@@ -329,7 +339,6 @@ object TargetColumns:
       def getTarget(d:      D): Option[Target]            = d.target.some
       def getDisposition(d: D): Option[TargetDisposition] = d.disposition.some
       def getName(d:        D): String                    = d.target.name.value
-      def icon(d:           D): VdomNode                  = d.target.iconWithTooltip
 
       lazy val AllColumns: List[colDef.Type] =
         List(TypeColumn, NameColumn) ++ CatalogColumns
