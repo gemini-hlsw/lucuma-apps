@@ -94,6 +94,7 @@ object TargetTable:
 
   private val ColumnClasses: Map[ColumnId, Css] = Map(
     DeleteColumnId             -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryDelete),
+    TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
     TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
     TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
   )

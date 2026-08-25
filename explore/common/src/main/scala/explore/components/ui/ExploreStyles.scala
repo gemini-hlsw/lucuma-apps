@@ -516,6 +516,7 @@ object ExploreStyles:
   val TargetSummaryDelete: Css     = Css("explore-target-summary-delete")
   val TargetSummarySelect: Css     = Css("explore-target-summary-select")
   val TargetSummaryId: Css         = Css("explore-target-summary-id")
+  val TargetSummaryIcon: Css       = Css("explore-target-summary-icon")
   val TargetSummaryType: Css       = Css("explore-target-summary-type")
   val TargetSummaryName: Css       = Css("explore-target-summary-name")
   val TargetSummarySubRowCell: Css = Css("explore-target-summary-subrow-cell")

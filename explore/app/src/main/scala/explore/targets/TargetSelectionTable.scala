@@ -38,6 +38,7 @@ object TargetSelectionTable:
 
   private val columnClasses: Map[ColumnId, Css] = Map(
     SelectColumnId             -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummarySelect),
+    TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
     TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
     TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
   )
