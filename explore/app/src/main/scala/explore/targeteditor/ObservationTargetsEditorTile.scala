@@ -307,7 +307,8 @@ object ObservationTargetsEditorTile
             obsDurationView,
             obsTimeAndDurationView,
             props.digest,
-            props.obsIds.size > 1
+            props.obsIds.size > 1,
+            obsEditInfo.allAreCompleted
           )
 
           val title =
