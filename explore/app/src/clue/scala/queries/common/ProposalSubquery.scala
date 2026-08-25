@@ -26,7 +26,9 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
           minPercentTime
           partnerSplits $PartnerSplitSubquery
           exchangePartner
-          aeonMultiFacility
+          aeonMultiFacility {
+            requiredInstruments
+          }
           jwstSynergy
           usLongTerm
         }
@@ -60,7 +62,9 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
             hours
             minutes
           }
-          aeonMultiFacility
+          aeonMultiFacility {
+            requiredInstruments
+          }
           jwstSynergy
         }
         ... on Queue {
@@ -70,7 +74,9 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
           minPercentTime
           partnerSplits $PartnerSplitSubquery
           exchangePartner
-          aeonMultiFacility
+          aeonMultiFacility {
+            requiredInstruments
+          }
           jwstSynergy
           usLongTerm
           considerForBand3

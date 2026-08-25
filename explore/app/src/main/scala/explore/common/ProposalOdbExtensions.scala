@@ -13,6 +13,7 @@ import explore.model.ProposalType.*
 import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.ObservationDB.Types.AeonMultiFacilityInput
 import lucuma.schemas.ObservationDB.Types.ClassicalInput
 import lucuma.schemas.ObservationDB.Types.DemoScienceInput
 import lucuma.schemas.ObservationDB.Types.DirectorsTimeInput
@@ -43,6 +44,12 @@ trait ProposalOdbExtensions:
   ): Input[List[PartnerSplitInput]] =
     if (exchangePartner.isDefined || partnerSplits.isEmpty) Unassign
     else partnerSplits.map(_.toInput).assign
+
+  // The ODB models AEON membership as the presence of the AeonMultiFacility
+  // object. Explore only tracks membership, so the required instruments are
+  // left untouched.
+  private def aeonMultiFacilityInput(aeon: Boolean): Input[AeonMultiFacilityInput] =
+    if (aeon) AeonMultiFacilityInput().assign else Unassign
 
   extension (proposalType: GeminiProposalType)
     def toInput: GeminiProposalTypeInput =
@@ -90,7 +97,7 @@ trait ProposalOdbExtensions:
               minPercentTime = minPercentTime.assign,
               minPercentTotalTime = minPercentTotalTime.assign,
               totalTime = totalTime.toInput.assign,
-              aeonMultiFacility = aeonMultiFacility.assign,
+              aeonMultiFacility = aeonMultiFacilityInput(aeonMultiFacility),
               jwstSynergy = jwstSynergy.assign
             )
           )
@@ -108,7 +115,7 @@ trait ProposalOdbExtensions:
               minPercentTime = minPercentTime.assign,
               partnerSplits = splitsInput(partnerSplits, exchangePartner),
               exchangePartner = exchangePartner.orUnassign,
-              aeonMultiFacility = aeonMultiFacility.assign,
+              aeonMultiFacility = aeonMultiFacilityInput(aeonMultiFacility),
               jwstSynergy = jwstSynergy.assign,
               usLongTerm = usLongTerm.assign
             )
@@ -130,7 +137,7 @@ trait ProposalOdbExtensions:
               minPercentTime = minPercentTime.assign,
               partnerSplits = splitsInput(partnerSplits, exchangePartner),
               exchangePartner = exchangePartner.orUnassign,
-              aeonMultiFacility = aeonMultiFacility.assign,
+              aeonMultiFacility = aeonMultiFacilityInput(aeonMultiFacility),
               jwstSynergy = jwstSynergy.assign,
               usLongTerm = usLongTerm.assign,
               considerForBand3 = considerForBand3.assign
