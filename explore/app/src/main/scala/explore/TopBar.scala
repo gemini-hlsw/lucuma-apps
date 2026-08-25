@@ -229,6 +229,39 @@ object TopBar:
            ).flattenOption
          else List.empty)
 
+    val helpItems = List(
+      MenuItem
+        .Item(
+          label = "User Manual",
+          icon = Icons.BookOpen,
+          command = Callback(
+            window.open("https://www.gemini.edu/files/software/gpp/Explore_Manual.pdf", "_blank")
+          )
+        ),
+      MenuItem
+        .Item(
+          label = "Help Desk",
+          icon = Icons.ArrowUpRightFromSquareSolid,
+          command = Callback(
+            window
+              .open("https://noirlab.atlassian.net/servicedesk/customer/portal/12", "_blank")
+          )
+        ),
+      MenuItem
+        .Item(
+          label = "Feedback",
+          icon = Icons.MessageLines,
+          command = Callback(
+            // entry.315019327 is a field we prepopulate with the sw version
+            window.open(
+              "https://docs.google.com/forms/d/e/1FAIpQLSfZMCjT2SvOG2bICKbUaZuCTp67glt_Z7n_J03nS-O-2b-_NQ/viewform?usp=pp_url&entry.315019327=" +
+                URLEncoder.encode(ctx.version.value, StandardCharsets.UTF_8),
+              "_blank"
+            )
+          )
+        )
+    )
+
     if role =!= GuestRole then
       firstItems :::
         List(
@@ -243,42 +276,9 @@ object TopBar:
               label = "Redeem invitations",
               icon = Icons.UserGroupSimple,
               command = openRedeem
-            ),
-          MenuItem
-            .Item(
-              label = "User Manual",
-              icon = Icons.BookOpen,
-              command = Callback(
-                window.open("https://www.gemini.edu/files/software/gpp/Explore_Manual.pdf",
-                            "_blank"
-                )
-              )
-            ),
-          MenuItem
-            .Item(
-              label = "Help Desk",
-              icon = Icons.ArrowUpRightFromSquareSolid,
-              command = Callback(
-                window.open("https://noirlab.atlassian.net/servicedesk/customer/portal/12",
-                            "_blank"
-                )
-              )
-            ),
-          MenuItem
-            .Item(
-              label = "Feedback",
-              icon = Icons.MessageLines,
-              command = Callback(
-                // entry.315019327 is a field we prepopulate with the sw version
-                window.open(
-                  "https://docs.google.com/forms/d/e/1FAIpQLSfZMCjT2SvOG2bICKbUaZuCTp67glt_Z7n_J03nS-O-2b-_NQ/viewform?usp=pp_url&entry.315019327=" +
-                    URLEncoder.encode(ctx.version.value, StandardCharsets.UTF_8),
-                  "_blank"
-                )
-              )
             )
-        ) ::: lastItems
-    else firstItems ::: lastItems
+        ) ::: helpItems ::: lastItems
+    else firstItems ::: helpItems ::: lastItems
 
   private val component =
     ScalaFnComponent[Props]: props =>
