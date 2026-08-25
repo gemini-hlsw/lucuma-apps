@@ -523,6 +523,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(gmosSouthImaging = true)
       case ObservingModeType.GmosSouthMos                                    =>
         ModeViewFlags(gmosSouthMos = true)
+      case ObservingModeType.GmosNorthIfu | ObservingModeType.GmosSouthIfu   =>
+        sys.error("GMOS IFU is not implemented")
       case ObservingModeType.GnirsImaging                                    =>
         ModeViewFlags(gnirsImaging = true)
       case ObservingModeType.GnirsLongSlit                                   =>
