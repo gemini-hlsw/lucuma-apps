@@ -246,8 +246,17 @@ object ObservationTargetsEditorTile
                       cb(current, None)
             )
 
-          // Save the time here. this works for the obs and target tabs
-          // It's OK to save the viz time for executed observations, I think.
+          // Save the time here. this works for the obs and target tabs.
+          // The ODB rejects time updates on completed observations, so only persist
+          // for the rest. The local view still updates, keeping the visualization usable.
+          val timeUpdateObsIds: List[Observation.Id] = obsEditInfo.unCompleted.foldMap(_.toList)
+
+          def persistObsTimes(time: Option[Instant], duration: Option[TimeSpan]): Callback =
+            props.odbApi
+              .updateVisualizationTimeAndDuration(timeUpdateObsIds, time, duration)
+              .runAsync
+              .unless_(timeUpdateObsIds.isEmpty)
+
           val obsTimeView: View[Instant] =
             View(
               obsTime,
@@ -256,13 +265,14 @@ object ObservationTargetsEditorTile
                 props.obsTime.set(newValue) >>
                   cb(obsTime, newValue.getOrElse(obsTime))
             ).withOnMod: ct =>
-              props.odbApi
-                .updateVisualizationTimeAndDuration(props.obsIds.toList, ct.some, none)
-                .runAsync
+              persistObsTimes(ct.some, none)
 
           val obsDurationView: View[Option[TimeSpan]] =
             props.obsDuration.withOnMod: t =>
-              props.odbApi.updateVisualizationDuration(props.obsIds.toList, t).runAsync
+              props.odbApi
+                .updateVisualizationDuration(timeUpdateObsIds, t)
+                .runAsync
+                .unless_(timeUpdateObsIds.isEmpty)
 
           val obsTimeAndDurationView: View[(Instant, Option[TimeSpan])] =
             View(
@@ -273,9 +283,7 @@ object ObservationTargetsEditorTile
                 props.obsTime.set(newValue._1.some) >> props.obsDuration
                   .set(newValue._2) >> cb(oldValue, newValue)
             ).withOnMod: tuple =>
-              props.odbApi
-                .updateVisualizationTimeAndDuration(props.obsIds.toList, tuple._1.some, tuple._2)
-                .runAsync
+              persistObsTimes(tuple._1.some, tuple._2)
 
           val editWarningMsg: Option[String] =
             if (obsEditInfo.allAreOngoing)
@@ -299,7 +307,8 @@ object ObservationTargetsEditorTile
             obsDurationView,
             obsTimeAndDurationView,
             props.digest,
-            props.obsIds.size > 1
+            props.obsIds.size > 1,
+            obsEditInfo.allAreCompleted
           )
 
           val title =

@@ -52,7 +52,8 @@ final case class ObsConfiguration(
   trackType:          Option[TrackType],
   targetViz:          TargetVisualization,
   explicitBase:       Option[Coordinates],
-  cassRotator:        CassRotator
+  cassRotator:        CassRotator,
+  maskDesign:         Option[MaskDesign]
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -120,5 +121,6 @@ object ObsConfiguration:
       trackType,
       TargetVisualization.Empty,
       none,
-      CassRotator.Following
+      CassRotator.Following,
+      none
     )

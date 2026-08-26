@@ -440,7 +440,8 @@ object ProposalEditor
                     token,
                     props.attachments,
                     props.proposal.get.proposalType,
-                    props.proposalOrUserIsReadonly
+                    props.proposalOrUserIsReadonly,
+                    props.errors.exists(_.nonEmpty)
                   )
                 )
               )

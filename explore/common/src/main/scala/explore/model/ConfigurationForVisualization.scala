@@ -31,7 +31,8 @@ case class ConfigurationForVisualization private (
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
   trackType:                  Option[TrackType],
-  targetVisualization:        TargetVisualization
+  targetVisualization:        TargetVisualization,
+  maskDesign:                 Option[MaskDesign]
 ) derives Eq:
   // Effective pos angle, either from the AGS, or the default for the conifguration
   // TODO: Take the calculated average parallactic angle if needed
@@ -74,7 +75,8 @@ object ConfigurationForVisualization:
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
           obsConfig.trackType,
-          obsConfig.targetViz
+          obsConfig.targetViz,
+          obsConfig.maskDesign
         )
       }
       .orElse:
@@ -94,5 +96,6 @@ object ConfigurationForVisualization:
       selectedPosAngle,
       None,
       None,
-      TargetVisualization.Empty
+      TargetVisualization.Empty,
+      None
     )

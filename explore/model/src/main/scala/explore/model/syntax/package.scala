@@ -60,6 +60,14 @@ object all:
   extension (at: AttachmentType)
     def accept: String = at.fileExtensions.toList.sorted.map("." + _.value).mkString(",")
 
+    /**
+     * Attachments the ODB generates for itself. The user can neither upload nor delete them, so
+     * their rows offer a generate action in place of the usual controls.
+     */
+    def isOdbGenerated: Boolean = at match
+      case AttachmentType.Summary => true
+      case _                      => false
+
   val customSedIdOptional = SourceProfile.unnormalizedSED.some
     .andThen(UnnormalizedSED.userDefinedAttachment)
     .andThen(UnnormalizedSED.UserDefinedAttachment.attachmentId)

@@ -19,6 +19,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Attachment
 import explore.model.AttachmentList
+import explore.model.PopupState
 import explore.model.ProposalType
 import explore.model.reusability.given
 import explore.model.syntax.all.*
@@ -39,6 +40,7 @@ import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.ConfirmPopup
 import lucuma.react.primereact.Dialog
 import lucuma.react.table.*
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.react.given
 import lucuma.ui.reusability.given
@@ -46,11 +48,12 @@ import lucuma.ui.table.*
 import org.typelevel.log4cats.Logger
 
 case class ProposalAttachmentsTable(
-  programId:    Program.Id,
-  authToken:    NonEmptyString,
-  attachments:  View[AttachmentList],
-  proposalType: Option[ProposalType],
-  readOnly:     Boolean
+  programId:         Program.Id,
+  authToken:         NonEmptyString,
+  attachments:       View[AttachmentList],
+  proposalType:      Option[ProposalType],
+  readOnly:          Boolean,
+  hasProposalErrors: Boolean
 ) extends ReactFnProps(ProposalAttachmentsTable.component)
 
 object ProposalAttachmentsTable extends ProposalAttachmentUtils {
@@ -67,7 +70,11 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
   private type UrlMapKey = (Attachment.Id, Timestamp)
   private type UrlMap    = Map[UrlMapKey, Pot[String]]
 
-  private case class TableMeta(action: View[Action], urlMap: UrlMap)
+  private case class TableMeta(
+    action:         View[Action],
+    urlMap:         UrlMap,
+    notImplemented: View[PopupState]
+  )
 
   private val ColDef = ColumnDef[Row].WithTableMeta[TableMeta]
 
@@ -115,8 +122,9 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
               )
 
             updateUrlMap *> getUrls
-      .useMemoBy((props, _, client, _, _) => (props.readOnly, client)): // cols
-        (props, ctx, _, _, _) =>
+      .useStateView(PopupState.Closed)
+      .useMemoBy((props, _, client, _, _, _) => (props.readOnly, client)): // cols
+        (props, ctx, _, _, _, _) =>
           (readOnly, client) =>
             import ctx.given
 
@@ -126,81 +134,104 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
             ): ColumnDef.Single.WithTableMeta[Row, V, TableMeta] =
               ColDef(id, v => accessor(v), columnNames(id))
 
+            // ODB-generated attachments are not uploaded or deleted by the user, so
+            // their rows offer generation in place of the usual controls.
+            def gearsButton(exists: Boolean, meta: TableMeta) =
+              <.label(
+                tableLabelButtonClasses,
+                Icons.Gears,
+                ^.onClick --> meta.notImplemented.set(PopupState.Open)
+              ).withTooltip(
+                if (exists) "Regenerate summary pdf" else "Generate summary pdf"
+              ).unless(readOnly)
+
+            def downloadButton(thisAtt: Attachment, meta: TableMeta) =
+              meta.urlMap
+                .get(thisAtt.toMapKey)
+                .foldMap:
+                  case Pot.Ready(url) =>
+                    <.a(Icons.FileArrowDown, ^.href := url, tableLabelButtonClasses)
+                      .withTooltip("Download File")
+                  case Pot.Pending    => <.span(Icons.Spinner.withSpin(true))
+                  case Pot.Error(t)   =>
+                    <.span(Icons.ExclamationTriangle).withTooltip(t.getMessage)
+
             List(
               column(ActionsColumnId, identity)
                 .withCell(cell =>
                   cell.table.options.meta.map: meta =>
                     cell.value.fold(
                       attType =>
-                        <.div(
-                          <.label(
-                            tableLabelButtonClasses,
-                            ExploreStyles.WarningLabel,
-                            ^.htmlFor := s"attachment-upload-$attType",
-                            Icons.FileArrowUp
-                          ).withTooltip(
-                            tooltip = s"Upload new ${attType.shortName} attachment"
-                          ).unless(readOnly),
-                          <.input(
-                            ExploreStyles.FileUpload,
-                            ^.tpe    := "file",
-                            ^.onChange ==> onInsertFileSelected(
-                              props.programId,
-                              props.attachments.mod,
-                              attType,
-                              client,
-                              meta.action
-                            ),
-                            ^.id     := s"attachment-upload-$attType",
-                            ^.name   := "file",
-                            ^.accept := attType.accept
-                          ).unless(readOnly)
-                        ),
+                        if (attType.isOdbGenerated)
+                          <.div(gearsButton(exists = false, meta))
+                        else
+                          <.div(
+                            <.label(
+                              tableLabelButtonClasses,
+                              ExploreStyles.WarningLabel,
+                              ^.htmlFor := s"attachment-upload-$attType",
+                              Icons.FileArrowUp
+                            ).withTooltip(
+                              tooltip = s"Upload new ${attType.shortName} attachment"
+                            ).unless(readOnly),
+                            <.input(
+                              ExploreStyles.FileUpload,
+                              ^.tpe    := "file",
+                              ^.onChange ==> onInsertFileSelected(
+                                props.programId,
+                                props.attachments.mod,
+                                attType,
+                                client,
+                                meta.action
+                              ),
+                              ^.id     := s"attachment-upload-$attType",
+                              ^.name   := "file",
+                              ^.accept := attType.accept
+                            ).unless(readOnly)
+                          ),
                       thisAtt =>
                         val attType = thisAtt.attachmentType
-                        <.div(
-                          // The upload "button" needs to be a label. In order to make
-                          // the styling consistent they're all labels.
-                          <.label(
-                            tableLabelButtonClasses,
-                            Icons.Trash,
-                            ^.onClick ==> deletePrompt(
-                              props.attachments.mod,
-                              client,
-                              thisAtt
-                            )
-                          ).withTooltip("Delete attachment").unless(readOnly),
-                          <.label(
-                            tableLabelButtonClasses,
-                            ^.htmlFor := s"attachment-replace-$attType",
-                            Icons.FileArrowUp
-                          ).withTooltip(
-                            tooltip = s"Upload replacement file",
-                            placement = Placement.Right
-                          ).unless(readOnly),
-                          <.input(
-                            ExploreStyles.FileUpload,
-                            ^.tpe    := "file",
-                            ^.onChange ==> onUpdateFileSelected(
-                              props.attachments.mod,
-                              thisAtt,
-                              client,
-                              meta.action
-                            ),
-                            ^.id     := s"attachment-replace-$attType",
-                            ^.name   := "file",
-                            ^.accept := attType.accept
-                          ).unless(readOnly),
-                          meta.urlMap
-                            .get(thisAtt.toMapKey)
-                            .foldMap:
-                              case Pot.Ready(url) =>
-                                <.a(Icons.FileArrowDown, ^.href := url, tableLabelButtonClasses)
-                                  .withTooltip("Download File")
-                              case Pot.Pending    => <.span(Icons.Spinner.withSpin(true))
-                              case Pot.Error(t)   =>
-                                <.span(Icons.ExclamationTriangle).withTooltip(t.getMessage)
-                        )
+                        if (attType.isOdbGenerated)
+                          <.div(
+                            gearsButton(exists = true, meta),
+                            downloadButton(thisAtt, meta)
+                          )
+                        else
+                          <.div(
+                            // The upload "button" needs to be a label. In order to make
+                            // the styling consistent they're all labels.
+                            <.label(
+                              tableLabelButtonClasses,
+                              Icons.Trash,
+                              ^.onClick ==> deletePrompt(
+                                props.attachments.mod,
+                                client,
+                                thisAtt
+                              )
+                            ).withTooltip("Delete attachment").unless(readOnly),
+                            <.label(
+                              tableLabelButtonClasses,
+                              ^.htmlFor := s"attachment-replace-$attType",
+                              Icons.FileArrowUp
+                            ).withTooltip(
+                              tooltip = s"Upload replacement file",
+                              placement = Placement.Right
+                            ).unless(readOnly),
+                            <.input(
+                              ExploreStyles.FileUpload,
+                              ^.tpe    := "file",
+                              ^.onChange ==> onUpdateFileSelected(
+                                props.attachments.mod,
+                                thisAtt,
+                                client,
+                                meta.action
+                              ),
+                              ^.id     := s"attachment-replace-$attType",
+                              ^.name   := "file",
+                              ^.accept := attType.accept
+                            ).unless(readOnly),
+                            downloadButton(thisAtt, meta)
+                          )
                     )
                 ),
               column(AttachmentTypeColumnId, _.attachmentType)
@@ -214,28 +245,34 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
                 )
             )
       // Rows
-      .useMemoBy((props, _, _, _, _, _) => (props.attachments.reuseByValue, props.proposalType)):
-        (_, _, _, _, _, _) =>
-          (vl, pt) =>
-            val pas = vl.get.proposalList
-            Enumerated[AttachmentType]
-              .forPurpose(AttachmentPurpose.Proposal)
-              .filterNot(
-                // Fast turnaround proposals do not have a team attachment
-                _ === AttachmentType.Team && pt
-                  .flatMap(ProposalType.geminiProposalType.getOption)
-                  .exists(_.scienceSubtype === ScienceSubtype.FastTurnaround)
-              )
-              .map(pat => pas.find(_.attachmentType === pat).toRight(pat))
-      .useReactTableBy: (_, _, _, action, urlMap, cols, rows) =>
+      .useMemoBy((props, _, _, _, _, _, _) =>
+        (props.attachments.reuseByValue, props.proposalType, props.hasProposalErrors)
+      ): (_, _, _, _, _, _, _) =>
+        (vl, pt, hasProposalErrors) =>
+          val pas = vl.get.proposalList
+          Enumerated[AttachmentType]
+            .forPurpose(AttachmentPurpose.Proposal)
+            .filterNot(
+              // Fast turnaround proposals do not have a team attachment
+              _ === AttachmentType.Team && pt
+                .flatMap(ProposalType.geminiProposalType.getOption)
+                .exists(_.scienceSubtype === ScienceSubtype.FastTurnaround)
+            )
+            .filterNot(
+              // The summary is generated from a valid proposal, so there is nothing
+              // to offer while the proposal still has errors.
+              _.isOdbGenerated && hasProposalErrors
+            )
+            .map(pat => pas.find(_.attachmentType === pat).toRight(pat))
+      .useReactTableBy: (_, _, _, action, urlMap, notImplemented, cols, rows) =>
         TableOptions(
           cols,
           rows,
           enableSorting = false,
           getRowId = (row, _, _) => RowId(row.attachmentType.tag),
-          meta = TableMeta(action = action, urlMap = urlMap.get)
+          meta = TableMeta(action = action, urlMap = urlMap.get, notImplemented = notImplemented)
         )
-      .render { (_, _, _, action, _, _, _, table) =>
+      .render { (_, _, _, action, _, notImplemented, _, _, table) =>
         React.Fragment(
           PrimeTable(
             table,
@@ -255,7 +292,16 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
             closable = false,
             closeOnEscape = false,
             showHeader = true
-          )("Please wait...")
+          )("Please wait..."),
+          // Placeholder until the ODB can generate the summary.
+          Dialog(
+            visible = notImplemented.get.value,
+            onHide = notImplemented.set(PopupState.Closed),
+            dismissableMask = true,
+            resizable = false,
+            clazz = LucumaPrimeStyles.Dialog.Small,
+            header = "Generate Summary PDF"
+          )("Not yet implemented.")
         )
       }
 }
