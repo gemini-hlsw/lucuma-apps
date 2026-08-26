@@ -9,18 +9,15 @@ import explore.model.Observation
 import lucuma.core.model.Program
 
 trait OdbArchiveApi[F[_]]:
-  // The Archive Duplication header for every observation in a program. Archive Matches are not
-  // included: they are fetched per observation when a row is expanded.
+  // The Archive Duplication header for every observation in a progra
   def programArchiveDuplications(
     programId: Program.Id
   ): F[Map[Observation.Id, ArchiveDuplication]]
 
-  // One observation's header. Used to bring a single row up to date after the ODB recalculates
-  // it, rather than re-reading the whole program.
+  // One observation's header.
   def observationArchiveDuplication(obsId: Observation.Id): F[Option[ArchiveDuplication]]
 
   def observationArchiveMatches(obsId: Observation.Id): F[List[ArchiveMatch]]
 
-  // Runs the Archive Duplication Search for one observation and returns its new result. Rejected
-  // by the ODB once the proposal is submitted.
+  // Runs the Archive Duplication Search for one observation and returns its new result.
   def refreshArchiveDuplication(obsId: Observation.Id): F[ArchiveDuplication]

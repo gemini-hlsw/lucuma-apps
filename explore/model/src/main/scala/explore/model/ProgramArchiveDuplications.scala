@@ -15,13 +15,6 @@ import lucuma.core.enums.ProposalStatus
 import lucuma.core.math.Coordinates
 import lucuma.schemas.model.enums.ArchiveDuplicationState
 
-/**
- * What the Match Count cell shows — the Match Count itself is just a number, so the cell needs its
- * own type. `Pot.Pending` is a wait — the initial header load or a Search in flight, told apart by
- * whether the headers have landed — `Pot.Error` is a *call* that failed, and a ready header whose
- * state is ERROR is a successful call reporting a *Search* that failed: different things, displayed
- * differently.
- */
 enum MatchCountCell derives Eq:
   case Loading
   case Searching
@@ -61,11 +54,9 @@ case class ArchiveDuplicationEntry(
   lazy val matchCountCell: MatchCountCell = MatchCountCell.fromPot(duplication, headersLoaded)
   lazy val matchCount: Int                = duplication.toOption.foldMap(_.matchCount.value)
   lazy val hasMatches: Boolean            = matchCount > 0
-  lazy val searchArea: Option[SearchArea] = duplication.toOption.flatMap(_.searchArea)
 
 /**
- * Everything the Archive Duplication Search tile decides about a program, in one pure place: which
- * observations get a row, which the sweep asks about, and whether the Search controls are live.
+ * Everything the Archive Duplication Search tile decides about a program.
  */
 case class ProgramArchiveDuplications(
   observations:   ObservationList,
@@ -89,8 +80,6 @@ case class ProgramArchiveDuplications(
             .flatMap(_.target.asSidereal.map(_.tracking.baseCoordinates))
         .map(Coordinates.centerOf)
 
-  // Until the header query lands nothing is known about any observation; after it lands, an
-  // observation it did not report on is a broken result rather than a Search in flight.
   private def headerOf(obsId: Observation.Id): Pot[ArchiveDuplication] =
     duplications.getOrElse(
       obsId,
@@ -127,8 +116,7 @@ case class ProgramArchiveDuplications(
     headersLoaded && duplications.values.exists(_.isPending)
 
   /**
-   * The ODB rejects the refresh mutation once the proposal is submitted, so that is the test — not
-   * the user's role alone.
+   * The ODB rejects the refresh mutation once the proposal is submitted.
    */
   lazy val controlsEnabled: Boolean =
     !readonly && proposalStatus === ProposalStatus.NotSubmitted

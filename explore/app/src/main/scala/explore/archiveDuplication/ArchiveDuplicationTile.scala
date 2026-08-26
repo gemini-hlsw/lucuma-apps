@@ -47,7 +47,7 @@ import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
 
 // Each observation fans out server-side into several archive queries for its instrument
-// equivalence group, so four concurrent observations is already a dozen or more archive queries in
+// equivalence group. We allow max four concurrent observation queries.
 // flight.
 private val MaxConcurrentSearches = 4
 
@@ -61,9 +61,6 @@ private given matchCacheReuse: Reusability[Map[Observation.Id, Pot[List[ArchiveM
 /**
  * The Archive Duplication Search tile: the program's observations with their Match Count,
  * expandable to the Archive Matches the Search found.
- *
- * It pulls its own data and holds its own state — nothing pushes archive results to Explore. See
- * docs/adr/0007-archive-duplication-is-pulled-not-pushed.md.
  */
 final case class ArchiveDuplicationTile(
   userId:         Option[User.Id],

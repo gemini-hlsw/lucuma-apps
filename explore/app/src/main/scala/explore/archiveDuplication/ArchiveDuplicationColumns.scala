@@ -44,11 +44,10 @@ case class ArchiveDuplicationControls(enabled: Boolean, disabledReason: Option[S
 
 /**
  * One semantic column set for both row kinds: a column means the same kind of thing on an
- * observation row as on an Archive Match row, filled from whichever source that row has. That is
- * what makes the comparison read straight down the column.
+ * observation row as on an Archive Match row, filled from whichever source that row has.
  *
- * FPU is deliberately absent: the ODB does not carry the focal plane mask on an Archive Match, so
- * the column would be blank on every child row.
+ * That is
+ * what makes the comparison read straight down the column.
  */
 object ArchiveDuplicationColumns:
   import ArchiveDuplicationRow.*
@@ -161,16 +160,14 @@ object ArchiveDuplicationColumns:
   private def formatDistance(a: Angle): String =
     f"${Angle.signedDecimalArcseconds.get(a).toDouble}%.1f\""
 
-  // The ODB computes staleness against the observation as it now stands; the observer resolves it
-  // with the row's re-check action. Explore never fires the Search on its own.
+  // The ODB computes staleness against the observation as it now stands
   private val StaleTooltip =
     "The observation has changed since this search ran. Re-check the row to bring it up to date."
 
   private def matchCountText(count: Int, saturated: Boolean): String =
     if saturated then s"$count+" else count.toString
 
-  // State-aware rather than a plain number: a never-asked question must not read as a clean
-  // answer, and a saturated count is a floor rather than an exact figure.
+  // State-aware rather than a plain number
   private def matchCountCell(cell: MatchCountCell): VdomNode =
     cell match
       case MatchCountCell.Loading                                  =>
@@ -218,8 +215,7 @@ object ArchiveDuplicationColumns:
         .withCell(_.value.orEmpty)
         .sortable
 
-    // Filtering acts on observation rows (ADR 0007), so a column that is blank on an observation
-    // row offers no filter: filtering by it would empty the table while appearing to work.
+    // Filtering acts on observation rows
     def matchOnlyTextCol(id: ColumnId, forMatch: ArchiveMatch => Option[String]) =
       col(id, _.optMatch.flatMap(forMatch))
         .withCell(_.value.orEmpty)
@@ -348,24 +344,15 @@ object ArchiveDuplicationColumns:
         ActionsColumnId,
         cell = cell =>
           cell.row.original.value.optEntry.map: entry =>
-            React.Fragment(
-              entry.searchArea.map: area =>
-                <.a(
-                  ^.href   := area.goaSearchUrl,
-                  ^.target := "_blank",
-                  ^.onClick ==> (_.stopPropagationCB),
-                  ^.title  := "Open in the archive"
-                )(Icons.ArrowUpRightFromSquare),
-              Button(
-                icon = Icons.ArrowRotateRight,
-                text = true,
-                disabled = !controls.enabled || entry.duplication.isPending,
-                tooltip = controls.disabledReason.getOrElse("refresh"),
-                onClick = onRecheck(entry.id)
-              ).tiny.compact
-            ),
+            Button(
+              icon = Icons.ArrowRotateRight,
+              text = true,
+              disabled = !controls.enabled || entry.duplication.isPending,
+              tooltip = controls.disabledReason.getOrElse("refresh"),
+              onClick = onRecheck(entry.id)
+            ).tiny.compact,
         header = ColumnNames(ActionsColumnId)
-      ).withSize(70.toPx).setEnableSorting(false.some)
+      ).withSize(45.toPx).setEnableSorting(false.some)
     )
   end columns
 end ArchiveDuplicationColumns

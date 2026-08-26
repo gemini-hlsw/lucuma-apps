@@ -10,9 +10,7 @@ import explore.model.Observation
 
 /**
  * A row of the Archive Duplication Search table: one observation, or one of the Archive Matches
- * nested beneath it. A status row stands in for an observation's matches while they are being
- * fetched or when the fetch failed — it is also what makes a collapsed row expandable before its
- * matches are known.
+ * nested beneath it.
  */
 enum ArchiveDuplicationRow:
   case ObsRow(entry: ArchiveDuplicationEntry)

@@ -9,7 +9,7 @@ import lucuma.schemas.ObservationDB
 
 // The Archive Duplication Search tile pulls its own data: nothing here is folded into
 // `ObservationSubquery`, and there is no subscription, because a Search deliberately emits no
-// observation edit events. See docs/adr/0007-archive-duplication-is-pulled-not-pushed.md.
+// observation edit events.
 object ArchiveDuplicationQueriesGQL:
   @GraphQL
   trait ProgramArchiveDuplications extends GraphQLOperation[ObservationDB]:
@@ -25,9 +25,7 @@ object ArchiveDuplicationQueriesGQL:
       }
     """
 
-  // One observation's header, for the refetch driven by an obscalc READY transition. The bulk
-  // query above is for first paint; re-running it on every calculation would re-read the whole
-  // program to learn about one row.
+  // One observation's header, for the refetch driven by an obscalc READY transition.
   @GraphQL
   trait ObservationArchiveDuplication extends GraphQLOperation[ObservationDB]:
     val document = gql"""
