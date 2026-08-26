@@ -98,10 +98,6 @@ object ArchiveDuplicationTile
                                           .map(_ -> Pot.error[ArchiveDuplication](t))
                                           .toMap
                                   .guarantee(headersLoaded.async.set(true))
-          // Nothing pushes an archive result (ADR 0007), but `state` and `stale` are both derived
-          // from the observation, and the ODB materializes them in the background calculation. So
-          // a READY transition is the moment this tile's view of a row can have changed: it is
-          // what lets a newly-configured observation join the table and a stale snapshot say so.
           _                <- useEffectStreamResourceOnMount:
                                 ctx.odbApi
                                   .obsCalcSubscription(props.programId)
@@ -132,18 +128,13 @@ object ArchiveDuplicationTile
                                   props.readonly,
                                   props.proposalStatus
                                 )
-          // A ref rather than the state view: `onExpand` is captured by the memoized columns, so a
-          // render-time snapshot of the match cache would go stale and re-fetch on every expand.
+          // A ref rather than the state view: `onExpand` is captured by the memoized columns.
           requested        <- useRef(Set.empty[Observation.Id])
           // The mutation hands back the new result, so it is merged straight into local state: no
-          // refetch, no cache invalidation. A cached match set is dropped, along with its mark in
-          // `requested`, since it now describes an older Search: the next expand re-fetches.
-          // Failures are isolated per observation, so a sweep goes on.
+          // refetch, no cache invalidation.
           runSearch        <-
             HookResult: (obsId: Observation.Id) =>
-              // Logged because this is the only thing in Explore that makes the ODB query the
-              // archive: several GOA queries per call, and the only client-side cost worth
-              // tracing when the tile feels slow.
+              // Logged to tell we did a query
               ctx.logger.info(s"Requesting Archive Duplication Search for $obsId") >>
                 duplications.async.mod(_.updated(obsId, Pot.pending)) >>
                 ctx.odbApi
