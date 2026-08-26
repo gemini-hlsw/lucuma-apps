@@ -274,6 +274,18 @@ case class ProgramSummaries(
       .toMap
   end groupsChildren
 
+  // Inactive and Undefined observations will never be scheduled, so they don't count towards
+  // the elements an OR group can choose from. Subgroups always count.
+  def schedulableChildrenCount(groupId: Option[Group.Id]): Int =
+    groupsChildren
+      .get(groupId)
+      .orEmpty
+      .count(
+        _.fold(o => !ProgramSummaries.nonSchedulableStates.contains(o.workflow.value.state),
+               _ => true
+        )
+      )
+
   // Limit how deep we check group warnings. At some point the odb will probably need to limit tree depth,
   // but it currently doesn not do so. Deep trees will kill time calculation and scheduling...
   private val maxGroupCheckDepth = 10
@@ -298,8 +310,6 @@ case class ProgramSummaries(
   lazy val groupWarnings: Map[Group.Id, NonEmptySet[GroupWarning]] =
     extension (b:   Boolean)
       def mkSet(gw: GroupWarning): Set[GroupWarning] = if (b) Set(gw) else Set.empty
-    val ignoreStates: Set[ObservationWorkflowState]  =
-      Set(ObservationWorkflowState.Inactive, ObservationWorkflowState.Undefined)
 
     allObservationsForGroups
       .map: (group, obses) =>
@@ -313,7 +323,11 @@ case class ProgramSummaries(
             .mkSet(GroupWarning.UnapprovedObservations)
 
         val obs2Check =
-          NonEmptyList.fromList(obses.filterNot(o => ignoreStates.contains(o.workflow.value.state)))
+          NonEmptyList.fromList(
+            obses.filterNot(o =>
+              ProgramSummaries.nonSchedulableStates.contains(o.workflow.value.state)
+            )
+          )
 
         val moreWarnings = obs2Check.fold(Set.empty): nel =>
           val bandMismatch = // for all AND groups
@@ -331,6 +345,9 @@ case class ProgramSummaries(
       .toMap
 
 object ProgramSummaries:
+  private val nonSchedulableStates: Set[ObservationWorkflowState] =
+    Set(ObservationWorkflowState.Inactive, ObservationWorkflowState.Undefined)
+
   val optProgramDetails: Lens[ProgramSummaries, Option[ProgramDetails]]        =
     Focus[ProgramSummaries](_.optProgramDetails)
   val proposal: Optional[ProgramSummaries, Option[Proposal]]                   =

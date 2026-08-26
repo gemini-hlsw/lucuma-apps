@@ -361,7 +361,7 @@ object ObsTabContents extends TwoPanels:
                 props.vault.userId,
                 group,
                 props.programSummaries.get.groupWarnings.get(group.get.id),
-                props.programSummaries.get.groupsChildren.get(groupId.some).map(_.length).orEmpty,
+                props.programSummaries.get.schedulableChildrenCount(groupId.some),
                 resize,
                 ExploreGridLayouts.sectionLayout(GridLayoutSection.GroupEditLayout),
                 props.userPreferences.get.groupEditLayout,
