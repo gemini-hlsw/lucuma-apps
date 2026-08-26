@@ -330,7 +330,7 @@ object GmosSpectroscopyConfigPanel {
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
                   ),
-                offsetsControl(props, false)
+                offsetsControl(props, props.permissions.isReadonly)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableInputText(
