@@ -385,8 +385,7 @@ object TargetEditor:
           val regionView: View[Region] =
             opportunityAligner
               .zoom(Target.Opportunity.region, TargetPropertiesInput.opportunity.modify)
-              // The region alone: omitting `resolution` leaves it alone, which is what makes
-              // editing the approved region safe for a target that has already resolved.
+              // The region alone: omitting `resolution` leaves it alone.
               .view(r => OpportunityInput(region = r.toInput.assign).assign)
           RegionEditor(regionView, disabled)
 
@@ -587,24 +586,25 @@ object TargetEditor:
                   else twoid.target.sourceProfile
               )
 
-        // "Resolve" stays available once resolved so the resolution can be replaced outright,
-        // which is the only way to change an ephemeris key -- the nonsidereal fields are read-only
-        // here, exactly as they are for an ordinary nonsidereal target.
+        // Once resolved, a Target of Opportunity presents itself as an ordinary target, so only
+        // "Unresolve" is offered: replacing a resolution outright means unresolving first.
         val resolveButtons: Option[VdomNode] =
           optResolutionView.map: resolutionView =>
             <.div(ExploreStyles.TargetResolutionControls)(
-              Button(
-                label = "Resolve",
-                icon = Icons.Search,
-                onClick = resolvePopupState.set(PopupState.Open),
-                disabled = disabled
-              ).tiny.compact,
-              Button(
-                label = "Unresolve",
-                icon = Icons.HourglassClock,
-                onClick = resolutionView.set(none),
-                disabled = disabled
-              ).tiny.compact.when(resolutionView.get.isDefined)
+              if resolutionView.get.isDefined then
+                Button(
+                  label = "Unresolve",
+                  icon = Icons.HourglassClock,
+                  onClick = resolutionView.set(none),
+                  disabled = disabled
+                ).tiny.compact
+              else
+                Button(
+                  label = "Resolve",
+                  icon = Icons.Search,
+                  onClick = resolvePopupState.set(PopupState.Open),
+                  disabled = disabled
+                ).tiny.compact
             )
 
         // The popup is only the picker. It offers the catalogs plus the program's own targets --
@@ -658,7 +658,10 @@ object TargetEditor:
                   props.targetWithId.get.isTargetOfOpportunity
             ),
             optSiderealTrackingAligner.map(siderealCoordinates),
-            optOpportunityAligner.map(opportunityRegion),
+            // The arcs are what a Target of Opportunity has *instead* of a position. Once it has
+            // one they are just noise, so a resolved ToO reads like an ordinary target. The region
+            // is still kept -- unresolving brings the editor back.
+            optOpportunityAligner.filterNot(_.get.isResolved).map(opportunityRegion),
             resolveButtons,
             ephemerisKey
           )

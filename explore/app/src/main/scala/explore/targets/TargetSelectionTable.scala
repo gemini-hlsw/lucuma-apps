@@ -48,6 +48,9 @@ object TargetSelectionTable:
     // cols
     .useMemoBy(_ => ()) { props => _ =>
       List(
+        // The width below must stay in step with `.explore-target-summary-select .p-button` in
+        // explore.scss, and with the sticky `left` offsets of the columns that follow it. It has
+        // to fit the longest label any caller uses, which is "Resolve".
         ColDef(
           SelectColumnId,
           target => target,
@@ -66,7 +69,7 @@ object TargetSelectionTable:
             ).tiny.compact
           ,
           enableSorting = false
-        ).withColumnSize(FixedSize(70.toPx))
+        ).withColumnSize(FixedSize(100.toPx))
       ) ++ (
         props.source match
           case TargetSource.FromSimbad(_)     =>
