@@ -39,7 +39,6 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -51,8 +50,6 @@ import lucuma.ui.table.hooks.*
 // flight.
 private val MaxConcurrentSearches = 4
 
-private given configsReuse: Reusability[Map[Observation.Id, Option[BasicConfiguration]]] =
-  Reusability.byEq
 private given controlsReuse: Reusability[ArchiveDuplicationControls]                     = Reusability.byEq
 private given entriesReuse: Reusability[List[ArchiveDuplicationEntry]]                   = Reusability.byEq
 private given matchCacheReuse: Reusability[Map[Observation.Id, Pot[List[ArchiveMatch]]]] =
@@ -191,33 +188,11 @@ object ArchiveDuplicationTile
                                   obsId => runSearch(obsId).runAsyncAndForget
                                 )
           rows             <- useMemo((search.entries, matches.get)): (entries, matchCache) =>
-                                def subRows(
-                                  entry: ArchiveDuplicationEntry
-                                ): List[Expandable[ArchiveDuplicationRow]] =
-                                  if !entry.hasMatches then Nil
-                                  else
-                                    matchCache.get(entry.id) match
-                                      case Some(Pot.Ready(found)) =>
-                                        found.map(m => Expandable(MatchRow(entry.id, m)))
-                                      case Some(Pot.Error(t))     =>
-                                        List(
-                                          Expandable(
-                                            StatusRow(
-                                              entry.id,
-                                              s"Could not load matches: ${t.getMessage}",
-                                              false
-                                            )
-                                          )
-                                        )
-                                      case _                      =>
-                                        // Stands in for the matches until they are fetched, and is
-                                        // what makes a collapsed row expandable.
-                                        List(
-                                          Expandable(StatusRow(entry.id, "Loading matches…", true))
-                                        )
-
                                 entries.map: entry =>
-                                  Expandable(ObsRow(entry), subRows(entry))
+                                  Expandable(
+                                    ObsRow(entry),
+                                    ArchiveDuplicationRow.subRowsFor(entry, matchCache)
+                                  )
           tableState       <- useMemo(columnVisibility.get): cv =>
                                 PartialTableState(columnVisibility = cv)
           table            <- useReactTableWithStateStore:
@@ -238,21 +213,6 @@ object ArchiveDuplicationTile
                                 )
           resizer          <- useResizeDetector
         yield
-          val sweepDisabled: Boolean =
-            !search.controlsEnabled || !headersLoaded.get || search.searchInFlight ||
-              search.sweepObservations.isEmpty
-
-          val sweepTooltip: String =
-            search.disabledReason.getOrElse:
-              if !headersLoaded.get then "Loading the stored Search results…"
-              else if search.searchInFlight then "A Search is already running."
-              else if search.sweepObservations.isEmpty then
-                "Every observation has an up-to-date result."
-              else
-                s"Run the Archive Duplication Search for ${search.sweepObservations.length} " +
-                  "observation(s) that have never been checked, failed, or have changed since " +
-                  "they were checked"
-
           val sweep: Callback =
             (ctx.logger.info(
               s"Sweeping Archive Duplication Search over ${search.sweepObservations.length}" +
@@ -265,13 +225,12 @@ object ArchiveDuplicationTile
           // Both kinds of wait the tile can be in: reading the stored results on open, and running
           // a Search. They are told apart in the tooltip rather than by two different icons.
           val busyIndicator: VdomNode =
-            if !headersLoaded.get then
-              <.span(Icons.Spinner.withSpin(true))
-                .withTooltip(content = "Loading the stored Search results…")
-            else if search.searchInFlight then
-              <.span(Icons.Spinner.withSpin(true))
-                .withTooltip(content = "Searching the archive…")
-            else EmptyVdom
+            val waitingFor: Option[String] =
+              if !search.headersLoaded then "Loading the stored Search results…".some
+              else if search.searchInFlight then "Searching the archive…".some
+              else none
+            waitingFor.fold(EmptyVdom): content =>
+              <.span(Icons.Spinner.withSpin(true)).withTooltip(content = content)
 
           val title: VdomNode =
             if tileSize === TileSizeState.Minimized then EmptyVdom
@@ -290,8 +249,8 @@ object ArchiveDuplicationTile
                     label =
                       if search.sweepObservations.isEmpty then "Run check"
                       else s"Run check (${search.sweepObservations.length})",
-                    disabled = sweepDisabled,
-                    tooltip = sweepTooltip,
+                    disabled = search.sweepState.disabled,
+                    tooltip = search.sweepState.tooltip,
                     onClick = sweep
                   ).compact,
                   Button(

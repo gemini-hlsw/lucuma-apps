@@ -46,8 +46,7 @@ case class ArchiveDuplicationControls(enabled: Boolean, disabledReason: Option[S
  * One semantic column set for both row kinds: a column means the same kind of thing on an
  * observation row as on an Archive Match row, filled from whichever source that row has.
  *
- * That is
- * what makes the comparison read straight down the column.
+ * That is what makes the comparison read straight down the column.
  */
 object ArchiveDuplicationColumns:
   import ArchiveDuplicationRow.*

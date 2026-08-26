@@ -56,6 +56,32 @@ case class ArchiveDuplicationEntry(
   lazy val hasMatches: Boolean            = matchCount > 0
 
 /**
+ * Why the sweep button cannot run, or how much work it has. One ordered decision, so the button's
+ * enabled state and its tooltip can never disagree.
+ */
+enum SweepState derives Eq:
+  case NotAllowed(reason: String)
+  case Loading
+  case InFlight
+  case UpToDate
+  case Ready(count: Int)
+
+  def disabled: Boolean =
+    this match
+      case Ready(_) => false
+      case _        => true
+
+  def tooltip: String =
+    this match
+      case NotAllowed(reason) => reason
+      case Loading            => "Loading the stored Search results…"
+      case InFlight           => "A Search is already running."
+      case UpToDate           => "Every observation has an up-to-date result."
+      case Ready(count)       =>
+        s"Run the Archive Duplication Search for $count observation(s) that have never been " +
+          "checked, failed, or have changed since they were checked"
+
+/**
  * Everything the Archive Duplication Search tile decides about a program.
  */
 case class ProgramArchiveDuplications(
@@ -120,6 +146,17 @@ case class ProgramArchiveDuplications(
    */
   lazy val controlsEnabled: Boolean =
     !readonly && proposalStatus === ProposalStatus.NotSubmitted
+
+  /** The sweep button's whole state: whether it can run, and what it would do. */
+  lazy val sweepState: SweepState =
+    disabledReason.fold(
+      if !headersLoaded then SweepState.Loading
+      else if searchInFlight then SweepState.InFlight
+      else
+        NonEmptyList
+          .fromList(sweepObservations)
+          .fold(SweepState.UpToDate)(obs => SweepState.Ready(obs.length))
+    )(SweepState.NotAllowed(_))
 
   lazy val disabledReason: Option[String] =
     if readonly then "You do not have permission to edit this program.".some

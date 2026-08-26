@@ -60,14 +60,14 @@ object ArchiveDuplication:
       attemptedAt   <- c.get[Option[Timestamp]]("attemptedAt")
       stale         <- c.get[Boolean]("stale")
     yield ArchiveDuplication(
-        state,
-        matchCount,
-        saturated,
-        lastCheckedAt,
-        error,
-        attemptedAt,
-        stale
-      )
+      state,
+      matchCount,
+      saturated,
+      lastCheckedAt,
+      error,
+      attemptedAt,
+      stale
+    )
 
 /**
  * One archived file an Archive Duplication Search matched.
