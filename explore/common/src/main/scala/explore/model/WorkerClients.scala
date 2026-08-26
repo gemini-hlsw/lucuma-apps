@@ -53,48 +53,32 @@ object WorkerClients {
    * https://vitejs.dev/guide/features.html#import-with-query-suffixes
    *
    * Note that we don't use "&inline" since it increases the output size significantly.
+   *
+   * All workers share a single entry point (exploreworker.js), which dispatches on the `name`
+   * passed to the Worker constructor. With one entry per worker, Vite bundles a separate copy of
+   * the whole shared workers bundle for each one.
    */
   @js.native
-  @JSImport("/itcworker.js?worker", JSImport.Default)
-  private object ItcWorker extends js.Object {
-    def apply(): dom.Worker = js.native
+  @JSImport("/exploreworker.js?worker", JSImport.Default)
+  private object ExploreWorker extends js.Object {
+    def apply(options: js.Object): dom.Worker = js.native
   }
 
-  object ItcClient extends WorkerClientBuilder[ItcMessage.Request](ItcWorker())
+  private def worker(name: String): dom.Worker =
+    ExploreWorker(js.Dynamic.literal(name = name))
 
-  @js.native
-  @JSImport("/agsworker.js?worker", JSImport.Default)
-  private object AgsWorker extends js.Object {
-    def apply(): dom.Worker = js.native
-  }
+  object ItcClient extends WorkerClientBuilder[ItcMessage.Request](worker("itc"))
 
-  object AgsClient extends WorkerClientBuilder[AgsMessage.Request](AgsWorker())
+  object AgsClient extends WorkerClientBuilder[AgsMessage.Request](worker("ags"))
 
-  object AgsUnconstrainedClient extends WorkerClientBuilder[AgsMessage.Request](AgsWorker())
+  object AgsUnconstrainedClient extends WorkerClientBuilder[AgsMessage.Request](worker("ags"))
 
-  @js.native
-  @JSImport("/catalogworker.js?worker", JSImport.Default)
-  private object CatalogWorker extends js.Object {
-    def apply(): dom.Worker = js.native
-  }
+  object CatalogClient extends WorkerClientBuilder[CatalogMessage.Request](worker("catalog"))
 
-  object CatalogClient extends WorkerClientBuilder[CatalogMessage.Request](CatalogWorker())
+  object PlotClient extends WorkerClientBuilder[PlotMessage.Request](worker("plot"))
 
-  @js.native
-  @JSImport("/plotworker.js?worker", JSImport.Default)
-  private object PlotWorker extends js.Object {
-    def apply(): dom.Worker = js.native
-  }
-
-  object PlotClient extends WorkerClientBuilder[PlotMessage.Request](PlotWorker())
-
-  @js.native
-  @JSImport("/horizonsworker.js?worker", JSImport.Default)
-  private object HorizonsWorker extends js.Object {
-    def apply(): dom.Worker = js.native
-  }
-
-  object HorizonsWorkerClient extends WorkerClientBuilder[HorizonsMessage.Request](HorizonsWorker())
+  object HorizonsWorkerClient
+      extends WorkerClientBuilder[HorizonsMessage.Request](worker("horizons"))
 
   def build[F[_]: {Async, Logger, SecureRandom, Tracer}](
     dispatcher: Dispatcher[F]
