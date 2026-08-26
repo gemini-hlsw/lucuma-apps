@@ -2935,6 +2935,7 @@ enum LucumaTableIdsConstraint {
 }
 
 enum LucumaTableIdsEnum {
+  ARCHIVE_DUPLICATION
   ASTERISM_TARGETS
   CONSTRAINTS_SUMMARY
   GROUP_WARNINGS
