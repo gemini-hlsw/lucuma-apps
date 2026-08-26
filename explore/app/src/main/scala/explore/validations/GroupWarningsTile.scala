@@ -114,14 +114,11 @@ object GroupWarningsTile
           ColDef(
             expanderColumnId,
             cell = cell =>
-              if (cell.row.original.value.isGroupRow && cell.row.getCanExpand())
-                <.span(
-                  ^.cursor.pointer,
-                  TableStyles.ExpanderChevron,
-                  TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded()),
-                  ^.onClick ==> (_.stopPropagationCB *> toggleAll(cell.row))
-                )(TableIcons.ChevronRight.withFixedWidth(true))
-              else "",
+              ExpanderColumn.cell(
+                canExpand = cell.row.original.value.isGroupRow && cell.row.getCanExpand(),
+                expanded = cell.row.getIsExpanded(),
+                toggle = toggleAll(cell.row)
+              ),
             enableResizing = false
           ).withSize(30.toPx),
           column(GroupIdColumnId, _.forGroup(_.group.id))

@@ -165,19 +165,16 @@ object ObsSummaryColumns:
       ColDef(
         ExpanderColumnId,
         cell = cell =>
-          if (cell.row.getCanExpand())
-            <.span(
-              ^.cursor.pointer,
-              TableStyles.ExpanderChevron,
-              TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded()),
-              ^.onClick ==> (_.stopPropagationCB *> cell.row.getToggleExpandedHandler())
-            )(TableIcons.ChevronRight.withFixedWidth(true))
-          else "",
+          ExpanderColumn.cell(
+            canExpand = cell.row.getCanExpand(),
+            expanded = cell.row.getIsExpanded(),
+            toggle = cell.row.getToggleExpandedHandler()
+          ),
         enableResizing = false
       ).withSize(35.toPx),
       obsColumn(ObservationIdColumnId, _.obs)
         .withFilterMethod:
-          FilterMethod.Text(_.foldMap(o => o.reference.fold(o.id.show)(_.label)))
+          FilterMethod.Text(_.foldMap(_.displayLabel))
         .withCell:
           _.value.map(obsLink)
         .sortableWith(identifierSortFn),

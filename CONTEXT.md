@@ -85,6 +85,32 @@ A Slot deliberately pointed at blank sky instead of a target, so the observation
 background through the same optics. Today only GHOST offers one.
 _Avoid_: sky target, blank field
 
+### Archive duplication
+
+**Archive Duplication Search**:
+The check the ODB runs against the Gemini Observatory Archive for one observation, asking what
+the archive already holds around its pointing. Explore triggers it and reads its stored result;
+nothing runs it automatically.
+_Avoid_: query (that is one of the archive calls the ODB fans a single Search out into), archive
+check
+
+**Archive Match**:
+One archived *file* a Search matched, described by the archive's own record of it. A single past
+observation contributes several Archive Matches, and that is not deduplicated.
+_Avoid_: duplicate, hit, result
+
+**Search Area**:
+The centre and radius a Search covered: coordinates for a sidereal pointing, a target name for a
+non-sidereal one, with a radius derived from the observation's field of view. Stored with the
+result, so it describes the pointing the result was gathered at rather than the observation as it
+now stands.
+_Avoid_: search region, field
+
+**Match Count**:
+How many Archive Matches a Search found, counted per file to stay consistent with the PIT. A
+floor rather than an exact figure when the Search saturated the archive's 500-record cap.
+_Avoid_: number of duplicates, hits
+
 ### Tile layout
 
 **Row Span**:

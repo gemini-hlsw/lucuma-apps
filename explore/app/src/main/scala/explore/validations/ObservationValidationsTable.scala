@@ -108,14 +108,11 @@ object ObservationValidationsTableBody {
         ColDef(
           ColumnId("expander"),
           cell = cell =>
-            if (cell.row.original.value.isObsRow && cell.row.getCanExpand())
-              <.span(
-                ^.cursor.pointer,
-                TableStyles.ExpanderChevron,
-                TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded()),
-                ^.onClick ==> (_.stopPropagationCB *> toggleAll(cell.row))
-              )(TableIcons.ChevronRight.withFixedWidth(true))
-            else "",
+            ExpanderColumn.cell(
+              canExpand = cell.row.original.value.isObsRow && cell.row.getCanExpand(),
+              expanded = cell.row.getIsExpanded(),
+              toggle = toggleAll(cell.row)
+            ),
           enableResizing = false
         ).withSize(30.toPx),
         column(ObservationIdColumnId, _.forObs(_.obs.id))

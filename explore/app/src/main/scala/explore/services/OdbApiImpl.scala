@@ -27,3 +27,4 @@ case class OdbApiImpl[F[_]: Async](
     with OdbSequenceApiImpl[F]
     with OdbProposalApiImpl[F]
     with OdbConfigApiImpl[F]
+    with OdbArchiveApiImpl[F]

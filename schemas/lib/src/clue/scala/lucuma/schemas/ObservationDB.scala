@@ -77,6 +77,7 @@ trait ObservationDB {
   }
 
   object Enums {
+    type ArchiveDuplicationState             = lucuma.schemas.model.enums.ArchiveDuplicationState
     type ArcType                             = enums.ArcType
     type AtomExecutionState                  = lucuma.schemas.model.enums.AtomExecutionState
     type AtomStage                           = enums.AtomStage
