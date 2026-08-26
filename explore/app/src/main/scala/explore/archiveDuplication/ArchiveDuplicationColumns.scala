@@ -173,8 +173,12 @@ object ArchiveDuplicationColumns:
   // answer, and a saturated count is a floor rather than an exact figure.
   private def matchCountCell(cell: MatchCountCell): VdomNode =
     cell match
-      case MatchCountCell.InFlight                                 =>
-        Icons.Spinner.withSpin(true)
+      case MatchCountCell.Loading                                  =>
+        <.span(Icons.Spinner.withSpin(true))
+          .withTooltip(content = "Loading the stored Search results…")
+      case MatchCountCell.Searching                                =>
+        <.span(Icons.ArrowRotateRight.withSpin(true))
+          .withTooltip(content = "Searching the archive…")
       case MatchCountCell.NotChecked                               =>
         <.span(Icons.CircleQuestion)
           .withTooltip(content = "Not checked yet. Run the Search with the row's re-check button.")

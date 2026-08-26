@@ -17,12 +17,14 @@ import lucuma.schemas.model.enums.ArchiveDuplicationState
 
 /**
  * What the Match Count cell shows — the Match Count itself is just a number, so the cell needs its
- * own type. `Pot.Pending` is a Search in flight, `Pot.Error` is a *call* that failed, and a ready
- * header whose state is ERROR is a successful call reporting a *Search* that failed: three
- * different things, displayed differently.
+ * own type. `Pot.Pending` is a wait — the initial header load or a Search in flight, told apart by
+ * whether the headers have landed — `Pot.Error` is a *call* that failed, and a ready header whose
+ * state is ERROR is a successful call reporting a *Search* that failed: different things, displayed
+ * differently.
  */
 enum MatchCountCell derives Eq:
-  case InFlight
+  case Loading
+  case Searching
   case NotChecked
   case NotApplicable
   case Counted(count: NonNegInt, saturated: Boolean, stale: Boolean)
@@ -35,9 +37,9 @@ enum MatchCountCell derives Eq:
   case CallFailed(message: String)
 
 object MatchCountCell:
-  def fromPot(pot: Pot[ArchiveDuplication]): MatchCountCell =
+  def fromPot(pot: Pot[ArchiveDuplication], headersLoaded: Boolean): MatchCountCell =
     pot match
-      case Pot.Pending      => InFlight
+      case Pot.Pending      => if headersLoaded then Searching else Loading
       case Pot.Error(t)     => CallFailed(Option(t.getMessage).getOrElse("Unknown error"))
       case Pot.Ready(dupli) =>
         dupli.state match
@@ -50,12 +52,13 @@ object MatchCountCell:
 
 /** One observation's row in the Archive Duplication Search tile. */
 case class ArchiveDuplicationEntry(
-  observation:  Observation,
-  basePosition: Option[Coordinates],
-  duplication:  Pot[ArchiveDuplication]
+  observation:   Observation,
+  basePosition:  Option[Coordinates],
+  duplication:   Pot[ArchiveDuplication],
+  headersLoaded: Boolean
 ) derives Eq:
   val id: Observation.Id                  = observation.id
-  lazy val matchCountCell: MatchCountCell = MatchCountCell.fromPot(duplication)
+  lazy val matchCountCell: MatchCountCell = MatchCountCell.fromPot(duplication, headersLoaded)
   lazy val matchCount: Int                = duplication.toOption.foldMap(_.matchCount.value)
   lazy val hasMatches: Boolean            = matchCount > 0
   lazy val searchArea: Option[SearchArea] = duplication.toOption.flatMap(_.searchArea)
@@ -102,7 +105,7 @@ case class ProgramArchiveDuplications(
 
   private lazy val allEntries: List[ArchiveDuplicationEntry] =
     candidates.map: obs =>
-      ArchiveDuplicationEntry(obs, basePositionOf(obs), headerOf(obs.id))
+      ArchiveDuplicationEntry(obs, basePositionOf(obs), headerOf(obs.id), headersLoaded)
 
   /** The rows the table shows: an observation the archive cannot be asked about carries none. */
   lazy val entries: List[ArchiveDuplicationEntry] =
