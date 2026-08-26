@@ -222,7 +222,10 @@ object AddTargetButton
             .runAsync
 
         val programSource =
-          TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets)
+          TargetSource.FromProgram[IO](
+            props.obsAndTargets.get._2,
+            include = twid => !(hasTargets && twid.isTargetOfOpportunity)
+          )
 
         val simbad =
           NonEmptyMap.one(
