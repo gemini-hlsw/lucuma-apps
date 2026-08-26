@@ -23,6 +23,7 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.EmptySiderealTarget
+import explore.model.EmptySourceProfile
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
@@ -64,6 +65,7 @@ import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
+import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
@@ -522,6 +524,23 @@ object TargetEditor:
               NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
+        // Resolving may point at a target the program already holds, but only one that has
+        // tracking to offer: an unresolved Target of Opportunity has no resolution to copy, and
+        // the target being edited is itself.
+        val resolveTargetSources: NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]] =
+          val programSource: TargetSource[IO]    =
+            TargetSource.FromProgram[IO](
+              props.obsAndTargets.get._2,
+              include = twid =>
+                !twid.isUnresolvedTargetOfOpportunity && twid.id =!= props.targetWithId.get.id
+            )
+          NonEmptyMap.of(
+            TargetType.Sidereal    ->
+              NonEmptyList.of(programSource, TargetSource.FromSimbad[IO](ctx.simbadClient)),
+            TargetType.Nonsidereal ->
+              NonEmptyList.of(programSource, TargetSource.FromHorizons[IO](ctx.horizonsClient))
+          )
+
         // Resets a slot's sky position
         val resetSky: Option[SlotId => IO[Unit]] =
           props.obsInfo.current
@@ -537,6 +556,36 @@ object TargetEditor:
         // replacing the target: it keeps its name, its approved region and its identity as a ToO.
         val optResolutionView: Option[View[Option[TargetResolution]]] =
           optOpportunityAligner.map(opportunityResolution)
+
+        // Applying a resolution is a single edit: the Target of Opportunity takes on the resolving
+        // target's name, tracking and source profile, while keeping its id, its approved region
+        // and its identity as a ToO. `region` is omitted from the delta, which is what leaves the
+        // approved region alone.
+        val optResolveView: Option[View[Target]] =
+          optOpportunityAligner.map: _ =>
+            targetAligner.viewMod: t =>
+              nameLens.replace(t.name.assign) >>>
+                Target.opportunity.optReplace(
+                  t,
+                  o =>
+                    opportunityLens.replace(
+                      OpportunityInput(resolution = o.resolution.map(_.toInput).orUnassign).assign
+                    )
+                ) >>>
+                sourceProfileLens.replace(t.sourceProfile.toInput.assign)
+
+        def resolveWith(resolveView: View[Target])(twoid: TargetWithOptId): Callback =
+          resolveView.mod:
+            Target.opportunity.modify: o =>
+              o.copy(
+                name = twoid.target.name,
+                resolution = twoid.target.resolution,
+                // Horizons hits -- and anything else with nothing to say about brightness -- must
+                // not wipe a source profile the ToO already has.
+                sourceProfile =
+                  if twoid.target.sourceProfile === EmptySourceProfile then o.sourceProfile
+                  else twoid.target.sourceProfile
+              )
 
         // "Resolve" stays available once resolved so the resolution can be replaced outright,
         // which is the only way to change an ephemeris key -- the nonsidereal fields are read-only
@@ -558,16 +607,18 @@ object TargetEditor:
               ).tiny.compact.when(resolutionView.get.isDefined)
             )
 
-        // The popup is only the picker; everything it can return is a plain sidereal or
-        // nonsidereal target, whose `resolution` is exactly what we want to store.
+        // The popup is only the picker. It offers the catalogs plus the program's own targets --
+        // whatever it returns, only its name, resolution and source profile are taken.
         val resolvePopup: Option[VdomNode] =
-          optResolutionView.map: resolutionView =>
+          (optResolutionView, optResolveView).mapN: (resolutionView, resolveView) =>
             TargetSelectionPopup(
               "Resolve Target of Opportunity",
               resolvePopupState,
-              targetSources,
+              resolveTargetSources,
               // Of the buttons the add-target flow offers, only an empty sidereal target makes
-              // sense here: the rest either create a target or need an observation.
+              // sense here: the rest either create a target or need an observation. It is a blank
+              // slate for typing coordinates into, so it sets only the resolution -- the ToO keeps
+              // its own name and source profile.
               List(
                 Button(
                   "Empty Sidereal Target",
@@ -578,11 +629,12 @@ object TargetEditor:
                     )
                 ).tiny.compact
               ),
-              selectExistingLabel = "",
-              selectExistingIcon = Icons.Ban,
+              selectExistingLabel = "Resolve",
+              selectExistingIcon = Icons.ArrowDownLeft,
               selectNewLabel = "Resolve",
               selectNewIcon = Icons.ArrowDownLeft,
-              onSelected = twoid => resolutionView.set(twoid.target.resolution)
+              onSelected = resolveWith(resolveView),
+              existingHeader = "Resolve to an existing target"
             )
 
         val formColumn =

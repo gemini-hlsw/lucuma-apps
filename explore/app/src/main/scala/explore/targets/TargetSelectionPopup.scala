@@ -57,7 +57,8 @@ case class TargetSelectionPopup(
   selectNewIcon:       FontAwesomeIcon,
   onSelected:          TargetWithOptId => Callback,
   onCancel:            Callback = Callback.empty,
-  initialSearch:       Option[NonEmptyString] = None
+  initialSearch:       Option[NonEmptyString] = None,
+  existingHeader:      String = "Link an existing target"
 ) extends ReactFnProps(TargetSelectionPopup.component):
   val initialTargetType: TargetType                        = targetSources.keys.head
   val defaultTargetSources: NonEmptyList[TargetSource[IO]] = targetSources.head._2
@@ -293,7 +294,7 @@ object TargetSelectionPopup:
 
             val header =
               if (source.existing)
-                s"Link an existing target $fmtdCount"
+                s"${props.existingHeader} $fmtdCount"
               else
                 s"Add a new target from ${source.name} (${showCount(sourceResults.length, "result")})"
 

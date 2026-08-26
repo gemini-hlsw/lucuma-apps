@@ -17,6 +17,7 @@ import lucuma.core.math.ProperMotion
 import lucuma.core.math.RadialVelocity
 import lucuma.core.model.SiderealTracking
 import lucuma.horizons.HorizonsClient
+import lucuma.schemas.model.TargetWithId
 import org.typelevel.log4cats.Logger
 
 sealed trait TargetSource[F[_]]:
@@ -31,8 +32,10 @@ sealed trait TargetSource[F[_]]:
   def searches(name: NonEmptyString): List[F[List[TargetSearchResult]]]
 
 object TargetSource:
-  case class FromProgram[F[_]: Async](targets: TargetList, filterToOs: Boolean = false)
-      extends TargetSource[F]:
+  case class FromProgram[F[_]: Async](
+    targets: TargetList,
+    include: TargetWithId => Boolean = _ => true
+  ) extends TargetSource[F]:
     val name                = "Program"
     val kind                = TargetSourceKind.Program
     val existing: Boolean   = true
@@ -44,7 +47,7 @@ object TargetSource:
           .filter(twid =>
             twid.target.name.value.toLowerCase.startsWith(name.value.toLowerCase)
               && twid.disposition === TargetDisposition.Science
-              && !(filterToOs && twid.isTargetOfOpportunity)
+              && include(twid)
           )
           .toList
           .sortBy(_.target.name.value.toLowerCase)
