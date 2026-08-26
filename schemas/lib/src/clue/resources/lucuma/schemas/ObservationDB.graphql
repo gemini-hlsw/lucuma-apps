@@ -4082,6 +4082,19 @@ input ProperMotionInput {
 }
 
 """
+The AEON/Multi-facility aspects of a Gemini proposal.  Its presence is what
+marks the proposal as part of the program.
+"""
+type AeonMultiFacility {
+  """
+  The instruments whose requested Gemini time is required for this
+  multi-facility project to be feasible.  Instruments not listed are not
+  required, which is the default.
+  """
+  requiredInstruments: [Instrument!]!
+}
+
+"""
 Proposal properties that depend on the particular call for proposals associated
 with this proposal.
 """
@@ -4118,19 +4131,6 @@ type SubaruProposalType {
   Describes how time for the program will be apportioned across partners.
   """
   partnerSplits: [PartnerSplit!]!
-}
-
-"""
-The AEON/Multi-facility aspects of a Gemini proposal.  Its presence is what
-marks the proposal as part of the program.
-"""
-type AeonMultiFacility {
-  """
-  The instruments whose requested Gemini time is required for this
-  multi-facility project to be feasible.  Instruments not listed are not
-  required, which is the default.
-  """
-  requiredInstruments: [Instrument!]!
 }
 
 """Proposal properties for Regular Semester (Classical) CallForProposals."""
@@ -4471,6 +4471,18 @@ type SystemVerification implements GeminiProposalType {
   minPercentTime: IntPercent!
 }
 
+"""The AEON/Multi-facility aspects of a Gemini proposal."""
+input AeonMultiFacilityInput {
+  """
+  The instruments whose requested Gemini time is required for the
+  multi-facility project to be feasible.  Each instrument must be in use by an
+  active observation in the program.  Setting it replaces the whole list; null
+  (or empty) clears it.  When editing, leave it out to keep the list as it
+  stands.
+  """
+  requiredInstruments: [Instrument!]
+}
+
 """
 Properties associated with particular proposal types.  Exactly one of
 these should be set upon creation or editing.
@@ -4516,18 +4528,6 @@ input SubaruProposalTypeInput {
   By submission time, it must be specified.
   """
   partnerSplits: [PartnerSplitInput!]
-}
-
-"""The AEON/Multi-facility aspects of a Gemini proposal."""
-input AeonMultiFacilityInput {
-  """
-  The instruments whose requested Gemini time is required for the
-  multi-facility project to be feasible.  Each instrument must be in use by an
-  active observation in the program.  Setting it replaces the whole list; null
-  (or empty) clears it.  When editing, leave it out to keep the list as it
-  stands.
-  """
-  requiredInstruments: [Instrument!]
 }
 
 input ClassicalInput {
