@@ -114,6 +114,38 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _                                                            =>
       none
 
+  def instrument: Option[Instrument] =
+    obsModeType.fold(_ => none, _.instrument.some, _.instrument.some)
+
+  // The dispersing element in the beam, as this configuration states it.
+  def disperserShortName: Option[String] = this match
+    case BasicConfiguration.GmosNorthLongSlit(grating = g)    => g.shortName.some
+    case BasicConfiguration.GmosSouthLongSlit(grating = g)    => g.shortName.some
+    case BasicConfiguration.GmosNorthMos(grating = g)         => g.shortName.some
+    case BasicConfiguration.GmosSouthMos(grating = g)         => g.shortName.some
+    case BasicConfiguration.Flamingos2LongSlit(disperser = d) => d.shortName.some
+    case BasicConfiguration.Flamingos2Mos(disperser = d)      => d.shortName.some
+    case BasicConfiguration.GnirsSpectroscopy(grating = g)    => g.shortName.some
+    case _                                                    => none
+
+  def filterShortName: Option[String] = this match
+    case BasicConfiguration.GmosNorthLongSlit(filter = f)  => f.map(_.shortName)
+    case BasicConfiguration.GmosSouthLongSlit(filter = f)  => f.map(_.shortName)
+    case BasicConfiguration.GmosNorthMos(filter = f)       => f.map(_.shortName)
+    case BasicConfiguration.GmosSouthMos(filter = f)       => f.map(_.shortName)
+    case BasicConfiguration.Flamingos2LongSlit(filter = f) => f.shortName.some
+    case BasicConfiguration.Flamingos2Mos(filter = f)      => f.shortName.some
+    case BasicConfiguration.GnirsSpectroscopy(filter = f)  => f.shortName.some
+    case BasicConfiguration.GmosNorthImaging(filters)      =>
+      filters.map(_.shortName).toList.mkString(", ").some
+    case BasicConfiguration.GmosSouthImaging(filters)      =>
+      filters.map(_.shortName).toList.mkString(", ").some
+    case BasicConfiguration.Flamingos2Imaging(filters)     =>
+      filters.map(_.shortName).toList.mkString(", ").some
+    case BasicConfiguration.GnirsImaging(filters = fs)     =>
+      fs.map(_.shortName).toList.mkString(", ").some
+    case _                                                 => none
+
   def agsWavelength: AGSWavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
       AGSWavelength(cw.value)

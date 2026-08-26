@@ -34,9 +34,6 @@ enum ArchiveDuplicationRow:
   def optMatch: Option[ArchiveMatch] =
     fold(_ => none, _.archiveMatch.some, _ => none)
 
-  def optStatus: Option[StatusRow] =
-    fold(_ => none, _ => none, _.some)
-
   def isObsRow: Boolean =
     fold(_ => true, _ => false, _ => false)
 

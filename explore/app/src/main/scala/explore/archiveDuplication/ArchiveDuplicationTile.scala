@@ -47,7 +47,6 @@ import lucuma.ui.table.hooks.*
 
 // Each observation fans out server-side into several archive queries for its instrument
 // equivalence group. We allow max four concurrent observation queries.
-// flight.
 private val MaxConcurrentSearches = 4
 
 private given controlsReuse: Reusability[ArchiveDuplicationControls]                     = Reusability.byEq
@@ -133,9 +132,13 @@ object ArchiveDuplicationTile
                                   props.readonly,
                                   props.proposalStatus
                                 )
+          // A ref rather than the state view: `onExpand` is captured by the memoized columns, so a
+          // render-time snapshot of the match cache would go stale and re-fetch on every expand.
+          requested        <- useRef(Set.empty[Observation.Id])
           // The mutation hands back the new result, so it is merged straight into local state: no
-          // refetch, no cache invalidation. A cached match set is dropped, since it now describes
-          // an older Search. Failures are isolated per observation, so a sweep goes on.
+          // refetch, no cache invalidation. A cached match set is dropped, along with its mark in
+          // `requested`, since it now describes an older Search: the next expand re-fetches.
+          // Failures are isolated per observation, so a sweep goes on.
           runSearch        <-
             HookResult: (obsId: Observation.Id) =>
               // Logged because this is the only thing in Explore that makes the ODB query the
@@ -153,15 +156,13 @@ object ArchiveDuplicationTile
                           s" with ${dupli.matchCount.value} match(es)"
                       ) >>
                         duplications.async.mod(_.updated(obsId, Pot(dupli))) >>
-                        matches.async.mod(_ - obsId)
+                        matches.async.mod(_ - obsId) >>
+                        requested.mod(_ - obsId).toAsync
                     case Left(t)      =>
                       ctx.logger.warn(t)(
                         s"Archive Duplication Search for $obsId failed"
                       ) >>
                         duplications.async.mod(_.updated(obsId, Pot.error(t)))
-          // A ref rather than the state view: `onExpand` is captured by the memoized columns, so a
-          // render-time snapshot of the match cache would go stale and re-fetch on every expand.
-          requested        <- useRef(Set.empty[Observation.Id])
           // Collapsing and re-expanding a row does not re-fetch.
           onExpand         <- HookResult: (obsId: Observation.Id) =>
                                 val load: IO[Unit] =
@@ -175,10 +176,7 @@ object ArchiveDuplicationTile
                                 if requested.value.contains(obsId) then Callback.empty
                                 else requested.mod(_ + obsId) >> load.runAsyncAndForget
           controls         <- HookResult:
-                                ArchiveDuplicationControls(
-                                  search.controlsEnabled && !search.searchInFlight,
-                                  search.disabledReason
-                                )
+                                ArchiveDuplicationControls(search.disabledReason, search.searchInFlight)
           cols             <- useMemo(controls): ctrls =>
                                 columns(
                                   props.programId,
@@ -272,9 +270,7 @@ object ArchiveDuplicationTile
             else
               <.div(
                 s"${search.notApplicable.length} observation(s) cannot be checked against the archive."
-              ).withTooltip(content =
-                search.notApplicable.map(o => o.reference.fold(o.id.show)(_.label)).mkString(", ")
-              )
+              ).withTooltip(content = search.notApplicable.map(_.displayLabel).mkString(", "))
 
           val body: VdomNode =
             React.Fragment(

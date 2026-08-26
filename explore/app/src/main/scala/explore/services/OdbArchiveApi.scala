@@ -9,7 +9,7 @@ import explore.model.Observation
 import lucuma.core.model.Program
 
 trait OdbArchiveApi[F[_]]:
-  // The Archive Duplication header for every observation in a progra
+  // The Archive Duplication header for every observation in a program.
   def programArchiveDuplications(
     programId: Program.Id
   ): F[Map[Observation.Id, ArchiveDuplication]]

@@ -45,15 +45,14 @@ object MatchCountCell:
 
 /** One observation's row in the Archive Duplication Search tile. */
 case class ArchiveDuplicationEntry(
-  observation:   Observation,
-  basePosition:  Option[Coordinates],
-  duplication:   Pot[ArchiveDuplication],
-  headersLoaded: Boolean
+  observation:    Observation,
+  basePosition:   Option[Coordinates],
+  duplication:    Pot[ArchiveDuplication],
+  matchCountCell: MatchCountCell
 ) derives Eq:
-  val id: Observation.Id                  = observation.id
-  lazy val matchCountCell: MatchCountCell = MatchCountCell.fromPot(duplication, headersLoaded)
-  lazy val matchCount: Int                = duplication.toOption.foldMap(_.matchCount.value)
-  lazy val hasMatches: Boolean            = matchCount > 0
+  val id: Observation.Id       = observation.id
+  lazy val matchCount: Int     = duplication.toOption.foldMap(_.matchCount.value)
+  lazy val hasMatches: Boolean = matchCount > 0
 
 /**
  * Why the sweep button cannot run, or how much work it has. One ordered decision, so the button's
@@ -109,26 +108,27 @@ case class ProgramArchiveDuplications(
   private def headerOf(obsId: Observation.Id): Pot[ArchiveDuplication] =
     duplications.getOrElse(
       obsId,
-      if headersLoaded then
-        Pot.error(
-          new RuntimeException(
-            "The Archive Duplication query reported nothing for this observation"
-          )
-        )
-      else Pot.pending
+      if headersLoaded then ProgramArchiveDuplications.MissingHeader else Pot.pending
     )
 
   private lazy val allEntries: List[ArchiveDuplicationEntry] =
     candidates.map: obs =>
-      ArchiveDuplicationEntry(obs, basePositionOf(obs), headerOf(obs.id), headersLoaded)
+      val header = headerOf(obs.id)
+      ArchiveDuplicationEntry(
+        obs,
+        basePositionOf(obs),
+        header,
+        MatchCountCell.fromPot(header, headersLoaded)
+      )
+
+  private lazy val (notApplicableEntries, applicableEntries) =
+    allEntries.partition(_.duplication.toOption.exists(_.isNotApplicable))
 
   /** The rows the table shows: an observation the archive cannot be asked about carries none. */
-  lazy val entries: List[ArchiveDuplicationEntry] =
-    allEntries.filterNot(_.duplication.toOption.exists(_.isNotApplicable))
+  lazy val entries: List[ArchiveDuplicationEntry] = applicableEntries
 
   /** Observations the archive cannot be asked about, and so are kept out of the table. */
-  lazy val notApplicable: List[Observation] =
-    allEntries.filter(_.duplication.toOption.exists(_.isNotApplicable)).map(_.observation)
+  lazy val notApplicable: List[Observation] = notApplicableEntries.map(_.observation)
 
   /** How many observations have Archive Matches. Shown in the Tile title. */
   lazy val withMatchesCount: Int =
@@ -141,12 +141,6 @@ case class ProgramArchiveDuplications(
   lazy val searchInFlight: Boolean =
     headersLoaded && duplications.values.exists(_.isPending)
 
-  /**
-   * The ODB rejects the refresh mutation once the proposal is submitted.
-   */
-  lazy val controlsEnabled: Boolean =
-    !readonly && proposalStatus === ProposalStatus.NotSubmitted
-
   /** The sweep button's whole state: whether it can run, and what it would do. */
   lazy val sweepState: SweepState =
     disabledReason.fold(
@@ -158,8 +152,15 @@ case class ProgramArchiveDuplications(
           .fold(SweepState.UpToDate)(obs => SweepState.Ready(obs.length))
     )(SweepState.NotAllowed(_))
 
+  /** Why the Search controls cannot run: the ODB rejects the refresh mutation in these cases. */
   lazy val disabledReason: Option[String] =
     if readonly then "You do not have permission to edit this program.".some
     else if proposalStatus =!= ProposalStatus.NotSubmitted then
       "The proposal has been submitted; its Archive Duplication Search is frozen.".some
     else none
+
+object ProgramArchiveDuplications:
+  private val MissingHeader: Pot[ArchiveDuplication] =
+    Pot.error(
+      new RuntimeException("The Archive Duplication query reported nothing for this observation")
+    )

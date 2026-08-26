@@ -97,6 +97,9 @@ final case class Observation(
   blindOffset:             BlindOffset,
   cassRotator:             CassRotator
 ) derives Eq:
+  // The observation reference when it has one, the id otherwise.
+  lazy val displayLabel: String = reference.fold(id.show)(_.label)
+
   val site: Option[Site] = basicConfiguration.flatMap(_.siteFor)
 
   lazy val observingModeSummary: Option[ObservingModeSummary] =

@@ -18,8 +18,6 @@ import explore.model.enums.WavelengthUnits
 import explore.model.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.Instrument
-import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.validation.MathValidators
@@ -32,7 +30,6 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.tooltip.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.table.*
@@ -40,7 +37,9 @@ import lucuma.ui.table.*
 import scala.collection.immutable.TreeSeqMap
 
 /** Whether the Search controls are live, and why not when they are not. */
-case class ArchiveDuplicationControls(enabled: Boolean, disabledReason: Option[String]) derives Eq
+case class ArchiveDuplicationControls(disabledReason: Option[String], searchInFlight: Boolean)
+    derives Eq:
+  def enabled: Boolean = disabledReason.isEmpty && !searchInFlight
 
 /**
  * One semantic column set for both row kinds: a column means the same kind of thing on an
@@ -102,8 +101,10 @@ object ArchiveDuplicationColumns:
       ActionsColumnId              -> "  "
     )
 
+  // The Observation column is where a status sub-row says what it is waiting for, so it cannot
+  // be hidden.
   val ColumnsExcludedFromVisibility: Set[ColumnId] =
-    Set(ExpanderColumnId, ActionsColumnId)
+    Set(ExpanderColumnId, ObservationIdColumnId, ActionsColumnId)
 
   val SelectableColumnNames: List[(ColumnId, String)] =
     ColumnNames.filterNot((k, _) => ColumnsExcludedFromVisibility.contains(k)).toList
@@ -118,40 +119,6 @@ object ArchiveDuplicationColumns:
       QaStateColumnId              -> Visibility.Hidden,
       FileNameColumnId             -> Visibility.Hidden
     )
-
-  private def instrumentOf(modeType: ObservingModeType): Option[Instrument] =
-    modeType.fold(_ => none, _.instrument.some, _.instrument.some)
-
-  // The dispersing element in the beam, as the observation's own configuration states it.
-  private def disperserOf(config: BasicConfiguration): Option[String] =
-    config match
-      case BasicConfiguration.GmosNorthLongSlit(grating = g)    => g.shortName.some
-      case BasicConfiguration.GmosSouthLongSlit(grating = g)    => g.shortName.some
-      case BasicConfiguration.GmosNorthMos(grating = g)         => g.shortName.some
-      case BasicConfiguration.GmosSouthMos(grating = g)         => g.shortName.some
-      case BasicConfiguration.Flamingos2LongSlit(disperser = d) => d.shortName.some
-      case BasicConfiguration.Flamingos2Mos(disperser = d)      => d.shortName.some
-      case BasicConfiguration.GnirsSpectroscopy(grating = g)    => g.shortName.some
-      case _                                                    => none
-
-  private def filterOf(config: BasicConfiguration): Option[String] =
-    config match
-      case BasicConfiguration.GmosNorthLongSlit(filter = f)  => f.map(_.shortName)
-      case BasicConfiguration.GmosSouthLongSlit(filter = f)  => f.map(_.shortName)
-      case BasicConfiguration.GmosNorthMos(filter = f)       => f.map(_.shortName)
-      case BasicConfiguration.GmosSouthMos(filter = f)       => f.map(_.shortName)
-      case BasicConfiguration.Flamingos2LongSlit(filter = f) => f.shortName.some
-      case BasicConfiguration.Flamingos2Mos(filter = f)      => f.shortName.some
-      case BasicConfiguration.GnirsSpectroscopy(filter = f)  => f.shortName.some
-      case BasicConfiguration.GmosNorthImaging(filters)      =>
-        filters.map(_.shortName).toList.mkString(", ").some
-      case BasicConfiguration.GmosSouthImaging(filters)      =>
-        filters.map(_.shortName).toList.mkString(", ").some
-      case BasicConfiguration.Flamingos2Imaging(filters)     =>
-        filters.map(_.shortName).toList.mkString(", ").some
-      case BasicConfiguration.GnirsImaging(filters = fs)     =>
-        fs.map(_.shortName).toList.mkString(", ").some
-      case _                                                 => none
 
   private def formatWv(w: Wavelength): String =
     s"${display.wavelengthDisplay(WavelengthUnits.Nanometers).shortName(w)} nm"
@@ -224,40 +191,35 @@ object ArchiveDuplicationColumns:
       ColDef(
         ExpanderColumnId,
         cell = cell =>
-          if cell.row.original.value.isObsRow && cell.row.getCanExpand() then
-            <.span(
-              ^.cursor.pointer,
-              TableStyles.ExpanderChevron,
-              TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded()),
-              ^.onClick ==> (e =>
-                e.stopPropagationCB *>
-                  onExpand(cell.row.original.value.observationId)
-                    .unless_(cell.row.getIsExpanded()) *>
-                  cell.row.toggleExpanded()
-              )
-            )(TableIcons.ChevronRight.withFixedWidth(true))
-          else "",
+          ExpanderColumn.cell(
+            canExpand = cell.row.original.value.isObsRow && cell.row.getCanExpand(),
+            expanded = cell.row.getIsExpanded(),
+            toggle = onExpand(cell.row.original.value.observationId)
+              .unless_(cell.row.getIsExpanded()) *>
+              cell.row.toggleExpanded()
+          ),
         enableResizing = false
       ).withSize(35.toPx),
       col(ObservationIdColumnId, _.optEntry.map(_.observation))
         .withFilterMethod:
-          FilterMethod.Text(_.foldMap(o => o.reference.fold(o.id.show)(_.label)))
+          FilterMethod.Text(_.foldMap(_.displayLabel))
         .withCell: cell =>
           // A status row has neither an observation nor a match, so every other column renders
           // blank for it. This is where it gets to say what it is waiting for, or what went wrong.
-          cell.value
-            .map: obs =>
+          cell.row.original.value.fold[VdomNode](
+            r =>
               ctx.obsIdRoutingLink(
                 programId,
-                obs.id,
-                contents = obs.reference.map(r => <.span(r.label): VdomNode)
-              ): VdomNode
-            .orElse:
-              cell.row.original.value.optStatus.map: status =>
-                <.span(
-                  Icons.Spinner.withSpin(true).when(status.loading),
-                  status.message
-                ): VdomNode
+                r.entry.id,
+                contents = r.entry.observation.reference.map(r => <.span(r.label): VdomNode)
+              ),
+            _ => EmptyVdom,
+            status =>
+              <.span(
+                Icons.Spinner.withSpin(true).when(status.loading),
+                status.message
+              )
+          )
         .sortableBy(_.map(_.id)),
       col(MatchCountColumnId, _.optEntry.map(_.matchCount))
         .withCell: cell =>
@@ -279,15 +241,12 @@ object ArchiveDuplicationColumns:
         .sortable,
       textCol(
         InstrumentColumnId,
-        _.entry.observation.basicConfiguration
-          .map(_.obsModeType)
-          .flatMap(instrumentOf)
-          .map(_.shortName),
+        _.entry.observation.basicConfiguration.flatMap(_.instrument).map(_.shortName),
         m => m.instrument.map(_.shortName).orElse(m.instrumentString.some)
       ),
       textCol(
         DisperserColumnId,
-        _.entry.observation.basicConfiguration.flatMap(disperserOf),
+        _.entry.observation.basicConfiguration.flatMap(_.disperserShortName),
         _.disperser
       ),
       col(
@@ -300,7 +259,11 @@ object ArchiveDuplicationColumns:
       ).withFilterMethod(FilterMethod.Text(_.foldMap(formatWv)))
         .withCell(_.value.map(formatWv).orEmpty)
         .sortable,
-      textCol(FilterColumnId, _.entry.observation.basicConfiguration.flatMap(filterOf), _.filter),
+      textCol(
+        FilterColumnId,
+        _.entry.observation.basicConfiguration.flatMap(_.filterShortName),
+        _.filter
+      ),
       col(
         ObservationDateColumnId,
         _.fold(
