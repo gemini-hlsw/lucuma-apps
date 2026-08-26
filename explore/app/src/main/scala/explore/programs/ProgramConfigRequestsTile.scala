@@ -16,7 +16,6 @@ import explore.model.AppContext
 import explore.model.ConfigurationRequestList
 import explore.model.Observation
 import explore.model.TargetList
-import explore.model.display.given
 import explore.model.enums.TableId
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
