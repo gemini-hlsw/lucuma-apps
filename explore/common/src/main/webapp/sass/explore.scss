@@ -1108,8 +1108,8 @@ thead tr th.sticky-header {
   }
 }
 
-// Spans the label/field columns of the target form, so the resolve button sits under the
-// region editor rather than in the label gutter.
+// Spans the label/field columns of the target form, so the resolve/unresolve button sits under
+// the fields above it rather than in the label gutter.
 .target-form .target-resolution-controls {
   grid-column: 1 / -1;
   justify-self: start;
