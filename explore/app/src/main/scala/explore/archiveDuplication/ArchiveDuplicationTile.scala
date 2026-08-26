@@ -119,43 +119,41 @@ object ArchiveDuplicationTile
                                             // rather than blanked: the stale snapshot on screen is
                                             // more use than nothing.
                                             case _                   => IO.unit
-          search           <- HookResult:
-                                ProgramArchiveDuplications(
-                                  props.observations,
-                                  props.targets,
-                                  duplications.get,
-                                  headersLoaded.get,
-                                  props.readonly,
-                                  props.proposalStatus
-                                )
+          search            = ProgramArchiveDuplications(
+                                props.observations,
+                                props.targets,
+                                duplications.get,
+                                headersLoaded.get,
+                                props.readonly,
+                                props.proposalStatus
+                              )
           // A ref rather than the state view: `onExpand` is captured by the memoized columns.
           requested        <- useRef(Set.empty[Observation.Id])
           // The mutation hands back the new result, so it is merged straight into local state: no
           // refetch, no cache invalidation.
-          runSearch        <-
-            HookResult: (obsId: Observation.Id) =>
-              // Logged to tell we did a query
-              ctx.logger.info(s"Requesting Archive Duplication Search for $obsId") >>
-                duplications.async.mod(_.updated(obsId, Pot.pending)) >>
-                ctx.odbApi
-                  .refreshArchiveDuplication(obsId)
-                  .attempt
-                  .flatMap:
-                    case Right(dupli) =>
-                      ctx.logger.info(
-                        s"Archive Duplication Search for $obsId returned ${dupli.state}" +
-                          s" with ${dupli.matchCount.value} match(es)"
-                      ) >>
-                        duplications.async.mod(_.updated(obsId, Pot(dupli))) >>
-                        matches.async.mod(_ - obsId) >>
-                        requested.mod(_ - obsId).toAsync
-                    case Left(t)      =>
-                      ctx.logger.warn(t)(
-                        s"Archive Duplication Search for $obsId failed"
-                      ) >>
-                        duplications.async.mod(_.updated(obsId, Pot.error(t)))
+          runSearch         = (obsId: Observation.Id) =>
+                                // Logged to tell we did a query
+                                ctx.logger.info(s"Requesting Archive Duplication Search for $obsId") >>
+                                  duplications.async.mod(_.updated(obsId, Pot.pending)) >>
+                                  ctx.odbApi
+                                    .refreshArchiveDuplication(obsId)
+                                    .attempt
+                                    .flatMap:
+                                      case Right(dupli) =>
+                                        ctx.logger.info(
+                                          s"Archive Duplication Search for $obsId returned ${dupli.state}" +
+                                            s" with ${dupli.matchCount.value} match(es)"
+                                        ) >>
+                                          duplications.async.mod(_.updated(obsId, Pot(dupli))) >>
+                                          matches.async.mod(_ - obsId) >>
+                                          requested.mod(_ - obsId).toAsync
+                                      case Left(t)      =>
+                                        ctx.logger.warn(t)(
+                                          s"Archive Duplication Search for $obsId failed"
+                                        ) >>
+                                          duplications.async.mod(_.updated(obsId, Pot.error(t)))
           // Collapsing and re-expanding a row does not re-fetch.
-          onExpand         <- HookResult: (obsId: Observation.Id) =>
+          onExpand          = (obsId: Observation.Id) =>
                                 val load: IO[Unit] =
                                   matches.async.mod(_.updated(obsId, Pot.pending)) >>
                                     ctx.odbApi
@@ -166,8 +164,8 @@ object ArchiveDuplicationTile
                                           _.updated(obsId, result.fold(Pot.error, Pot.apply))
                                 if requested.value.contains(obsId) then Callback.empty
                                 else requested.mod(_ + obsId) >> load.runAsyncAndForget
-          controls         <- HookResult:
-                                ArchiveDuplicationControls(search.disabledReason, search.searchInFlight)
+          controls          =
+            ArchiveDuplicationControls(search.disabledReason, search.searchInFlight)
           cols             <- useMemo(controls): ctrls =>
                                 columns(
                                   props.programId,
