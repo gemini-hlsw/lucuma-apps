@@ -290,7 +290,9 @@ object ArchiveDuplicationTile
                     icon =
                       if search.searchInFlight then Icons.Spinner.withSpin(true)
                       else Icons.ListCheck,
-                    label = "Check Outdated",
+                    label =
+                      if search.sweepObservations.isEmpty then "Run check"
+                      else s"Run check (${search.sweepObservations.length})",
                     disabled = sweepDisabled,
                     tooltip = sweepTooltip,
                     onClick = sweep

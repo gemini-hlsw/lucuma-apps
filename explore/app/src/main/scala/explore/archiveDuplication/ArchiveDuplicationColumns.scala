@@ -164,8 +164,7 @@ object ArchiveDuplicationColumns:
   // The ODB computes staleness against the observation as it now stands; the observer resolves it
   // with the row's re-check action. Explore never fires the Search on its own.
   private val StaleTooltip =
-    "The observation has changed since this Search ran, so these matches were gathered for a " +
-      "different configuration. Re-check the row to bring it up to date."
+    "The observation has changed since this search ran. Re-check the row to bring it up to date."
 
   private def matchCountText(count: Int, saturated: Boolean): String =
     if saturated then s"$count+" else count.toString
@@ -177,7 +176,8 @@ object ArchiveDuplicationColumns:
       case MatchCountCell.InFlight                                 =>
         Icons.Spinner.withSpin(true)
       case MatchCountCell.NotChecked                               =>
-        <.span("—").withTooltip(content = "Not checked yet")
+        <.span(Icons.CircleQuestion)
+          .withTooltip(content = "Not checked yet. Run the Search with the row's re-check button.")
       case MatchCountCell.NotApplicable                            =>
         <.span("n/a")
       case MatchCountCell.Counted(count, saturated, stale)         =>
@@ -239,7 +239,7 @@ object ArchiveDuplicationColumns:
             )(TableIcons.ChevronRight.withFixedWidth(true))
           else "",
         enableResizing = false
-      ).withSize(30.toPx),
+      ).withSize(35.toPx),
       col(ObservationIdColumnId, _.optEntry.map(_.observation))
         .withFilterMethod:
           FilterMethod.Text(_.foldMap(o => o.reference.fold(o.id.show)(_.label)))
@@ -350,15 +350,13 @@ object ArchiveDuplicationColumns:
                   ^.href   := area.goaSearchUrl,
                   ^.target := "_blank",
                   ^.onClick ==> (_.stopPropagationCB),
-                  ^.title  := "Search the Gemini Observatory Archive for this Search Area"
+                  ^.title  := "Open in the archive"
                 )(Icons.ArrowUpRightFromSquare),
               Button(
                 icon = Icons.ArrowRotateRight,
                 text = true,
                 disabled = !controls.enabled || entry.duplication.isPending,
-                tooltip = controls.disabledReason.getOrElse:
-                  "Run the Archive Duplication Search for this observation again"
-                ,
+                tooltip = controls.disabledReason.getOrElse("refresh"),
                 onClick = onRecheck(entry.id)
               ).tiny.compact
             ),

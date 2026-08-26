@@ -4082,6 +4082,19 @@ input ProperMotionInput {
 }
 
 """
+The AEON/Multi-facility aspects of a Gemini proposal.  Its presence is what
+marks the proposal as part of the program.
+"""
+type AeonMultiFacility {
+  """
+  The instruments whose requested Gemini time is required for this
+  multi-facility project to be feasible.  Instruments not listed are not
+  required, which is the default.
+  """
+  requiredInstruments: [Instrument!]!
+}
+
+"""
 Proposal properties that depend on the particular call for proposals associated
 with this proposal.
 """
@@ -4118,19 +4131,6 @@ type SubaruProposalType {
   Describes how time for the program will be apportioned across partners.
   """
   partnerSplits: [PartnerSplit!]!
-}
-
-"""
-The AEON/Multi-facility aspects of a Gemini proposal.  Its presence is what
-marks the proposal as part of the program.
-"""
-type AeonMultiFacility {
-  """
-  The instruments whose requested Gemini time is required for this
-  multi-facility project to be feasible.  Instruments not listed are not
-  required, which is the default.
-  """
-  requiredInstruments: [Instrument!]!
 }
 
 """Proposal properties for Regular Semester (Classical) CallForProposals."""
@@ -4471,6 +4471,18 @@ type SystemVerification implements GeminiProposalType {
   minPercentTime: IntPercent!
 }
 
+"""The AEON/Multi-facility aspects of a Gemini proposal."""
+input AeonMultiFacilityInput {
+  """
+  The instruments whose requested Gemini time is required for the
+  multi-facility project to be feasible.  Each instrument must be in use by an
+  active observation in the program.  Setting it replaces the whole list; null
+  (or empty) clears it.  When editing, leave it out to keep the list as it
+  stands.
+  """
+  requiredInstruments: [Instrument!]
+}
+
 """
 Properties associated with particular proposal types.  Exactly one of
 these should be set upon creation or editing.
@@ -4516,18 +4528,6 @@ input SubaruProposalTypeInput {
   By submission time, it must be specified.
   """
   partnerSplits: [PartnerSplitInput!]
-}
-
-"""The AEON/Multi-facility aspects of a Gemini proposal."""
-input AeonMultiFacilityInput {
-  """
-  The instruments whose requested Gemini time is required for the
-  multi-facility project to be feasible.  Each instrument must be in use by an
-  active observation in the program.  Setting it replaces the whole list; null
-  (or empty) clears it.  When editing, leave it out to keep the list as it
-  stands.
-  """
-  requiredInstruments: [Instrument!]
 }
 
 input ClassicalInput {
@@ -12892,9 +12892,10 @@ enum ArchiveDuplicationState {
   NOT_CHECKED
 
   """
-  The search ran, but this observation is one the archive cannot be asked about:
-  an instrument it does not know, or no resolvable pointing and no usable target
-  name.  Re-running will report the same thing until the observation changes.
+  The archive cannot be asked about this observation as it stands: it has no
+  observing mode now, or the search ran and found an instrument the archive
+  does not know, or no resolvable pointing and no usable target name.
+  Re-running will report the same thing until the observation changes.
   """
   NOT_APPLICABLE
 
@@ -13044,7 +13045,19 @@ leaves the previously found results in place rather than discarding them, so
 describe the last search that succeeded, and `lastCheckedAt` says when that was.
 """
 type ArchiveDuplication {
+  """
+  State of the stored snapshot.  Partly derived: an observation with no
+  observing mode reads NOT_APPLICABLE whatever was stored.
+  """
   state: ArchiveDuplicationState!
+
+  """
+  Whether the snapshot no longer describes the observation as it now stands:
+  the archive queries the search would run today differ from `queryUrls`.
+  Never true when nothing was searched, when nothing can be searched now, or
+  after submission.
+  """
+  stale: Boolean!
 
   """
   Number of matching archive files.  Counted per file rather than per archived
@@ -13061,29 +13074,19 @@ type ArchiveDuplication {
   saturated: Boolean!
 
   """
-  When the reported matches were gathered.  Null exactly when `state` is
-  NOT_CHECKED, since every other state follows an attempt.
+  When the reported matches were gathered, i.e. when the last successful
+  search ran.  Null when no search ever succeeded.
   """
   lastCheckedAt: Timestamp
 
-  """Why the most recent attempt failed.  Set when `state` is ERROR."""
-  error: NonEmptyString
-
   """
-  When a search last ran, successfully or not.  Diverges from `lastCheckedAt`
-  after a failure: `lastCheckedAt` describes the matches still being served,
-  `attemptedAt` the failed try.
+  When a search last ran, successfully or not.  Later than `lastCheckedAt`
+  exactly when the most recent attempt failed.  Null when the search never ran.
   """
   attemptedAt: Timestamp
 
-  """
-  Whether the stored snapshot no longer describes the observation as it now
-  stands: something could be searched today, and it is not what was searched.
-  Computed against `Configuration.subsumes` with conditions excluded, so a
-  conditions edit never stales a snapshot.  False when nothing was ever searched
-  or nothing can be searched now, so a NOT_CHECKED snapshot is never stale.
-  """
-  stale: Boolean!
+  """Why the most recent attempt failed.  Set when `state` is ERROR."""
+  error: NonEmptyString
 
   """Coordinates searched around, for a sidereal pointing."""
   searchCoordinates: Coordinates
