@@ -243,12 +243,21 @@ object ArchiveDuplicationColumns:
         .withFilterMethod:
           FilterMethod.Text(_.foldMap(o => o.reference.fold(o.id.show)(_.label)))
         .withCell: cell =>
-          cell.value.map: obs =>
-            ctx.obsIdRoutingLink(
-              programId,
-              obs.id,
-              contents = obs.reference.map(r => <.span(r.label): VdomNode)
-            )
+          // A status row has neither an observation nor a match, so every other column renders
+          // blank for it. This is where it gets to say what it is waiting for, or what went wrong.
+          cell.value
+            .map: obs =>
+              ctx.obsIdRoutingLink(
+                programId,
+                obs.id,
+                contents = obs.reference.map(r => <.span(r.label): VdomNode)
+              ): VdomNode
+            .orElse:
+              cell.row.original.value.optStatus.map: status =>
+                <.span(
+                  Icons.Spinner.withSpin(true).when(status.loading),
+                  status.message
+                ): VdomNode
         .sortableBy(_.map(_.id)),
       col(MatchCountColumnId, _.optEntry.map(_.matchCount))
         .withCell: cell =>
