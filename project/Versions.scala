@@ -48,7 +48,7 @@ object Versions {
   val openTelemetry          = "1.64.0"
   val openTelemetryInstr     = "2.26.1-alpha"
   val otel4s                 = "1.1.0"
-  val otel4sSdk              = "0.19.1"
+  val otel4sSdk              = "0.19.2"
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.10"
   val sbtBuildInfo           = "0.13.1"
