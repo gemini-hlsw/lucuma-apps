@@ -330,7 +330,13 @@ object GmosSpectroscopyConfigPanel {
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
                   ),
-                offsetsControl(props, props.permissions.isReadonly)
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  ExploreStyles.SlitTelescopeConfigEditor,
+                  ExploreStyles.SlitTelescopeConfigEditorInline
+                )(
+                  offsetsControl(props, props.permissions.isReadonly)
+                )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableInputText(
@@ -717,25 +723,19 @@ object GmosSpectroscopyConfigPanel {
       Effect.Dispatch[IO],
       Logger[IO]
     ): VdomNode =
-      <.div(
-        LucumaPrimeStyles.FormColumnCompact,
-        ExploreStyles.SlitTelescopeConfigEditor,
-        ExploreStyles.SlitTelescopeConfigEditorInline
-      )(
-        SlitTelescopeConfigsEditor[GmosSlitOffsetPreset](
-          explicitValue = props.observingMode
-            .zoom(
-              ObservingMode.GmosNorthLongSlit.explicitTelescopeConfigs,
-              GmosNorthLongSlitInput.explicitTelescopeConfigs.modify
-            )
-            .view(_.map(_.toInput).orUnassign),
-          defaultValue =
-            ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
-          defaultForPreset = defaultSlitTelescopeConfigs,
-          helpId = "configuration/slit-spatial-offsets.md".refined,
-          presetsReadonly = disabled,
-          editingReadonly = disabled
-        )
+      SlitTelescopeConfigsEditor[GmosSlitOffsetPreset](
+        explicitValue = props.observingMode
+          .zoom(
+            ObservingMode.GmosNorthLongSlit.explicitTelescopeConfigs,
+            GmosNorthLongSlitInput.explicitTelescopeConfigs.modify
+          )
+          .view(_.map(_.toInput).orUnassign),
+        defaultValue =
+          ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
+        defaultForPreset = defaultSlitTelescopeConfigs,
+        helpId = "configuration/slit-spatial-offsets.md".refined,
+        presetsReadonly = disabled,
+        editingReadonly = disabled
       )
 
     inline protected def exposureTimeMode(aligner: AA)(using
