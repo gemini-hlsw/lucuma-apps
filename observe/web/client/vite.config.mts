@@ -12,16 +12,17 @@ const fontImport = Unfonts({
 
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
-  const scalaClassesDir = path.resolve(__dirname, 'target/scala-3.8.4');
+  const _dirname = import.meta.dirname;
+  const scalaClassesDir = path.resolve(_dirname, 'target/scala-3.8.4');
   const isProduction = mode == 'production';
   const sjs = isProduction
     ? path.resolve(scalaClassesDir, 'observe_web_client-opt')
     : path.resolve(scalaClassesDir, 'observe_web_client-fastopt');
-  const common = __dirname;
+  const common = _dirname;
   const webappCommon = path.resolve(common, 'src/main/webapp/');
   const imagesCommon = path.resolve(webappCommon, 'images');
   const resourceDir = path.resolve(scalaClassesDir, 'classes');
-  const lucumaCss = path.resolve(__dirname, 'target/lucuma-css');
+  const lucumaCss = path.resolve(_dirname, 'target/lucuma-css');
 
   return {
     // TODO Remove this if we get EnvironmentPlugin to work.
@@ -103,7 +104,17 @@ export default defineConfig(async ({ mode }) => {
     build: {
       emptyOutDir: true,
       chunkSizeWarningLimit: 20000,
-      outDir: path.resolve(__dirname, 'deploy'),
+      outDir: path.resolve(_dirname, 'deploy'),
+      rollupOptions: {
+        onwarn(warning, warn) {
+          // The Scala.js bundle imports Node built-ins (crypto, tls, zlib, ...)
+          // from cross-compiled code whose Node paths never run in the browser.
+          if (warning.message.includes('has been externalized for browser compatibility')) {
+            return;
+          }
+          warn(warning);
+        },
+      },
     },
     plugins: [mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }), fontImport, react()],
   } satisfies UserConfig;

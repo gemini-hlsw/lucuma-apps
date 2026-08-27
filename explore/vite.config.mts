@@ -273,6 +273,16 @@ export default defineConfig(async ({ mode }) => {
       emptyOutDir: true,
       chunkSizeWarningLimit: 20000,
       outDir: path.resolve(_dirname, 'heroku/static'),
+      rollupOptions: {
+        onwarn(warning, warn) {
+          // The Scala.js bundles import Node built-ins (crypto, tls, zlib, ...)
+          // from cross-compiled code whose Node paths never run in the browser.
+          if (warning.message.includes('has been externalized for browser compatibility')) {
+            return;
+          }
+          warn(warning);
+        },
+      },
     },
     worker: {
       format: 'es', // We need this for workers to be able to do dynamic imports.
