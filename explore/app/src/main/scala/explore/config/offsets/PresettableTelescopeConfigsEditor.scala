@@ -13,19 +13,19 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 
-final case class IfuTelescopeConfigsEditor(
+final case class PresettableTelescopeConfigsEditor(
   telescopeConfigs: View[NonEmptyList[TelescopeConfig]],
   presets:          NonEmptyList[(String, NonEmptyList[TelescopeConfig])],
   defaultConfigs:   NonEmptyList[TelescopeConfig],
   helpId:           NonEmptyString,
   presetsReadonly:  Boolean, // selecting a preset
   editingReadonly:  Boolean  // editing the individual offsets.
-) extends ReactFnProps(IfuTelescopeConfigsEditor)
+) extends ReactFnProps(PresettableTelescopeConfigsEditor)
 
-object IfuTelescopeConfigsEditor
-    extends ReactFnComponent[IfuTelescopeConfigsEditor](props =>
-      // The IFU presets arrive as (name, pattern) pairs from core, keyed by plain
-      // String.
+object PresettableTelescopeConfigsEditor
+    extends ReactFnComponent[PresettableTelescopeConfigsEditor](props =>
+      // Presets arrive as (name, pattern) pairs from core, keyed by plain String,
+      // since these modes have no slit to derive an offset direction from.
 
       // Exact-match: the active preset is the one whose pattern equals the
       // current configs; None means a custom, hand-edited pattern.

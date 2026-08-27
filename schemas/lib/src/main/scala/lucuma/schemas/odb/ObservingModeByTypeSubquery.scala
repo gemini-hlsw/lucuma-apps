@@ -41,8 +41,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             explicitRoi
             defaultWavelengthDithers $WavelengthDitherSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
-            defaultOffsets $AngleSubquery
-            explicitOffsets $AngleSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
@@ -73,8 +73,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             explicitRoi
             defaultWavelengthDithers $WavelengthDitherSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
-            defaultOffsets $AngleSubquery
-            explicitOffsets $AngleSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
@@ -109,8 +109,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             explicitRoi
             defaultWavelengthDithers $WavelengthDitherSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
-            defaultOffsets $AngleSubquery
-            explicitOffsets $AngleSubquery
+            defaultTelescopeConfigs $TelescopeConfigSubquery
+            explicitTelescopeConfigs $TelescopeConfigSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
@@ -143,8 +143,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             explicitRoi
             defaultWavelengthDithers $WavelengthDitherSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
-            defaultOffsets $AngleSubquery
-            explicitOffsets $AngleSubquery
+            defaultTelescopeConfigs $TelescopeConfigSubquery
+            explicitTelescopeConfigs $TelescopeConfigSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter

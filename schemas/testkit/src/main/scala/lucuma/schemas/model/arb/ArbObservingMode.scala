@@ -160,8 +160,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[List[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
+        defaultTelescopeConfigs   <- arbitrary[SlitTelescopeConfigs]
+        explicitTelescopeConfigs  <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition]
       yield ObservingMode.GmosNorthLongSlit(
@@ -185,8 +185,8 @@ trait ArbObservingMode {
         explicitRoi,
         defaultWavelengthDithers,
         explicitWavelengthDithers,
-        defaultOffsets,
-        explicitOffsets,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
         exposureTimeMode,
         acquisition
       )
@@ -215,8 +215,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[List[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
+        defaultTelescopeConfigs   <- arbitrary[SlitTelescopeConfigs]
+        explicitTelescopeConfigs  <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition]
       yield ObservingMode.GmosSouthLongSlit(
@@ -240,8 +240,8 @@ trait ArbObservingMode {
         explicitRoi,
         defaultWavelengthDithers,
         explicitWavelengthDithers,
-        defaultOffsets,
-        explicitOffsets,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
         exposureTimeMode,
         acquisition
       )
@@ -269,8 +269,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       List[Offset.Q],
-       (Option[List[Offset.Q]], ExposureTimeMode, ObservingMode.GmosNorthLongSlit.Acquisition)
+       SlitTelescopeConfigs,
+       (Option[SlitTelescopeConfigs], ExposureTimeMode, ObservingMode.GmosNorthLongSlit.Acquisition)
       )
     ]
       .contramap(o =>
@@ -294,8 +294,8 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode, o.acquisition)
+         o.defaultTelescopeConfigs,
+         (o.explicitTelescopeConfigs, o.exposureTimeMode, o.acquisition)
         )
       )
 
@@ -321,8 +321,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       List[Offset.Q],
-       (Option[List[Offset.Q]], ExposureTimeMode, ObservingMode.GmosSouthLongSlit.Acquisition)
+       SlitTelescopeConfigs,
+       (Option[SlitTelescopeConfigs], ExposureTimeMode, ObservingMode.GmosSouthLongSlit.Acquisition)
       )
     ]
       .contramap(o =>
@@ -346,8 +346,8 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode, o.acquisition)
+         o.defaultTelescopeConfigs,
+         (o.explicitTelescopeConfigs, o.exposureTimeMode, o.acquisition)
         )
       )
 
@@ -428,8 +428,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[List[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
+        defaultTelescopeConfigs   <- arbitrary[NonEmptyList[TelescopeConfig]]
+        explicitTelescopeConfigs  <- arbitrary[Option[NonEmptyList[TelescopeConfig]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosNorthMos.Acquisition]
       yield ObservingMode.GmosNorthMos(
@@ -454,8 +454,8 @@ trait ArbObservingMode {
         explicitRoi,
         defaultWavelengthDithers,
         explicitWavelengthDithers,
-        defaultOffsets,
-        explicitOffsets,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
         exposureTimeMode,
         acquisition
       )
@@ -485,8 +485,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultOffsets            <- arbitrary[List[Offset.Q]]
-        explicitOffsets           <- arbitrary[Option[List[Offset.Q]]]
+        defaultTelescopeConfigs   <- arbitrary[NonEmptyList[TelescopeConfig]]
+        explicitTelescopeConfigs  <- arbitrary[Option[NonEmptyList[TelescopeConfig]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosSouthMos.Acquisition]
       yield ObservingMode.GmosSouthMos(
@@ -511,8 +511,8 @@ trait ArbObservingMode {
         explicitRoi,
         defaultWavelengthDithers,
         explicitWavelengthDithers,
-        defaultOffsets,
-        explicitOffsets,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
         exposureTimeMode,
         acquisition
       )
@@ -540,8 +540,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       List[Offset.Q],
-       (Option[List[Offset.Q]],
+       NonEmptyList[TelescopeConfig],
+       (Option[NonEmptyList[TelescopeConfig]],
         ExposureTimeMode,
         GmosMosAcquisitionType,
         ObservingMode.GmosNorthMos.Acquisition
@@ -569,8 +569,8 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType, o.acquisition)
+         o.defaultTelescopeConfigs,
+         (o.explicitTelescopeConfigs, o.exposureTimeMode, o.acquisitionType, o.acquisition)
         )
       )
 
@@ -596,8 +596,8 @@ trait ArbObservingMode {
        Option[GmosRoi],
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
-       List[Offset.Q],
-       (Option[List[Offset.Q]],
+       NonEmptyList[TelescopeConfig],
+       (Option[NonEmptyList[TelescopeConfig]],
         ExposureTimeMode,
         GmosMosAcquisitionType,
         ObservingMode.GmosSouthMos.Acquisition
@@ -625,8 +625,8 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultOffsets,
-         (o.explicitOffsets, o.exposureTimeMode, o.acquisitionType, o.acquisition)
+         o.defaultTelescopeConfigs,
+         (o.explicitTelescopeConfigs, o.exposureTimeMode, o.acquisitionType, o.acquisition)
         )
       )
 

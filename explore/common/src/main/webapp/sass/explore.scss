@@ -4697,6 +4697,10 @@ span.explore-offsets-count {
 .pl-form-column.explore-slit-telescope-config-editor {
   grid-template-areas: 'header header' 'labels values';
 
+  &.explore-slit-telescope-config-editor-inline {
+    grid-column: span 2;
+  }
+
   .explore-slit-telescope-config-editor-header {
     grid-area: header;
     width: 100%;

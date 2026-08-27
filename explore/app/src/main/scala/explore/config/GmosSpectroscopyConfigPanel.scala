@@ -15,6 +15,8 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.config.offsets.PresettableTelescopeConfigsEditor
+import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.Attachment
 import explore.model.ExploreModelValidators
@@ -33,11 +35,12 @@ import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-import lucuma.core.math.Offset
+import lucuma.core.enums.GmosSlitOffsetPreset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.gmos.longslit.defaultSlitTelescopeConfigs
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
@@ -163,11 +166,16 @@ object GmosSpectroscopyConfigPanel {
       Logger[IO]
     ): View[ExposureTimeMode]
 
-    protected def explicitOffsets(aligner: AA)(using
+    /**
+     * The spatial positions editor. Long slit stores a `SlitTelescopeConfigs` and MOS a plain list
+     * of offsets, so each mode supplies its own editor rather than the form knowing which shape it
+     * has.
+     */
+    protected def offsetsControl(props: Props, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[List[Offset.Q]]]
+    ): VdomNode
 
     protected def acquisitionSection(props: Props, disabled: Boolean)(using
       MonadError[IO, Throwable],
@@ -200,7 +208,6 @@ object GmosSpectroscopyConfigPanel {
     protected val defaultReadModeGainLens: Lens[T, (GmosAmpReadMode, GmosAmpGain)]
     protected val defaultRoiLens: Lens[T, GmosRoi]
     protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
-    protected val defaultOffsetsLens: Lens[T, List[Offset.Q]]
 
     protected val excludedFpus: Set[Fpu]
     protected val fpuLabel: String
@@ -323,13 +330,12 @@ object GmosSpectroscopyConfigPanel {
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
                   ),
-                OffsetsControl(
-                  explicitOffsets(props.observingMode),
-                  defaultOffsetsLens.get(props.observingMode.get),
-                  props.sequenceChanged,
-                  disableSimpleEdit,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  ExploreStyles.SlitTelescopeConfigEditor,
+                  ExploreStyles.SlitTelescopeConfigEditorInline
+                )(
+                  offsetsControl(props, props.permissions.isReadonly)
                 )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -712,16 +718,25 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline override protected def explicitOffsets(aligner: AA)(using
+    inline override protected def offsetsControl(props: GmosNorthLongSlit, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[List[Offset.Q]]] = aligner
-      .zoom(
-        ObservingMode.GmosNorthLongSlit.explicitOffsets,
-        GmosNorthLongSlitInput.explicitOffsets.modify
+    ): VdomNode =
+      SlitTelescopeConfigsEditor[GmosSlitOffsetPreset](
+        explicitValue = props.observingMode
+          .zoom(
+            ObservingMode.GmosNorthLongSlit.explicitTelescopeConfigs,
+            GmosNorthLongSlitInput.explicitTelescopeConfigs.modify
+          )
+          .view(_.map(_.toInput).orUnassign),
+        defaultValue =
+          ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
+        defaultForPreset = defaultSlitTelescopeConfigs,
+        helpId = "configuration/slit-spatial-offsets.md".refined,
+        presetsReadonly = disabled,
+        editingReadonly = disabled
       )
-      .view(_.map(_.map(_.toInput)).orUnassign)
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -811,8 +826,6 @@ object GmosSpectroscopyConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosNorthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthLongSlit.defaultWavelengthDithers
-    override protected val defaultOffsetsLens           =
-      ObservingMode.GmosNorthLongSlit.defaultOffsets
 
     override protected val excludedFpus: Set[GmosNorthFpu] =
       Enumerated[GmosNorthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
@@ -1002,16 +1015,31 @@ object GmosSpectroscopyConfigPanel {
         ).orUnassign
       )
 
-    inline override protected def explicitOffsets(aligner: AA)(using
+    inline override protected def offsetsControl(props: GmosSouthLongSlit, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[List[Offset.Q]]] = aligner
-      .zoom(
-        ObservingMode.GmosSouthLongSlit.explicitOffsets,
-        GmosSouthLongSlitInput.explicitOffsets.modify
+    ): VdomNode =
+      <.div(
+        LucumaPrimeStyles.FormColumnCompact,
+        ExploreStyles.SlitTelescopeConfigEditor,
+        ExploreStyles.SlitTelescopeConfigEditorInline
+      )(
+        SlitTelescopeConfigsEditor[GmosSlitOffsetPreset](
+          explicitValue = props.observingMode
+            .zoom(
+              ObservingMode.GmosSouthLongSlit.explicitTelescopeConfigs,
+              GmosSouthLongSlitInput.explicitTelescopeConfigs.modify
+            )
+            .view(_.map(_.toInput).orUnassign),
+          defaultValue =
+            ObservingMode.GmosSouthLongSlit.defaultTelescopeConfigs.get(props.observingMode.get),
+          defaultForPreset = defaultSlitTelescopeConfigs,
+          helpId = "configuration/slit-spatial-offsets.md".refined,
+          presetsReadonly = disabled,
+          editingReadonly = disabled
+        )
       )
-      .view(_.map(_.map(_.toInput)).orUnassign)
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -1111,8 +1139,6 @@ object GmosSpectroscopyConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosSouthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthLongSlit.defaultWavelengthDithers
-    override protected val defaultOffsetsLens           =
-      ObservingMode.GmosSouthLongSlit.defaultOffsets
 
     private val defaultAcquisitionFilterLens
       : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter]            =
@@ -1417,16 +1443,33 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline override protected def explicitOffsets(aligner: AA)(using
+    inline override protected def offsetsControl(props: GmosNorthMos, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[List[Offset.Q]]] = aligner
-      .zoom(
-        ObservingMode.GmosNorthMos.explicitOffsets,
-        GmosNorthMosInput.explicitOffsets.modify
+    ): VdomNode =
+      // A MOS mask has no single slit to nod along, so the positions are a plain list
+      // and the only preset is the default.
+      PresettableTelescopeConfigsEditor(
+        telescopeConfigs = props.observingMode
+          .zoom(
+            ObservingMode.GmosNorthMos.explicitTelescopeConfigs,
+            GmosNorthMosInput.explicitTelescopeConfigs.modify
+          )
+          .view(_.map(_.toList.map(_.toInput)).orUnassign)
+          .removeOptionality(
+            ObservingMode.GmosNorthMos.defaultTelescopeConfigs.get(props.observingMode.get)
+          ),
+        presets = NonEmptyList.one(
+          "Default" -> ObservingMode.GmosNorthMos.defaultTelescopeConfigs
+            .get(props.observingMode.get)
+        ),
+        defaultConfigs =
+          ObservingMode.GmosNorthMos.defaultTelescopeConfigs.get(props.observingMode.get),
+        helpId = "configuration/mos-spatial-offsets.md".refined,
+        presetsReadonly = disabled,
+        editingReadonly = disabled
       )
-      .view(_.map(_.map(_.toInput)).orUnassign)
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -1468,8 +1511,6 @@ object GmosSpectroscopyConfigPanel {
     override protected val defaultRoiLens               = ObservingMode.GmosNorthMos.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthMos.defaultWavelengthDithers
-    override protected val defaultOffsetsLens           =
-      ObservingMode.GmosNorthMos.defaultOffsets
 
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosNorthMos.explicitAmpReadMode
@@ -1700,16 +1741,33 @@ object GmosSpectroscopyConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline override protected def explicitOffsets(aligner: AA)(using
+    inline override protected def offsetsControl(props: GmosSouthMos, disabled: Boolean)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[Option[List[Offset.Q]]] = aligner
-      .zoom(
-        ObservingMode.GmosSouthMos.explicitOffsets,
-        GmosSouthMosInput.explicitOffsets.modify
+    ): VdomNode =
+      // A MOS mask has no single slit to nod along, so the positions are a plain list
+      // and the only preset is the default.
+      PresettableTelescopeConfigsEditor(
+        telescopeConfigs = props.observingMode
+          .zoom(
+            ObservingMode.GmosSouthMos.explicitTelescopeConfigs,
+            GmosSouthMosInput.explicitTelescopeConfigs.modify
+          )
+          .view(_.map(_.toList.map(_.toInput)).orUnassign)
+          .removeOptionality(
+            ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(props.observingMode.get)
+          ),
+        presets = NonEmptyList.one(
+          "Default" -> ObservingMode.GmosSouthMos.defaultTelescopeConfigs
+            .get(props.observingMode.get)
+        ),
+        defaultConfigs =
+          ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(props.observingMode.get),
+        helpId = "configuration/mos-spatial-offsets.md".refined,
+        presetsReadonly = disabled,
+        editingReadonly = disabled
       )
-      .view(_.map(_.map(_.toInput)).orUnassign)
 
     inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -1751,8 +1809,6 @@ object GmosSpectroscopyConfigPanel {
     override protected val defaultRoiLens               = ObservingMode.GmosSouthMos.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthMos.defaultWavelengthDithers
-    override protected val defaultOffsetsLens           =
-      ObservingMode.GmosSouthMos.defaultOffsets
 
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosSouthMos.explicitAmpReadMode

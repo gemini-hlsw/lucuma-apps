@@ -157,7 +157,7 @@ object Igrins2LongslitConfigPanel
                 explicitValue = explicitTelescopeConfigsView,
                 defaultValue = props.observingMode.get.defaultTelescopeConfigs,
                 defaultForPreset = igrins2.defaultSlitTelescopeConfigs,
-                helpId = "configuration/igrins2/spatial-offsets.md".refined,
+                helpId = "configuration/igrins2/slit-spatial-offsets.md".refined,
                 presetsReadonly = !props.permissions.isFullEdit,
                 editingReadonly = disableEdit
               )
