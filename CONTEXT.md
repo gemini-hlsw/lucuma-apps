@@ -181,3 +181,31 @@ _Avoid_: template, mode
 **Telluric**:
 A preset (and a calibration target role) for observing a standard star to
 correct atmospheric absorption. F2's default nod pattern.
+
+### AEON / Multi-Facility Proposals
+
+**AEON Multi-Facility Proposal**:
+A Gemini proposal (Queue, Classical, or Large Program) whose project also requests
+time at non-Gemini facilities. Membership is the presence of the proposal's
+`aeonMultiFacility` object rather than a boolean, so the AEON Required Instruments
+have nowhere to live unless the proposal is in the program. Explore models this as
+`Option[AeonMultiFacility]`, so leaving the program and clearing the set are the
+same edit.
+_Avoid_: AEON proposal (AEON is the network, not the proposal), MF proposal,
+multi-facility flag.
+
+**AEON Required Instrument**:
+An instrument an AEON Multi-Facility Proposal declares indispensable: the project is
+infeasible without its requested Gemini time. Scheduling information only. Expressed
+as a set — an instrument is required by being in the set, and every other instrument
+is not required, which is the default. Site is never stated; it follows from the
+instrument.
+_Avoid_: required configuration ("configuration" means something else in the ODB),
+required time flag.
+
+**AEON Eligible Instrument**:
+An instrument Explore will let a PI mark required: the program has a non-calibration
+observation using it whose workflow state is Defined or higher. Stricter than the
+ODB's own backing-observation rule, which accepts any active observation. See
+`docs/adr/0008-aeon-required-instruments-track-defined-observations.md`.
+_Avoid_: backing observation (that names the ODB's looser rule, not this one).

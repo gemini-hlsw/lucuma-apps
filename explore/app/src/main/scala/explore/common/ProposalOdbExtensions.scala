@@ -6,6 +6,7 @@ package explore.common
 import clue.data.Input
 import clue.data.Unassign
 import clue.data.syntax.*
+import explore.model.AeonMultiFacility
 import explore.model.PartnerSplit
 import explore.model.ProgramUser
 import explore.model.Proposal
@@ -45,11 +46,12 @@ trait ProposalOdbExtensions:
     if (exchangePartner.isDefined || partnerSplits.isEmpty) Unassign
     else partnerSplits.map(_.toInput).assign
 
-  // The ODB models AEON membership as the presence of the AeonMultiFacility
-  // object. Explore only tracks membership, so the required instruments are
-  // left untouched.
-  private def aeonMultiFacilityInput(aeon: Boolean): Input[AeonMultiFacilityInput] =
-    if (aeon) AeonMultiFacilityInput().assign else Unassign
+  // Set if we are a AEON/multi-facility program and which instruments require time.
+  private def aeonMultiFacilityInput(
+    aeon: Option[AeonMultiFacility]
+  ): Input[AeonMultiFacilityInput] =
+    aeon.fold(Unassign): amf =>
+      AeonMultiFacilityInput(requiredInstruments = amf.requiredInstruments.toList.assign).assign
 
   extension (proposalType: GeminiProposalType)
     def toInput: GeminiProposalTypeInput =

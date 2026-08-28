@@ -39,8 +39,10 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.GeminiCallForProposalsType
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProgramUserRole
 import lucuma.core.enums.ScienceSubtype
+import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnComponent
@@ -73,7 +75,8 @@ case class ProposalEditor(
   cfps:               List[CallForProposal],
   layout:             LayoutsMap,
   proposalIsReadonly: Boolean,
-  userIsReadonlyCoi:  Boolean
+  userIsReadonlyCoi:  Boolean,
+  aeonInstruments:    Map[Instrument, Site]
 ) extends ReactFnProps(ProposalEditor):
   val optUserId: Option[User.Id]        = userVault.map(_.user.id)
   val proposalOrUserIsReadonly: Boolean = proposalIsReadonly || userIsReadonlyCoi
@@ -345,7 +348,8 @@ object ProposalEditor
                   props.users.get,
                   setFastTurnaroundReviewer,
                   setFastTurnaroundMentorOnly,
-                  props.proposalOrUserIsReadonly
+                  props.proposalOrUserIsReadonly,
+                  props.aeonInstruments
                 )
               )
             )

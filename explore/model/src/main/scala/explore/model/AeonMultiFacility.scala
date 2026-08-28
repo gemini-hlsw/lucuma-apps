@@ -1,0 +1,24 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package explore.model
+
+import cats.Eq
+import cats.derived.*
+import io.circe.Decoder
+import lucuma.core.enums.Instrument
+import monocle.Focus
+import monocle.Lens
+
+case class AeonMultiFacility(requiredInstruments: Set[Instrument]) derives Eq
+
+object AeonMultiFacility:
+  val requiredInstruments: Lens[AeonMultiFacility, Set[Instrument]] =
+    Focus[AeonMultiFacility](_.requiredInstruments)
+
+  val Default: AeonMultiFacility = AeonMultiFacility(Set.empty)
+
+  given Decoder[AeonMultiFacility] = c =>
+    c.downField("requiredInstruments")
+      .as[List[Instrument]]
+      .map(is => AeonMultiFacility(is.toSet))

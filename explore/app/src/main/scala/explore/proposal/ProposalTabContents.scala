@@ -20,7 +20,9 @@ import explore.services.OdbProposalApi
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProposalStatus
+import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.StandardUser
 import lucuma.core.util.Timestamp
@@ -49,7 +51,8 @@ case class ProposalTabContents(
   layout:                   LayoutsMap,
   userIsReadonlyCoi:        Boolean,
   hasDefinedObservations:   Boolean,
-  hasUndefinedObservations: Boolean
+  hasUndefinedObservations: Boolean,
+  aeonInstruments:          Map[Instrument, Site]
 ) extends ReactFnProps(ProposalTabContents.component):
   val proposalStatus: ProposalStatus = programDetails.get.proposalStatus
   val proposalIsReadonly: Boolean    = proposalStatus =!= ProposalStatus.NotSubmitted
@@ -144,7 +147,8 @@ object ProposalTabContents:
                 props.cfps,
                 props.layout,
                 props.proposalIsReadonly,
-                props.userIsReadonlyCoi
+                props.userIsReadonlyCoi,
+                props.aeonInstruments
               ),
               ProposalSubmissionBar(
                 props.programId,

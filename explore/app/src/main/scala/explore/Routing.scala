@@ -185,7 +185,8 @@ object Routing:
                 userPreferences(model.rootModel).proposalTabLayout,
                 model.userIsReadonlyCoi,
                 programSummaries.get.hasDefinedObservations,
-                programSummaries.get.hasUndefinedObservations
+                programSummaries.get.hasUndefinedObservations,
+                programSummaries.get.aeonEligibleInstruments
               )
       .orEmpty
 

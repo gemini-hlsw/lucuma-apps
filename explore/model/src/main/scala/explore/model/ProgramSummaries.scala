@@ -11,11 +11,13 @@ import cats.implicits.*
 import eu.timepit.refined.cats.given
 import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.enums.ScienceBand
+import lucuma.core.enums.Site
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ObservationWorkflow
@@ -96,6 +98,15 @@ case class ProgramSummaries(
 
   lazy val hasDefinedObservations: Boolean =
     observations.values.exists(_.workflow.value.state === ObservationWorkflowState.Defined)
+
+  // Instruments an AEON/multi-facility proposal may declare required instuments.
+  lazy val aeonEligibleInstruments: Map[Instrument, Site] =
+    Map.from:
+      observations.values
+        .filterNot(_.isCalibration)
+        .filter(_.workflow.value.state >= ObservationWorkflowState.Defined)
+        .flatMap: obs =>
+          obs.basicConfiguration.flatMap(bc => (bc.instrument, bc.siteFor).tupled)
 
   lazy val obsAttachmentAssignments: ObsAttachmentAssignmentMap =
     observations.toList
