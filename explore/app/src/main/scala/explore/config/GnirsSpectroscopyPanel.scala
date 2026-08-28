@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.MonadError
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
@@ -48,7 +47,6 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import monocle.Lens
-import org.typelevel.log4cats.Logger
 
 /**
  * A GNIRS spectroscopy panel's props.
@@ -86,58 +84,18 @@ trait GnirsSpectroscopyPanelProps[Fpu]:
   def acquisitionAligner
     : Aligner[ObservingMode.GnirsSpectroscopyAcquisition, GnirsSpectroscopyAcquisitionInput]
 
-  def revertCustomizations(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): Callback
-  def filterView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsFilter]
-  def deckerView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsDecker]]
-  def fpuView(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): View[Fpu]
-  def prismView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsPrism]
-  def gratingView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsGrating]
-  def cameraView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsCamera]
-  def readModeView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsReadMode]]
-  def wellDepthView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsWellDepth]]
-  def focusMotorStepsView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsFocusMotorStepsValue]]
+  def revertCustomizations: Callback
+  def filterView: View[GnirsFilter]
+  def deckerView: View[Option[GnirsDecker]]
+  def fpuView: View[Fpu]
+  def prismView: View[GnirsPrism]
+  def gratingView: View[GnirsGrating]
+  def cameraView: View[GnirsCamera]
+  def readModeView: View[Option[GnirsReadMode]]
+  def wellDepthView: View[Option[GnirsWellDepth]]
+  def focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]]
 
-  def centralWavelengthsView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[
+  def centralWavelengthsView: View[
     NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
   ]
 
@@ -146,7 +104,7 @@ trait GnirsSpectroscopyPanelProps[Fpu]:
     prism:      GnirsPrism,
     camera:     GnirsCamera,
     wavelength: Wavelength
-  )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode
+  ): VdomNode
 
 /** The form itself, which differs between the two modes only in the FPU type. */
 abstract class GnirsSpectroscopyPanelBuilder[

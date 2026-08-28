@@ -599,62 +599,58 @@ object ConfigurationTile
                 React.Fragment(
                   // Gmos North Long Slit
                   optGmosNorthAligner.map: northAligner =>
-                    GmosSpectroscopyConfigPanel
-                      .GmosNorthLongSlit(
-                        props.programId,
-                        props.obsId,
-                        props.obsConf.calibrationRole,
-                        northAligner,
-                        revertConfig,
-                        props.modes.spectroscopy,
-                        props.sequenceChanged,
-                        props.permissions,
-                        props.units
-                      ),
+                    GmosNorthLongSlitPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      northAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    ),
                   // Gmos South Long Slit
                   optGmosSouthAligner.map: southAligner =>
-                    GmosSpectroscopyConfigPanel
-                      .GmosSouthLongSlit(
-                        props.programId,
-                        props.obsId,
-                        props.obsConf.calibrationRole,
-                        southAligner,
-                        revertConfig,
-                        props.modes.spectroscopy,
-                        props.sequenceChanged,
-                        props.permissions,
-                        props.units
-                      ),
+                    GmosSouthLongSlitPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      southAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    ),
                   // Gmos North MOS
                   optGmosNorthMosAligner.map: northMosAligner =>
-                    GmosSpectroscopyConfigPanel
-                      .GmosNorthMos(
-                        props.programId,
-                        props.obsId,
-                        props.obsConf.calibrationRole,
-                        northMosAligner,
-                        revertConfig,
-                        props.modes.spectroscopy,
-                        props.sequenceChanged,
-                        props.permissions,
-                        props.units,
-                        props.maskContext
-                      ),
+                    GmosNorthMosPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      northMosAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units,
+                      props.maskContext
+                    ),
                   // Gmos South MOS
                   optGmosSouthMosAligner.map: southMosAligner =>
-                    GmosSpectroscopyConfigPanel
-                      .GmosSouthMos(
-                        props.programId,
-                        props.obsId,
-                        props.obsConf.calibrationRole,
-                        southMosAligner,
-                        revertConfig,
-                        props.modes.spectroscopy,
-                        props.sequenceChanged,
-                        props.permissions,
-                        props.units,
-                        props.maskContext
-                      ),
+                    GmosSouthMosPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      southMosAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units,
+                      props.maskContext
+                    ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosNorthImaging(

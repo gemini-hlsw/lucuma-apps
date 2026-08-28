@@ -45,7 +45,8 @@ case class GnirsLongSlitPanel(
   permissions:     ConfigEditPermissions,
   isStaffOrAdmin:  Boolean,
   units:           WavelengthUnits
-) extends ReactFnProps[GnirsLongSlitPanel](
+)(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
+    extends ReactFnProps[GnirsLongSlitPanel](
       GnirsLongSlitPanel.component
     )
     with GnirsSpectroscopyPanelProps[GnirsFpuSlit]:
@@ -71,105 +72,61 @@ case class GnirsLongSlitPanel(
       forceAssign(GnirsLongSlitInput.acquisition.modify)(GnirsSpectroscopyAcquisitionInput())
     )
 
-  def revertCustomizations(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): Callback =
+  def revertCustomizations: Callback =
     observingMode.view(_.toInput).mod(_.revertCustomizations)
 
-  def filterView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsFilter] =
+  def filterView: View[GnirsFilter] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.filter, GnirsLongSlitInput.filter.modify)
       .view(_.assign)
 
-  def deckerView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsDecker]] =
+  def deckerView: View[Option[GnirsDecker]] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.explicitDecker, GnirsLongSlitInput.explicitDecker.modify)
       .view(_.orUnassign)
 
-  def fpuView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsFpuSlit] =
+  def fpuView: View[GnirsFpuSlit] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.fpu, GnirsLongSlitInput.fpu.modify)
       .view(_.assign)
 
-  def prismView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsPrism] =
+  def prismView: View[GnirsPrism] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.prism, GnirsLongSlitInput.prism.modify)
       .view(_.assign)
 
-  def gratingView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsGrating] =
+  def gratingView: View[GnirsGrating] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.grating, GnirsLongSlitInput.grating.modify)
       .view(_.assign)
 
-  def cameraView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsCamera] =
+  def cameraView: View[GnirsCamera] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.camera, GnirsLongSlitInput.camera.modify)
       .view(_.assign)
 
-  def readModeView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsReadMode]] =
+  def readModeView: View[Option[GnirsReadMode]] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.explicitReadMode,
             GnirsLongSlitInput.explicitReadMode.modify
       )
       .view(_.orUnassign)
 
-  def wellDepthView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsWellDepth]] =
+  def wellDepthView: View[Option[GnirsWellDepth]] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.explicitWellDepth,
             GnirsLongSlitInput.explicitWellDepth.modify
       )
       .view(_.orUnassign)
 
-  def focusMotorStepsView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsFocusMotorStepsValue]] =
+  def focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] =
     observingMode
       .zoom(ObservingMode.GnirsLongSlit.explicitFocusMotorSteps,
             GnirsLongSlitInput.explicitFocusMotorSteps.modify
       )
       .view(_.map(_.value.value).orUnassign)
 
-  def centralWavelengthsView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[
+  def centralWavelengthsView: View[
     NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
   ] =
     observingMode
@@ -182,7 +139,7 @@ case class GnirsLongSlitPanel(
     prism:      GnirsPrism,
     camera:     GnirsCamera,
     wavelength: Wavelength
-  )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
+  ): VdomNode =
     SlitTelescopeConfigsEditor(
       explicitValue = observingMode
         .zoom(ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
