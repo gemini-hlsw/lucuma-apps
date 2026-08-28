@@ -15,6 +15,7 @@ import fs2.Stream
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProposalStatus
+import lucuma.core.enums.ProposalSubmissionError
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
@@ -28,7 +29,6 @@ import lucuma.react.primereact.Toolbar
 import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.ToastCtx
-import lucuma.ui.reusability.given
 import lucuma.ui.syntax.effect.*
 import org.typelevel.log4cats.Logger
 
@@ -82,11 +82,6 @@ object ProposalSubmissionBar
       for {
         ctx              <- useContext(AppContext.ctx)
         isUpdatingStatus <- useStateView(IsUpdatingStatus(false))
-        errorMessage     <-
-          useMemo((props.proposalStatus.get, props.hasProposalErrors)): (ps, hasErrors) =>
-            if (hasErrors && ps === ProposalStatus.NotSubmitted)
-              "Proposal cannot be submitted with errors. See errors tile for details.".some
-            else none
         nowPot           <- useStreamOnMount:
                               Stream
                                 .fixedRateStartImmediately[IO](1.second)
@@ -104,7 +99,19 @@ object ProposalSubmissionBar
           )
 
         nowPot.toOption.flatten.map: now =>
+          // Whether the deadline has passed depends on the clock above, so it is
+          // reported here rather than by Proposal.errors -- validating it there
+          // would tie the whole proposal tab's re-rendering to this clock.
           val isDueDeadline: Boolean = props.deadline.flatMap(_.toOption).forall(_ < now)
+
+          val errorMessage: Option[String] =
+            Option
+              .when(props.proposalStatus.get === ProposalStatus.NotSubmitted):
+                if (isDueDeadline) ProposalSubmissionError.PastDeadline.message.some
+                else
+                  Option.when(props.hasProposalErrors):
+                    "Proposal cannot be submitted with errors. See errors tile for details."
+              .flatten
 
           Toolbar(left =
             <.div(ExploreStyles.ProposalSubmissionBar)(
@@ -157,7 +164,7 @@ object ProposalSubmissionBar
                 .when:
                   props.proposalStatus.get === ProposalStatus.Submitted && !isDueDeadline
               ,
-              errorMessage.value
+              errorMessage
                 .map(r =>
                   <.span(ExploreStyles.ProposalDeadline)(
                     Message(text = r, severity = Message.Severity.Error)
