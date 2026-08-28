@@ -44,7 +44,8 @@ case class GnirsIfuPanel(
   permissions:     ConfigEditPermissions,
   isStaffOrAdmin:  Boolean,
   units:           WavelengthUnits
-) extends ReactFnProps[GnirsIfuPanel](
+)(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
+    extends ReactFnProps[GnirsIfuPanel](
       GnirsIfuPanel.component
     )
     with GnirsSpectroscopyPanelProps[GnirsFpuIfu]:
@@ -70,93 +71,49 @@ case class GnirsIfuPanel(
       forceAssign(GnirsIfuInput.acquisition.modify)(GnirsSpectroscopyAcquisitionInput())
     )
 
-  def revertCustomizations(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): Callback =
+  def revertCustomizations: Callback =
     observingMode.view(_.toInput).mod(_.revertCustomizations)
 
-  def filterView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsFilter] =
+  def filterView: View[GnirsFilter] =
     observingMode.zoom(ObservingMode.GnirsIfu.filter, GnirsIfuInput.filter.modify).view(_.assign)
 
-  def deckerView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsDecker]] =
+  def deckerView: View[Option[GnirsDecker]] =
     observingMode
       .zoom(ObservingMode.GnirsIfu.explicitDecker, GnirsIfuInput.explicitDecker.modify)
       .view(_.orUnassign)
 
-  def fpuView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsFpuIfu] =
+  def fpuView: View[GnirsFpuIfu] =
     observingMode.zoom(ObservingMode.GnirsIfu.fpu, GnirsIfuInput.fpu.modify).view(_.assign)
 
-  def prismView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsPrism] =
+  def prismView: View[GnirsPrism] =
     observingMode.zoom(ObservingMode.GnirsIfu.prism, GnirsIfuInput.prism.modify).view(_.assign)
 
-  def gratingView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsGrating] =
+  def gratingView: View[GnirsGrating] =
     observingMode
       .zoom(ObservingMode.GnirsIfu.grating, GnirsIfuInput.grating.modify)
       .view(_.assign)
 
-  def cameraView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[GnirsCamera] =
+  def cameraView: View[GnirsCamera] =
     observingMode.zoom(ObservingMode.GnirsIfu.camera, GnirsIfuInput.camera.modify).view(_.assign)
 
-  def readModeView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsReadMode]] =
+  def readModeView: View[Option[GnirsReadMode]] =
     observingMode
       .zoom(ObservingMode.GnirsIfu.explicitReadMode, GnirsIfuInput.explicitReadMode.modify)
       .view(_.orUnassign)
 
-  def wellDepthView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsWellDepth]] =
+  def wellDepthView: View[Option[GnirsWellDepth]] =
     observingMode
       .zoom(ObservingMode.GnirsIfu.explicitWellDepth, GnirsIfuInput.explicitWellDepth.modify)
       .view(_.orUnassign)
 
-  def focusMotorStepsView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[Option[GnirsFocusMotorStepsValue]] =
+  def focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] =
     observingMode
       .zoom(ObservingMode.GnirsIfu.explicitFocusMotorSteps,
             GnirsIfuInput.explicitFocusMotorSteps.modify
       )
       .view(_.map(_.value.value).orUnassign)
 
-  def centralWavelengthsView(using
-    MonadError[IO, Throwable],
-    Effect.Dispatch[IO],
-    Logger[IO]
-  ): View[
+  def centralWavelengthsView: View[
     NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
   ] =
     observingMode
@@ -167,7 +124,7 @@ case class GnirsIfuPanel(
     prism:      GnirsPrism,
     camera:     GnirsCamera,
     wavelength: Wavelength
-  )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): VdomNode =
+  ): VdomNode =
     val fpu = observingMode.get.fpu
     PresettableTelescopeConfigsEditor(
       telescopeConfigs = observingMode
