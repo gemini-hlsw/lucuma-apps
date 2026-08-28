@@ -104,7 +104,9 @@ case class SpectroscopyModeRow(
   private def isSupportedIfu: Boolean =
     focalPlane === FocalPlane.IFU &&
       (instrumentConfig.instrument === Instrument.Ghost ||
-        instrumentConfig.instrument === Instrument.Gnirs)
+        instrumentConfig.instrument === Instrument.Gnirs ||
+        instrumentConfig.instrument === Instrument.GmosNorth ||
+        instrumentConfig.instrument === Instrument.GmosSouth)
 
   private def isGmosMos: Boolean =
     focalPlane === FocalPlane.MultipleSlit &&
@@ -523,16 +525,19 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
     declination: Option[Declination] = None,
     instrument:  Option[Instrument] = None
   ): List[SpectroscopyModeRow] = {
-    // Only allow modes with a long slit FPU.
-    // TODO: Remove when NS and IFU are supported.
-    def isGmosLongslit(r: SpectroscopyModeRow): Boolean =
+    // Long slit and IFU both have observing modes; nod & shuffle does not yet.
+    // TODO: Remove when NS is supported.
+    def isSupportedGmosFpu(r: SpectroscopyModeRow): Boolean =
+      def supported(t: GmosFpuType): Boolean =
+        t === GmosFpuType.LongSlit || t === GmosFpuType.Ifu
+
       r.instrumentConfig match
         // MOS rows have no builtin FPU (custom mask); keep them so they display,
-        // while still filtering out built-in NS/IFU masks for single-slit selection.
+        // while still filtering out built-in NS masks.
         case g: ItcInstrumentConfig.GmosNorthSpectroscopy =>
-          g.fpu.fold(true)(_.fpuType === GmosFpuType.LongSlit)
+          g.fpu.fold(true)(f => supported(f.fpuType))
         case g: ItcInstrumentConfig.GmosSouthSpectroscopy =>
-          g.fpu.fold(true)(_.fpuType === GmosFpuType.LongSlit)
+          g.fpu.fold(true)(f => supported(f.fpuType))
         case _                                            =>
           true
 
@@ -543,7 +548,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
         wavelength.flatMap(r.range(_).map(w => w.upper.pm.value - w.lower.pm.value))
 
       focalPlane.forall(f => r.focalPlane === f) &&
-      isGmosLongslit(r) &&
+      isSupportedGmosFpu(r) &&
       r.capability === capability &&
       iq.forall(i => r.ao =!= ModeAO.AO || (i <= ImageQuality.Preset.PointTwo)) &&
       wavelength.forall(w => w >= r.λmin.value && w <= r.λmax.value) &&
