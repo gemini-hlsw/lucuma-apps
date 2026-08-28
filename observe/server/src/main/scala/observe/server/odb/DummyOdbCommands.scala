@@ -83,4 +83,6 @@ class DummyOdbCommands[F[_]: Sync as F] extends OdbCommands[F] {
     F.unit
 
   override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure
+
+  override def flushEvents(obsId: Observation.Id): F[Unit] = F.unit
 }

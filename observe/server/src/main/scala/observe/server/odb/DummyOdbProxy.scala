@@ -61,4 +61,6 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
   override def visitStart(obsId: Observation.Id): F[Unit] = F.unit
 
   override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure
+
+  override def flushEvents(obsId: Observation.Id): F[Unit] = F.unit
 }
