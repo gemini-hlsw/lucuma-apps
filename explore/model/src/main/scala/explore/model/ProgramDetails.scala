@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
+import lucuma.core.enums.ProgramStatus
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.PartnerLink
@@ -29,6 +30,7 @@ case class ProgramDetails(
   programType:       ProgramType,
   proposal:          Option[Proposal],
   proposalStatus:    ProposalStatus,
+  status:            ProgramStatus,
   pi:                Option[ProgramUser],
   users:             List[ProgramUser],
   reference:         Option[ProgramReference],
@@ -47,6 +49,7 @@ object ProgramDetails:
     Focus[ProgramDetails](_.description)
   val proposal: Lens[ProgramDetails, Option[Proposal]]          = Focus[ProgramDetails](_.proposal)
   val proposalStatus: Lens[ProgramDetails, ProposalStatus]      = Focus[ProgramDetails](_.proposalStatus)
+  val status: Lens[ProgramDetails, ProgramStatus]               = Focus[ProgramDetails](_.status)
   val allUsers: Lens[ProgramDetails, List[ProgramUser]]         =
     Lens[ProgramDetails, List[ProgramUser]](_.allUsers)(a =>
       b => b.copy(pi = a.headOption, users = a.tail)
@@ -67,6 +70,7 @@ object ProgramDetails:
       t     <- c.get[ProgramType]("type")
       p     <- c.get[Option[Proposal]]("proposal")
       ps    <- c.get[ProposalStatus]("proposalStatus")
+      st    <- c.get[ProgramStatus]("status")
       pi    <- c.downField("pi").as[Option[ProgramUser]]
       us    <- c.get[List[ProgramUser]]("users")
       r     <-
@@ -84,6 +88,7 @@ object ProgramDetails:
                            t,
                            p,
                            ps,
+                           st,
                            pi,
                            us,
                            r.flatten,

@@ -4428,6 +4428,11 @@ a.explore-upgrade-link {
       grid-auto-rows: max-content;
     }
 
+    &.program-details-left {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
     .program-details-right {
       margin-top: 3rem;
     }
@@ -4435,6 +4440,10 @@ a.explore-upgrade-link {
     label {
       text-align: right;
       font-weight: bold;
+    }
+
+    .program-status-select {
+      width: 10rem;
     }
 
     .program-details-users {

@@ -33,6 +33,8 @@ trait OdbProgramApi[F[_]]:
 
   def updateProgramName(id: Program.Id, name: Option[NonEmptyString]): F[Unit]
 
+  def updateProgramStatus(id: Program.Id, status: ProgramStatus): F[Unit]
+
   def updateGoaShouldNotify(id: Program.Id, shouldNotify: Boolean): F[Unit]
 
   def updateAttachmentDescription(oid: Attachment.Id, desc: Option[NonEmptyString]): F[Unit]

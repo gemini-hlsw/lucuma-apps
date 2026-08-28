@@ -111,6 +111,21 @@ How many Archive Matches a Search found, counted per file to stay consistent wit
 floor rather than an exact figure when the Search saturated the archive's 500-record cap.
 _Avoid_: number of duplicates, hits
 
+### Program scheduling
+
+**Active Period**:
+The date interval a program may be observed in, shown as Start and End on the Program Details
+tile. A property of the program's award, not of anyone's decision to schedule it.
+_Avoid_: active (bare — collides with Program Status Active)
+
+**Program Status**:
+Whether a program may be scheduled at all, and whether it is considered finished: Active,
+Inactive, Complete or Incomplete. One value, not two flags — marking a program Complete
+replaces Inactive rather than sitting alongside it. Complete does not mean the program used
+all its allocated time. Readable by anyone with program access, settable only by staff.
+_Avoid_: active/inactive (bare — say Program Status), proposal status (a separate concept:
+where a proposal sits in the submission workflow)
+
 ### Tile layout
 
 **Row Span**:
