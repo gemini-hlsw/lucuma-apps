@@ -222,7 +222,7 @@ case class GmosSouthLongSlitPanel(
           GmosSouthLongSlitAcquisitionInput.exposureTimeMode.modify
         )
         .view(_.toInput.assign)
-    longSlitAcqPanel(
+    gmosAcqPanel(
       this,
       disabled,
       explicitAcquisitionRoi.withDefault(defaultAcquisitionRoi),

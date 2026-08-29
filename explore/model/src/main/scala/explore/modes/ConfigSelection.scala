@@ -9,6 +9,8 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
+import lucuma.core.enums.GmosNorthIfuFpu
+import lucuma.core.enums.GmosSouthIfuFpu
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
@@ -104,18 +106,24 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
       centralWavelength(overrides.map(_.centralWavelength), ItcInstrumentConfig.GmosFallbackCW)
 
     configs.headOption.flatMap(_.instrumentConfig match
+      // The matrix carries the IFU apertures in the same flat FPU as the long slits, so the
+      // aperture has to be narrowed back before deciding which configuration this is.
       case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating,
                                                      fpu = Some(fpu),
                                                      filter = filter,
                                                      modeOverrides = overrides
           ) =>
-        gmosCW(overrides).map(BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, _))
+        gmosCW(overrides).map: cw =>
+          GmosNorthIfuFpu.fromFpu(fpu).fold(BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw)):
+            ifuFpu => BasicConfiguration.GmosNorthIfu(grating, filter, ifuFpu, cw)
       case ItcInstrumentConfig.GmosSouthSpectroscopy(grating = grating,
                                                      fpu = Some(fpu),
                                                      filter = filter,
                                                      modeOverrides = overrides
           ) =>
-        gmosCW(overrides).map(BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, _))
+        gmosCW(overrides).map: cw =>
+          GmosSouthIfuFpu.fromFpu(fpu).fold(BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw)):
+            ifuFpu => BasicConfiguration.GmosSouthIfu(grating, filter, ifuFpu, cw)
       case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating,
                                                      fpu = None,
                                                      filter = filter,

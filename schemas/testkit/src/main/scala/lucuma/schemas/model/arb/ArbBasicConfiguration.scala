@@ -72,6 +72,44 @@ trait ArbBasicConfiguration {
       )
     )
 
+  given Arbitrary[BasicConfiguration.GmosNorthIfu] =
+    Arbitrary[BasicConfiguration.GmosNorthIfu](
+      for {
+        grating <- arbitrary[GmosNorthGrating]
+        filter  <- arbitrary[Option[GmosNorthFilter]]
+        fpu     <- arbitrary[GmosNorthIfuFpu]
+        cw      <- arbitrary[Wavelength]
+      } yield BasicConfiguration.GmosNorthIfu(
+        grating,
+        filter,
+        fpu,
+        CentralWavelength(cw)
+      )
+    )
+
+  given Cogen[BasicConfiguration.GmosNorthIfu] =
+    Cogen[(GmosNorthGrating, Option[GmosNorthFilter], GmosNorthIfuFpu, Wavelength)]
+      .contramap(o => (o.grating, o.filter, o.fpu, o.centralWavelength.value))
+
+  given Arbitrary[BasicConfiguration.GmosSouthIfu] =
+    Arbitrary[BasicConfiguration.GmosSouthIfu](
+      for {
+        grating <- arbitrary[GmosSouthGrating]
+        filter  <- arbitrary[Option[GmosSouthFilter]]
+        fpu     <- arbitrary[GmosSouthIfuFpu]
+        cw      <- arbitrary[Wavelength]
+      } yield BasicConfiguration.GmosSouthIfu(
+        grating,
+        filter,
+        fpu,
+        CentralWavelength(cw)
+      )
+    )
+
+  given Cogen[BasicConfiguration.GmosSouthIfu] =
+    Cogen[(GmosSouthGrating, Option[GmosSouthFilter], GmosSouthIfuFpu, Wavelength)]
+      .contramap(o => (o.grating, o.filter, o.fpu, o.centralWavelength.value))
+
   given Arbitrary[BasicConfiguration.GmosNorthMos] =
     Arbitrary[BasicConfiguration.GmosNorthMos](
       for {
@@ -216,6 +254,8 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GmosSouthLongSlit],
       arbitrary[BasicConfiguration.GmosNorthMos],
       arbitrary[BasicConfiguration.GmosSouthMos],
+      arbitrary[BasicConfiguration.GmosNorthIfu],
+      arbitrary[BasicConfiguration.GmosSouthIfu],
       arbitrary[BasicConfiguration.GmosNorthImaging],
       arbitrary[BasicConfiguration.GmosSouthImaging],
       arbitrary[BasicConfiguration.GnirsSpectroscopy],
@@ -344,6 +384,8 @@ trait ArbBasicConfiguration {
     Cogen[(SubaruInstrument, TimeSpan)]
       .contramap(o => (o.subaruInstrument, o.totalRequestTime))
 
+  // Keyed on the mode discriminator rather than a nested Either, which had to grow two levels
+  // for every mode added.
   given Cogen[BasicConfiguration] =
     Cogen[Either[
       BasicConfiguration.Igrins2LongSlit.type,
@@ -375,7 +417,13 @@ trait ArbBasicConfiguration {
                                 BasicConfiguration.GmosNorthMos,
                                 Either[
                                   BasicConfiguration.GmosSouthMos,
-                                  BasicConfiguration.Flamingos2Mos
+                                  Either[
+                                    BasicConfiguration.Flamingos2Mos,
+                                    Either[
+                                      BasicConfiguration.GmosNorthIfu,
+                                      BasicConfiguration.GmosSouthIfu
+                                    ]
+                                  ]
                                 ]
                               ]
                             ]
@@ -418,8 +466,10 @@ trait ArbBasicConfiguration {
         case s: BasicConfiguration.GmosSouthMos       =>
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case f: BasicConfiguration.Flamingos2Mos      =>
-          f.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
-
+          f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case n: BasicConfiguration.GmosNorthIfu       =>
+          n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: BasicConfiguration.GmosSouthIfu       =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 }
-
 object ArbBasicConfiguration extends ArbBasicConfiguration

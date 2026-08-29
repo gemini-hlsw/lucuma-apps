@@ -216,6 +216,10 @@ extension (conf: BasicConfiguration)
           AgsParams.GmosMos(Site.GN, port).some
         case BasicConfiguration.GmosSouthMos(_, _, _, _)                                     =>
           AgsParams.GmosMos(Site.GS, port).some
+        case BasicConfiguration.GmosNorthIfu(_, _, _, _)                                     =>
+          AgsParams.GmosMos(Site.GN, port).some
+        case BasicConfiguration.GmosSouthIfu(_, _, _, _)                                     =>
+          AgsParams.GmosMos(Site.GS, port).some
         case BasicConfiguration.GmosNorthImaging(_)                                          =>
           AgsParams.GmosImaging(port).some
         case BasicConfiguration.GmosSouthImaging(_)                                          =>

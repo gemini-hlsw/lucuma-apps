@@ -298,6 +298,28 @@ final case class Observation(
                 customSlitWidth = s.customMask.slitWidth.some
               )
             )
+        case m: GmosNorthIfu                     =>
+          modeOverride.foldMap: o =>
+            List(
+              ItcInstrumentConfig.GmosNorthSpectroscopy(
+                grating = m.grating,
+                fpu = m.fpu.fpu.some,
+                filter = m.filter,
+                exposureTimeMode = m.exposureTimeMode,
+                modeOverrides = o.some
+              )
+            )
+        case m: GmosSouthIfu                     =>
+          modeOverride.foldMap: o =>
+            List(
+              ItcInstrumentConfig.GmosSouthSpectroscopy(
+                grating = m.grating,
+                fpu = m.fpu.fpu.some,
+                filter = m.filter,
+                exposureTimeMode = m.exposureTimeMode,
+                modeOverrides = o.some
+              )
+            )
         case n: GmosNorthImaging                 =>
           n.filters.toList
             .map(f => ItcInstrumentConfig.GmosNorthImaging(f.filter, f.exposureTimeMode))

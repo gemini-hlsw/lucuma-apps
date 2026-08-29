@@ -66,6 +66,8 @@ object ObsQueriesGQL:
         $$includeGmosSouthImaging: Boolean!,
         $$includeGmosNorthMos: Boolean!,
         $$includeGmosSouthMos: Boolean!,
+        $$includeGmosNorthIfu: Boolean!,
+        $$includeGmosSouthIfu: Boolean!,
         $$includeFlamingos2Imaging: Boolean!,
         $$includeFlamingos2LongSlit: Boolean!,
         $$includeFlamingos2Mos: Boolean!,

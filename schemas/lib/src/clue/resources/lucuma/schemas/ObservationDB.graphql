@@ -2540,6 +2540,13 @@ input GmosNorthIfuAcquisitionInput {
   """
   explicitFilter: GmosNorthFilter
 
+  """
+  An explicit acquisition ROI to use instead of the default.  The `explicitRoi` may be unset by
+  assigning a null value, or ignored by skipping it altogether.  If not provided, the ROIs used
+  depend on the observation's calibration role.
+  """
+  explicitRoi: GmosIfuAcquisitionRoi
+
   """Exposure time mode for the acquisition sequence."""
   exposureTimeMode: ExposureTimeModeInput
 }
@@ -2631,6 +2638,13 @@ input GmosSouthIfuAcquisitionInput {
   the central wavelength.
   """
   explicitFilter: GmosSouthFilter
+
+  """
+  An explicit acquisition ROI to use instead of the default.  The `explicitRoi` may be unset by
+  assigning a null value, or ignored by skipping it altogether.  If not provided, the ROIs used
+  depend on the observation's calibration role.
+  """
+  explicitRoi: GmosIfuAcquisitionRoi
 
   """Exposure time mode for the acquisition sequence."""
   exposureTimeMode: ExposureTimeModeInput
@@ -4085,6 +4099,13 @@ input ProgramPropertiesInput {
   Whether the program is considered deleted (defaults to PRESENT) but may be edited
   """
   existence: Existence
+
+  """
+  Program status (defaults to ACTIVE for new programs).  Readable by anyone
+  with access to the program, but may be set only by those with staff access
+  or better.  Not nullable.
+  """
+  status: ProgramStatus
 
   """
   Active period start date (inclusive) for this program.  The date is considered
@@ -7242,6 +7263,9 @@ enum ObservingModeType {
   """ObservingModeType GhostIfu"""
   GHOST_IFU
 
+  """ObservingModeType GmosNorthIfu"""
+  GMOS_NORTH_IFU
+
   """ObservingModeType GmosNorthImaging"""
   GMOS_NORTH_IMAGING
 
@@ -7250,6 +7274,9 @@ enum ObservingModeType {
 
   """ObservingModeType GmosNorthMos"""
   GMOS_NORTH_MOS
+
+  """ObservingModeType GmosSouthIfu"""
+  GMOS_SOUTH_IFU
 
   """ObservingModeType GmosSouthImaging"""
   GMOS_SOUTH_IMAGING
@@ -10354,6 +10381,22 @@ enum GmosAmpReadMode {
 }
 
 """GMOS Long Slit Acquisition ROI options."""
+enum GmosIfuAcquisitionRoi {
+  """
+  Imaging step uses CCD2, steps through the IFU use Full Frame.  The default for science.
+  """
+  CCD2_FULL_FRAME
+
+  """
+  Imaging step uses Central Stamp, steps through the IFU use Full Frame.  The default for
+  spectrophotometric standards.
+  """
+  STAMP_FULL_FRAME
+
+  """Both the imaging step and the steps through the IFU use Full Frame."""
+  FULL_FRAME
+}
+
 enum GmosLongSlitAcquisitionRoi {
   """Imaging step uses CCD2, slit steps use Central Stamp."""
   CCD2_STAMP
@@ -11472,6 +11515,21 @@ type GmosNorthIfuAcquisition {
   """
   explicitFilter: GmosNorthFilter
 
+  """
+  The ROIs that will be used for the acquisition sequence.  The first is used for the imaging
+  step and the second for the steps taken through the IFU.  This will be the `explicitRoi` if
+  specified, but otherwise the `defaultRoi`.
+  """
+  roi: GmosIfuAcquisitionRoi!
+
+  """
+  The acquisition ROIs that will be used by default, if an explicit ROI was not specified.
+  """
+  defaultRoi: GmosIfuAcquisitionRoi!
+
+  """An explicitly specified acquisition ROI (if any)."""
+  explicitRoi: GmosIfuAcquisitionRoi
+
   """The exposure time mode for the acquisition sequence."""
   exposureTimeMode: ExposureTimeMode!
 }
@@ -11680,6 +11738,21 @@ type GmosSouthIfuAcquisition {
   An explicitly specified GMOS South filter to use in acquisition (if any).
   """
   explicitFilter: GmosSouthFilter
+
+  """
+  The ROIs that will be used for the acquisition sequence.  The first is used for the imaging
+  step and the second for the steps taken through the IFU.  This will be the `explicitRoi` if
+  specified, but otherwise the `defaultRoi`.
+  """
+  roi: GmosIfuAcquisitionRoi!
+
+  """
+  The acquisition ROIs that will be used by default, if an explicit ROI was not specified.
+  """
+  defaultRoi: GmosIfuAcquisitionRoi!
+
+  """An explicitly specified acquisition ROI (if any)."""
+  explicitRoi: GmosIfuAcquisitionRoi
 
   """The exposure time mode for the acquisition sequence."""
   exposureTimeMode: ExposureTimeMode!
@@ -14512,6 +14585,12 @@ type Program {
   """
   isActive: Boolean!
 
+  """
+  Program status: whether the program is active for scheduling purposes and
+  whether it is considered complete.
+  """
+  status: ProgramStatus!
+
   """Proposal status of the program"""
   proposalStatus: ProposalStatus!
 
@@ -14747,6 +14826,24 @@ type ProgramSelectResult {
 
   """`true` when there were additional matches that were not returned."""
   hasMore: Boolean!
+}
+
+"""Program status."""
+enum ProgramStatus {
+  """The program is active and may be scheduled."""
+  ACTIVE
+
+  """The program is inactive and should not be scheduled."""
+  INACTIVE
+
+  """
+  The program is considered complete, even if it has not used all of its
+  allocated time.
+  """
+  COMPLETE
+
+  """The program is considered incomplete."""
+  INCOMPLETE
 }
 
 enum ProgramType {

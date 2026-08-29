@@ -14,3 +14,4 @@ package object decoders
     with ImagingVariantDecoders
     with ModeSignalToNoiseDecoders
     with SlitTelescopeConfigsDecoders
+    with GmosIfuAnalysisDecoders
