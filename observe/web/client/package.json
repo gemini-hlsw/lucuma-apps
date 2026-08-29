@@ -20,7 +20,7 @@
     "@tanstack/table-core": "9.2.3",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
-    "primereact": "10.9.8",
+    "primereact": "10.9.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "ua-parser-js": "2.0.10"
