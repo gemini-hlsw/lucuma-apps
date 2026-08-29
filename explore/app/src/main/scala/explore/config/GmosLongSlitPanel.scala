@@ -21,7 +21,7 @@ import lucuma.ui.syntax.all.given
  * The long slit Acquisition panel contents, shared by GN and GS.
  */
 /**
- * The GMOS acquisition form: an ROI, a filter and an exposure time mode.  Shared by long slit and
+ * The GMOS acquisition form: an ROI, a filter and an exposure time mode. Shared by long slit and
  * IFU, which offer different ROI pairs, hence the type parameter.
  */
 private[config] def gmosAcqPanel[Roi: Enumerated: Display, Filter: Enumerated: Display](

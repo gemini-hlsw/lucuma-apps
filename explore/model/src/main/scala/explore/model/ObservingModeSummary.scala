@@ -251,7 +251,7 @@ enum ObservingModeSummary derives Order:
           exposureTimeMode = etm.toInput.assign
         )
       )
-    case GmosNorthIfu(grating, filter, fpu, centralWavelength, etm)                       =>
+    case GmosNorthIfu(grating, filter, fpu, centralWavelength, etm)                        =>
       ObservingModeInput.GmosNorthIfu(
         GmosNorthIfuInput(
           grating = grating.assign,
@@ -261,7 +261,7 @@ enum ObservingModeSummary derives Order:
           exposureTimeMode = etm.toInput.assign
         )
       )
-    case GmosSouthIfu(grating, filter, fpu, centralWavelength, etm)                       =>
+    case GmosSouthIfu(grating, filter, fpu, centralWavelength, etm)                        =>
       ObservingModeInput.GmosSouthIfu(
         GmosSouthIfuInput(
           grating = grating.assign,
@@ -429,11 +429,11 @@ enum ObservingModeSummary derives Order:
         val cwvStr    = formatAt(centralWavelength.value)
         val filterStr = filter.fold("None")(_.shortName)
         s"GMOS-S MOS\n${grating.shortName} $cwvStr $filterStr  ${slitWidth.shortName} (${etm.formatSpec})"
-      case GmosNorthIfu(grating, filter, fpu, centralWavelength, etm)                       =>
+      case GmosNorthIfu(grating, filter, fpu, centralWavelength, etm)                        =>
         val cwvStr    = formatAt(centralWavelength.value)
         val filterStr = filter.fold("None")(_.shortName)
         s"GMOS-N IFU\n${grating.shortName} $cwvStr $filterStr  ${fpu.shortName} (${etm.formatSpec})"
-      case GmosSouthIfu(grating, filter, fpu, centralWavelength, etm)                       =>
+      case GmosSouthIfu(grating, filter, fpu, centralWavelength, etm)                        =>
         val cwvStr    = formatAt(centralWavelength.value)
         val filterStr = filter.fold("None")(_.shortName)
         s"GMOS-S IFU\n${grating.shortName} $cwvStr $filterStr  ${fpu.shortName} (${etm.formatSpec})"
@@ -657,11 +657,11 @@ object ObservingModeSummary:
       val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-S MOS ${grating.shortName} @ $cwvStr $filterStr  ${slitWidth.shortName}"
-    case GmosNorthIfu(grating, filter, fpu, centralWavelength, _)                       =>
+    case GmosNorthIfu(grating, filter, fpu, centralWavelength, _)                        =>
       val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-N IFU ${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName}"
-    case GmosSouthIfu(grating, filter, fpu, centralWavelength, _)                       =>
+    case GmosSouthIfu(grating, filter, fpu, centralWavelength, _)                        =>
       val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-S IFU ${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName}"

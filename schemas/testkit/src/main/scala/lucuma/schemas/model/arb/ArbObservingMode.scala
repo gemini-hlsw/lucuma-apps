@@ -418,7 +418,8 @@ trait ArbObservingMode {
       case GmosIfuAnalysis.Sum(radius)    => (true, radius)
       case GmosIfuAnalysis.Single(offset) => (false, offset)
 
-  given given_Arbitrary_GmosNorthIfu_Acquisition: Arbitrary[ObservingMode.GmosNorthIfu.Acquisition] =
+  given given_Arbitrary_GmosNorthIfu_Acquisition
+    : Arbitrary[ObservingMode.GmosNorthIfu.Acquisition] =
     Arbitrary[ObservingMode.GmosNorthIfu.Acquisition](
       for
         defaultFilter    <- arbitrary[GmosNorthFilter]
@@ -436,8 +437,17 @@ trait ArbObservingMode {
     )
 
   given given_Cogen_GmosNorthIfu_Acquisition: Cogen[ObservingMode.GmosNorthIfu.Acquisition] =
-    Cogen[(GmosNorthFilter, Option[GmosNorthFilter], GmosIfuAcquisitionRoi, Option[GmosIfuAcquisitionRoi], ExposureTimeMode)]
-      .contramap(a => (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode))
+    Cogen[
+      (GmosNorthFilter,
+       Option[GmosNorthFilter],
+       GmosIfuAcquisitionRoi,
+       Option[GmosIfuAcquisitionRoi],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode)
+      )
 
   given Arbitrary[ObservingMode.GmosNorthIfu] =
     Arbitrary[ObservingMode.GmosNorthIfu](
@@ -499,9 +509,12 @@ trait ArbObservingMode {
     )
 
   given Cogen[ObservingMode.GmosNorthIfu] =
-    Cogen[(GmosNorthGrating, GmosNorthIfuFpu, ExposureTimeMode)].contramap(m => (m.grating, m.fpu, m.exposureTimeMode))
+    Cogen[(GmosNorthGrating, GmosNorthIfuFpu, ExposureTimeMode)].contramap(m =>
+      (m.grating, m.fpu, m.exposureTimeMode)
+    )
 
-  given given_Arbitrary_GmosSouthIfu_Acquisition: Arbitrary[ObservingMode.GmosSouthIfu.Acquisition] =
+  given given_Arbitrary_GmosSouthIfu_Acquisition
+    : Arbitrary[ObservingMode.GmosSouthIfu.Acquisition] =
     Arbitrary[ObservingMode.GmosSouthIfu.Acquisition](
       for
         defaultFilter    <- arbitrary[GmosSouthFilter]
@@ -519,8 +532,17 @@ trait ArbObservingMode {
     )
 
   given given_Cogen_GmosSouthIfu_Acquisition: Cogen[ObservingMode.GmosSouthIfu.Acquisition] =
-    Cogen[(GmosSouthFilter, Option[GmosSouthFilter], GmosIfuAcquisitionRoi, Option[GmosIfuAcquisitionRoi], ExposureTimeMode)]
-      .contramap(a => (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode))
+    Cogen[
+      (GmosSouthFilter,
+       Option[GmosSouthFilter],
+       GmosIfuAcquisitionRoi,
+       Option[GmosIfuAcquisitionRoi],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode)
+      )
 
   given Arbitrary[ObservingMode.GmosSouthIfu] =
     Arbitrary[ObservingMode.GmosSouthIfu](
@@ -582,7 +604,9 @@ trait ArbObservingMode {
     )
 
   given Cogen[ObservingMode.GmosSouthIfu] =
-    Cogen[(GmosSouthGrating, GmosSouthIfuFpu, ExposureTimeMode)].contramap(m => (m.grating, m.fpu, m.exposureTimeMode))
+    Cogen[(GmosSouthGrating, GmosSouthIfuFpu, ExposureTimeMode)].contramap(m =>
+      (m.grating, m.fpu, m.exposureTimeMode)
+    )
 
   given Arbitrary[ObservingMode.GmosNorthMos] =
     Arbitrary[ObservingMode.GmosNorthMos](
@@ -1792,16 +1816,18 @@ trait ArbObservingMode {
                           ObservingMode.Visitor,
                           Either[
                             ObservingMode.KeckExchange,
-                            Either[ObservingMode.SubaruExchange,
-                                   Either[ObservingMode.GmosNorthMos,
-                                          Either[ObservingMode.GmosSouthMos,
-                                                 Either[ObservingMode.Flamingos2Mos,
-                                                        Either[ObservingMode.GmosNorthIfu,
-                                                               ObservingMode.GmosSouthIfu
-                                                        ]
-                                                 ]
-                                          ]
-                                   ]
+                            Either[
+                              ObservingMode.SubaruExchange,
+                              Either[
+                                ObservingMode.GmosNorthMos,
+                                Either[ObservingMode.GmosSouthMos,
+                                       Either[ObservingMode.Flamingos2Mos,
+                                              Either[ObservingMode.GmosNorthIfu,
+                                                     ObservingMode.GmosSouthIfu
+                                              ]
+                                       ]
+                                ]
+                              ]
                             ]
                           ]
                         ]

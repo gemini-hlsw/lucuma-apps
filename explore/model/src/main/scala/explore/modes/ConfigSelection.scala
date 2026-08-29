@@ -114,16 +114,20 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      modeOverrides = overrides
           ) =>
         gmosCW(overrides).map: cw =>
-          GmosNorthIfuFpu.fromFpu(fpu).fold(BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw)):
-            ifuFpu => BasicConfiguration.GmosNorthIfu(grating, filter, ifuFpu, cw)
+          GmosNorthIfuFpu
+            .fromFpu(fpu)
+            .fold(BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw)): ifuFpu =>
+              BasicConfiguration.GmosNorthIfu(grating, filter, ifuFpu, cw)
       case ItcInstrumentConfig.GmosSouthSpectroscopy(grating = grating,
                                                      fpu = Some(fpu),
                                                      filter = filter,
                                                      modeOverrides = overrides
           ) =>
         gmosCW(overrides).map: cw =>
-          GmosSouthIfuFpu.fromFpu(fpu).fold(BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw)):
-            ifuFpu => BasicConfiguration.GmosSouthIfu(grating, filter, ifuFpu, cw)
+          GmosSouthIfuFpu
+            .fromFpu(fpu)
+            .fold(BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw)): ifuFpu =>
+              BasicConfiguration.GmosSouthIfu(grating, filter, ifuFpu, cw)
       case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating,
                                                      fpu = None,
                                                      filter = filter,

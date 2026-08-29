@@ -23,8 +23,10 @@ trait GmosIfuAnalysisDecoders:
                         case (Some(radius), None) => Right(GmosIfuAnalysis.Sum(radius))
                         case (None, Some(offset)) => Right(GmosIfuAnalysis.Single(offset))
                         case _                    =>
-                          Left(DecodingFailure(
-                            "GmosIfuAnalysis must have exactly one of sumRadius or singleOffset",
-                            c.history
-                          ))
+                          Left(
+                            DecodingFailure(
+                              "GmosIfuAnalysis must have exactly one of sumRadius or singleOffset",
+                              c.history
+                            )
+                          )
     yield analysis

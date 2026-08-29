@@ -74,14 +74,14 @@ object GmosGeometry extends WithPwfsGeometry:
 
   /** The target bundle and, separately so it can be labelled, the sky bundle 60" away. */
   private def ifuShapes(
-    base:       SortedMap[Css, ShapeExpression],
-    posAngle:   Angle,
-    offset:     Offset,
-    fieldWidth: Angle,
-    site:       Site
+    base:             SortedMap[Css, ShapeExpression],
+    posAngle:         Angle,
+    offset:           Offset,
+    fieldWidth:       Angle,
+    site:             Site
   ): SortedMap[Css, ShapeExpression] =
     base
-      + (GmosFpu -> gmos.scienceArea.ifuMode.shapeAt(posAngle, offset, fieldWidth))
+      + (GmosFpu       -> gmos.scienceArea.ifuMode.shapeAt(posAngle, offset, fieldWidth))
       + (GmosIfuSkyFov -> gmos.scienceArea.ifuMode.skyShapeAt(posAngle, offset, fieldWidth, site))
 
   // Shape for the patrol field at a single position and mode

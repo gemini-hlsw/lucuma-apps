@@ -55,9 +55,9 @@ case class GmosSouthIfuPanel(
   def mode: ObservingMode   = observingMode.get
   def isCustomized: Boolean = observingMode.get.isCustomized
 
-  def initialGrating: GmosSouthGrating                        = M.initialGrating.get(observingMode.get)
-  def initialFilter: Option[GmosSouthFilter]                  = M.initialFilter.get(observingMode.get)
-  def initialFpu: GmosSouthIfuFpu                             = M.initialFpu.get(observingMode.get)
+  def initialGrating: GmosSouthGrating                         = M.initialGrating.get(observingMode.get)
+  def initialFilter: Option[GmosSouthFilter]                   = M.initialFilter.get(observingMode.get)
+  def initialFpu: GmosSouthIfuFpu                              = M.initialFpu.get(observingMode.get)
   def initialCentralWavelength: Wavelength                     =
     M.initialCentralWavelength.andThen(CentralWavelength.Value).get(observingMode.get)
   def defaultXBinning: GmosXBinning                            = M.defaultXBin.get(observingMode.get)
@@ -69,14 +69,16 @@ case class GmosSouthIfuPanel(
     M.defaultWavelengthDithers.get(observingMode.get)
 
   def resolvedReadModeGain: (GmosAmpReadMode, GmosAmpGain) =
-    (M.explicitAmpReadMode.get(observingMode.get).getOrElse(M.defaultAmpReadMode.get(observingMode.get)),
+    (M.explicitAmpReadMode
+       .get(observingMode.get)
+       .getOrElse(M.defaultAmpReadMode.get(observingMode.get)),
      M.explicitAmpGain.get(observingMode.get).getOrElse(M.defaultAmpGain.get(observingMode.get))
     )
 
   // Every aperture is offered; the mode has no unavailable ones.
   def excludedFpus: Set[GmosSouthIfuFpu] = Set.empty
-  def fpuLabel: String                    = "IFU"
-  def fpuHelpId: Option[Help.Id]          = None
+  def fpuLabel: String                   = "IFU"
+  def fpuHelpId: Option[Help.Id]         = None
 
   def revertCustomizations: Callback = observingMode.view(_.toInput).mod(_.revertCustomizations)
 
@@ -151,19 +153,20 @@ case class GmosSouthIfuPanel(
 
   def maskControl: VdomNode = EmptyVdom
 
-  private def acquisition: Aligner[ObservingMode.GmosSouthIfu.Acquisition, GmosSouthIfuAcquisitionInput] =
+  private def acquisition
+    : Aligner[ObservingMode.GmosSouthIfu.Acquisition, GmosSouthIfuAcquisitionInput] =
     observingMode.zoom(
       M.acquisition,
       forceAssign(GmosSouthIfuInput.acquisition.modify)(GmosSouthIfuAcquisitionInput())
     )
 
   def acquisitionSection(disabled: Boolean): VdomNode =
-    val A                       = ObservingMode.GmosSouthIfu.Acquisition
-    val defaultAcquisitionFilter = M.acquisition.andThen(A.defaultFilter).get(observingMode.get)
-    val defaultAcquisitionRoi    = M.acquisition.andThen(A.defaultRoi).get(observingMode.get)
-    val excludedAcquisitionFilters: Set[GmosSouthFilter] =
+    val A                                                           = ObservingMode.GmosSouthIfu.Acquisition
+    val defaultAcquisitionFilter                                    = M.acquisition.andThen(A.defaultFilter).get(observingMode.get)
+    val defaultAcquisitionRoi                                       = M.acquisition.andThen(A.defaultRoi).get(observingMode.get)
+    val excludedAcquisitionFilters: Set[GmosSouthFilter]            =
       Enumerated[GmosSouthFilter].all.toSet -- GmosSouthFilter.acquisition.toList.toSet
-    val explicitAcquisitionFilter: View[Option[GmosSouthFilter]] =
+    val explicitAcquisitionFilter: View[Option[GmosSouthFilter]]    =
       acquisition
         .zoom(A.explicitFilter, GmosSouthIfuAcquisitionInput.explicitFilter.modify)
         .view(_.orUnassign)
@@ -171,7 +174,7 @@ case class GmosSouthIfuPanel(
       acquisition
         .zoom(A.explicitRoi, GmosSouthIfuAcquisitionInput.explicitRoi.modify)
         .view(_.orUnassign)
-    val acquisitionExposureTimeMode: View[ExposureTimeMode] =
+    val acquisitionExposureTimeMode: View[ExposureTimeMode]         =
       acquisition
         .zoom(A.exposureTimeMode, GmosSouthIfuAcquisitionInput.exposureTimeMode.modify)
         .view(_.toInput.assign)

@@ -926,7 +926,7 @@ object ObservingMode:
       exposureTimeMode: ExposureTimeMode
     ) derives Decoder,
           Eq:
-      val filter: GmosNorthFilter                  = explicitFilter.getOrElse(defaultFilter)
+      val filter: GmosNorthFilter           = explicitFilter.getOrElse(defaultFilter)
       val roi: GmosIfuAcquisitionRoi        = explicitRoi.getOrElse(defaultRoi)
       def isCustomized: Boolean             =
         explicitFilter.exists(_ =!= defaultFilter) || explicitRoi.exists(_ =!= defaultRoi)
@@ -934,15 +934,15 @@ object ObservingMode:
         this.copy(explicitFilter = None, explicitRoi = None)
 
     object Acquisition:
-      val defaultFilter: Lens[Acquisition, GmosNorthFilter]                        =
+      val defaultFilter: Lens[Acquisition, GmosNorthFilter]             =
         Focus[Acquisition](_.defaultFilter)
-      val explicitFilter: Lens[Acquisition, Option[GmosNorthFilter]]               =
+      val explicitFilter: Lens[Acquisition, Option[GmosNorthFilter]]    =
         Focus[Acquisition](_.explicitFilter)
-      val defaultRoi: Lens[Acquisition, GmosIfuAcquisitionRoi]              =
+      val defaultRoi: Lens[Acquisition, GmosIfuAcquisitionRoi]          =
         Focus[Acquisition](_.defaultRoi)
-      val explicitRoi: Lens[Acquisition, Option[GmosIfuAcquisitionRoi]]     =
+      val explicitRoi: Lens[Acquisition, Option[GmosIfuAcquisitionRoi]] =
         Focus[Acquisition](_.explicitRoi)
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]             =
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]         =
         Focus[Acquisition](_.exposureTimeMode)
 
     given Decoder[GmosNorthIfu] = deriveDecoder
@@ -955,49 +955,49 @@ object ObservingMode:
       Focus[GmosNorthIfu](_.initialFilter)
     val filter: Lens[GmosNorthIfu, Option[GmosNorthFilter]]                                   =
       Focus[GmosNorthIfu](_.filter)
-    val initialFpu: Lens[GmosNorthIfu, GmosNorthIfuFpu]                                          =
+    val initialFpu: Lens[GmosNorthIfu, GmosNorthIfuFpu]                                       =
       Focus[GmosNorthIfu](_.initialFpu)
-    val fpu: Lens[GmosNorthIfu, GmosNorthIfuFpu]                                                 =
+    val fpu: Lens[GmosNorthIfu, GmosNorthIfuFpu]                                              =
       Focus[GmosNorthIfu](_.fpu)
-    val initialCentralWavelength: Lens[GmosNorthIfu, CentralWavelength]                =
+    val initialCentralWavelength: Lens[GmosNorthIfu, CentralWavelength]                       =
       Focus[GmosNorthIfu](_.initialCentralWavelength)
-    val centralWavelength: Lens[GmosNorthIfu, CentralWavelength]                       =
+    val centralWavelength: Lens[GmosNorthIfu, CentralWavelength]                              =
       Focus[GmosNorthIfu](_.centralWavelength)
-    val defaultIfuAnalysis: Lens[GmosNorthIfu, GmosIfuAnalysis]                        =
+    val defaultIfuAnalysis: Lens[GmosNorthIfu, GmosIfuAnalysis]                               =
       Focus[GmosNorthIfu](_.defaultIfuAnalysis)
-    val explicitIfuAnalysis: Lens[GmosNorthIfu, Option[GmosIfuAnalysis]]               =
+    val explicitIfuAnalysis: Lens[GmosNorthIfu, Option[GmosIfuAnalysis]]                      =
       Focus[GmosNorthIfu](_.explicitIfuAnalysis)
-    val defaultXBin: Lens[GmosNorthIfu, GmosXBinning]                                  =
+    val defaultXBin: Lens[GmosNorthIfu, GmosXBinning]                                         =
       Focus[GmosNorthIfu](_.defaultXBin)
-    val explicitXBin: Lens[GmosNorthIfu, Option[GmosXBinning]]                         =
+    val explicitXBin: Lens[GmosNorthIfu, Option[GmosXBinning]]                                =
       Focus[GmosNorthIfu](_.explicitXBin)
-    val defaultYBin: Lens[GmosNorthIfu, GmosYBinning]                                  =
+    val defaultYBin: Lens[GmosNorthIfu, GmosYBinning]                                         =
       Focus[GmosNorthIfu](_.defaultYBin)
-    val explicitYBin: Lens[GmosNorthIfu, Option[GmosYBinning]]                         =
+    val explicitYBin: Lens[GmosNorthIfu, Option[GmosYBinning]]                                =
       Focus[GmosNorthIfu](_.explicitYBin)
-    val defaultAmpReadMode: Lens[GmosNorthIfu, GmosAmpReadMode]                        =
+    val defaultAmpReadMode: Lens[GmosNorthIfu, GmosAmpReadMode]                               =
       Focus[GmosNorthIfu](_.defaultAmpReadMode)
-    val explicitAmpReadMode: Lens[GmosNorthIfu, Option[GmosAmpReadMode]]               =
+    val explicitAmpReadMode: Lens[GmosNorthIfu, Option[GmosAmpReadMode]]                      =
       Focus[GmosNorthIfu](_.explicitAmpReadMode)
-    val defaultAmpGain: Lens[GmosNorthIfu, GmosAmpGain]                                =
+    val defaultAmpGain: Lens[GmosNorthIfu, GmosAmpGain]                                       =
       Focus[GmosNorthIfu](_.defaultAmpGain)
-    val explicitAmpGain: Lens[GmosNorthIfu, Option[GmosAmpGain]]                       =
+    val explicitAmpGain: Lens[GmosNorthIfu, Option[GmosAmpGain]]                              =
       Focus[GmosNorthIfu](_.explicitAmpGain)
-    val defaultRoi: Lens[GmosNorthIfu, GmosRoi]                                        =
+    val defaultRoi: Lens[GmosNorthIfu, GmosRoi]                                               =
       Focus[GmosNorthIfu](_.defaultRoi)
-    val explicitRoi: Lens[GmosNorthIfu, Option[GmosRoi]]                               =
+    val explicitRoi: Lens[GmosNorthIfu, Option[GmosRoi]]                                      =
       Focus[GmosNorthIfu](_.explicitRoi)
-    val defaultWavelengthDithers: Lens[GmosNorthIfu, NonEmptyList[WavelengthDither]]   =
+    val defaultWavelengthDithers: Lens[GmosNorthIfu, NonEmptyList[WavelengthDither]]          =
       Focus[GmosNorthIfu](_.defaultWavelengthDithers)
     val explicitWavelengthDithers: Lens[GmosNorthIfu, Option[NonEmptyList[WavelengthDither]]] =
       Focus[GmosNorthIfu](_.explicitWavelengthDithers)
-    val defaultTelescopeConfigs: Lens[GmosNorthIfu, NonEmptyList[TelescopeConfig]]     =
+    val defaultTelescopeConfigs: Lens[GmosNorthIfu, NonEmptyList[TelescopeConfig]]            =
       Focus[GmosNorthIfu](_.defaultTelescopeConfigs)
-    val explicitTelescopeConfigs: Lens[GmosNorthIfu, Option[NonEmptyList[TelescopeConfig]]] =
+    val explicitTelescopeConfigs: Lens[GmosNorthIfu, Option[NonEmptyList[TelescopeConfig]]]   =
       Focus[GmosNorthIfu](_.explicitTelescopeConfigs)
-    val exposureTimeMode: Lens[GmosNorthIfu, ExposureTimeMode]                         =
+    val exposureTimeMode: Lens[GmosNorthIfu, ExposureTimeMode]                                =
       Focus[GmosNorthIfu](_.exposureTimeMode)
-    val acquisition: Lens[GmosNorthIfu, GmosNorthIfu.Acquisition]                               =
+    val acquisition: Lens[GmosNorthIfu, GmosNorthIfu.Acquisition]                             =
       Focus[GmosNorthIfu](_.acquisition)
 
   case class GmosSouthIfu(
@@ -1086,7 +1086,7 @@ object ObservingMode:
       exposureTimeMode: ExposureTimeMode
     ) derives Decoder,
           Eq:
-      val filter: GmosSouthFilter                  = explicitFilter.getOrElse(defaultFilter)
+      val filter: GmosSouthFilter           = explicitFilter.getOrElse(defaultFilter)
       val roi: GmosIfuAcquisitionRoi        = explicitRoi.getOrElse(defaultRoi)
       def isCustomized: Boolean             =
         explicitFilter.exists(_ =!= defaultFilter) || explicitRoi.exists(_ =!= defaultRoi)
@@ -1094,15 +1094,15 @@ object ObservingMode:
         this.copy(explicitFilter = None, explicitRoi = None)
 
     object Acquisition:
-      val defaultFilter: Lens[Acquisition, GmosSouthFilter]                        =
+      val defaultFilter: Lens[Acquisition, GmosSouthFilter]             =
         Focus[Acquisition](_.defaultFilter)
-      val explicitFilter: Lens[Acquisition, Option[GmosSouthFilter]]               =
+      val explicitFilter: Lens[Acquisition, Option[GmosSouthFilter]]    =
         Focus[Acquisition](_.explicitFilter)
-      val defaultRoi: Lens[Acquisition, GmosIfuAcquisitionRoi]              =
+      val defaultRoi: Lens[Acquisition, GmosIfuAcquisitionRoi]          =
         Focus[Acquisition](_.defaultRoi)
-      val explicitRoi: Lens[Acquisition, Option[GmosIfuAcquisitionRoi]]     =
+      val explicitRoi: Lens[Acquisition, Option[GmosIfuAcquisitionRoi]] =
         Focus[Acquisition](_.explicitRoi)
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]             =
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]         =
         Focus[Acquisition](_.exposureTimeMode)
 
     given Decoder[GmosSouthIfu] = deriveDecoder
@@ -1115,49 +1115,49 @@ object ObservingMode:
       Focus[GmosSouthIfu](_.initialFilter)
     val filter: Lens[GmosSouthIfu, Option[GmosSouthFilter]]                                   =
       Focus[GmosSouthIfu](_.filter)
-    val initialFpu: Lens[GmosSouthIfu, GmosSouthIfuFpu]                                          =
+    val initialFpu: Lens[GmosSouthIfu, GmosSouthIfuFpu]                                       =
       Focus[GmosSouthIfu](_.initialFpu)
-    val fpu: Lens[GmosSouthIfu, GmosSouthIfuFpu]                                                 =
+    val fpu: Lens[GmosSouthIfu, GmosSouthIfuFpu]                                              =
       Focus[GmosSouthIfu](_.fpu)
-    val initialCentralWavelength: Lens[GmosSouthIfu, CentralWavelength]                =
+    val initialCentralWavelength: Lens[GmosSouthIfu, CentralWavelength]                       =
       Focus[GmosSouthIfu](_.initialCentralWavelength)
-    val centralWavelength: Lens[GmosSouthIfu, CentralWavelength]                       =
+    val centralWavelength: Lens[GmosSouthIfu, CentralWavelength]                              =
       Focus[GmosSouthIfu](_.centralWavelength)
-    val defaultIfuAnalysis: Lens[GmosSouthIfu, GmosIfuAnalysis]                        =
+    val defaultIfuAnalysis: Lens[GmosSouthIfu, GmosIfuAnalysis]                               =
       Focus[GmosSouthIfu](_.defaultIfuAnalysis)
-    val explicitIfuAnalysis: Lens[GmosSouthIfu, Option[GmosIfuAnalysis]]               =
+    val explicitIfuAnalysis: Lens[GmosSouthIfu, Option[GmosIfuAnalysis]]                      =
       Focus[GmosSouthIfu](_.explicitIfuAnalysis)
-    val defaultXBin: Lens[GmosSouthIfu, GmosXBinning]                                  =
+    val defaultXBin: Lens[GmosSouthIfu, GmosXBinning]                                         =
       Focus[GmosSouthIfu](_.defaultXBin)
-    val explicitXBin: Lens[GmosSouthIfu, Option[GmosXBinning]]                         =
+    val explicitXBin: Lens[GmosSouthIfu, Option[GmosXBinning]]                                =
       Focus[GmosSouthIfu](_.explicitXBin)
-    val defaultYBin: Lens[GmosSouthIfu, GmosYBinning]                                  =
+    val defaultYBin: Lens[GmosSouthIfu, GmosYBinning]                                         =
       Focus[GmosSouthIfu](_.defaultYBin)
-    val explicitYBin: Lens[GmosSouthIfu, Option[GmosYBinning]]                         =
+    val explicitYBin: Lens[GmosSouthIfu, Option[GmosYBinning]]                                =
       Focus[GmosSouthIfu](_.explicitYBin)
-    val defaultAmpReadMode: Lens[GmosSouthIfu, GmosAmpReadMode]                        =
+    val defaultAmpReadMode: Lens[GmosSouthIfu, GmosAmpReadMode]                               =
       Focus[GmosSouthIfu](_.defaultAmpReadMode)
-    val explicitAmpReadMode: Lens[GmosSouthIfu, Option[GmosAmpReadMode]]               =
+    val explicitAmpReadMode: Lens[GmosSouthIfu, Option[GmosAmpReadMode]]                      =
       Focus[GmosSouthIfu](_.explicitAmpReadMode)
-    val defaultAmpGain: Lens[GmosSouthIfu, GmosAmpGain]                                =
+    val defaultAmpGain: Lens[GmosSouthIfu, GmosAmpGain]                                       =
       Focus[GmosSouthIfu](_.defaultAmpGain)
-    val explicitAmpGain: Lens[GmosSouthIfu, Option[GmosAmpGain]]                       =
+    val explicitAmpGain: Lens[GmosSouthIfu, Option[GmosAmpGain]]                              =
       Focus[GmosSouthIfu](_.explicitAmpGain)
-    val defaultRoi: Lens[GmosSouthIfu, GmosRoi]                                        =
+    val defaultRoi: Lens[GmosSouthIfu, GmosRoi]                                               =
       Focus[GmosSouthIfu](_.defaultRoi)
-    val explicitRoi: Lens[GmosSouthIfu, Option[GmosRoi]]                               =
+    val explicitRoi: Lens[GmosSouthIfu, Option[GmosRoi]]                                      =
       Focus[GmosSouthIfu](_.explicitRoi)
-    val defaultWavelengthDithers: Lens[GmosSouthIfu, NonEmptyList[WavelengthDither]]   =
+    val defaultWavelengthDithers: Lens[GmosSouthIfu, NonEmptyList[WavelengthDither]]          =
       Focus[GmosSouthIfu](_.defaultWavelengthDithers)
     val explicitWavelengthDithers: Lens[GmosSouthIfu, Option[NonEmptyList[WavelengthDither]]] =
       Focus[GmosSouthIfu](_.explicitWavelengthDithers)
-    val defaultTelescopeConfigs: Lens[GmosSouthIfu, NonEmptyList[TelescopeConfig]]     =
+    val defaultTelescopeConfigs: Lens[GmosSouthIfu, NonEmptyList[TelescopeConfig]]            =
       Focus[GmosSouthIfu](_.defaultTelescopeConfigs)
-    val explicitTelescopeConfigs: Lens[GmosSouthIfu, Option[NonEmptyList[TelescopeConfig]]] =
+    val explicitTelescopeConfigs: Lens[GmosSouthIfu, Option[NonEmptyList[TelescopeConfig]]]   =
       Focus[GmosSouthIfu](_.explicitTelescopeConfigs)
-    val exposureTimeMode: Lens[GmosSouthIfu, ExposureTimeMode]                         =
+    val exposureTimeMode: Lens[GmosSouthIfu, ExposureTimeMode]                                =
       Focus[GmosSouthIfu](_.exposureTimeMode)
-    val acquisition: Lens[GmosSouthIfu, GmosSouthIfu.Acquisition]                               =
+    val acquisition: Lens[GmosSouthIfu, GmosSouthIfu.Acquisition]                             =
       Focus[GmosSouthIfu](_.acquisition)
 
   case class GmosNorthImaging(
