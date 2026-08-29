@@ -158,6 +158,7 @@
   }
 
   &.flamingos2-fpu-visible .flamingos2-fpu > polygon,
+  &.gmos-fpu-visible .gmos-ifu-sky-fov > polygon,
   &.gmos-fpu-visible .gmos-fpu > polygon {
     display: inline;
   }
@@ -169,6 +170,16 @@
     stroke-width: var(--science-slit-stroke-width);
     fill: var(--science-slit-fill);
     fill-opacity: var(--science-slit-fill-opacity);
+  }
+
+  // The IFU sky bundle: same field, drawn dashed because it sits ~60" from the target.
+  .gmos-ifu-sky-fov > polygon {
+    display: none;
+    stroke: var(--science-slit-stroke);
+    stroke-width: var(--science-slit-stroke-width);
+    stroke-dasharray: 4;
+    fill: var(--science-slit-fill);
+    fill-opacity: calc(var(--science-slit-fill-opacity) / 2);
   }
 
   &.flamingos2-science-ccd-visible polygon.flamingos2-science-ccd-offset,

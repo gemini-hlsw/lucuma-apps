@@ -63,6 +63,7 @@ $brightness: var(--aladin-image-brightness);
 
   .visualization-overlay-svg {
     .gmos-fpu,
+    .gmos-ifu-sky-fov,
     .gmos-probe-arm,
     .gmos-candidates-area {
       display: inline;
