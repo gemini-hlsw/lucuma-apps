@@ -103,6 +103,9 @@ trait GmosSpectroscopyPanelProps[Grating, Filter, Fpu]:
    */
   def offsetsControl(disabled: Boolean): VdomNode
 
+  def modeSpecificFields(@annotation.unused disabled: Boolean): VdomNode =
+    EmptyVdom
+
   def acquisitionSection(disabled: Boolean): VdomNode
 
   /** The MOS mask picker, or nothing for long slit. */
@@ -169,7 +172,7 @@ abstract class GmosSpectroscopyPanelBuilder[
           )
 
         React.Fragment(
-          <.div(ExploreStyles.GmosLongSlitUpperGrid)(
+          <.div(ExploreStyles.GmosSpectroscopyUpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               CustomizableEnumSelect(
                 id = "grating".refined,
@@ -229,8 +232,9 @@ abstract class GmosSpectroscopyPanelBuilder[
               CustomizableInputText(
                 id = "central-wavelength".refined,
                 value = centralWavelengthView,
-                label = React.Fragment("Central Wavelength",
-                                       HelpIcon("configuration/gmos/central=wavelength.md".refined)
+                label = React.Fragment(
+                  "Central Wavelength",
+                  HelpIcon("configuration/gmos/central=wavelength.md".refined)
                 ),
                 units = props.units.symbol.some,
                 validFormat = props.units.toInputFormat,
@@ -250,8 +254,9 @@ abstract class GmosSpectroscopyPanelBuilder[
                 readonly = !props.permissions.isFullEdit,
                 units = props.units,
                 calibrationRole = props.calibrationRole,
-                idPrefix = "gmosLongslit".refined
-              )
+                idPrefix = "gmosSpectroscopy".refined
+              ),
+              props.modeSpecificFields(props.permissions.isReadonly)
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               // Provide better accessibility by using aria-label directly
@@ -262,8 +267,7 @@ abstract class GmosSpectroscopyPanelBuilder[
                 "Binning",
                 HelpIcon("configuration/gmos/binning.md".refined)
               ),
-              <.div(
-                ExploreStyles.GmosLongSlitBinning,
+              <.div(ExploreStyles.GmosSpectroscopyBinning)(
                 CustomizableEnumSelectOptional(
                   id = "explicitXBin".refined,
                   view = props.explicitXBinningView.withDefault(props.defaultXBinning),
@@ -312,8 +316,7 @@ abstract class GmosSpectroscopyPanelBuilder[
               )
             )
           ),
-          <.div(
-            ExploreStyles.GmosLongSlitLowerGrid,
+          <.div(ExploreStyles.GmosSpectroscopyLowerGrid)(
             Panel(
               header = <.span(
                 "Acquisition",

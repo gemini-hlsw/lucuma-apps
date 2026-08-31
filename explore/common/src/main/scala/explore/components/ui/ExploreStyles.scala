@@ -429,8 +429,8 @@ object ExploreStyles:
   val GhostDetectorPanel: Css              = Css("explore-ghost-detector-panel")
   val GhostDetectorHeader: Css             = Css("explore-ghost-detector-header")
   val GhostAgitators: Css                  = Css("explore-ghost-agitators")
-  val GmosLongSlitUpperGrid: Css           = Css("explore-gmos-longslit-upper-grid")
-  val GmosLongSlitLowerGrid: Css           = Css("explore-gmos-longslit-lower-grid")
+  val GmosSpectroscopyUpperGrid: Css       = Css("explore-gmos-spectroscopy-upper-grid")
+  val GmosSpectroscopyLowerGrid: Css       = Css("explore-gmos-spectroscopy-lower-grid")
   val ImagingUpperGrid: Css                = Css("explore-imaging-upper-grid")
   val ImagingLowerGrid: Css                = Css("explore-imaging-lower-grid")
   val ImagingLowerGridStack: Css           = Css("explore-imaging-lower-grid-stack")
@@ -441,6 +441,7 @@ object ExploreStyles:
   val ImagingFilterGridWithCoadds: Css     = Css("explore-imaging-filter-grid-with-coadds")
   val ImagingFilterGridHeader: Css         = Css("explore-imaging-filter-grid-header")
   val ImagingFilterGridAction: Css         = Css("explore-imaging-filter-grid-action")
+  val GmosIfuAnalysisAngle: Css            = Css("explore-gmos-ifu-analysis-angle")
 
   // GNIRS spectroscopy central wavelengths, one row per configuration.
   val GnirsWavelengthGrid: Css             = Css("explore-gnirs-wavelength-grid")
@@ -452,7 +453,7 @@ object ExploreStyles:
   val SvcTelescopeConfigsEditor: Css       = Css("explore-svc-telescope-configs-editor")
   val SvcAcquisitionLayout: Css            = Css("explore-svc-acquisition-layout")
   val AdvancedConfigurationButtons: Css    = Css("explore-advanced-configuration-buttons")
-  val GmosLongSlitBinning: Css             = Css("explore-gmos-longslit-binning")
+  val GmosSpectroscopyBinning: Css         = Css("explore-gmos-spectroscopy-binning")
   val ExploreTable: Css                    = Css("explore-table")
   val ExploreTableEmpty: Css               = Css("explore-table-emptymessage")
   val SpectroscopyTableEmpty: Css          = Css("spectroscopy-table-emptymessage")

@@ -108,6 +108,14 @@ def useModeData(
           ObservingMode.GmosSouthLongSlit(grating = yGrating, filter = yFilter, fpu = yFpu)
         ) =>
       xGrating === yGrating && xFilter === yFilter && xFpu === yFpu
+    case (ObservingMode.GmosNorthIfu(grating = xGrating, filter = xFilter, fpu = xFpu),
+          ObservingMode.GmosNorthIfu(grating = yGrating, filter = yFilter, fpu = yFpu)
+        ) =>
+      xGrating === yGrating && xFilter === yFilter && xFpu === yFpu
+    case (ObservingMode.GmosSouthIfu(grating = xGrating, filter = xFilter, fpu = xFpu),
+          ObservingMode.GmosSouthIfu(grating = yGrating, filter = yFilter, fpu = yFpu)
+        ) =>
+      xGrating === yGrating && xFilter === yFilter && xFpu === yFpu
     case (ObservingMode.Flamingos2LongSlit(disperser = xDisperser, filter = xFilter, fpu = xFpu),
           ObservingMode.Flamingos2LongSlit(disperser = yDisperser, filter = yFilter, fpu = yFpu)
         ) =>

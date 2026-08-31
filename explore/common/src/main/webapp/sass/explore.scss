@@ -2024,7 +2024,7 @@ svg.fa-check.explore-success-icon {
   // ------
   // Advanced Configuration
   // ------
-  .explore-gmos-longslit-upper-grid,
+  .explore-gmos-spectroscopy-upper-grid,
   .explore-imaging-upper-grid,
   .explore-flamingos2-upper-grid,
   .explore-gnirs-upper-grid {
@@ -2129,7 +2129,7 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  .explore-gmos-longslit-lower-grid,
+  .explore-gmos-spectroscopy-lower-grid,
   .explore-flamingos2-lower-grid {
     display: grid;
     padding: 0.5em;
@@ -2155,6 +2155,13 @@ svg.fa-check.explore-success-icon {
         'col1 col2' auto
         / 1fr 1fr;
     }
+  }
+
+  .explore-gmos-ifu-analysis-angle {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding-left: 7px;
   }
 
   // GNIRS spectroscopy central wavelengths.  Unlike the imaging filter grid this
@@ -2345,7 +2352,7 @@ svg.fa-check.explore-success-icon {
 
   // on small tiles, we want to stack the form fields
   @container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
-    .explore-gmos-longslit-upper-grid,
+    .explore-gmos-spectroscopy-upper-grid,
     .explore-imaging-upper-grid,
     .explore-flamingos2-upper-grid {
       grid-template:
@@ -2378,7 +2385,7 @@ svg.fa-check.explore-success-icon {
         / auto;
     }
 
-    .explore-gmos-longslit-lower-grid,
+    .explore-gmos-spectroscopy-lower-grid,
     .explore-flamingos2-lower-grid {
       grid-template:
         'acquisition' auto
@@ -2401,7 +2408,7 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  .explore-gmos-longslit-binning {
+  .explore-gmos-spectroscopy-binning {
     display: flex;
     place-items: baseline stretch;
     gap: 0.5em;

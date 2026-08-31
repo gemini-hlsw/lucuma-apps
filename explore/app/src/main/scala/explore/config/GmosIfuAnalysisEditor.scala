@@ -1,0 +1,103 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package explore.config
+
+import cats.syntax.all.*
+import crystal.react.View
+import explore.components.CustomizableEnumSelect
+import explore.components.CustomizableInputText
+import explore.components.ui.ExploreStyles
+import explore.model.ExploreModelValidators
+import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.math.Angle
+import lucuma.core.model.GmosIfuAnalysis
+import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
+import lucuma.react.common.*
+import lucuma.refined.*
+import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.syntax.all.given
+import monocle.Lens
+
+/**
+ * How the ITC samples the IFU field. `GmosIfuAnalysis` is a `@oneOf`, so the shape is picked first
+ * and then its single angle edited; switching shape keeps the angle, which is the value the
+ * observer was just looking at.
+ */
+enum GmosIfuAnalysisKind(val tag: String, val name: String) derives Enumerated, Display:
+  case Sum    extends GmosIfuAnalysisKind("Sum", "Summed")
+  case Single extends GmosIfuAnalysisKind("Single", "Single element")
+
+object GmosIfuAnalysisKind:
+  def fromGmosIfuAnalysis(analysis: GmosIfuAnalysis): GmosIfuAnalysisKind =
+    analysis match
+      case GmosIfuAnalysis.Sum(_)    => GmosIfuAnalysisKind.Sum
+      case GmosIfuAnalysis.Single(_) => GmosIfuAnalysisKind.Single
+
+final case class GmosIfuAnalysisEditor(
+  analysis:                 View[GmosIfuAnalysis],
+  default:                  GmosIfuAnalysis,
+  readonly:                 Boolean,
+  showCustomization:        Boolean,
+  allowRevertCustomization: Boolean
+) extends ReactFnProps(GmosIfuAnalysisEditor)
+
+object GmosIfuAnalysisEditor
+    extends ReactFnComponent[GmosIfuAnalysisEditor](props =>
+      // The angle survives a shape change: it is the number the observer is looking at.
+      val angleOf: GmosIfuAnalysis => Angle =
+        case GmosIfuAnalysis.Sum(radius)    => radius
+        case GmosIfuAnalysis.Single(offset) => offset
+
+      val kindLens: Lens[GmosIfuAnalysis, GmosIfuAnalysisKind] =
+        Lens(GmosIfuAnalysisKind.fromGmosIfuAnalysis): k =>
+          a =>
+            k match
+              case GmosIfuAnalysisKind.Sum    => GmosIfuAnalysis.Sum(angleOf(a))
+              case GmosIfuAnalysisKind.Single => GmosIfuAnalysis.Single(angleOf(a))
+
+      val angleLens: Lens[GmosIfuAnalysis, Angle] =
+        Lens(angleOf): angle =>
+          case GmosIfuAnalysis.Sum(_)    => GmosIfuAnalysis.Sum(angle)
+          case GmosIfuAnalysis.Single(_) => GmosIfuAnalysis.Single(angle)
+
+      val kind: View[GmosIfuAnalysisKind] = props.analysis.zoom(kindLens)
+      val angle: View[Angle]              = props.analysis.zoom(angleLens)
+
+      val angleLabel: String = kind.get match
+        case GmosIfuAnalysisKind.Sum    => "Radius"
+        case GmosIfuAnalysisKind.Single => "Offset"
+
+      // Each control contributes its own label/value pair to the panel's two-column grid;
+      // wrapping them together collapses both into one cell.
+      React.Fragment(
+        CustomizableEnumSelect(
+          id = "ifu-analysis-kind".refined,
+          view = kind,
+          defaultValue = GmosIfuAnalysisKind.fromGmosIfuAnalysis(props.default),
+          label = "IFU Analysis".some,
+          helpId = Some("configuration/gmos/ifu-analysis.md".refined),
+          disabled = props.readonly,
+          showCustomization = props.showCustomization,
+          allowRevertCustomization = props.allowRevertCustomization
+        ),
+        <.div, // Empty div for the labels column of the grid.
+        <.div(ExploreStyles.GmosIfuAnalysisAngle)(
+          CustomizableInputText(
+            id = "ifu-analysis-angle".refined,
+            value = angle,
+            validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+            // Indented to read as a property of the analysis above rather than its own setting.
+            label = angleLabel,
+            defaultValue = angleOf(props.default),
+            units = "\"".some,
+            disabled = props.readonly,
+            showCustomization = props.showCustomization,
+            allowRevertCustomization = props.allowRevertCustomization
+          )
+        )
+      )
+    )

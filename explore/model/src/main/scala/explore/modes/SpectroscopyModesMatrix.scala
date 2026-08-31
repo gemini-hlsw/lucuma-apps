@@ -464,6 +464,26 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rFpu === fpu.some
             case _ => false
+      case ObservingMode.GmosNorthIfu(grating = grating, filter = filter, fpu = fpu)             =>
+        matrix.find: row =>
+          row.instrumentConfig match
+            case ItcInstrumentConfig.GmosNorthSpectroscopy(
+                  grating = rGrating,
+                  filter = rFilter,
+                  fpu = rFpu
+                ) =>
+              rGrating === grating && rFilter === filter && rFpu === fpu.fpu.some
+            case _ => false
+      case ObservingMode.GmosSouthIfu(grating = grating, filter = filter, fpu = fpu)             =>
+        matrix.find: row =>
+          row.instrumentConfig match
+            case ItcInstrumentConfig.GmosSouthSpectroscopy(
+                  grating = rGrating,
+                  filter = rFilter,
+                  fpu = rFpu
+                ) =>
+              rGrating === grating && rFilter === filter && rFpu === fpu.fpu.some
+            case _ => false
       case ObservingMode.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu)    =>
         matrix.find: row =>
           row.instrumentConfig match

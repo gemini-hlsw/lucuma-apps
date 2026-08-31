@@ -78,7 +78,7 @@ case class GmosSouthIfuPanel(
   // Every aperture is offered; the mode has no unavailable ones.
   def excludedFpus: Set[GmosSouthIfuFpu] = Set.empty
   def fpuLabel: String                   = "IFU"
-  def fpuHelpId: Option[Help.Id]         = None
+  def fpuHelpId: Option[Help.Id]         = Some("configuration/gmos/ifu.md".refined)
 
   def revertCustomizations: Callback = observingMode.view(_.toInput).mod(_.revertCustomizations)
 
@@ -152,6 +152,19 @@ case class GmosSouthIfuPanel(
     )
 
   def maskControl: VdomNode = EmptyVdom
+
+  // How the ITC samples the field: unique to the IFU, so it goes in the shared form's mode slot.
+  override def modeSpecificFields(disabled: Boolean): VdomNode =
+    GmosIfuAnalysisEditor(
+      analysis = observingMode
+        .zoom(M.explicitIfuAnalysis, GmosSouthIfuInput.explicitIfuAnalysis.modify)
+        .view(_.map(_.toInput).orUnassign)
+        .removeOptionality(M.defaultIfuAnalysis.get(observingMode.get)),
+      default = M.defaultIfuAnalysis.get(observingMode.get),
+      readonly = disabled,
+      showCustomization = showCustomization,
+      allowRevertCustomization = allowRevertCustomization
+    )
 
   private def acquisition
     : Aligner[ObservingMode.GmosSouthIfu.Acquisition, GmosSouthIfuAcquisitionInput] =
