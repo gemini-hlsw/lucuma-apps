@@ -22,6 +22,7 @@ import explore.common.ProposalOdbExtensions.*
 import explore.components.FormStaticData
 import explore.components.HelpIcon
 import explore.components.ui.*
+import explore.model.AeonMultiFacility
 import explore.model.AppContext
 import explore.model.CallForProposal
 import explore.model.ExploreModelValidators
@@ -88,7 +89,8 @@ case class ProposalDetailsBody(
   users:           List[ProgramUser],
   setReviewer:     Option[ProgramUser] => Callback,
   setMentor:       Option[ProgramUser] => Callback,
-  readonly:        Boolean
+  readonly:        Boolean,
+  aeonInstruments: Map[Instrument, Site]
 ) extends ReactFnProps(ProposalDetailsBody.component):
   val proposal: Proposal                                           = proposalAligner.get
   val timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]] =
@@ -354,12 +356,13 @@ object ProposalDetailsBody:
     isCfpSelected:     Boolean,
     exchangePartner:   Option[ExchangePartner],
     readonly:          Boolean,
-    showDialog:        View[Visible]
+    showDialog:        View[Visible],
+    aeonInstruments:   Map[Instrument, Site]
   ): VdomNode =
     val ceilingView: Option[View[TooActivationCeiling]] =
       gemini.zoom(GeminiProposalType.tooActivationCeiling).toOptionView
 
-    val aeonMultiFacilityView: Option[View[Boolean]] =
+    val aeonMultiFacilityView: Option[View[Option[AeonMultiFacility]]] =
       gemini.zoom(GeminiProposalType.aeonMultiFacility).toOptionView
 
     val jwstSynergyView: Option[View[Boolean]] =
@@ -447,16 +450,6 @@ object ProposalDetailsBody:
             usLongTermView.isDefined
         )(
           <.div(ExploreStyles.ProposalPhaseIFlags)(
-            aeonMultiFacilityView.map: v =>
-              CheckboxView(
-                id = "aeon-multi-facility".refined,
-                value = v,
-                label = React.Fragment(
-                  "AEON / Multi-Facility",
-                  HelpIcon("proposal/main/aeon-multi-facility.md".refined)
-                ),
-                disabled = readonly
-              ),
             jwstSynergyView.map: v =>
               CheckboxView(
                 id = "jwst-synergy".refined,
@@ -476,7 +469,29 @@ object ProposalDetailsBody:
                   HelpIcon("proposal/main/us-long-term.md".refined)
                 ),
                 disabled = readonly
-              )
+              ),
+            aeonMultiFacilityView.map: v =>
+              CheckboxView(
+                id = "aeon-multi-facility".refined,
+                // leaving the program discards the required instruments.
+                value = v.zoom(_.isDefined): mod =>
+                  amf =>
+                    if mod(amf.isDefined) then amf.orElse(AeonMultiFacility.Default.some)
+                    else none,
+                label = React.Fragment(
+                  "AEON / Multi-Facility",
+                  HelpIcon("proposal/main/aeon-multi-facility.md".refined)
+                ),
+                disabled = readonly
+              ),
+            aeonMultiFacilityView
+              .flatMap(_.toOptionView)
+              .map(_.zoom(AeonMultiFacility.requiredInstruments))
+              .map: v =>
+                <.div(ExploreStyles.AeonRequiredInstruments)(
+                  <.label("Required Instruments"),
+                  AeonRequiredInstrumentsTable(v, aeonInstruments, readonly)
+                )
           )
         ),
       minimumPctView.map: mv =>
@@ -554,6 +569,15 @@ object ProposalDetailsBody:
     showDialog: View[Visible],
     splitsList: View[List[PartnerSplit]]
   )(using Logger[IO]): VdomNode = {
+    // Required instruments are pruned server-side when their backing observation goes away,
+    val dropIneligibleInstruments: GeminiProposalType => GeminiProposalType =
+      GeminiProposalType.aeonMultiFacility.modify(
+        _.map(
+          AeonMultiFacility.requiredInstruments
+            .modify(_.filter(props.aeonInstruments.contains))
+        )
+      )
+
     // updates the entire proposal when the CfP is changed, to reset any CfP-specific properties
     // that may no longer be valid. Ideally we would only update the proposal type and any properties that
     // are no longer valid, but this is simpler and the proposal is small enough that it shouldn't
@@ -594,7 +618,11 @@ object ProposalDetailsBody:
 
           Proposal.proposalType.some
             .andThen(ProposalType.geminiProposalType)
-            .modify(GeminiProposalType.withExchangePartner(exchangePartner))(patched)
+            .modify(
+              GeminiProposalType
+                .withExchangePartner(exchangePartner)
+                .andThen(dropIneligibleInstruments)
+            )(patched)
         .zoom(Proposal.call)
 
     val optGeminiView: Option[View[GeminiProposalType]] =
@@ -602,6 +630,7 @@ object ProposalDetailsBody:
         .zoom(Proposal.geminiProposalType, ProposalPropertiesInput.gemini.modify)
         .view(_.map(_.toInput).orUnassign)
         .toOptionView
+        .map(_.zoom(dropIneligibleInstruments)(mod => dropIneligibleInstruments.compose(mod)))
 
     val optKeckView: Option[View[KeckProposalType]] =
       props.proposalAligner
@@ -678,7 +707,8 @@ object ProposalDetailsBody:
                          isCfpSelected,
                          props.exchangePartner,
                          props.readonly,
-                         showDialog
+                         showDialog,
+                         props.aeonInstruments
             )
           ),
           optKeckView.map(keck =>

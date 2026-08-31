@@ -4,12 +4,14 @@
 package explore.model.arb
 
 import eu.timepit.refined.scalacheck.all.*
+import explore.model.AeonMultiFacility
 import explore.model.PartnerSplit
 import explore.model.ProgramUser
 import explore.model.ProposalType
 import explore.model.ProposalType.*
 import explore.model.ProposalType.GeminiProposalType.*
 import explore.model.TooActivationCeiling
+import explore.model.arb.ArbAeonMultiFacility.given
 import explore.model.arb.ArbPartnerSplit.given
 import explore.model.arb.ArbTooActivationCeiling.given
 import lucuma.core.enums.ConsiderForBand3
@@ -33,7 +35,7 @@ trait ArbProposalType:
         minPercentType    <- arbitrary[IntPercent]
         partnerSplits     <- arbitrary[List[PartnerSplit]]
         exchangePartner   <- arbitrary[Option[ExchangePartner]]
-        aeonMultiFacility <- arbitrary[Boolean]
+        aeonMultiFacility <- arbitrary[Option[AeonMultiFacility]]
         jwstSynergy       <- arbitrary[Boolean]
         usLongTerm        <- arbitrary[Boolean]
       } yield Classical(scienceSubtype,
@@ -53,7 +55,7 @@ trait ArbProposalType:
         IntPercent,
         List[PartnerSplit],
         Option[ExchangePartner],
-        Boolean,
+        Option[AeonMultiFacility],
         Boolean,
         Boolean
       )
@@ -136,7 +138,7 @@ trait ArbProposalType:
         minPercentType      <- arbitrary[IntPercent]
         minPercentTotalTime <- arbitrary[IntPercent]
         totalTime           <- arbitrary[TimeSpan]
-        aeonMultiFacility   <- arbitrary[Boolean]
+        aeonMultiFacility   <- arbitrary[Option[AeonMultiFacility]]
         jwstSynergy         <- arbitrary[Boolean]
       } yield LargeProgram(scienceSubtype,
                            tooActivationCeiling,
@@ -155,7 +157,7 @@ trait ArbProposalType:
       IntPercent,
       IntPercent,
       TimeSpan,
-      Boolean,
+      Option[AeonMultiFacility],
       Boolean
     )
   ].contramap(p =>
@@ -188,7 +190,7 @@ trait ArbProposalType:
         minPercentType    <- arbitrary[IntPercent]
         partnerSplits     <- arbitrary[List[PartnerSplit]]
         exchangePartner   <- arbitrary[Option[ExchangePartner]]
-        aeonMultiFacility <- arbitrary[Boolean]
+        aeonMultiFacility <- arbitrary[Option[AeonMultiFacility]]
         jwstSynergy       <- arbitrary[Boolean]
         usLongTerm        <- arbitrary[Boolean]
         considerForBand3  <- arbitrary[ConsiderForBand3]
@@ -212,7 +214,7 @@ trait ArbProposalType:
         IntPercent,
         List[PartnerSplit],
         Option[ExchangePartner],
-        Boolean,
+        Option[AeonMultiFacility],
         Boolean,
         Boolean,
         ConsiderForBand3

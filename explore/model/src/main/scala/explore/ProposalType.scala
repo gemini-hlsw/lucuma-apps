@@ -9,7 +9,6 @@ import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import io.circe.ACursor
 import io.circe.Decoder
-import io.circe.Json
 import io.circe.refined.*
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ExchangePartner
@@ -201,8 +200,8 @@ object ProposalType:
         case i               => i
       })
 
-    val aeonMultiFacility: Optional[GeminiProposalType, Boolean] =
-      Optional[GeminiProposalType, Boolean] {
+    val aeonMultiFacility: Optional[GeminiProposalType, Option[AeonMultiFacility]] =
+      Optional[GeminiProposalType, Option[AeonMultiFacility]] {
         case c: Classical    => c.aeonMultiFacility.some
         case l: LargeProgram => l.aeonMultiFacility.some
         case q: Queue        => q.aeonMultiFacility.some
@@ -253,21 +252,22 @@ object ProposalType:
       minPercentTime:    IntPercent,
       partnerSplits:     List[PartnerSplit],
       exchangePartner:   Option[ExchangePartner],
-      aeonMultiFacility: Boolean,
+      aeonMultiFacility: Option[AeonMultiFacility],
       jwstSynergy:       Boolean,
       usLongTerm:        Boolean
     ) extends GeminiProposalType derives Eq
 
     object Classical {
-      val minPercentTime: Lens[Classical, IntPercent]               = Focus[Classical](_.minPercentTime)
-      val exchangePartner: Lens[Classical, Option[ExchangePartner]] =
+      val minPercentTime: Lens[Classical, IntPercent]                   = Focus[Classical](_.minPercentTime)
+      val exchangePartner: Lens[Classical, Option[ExchangePartner]]     =
         Focus[Classical](_.exchangePartner)
-      val aeonMultiFacility: Lens[Classical, Boolean]               = Focus[Classical](_.aeonMultiFacility)
-      val jwstSynergy: Lens[Classical, Boolean]                     = Focus[Classical](_.jwstSynergy)
-      val usLongTerm: Lens[Classical, Boolean]                      = Focus[Classical](_.usLongTerm)
+      val aeonMultiFacility: Lens[Classical, Option[AeonMultiFacility]] =
+        Focus[Classical](_.aeonMultiFacility)
+      val jwstSynergy: Lens[Classical, Boolean]                         = Focus[Classical](_.jwstSynergy)
+      val usLongTerm: Lens[Classical, Boolean]                          = Focus[Classical](_.usLongTerm)
 
       val Default: Classical =
-        Classical(ScienceSubtype.Classical, 100.refined, List.empty, none, false, false, false)
+        Classical(ScienceSubtype.Classical, 100.refined, List.empty, none, none, false, false)
     }
 
     // Define the DemoScience case class implementing GeminiProposalType
@@ -338,20 +338,20 @@ object ProposalType:
       minPercentTime:       IntPercent,
       minPercentTotalTime:  IntPercent,
       totalTime:            TimeSpan,
-      aeonMultiFacility:    Boolean,
+      aeonMultiFacility:    Option[AeonMultiFacility],
       jwstSynergy:          Boolean
     ) extends GeminiProposalType derives Eq
 
     object LargeProgram {
-      val minPercentTime: Lens[LargeProgram, IntPercent]                 = Focus[LargeProgram](_.minPercentTime)
-      val minPercentTotalTime: Lens[LargeProgram, IntPercent]            =
+      val minPercentTime: Lens[LargeProgram, IntPercent]                   = Focus[LargeProgram](_.minPercentTime)
+      val minPercentTotalTime: Lens[LargeProgram, IntPercent]              =
         Focus[LargeProgram](_.minPercentTotalTime)
-      val tooActivationCeiling: Lens[LargeProgram, TooActivationCeiling] =
+      val tooActivationCeiling: Lens[LargeProgram, TooActivationCeiling]   =
         Focus[LargeProgram](_.tooActivationCeiling)
-      val totalTime: Lens[LargeProgram, TimeSpan]                        = Focus[LargeProgram](_.totalTime)
-      val aeonMultiFacility: Lens[LargeProgram, Boolean]                 =
+      val totalTime: Lens[LargeProgram, TimeSpan]                          = Focus[LargeProgram](_.totalTime)
+      val aeonMultiFacility: Lens[LargeProgram, Option[AeonMultiFacility]] =
         Focus[LargeProgram](_.aeonMultiFacility)
-      val jwstSynergy: Lens[LargeProgram, Boolean]                       = Focus[LargeProgram](_.jwstSynergy)
+      val jwstSynergy: Lens[LargeProgram, Boolean]                         = Focus[LargeProgram](_.jwstSynergy)
 
       val Default: LargeProgram =
         LargeProgram(ScienceSubtype.LargeProgram,
@@ -359,7 +359,7 @@ object ProposalType:
                      100.refined,
                      100.refined,
                      TimeSpan.Zero,
-                     false,
+                     none,
                      false
         )
     }
@@ -380,21 +380,22 @@ object ProposalType:
       minPercentTime:       IntPercent,
       partnerSplits:        List[PartnerSplit],
       exchangePartner:      Option[ExchangePartner],
-      aeonMultiFacility:    Boolean,
+      aeonMultiFacility:    Option[AeonMultiFacility],
       jwstSynergy:          Boolean,
       usLongTerm:           Boolean,
       considerForBand3:     ConsiderForBand3
     ) extends GeminiProposalType derives Eq
 
     object Queue {
-      val minPercentTime: Lens[Queue, IntPercent]                 = Focus[Queue](_.minPercentTime)
-      val tooActivationCeiling: Lens[Queue, TooActivationCeiling] =
+      val minPercentTime: Lens[Queue, IntPercent]                   = Focus[Queue](_.minPercentTime)
+      val tooActivationCeiling: Lens[Queue, TooActivationCeiling]   =
         Focus[Queue](_.tooActivationCeiling)
-      val exchangePartner: Lens[Queue, Option[ExchangePartner]]   = Focus[Queue](_.exchangePartner)
-      val aeonMultiFacility: Lens[Queue, Boolean]                 = Focus[Queue](_.aeonMultiFacility)
-      val jwstSynergy: Lens[Queue, Boolean]                       = Focus[Queue](_.jwstSynergy)
-      val usLongTerm: Lens[Queue, Boolean]                        = Focus[Queue](_.usLongTerm)
-      val considerForBand3: Lens[Queue, ConsiderForBand3]         = Focus[Queue](_.considerForBand3)
+      val exchangePartner: Lens[Queue, Option[ExchangePartner]]     = Focus[Queue](_.exchangePartner)
+      val aeonMultiFacility: Lens[Queue, Option[AeonMultiFacility]] =
+        Focus[Queue](_.aeonMultiFacility)
+      val jwstSynergy: Lens[Queue, Boolean]                         = Focus[Queue](_.jwstSynergy)
+      val usLongTerm: Lens[Queue, Boolean]                          = Focus[Queue](_.usLongTerm)
+      val considerForBand3: Lens[Queue, ConsiderForBand3]           = Focus[Queue](_.considerForBand3)
 
       val Default: Queue =
         Queue(ScienceSubtype.Queue,
@@ -402,7 +403,7 @@ object ProposalType:
               100.refined,
               List.empty,
               none,
-              false,
+              none,
               false,
               false,
               ConsiderForBand3.Unset
@@ -446,11 +447,6 @@ object ProposalType:
     val systemVerification: Prism[GeminiProposalType, SystemVerification] =
       GenPrism[GeminiProposalType, SystemVerification]
 
-    // The ODB models AEON membership as a nullable `AeonMultiFacility` object;
-    // Explore only tracks membership, so presence maps to `true`.
-    private def aeonMultiFacilityDecoder(c: ACursor): Decoder.Result[Boolean] =
-      c.downField("aeonMultiFacility").as[Option[Json]].map(_.isDefined)
-
     given Decoder[GeminiProposalType] = {
 
       def toProposalType(tpe: ScienceSubtype, c: ACursor): Decoder.Result[GeminiProposalType] =
@@ -460,7 +456,7 @@ object ProposalType:
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
               exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
-              aeonMultiFacility <- aeonMultiFacilityDecoder(c)
+              aeonMultiFacility <- c.downField("aeonMultiFacility").as[Option[AeonMultiFacility]]
               jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
             } yield Classical(tpe,
@@ -504,7 +500,7 @@ object ProposalType:
               minPercentTime      <- c.downField("minPercentTime").as[IntPercent]
               minPercentTotalTime <- c.downField("minPercentTotalTime").as[IntPercent]
               totalTime           <- c.downField("totalTime").as[TimeSpan]
-              aeonMultiFacility   <- aeonMultiFacilityDecoder(c)
+              aeonMultiFacility   <- c.downField("aeonMultiFacility").as[Option[AeonMultiFacility]]
               jwstSynergy         <- c.downField("jwstSynergy").as[Boolean]
             } yield LargeProgram(tpe,
                                  ceiling,
@@ -522,7 +518,7 @@ object ProposalType:
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
               exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
-              aeonMultiFacility <- aeonMultiFacilityDecoder(c)
+              aeonMultiFacility <- c.downField("aeonMultiFacility").as[Option[AeonMultiFacility]]
               jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
               considerForBand3  <- c.downField("considerForBand3").as[ConsiderForBand3]

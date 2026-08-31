@@ -6,12 +6,17 @@ package explore.model
 import cats.Order.given
 import cats.syntax.all.*
 import explore.model.arb.ArbObservation.given
+import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.arb.ArbObservationWorkflow.given
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.arb.ArbExecutionDigest.given
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.arb.ArbCalculatedValue.given
+import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.arb.ArbBasicConfiguration.given
 import munit.Location
 import munit.ScalaCheckSuite
 import org.scalacheck.Prop.*
@@ -84,3 +89,38 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
         val ps = emptyPS.upsertObs(obs).updateCalculatedValues(obs.id, workflow, digest)
         assertEquals(psCalcValues(ps, obs.id), (workflow, digest))
         assertSameExceptCalculatedValues(ps, obs)
+
+  private def obsWith(
+    obs:           Observation,
+    config:        Option[BasicConfiguration],
+    state:         ObservationWorkflowState,
+    isCalibration: Boolean
+  ): Observation =
+    Observation.basicConfiguration
+      .replace(config)
+      .andThen(Observation.workflowState.replace(state))
+      .andThen(
+        Observation.calibrationRole.replace(Option.when(isCalibration)(CalibrationRole.Twilight))
+      )(obs)
+
+  test("aeonEligibleInstruments: a defined-or-higher observation contributes its instrument"):
+    forAll: (obs: Observation, config: BasicConfiguration, state: ObservationWorkflowState) =>
+      val ps       = emptyPS.upsertObs(obsWith(obs, config.some, state, isCalibration = false))
+      val expected =
+        if state >= ObservationWorkflowState.Defined then
+          (config.instrument, config.siteFor).tupled.toList.toMap
+        else Map.empty
+      assertEquals(ps.aeonEligibleInstruments, expected)
+
+  test("aeonEligibleInstruments: calibrations never contribute"):
+    forAll: (obs: Observation, config: BasicConfiguration) =>
+      val ps = emptyPS.upsertObs(
+        obsWith(obs, config.some, ObservationWorkflowState.Ready, isCalibration = true)
+      )
+      assert(ps.aeonEligibleInstruments.isEmpty)
+
+  test("aeonEligibleInstruments: an observation with no configuration contributes nothing"):
+    forAll: (obs: Observation) =>
+      val ps =
+        emptyPS.upsertObs(obsWith(obs, none, ObservationWorkflowState.Ready, isCalibration = false))
+      assert(ps.aeonEligibleInstruments.isEmpty)
