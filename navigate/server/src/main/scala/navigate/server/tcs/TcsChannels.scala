@@ -876,11 +876,11 @@ object TcsChannels {
       service: EpicsService[F],
       top:     TcsTop
     ): Resource[F, EnclosureStateChannels[F]] = for {
-      dmod  <- service.getChannel[String](top.value, "carousel.VALA")
-      shmod <- service.getChannel[String](top.value, "carousel.VALB")
-      shap  <- service.getChannel[String](top.value, "carousel.VALC")
-      dmen  <- service.getChannel[Int](top.value, "carousel.VALD")
-      shen  <- service.getChannel[Int](top.value, "carousel.VALE")
+      dmod  <- service.getChannel[String](top.value, "carouselMode.VALA")
+      shmod <- service.getChannel[String](top.value, "carouselMode.VALB")
+      shap  <- service.getChannel[String](top.value, "carouselMode.VALC")
+      dmen  <- service.getChannel[Int](top.value, "carouselMode.VALD")
+      shen  <- service.getChannel[Int](top.value, "carouselMode.VALE")
     } yield EnclosureStateChannels(
       dmod,
       shmod,

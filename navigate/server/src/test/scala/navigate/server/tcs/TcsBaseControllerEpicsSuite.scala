@@ -188,10 +188,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   test("Enclosure commands") {
-    val testHeight   = 123.456
+    val testHeight   = 12345.6
     val testVentEast = 0.3
     val testVentWest = 0.2
-    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeters(testHeight))
+    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMillimeters(testHeight))
 
     for {
       (st, ctr) <- createController()
@@ -1323,7 +1323,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                          TestChannel.State.of(testTelState.enclosure.shutters.map(_.tag).getOrElse("")),
                          TestChannel.State.of(
                            testTelState.enclosure.shutters
-                             .collect { case ShutterMode.Tracking(v) => v.toMeters.value.toDouble.toString }
+                             .collect { case ShutterMode.Tracking(v) =>
+                               v.toMillimeters.value.toDouble.toString
+                             }
                              .getOrElse("")
                          ),
                          TestChannel.State.of(testTelState.enclosure.dome.isDefined.fold(1, 0)),

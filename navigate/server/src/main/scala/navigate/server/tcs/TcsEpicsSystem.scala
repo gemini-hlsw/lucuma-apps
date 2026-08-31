@@ -707,7 +707,7 @@ object TcsEpicsSystem {
         )
 
         override def setSlitHeight(height: Distance): TcsCommands[F] = addParam(
-          tcsEpics.carouselModeCmd.setParam3(height.toMeters.value.toDouble)
+          tcsEpics.carouselModeCmd.setParam3(height.toMillimeters.value.toDouble)
         )
 
         override def setDomeEnable(enable: Boolean): TcsCommands[F] = addParam(
@@ -1946,7 +1946,7 @@ object TcsEpicsSystem {
         .map(
           _.map(
             _.flatMap(
-              _.toDoubleOption.map(v => Distance.fromBigDecimalMeters(BigDecimal(v)))
+              _.toDoubleOption.map(v => Distance.fromBigDecimalMillimeters(BigDecimal(v)))
             )
           )
         )
@@ -2010,7 +2010,7 @@ object TcsEpicsSystem {
         .map(
           _.map(
             _.flatMap(
-              _.toDoubleOption.map(v => Distance.fromBigDecimalMeters(BigDecimal(v)))
+              _.toDoubleOption.map(v => Distance.fromBigDecimalMillimeters(BigDecimal(v)))
             )
           )
         )
