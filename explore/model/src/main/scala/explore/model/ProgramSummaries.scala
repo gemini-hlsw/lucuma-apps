@@ -99,7 +99,7 @@ case class ProgramSummaries(
   lazy val hasDefinedObservations: Boolean =
     observations.values.exists(_.workflow.value.state === ObservationWorkflowState.Defined)
 
-  // Instruments an AEON/multi-facility proposal may declare required instuments.
+  // Instruments an AEON/multi-facility proposal may declare required instruments.
   lazy val aeonEligibleInstruments: Map[Instrument, Site] =
     Map.from:
       observations.values
