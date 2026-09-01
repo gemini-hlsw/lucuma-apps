@@ -24,8 +24,10 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
+import lucuma.core.model.TelluricType
 import lucuma.core.syntax.all.*
 import lucuma.core.util.CalculatedValue
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
@@ -36,6 +38,7 @@ import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
+import lucuma.schemas.model.ObservingMode
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -51,6 +54,7 @@ final case class ObsBadge(
   setStateCB:            Option[Observation.Id => ObservationWorkflowState => Callback] = none,
   setSubtitleCB:         Option[Option[NonEmptyString] => Callback] = none,
   setScienceBandCB:      Option[ScienceBand => Callback] = none,
+  setTelluricTypeCB:     Option[TelluricType => Callback] = none,
   deleteCB:              Callback,
   cloneCB:               Option[Callback] = none,
   allocatedScienceBands: SortedSet[ScienceBand],
@@ -67,6 +71,12 @@ final case class ObsBadge(
   val scienceBandIsInvalid                             = obs.scienceBand.exists(b => !allocatedScienceBands.contains(b))
   val showScienceBand: Boolean                         =
     obs.calibrationRole.isEmpty && allocatedScienceBands.nonEmpty
+
+  val telluricType =
+    Option
+      .unless(obs.isCalibration)(obs.observingMode.toOption.flatten)
+      .flatten
+      .flatMap(ObservingMode.telluricType.getOption)
 
 object ObsBadge:
   private type Props = ObsBadge
@@ -85,6 +95,34 @@ object ObsBadge:
     val ObservationsTab: Layout = Layout(true, true, Section.Detail, true)
     val TargetsTab: Layout      = Layout(false, false, Section.Header, true)
     val ConstraintsTab: Layout  = Layout(true, false, Section.Detail, false)
+
+  // Dropdown of TelluricType
+  private enum TelluricSelection(val tag: String, val label: String) derives Eq:
+    case Hot        extends TelluricSelection("hot", "Hot")
+    case A0V        extends TelluricSelection("a0v", "A0V")
+    case Solar      extends TelluricSelection("solar", "Solar")
+    case Manual     extends TelluricSelection("manual", "Manual")
+    case NoTelluric extends TelluricSelection("noTelluric", "None")
+
+  private object TelluricSelection:
+    given Enumerated[TelluricSelection] =
+      Enumerated.from(Hot, A0V, Solar, Manual, NoTelluric).withTag(_.tag)
+
+    given Display[TelluricSelection] = Display.byShortName(_.label)
+
+    def fromTelluricType(tt: TelluricType): TelluricSelection = tt match
+      case TelluricType.Hot        => Hot
+      case TelluricType.A0V        => A0V
+      case TelluricType.Solar      => Solar
+      case TelluricType.Manual(_)  => Manual
+      case TelluricType.NoTelluric => NoTelluric
+
+    def toTelluricType(selection: TelluricSelection): Option[TelluricType] = selection match
+      case Hot        => TelluricType.Hot.some
+      case A0V        => TelluricType.A0V.some
+      case Solar      => TelluricType.Solar.some
+      case NoTelluric => TelluricType.NoTelluric.some
+      case Manual     => none
 
   // TODO Make this a component similar to the one in the docs.
   private def renderEnumProgress[A: Enumerated](value: A): VdomNode = {
@@ -242,6 +280,36 @@ object ObsBadge:
           )
           .getOrElse(EmptyVdom)
 
+      val telluricDropdown: Option[VdomNode] =
+        (props.telluricType, props.setTelluricTypeCB).mapN: (telluricType, setCB) =>
+          val current = TelluricSelection.fromTelluricType(telluricType)
+          <.span(ExploreStyles.ObsStateSelectWrapper)(
+            EnumDropdownView(
+              id = NonEmptyString.unsafeFrom(s"obs-telluric-${obs.id}"),
+              value = View[TelluricSelection](
+                current,
+                (f, cb) =>
+                  val newValue = f(current)
+                  TelluricSelection
+                    .toTelluricType(newValue)
+                    .map(setCB)
+                    .getOrEmpty >> cb(current, newValue)
+              ),
+              exclude = Option
+                // TODO: Don't support manual mode just yet
+                .unless(current === TelluricSelection.Manual)(TelluricSelection.Manual)
+                .toSet,
+              disabledItems = Set(TelluricSelection.Manual),
+              size = PlSize.Mini,
+              clazz = ExploreStyles.ObsStateSelect,
+              panelClass = ExploreStyles.ObsStateSelectPanel,
+              disabled = props.isDisabledExecuted
+            )
+          )(
+            // don't select the observation when changing the telluric type
+            ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
+          )
+
       React.Fragment(
         <.div(
           <.div(ExploreStyles.ObsBadge, ExploreStyles.ObsBadgeSelected.when(props.selected))(
@@ -284,6 +352,7 @@ object ObsBadge:
                     ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
                   ).withOptionalTooltip(obs.workflow.staleTooltip)
                 ),
+                telluricDropdown,
                 props.executionTime.value.map(t =>
                   TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
                     .withMods(props.executionTime.staleClass)

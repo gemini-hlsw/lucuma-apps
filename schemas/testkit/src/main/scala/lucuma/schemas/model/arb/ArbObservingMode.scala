@@ -24,7 +24,9 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.TelluricType
 import lucuma.core.model.arb.ArbExposureTimeMode
+import lucuma.core.model.arb.ArbTelluricType
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
 import lucuma.core.model.sequence.arb.ArbTelescopeConfig
@@ -71,6 +73,7 @@ trait ArbObservingMode {
   import ArbOffset.given
   import ArbSlitTelescopeConfigs.given
   import ArbTelescopeConfig.given
+  import ArbTelluricType.given
   import ArbTimeSpan.given
   import ArbWavelength.given
   import ArbWavelengthDither.given
@@ -978,6 +981,7 @@ trait ArbObservingMode {
         defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
         explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode         <- arbitrary[ExposureTimeMode]
+        telluricType             <- arbitrary[TelluricType]
         acquisition              <- arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition]
       } yield ObservingMode.Flamingos2LongSlit(
         initialDisperser,
@@ -995,6 +999,7 @@ trait ArbObservingMode {
         defaultTelescopeConfigs,
         explicitTelescopeConfigs,
         exposureTimeMode,
+        telluricType,
         acquisition
       )
     )
@@ -1095,6 +1100,7 @@ trait ArbObservingMode {
         defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
         explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode         <- arbitrary[ExposureTimeMode]
+        telluricType             <- arbitrary[TelluricType]
         acquisition              <- arbitrary[ObservingMode.Flamingos2Mos.Acquisition]
       } yield ObservingMode.Flamingos2Mos(
         initialDisperser,
@@ -1112,6 +1118,7 @@ trait ArbObservingMode {
         defaultTelescopeConfigs,
         explicitTelescopeConfigs,
         exposureTimeMode,
+        telluricType,
         acquisition
       )
     )
@@ -1393,11 +1400,13 @@ trait ArbObservingMode {
       svc                      <- arbitrary[Option[ObservingMode.Igrins2LongSlit.Svc]]
       defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
       explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
+      telluricType             <- arbitrary[TelluricType]
     } yield ObservingMode.Igrins2LongSlit(
       exposureTimeMode,
       svc,
       defaultTelescopeConfigs,
-      explicitTelescopeConfigs
+      explicitTelescopeConfigs,
+      telluricType
     )
   )
 
@@ -1503,6 +1512,7 @@ trait ArbObservingMode {
         defaultWellDepth          <- arbitrary[GnirsWellDepth]
         explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
         explicitFocusMotorSteps   <- arbitrary[Option[GnirsFocusMotorStepsValue]]
+        telluricType              <- arbitrary[TelluricType]
         acquisition               <- arbitrary[ObservingMode.GnirsSpectroscopyAcquisition]
       yield ObservingMode.GnirsLongSlit(
         initialGrating,
@@ -1525,6 +1535,7 @@ trait ArbObservingMode {
         defaultWellDepth,
         explicitWellDepth,
         explicitFocusMotorSteps,
+        telluricType,
         acquisition
       )
 
@@ -1587,6 +1598,7 @@ trait ArbObservingMode {
         defaultWellDepth          <- arbitrary[GnirsWellDepth]
         explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
         explicitFocusMotorSteps   <- arbitrary[Option[GnirsFocusMotorStepsValue]]
+        telluricType              <- arbitrary[TelluricType]
         acquisition               <- arbitrary[ObservingMode.GnirsSpectroscopyAcquisition]
       yield ObservingMode.GnirsIfu(
         initialGrating,
@@ -1608,6 +1620,7 @@ trait ArbObservingMode {
         defaultWellDepth,
         explicitWellDepth,
         explicitFocusMotorSteps,
+        telluricType,
         acquisition
       )
 
