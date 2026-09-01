@@ -11,7 +11,6 @@ import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.EditableLabel
 import explore.Icons
-import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Observation
@@ -35,11 +34,9 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.LayeredIcon
 import lucuma.react.fa.TextLayer
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
-import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
@@ -98,13 +95,13 @@ object ObsBadge:
     val TargetsTab: Layout      = Layout(false, false, Section.Header, true)
     val ConstraintsTab: Layout  = Layout(true, false, Section.Detail, false)
 
-  // Dropdown of TelluricType
+  // Dropdown of TelluricType. Labels are kept short so the selector stays narrow.
   private enum TelluricSelection(val tag: String, val label: String) derives Eq:
     case Hot        extends TelluricSelection("hot", "Hot")
     case A0V        extends TelluricSelection("a0v", "A0V")
-    case Solar      extends TelluricSelection("solar", "Solar")
-    case Manual     extends TelluricSelection("manual", "Manual")
-    case NoTelluric extends TelluricSelection("noTelluric", "None")
+    case Solar      extends TelluricSelection("solar", "G2V")
+    case Manual     extends TelluricSelection("manual", "Man")
+    case NoTelluric extends TelluricSelection("noTelluric", "❌")
 
   private object TelluricSelection:
     given Enumerated[TelluricSelection] =
@@ -285,7 +282,7 @@ object ObsBadge:
       val telluricDropdown: Option[VdomNode] =
         (props.telluricType, props.setTelluricTypeCB).mapN: (telluricType, setCB) =>
           val current = TelluricSelection.fromTelluricType(telluricType)
-          <.span(ExploreStyles.ObsStateSelectWrapper)(
+          <.span(ExploreStyles.ObsBadgeTelluricSelectWrapper)(
             EnumDropdownView(
               id = NonEmptyString.unsafeFrom(s"obs-telluric-${obs.id}"),
               value = View[TelluricSelection](
@@ -303,7 +300,7 @@ object ObsBadge:
                 .toSet,
               disabledItems = Set(TelluricSelection.Manual),
               size = PlSize.Mini,
-              clazz = ExploreStyles.ObsStateSelect,
+              clazz = ExploreStyles.ObsBadgeTelluricSelect,
               panelClass = ExploreStyles.ObsStateSelectPanel,
               disabled = props.isDisabledExecuted
             )
@@ -312,9 +309,19 @@ object ObsBadge:
             ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
           )
 
-      val telluricHelpIcon: Option[VdomNode] =
-        (props.telluricType, props.setTelluricTypeCB).mapN: (_, _) =>
-          HelpIcon("configuration/telluric-type.md".refined)
+      // With no telluric the ODB generates no telluric observation, so the selector
+      // gets its own row to allow turning tellurics back on.
+      val hasTelluricObs: Boolean =
+        props.associatedObss.exists(_.calibrationRole.contains(CalibrationRole.Telluric))
+
+      val telluricOnlyRow: Option[VdomNode] =
+        telluricDropdown
+          .filterNot(_ => hasTelluricObs)
+          .map: dropdown =>
+            <.div(ExploreStyles.ObsBadgeAssociatedObs, ExploreStyles.ObsBadgeTelluricOnlyRow)(
+              <.span("Telluric"),
+              dropdown
+            )
 
       React.Fragment(
         <.div(
@@ -362,11 +369,7 @@ object ObsBadge:
                   TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
                     .withMods(props.executionTime.staleClass)
                 ),
-                validationIcon,
-                // Placed last so the grid auto-places them on the second row,
-                // with the dropdown sharing the state dropdown's column.
-                telluricDropdown,
-                telluricHelpIcon
+                validationIcon
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
                 props.associatedObss
@@ -374,6 +377,9 @@ object ObsBadge:
                     val selected: Boolean = props.focusedObs.contains_(childObs.id)
 
                     val currentState: ObservationWorkflowState = childObs.workflow.value.state
+
+                    val isTelluric: Boolean =
+                      childObs.calibrationRole.contains(CalibrationRole.Telluric)
 
                     Button(
                       clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
@@ -383,16 +389,10 @@ object ObsBadge:
                       ),
                       severity = Button.Severity.Secondary
                     ).withMods(
-                      // TODO: Enable when the odb really supports changing the state.
-                      Checkbox(
-                        checked = currentState === ObservationWorkflowState.Ready,
-                        variant = Checkbox.Variant.Filled,
-                        clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
-                        disabled = true
-                      )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
                       stateTag(currentState),
                       <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
-                        <.span(badgeTitle(childObs)),
+                        <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, badgeTitle(childObs)),
+                        telluricDropdown.when(isTelluric),
                         <.span(
                           obsIdentifier(childObs),
                           childObs.execution.digest.programTimeEstimate.value
@@ -400,8 +400,9 @@ object ObsBadge:
                         )
                       )
                     ).compact
-                  .toTagMod
-              ).when(props.associatedObss.nonEmpty)
+                  .toTagMod,
+                telluricOnlyRow
+              ).when(props.associatedObss.nonEmpty || telluricOnlyRow.isDefined)
             )
           )
         ),
