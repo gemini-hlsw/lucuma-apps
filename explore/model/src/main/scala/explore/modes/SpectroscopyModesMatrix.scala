@@ -464,7 +464,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rFpu === fpu.some
             case _ => false
-      case ObservingMode.GmosNorthIfu(grating = grating, filter = filter, fpu = fpu)             =>
+      case ObservingMode.GmosNorthIfu(grating = grating, filter = filter, fpu = fpu)              =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosNorthSpectroscopy(
@@ -474,7 +474,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === grating && rFilter === filter && rFpu === fpu.fpu.some
             case _ => false
-      case ObservingMode.GmosSouthIfu(grating = grating, filter = filter, fpu = fpu)             =>
+      case ObservingMode.GmosSouthIfu(grating = grating, filter = filter, fpu = fpu)              =>
         matrix.find: row =>
           row.instrumentConfig match
             case ItcInstrumentConfig.GmosSouthSpectroscopy(
