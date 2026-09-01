@@ -41,6 +41,7 @@ import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProgramUserRole
+import lucuma.core.enums.ProposalSubmissionError
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.Site
 import lucuma.core.model.Program
@@ -70,7 +71,7 @@ case class ProposalEditor(
   proposal:           UndoSetter[Proposal],
   users:              View[List[ProgramUser]],
   attachments:        View[AttachmentList],
-  errors:             Option[List[String]],
+  errors:             Option[List[ProposalSubmissionError]],
   authToken:          Option[NonEmptyString],
   cfps:               List[CallForProposal],
   layout:             LayoutsMap,

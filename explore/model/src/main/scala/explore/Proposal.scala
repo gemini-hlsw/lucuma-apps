@@ -10,10 +10,14 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.ProposalType.*
 import explore.model.syntax.all.*
 import io.circe.Decoder
+import lucuma.core.data.EmailAddress
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.ConsiderForBand3
+import lucuma.core.enums.Observatory
 import lucuma.core.enums.Partner
 import lucuma.core.enums.ProgramUserRole
+import lucuma.core.enums.ProposalSubmissionError
+import lucuma.core.enums.ProposalSubmissionError.*
 import lucuma.core.enums.TacCategory
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.ProposalReference
@@ -40,67 +44,84 @@ case class Proposal(
     private def hasUser(partner: Partner): Boolean =
       users.exists(_.partnerLink.geminiPartnerOption.exists(_ === partner))
 
-  private def cfPError(users: List[ProgramUser]): List[String] =
-    call.fold(List("Call for Proposal is required."))(cfp =>
+  private def cfPError(users: List[ProgramUser]): List[ProposalSubmissionError] =
+    call.fold(List(MissingCfp))(cfp =>
       val piAffiliation = users.pi.fold(PartnerLink.HasUnspecifiedPartner)(_.partnerLink)
-      val partnerError  = piAffiliation match
-        case PartnerLink.HasGeminiPartner(partner)   =>
-          Option.when(!cfp.partners.exists(_.partner === partner)) {
-            "PI partner not valid for this Call for Proposal."
-          }
-        case PartnerLink.HasNonPartner               =>
-          Option.when(cfp.gemini.exists(!_.allowsNonPartnerPi)) {
-            "Non-partner PI is not allowed for this Call for Proposal."
-          }
-        // The whole request is assigned to the exchange partner community instead
-        // of being apportioned across Gemini partners, so only the community itself
-        // has to be one the call offers.
-        case PartnerLink.HasExchangePartner(partner) =>
-          Option.when(
-            !cfp.gemini.exists(_.exchangePartners.exists(_.exchangePartner === partner))
-          ) {
-            "PI exchange partner not valid for this Call for Proposal."
-          }
-        // This gets checked in usersAndTimesErrors
-        case PartnerLink.HasUnspecifiedPartner       => none
+      // Gemini partners, non-partner PIs and exchange communities are all properties
+      // of a Gemini call, so none of this applies to a Keck or Subaru one.
+      val partnerError  = if cfp.gemini.isEmpty then none
+      else
+        piAffiliation match
+          case PartnerLink.HasGeminiPartner(partner)   =>
+            Option.when(!cfp.partners.exists(_.partner === partner))(PiPartnerNotInCall)
+          case PartnerLink.HasNonPartner               =>
+            Option.when(cfp.gemini.exists(!_.allowsNonPartnerPi))(NonPartnerPiNotAllowed)
+          // The whole request is assigned to the exchange partner community instead
+          // of being apportioned across Gemini partners, so only the community itself
+          // has to be one the call offers.
+          case PartnerLink.HasExchangePartner(partner) =>
+            Option.when(
+              !cfp.gemini.exists(_.exchangePartners.exists(_.exchangePartner === partner))
+            )(ExchangePartnerNotInCall)
+          // This gets checked in usersAndTimesErrors
+          case PartnerLink.HasUnspecifiedPartner       => none
+      // A Gemini proposal must say which kind it is; an external (Keck or Subaru)
+      // one takes its type from the call.
+      val typeError     = Option.when(
+        cfp.observatory === Observatory.Gemini && proposalType.isEmpty
+      )(MissingProposalType)
       val band3Error    = Option.when(
         proposalType.exists:
           case GeminiProposalType.Queue(considerForBand3 = considerForBand3) =>
             considerForBand3 === ConsiderForBand3.Unset
           case _                                                             =>
             false
-      )("Band 3 consideration must be specified before the proposal can be submitted.")
-      List(partnerError, band3Error).flattenOption
+      )(MissingBand3Consideration)
+      List(partnerError, typeError, band3Error).flattenOption
     )
 
   // if this is None, either a CfP has not been selected, they are not required for the proposal
   // type, or the time is requested on behalf of an exchange partner community instead
-  private lazy val partnerSplits: Option[List[PartnerSplit]] =
+  //
+  // The exchange partner is derived from the PI's affiliation, so a co-investigator's
+  // exchange link never reaches this and leaves the splits requirement in place.  The
+  // ODB enforces that same correspondence explicitly, because the API can set the
+  // proposal's exchange partner and the PI's affiliation independently.
+  private lazy val geminiPartnerSplits: Option[List[PartnerSplit]] =
     proposalType
       .flatMap(ProposalType.geminiProposalType.getOption)
       .filter(GeminiProposalType.exchangePartner.getOption(_).flatten.isEmpty)
       .flatMap(GeminiProposalType.partnerSplits.getOption)
 
-  private def usersAndTimesErrors(users: List[ProgramUser]): List[String] =
-    val partnerError       = Option.unless(users.forall(_.partnerLink.isSet)) {
-      "Partnership of every investigator must be specified."
-    }
+  // An external (Keck or Subaru) proposal apportions its time across Gemini
+  // partners, so its splits have to add up as well.
+  private lazy val externalPartnerSplits: Option[List[PartnerSplit]] =
+    proposalType.flatMap:
+      case k: KeckProposalType   => k.partnerSplits.some
+      case s: SubaruProposalType => s.partnerSplits.some
+      case _                     => none
+
+  private lazy val partnerSplits: Option[List[PartnerSplit]] =
+    geminiPartnerSplits.orElse(externalPartnerSplits)
+
+  private def usersAndTimesErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
+    val partnerError       =
+      Option.unless(users.forall(_.partnerLink.isSet))(UnspecifiedInvestigatorPartner)
     val partnerSplitsError = partnerSplits.flatMap(splits =>
-      Option.when(splits.foldLeft(0)(_ + _.percent.value) != 100) {
-        "Partner time splits must be specified and sum to 100%."
-      }
+      Option.when(splits.foldLeft(0)(_ + _.percent.value) != 100)(InvalidPartnerSplits)
     )
-    val piEmailError       = Option.unless(users.pi.exists(_.email.isDefined)) {
-      "PI email is required."
-    }
-    val notInvitedError    = Option.when(users.exists(u => !u.isConfirmed && !u.successfullyInvited)) {
-      "All investigators must be invited."
-    }
+    val piEmail            = users.pi.flatMap(_.email)
+    val piEmailError       =
+      piEmail.fold(MissingPiEmail.some)(e =>
+        Option.unless(EmailAddress.from(e).isRight)(InvalidPiEmail)
+      )
+    val notInvitedError    =
+      Option
+        .when(users.exists(u => !u.isConfirmed && !u.successfullyInvited))(UninvitedInvestigator)
 
     // only validate this if the splits are valid and all partners have been affiliated.
-    val affiliationMismatches: List[String] = (partnerError, partnerSplitsError).tupled match
-      case Some(_) => List.empty
-      case None    =>
+    val affiliationMismatches: List[ProposalSubmissionError] =
+      if partnerError.isEmpty && partnerSplitsError.isEmpty then
         // Make sure every partner split requested has a matching user.
         // Only verify this if splits and users are all valid.
         partnerSplits
@@ -109,9 +130,9 @@ case class Proposal(
               .filter(_.percent.value > 0)
               .map(ps =>
                 if (ps.partner === Partner.UH && !users.hasPi(Partner.UH))
-                  "Requests for time from UH must have a UH PI.".some
+                  UhTimeWithoutUhPi.some
                 else if (ps.partner =!= Partner.US && !users.hasUser(ps.partner))
-                  "Non-US partner time requests must have matching collaborators.".some
+                  UnmatchedPartnerTime.some
                 else none
               )
               .flattenOption
@@ -119,6 +140,7 @@ case class Proposal(
           )
           .toList
           .flatten
+      else List.empty
 
     List(
       partnerError.toList,
@@ -135,39 +157,53 @@ case class Proposal(
 
   private lazy val isFastTurnaround: Boolean = fastTurnaround.isDefined
 
-  private def attachmentErrors(attachments: AttachmentList): List[String] =
+  private def attachmentErrors(attachments: AttachmentList): List[ProposalSubmissionError] =
     // only validate if there is a CfP
     call.foldMap(_ =>
       val science = Option.unless(attachments.hasForType(AttachmentType.Science))(
-        "Science attachment is required."
+        MissingScienceAttachment
       )
       val team    = Option.unless(isFastTurnaround || attachments.hasForType(AttachmentType.Team))(
-        "Team attachment is required."
+        MissingTeamAttachment
       )
       List(science, team).flattenOption
     )
 
-  private def fastTurnaroundErrors(users: List[ProgramUser]): List[String] =
+  private def fastTurnaroundErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
     fastTurnaround.foldMap(ft =>
       // explore defaults reviewer to PI, but it can be unset via the API and the API
       // says it will default to the PI if null.
       val reviewer = ft.reviewerId.flatMap(r => users.find(_.id === r)).orElse(users.pi)
       if (reviewer.exists(_.hasPhd) || ft.mentorId.isDefined) List.empty
-      else List("Fast Turnaround mentor is required for non-PhD reviewer.")
+      else List(MissingFtMentor)
     )
 
   private def obsErrors(
     hasDefinedObservations:   Boolean,
     hasUndefinedObservations: Boolean
-  ): List[String] =
+  ): List[ProposalSubmissionError] =
     List(
-      Option.unless(hasDefinedObservations)(
-        "At least one observation must be defined."
-      ),
-      Option.when(hasUndefinedObservations)(
-        "There are undefined observations. Define them or mark them as inactive."
-      )
+      Option.unless(hasDefinedObservations)(NoDefinedObservations),
+      Option.when(hasUndefinedObservations)(UndefinedObservations)
     ).flattenOption
+
+  /**
+   * Whether a deadline could be worked out for this PI at all. Not being able to is a property of
+   * the proposal, so it belongs here; whether a deadline that does resolve has *passed* depends on
+   * the current time, and is reported by the submission bar, which already holds a clock to render
+   * its countdown. Validating it here would tie the whole tab's re-rendering to that clock.
+   *
+   * Three ODB rules therefore have no counterpart here: `PastDeadline` as just described, the
+   * semester requirement, which `CallForProposal` always carries, and the rejection of a proposal
+   * holding both an exchange partner and partner splits, which `partnerSplits` makes
+   * unrepresentable.
+   */
+  private def deadlineErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
+    call.foldMap(_ =>
+      deadline(users.pi.map(_.partnerLink)) match
+        case None | Some(Left(_)) => List(MissingDeadline)
+        case Some(Right(_))       => Nil
+    )
 
   def errors(
     title:                    Option[NonEmptyString], // from program name
@@ -176,15 +212,16 @@ case class Proposal(
     attachments:              AttachmentList,
     hasDefinedObservations:   Boolean,
     hasUndefinedObservations: Boolean
-  ): List[String] = List(
-    title.fold("Title is required.".some)(_ => none).toList,
-    abstrakt.fold("Abstract is required.".some)(_ => none).toList,
-    Option.unless(category.isDefined)("Category is required.").toList,
+  ): List[ProposalSubmissionError] = List(
+    Option.when(title.isEmpty)(MissingTitle).toList,
+    Option.when(abstrakt.isEmpty)(MissingAbstract).toList,
+    Option.unless(category.isDefined)(MissingCategory).toList,
     cfPError(users),
     usersAndTimesErrors(users),
     fastTurnaroundErrors(users),
     attachmentErrors(attachments),
-    obsErrors(hasDefinedObservations, hasUndefinedObservations)
+    obsErrors(hasDefinedObservations, hasUndefinedObservations),
+    deadlineErrors(users)
   ).flatten
 
 object Proposal:
