@@ -27,6 +27,7 @@ import lucuma.core.math.BoundedInterval.*
 import lucuma.core.math.Declination
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
+import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.sequence.gmos.GmosCcdMode
@@ -171,14 +172,19 @@ case class SpectroscopyModeRow(
                       cw,
                       GmosCcdMode.Default.Longslit
                         .gmosNorth(profiles, fpu, grating, imageQuality.toImageQuality),
-                      DefaultRoi
+                      DefaultRoi,
+                      // The IFU carries the sampling the ITC integrates over (long slit leaves it
+                      // empty). The IFU default binning/roi already match the observation's, so
+                      // supplying the default analysis lets a reverted IFU config match this row.
+                      Option.when(fpu.fpuType === GmosFpuType.Ifu)(GmosIfuAnalysis.Default)
                     )
                     .some
                 ).some
               case i @ ItcInstrumentConfig
-                    .GmosSouthSpectroscopy(grating = grating,
-                                           fpu = Some(fpu),
-                                           modeOverrides = None
+                    .GmosSouthSpectroscopy(
+                      grating = grating,
+                      fpu = Some(fpu),
+                      modeOverrides = None
                     ) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
@@ -187,7 +193,10 @@ case class SpectroscopyModeRow(
                       GmosCcdMode.Default.Longslit
                         .gmosSouth(profiles, fpu, grating, imageQuality.toImageQuality),
                       DefaultRoi,
-                      none
+                      // The IFU carries the sampling the ITC integrates over (long slit leaves it
+                      // empty). The IFU default binning/roi already match the observation's, so
+                      // supplying the default analysis lets a reverted IFU config match this row.
+                      Option.when(fpu.fpuType === GmosFpuType.Ifu)(GmosIfuAnalysis.Default)
                     )
                     .some
                 ).some
