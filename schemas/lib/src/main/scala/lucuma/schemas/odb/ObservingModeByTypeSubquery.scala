@@ -15,7 +15,7 @@ import lucuma.schemas.model.ObservingMode
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
-    "($includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
+    "($includeGmosNorthIfu: Boolean!, $includeGmosSouthIfu: Boolean!, $includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
 
   override val subquery = gql"""
         {
@@ -149,6 +149,74 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             acquisition {
               defaultFilter
               explicitFilter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+          }
+          gmosNorthIfu @include(if: $$includeGmosNorthIfu) {
+            initialGrating
+            initialFilter
+            initialFpu
+            initialCentralWavelength $WavelengthSubquery
+            grating
+            filter
+            fpu
+            centralWavelength $WavelengthSubquery
+            defaultIfuAnalysis $GmosIfuAnalysisSubquery
+            explicitIfuAnalysis $GmosIfuAnalysisSubquery
+            defaultXBin
+            explicitXBin
+            defaultYBin
+            explicitYBin
+            defaultAmpReadMode
+            explicitAmpReadMode
+            defaultAmpGain
+            explicitAmpGain
+            defaultRoi
+            explicitRoi
+            defaultWavelengthDithers $WavelengthDitherSubquery
+            explicitWavelengthDithers $WavelengthDitherSubquery
+            defaultTelescopeConfigs $TelescopeConfigSubquery
+            explicitTelescopeConfigs $TelescopeConfigSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              defaultRoi
+              explicitRoi
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+          }
+          gmosSouthIfu @include(if: $$includeGmosSouthIfu) {
+            initialGrating
+            initialFilter
+            initialFpu
+            initialCentralWavelength $WavelengthSubquery
+            grating
+            filter
+            fpu
+            centralWavelength $WavelengthSubquery
+            defaultIfuAnalysis $GmosIfuAnalysisSubquery
+            explicitIfuAnalysis $GmosIfuAnalysisSubquery
+            defaultXBin
+            explicitXBin
+            defaultYBin
+            explicitYBin
+            defaultAmpReadMode
+            explicitAmpReadMode
+            defaultAmpGain
+            explicitAmpGain
+            defaultRoi
+            explicitRoi
+            defaultWavelengthDithers $WavelengthDitherSubquery
+            explicitWavelengthDithers $WavelengthDitherSubquery
+            defaultTelescopeConfigs $TelescopeConfigSubquery
+            explicitTelescopeConfigs $TelescopeConfigSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              defaultRoi
+              explicitRoi
               exposureTimeMode $ExposureTimeModeSubquery
             }
           }

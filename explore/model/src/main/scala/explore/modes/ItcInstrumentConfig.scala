@@ -102,6 +102,14 @@ object ItcInstrumentConfig:
     val hasFilter                        = filter.isDefined
     val mode                             = ScienceMode.Spectroscopy
 
+    // An IFU row is labeled with its aperture, since two of them differ only by which
+    // pseudo-slits are in the light path. Long slit and MOS keep the plain instrument name.
+    override def instrumentLabel: String =
+      fpu
+        .filter(_.fpuType === GmosFpuType.Ifu)
+        .fold(instrument.longName): f =>
+          s"${instrument.longName} ${f.shortName}"
+
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
 
@@ -126,6 +134,14 @@ object ItcInstrumentConfig:
     val site                             = Site.GS
     val hasFilter                        = filter.isDefined
     val mode                             = ScienceMode.Spectroscopy
+
+    // An IFU row is labeled with its aperture, since two of them differ only by which
+    // pseudo-slits are in the light path.  Long slit and MOS keep the plain instrument name.
+    override def instrumentLabel: String =
+      fpu
+        .filter(_.fpuType === GmosFpuType.Ifu)
+        .fold(instrument.longName): f =>
+          s"${instrument.longName} ${f.shortName}"
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)

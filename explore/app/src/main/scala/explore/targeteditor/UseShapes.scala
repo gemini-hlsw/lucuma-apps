@@ -179,7 +179,7 @@ def usePatrolFieldShapes(
           case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos           =>
             gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.GmosNorthIfu | ObservingModeType.GmosSouthIfu           =>
-            sys.error("GMOS IFU visualization is not implemented")
+            gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.Igrins2LongSlit                                         =>
             pwfs.patrolField.patrolField.some
           case ObservingModeType.GhostIfu                                                =>
@@ -413,7 +413,27 @@ def useVisualizationShapes(
                .withMaskShapes
             ).some
           case ObservingModeType.GmosNorthIfu | ObservingModeType.GmosSouthIfu           =>
-            sys.error("GMOS IFU visualization is not implemented")
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                VisualizationStyles.GmosCcdVisible
+
+            (probeVisibilityCss,
+             GmosGeometry
+               .gmosGeometry(
+                 baseCoords,
+                 blindOffset,
+                 vizConf.flatMap(_.guidedSciOffsets),
+                 vizConf.flatMap(_.guidedAcqOffsets),
+                 vizConf.map(_.posAngle),
+                 vizConf.map(_.configuration),
+                 PortDisposition.Side,
+                 vizConf.flatMap(_.trackType),
+                 selectedGS,
+                 candidatesVisibilityCss
+               )
+            ).some
           case ObservingModeType.Igrins2LongSlit                                         =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>

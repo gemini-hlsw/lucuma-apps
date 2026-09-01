@@ -484,6 +484,8 @@ object ObsTabTiles:
                   Some(_: BasicConfiguration.GmosSouthLongSlit) |
                   Some(_: BasicConfiguration.GmosNorthMos) |
                   Some(_: BasicConfiguration.GmosSouthMos) |
+                  Some(_: BasicConfiguration.GmosNorthIfu) |
+                  Some(_: BasicConfiguration.GmosSouthIfu) |
                   Some(_: BasicConfiguration.Flamingos2LongSlit) |
                   Some(_: BasicConfiguration.Flamingos2Mos) |
                   Some(_: BasicConfiguration.Igrins2LongSlit.type) |

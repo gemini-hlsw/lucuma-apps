@@ -566,6 +566,63 @@ extension (o: ObservingMode.GmosNorthMos)
     acquisition = o.acquisition.toInput.assign
   )
 
+extension (a: GmosIfuAnalysis)
+  def toInput: GmosIfuAnalysisInput = a match
+    case GmosIfuAnalysis.Sum(radius)    =>
+      GmosIfuAnalysisInput.SumRadius(radius.toInput)
+    case GmosIfuAnalysis.Single(offset) =>
+      GmosIfuAnalysisInput.SingleOffset(offset.toInput)
+
+extension (a: ObservingMode.GmosNorthIfu.Acquisition)
+  def toInput: GmosNorthIfuAcquisitionInput = GmosNorthIfuAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    explicitRoi = a.explicitRoi.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
+
+extension (o: ObservingMode.GmosNorthIfu)
+  def toInput: GmosNorthIfuInput = GmosNorthIfuInput(
+    grating = o.grating.assign,
+    filter = o.filter.orUnassign,
+    fpu = o.fpu.assign,
+    centralWavelength = o.centralWavelength.value.toInput.assign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    explicitIfuAnalysis = o.explicitIfuAnalysis.map(_.toInput).orUnassign,
+    explicitXBin = o.explicitXBin.map(_.value).orUnassign,
+    explicitYBin = o.explicitYBin.map(_.value).orUnassign,
+    explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
+    explicitAmpGain = o.explicitAmpGain.orUnassign,
+    explicitRoi = o.explicitRoi.orUnassign,
+    explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toList.map(_.toInput)).orUnassign,
+    acquisition = o.acquisition.toInput.assign
+  )
+
+extension (a: ObservingMode.GmosSouthIfu.Acquisition)
+  def toInput: GmosSouthIfuAcquisitionInput = GmosSouthIfuAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    explicitRoi = a.explicitRoi.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
+
+extension (o: ObservingMode.GmosSouthIfu)
+  def toInput: GmosSouthIfuInput = GmosSouthIfuInput(
+    grating = o.grating.assign,
+    filter = o.filter.orUnassign,
+    fpu = o.fpu.assign,
+    centralWavelength = o.centralWavelength.value.toInput.assign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    explicitIfuAnalysis = o.explicitIfuAnalysis.map(_.toInput).orUnassign,
+    explicitXBin = o.explicitXBin.map(_.value).orUnassign,
+    explicitYBin = o.explicitYBin.map(_.value).orUnassign,
+    explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
+    explicitAmpGain = o.explicitAmpGain.orUnassign,
+    explicitRoi = o.explicitRoi.orUnassign,
+    explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toList.map(_.toInput)).orUnassign,
+    acquisition = o.acquisition.toInput.assign
+  )
+
 extension (a: ObservingMode.GmosSouthMos.Acquisition)
   def toInput: GmosSouthMosAcquisitionInput = GmosSouthMosAcquisitionInput(
     explicitFilter = a.explicitFilter.orUnassign,
@@ -877,6 +934,10 @@ extension (b: ObservingMode)
       ObservingModeInput.GmosNorthMos(o.toInput)
     case o: ObservingMode.GmosSouthMos       =>
       ObservingModeInput.GmosSouthMos(o.toInput)
+    case o: ObservingMode.GmosNorthIfu       =>
+      ObservingModeInput.GmosNorthIfu(o.toInput)
+    case o: ObservingMode.GmosSouthIfu       =>
+      ObservingModeInput.GmosSouthIfu(o.toInput)
     case o: ObservingMode.GmosNorthImaging   =>
       ObservingModeInput.GmosNorthImaging(o.toInput)
     case o: ObservingMode.GmosSouthImaging   =>
@@ -965,6 +1026,32 @@ extension (i: BasicConfiguration)
           grating = grating.assign,
           filter = filter.orUnassign,
           customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
+          centralWavelength = centralWavelength.value.toInput.assign
+        )
+    case BasicConfiguration.GmosNorthIfu(
+          grating = grating,
+          filter = filter,
+          fpu = fpu,
+          centralWavelength = centralWavelength
+        ) =>
+      ObservingModeInput.GmosNorthIfu:
+        GmosNorthIfuInput(
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          fpu = fpu.assign,
+          centralWavelength = centralWavelength.value.toInput.assign
+        )
+    case BasicConfiguration.GmosSouthIfu(
+          grating = grating,
+          filter = filter,
+          fpu = fpu,
+          centralWavelength = centralWavelength
+        ) =>
+      ObservingModeInput.GmosSouthIfu:
+        GmosSouthIfuInput(
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          fpu = fpu.assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.GmosNorthImaging(filters = filters)                                   =>

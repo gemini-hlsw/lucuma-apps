@@ -10,6 +10,7 @@ import eu.timepit.refined.scalacheck.all.given
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.*
+import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
@@ -21,6 +22,7 @@ import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.Attachment
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.TelescopeConfig
@@ -403,6 +405,208 @@ trait ArbObservingMode {
       (GmosSouthFilter, Option[GmosSouthFilter], ExposureTimeMode)
     ]
       .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
+
+  // `GmosIfuAnalysis` is a sum with no arbitrary in core's testkit.
+  given Arbitrary[GmosIfuAnalysis] =
+    Arbitrary[GmosIfuAnalysis](
+      arbitrary[Angle].flatMap: a =>
+        Gen.oneOf(GmosIfuAnalysis.Sum(a), GmosIfuAnalysis.Single(a))
+    )
+
+  given Cogen[GmosIfuAnalysis] =
+    Cogen[(Boolean, Angle)].contramap:
+      case GmosIfuAnalysis.Sum(radius)    => (true, radius)
+      case GmosIfuAnalysis.Single(offset) => (false, offset)
+
+  given given_Arbitrary_GmosNorthIfu_Acquisition
+    : Arbitrary[ObservingMode.GmosNorthIfu.Acquisition] =
+    Arbitrary[ObservingMode.GmosNorthIfu.Acquisition](
+      for
+        defaultFilter    <- arbitrary[GmosNorthFilter]
+        explicitFilter   <- arbitrary[Option[GmosNorthFilter]]
+        defaultRoi       <- arbitrary[GmosIfuAcquisitionRoi]
+        explicitRoi      <- arbitrary[Option[GmosIfuAcquisitionRoi]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      yield ObservingMode.GmosNorthIfu.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        defaultRoi,
+        explicitRoi,
+        exposureTimeMode
+      )
+    )
+
+  given given_Cogen_GmosNorthIfu_Acquisition: Cogen[ObservingMode.GmosNorthIfu.Acquisition] =
+    Cogen[
+      (GmosNorthFilter,
+       Option[GmosNorthFilter],
+       GmosIfuAcquisitionRoi,
+       Option[GmosIfuAcquisitionRoi],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode)
+      )
+
+  given Arbitrary[ObservingMode.GmosNorthIfu] =
+    Arbitrary[ObservingMode.GmosNorthIfu](
+      for
+        initialGrating            <- arbitrary[GmosNorthGrating]
+        grating                   <- arbitrary[GmosNorthGrating]
+        initialFilter             <- arbitrary[Option[GmosNorthFilter]]
+        filter                    <- arbitrary[Option[GmosNorthFilter]]
+        initialFpu                <- arbitrary[GmosNorthIfuFpu]
+        fpu                       <- arbitrary[GmosNorthIfuFpu]
+        initialCentralWavelength  <- arbitrary[Wavelength]
+        centralWavelength         <- arbitrary[Wavelength]
+        defaultIfuAnalysis        <- arbitrary[GmosIfuAnalysis]
+        explicitIfuAnalysis       <- arbitrary[Option[GmosIfuAnalysis]]
+        defaultXBin               <- arbitrary[GmosXBinning]
+        explicitXBin              <- arbitrary[Option[GmosXBinning]]
+        defaultYBin               <- arbitrary[GmosYBinning]
+        explicitYBin              <- arbitrary[Option[GmosYBinning]]
+        defaultAmpReadMode        <- arbitrary[GmosAmpReadMode]
+        explicitAmpReadMode       <- arbitrary[Option[GmosAmpReadMode]]
+        defaultAmpGain            <- arbitrary[GmosAmpGain]
+        explicitAmpGain           <- arbitrary[Option[GmosAmpGain]]
+        defaultRoi                <- arbitrary[GmosRoi]
+        explicitRoi               <- arbitrary[Option[GmosRoi]]
+        defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
+        explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
+        defaultTelescopeConfigs   <- arbitrary[NonEmptyList[TelescopeConfig]]
+        explicitTelescopeConfigs  <- arbitrary[Option[NonEmptyList[TelescopeConfig]]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        acquisition               <- arbitrary[ObservingMode.GmosNorthIfu.Acquisition]
+      yield ObservingMode.GmosNorthIfu(
+        initialGrating,
+        grating,
+        initialFilter,
+        filter,
+        initialFpu,
+        fpu,
+        CentralWavelength(initialCentralWavelength),
+        CentralWavelength(centralWavelength),
+        defaultIfuAnalysis,
+        explicitIfuAnalysis,
+        defaultXBin,
+        explicitXBin,
+        defaultYBin,
+        explicitYBin,
+        defaultAmpReadMode,
+        explicitAmpReadMode,
+        defaultAmpGain,
+        explicitAmpGain,
+        defaultRoi,
+        explicitRoi,
+        defaultWavelengthDithers,
+        explicitWavelengthDithers,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
+        exposureTimeMode,
+        acquisition
+      )
+    )
+
+  given Cogen[ObservingMode.GmosNorthIfu] =
+    Cogen[(GmosNorthGrating, GmosNorthIfuFpu, ExposureTimeMode)].contramap(m =>
+      (m.grating, m.fpu, m.exposureTimeMode)
+    )
+
+  given given_Arbitrary_GmosSouthIfu_Acquisition
+    : Arbitrary[ObservingMode.GmosSouthIfu.Acquisition] =
+    Arbitrary[ObservingMode.GmosSouthIfu.Acquisition](
+      for
+        defaultFilter    <- arbitrary[GmosSouthFilter]
+        explicitFilter   <- arbitrary[Option[GmosSouthFilter]]
+        defaultRoi       <- arbitrary[GmosIfuAcquisitionRoi]
+        explicitRoi      <- arbitrary[Option[GmosIfuAcquisitionRoi]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      yield ObservingMode.GmosSouthIfu.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        defaultRoi,
+        explicitRoi,
+        exposureTimeMode
+      )
+    )
+
+  given given_Cogen_GmosSouthIfu_Acquisition: Cogen[ObservingMode.GmosSouthIfu.Acquisition] =
+    Cogen[
+      (GmosSouthFilter,
+       Option[GmosSouthFilter],
+       GmosIfuAcquisitionRoi,
+       Option[GmosIfuAcquisitionRoi],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode)
+      )
+
+  given Arbitrary[ObservingMode.GmosSouthIfu] =
+    Arbitrary[ObservingMode.GmosSouthIfu](
+      for
+        initialGrating            <- arbitrary[GmosSouthGrating]
+        grating                   <- arbitrary[GmosSouthGrating]
+        initialFilter             <- arbitrary[Option[GmosSouthFilter]]
+        filter                    <- arbitrary[Option[GmosSouthFilter]]
+        initialFpu                <- arbitrary[GmosSouthIfuFpu]
+        fpu                       <- arbitrary[GmosSouthIfuFpu]
+        initialCentralWavelength  <- arbitrary[Wavelength]
+        centralWavelength         <- arbitrary[Wavelength]
+        defaultIfuAnalysis        <- arbitrary[GmosIfuAnalysis]
+        explicitIfuAnalysis       <- arbitrary[Option[GmosIfuAnalysis]]
+        defaultXBin               <- arbitrary[GmosXBinning]
+        explicitXBin              <- arbitrary[Option[GmosXBinning]]
+        defaultYBin               <- arbitrary[GmosYBinning]
+        explicitYBin              <- arbitrary[Option[GmosYBinning]]
+        defaultAmpReadMode        <- arbitrary[GmosAmpReadMode]
+        explicitAmpReadMode       <- arbitrary[Option[GmosAmpReadMode]]
+        defaultAmpGain            <- arbitrary[GmosAmpGain]
+        explicitAmpGain           <- arbitrary[Option[GmosAmpGain]]
+        defaultRoi                <- arbitrary[GmosRoi]
+        explicitRoi               <- arbitrary[Option[GmosRoi]]
+        defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
+        explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
+        defaultTelescopeConfigs   <- arbitrary[NonEmptyList[TelescopeConfig]]
+        explicitTelescopeConfigs  <- arbitrary[Option[NonEmptyList[TelescopeConfig]]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        acquisition               <- arbitrary[ObservingMode.GmosSouthIfu.Acquisition]
+      yield ObservingMode.GmosSouthIfu(
+        initialGrating,
+        grating,
+        initialFilter,
+        filter,
+        initialFpu,
+        fpu,
+        CentralWavelength(initialCentralWavelength),
+        CentralWavelength(centralWavelength),
+        defaultIfuAnalysis,
+        explicitIfuAnalysis,
+        defaultXBin,
+        explicitXBin,
+        defaultYBin,
+        explicitYBin,
+        defaultAmpReadMode,
+        explicitAmpReadMode,
+        defaultAmpGain,
+        explicitAmpGain,
+        defaultRoi,
+        explicitRoi,
+        defaultWavelengthDithers,
+        explicitWavelengthDithers,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
+        exposureTimeMode,
+        acquisition
+      )
+    )
+
+  given Cogen[ObservingMode.GmosSouthIfu] =
+    Cogen[(GmosSouthGrating, GmosSouthIfuFpu, ExposureTimeMode)].contramap(m =>
+      (m.grating, m.fpu, m.exposureTimeMode)
+    )
 
   given Arbitrary[ObservingMode.GmosNorthMos] =
     Arbitrary[ObservingMode.GmosNorthMos](
@@ -1573,6 +1777,8 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosSouthMos],
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
+      arbitrary[ObservingMode.GmosNorthIfu],
+      arbitrary[ObservingMode.GmosSouthIfu],
       arbitrary[ObservingMode.Flamingos2LongSlit],
       arbitrary[ObservingMode.Flamingos2Mos],
       arbitrary[ObservingMode.Flamingos2Imaging],
@@ -1612,12 +1818,18 @@ trait ArbObservingMode {
                           ObservingMode.Visitor,
                           Either[
                             ObservingMode.KeckExchange,
-                            Either[ObservingMode.SubaruExchange,
-                                   Either[ObservingMode.GmosNorthMos,
-                                          Either[ObservingMode.GmosSouthMos,
-                                                 ObservingMode.Flamingos2Mos
-                                          ]
-                                   ]
+                            Either[
+                              ObservingMode.SubaruExchange,
+                              Either[
+                                ObservingMode.GmosNorthMos,
+                                Either[ObservingMode.GmosSouthMos,
+                                       Either[ObservingMode.Flamingos2Mos,
+                                              Either[ObservingMode.GmosNorthIfu,
+                                                     ObservingMode.GmosSouthIfu
+                                              ]
+                                       ]
+                                ]
+                              ]
                             ]
                           ]
                         ]
@@ -1659,9 +1871,12 @@ trait ArbObservingMode {
         case s: ObservingMode.GmosSouthMos       =>
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case f: ObservingMode.Flamingos2Mos      =>
-          f.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case n: ObservingMode.GmosNorthIfu       =>
+          n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthIfu       =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
-
 }
 
 object ArbObservingMode extends ArbObservingMode

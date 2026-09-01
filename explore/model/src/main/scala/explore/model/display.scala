@@ -332,6 +332,14 @@ trait DisplayImplicits:
       val cwvStr    = "%.0fnm".format(cwl.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-S ${grating.shortName} @ $cwvStr $filterStr ${fpu.shortName}"
+    case BasicConfiguration.GmosNorthIfu(grating, filter, fpu, cwl)                =>
+      val cwvStr    = "%.0fnm".format(cwl.value.toNanometers)
+      val filterStr = filter.fold("None")(_.shortName)
+      s"GMOS-N ${grating.shortName} @ $cwvStr $filterStr ${fpu.shortName}"
+    case BasicConfiguration.GmosSouthIfu(grating, filter, fpu, cwl)                =>
+      val cwvStr    = "%.0fnm".format(cwl.value.toNanometers)
+      val filterStr = filter.fold("None")(_.shortName)
+      s"GMOS-S ${grating.shortName} @ $cwvStr $filterStr ${fpu.shortName}"
     case BasicConfiguration.GmosNorthMos(grating, filter, slitWidth, cwl)          =>
       val cwvStr    = "%.0fnm".format(cwl.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)

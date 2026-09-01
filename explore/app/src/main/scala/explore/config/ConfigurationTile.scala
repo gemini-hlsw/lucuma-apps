@@ -256,6 +256,10 @@ object ConfigurationTile
         ObservingModeInput.GmosNorthMos(GmosNorthMosInput())
       val EmptyGmosSouthMosInput: ObservingModeInput      =
         ObservingModeInput.GmosSouthMos(GmosSouthMosInput())
+      val EmptyGmosNorthIfuInput: ObservingModeInput      =
+        ObservingModeInput.GmosNorthIfu(GmosNorthIfuInput())
+      val EmptyGmosSouthIfuInput: ObservingModeInput      =
+        ObservingModeInput.GmosSouthIfu(GmosSouthIfuInput())
       val EmptyF2LongSlitInput: ObservingModeInput        =
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
       val EmptyF2MosInput: ObservingModeInput             =
@@ -406,6 +410,26 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.gmosSouthMos
                   .andThen(ObservingModeInput.GmosSouthMos.value)
+                  .modify
+            )
+
+        val optGmosNorthIfuAligner: Option[Aligner[GmosNorthIfu, GmosNorthIfuInput]] =
+          optModeAligner(EmptyGmosNorthIfuInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gmosNorthIfu,
+              modInput:
+                ObservingModeInput.gmosNorthIfu
+                  .andThen(ObservingModeInput.GmosNorthIfu.value)
+                  .modify
+            )
+
+        val optGmosSouthIfuAligner: Option[Aligner[GmosSouthIfu, GmosSouthIfuInput]] =
+          optModeAligner(EmptyGmosSouthIfuInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gmosSouthIfu,
+              modInput:
+                ObservingModeInput.gmosSouthIfu
+                  .andThen(ObservingModeInput.GmosSouthIfu.value)
                   .modify
             )
 
@@ -650,6 +674,32 @@ object ConfigurationTile
                       props.permissions,
                       props.units,
                       props.maskContext
+                    ),
+                  // Gmos North IFU
+                  optGmosNorthIfuAligner.map: ifuAligner =>
+                    GmosNorthIfuPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      ifuAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    ),
+                  // Gmos South IFU
+                  optGmosSouthIfuAligner.map: ifuAligner =>
+                    GmosSouthIfuPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      ifuAligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
                     ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>

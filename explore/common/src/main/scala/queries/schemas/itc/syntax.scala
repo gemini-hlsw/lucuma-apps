@@ -24,6 +24,7 @@ import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
+import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.itc.ItcGhostDetector
@@ -117,9 +118,10 @@ trait syntax:
       row match
         case ItcInstrumentConfig
               .GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth) =>
-          val roi: Option[GmosRoi]          = modeOverrides.map(_.roi)
-          val ccd: Option[GmosCcdMode]      = modeOverrides.map(_.ccdMode)
-          val itcFpu: Option[GmosFpu.North] =
+          val roi: Option[GmosRoi]                 = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode]             = modeOverrides.map(_.ccdMode)
+          val ifuAnalysis: Option[GmosIfuAnalysis] = modeOverrides.flatMap(_.ifuAnalysis)
+          val itcFpu: Option[GmosFpu.North]        =
             fpu
               .map(builtinFpu => GmosFpu.North(builtinFpu.asRight))
               .orElse(customSlitWidth.map(sw => GmosFpu.North(GmosCustomMask(sw).asLeft)))
@@ -128,14 +130,25 @@ trait syntax:
             .flatMap: (cw: Wavelength) =>
               itcFpu.map: gmosFpu =>
                 InstrumentMode
-                  .GmosNorthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
+                  // `ifuAnalysis` is named because a defaulted `port` sits before it.
+                  .GmosNorthSpectroscopy(
+                    etm,
+                    cw,
+                    grating,
+                    filter,
+                    gmosFpu,
+                    ccd,
+                    roi,
+                    ifuAnalysis = ifuAnalysis
+                  )
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig
               .GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth) =>
-          val roi: Option[GmosRoi]          = modeOverrides.map(_.roi)
-          val ccd: Option[GmosCcdMode]      = modeOverrides.map(_.ccdMode)
-          val itcFpu: Option[GmosFpu.South] =
+          val roi: Option[GmosRoi]                 = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode]             = modeOverrides.map(_.ccdMode)
+          val ifuAnalysis: Option[GmosIfuAnalysis] = modeOverrides.flatMap(_.ifuAnalysis)
+          val itcFpu: Option[GmosFpu.South]        =
             fpu
               .map(builtinFpu => GmosFpu.South(builtinFpu.asRight))
               .orElse(customSlitWidth.map(sw => GmosFpu.South(GmosCustomMask(sw).asLeft)))
@@ -144,7 +157,17 @@ trait syntax:
             .flatMap: (cw: Wavelength) =>
               itcFpu.map: gmosFpu =>
                 InstrumentMode
-                  .GmosSouthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
+                  // `ifuAnalysis` is named because a defaulted `port` sits before it.
+                  .GmosSouthSpectroscopy(
+                    etm,
+                    cw,
+                    grating,
+                    filter,
+                    gmosFpu,
+                    ccd,
+                    roi,
+                    ifuAnalysis = ifuAnalysis
+                  )
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig

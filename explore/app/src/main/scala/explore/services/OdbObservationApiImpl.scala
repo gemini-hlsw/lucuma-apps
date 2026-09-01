@@ -405,6 +405,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         includeGmosSouthImaging = flags.gmosSouthImaging,
         includeGmosNorthMos = flags.gmosNorthMos,
         includeGmosSouthMos = flags.gmosSouthMos,
+        includeGmosNorthIfu = flags.gmosNorthIfu,
+        includeGmosSouthIfu = flags.gmosSouthIfu,
         includeFlamingos2Imaging = flags.flamingos2Imaging,
         includeFlamingos2LongSlit = flags.flamingos2LongSlit,
         includeFlamingos2Mos = flags.flamingos2Mos,
@@ -473,6 +475,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     gmosSouthImaging:   Boolean = false,
     gmosNorthMos:       Boolean = false,
     gmosSouthMos:       Boolean = false,
+    gmosNorthIfu:       Boolean = false,
+    gmosSouthIfu:       Boolean = false,
     flamingos2Imaging:  Boolean = false,
     flamingos2LongSlit: Boolean = false,
     flamingos2Mos:      Boolean = false,
@@ -494,6 +498,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case _: ObservingModeInput.GmosSouthImaging   => ModeViewFlags(gmosSouthImaging = true)
       case _: ObservingModeInput.GmosNorthMos       => ModeViewFlags(gmosNorthMos = true)
       case _: ObservingModeInput.GmosSouthMos       => ModeViewFlags(gmosSouthMos = true)
+      case _: ObservingModeInput.GmosNorthIfu       => ModeViewFlags(gmosNorthIfu = true)
+      case _: ObservingModeInput.GmosSouthIfu       => ModeViewFlags(gmosSouthIfu = true)
       case _: ObservingModeInput.Flamingos2Imaging  => ModeViewFlags(flamingos2Imaging = true)
       case _: ObservingModeInput.Flamingos2LongSlit => ModeViewFlags(flamingos2LongSlit = true)
       case _: ObservingModeInput.Flamingos2Mos      => ModeViewFlags(flamingos2Mos = true)
@@ -532,8 +538,10 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(gmosSouthImaging = true)
       case ObservingModeType.GmosSouthMos                                    =>
         ModeViewFlags(gmosSouthMos = true)
-      case ObservingModeType.GmosNorthIfu | ObservingModeType.GmosSouthIfu   =>
-        sys.error("GMOS IFU is not implemented")
+      case ObservingModeType.GmosNorthIfu                                    =>
+        ModeViewFlags(gmosNorthIfu = true)
+      case ObservingModeType.GmosSouthIfu                                    =>
+        ModeViewFlags(gmosSouthIfu = true)
       case ObservingModeType.GnirsImaging                                    =>
         ModeViewFlags(gnirsImaging = true)
       case ObservingModeType.GnirsLongSlit                                   =>
@@ -571,6 +579,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeGmosSouthImaging = flags.gmosSouthImaging,
             includeGmosNorthMos = flags.gmosNorthMos,
             includeGmosSouthMos = flags.gmosSouthMos,
+            includeGmosNorthIfu = flags.gmosNorthIfu,
+            includeGmosSouthIfu = flags.gmosSouthIfu,
             includeFlamingos2Imaging = flags.flamingos2Imaging,
             includeFlamingos2LongSlit = flags.flamingos2LongSlit,
             includeFlamingos2Mos = flags.flamingos2Mos,

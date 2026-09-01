@@ -38,6 +38,7 @@ object VisualizationStyles:
   // GMOS-specific styles
   val GmosScienceCcd: Css            = Css("gmos-science-ccd")
   val GmosFpu: Css                   = Css("gmos-fpu")
+  val GmosIfuSkyFov: Css             = Css("gmos-ifu-sky-fov")
   val GmosPatrolField: Css           = Css("gmos-patrol-field")
   val PatrolFieldIntersection: Css   = Css("patrol-field-intersection")
   val GmosCandidatesArea: Css        = Css("gmos-candidates-area")

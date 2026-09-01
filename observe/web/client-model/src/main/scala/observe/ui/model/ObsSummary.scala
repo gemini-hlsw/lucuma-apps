@@ -72,6 +72,10 @@ case class ObsSummary(
           s"MOS ${grating.shortName} ${sw.shortName}".some
         case BasicConfiguration.GmosSouthMos(grating, _, sw, _)       =>
           s"MOS ${grating.shortName} ${sw.shortName}".some
+        case BasicConfiguration.GmosNorthIfu(grating, _, fpu, _)      =>
+          s"IFU ${grating.shortName} ${fpu.shortName}".some
+        case BasicConfiguration.GmosSouthIfu(grating, _, fpu, _)      =>
+          s"IFU ${grating.shortName} ${fpu.shortName}".some
         case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu) =>
           s"${disperser.shortName} ${fpu.shortName}".some
         case BasicConfiguration.Flamingos2Mos(disperser, _, sw)       =>

@@ -65,6 +65,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS.some
     case _: BasicConfiguration.GmosNorthMos       => Site.GN.some
     case _: BasicConfiguration.GmosSouthMos       => Site.GS.some
+    case _: BasicConfiguration.GmosNorthIfu       => Site.GN.some
+    case _: BasicConfiguration.GmosSouthIfu       => Site.GS.some
     case _: BasicConfiguration.GnirsImaging       => Site.GN.some
     case _: BasicConfiguration.GnirsSpectroscopy  => Site.GN.some
     case BasicConfiguration.Igrins2LongSlit       => Site.GN.some
@@ -83,6 +85,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
     case _: BasicConfiguration.GmosNorthMos       => ObservingModeType.GmosNorthMos
     case _: BasicConfiguration.GmosSouthMos       => ObservingModeType.GmosSouthMos
+    case _: BasicConfiguration.GmosNorthIfu       => ObservingModeType.GmosNorthIfu
+    case _: BasicConfiguration.GmosSouthIfu       => ObservingModeType.GmosSouthIfu
     case _: BasicConfiguration.GnirsImaging       => ObservingModeType.GnirsImaging
     case g: BasicConfiguration.GnirsSpectroscopy  => g.gnirsObsModeType
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
@@ -98,6 +102,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosNorthMos(centralWavelength = cw)      =>
       cw.some
     case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
+      cw.some
+    case BasicConfiguration.GmosNorthIfu(centralWavelength = cw)      =>
+      cw.some
+    case BasicConfiguration.GmosSouthIfu(centralWavelength = cw)      =>
       cw.some
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       CentralWavelength(filter.wavelength).some
@@ -123,6 +131,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosSouthLongSlit(grating = g)    => g.shortName.some
     case BasicConfiguration.GmosNorthMos(grating = g)         => g.shortName.some
     case BasicConfiguration.GmosSouthMos(grating = g)         => g.shortName.some
+    case BasicConfiguration.GmosNorthIfu(grating = g)         => g.shortName.some
+    case BasicConfiguration.GmosSouthIfu(grating = g)         => g.shortName.some
     case BasicConfiguration.Flamingos2LongSlit(disperser = d) => d.shortName.some
     case BasicConfiguration.Flamingos2Mos(disperser = d)      => d.shortName.some
     case BasicConfiguration.GnirsSpectroscopy(grating = g)    => g.shortName.some
@@ -133,6 +143,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosSouthLongSlit(filter = f)  => f.map(_.shortName)
     case BasicConfiguration.GmosNorthMos(filter = f)       => f.map(_.shortName)
     case BasicConfiguration.GmosSouthMos(filter = f)       => f.map(_.shortName)
+    case BasicConfiguration.GmosNorthIfu(filter = f)       => f.map(_.shortName)
+    case BasicConfiguration.GmosSouthIfu(filter = f)       => f.map(_.shortName)
     case BasicConfiguration.Flamingos2LongSlit(filter = f) => f.shortName.some
     case BasicConfiguration.Flamingos2Mos(filter = f)      => f.shortName.some
     case BasicConfiguration.GnirsSpectroscopy(filter = f)  => f.shortName.some
@@ -154,6 +166,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosNorthMos(centralWavelength = cw)      =>
       AGSWavelength(cw.value)
     case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
+      AGSWavelength(cw.value)
+    case BasicConfiguration.GmosNorthIfu(centralWavelength = cw)      =>
+      AGSWavelength(cw.value)
+    case BasicConfiguration.GmosSouthIfu(centralWavelength = cw)      =>
       AGSWavelength(cw.value)
     case BasicConfiguration.GmosNorthImaging(filters)                 =>
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
@@ -188,6 +204,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case BasicConfiguration.GmosNorthMos(centralWavelength = cw)      =>
       cw.value
     case BasicConfiguration.GmosSouthMos(centralWavelength = cw)      =>
+      cw.value
+    case BasicConfiguration.GmosNorthIfu(centralWavelength = cw)      =>
+      cw.value
+    case BasicConfiguration.GmosSouthIfu(centralWavelength = cw)      =>
       cw.value
     case BasicConfiguration.GmosNorthImaging(filters)                 =>
       filters.minimumBy(_.wavelength).wavelength
@@ -262,6 +282,10 @@ object BasicConfiguration:
           .orElse:
             c.downField("gmosSouthMos").as[GmosSouthMos]
           .orElse:
+            c.downField("gmosNorthIfu").as[GmosNorthIfu]
+          .orElse:
+            c.downField("gmosSouthIfu").as[GmosSouthIfu]
+          .orElse:
             c.downField("gmosNorthImaging").as[GmosNorthImaging]
           .orElse:
             c.downField("gmosSouthImaging").as[GmosSouthImaging]
@@ -316,6 +340,38 @@ object BasicConfiguration:
     slitWidth:         GmosCustomSlitWidth,
     centralWavelength: CentralWavelength
   ) extends BasicConfiguration derives Eq
+
+  case class GmosNorthIfu(
+    grating:           GmosNorthGrating,
+    filter:            Option[GmosNorthFilter],
+    fpu:               GmosNorthIfuFpu,
+    centralWavelength: CentralWavelength
+  ) extends BasicConfiguration derives Eq
+
+  object GmosNorthIfu:
+    given Decoder[GmosNorthIfu] = Decoder.instance: c =>
+      for
+        grating <- c.downField("grating").as[GmosNorthGrating]
+        filter  <- c.downField("filter").as[Option[GmosNorthFilter]]
+        fpu     <- c.downField("fpu").as[GmosNorthIfuFpu]
+        cw      <- c.downField("centralWavelength").as[CentralWavelength]
+      yield GmosNorthIfu(grating, filter, fpu, cw)
+
+  case class GmosSouthIfu(
+    grating:           GmosSouthGrating,
+    filter:            Option[GmosSouthFilter],
+    fpu:               GmosSouthIfuFpu,
+    centralWavelength: CentralWavelength
+  ) extends BasicConfiguration derives Eq
+
+  object GmosSouthIfu:
+    given Decoder[GmosSouthIfu] = Decoder.instance: c =>
+      for
+        grating <- c.downField("grating").as[GmosSouthGrating]
+        filter  <- c.downField("filter").as[Option[GmosSouthFilter]]
+        fpu     <- c.downField("fpu").as[GmosSouthIfuFpu]
+        cw      <- c.downField("centralWavelength").as[CentralWavelength]
+      yield GmosSouthIfu(grating, filter, fpu, cw)
 
   object GmosNorthMos:
     given Decoder[GmosNorthMos] = Decoder.instance: c =>
@@ -573,6 +629,12 @@ object BasicConfiguration:
 
   val gmosNorthMos: Prism[BasicConfiguration, GmosNorthMos] =
     GenPrism[BasicConfiguration, GmosNorthMos]
+
+  val gmosNorthIfu: Prism[BasicConfiguration, GmosNorthIfu] =
+    GenPrism[BasicConfiguration, GmosNorthIfu]
+
+  val gmosSouthIfu: Prism[BasicConfiguration, GmosSouthIfu] =
+    GenPrism[BasicConfiguration, GmosSouthIfu]
 
   val gmosSouthMos: Prism[BasicConfiguration, GmosSouthMos] =
     GenPrism[BasicConfiguration, GmosSouthMos]

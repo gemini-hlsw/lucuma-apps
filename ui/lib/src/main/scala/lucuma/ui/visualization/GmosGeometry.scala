@@ -14,6 +14,7 @@ import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
+import lucuma.core.enums.Site
 import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gmos
@@ -63,9 +64,25 @@ object GmosGeometry extends WithPwfsGeometry:
         base
           + ((GmosCcdVisible |+| GmosScienceCcd) ->
             gmos.scienceArea.mosModeSouth.shapeAt(posAngle, offset))
+      case Some(BasicConfiguration.GmosNorthIfu(fpu = fpu))      =>
+        ifuShapes(base, posAngle, offset, fpu.fieldWidth, Site.GN)
+      case Some(BasicConfiguration.GmosSouthIfu(fpu = fpu))      =>
+        ifuShapes(base, posAngle, offset, fpu.fieldWidth, Site.GS)
       case _                                                     =>
         SortedMap.empty
     }
+
+  /** The target bundle and, separately so it can be labelled, the sky bundle 60" away. */
+  private def ifuShapes(
+    base:             SortedMap[Css, ShapeExpression],
+    posAngle:         Angle,
+    offset:           Offset,
+    fieldWidth:       Angle,
+    site:             Site
+  ): SortedMap[Css, ShapeExpression] =
+    base
+      + (GmosFpu       -> gmos.scienceArea.ifuMode.shapeAt(posAngle, offset, fieldWidth))
+      + (GmosIfuSkyFov -> gmos.scienceArea.ifuMode.skyShapeAt(posAngle, offset, fieldWidth, site))
 
   // Shape for the patrol field at a single position and mode
   private def patrolField(
@@ -76,9 +93,9 @@ object GmosGeometry extends WithPwfsGeometry:
   ): ShapeExpression =
     configuration match {
       case BasicConfiguration.GmosNorthLongSlit(fpu = fpu) =>
-        oiwfs.patrolField.longSlitMode.patrolFieldAt(posAngle, offset, fpu.asLeft, port)
+        oiwfs.patrolField.fpuMode.patrolFieldAt(posAngle, offset, fpu.asLeft, port)
       case BasicConfiguration.GmosSouthLongSlit(fpu = fpu) =>
-        oiwfs.patrolField.longSlitMode.patrolFieldAt(posAngle, offset, fpu.asRight, port)
+        oiwfs.patrolField.fpuMode.patrolFieldAt(posAngle, offset, fpu.asRight, port)
       case BasicConfiguration.GmosNorthImaging(_)          =>
         oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
       case BasicConfiguration.GmosSouthImaging(_)          =>
@@ -87,6 +104,10 @@ object GmosGeometry extends WithPwfsGeometry:
         oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
       case BasicConfiguration.GmosSouthMos(_, _, _, _)     =>
         oiwfs.patrolField.imagingMode.patrolFieldAt(posAngle, offset, port)
+      case BasicConfiguration.GmosNorthIfu(fpu = fpu)      =>
+        oiwfs.patrolField.fpuMode.patrolFieldAt(posAngle, offset, fpu.fpu.asLeft, port)
+      case BasicConfiguration.GmosSouthIfu(fpu = fpu)      =>
+        oiwfs.patrolField.fpuMode.patrolFieldAt(posAngle, offset, fpu.fpu.asRight, port)
       case _                                               =>
         ShapeExpression.Empty
     }
@@ -131,15 +152,29 @@ object GmosGeometry extends WithPwfsGeometry:
           case (BasicConfiguration.GmosNorthLongSlit(fpu = fpu), GuideProbe.GmosOIWFS) =>
             SortedMap(
               (GmosProbeArm,
-               gmos.probeArm.longSlit
+               gmos.probeArm.fpuMode
                  .shapeAt(posAngle, guideStarOffset, offsetPos, fpu.asLeft, port)
               )
             ).some
           case (BasicConfiguration.GmosSouthLongSlit(fpu = fpu), GuideProbe.GmosOIWFS) =>
             SortedMap(
               (GmosProbeArm,
-               gmos.probeArm.longSlit
+               gmos.probeArm.fpuMode
                  .shapeAt(posAngle, guideStarOffset, offsetPos, fpu.asRight, port)
+              )
+            ).some
+          case (BasicConfiguration.GmosNorthIfu(fpu = fpu), GuideProbe.GmosOIWFS)      =>
+            SortedMap(
+              (GmosProbeArm,
+               gmos.probeArm.fpuMode
+                 .shapeAt(posAngle, guideStarOffset, offsetPos, fpu.fpu.asLeft, port)
+              )
+            ).some
+          case (BasicConfiguration.GmosSouthIfu(fpu = fpu), GuideProbe.GmosOIWFS)      =>
+            SortedMap(
+              (GmosProbeArm,
+               gmos.probeArm.fpuMode
+                 .shapeAt(posAngle, guideStarOffset, offsetPos, fpu.fpu.asRight, port)
               )
             ).some
           case (BasicConfiguration.GmosSouthImaging(_) | BasicConfiguration.GmosNorthImaging(_) |
