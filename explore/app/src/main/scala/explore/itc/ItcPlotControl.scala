@@ -22,29 +22,35 @@ import lucuma.ui.syntax.all.given
 import monocle.Prism
 
 case class ItcPlotControl(
-  graphType:   View[GraphType],
-  showDetails: View[PlotDetails]
+  graphType:           View[GraphType],
+  showDetails:         View[PlotDetails],
+  // Graph types present in the current result. The pixel-signal graph only
+  // appears for GMOS IFU 2-slit, so its button is offered only when available.
+  availableGraphTypes: Set[GraphType]
 ) extends ReactFnProps[ItcPlotControl](ItcPlotControl.component)
 
 enum AllowedGraphType(val tag: String) derives Enumerated:
-  case S2N    extends AllowedGraphType("sn")
-  case Signal extends AllowedGraphType("signal")
+  case S2N         extends AllowedGraphType("sn")
+  case Signal      extends AllowedGraphType("signal")
+  case SignalPixel extends AllowedGraphType("pixel")
 
 object ItcPlotControl:
   private type Props = ItcPlotControl
 
   private given Display[AllowedGraphType] = Display.byShortName {
-    case AllowedGraphType.S2N    => "S/N"
-    case AllowedGraphType.Signal => "Signal"
+    case AllowedGraphType.S2N         => "S/N"
+    case AllowedGraphType.Signal      => "Signal"
+    case AllowedGraphType.SignalPixel => "IFU-2"
   }
 
   private val typePrism: Prism[GraphType, AllowedGraphType] = Prism[GraphType, AllowedGraphType] {
-    case GraphType.S2NGraph    => Some(AllowedGraphType.S2N)
-    case GraphType.SignalGraph => Some(AllowedGraphType.Signal)
-    case _                     => None
+    case GraphType.S2NGraph         => Some(AllowedGraphType.S2N)
+    case GraphType.SignalGraph      => Some(AllowedGraphType.Signal)
+    case GraphType.SignalPixelGraph => Some(AllowedGraphType.SignalPixel)
   } {
-    case AllowedGraphType.S2N    => GraphType.S2NGraph
-    case AllowedGraphType.Signal => GraphType.SignalGraph
+    case AllowedGraphType.S2N         => GraphType.S2NGraph
+    case AllowedGraphType.Signal      => GraphType.SignalGraph
+    case AllowedGraphType.SignalPixel => GraphType.SignalPixelGraph
   }
 
   private val component = ScalaFnComponent[Props] { props =>
@@ -68,7 +74,8 @@ object ItcPlotControl:
         SelectButtonEnumView(
           "itc-plot-type".refined,
           ct,
-          buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
+          buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact,
+          filterPred = a => props.availableGraphTypes.contains(typePrism.reverseGet(a))
         )
       }
     )
