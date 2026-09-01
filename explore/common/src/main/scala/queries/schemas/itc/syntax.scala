@@ -130,7 +130,17 @@ trait syntax:
             .flatMap: (cw: Wavelength) =>
               itcFpu.map: gmosFpu =>
                 InstrumentMode
-                  .GmosNorthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi, ifuAnalysis = ifuAnalysis)
+                  // `ifuAnalysis` is named because a defaulted `port` sits before it.
+                  .GmosNorthSpectroscopy(
+                    etm,
+                    cw,
+                    grating,
+                    filter,
+                    gmosFpu,
+                    ccd,
+                    roi,
+                    ifuAnalysis = ifuAnalysis
+                  )
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig
@@ -147,7 +157,17 @@ trait syntax:
             .flatMap: (cw: Wavelength) =>
               itcFpu.map: gmosFpu =>
                 InstrumentMode
-                  .GmosSouthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi, ifuAnalysis = ifuAnalysis)
+                  // `ifuAnalysis` is named because a defaulted `port` sits before it.
+                  .GmosSouthSpectroscopy(
+                    etm,
+                    cw,
+                    grating,
+                    filter,
+                    gmosFpu,
+                    ccd,
+                    roi,
+                    ifuAnalysis = ifuAnalysis
+                  )
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig

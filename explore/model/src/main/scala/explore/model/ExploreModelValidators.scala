@@ -135,7 +135,9 @@ object ExploreModelValidators:
   val decimalArcsecondsValidWedge: InputValidWedge[Angle] =
     decimalArcsecondsValidWedgeWhere(_ => true, "Invalid Angle".refined)
 
-  /** For an angle that is a radius or a size rather than a position, where zero encloses nothing. */
+  /**
+   * For an angle that is a radius or a size rather than a position, where zero encloses nothing.
+   */
   val positiveDecimalArcsecondsValidWedge: InputValidWedge[Angle] =
     decimalArcsecondsValidWedgeWhere(_ > 0, "Must be positive".refined)
 

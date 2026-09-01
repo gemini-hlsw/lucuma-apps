@@ -12,10 +12,10 @@ import explore.model.ExploreModelValidators
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
-import lucuma.core.validation.InputValidWedge
 import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
+import lucuma.core.validation.InputValidWedge
 import lucuma.react.common.*
 import lucuma.refined.*
 import lucuma.ui.input.ChangeAuditor
@@ -52,11 +52,16 @@ object GmosIfuAnalysisEditor
         case GmosIfuAnalysis.Sum(radius)    => radius
         case GmosIfuAnalysis.Single(offset) => offset
 
+      // Zero is a legal offset -- the element on the field centre -- but not a legal radius, so
+      // it is the one angle that cannot cross into a Sum; carry the default across instead.
+      val asSumRadius: Angle => Angle = a =>
+        if Angle.signedMicroarcseconds.get(a) > 0 then a else GmosIfuAnalysis.DefaultSumRadius
+
       val kindLens: Lens[GmosIfuAnalysis, GmosIfuAnalysisKind] =
         Lens(GmosIfuAnalysisKind.fromGmosIfuAnalysis): k =>
           a =>
             k match
-              case GmosIfuAnalysisKind.Sum    => GmosIfuAnalysis.Sum(angleOf(a))
+              case GmosIfuAnalysisKind.Sum    => GmosIfuAnalysis.Sum(asSumRadius(angleOf(a)))
               case GmosIfuAnalysisKind.Single => GmosIfuAnalysis.Single(angleOf(a))
 
       val angleLens: Lens[GmosIfuAnalysis, Angle] =
@@ -75,7 +80,8 @@ object GmosIfuAnalysisEditor
       // centre -- the OCS default -- so only the radius is barred from being zero.
       val angleFormat: InputValidWedge[Angle] = kind.get match
         case GmosIfuAnalysisKind.Sum    => ExploreModelValidators.positiveDecimalArcsecondsValidWedge
-        case GmosIfuAnalysisKind.Single => ExploreModelValidators.nonNegativeDecimalArcsecondsValidWedge
+        case GmosIfuAnalysisKind.Single =>
+          ExploreModelValidators.nonNegativeDecimalArcsecondsValidWedge
 
       // Each control contributes its own label/value pair to the panel's two-column grid;
       // wrapping them together collapses both into one cell.
