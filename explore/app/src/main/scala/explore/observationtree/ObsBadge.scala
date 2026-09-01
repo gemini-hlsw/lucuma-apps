@@ -11,6 +11,7 @@ import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.EditableLabel
 import explore.Icons
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Observation
@@ -38,6 +39,7 @@ import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
+import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
@@ -310,6 +312,10 @@ object ObsBadge:
             ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
           )
 
+      val telluricHelpIcon: Option[VdomNode] =
+        (props.telluricType, props.setTelluricTypeCB).mapN: (_, _) =>
+          HelpIcon("configuration/telluric-type.md".refined)
+
       React.Fragment(
         <.div(
           <.div(ExploreStyles.ObsBadge, ExploreStyles.ObsBadgeSelected.when(props.selected))(
@@ -352,12 +358,15 @@ object ObsBadge:
                     ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
                   ).withOptionalTooltip(obs.workflow.staleTooltip)
                 ),
-                telluricDropdown,
                 props.executionTime.value.map(t =>
                   TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
                     .withMods(props.executionTime.staleClass)
                 ),
-                validationIcon
+                validationIcon,
+                // Placed last so the grid auto-places them on the second row,
+                // with the dropdown sharing the state dropdown's column.
+                telluricDropdown,
+                telluricHelpIcon
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
                 props.associatedObss

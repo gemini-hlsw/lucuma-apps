@@ -1716,12 +1716,17 @@ svg.fa-check.explore-success-icon {
 
     .obs-badge-extra-status {
       margin-top: 5px;
-      display: flex;
-      justify-content: space-between;
-      gap: 2em;
+      display: grid;
+
+      // Column 1 holds the state and telluric dropdowns so their widths match;
+      // time and validation trail on the first row, the help icon on the second.
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      column-gap: 2em;
+      row-gap: 2px;
+      align-items: center;
 
       .obs-state-select-wrapper {
-        flex-grow: 2;
+        grid-column: 1;
       }
     }
 
