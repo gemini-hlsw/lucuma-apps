@@ -149,6 +149,21 @@ object UserPreferencesQueries:
         .attempt
         .void
 
+    def storeObsTreeWidthPreference[F[_]: ApplicativeThrow](
+      userId:       User.Id,
+      obsTreeWidth: Int
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserPreferencesAladinUpdate[F]
+        .execute(
+          objects = LucumaUserPreferencesInsertInput(
+            userId = userId.show.assign,
+            obsTreeWidth = obsTreeWidth.assign
+          ),
+          update_columns = List(LucumaUserPreferencesUpdateColumn.ObsTreeWidth)
+        )
+        .attempt
+        .void
+
   end GlobalUserPreferences
 
   object GridLayouts:

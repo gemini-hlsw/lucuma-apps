@@ -240,6 +240,7 @@ object UserPreferencesQueriesGQL {
           logLevel
           lastOpenPrograms
           exploreGuideButton
+          obsTreeWidth
         }
       }
     """
@@ -274,6 +275,7 @@ object UserPreferencesQueriesGQL {
           logLevel
           lastOpenPrograms
           exploreGuideButton
+          obsTreeWidth
         }
       }
     """

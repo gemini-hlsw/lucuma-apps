@@ -3180,6 +3180,32 @@ input[type='file'].explore-fileupload {
   display: flex;
 }
 
+// Full-height drag gutter on the right edge of a resizable tree. Overrides the default
+// react-resizable handle (a small rotated grip at the vertical mid-point) from
+// webapp/css/react-resizable.css.
+.tree.resizable-tree > .react-resizable-handle-e {
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  margin-top: 0;
+  padding: 0;
+  transform: none;
+  background-color: var(--tile-title-background);
+  background-image: none;
+  filter: none;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  &:hover,
+  &:active {
+    opacity: 1;
+  }
+}
+
 // Inner area of the tree
 .tree-body {
   width: 100vw;

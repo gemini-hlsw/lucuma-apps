@@ -12,8 +12,10 @@ import java.time.ZoneOffset
 trait Constants:
   val UTC                      = ZoneOffset.UTC
   val TwoPanelCutoff           = 576.0
-  val InitialTreeWidth         = 300.0
-  val MinLeftPanelWidth        = 270.0
+  // DefaultTreeWidth must match $tree-section-width in explore-common.scss
+  val DefaultTreeWidth         = 320
+  val MinTreeWidth             = 250
+  val MaxTreeWidth             = 800
   val GridRowHeight            = 36
   val GridRowPadding           = 5
   val GridColCount             = 12

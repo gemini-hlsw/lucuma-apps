@@ -3708,6 +3708,7 @@ type LucumaUserPreferences {
 
   """An object relationship"""
   lucumaWavelengthUnit: LucumaWavelengthUnits!
+  obsTreeWidth: Int
   observationTableFilters: Boolean!
   programsTableFilters: Boolean!
   scienceOffsets: Boolean!
@@ -3729,18 +3730,34 @@ type LucumaUserPreferencesAggregate {
 aggregate fields of "lucumaUserPreferences"
 """
 type LucumaUserPreferencesAggregateFields {
+  avg: LucumaUserPreferencesAvgFields
   count(columns: [LucumaUserPreferencesSelectColumn!], distinct: Boolean): Int!
   max: LucumaUserPreferencesMaxFields
   min: LucumaUserPreferencesMinFields
+  stddev: LucumaUserPreferencesStddevFields
+  stddevPop: LucumaUserPreferencesStddev_popFields
+  stddevSamp: LucumaUserPreferencesStddev_sampFields
+  sum: LucumaUserPreferencesSumFields
+  varPop: LucumaUserPreferencesVar_popFields
+  varSamp: LucumaUserPreferencesVar_sampFields
+  variance: LucumaUserPreferencesVarianceFields
 }
 
 """
 order by aggregate values of table "lucumaUserPreferences"
 """
 input LucumaUserPreferencesAggregateOrderBy {
+  avg: lucumaUserPreferences_avg_order_by
   count: OrderBy
   max: lucumaUserPreferences_max_order_by
   min: lucumaUserPreferences_min_order_by
+  stddev: lucumaUserPreferences_stddev_order_by
+  stddev_pop: lucumaUserPreferences_stddev_pop_order_by
+  stddev_samp: lucumaUserPreferences_stddev_samp_order_by
+  sum: lucumaUserPreferences_sum_order_by
+  var_pop: lucumaUserPreferences_var_pop_order_by
+  var_samp: lucumaUserPreferences_var_samp_order_by
+  variance: lucumaUserPreferences_variance_order_by
 }
 
 """append existing jsonb value of filtered columns with new jsonb value"""
@@ -3756,6 +3773,11 @@ input LucumaUserPreferencesArrRelInsertInput {
 
   """upsert condition"""
   onConflict: LucumaUserPreferencesOnConflict
+}
+
+"""aggregate avg on columns"""
+type LucumaUserPreferencesAvgFields {
+  obsTreeWidth: Float
 }
 
 """
@@ -3788,6 +3810,7 @@ input LucumaUserPreferencesBoolExp {
   logLevel: StringComparisonExp
   lucumaUser: LucumaUserBoolExp
   lucumaWavelengthUnit: LucumaWavelengthUnitsBoolExp
+  obsTreeWidth: IntComparisonExp
   observationTableFilters: BooleanComparisonExp
   programsTableFilters: BooleanComparisonExp
   scienceOffsets: BooleanComparisonExp
@@ -3829,6 +3852,13 @@ input LucumaUserPreferencesDeleteKeyInput {
 }
 
 """
+input type for incrementing numeric columns in table "lucumaUserPreferences"
+"""
+input LucumaUserPreferencesIncInput {
+  obsTreeWidth: Int
+}
+
+"""
 input type for inserting data into table "lucumaUserPreferences"
 """
 input LucumaUserPreferencesInsertInput {
@@ -3855,6 +3885,7 @@ input LucumaUserPreferencesInsertInput {
   logLevel: String
   lucumaUser: LucumaUserObjRelInsertInput
   lucumaWavelengthUnit: LucumaWavelengthUnitsObjRelInsertInput
+  obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
   scienceOffsets: Boolean
@@ -3868,6 +3899,7 @@ input LucumaUserPreferencesInsertInput {
 type LucumaUserPreferencesMaxFields {
   createdAt: timestamptz
   logLevel: String
+  obsTreeWidth: Int
   updatedAt: timestamptz
   userId: String
 }
@@ -3876,6 +3908,7 @@ type LucumaUserPreferencesMaxFields {
 type LucumaUserPreferencesMinFields {
   createdAt: timestamptz
   logLevel: String
+  obsTreeWidth: Int
   updatedAt: timestamptz
   userId: String
 }
@@ -3935,6 +3968,7 @@ input LucumaUserPreferencesOrderBy {
   logLevel: OrderBy
   lucumaUser: LucumaUserOrderBy
   lucumaWavelengthUnit: LucumaWavelengthUnitsOrderBy
+  obsTreeWidth: OrderBy
   observationTableFilters: OrderBy
   programsTableFilters: OrderBy
   scienceOffsets: OrderBy
@@ -4013,6 +4047,9 @@ enum LucumaUserPreferencesSelectColumn {
   logLevel
 
   """column name"""
+  obsTreeWidth
+
+  """column name"""
   observationTableFilters
 
   """column name"""
@@ -4056,6 +4093,7 @@ input LucumaUserPreferencesSetInput {
   itcDetailsOpen: Boolean
   lastOpenPrograms: jsonb
   logLevel: String
+  obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
   scienceOffsets: Boolean
@@ -4063,6 +4101,26 @@ input LucumaUserPreferencesSetInput {
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
+}
+
+"""aggregate stddev on columns"""
+type LucumaUserPreferencesStddevFields {
+  obsTreeWidth: Float
+}
+
+"""aggregate stddev_pop on columns"""
+type LucumaUserPreferencesStddev_popFields {
+  obsTreeWidth: Float
+}
+
+"""aggregate stddev_samp on columns"""
+type LucumaUserPreferencesStddev_sampFields {
+  obsTreeWidth: Float
+}
+
+"""aggregate sum on columns"""
+type LucumaUserPreferencesSumFields {
+  obsTreeWidth: Int
 }
 
 """
@@ -4124,6 +4182,9 @@ enum LucumaUserPreferencesUpdateColumn {
   logLevel
 
   """column name"""
+  obsTreeWidth
+
+  """column name"""
   observationTableFilters
 
   """column name"""
@@ -4164,12 +4225,30 @@ input LucumaUserPreferencesUpdates {
   """
   _deleteKey: LucumaUserPreferencesDeleteKeyInput
 
+  """increments the numeric columns with given value of the filtered values"""
+  _inc: LucumaUserPreferencesIncInput
+
   """prepend existing jsonb value of filtered columns with new jsonb value"""
   _prepend: LucumaUserPreferencesPrependInput
 
   """sets the columns of the filtered rows to the given values"""
   _set: LucumaUserPreferencesSetInput
   where: LucumaUserPreferencesBoolExp!
+}
+
+"""aggregate var_pop on columns"""
+type LucumaUserPreferencesVar_popFields {
+  obsTreeWidth: Float
+}
+
+"""aggregate var_samp on columns"""
+type LucumaUserPreferencesVar_sampFields {
+  obsTreeWidth: Float
+}
+
+"""aggregate variance on columns"""
+type LucumaUserPreferencesVarianceFields {
+  obsTreeWidth: Float
 }
 
 """
@@ -5185,11 +5264,19 @@ input lucumaTarget_streamCursorValueInput {
 }
 
 """
+order by avg() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_avg_order_by {
+  obsTreeWidth: OrderBy
+}
+
+"""
 order by max() on columns of table "lucumaUserPreferences"
 """
 input lucumaUserPreferences_max_order_by {
   createdAt: OrderBy
   logLevel: OrderBy
+  obsTreeWidth: OrderBy
   updatedAt: OrderBy
   userId: OrderBy
 }
@@ -5200,8 +5287,30 @@ order by min() on columns of table "lucumaUserPreferences"
 input lucumaUserPreferences_min_order_by {
   createdAt: OrderBy
   logLevel: OrderBy
+  obsTreeWidth: OrderBy
   updatedAt: OrderBy
   userId: OrderBy
+}
+
+"""
+order by stddev() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_stddev_order_by {
+  obsTreeWidth: OrderBy
+}
+
+"""
+order by stddev_pop() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_stddev_pop_order_by {
+  obsTreeWidth: OrderBy
+}
+
+"""
+order by stddev_samp() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_stddev_samp_order_by {
+  obsTreeWidth: OrderBy
 }
 
 """
@@ -5235,6 +5344,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   itcDetailsOpen: Boolean
   lastOpenPrograms: jsonb
   logLevel: String
+  obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
   scienceOffsets: Boolean
@@ -5242,6 +5352,34 @@ input lucumaUserPreferences_streamCursorValueInput {
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
+}
+
+"""
+order by sum() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_sum_order_by {
+  obsTreeWidth: OrderBy
+}
+
+"""
+order by var_pop() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_var_pop_order_by {
+  obsTreeWidth: OrderBy
+}
+
+"""
+order by var_samp() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_var_samp_order_by {
+  obsTreeWidth: OrderBy
+}
+
+"""
+order by variance() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_variance_order_by {
+  obsTreeWidth: OrderBy
 }
 
 """
@@ -6444,6 +6582,9 @@ type Mutation {
     """
     _deleteKey: LucumaUserPreferencesDeleteKeyInput
 
+    """increments the numeric columns with given value of the filtered values"""
+    _inc: LucumaUserPreferencesIncInput
+
     """prepend existing jsonb value of filtered columns with new jsonb value"""
     _prepend: LucumaUserPreferencesPrependInput
 
@@ -6475,6 +6616,9 @@ type Mutation {
     delete key/value pair or string element. key/value pairs are matched based on their key value
     """
     _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+    """increments the numeric columns with given value of the filtered values"""
+    _inc: LucumaUserPreferencesIncInput
 
     """prepend existing jsonb value of filtered columns with new jsonb value"""
     _prepend: LucumaUserPreferencesPrependInput
