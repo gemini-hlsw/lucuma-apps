@@ -794,16 +794,16 @@ object AladinContainer extends AladinCommon {
                shapes.flatMap(_._2.flatMap(m => NonEmptyList.fromList(m.toList))),
                shapes.map(_._1 |+| staleCss)
               )
-                .mapN(
+                .mapN: (w, h, f, shp, css) =>
                   SvgVisualizationOverlay(
-                    _,
-                    _,
-                    _,
+                    w,
+                    h,
+                    f,
                     screenOffset,
-                    _,
-                    _
-                  )
-                ),
+                    shp,
+                    css,
+                    props.vizConf.foldMap(_.configuration.shapeLabels)
+                  ),
               React.Fragment(maskSlitTooltips*),
               // Sky keep-out zone
               keepOutZone

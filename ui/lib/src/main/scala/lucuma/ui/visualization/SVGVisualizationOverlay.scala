@@ -29,7 +29,8 @@ case class SvgVisualizationOverlay(
   fov:          Fov,
   screenOffset: Offset,
   shapes:       NonEmptyList[(Css, ShapeExpression)],
-  clazz:        Css = Css.Empty
+  clazz:        Css = Css.Empty,
+  labels:       List[(Css, String)] = List.empty
 ) extends ReactFnProps(SvgVisualizationOverlay.component)
 
 object SvgVisualizationOverlay {
@@ -101,6 +102,10 @@ object SvgVisualizationOverlay {
       case _                                        => EmptyVdom
     }
 
+  // Screen-space sizes for shape labels, converted to user units at render time.
+  private val labelFontSizePx = 11.0
+  private val labelPaddingPx  = 5.0
+
   private val hatchLine    = Css("hatch-line")
   private val hatchLineSel = Css("hatch-line-selected")
 
@@ -127,6 +132,30 @@ object SvgVisualizationOverlay {
       val (viewBoxX, viewBoxY, viewBoxW, viewBoxH) =
         calculateViewBox(x, y, w, h, p.fov, p.screenOffset)
 
+      // The viewBox is in scaled microarcseconds, so a label's font and padding have to be
+      // converted from pixels or they'd resize with the zoom level.
+      val userUnitsPerPixel: Double = viewBoxW / p.width
+
+      // Drawn outside the y-flipped group, or the glyphs would come out mirrored. A label whose
+      // shape isn't in this overlay is simply skipped.
+      val labels: List[VdomNode] =
+        p.labels.flatMap: (css, text) =>
+          evald
+            .find(_._1 === css)
+            .map: (_, shape) =>
+              val env = shape.g.getEnvelopeInternal
+              <.g(
+                css |+| VisualizationStyles.VizShapeLabel,
+                <.text(
+                  ^.x         := (scale(env.getMinX) + scale(env.getMaxX)) / 2,
+                  // maxY is the top of the shape once the y flip is undone
+                  ^.y         := -scale(env.getMaxY) - labelPaddingPx * userUnitsPerPixel,
+                  textAnchor  := "middle",
+                  svgFontSize := labelFontSizePx * userUnitsPerPixel,
+                  text
+                )
+              )
+
       val svg = <.svg(
         VisualizationStyles.VisualizationSvg |+| p.clazz,
         ^.viewBox    := s"$viewBoxX $viewBoxY $viewBoxW $viewBoxH",
@@ -139,7 +168,8 @@ object SvgVisualizationOverlay {
           evald.toList.map { case (css, shape) =>
             forGeometry(css, shape.g)
           }.toTagMod
-        )
+        ),
+        labels.toTagMod
       )
       svg
     }

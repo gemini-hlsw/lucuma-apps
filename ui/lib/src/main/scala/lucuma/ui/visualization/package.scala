@@ -35,6 +35,8 @@ import scala.math.*
 
 val canvasWidth      = VdomAttr("width")
 val canvasHeight     = VdomAttr("height")
+val svgFontSize      = VdomAttr("font-size")
+val textAnchor       = VdomAttr("text-anchor")
 val patternUnits     = VdomAttr("patternUnits")
 val patternTransform = VdomAttr("patternTransform")
 
@@ -202,6 +204,18 @@ def hatchDefs(hatchLine: Css, hatchLineSel: Css): VdomNode =
   )
 
 extension (conf: BasicConfiguration)
+  /**
+   * Labels drawn next to a geometry, keyed by the css the geometry is registered under. Only for
+   * shapes a user cannot identify from position alone: the GMOS IFU sky field sits ~60" off the
+   * base, so without a label it reads as a second science field.
+   */
+  def shapeLabels: List[(Css, String)] =
+    conf match
+      case BasicConfiguration.GmosNorthIfu(fpu = _) | BasicConfiguration.GmosSouthIfu(fpu = _) =>
+        List(VisualizationStyles.GmosIfuSkyFov -> "Sky")
+      case _                                                                                   =>
+        List.empty
+
   def agsParams(
     port:      PortDisposition,
     trackType: Option[TrackType]
