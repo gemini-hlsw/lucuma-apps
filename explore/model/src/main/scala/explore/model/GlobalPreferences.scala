@@ -47,7 +47,8 @@ case class GlobalPreferences(
   logLevel:                             LogLevel,
   lastOpenPrograms:                     List[Program.Id] = List.empty,
   agsVisibility:                        Option[AGSVisibility] = None,
-  exploreGuideButton:                   Visible = Visible.Shown
+  exploreGuideButton:                   Visible = Visible.Shown,
+  obsTreeWidth:                         Option[Int] = None
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
@@ -84,6 +85,8 @@ object GlobalPreferences:
   val agsVisibility                        =
     Focus[GlobalPreferences](_.agsVisibility).withDefault(AGSVisibility.Default)
   val exploreGuideButton                   = Focus[GlobalPreferences](_.exploreGuideButton)
+  val obsTreeWidth                         =
+    Focus[GlobalPreferences](_.obsTreeWidth).withDefault(Constants.DefaultTreeWidth)
 
   private val MaxLastOpenPrograms = 6
 

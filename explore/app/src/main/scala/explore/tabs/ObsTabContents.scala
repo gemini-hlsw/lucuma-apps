@@ -78,6 +78,8 @@ case class ObsTabContents(
   private val targets: UndoSetter[TargetList]                            = programSummaries.zoom(ProgramSummaries.targets)
   private val globalPreferences: View[GlobalPreferences]                 =
     userPreferences.zoom(UserPreferences.globalPreferences)
+  private val preferredTreeWidth: Int                                    =
+    GlobalPreferences.obsTreeWidth.get(globalPreferences.get)
   private val programType: Option[ProgramType]                           = programSummaries.get.programType
   // XXX Workaround for what seems to be a Scala 3.8.2 bug where `ObsGroupHelper` members cannot be otherwise
   // accessed from within the component definition below.
@@ -205,6 +207,9 @@ object ObsTabContents extends TwoPanels:
                                     )
         deckShown              <- useStateView(DeckShown.Shown)
         addingObservation      <- useStateView(AddingObservation(false))
+        treeWidth              <- useStateView(props.preferredTreeWidth)
+        _                      <- useEffectWithDeps(props.preferredTreeWidth):
+                                    treeWidth.set // resync when the preference subscription fires
       } yield
         val observationsTree: VdomNode =
           if (deckShown.get === DeckShown.Shown) {
@@ -375,11 +380,21 @@ object ObsTabContents extends TwoPanels:
             case (_, Some(groupId)) => groupEditorTiles(groupId, resize)
             case _                  => summaryTiles
 
+        // Persisted only once the drag ends: a mid-drag write would echo back through the
+        // preferences subscription and snap the panel to a stale width.
+        val storeTreeWidth: Int => Callback = width =>
+          import ctx.given
+          props.vault.userId.foldMap: userId =>
+            GlobalUserPreferences.storeObsTreeWidthPreference[IO](userId, width).runAsync
+
         makeOneOrTwoPanels(
           twoPanelState,
           observationsTree,
           rightSide,
           RightSideCardinality.Multi,
           resize,
-          ExploreStyles.ObsHiddenToolbar.when_(deckShown.get === DeckShown.Hidden)
+          ExploreStyles.ObsHiddenToolbar.when_(deckShown.get === DeckShown.Hidden),
+          // When the deck is hidden the panel collapses to the button, so no inline width.
+          Option.when(deckShown.get === DeckShown.Shown)(treeWidth),
+          storeTreeWidth
         )
