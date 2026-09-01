@@ -207,6 +207,18 @@ object ItcSpectroscopyTile
           val graphTypeView: View[GraphType] =
             globalPreferences.zoom(GlobalPreferences.itcChartType)
 
+          // The pixel-signal graph is only produced for GMOS IFU 2-slit. Since
+          // the selected graph type is a shared user preference, fall back to
+          // S/N for display when the saved type isn't present in this result,
+          // while still persisting the user's choice when they pick a button.
+          val availableGraphTypes: Set[GraphType] =
+            graphResult.graphData.map(_.graphType).toList.toSet
+
+          val effectiveGraphTypeView: View[GraphType] =
+            graphTypeView.zoom(gt =>
+              if availableGraphTypes.contains(gt) then gt else GraphType.S2NGraph
+            )(identity)
+
           val detailsView: View[PlotDetails] =
             globalPreferences.zoom(GlobalPreferences.itcDetailsOpen)
 
@@ -275,13 +287,13 @@ object ItcSpectroscopyTile
             ItcSpectroscopyPlot(
               graphResult.graphCcds,
               graphResult.graphData,
-              graphTypeView.get,
+              effectiveGraphTypeView.get,
               graphResult.target.name.value,
               instrumentConfig.signalToNoiseAt,
               detailsView.get,
               ccdLabels
             ),
-            ItcPlotControl(graphTypeView, detailsView)
+            ItcPlotControl(effectiveGraphTypeView, detailsView, availableGraphTypes)
           )
 
         val resultPot: Pot[EitherNec[ItcTargetProblem, (ItcGraphResult, ItcInstrumentConfig)]] =
