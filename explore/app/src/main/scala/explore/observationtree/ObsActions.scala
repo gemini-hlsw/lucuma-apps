@@ -27,6 +27,8 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.undo.Action
 import lucuma.ui.undo.AsyncAction
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 object ObsActions:
   def obsGroupInfo(
@@ -112,7 +114,7 @@ object ObsActions:
         )
     )
 
-  // The telluric type lives inside the observing mode, thus only modes that generate 
+  // The telluric type lives inside the observing mode, thus only modes that generate
   // tellurics are accepted.
   private def telluricTypeModeInput(
     modeType:     ObservingModeType,
@@ -132,12 +134,15 @@ object ObsActions:
         ObservingModeInput.GnirsLongSlit(GnirsLongSlitInput(telluricType = input)).some
       case ObservingModeType.GnirsIfu           =>
         ObservingModeInput.GnirsIfu(GnirsIfuInput(telluricType = input)).some
-      case _                                    => none
+      case _                                    =>
+        none
 
   def obsTelluricType(
     obsId:    Observation.Id,
     modeType: ObservingModeType
-  )(using odbApi: OdbObservationApi[IO]): Action[ObservationList, Option[TelluricType]] =
+  )(using
+    odbApi:   OdbObservationApi[IO]
+  )(using Logger[IO]): Action[ObservationList, Option[TelluricType]] =
     Action(
       getter = (obsList: ObservationList) =>
         obsList
@@ -153,9 +158,11 @@ object ObsActions:
                   .modify(_.map(_.map(ObservingMode.telluricType.replace(tt))))
     )(
       onSet = (_, telluricTypeOpt) =>
-        telluricTypeOpt
-          .flatMap(telluricTypeModeInput(modeType, _))
-          .foldMap: modeInput =>
+        telluricTypeOpt.foldMap: tt =>
+          telluricTypeModeInput(modeType, tt).fold(
+            // For developers
+            error"No ObservingModeInput mapping for mode $modeType in telluricTypeModeInput"
+          ): modeInput =>
             odbApi.updateObservations(
               List(obsId),
               ObservationPropertiesInput(observingMode = modeInput.assign)
