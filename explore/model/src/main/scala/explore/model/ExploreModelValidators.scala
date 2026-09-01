@@ -119,19 +119,29 @@ object ExploreModelValidators:
           .toErrorsValidWedge
       )
 
-  private val decimalArcsecondsPrism: Prism[BigDecimal, Angle] =
-    Prism[BigDecimal, Angle](Angle.signedDecimalArcseconds.reverseGet(_).some)(
-      Angle.signedDecimalArcseconds.get
-    )
+  private def decimalArcsecondsValidWedgeWhere(
+    accepts: BigDecimal => Boolean,
+    message: NonEmptyString
+  ): InputValidWedge[Angle] =
+    val prism: Prism[BigDecimal, Angle] =
+      Prism[BigDecimal, Angle](bd =>
+        Option.when(accepts(bd))(Angle.signedDecimalArcseconds.reverseGet(bd))
+      )(Angle.signedDecimalArcseconds.get)
 
-  val decimalArcsecondsValidWedge: InputValidWedge[Angle] =
     InputValidWedge
       .truncatedBigDecimal(2.refined)
-      .andThen(
-        ValidWedge
-          .fromPrism(decimalArcsecondsPrism, _ => "Invalid Angle".refined[NonEmpty])
-          .toErrorsValidWedge
-      )
+      .andThen(ValidWedge.fromPrism(prism, _ => message).toErrorsValidWedge)
+
+  val decimalArcsecondsValidWedge: InputValidWedge[Angle] =
+    decimalArcsecondsValidWedgeWhere(_ => true, "Invalid Angle".refined)
+
+  /** For an angle that is a radius or a size rather than a position, where zero encloses nothing. */
+  val positiveDecimalArcsecondsValidWedge: InputValidWedge[Angle] =
+    decimalArcsecondsValidWedgeWhere(_ > 0, "Must be positive".refined)
+
+  /** For a distance from some origin, where zero is the origin itself and so a real answer. */
+  val nonNegativeDecimalArcsecondsValidWedge: InputValidWedge[Angle] =
+    decimalArcsecondsValidWedgeWhere(_ >= 0, "Cannot be negative".refined)
 
   val wavelengthMicroDeltaValidWedge: InputValidWedge[WavelengthDelta] =
     wavelengthMicroValidWedge.andThen(

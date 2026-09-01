@@ -12,6 +12,7 @@ import explore.model.ExploreModelValidators
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
+import lucuma.core.validation.InputValidWedge
 import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
@@ -70,6 +71,12 @@ object GmosIfuAnalysisEditor
         case GmosIfuAnalysisKind.Sum    => "Radius"
         case GmosIfuAnalysisKind.Single => "Offset"
 
+      // A radius of zero encloses no elements, but an offset of zero is the element on the field
+      // centre -- the OCS default -- so only the radius is barred from being zero.
+      val angleFormat: InputValidWedge[Angle] = kind.get match
+        case GmosIfuAnalysisKind.Sum    => ExploreModelValidators.positiveDecimalArcsecondsValidWedge
+        case GmosIfuAnalysisKind.Single => ExploreModelValidators.nonNegativeDecimalArcsecondsValidWedge
+
       // Each control contributes its own label/value pair to the panel's two-column grid;
       // wrapping them together collapses both into one cell.
       React.Fragment(
@@ -88,8 +95,10 @@ object GmosIfuAnalysisEditor
           CustomizableInputText(
             id = "ifu-analysis-angle".refined,
             value = angle,
-            validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+            validFormat = angleFormat,
+            // `posBigDecimal` denies the minus sign outright, so neither shape can be typed
+            // negative; the validator still rejects a zero radius, which is legal to type.
+            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined).denyNeg,
             // Indented to read as a property of the analysis above rather than its own setting.
             label = angleLabel,
             defaultValue = angleOf(props.default),

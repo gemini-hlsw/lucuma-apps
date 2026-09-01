@@ -186,7 +186,8 @@ case class SpectroscopyModeRow(
                       cw,
                       GmosCcdMode.Default.Longslit
                         .gmosSouth(profiles, fpu, grating, imageQuality.toImageQuality),
-                      DefaultRoi
+                      DefaultRoi,
+                      none
                     )
                     .some
                 ).some

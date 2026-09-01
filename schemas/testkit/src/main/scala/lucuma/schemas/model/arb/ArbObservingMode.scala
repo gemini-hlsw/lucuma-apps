@@ -1777,6 +1777,8 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosSouthMos],
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
+      arbitrary[ObservingMode.GmosNorthIfu],
+      arbitrary[ObservingMode.GmosSouthIfu],
       arbitrary[ObservingMode.Flamingos2LongSlit],
       arbitrary[ObservingMode.Flamingos2Mos],
       arbitrary[ObservingMode.Flamingos2Imaging],

@@ -20,6 +20,7 @@ import explore.modes.*
 import lucuma.core.data.Zipper
 import lucuma.core.enums.FocalPlane
 import lucuma.core.enums.SpectroscopyCapability
+import lucuma.core.math.Angle
 import lucuma.core.math.BrightnessUnits
 import lucuma.core.math.BrightnessUnits.Brightness
 import lucuma.core.math.BrightnessUnits.FluxDensityContinuum
@@ -35,6 +36,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.dimensional.*
 import lucuma.core.model.EmissionLine
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.UnnormalizedSED
@@ -68,6 +70,15 @@ trait ItcPicklers extends CommonPicklers {
   given Pickler[SingleSN] = transformPickler((s: SignalToNoise) => SingleSN(s))(_.value)
 
   given Pickler[GmosCcdMode] = generatePickler
+
+  given Pickler[GmosIfuAnalysis.Sum]    =
+    transformPickler[GmosIfuAnalysis.Sum, Angle](GmosIfuAnalysis.Sum(_))(_.radius)
+  given Pickler[GmosIfuAnalysis.Single] =
+    transformPickler[GmosIfuAnalysis.Single, Angle](GmosIfuAnalysis.Single(_))(_.offset)
+  given Pickler[GmosIfuAnalysis]        =
+    compositePickler[GmosIfuAnalysis]
+      .addConcreteType[GmosIfuAnalysis.Sum]
+      .addConcreteType[GmosIfuAnalysis.Single]
 
   given Pickler[InstrumentOverrides.GmosSpectroscopy] = generatePickler
 

@@ -45,6 +45,7 @@ import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
@@ -140,6 +141,14 @@ final case class Observation(
       explicitAmpReadMode.foldMap(GmosCcdMode.ampReadMode.replace),
       explicitAmpGain.foldMap(GmosCcdMode.ampGain.replace)
     ).reduce(_ >>> _)
+
+  private def ifuCcdMode(
+    xBin:        GmosXBinning,
+    yBin:        GmosYBinning,
+    ampGain:     GmosAmpGain,
+    ampReadMode: GmosAmpReadMode
+  ): GmosCcdMode =
+    GmosCcdMode(xBin, yBin, DefaultAmpCount, ampGain, ampReadMode)
 
   // Computes mode parameters locally, for quick invocation of ITC.
   def toModeOverride(targets: TargetList): Option[InstrumentOverrides.GmosSpectroscopy] =
@@ -250,7 +259,25 @@ final case class Observation(
             s.explicitAmpGain
           )(defaultMode)
 
-          InstrumentOverrides.GmosSpectroscopy(s.centralWavelength, mode, s.roi)
+          InstrumentOverrides.GmosSpectroscopy(s.centralWavelength, mode, s.roi, none)
+      case n: ObservingMode.GmosNorthIfu =>
+        InstrumentOverrides
+          .GmosSpectroscopy(
+            n.centralWavelength,
+            ifuCcdMode(n.xBin, n.yBin, n.ampGain, n.ampReadMode),
+            n.roi,
+            n.ifuAnalysis.some
+          )
+          .some
+      case s: ObservingMode.GmosSouthIfu =>
+        InstrumentOverrides
+          .GmosSpectroscopy(
+            s.centralWavelength,
+            ifuCcdMode(s.xBin, s.yBin, s.ampGain, s.ampReadMode),
+            s.roi,
+            s.ifuAnalysis.some
+          )
+          .some
       case _                             => none
 
   // Imaging modes can return multiple configs due to multiple filters, and GNIRS
@@ -401,11 +428,12 @@ final case class Observation(
             g.blue.binning
           )
           List(
-            ItcInstrumentConfig.GhostIfu(g.resolutionMode,
-                                         g.stepCount,
-                                         g.signalToNoiseAt,
-                                         red,
-                                         blue
+            ItcInstrumentConfig.GhostIfu(
+              g.resolutionMode,
+              g.stepCount,
+              g.signalToNoiseAt,
+              red,
+              blue
             )
           )
         case _: ObservingMode.Visitor            => List.empty
@@ -451,7 +479,7 @@ final case class Observation(
   def hasNonfatalValidations: Boolean = nonfatalValidations.nonEmpty
 
   // `ObservationWorkflowState` derives `Enumerated`, which extends `Order`, and `Ready` is
-  // declared after `ForReview`, so this is a "Ready or beyond" test. An inactive observation
+  // declared after `Defined`, so this is a "Ready or beyond" test. An inactive observation
   // that can transition to `Ready` or beyond counts too, the same way `isOngoing` treats it.
   lazy val isReadyOrLater: Boolean =
     workflow.value.state >= ObservationWorkflowState.Ready ||

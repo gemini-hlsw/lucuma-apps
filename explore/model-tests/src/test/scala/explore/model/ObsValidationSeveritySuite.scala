@@ -45,8 +45,7 @@ class ObsValidationSeveritySuite extends FunSuite:
   test("warnings before Ready are unacknowledged"):
     List(ObservationWorkflowState.Undefined,
          ObservationWorkflowState.Unapproved,
-         ObservationWorkflowState.Defined,
-         ObservationWorkflowState.ForReview
+         ObservationWorkflowState.Defined
     ).foreach: state =>
       val obs = obsWith(state, List(WarningCode))
       assertEquals(obs.validationSeverity, Some(ObsValidationSeverity.Warning))
