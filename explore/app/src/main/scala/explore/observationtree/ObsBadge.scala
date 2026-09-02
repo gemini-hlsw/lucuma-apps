@@ -101,7 +101,7 @@ object ObsBadge:
     case A0V        extends TelluricSelection("a0v", "A0V")
     case Solar      extends TelluricSelection("solar", "G2V")
     case Manual     extends TelluricSelection("manual", "Man")
-    case NoTelluric extends TelluricSelection("noTelluric", "❌")
+    case NoTelluric extends TelluricSelection("noTelluric", "None")
 
   private object TelluricSelection:
     given Enumerated[TelluricSelection] =
@@ -318,10 +318,16 @@ object ObsBadge:
         telluricDropdown
           .filterNot(_ => hasTelluricObs)
           .map: dropdown =>
-            <.div(ExploreStyles.ObsBadgeAssociatedObs, ExploreStyles.ObsBadgeTelluricOnlyRow)(
-              <.span("Telluric"),
-              dropdown
-            )
+            Button(
+              clazz = ExploreStyles.ObsBadgeAssociatedObs |+| ExploreStyles.ObsBadgeTelluricOnlyRow,
+              onClickE = e => e.preventDefaultCB *> e.stopPropagationCB,
+              severity = Button.Severity.Secondary
+            ).withMods(
+              <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
+                <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, "No Telluric"),
+                dropdown
+              )
+            ).compact
 
       React.Fragment(
         <.div(

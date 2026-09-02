@@ -1782,13 +1782,9 @@ svg.fa-check.explore-success-icon {
           }
         }
 
-        // Placeholder row when no telluric obs exists
+        // Placeholder row when no telluric obs exists; not clickable
         &.obs-badge-telluric-only-row {
-          display: flex;
-          align-items: center;
-          gap: 0.5em;
-          padding: 0.25em 0.5em;
-          font-size: smaller;
+          cursor: default;
         }
       }
     }
