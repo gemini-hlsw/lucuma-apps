@@ -263,8 +263,3 @@ trait TileComponent[P <: Tile[P]](
 
 object Tile:
   type TileId = NonEmptyString
-
-  final class Dummy(id: TileId) extends Tile[Dummy](id, "", hidden = true)(Dummy)
-
-  object Dummy
-      extends TileComponent[Dummy]((_, _) => HookResult(TileContents(EmptyVdom, EmptyVdom)))

@@ -452,10 +452,8 @@ object ProposalEditor
               )
             )
 
-          val errorsTile: Tile[?] =
-            props.errors.fold(Tile.Dummy(ProposalTabTileIds.ErrorsId.id))(
-              ProposalErrorsTile(_)
-            )
+          val errorsTile: Option[Tile[?]] =
+            props.errors.map(ProposalErrorsTile(_))
 
           <.div(ExploreStyles.MultiPanelTile)(
             TileController(
@@ -464,12 +462,12 @@ object ProposalEditor
               defaultLayouts,
               props.layout,
               List(
-                detailsTile,
-                usersTile,
-                abstractTile,
-                attachmentsTile,
+                detailsTile.some,
+                usersTile.some,
+                abstractTile.some,
+                attachmentsTile.some,
                 errorsTile
-              ),
+              ).flattenOption,
               GridLayoutSection.ProposalLayout,
               storeLayout = true
             )
