@@ -88,7 +88,8 @@ object ProgramTabContents
               ProgramDetailsTile(
                 props.programId,
                 props.programDetails,
-                props.userIsReadonlyCoi
+                props.userIsReadonlyCoi,
+                props.userVault.isStaffOrAdmin
               )
           )
 

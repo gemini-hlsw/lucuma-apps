@@ -189,6 +189,7 @@ trait ObservationDB {
     type Partner                             = enums.Partner
     type PlanetSpectrum                      = enums.PlanetSpectrum
     type PlanetaryNebulaSpectrum             = enums.PlanetaryNebulaSpectrum
+    type ProgramStatus                       = enums.ProgramStatus
     type ProgramType                         = enums.ProgramType
     type ProgramUserRole                     = enums.ProgramUserRole
     type ProposalStatus                      = enums.ProposalStatus

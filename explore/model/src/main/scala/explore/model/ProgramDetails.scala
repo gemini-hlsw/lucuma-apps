@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
+import lucuma.core.enums.ProgramStatus
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.PartnerLink
@@ -29,6 +30,9 @@ case class ProgramDetails(
   programType:       ProgramType,
   proposal:          Option[Proposal],
   proposalStatus:    ProposalStatus,
+  status:            ProgramStatus,
+  explicitStatus:    Option[ProgramStatus],
+  defaultStatus:     ProgramStatus,
   pi:                Option[ProgramUser],
   users:             List[ProgramUser],
   reference:         Option[ProgramReference],
@@ -42,23 +46,31 @@ case class ProgramDetails(
   val allUsers: List[ProgramUser] = pi.fold(users)(_ :: users)
 
 object ProgramDetails:
-  val name: Lens[ProgramDetails, Option[NonEmptyString]]        = Focus[ProgramDetails](_.name)
-  val description: Lens[ProgramDetails, Option[NonEmptyString]] =
+  val name: Lens[ProgramDetails, Option[NonEmptyString]]            = Focus[ProgramDetails](_.name)
+  val description: Lens[ProgramDetails, Option[NonEmptyString]]     =
     Focus[ProgramDetails](_.description)
-  val proposal: Lens[ProgramDetails, Option[Proposal]]          = Focus[ProgramDetails](_.proposal)
-  val proposalStatus: Lens[ProgramDetails, ProposalStatus]      = Focus[ProgramDetails](_.proposalStatus)
-  val allUsers: Lens[ProgramDetails, List[ProgramUser]]         =
+  val proposal: Lens[ProgramDetails, Option[Proposal]]              = Focus[ProgramDetails](_.proposal)
+  val proposalStatus: Lens[ProgramDetails, ProposalStatus]          = Focus[ProgramDetails](_.proposalStatus)
+  val status: Lens[ProgramDetails, ProgramStatus]                   = Focus[ProgramDetails](_.status)
+  val explicitStatus: Lens[ProgramDetails, Option[ProgramStatus]]   =
+    Focus[ProgramDetails](_.explicitStatus)
+  // Reads the effective status but writes the explicit one.
+  // Setting None clears the override, which returns the program to its default status.
+  val statusAsExplicit: Lens[ProgramDetails, Option[ProgramStatus]] =
+    Lens[ProgramDetails, Option[ProgramStatus]](_.status.some): es =>
+      p => p.copy(explicitStatus = es, status = es.getOrElse(p.defaultStatus))
+  val allUsers: Lens[ProgramDetails, List[ProgramUser]]             =
     Lens[ProgramDetails, List[ProgramUser]](_.allUsers)(a =>
       b => b.copy(pi = a.headOption, users = a.tail)
     )
-  val reference: Lens[ProgramDetails, Option[ProgramReference]] = Focus[ProgramDetails](_.reference)
-  val notes: Lens[ProgramDetails, List[ProgramNote]]            = Focus[ProgramDetails](_.notes)
-  val pi: Lens[ProgramDetails, Option[ProgramUser]]             = Focus[ProgramDetails](_.pi)
-  val piPartner: Optional[ProgramDetails, PartnerLink]          =
+  val reference: Lens[ProgramDetails, Option[ProgramReference]]     = Focus[ProgramDetails](_.reference)
+  val notes: Lens[ProgramDetails, List[ProgramNote]]                = Focus[ProgramDetails](_.notes)
+  val pi: Lens[ProgramDetails, Option[ProgramUser]]                 = Focus[ProgramDetails](_.pi)
+  val piPartner: Optional[ProgramDetails, PartnerLink]              =
     pi.some.andThen(ProgramUser.partnerLink.asOptional)
-  val shouldNotify: Lens[ProgramDetails, Boolean]               = Focus[ProgramDetails](_.shouldNotify)
-  val active: Lens[ProgramDetails, DateInterval]                = Focus[ProgramDetails](_.active)
-  val programTimes: Lens[ProgramDetails, ProgramTimes]          = Focus[ProgramDetails](_.programTimes)
+  val shouldNotify: Lens[ProgramDetails, Boolean]                   = Focus[ProgramDetails](_.shouldNotify)
+  val active: Lens[ProgramDetails, DateInterval]                    = Focus[ProgramDetails](_.active)
+  val programTimes: Lens[ProgramDetails, ProgramTimes]              = Focus[ProgramDetails](_.programTimes)
 
   given Decoder[ProgramDetails] = Decoder.instance(c =>
     for {
@@ -67,6 +79,9 @@ object ProgramDetails:
       t     <- c.get[ProgramType]("type")
       p     <- c.get[Option[Proposal]]("proposal")
       ps    <- c.get[ProposalStatus]("proposalStatus")
+      st    <- c.get[ProgramStatus]("status")
+      est   <- c.get[Option[ProgramStatus]]("explicitStatus")
+      dst   <- c.get[ProgramStatus]("defaultStatus")
       pi    <- c.downField("pi").as[Option[ProgramUser]]
       us    <- c.get[List[ProgramUser]]("users")
       r     <-
@@ -84,6 +99,9 @@ object ProgramDetails:
                            t,
                            p,
                            ps,
+                           st,
+                           est,
+                           dst,
                            pi,
                            us,
                            r.flatten,

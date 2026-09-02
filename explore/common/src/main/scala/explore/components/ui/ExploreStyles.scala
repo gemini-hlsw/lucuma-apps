@@ -643,6 +643,7 @@ object ExploreStyles:
   val ProgramDetailsLeft: Css     = Css("program-details-left")
   val ProgramDetailsRight: Css    = Css("program-details-right")
   val ProgramTabTable: Css        = Css("program-tab-table")
+  val ProgramStatusSelect: Css    = Css("program-status-select")
   val ProgramDetailsUsers: Css    = Css("program-details-users")
 
   val ProgramNotesTileBody: Css         = Css("program-notes-tile-body")
