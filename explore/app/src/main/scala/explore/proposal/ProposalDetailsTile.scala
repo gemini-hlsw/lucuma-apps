@@ -585,11 +585,8 @@ object ProposalDetailsBody:
     val cfpView: View[Option[CallForProposal]] =
       props.proposalAligner
         .view(_.toInput)
-        .withModPatch: (oldProposal, newProposal) =>
+        .withModPatch: (_, newProposal) =>
           val newCall: Option[CallForProposal]                  = newProposal.call
-          val oldCall: Option[CallForProposal]                  = oldProposal.call
-          val oldGeminiType: Option[GeminiCallForProposalsType] =
-            oldCall.flatMap(_.gemini).map(_.cfpType)
           val newGeminiType: Option[GeminiCallForProposalsType] =
             newCall.flatMap(_.gemini).map(_.cfpType)
 
@@ -602,19 +599,27 @@ object ProposalDetailsBody:
               )
               .flatten
 
+          // The proposal type is replaced only when the current one cannot be used
+          // with the newly selected call.  A type the call already accepts (Classical
+          // on a Regular Semester call) is left alone, and a proposal with no type of
+          // its own -- the state a freshly created proposal is in -- takes the call's
+          // default.
+          def fitsCall(cfp: CallForProposal): Boolean =
+            newProposal.proposalType.exists:
+              case g: GeminiProposalType =>
+                cfp.gemini.exists(_.cfpType.subTypes.exists(_ === g.scienceSubtype))
+              case _: KeckProposalType   => cfp.observatory === Observatory.Keck
+              case _: SubaruProposalType => cfp.observatory === Observatory.Subaru
+
           val patched: Proposal =
             newCall.fold(newProposal): newCfp =>
-              // If the CfP observatory has changed, we also need to change the proposal type accordingly
-              if oldCall.forall(_.observatory =!= newCfp.observatory) then
-                val newType = newCfp.observatory.defaultProposalType
+              if fitsCall(newCfp) then newProposal
+              else
+                val newType =
+                  newCfp.gemini
+                    .map(_.cfpType.defaultType(props.pi.map(_.id)))
+                    .getOrElse(newCfp.observatory.defaultProposalType)
                 Proposal.proposalType.replace(newType.some)(newProposal)
-              // If both old and new cfps are gemini, but they are different subtypes,
-              // update the proposal type to the default for the new CfP
-              else if newGeminiType.exists(n => !oldGeminiType.contains(n)) then
-                newGeminiType.fold(newProposal): newGemini =>
-                  val newType = newGemini.defaultType(props.pi.map(_.id))
-                  Proposal.proposalType.replace(newType.some)(newProposal)
-              else newProposal
 
           Proposal.proposalType.some
             .andThen(ProposalType.geminiProposalType)
