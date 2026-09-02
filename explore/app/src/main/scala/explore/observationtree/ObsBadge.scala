@@ -96,19 +96,14 @@ object ObsBadge:
     val ConstraintsTab: Layout  = Layout(true, false, Section.Detail, false)
 
   // Dropdown of TelluricType. Labels are kept short so the selector stays narrow.
-  // Manual is not offered, it shows as an empty selection.
-  private enum TelluricSelection(val tag: String, val label: String) derives Eq:
+  // Manual is not offered.
+  private enum TelluricSelection(val tag: String, val name: String) derives Enumerated, Display:
     case Hot        extends TelluricSelection("hot", "Hot")
     case A0V        extends TelluricSelection("a0v", "A0V")
     case Solar      extends TelluricSelection("solar", "G2V")
     case NoTelluric extends TelluricSelection("noTelluric", "None")
 
   private object TelluricSelection:
-    given Enumerated[TelluricSelection] =
-      Enumerated.from(Hot, A0V, Solar, NoTelluric).withTag(_.tag)
-
-    given Display[TelluricSelection] = Display.byShortName(_.label)
-
     def fromTelluricType(tt: TelluricType): Option[TelluricSelection] = tt match
       case TelluricType.Hot        => Hot.some
       case TelluricType.A0V        => A0V.some
