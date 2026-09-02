@@ -108,15 +108,14 @@ object ItcSpectroscopyPlot {
         val edges = graph.series.flatMap(s => List(s.xAxis.start, s.xAxis.end))
         (edges.min, edges.max)
 
-    // The two IFU-2 slits land on the same pixels but at different wavelengths,
-    // so the web ITC hangs one wavelength axis per slit above the plot. The
-    // signal graph holds the very same series in the wavelength domain, which
-    // gives us each slit's (linear) pixel-to-wavelength relation; the first CCD
-    // block is enough, as the relation holds across the whole detector.
-    val wavelengthAxes: List[(String, (Double, Double))] =
+    // The two IFU-2 slits land on the same pixels but at different wavelengths.
+    // The signal graph holds the very same series in the wavelength domain,
+    // which gives us each slit's (linear) pixel-to-wavelength relation; the
+    // first CCD block is enough, as the relation holds across the whole
+    // detector.
+    val wavelengthScales: List[(String, Double => Double)] =
       if hasCcdBlocks then
         for
-          (xMin, xMax)   <- xBounds.toList
           series         <- blocks.headOption.toList.flatten
           if isSignalSeries(series.seriesType)
           (wStart, wEnd) <- wavelengthRanges.get(series.title.trim).toList
@@ -124,10 +123,20 @@ object ItcSpectroscopyPlot {
           pEnd            = series.xAxis.end
           if pStart =!= pEnd
           nmPerPixel      = (wEnd - wStart) / (pEnd - pStart)
-          atMin           = wStart + (xMin - pStart) * nmPerPixel
-          atMax           = wStart + (xMax - pStart) * nmPerPixel
-        yield (series.title.trim.stripSuffix(" Signal"), (atMin.min(atMax), atMin.max(atMax)))
+        yield (series.title.trim.stripSuffix(" Signal"),
+               (pixel: Double) => wStart + (pixel - pStart) * nmPerPixel
+        )
       else Nil
+
+    // One wavelength axis per slit above the plot, as the web ITC has.
+    val wavelengthAxes: List[(String, (Double, Double))] =
+      for
+        (xMin, xMax)         <- xBounds.toList
+        (slit, toWavelength) <- wavelengthScales
+      yield
+        val atMin = toWavelength(xMin)
+        val atMax = toWavelength(xMax)
+        (slit, (atMin.min(atMax), atMin.max(atMax)))
 
     val yAxes = YAxisOptions()
       .setTitle(YAxisTitleOptions().setText(title))
@@ -156,7 +165,13 @@ object ItcSpectroscopyPlot {
           if (graph.graphType === GraphType.S2NGraph) "" else " 𝐞⁻"
         val classNames: String =
           graphClassName + point.colorIndex.toOption.foldMap(ci => s" highcharts-color-${ci.toInt}")
-        s"""<strong>$x $xAxisUnit</strong><br/><span class="$classNames">●</span> ${point.series.name}: <strong>$y$measUnit</strong>"""
+        // A single pixel means a different wavelength in each slit, so spell
+        // both of them out next to it. Empty for the wavelength-domain graphs.
+        val slitWavelengths: String =
+          wavelengthScales
+            .map((slit, toWavelength) => f" | $slit ${toWavelength(point.x)}%.1f nm")
+            .mkString
+        s"""<strong>$x $xAxisUnit$slitWavelengths</strong><br/><span class="$classNames">●</span> ${point.series.name}: <strong>$y$measUnit</strong>"""
 
     val graphTitle = graph.graphType match
       case GraphType.SignalGraph      => "Signal in 1-pixel"
