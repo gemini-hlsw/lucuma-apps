@@ -54,9 +54,8 @@ object ProgramDetails:
   val status: Lens[ProgramDetails, ProgramStatus]                   = Focus[ProgramDetails](_.status)
   val explicitStatus: Lens[ProgramDetails, Option[ProgramStatus]]   =
     Focus[ProgramDetails](_.explicitStatus)
-  // Reads the effective status but writes the explicit one, so an editor can show the
-  // status a program has while changing the only part of it that is settable. Setting
-  // None clears the override, which returns the program to its default status.
+  // Reads the effective status but writes the explicit one.
+  // Setting None clears the override, which returns the program to its default status.
   val statusAsExplicit: Lens[ProgramDetails, Option[ProgramStatus]] =
     Lens[ProgramDetails, Option[ProgramStatus]](_.status.some): es =>
       p => p.copy(explicitStatus = es, status = es.getOrElse(p.defaultStatus))

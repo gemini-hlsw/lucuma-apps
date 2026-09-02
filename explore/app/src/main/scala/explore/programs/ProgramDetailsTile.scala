@@ -50,8 +50,7 @@ object ProgramDetailsTile
             .zoom(ProgramDetails.statusAsExplicit)
             .withOnMod(s => ctx.odbApi.updateProgramExplicitStatus(props.programId, s).runAsync)
 
-        // The clear button removes the staff override, so it is only offered when there
-        // is one; otherwise the status shown is already the derived one.
+        // The clear button removes the staff override
         val statusInfo: VdomNode =
           if props.userIsStaffOrAdmin then
             EnumDropdownOptionalView(
