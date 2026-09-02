@@ -159,11 +159,11 @@ object ItcSpectroscopyPlot {
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
       (point: Point, _: Tooltip, _: js.UndefOr[Point]) =>
-        val x: String          = rounded(point.x)
-        val y: String          = rounded(point.y)
-        val measUnit: String   =
+        val x: String               = rounded(point.x)
+        val y: String               = rounded(point.y)
+        val measUnit: String        =
           if (graph.graphType === GraphType.S2NGraph) "" else " 𝐞⁻"
-        val classNames: String =
+        val classNames: String      =
           graphClassName + point.colorIndex.toOption.foldMap(ci => s" highcharts-color-${ci.toInt}")
         // A single pixel means a different wavelength in each slit, so spell
         // both of them out next to it. Empty for the wavelength-domain graphs.
