@@ -36,6 +36,7 @@ import lucuma.core.model.PartnerLink
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Enumerated
 import lucuma.core.validation.InputValidSplitEpi
+import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
@@ -236,6 +237,17 @@ object ProgramUsersTable:
     case _                                  => "Unspecified Partner"
   }
 
+  /**
+   * Whether a missing value in this row is worth flagging. Only investigators must be complete for
+   * a proposal to be submitted, so support and external users are left alone.
+   */
+  private def isInvestigator(pu: ProgramUser): Boolean =
+    pu.role === ProgramUserRole.Pi || pu.role === ProgramUserRole.Coi ||
+      pu.role === ProgramUserRole.CoiRO
+
+  private def warnIfEmpty(pu: ProgramUser, isEmpty: Boolean, readOnly: Boolean): Css =
+    ExploreStyles.WarningInput.when_(isEmpty && isInvestigator(pu) && !readOnly)
+
   private def partnerSelector(
     id:       ProgramUser.Id,
     value:    View[Option[PartnerLink]],
@@ -415,7 +427,8 @@ object ProgramUsersTable:
                 value = view,
                 disabled = meta.isActive.get.value,
                 validFormat = InputValidSplitEpi.nonEmptyString.optional,
-                placeholder = pu.name
+                placeholder = pu.name,
+                inputClass = warnIfEmpty(pu, pu.name.isEmpty, meta.isActive.get.value)
               ).clearable: VdomNode
             else pu.name: VdomNode
       ).sortableBy(_.get.name),
@@ -440,7 +453,8 @@ object ProgramUsersTable:
                 disabled = meta.isActive.get.value,
                 validFormat = ExploreModelValidators.MailValidator.optional,
                 validateOnPaste = false,
-                placeholder = pu.email.orUndefined
+                placeholder = pu.email.orUndefined,
+                inputClass = warnIfEmpty(pu, pu.email.isEmpty, meta.isActive.get.value)
               ).clearable: VdomNode
             else pu.email.getOrElse("-"): VdomNode
       ).sortableBy(_.get.email),
@@ -482,7 +496,8 @@ object ProgramUsersTable:
               valueTemplate = _.value.shortName,
               emptyMessageTemplate = "No Selection",
               disabled = !canEdit || meta.isActive.get.value,
-              clazz = ExploreStyles.PartnerSelector
+              clazz = ExploreStyles.PartnerSelector |+|
+                warnIfEmpty(cell.get, view.get.isEmpty, !canEdit || meta.isActive.get.value)
             )
       ).sortableBy(_.get.toString),
       ColDef(
@@ -546,7 +561,9 @@ object ProgramUsersTable:
               id = NonEmptyString.unsafeFrom(s"$programUserId-affiliation"),
               value = view,
               disabled = !canEdit || meta.isActive.get.value,
-              validFormat = InputValidSplitEpi.nonEmptyString.optional
+              validFormat = InputValidSplitEpi.nonEmptyString.optional,
+              inputClass =
+                warnIfEmpty(cell.get, view.get.isEmpty, !canEdit || meta.isActive.get.value)
             ): VdomNode
       ).sortableBy(_.get.toString),
       column(Column.OrcidId, _.get.user.flatMap(_.orcidId).foldMap(_.value)).sortable,
