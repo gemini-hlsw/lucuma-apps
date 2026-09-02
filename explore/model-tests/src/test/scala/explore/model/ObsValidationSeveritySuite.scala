@@ -15,7 +15,7 @@ class ObsValidationSeveritySuite extends FunSuite:
   import ArbObservation.given
 
   private val ErrorCode   = ObservationValidationCode.ConfigurationError
-  private val WarningCode = ObservationValidationCode.GenericWarning
+  private val WarningCode = ObservationValidationCode.LowTotalSignalToNoise
 
   private val baseObs: Observation =
     arbitrary[Observation].sample.get

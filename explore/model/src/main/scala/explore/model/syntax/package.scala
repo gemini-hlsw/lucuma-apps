@@ -14,7 +14,6 @@ import explore.model.enums.PosAngleOptions
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -200,13 +199,6 @@ object all:
   extension (cr: Option[CalibrationRole])
     def needsITC: Boolean               = cr.forall(_.needsITC)
     def needsAcquisitionConfig: Boolean = cr.forall(_.needsAcquisitionConfig)
-
-  extension (code: ObservationValidationCode)
-    // `Severity` has no `Eq` in lucuma-core, so we match instead of using `===`.
-    def isFatal: Boolean =
-      code.severity match
-        case ObservationValidationCode.Severity.Fatal    => true
-        case ObservationValidationCode.Severity.Nonfatal => false
 
   extension (bc: ObservingModeType)
     def defaultPosAngleOptions: PosAngleOptions =
