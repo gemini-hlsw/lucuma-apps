@@ -482,10 +482,10 @@ final case class Observation(
     workflow.value.validationErrors.exists(_.code === code)
 
   lazy val fatalValidations: List[ObservationValidation] =
-    workflow.value.validationErrors.filter(_.code.isFatal)
+    workflow.value.validationErrors.filter(_.code.isError)
 
   lazy val nonfatalValidations: List[ObservationValidation] =
-    workflow.value.validationErrors.filterNot(_.code.isFatal)
+    workflow.value.validationErrors.filterNot(_.code.isError)
 
   def hasFatalValidations: Boolean    = fatalValidations.nonEmpty
   def hasNonfatalValidations: Boolean = nonfatalValidations.nonEmpty
@@ -506,7 +506,7 @@ final case class Observation(
 
   // The severity of one of this observation's validations, in this observation's context.
   def severityOf(code: ObservationValidationCode): ObsValidationSeverity =
-    if (code.isFatal) ObsValidationSeverity.Error
+    if (code.isError) ObsValidationSeverity.Error
     else if (warningsAcknowledged) ObsValidationSeverity.AcknowledgedWarning
     else ObsValidationSeverity.Warning
 
