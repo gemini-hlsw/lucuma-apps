@@ -30,6 +30,7 @@ object VisualizationStyles:
   val JtsTargets = Css("overlay-all-targets")
 
   val JtsGuides        = Css("viz-guides")
+  val VizShapeLabel    = Css("viz-shape-label")
   val JtsPolygon       = Css("viz-polygon")
   val JtsCollection    = Css("viz-collecttion")
   val VisualizationSvg = Css("visualization-overlay-svg")
