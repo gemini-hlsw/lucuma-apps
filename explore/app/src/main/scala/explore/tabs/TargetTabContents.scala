@@ -442,14 +442,11 @@ object TargetTabContents extends TwoPanels:
             val obsConf = idsToEdit.single match {
               case Some(id) =>
                 props.programSummaries.get.observations.values.toList
-                  .collect:
-                    case o @ Observation(
-                          id = obsId,
-                          constraints = const,
-                          basicConfiguration = Some(conf)
-                        ) if obsId === id =>
-                      (const, conf, o.needsAGS(props.targets.get))
-                  .headOption
+                  .collectFirst:
+                    case o @ Observation(id = obsId, constraints = const) if obsId === id =>
+                      o.basicConfiguration.map: conf =>
+                        (const, conf, o.needsAGS(props.targets.get))
+                  .flatten
               case _        => None
             }
 
