@@ -17,12 +17,18 @@ import explore.model.ObservationsAndGroups
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
+import lucuma.core.model.TelluricType
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.undo.Action
 import lucuma.ui.undo.AsyncAction
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 object ObsActions:
   def obsGroupInfo(
@@ -106,6 +112,61 @@ object ObsActions:
           List(obsId),
           ObservationPropertiesInput(scienceBand = scienceBand.orUnassign)
         )
+    )
+
+  // The telluric type lives inside the observing mode, thus only modes that generate
+  // tellurics are accepted.
+  private def telluricTypeModeInput(
+    modeType:     ObservingModeType,
+    telluricType: TelluricType
+  ): Option[ObservingModeInput] =
+    val input = telluricType.toInput.assign
+    modeType match
+      case ObservingModeType.Flamingos2LongSlit =>
+        ObservingModeInput
+          .Flamingos2LongSlit(Flamingos2LongSlitInput(telluricType = input))
+          .some
+      case ObservingModeType.Flamingos2Mos      =>
+        ObservingModeInput.Flamingos2Mos(Flamingos2MosInput(telluricType = input)).some
+      case ObservingModeType.Igrins2LongSlit    =>
+        ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput(telluricType = input)).some
+      case ObservingModeType.GnirsLongSlit      =>
+        ObservingModeInput.GnirsLongSlit(GnirsLongSlitInput(telluricType = input)).some
+      case ObservingModeType.GnirsIfu           =>
+        ObservingModeInput.GnirsIfu(GnirsIfuInput(telluricType = input)).some
+      case _                                    =>
+        none
+
+  def obsTelluricType(
+    obsId:    Observation.Id,
+    modeType: ObservingModeType
+  )(using
+    odbApi:   OdbObservationApi[IO]
+  )(using Logger[IO]): Action[ObservationList, Option[TelluricType]] =
+    Action(
+      getter = (obsList: ObservationList) =>
+        obsList
+          .get(obsId)
+          .flatMap(_.observingMode.toOption.flatten)
+          .flatMap(ObservingMode.telluricType.getOption),
+      setter = telluricTypeOpt =>
+        obsList =>
+          telluricTypeOpt.fold(obsList): tt =>
+            obsList.updatedWith(obsId):
+              _.map:
+                Observation.observingMode
+                  .modify(_.map(_.map(ObservingMode.telluricType.replace(tt))))
+    )(
+      onSet = (_, telluricTypeOpt) =>
+        telluricTypeOpt.foldMap: tt =>
+          telluricTypeModeInput(modeType, tt).fold(
+            // For developers
+            error"No ObservingModeInput mapping for mode $modeType in telluricTypeModeInput"
+          ): modeInput =>
+            odbApi.updateObservations(
+              List(obsId),
+              ObservationPropertiesInput(observingMode = modeInput.assign)
+            )
     )
 
   def groupExistence(

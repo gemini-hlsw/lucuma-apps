@@ -34,6 +34,7 @@ import explore.model.OnCloneParameters
 import explore.model.PopupState
 import explore.model.TargetEditObsInfo
 import explore.model.UserPreferences
+import explore.model.display.given
 import explore.model.enums.TargetType
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
@@ -57,7 +58,9 @@ import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.TargetResolution
+import lucuma.core.model.TelluricType
 import lucuma.core.model.User
+import lucuma.core.syntax.display.*
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
@@ -106,6 +109,7 @@ case class TargetEditor(
   readonly:                    Boolean,
   allowEditingOngoing:         Boolean,
   isStaffOrAdmin:              Boolean,
+  telluricType:                Option[TelluricType] = None,
   invalidateSequence:          Callback = Callback.empty,
   blindOffsetInfo:             Option[(Observation.Id, View[BlindOffset])] = none,
   renderAladin:                Boolean = true,
@@ -639,6 +643,16 @@ object TargetEditor:
 
         val formColumn =
           <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
+            // The telluric star type this calibration target was chosen for
+            props.telluricType.map: tt =>
+              React.Fragment(
+                FormLabel(htmlFor = "telluric-type".refined)("Telluric"),
+                <.span(^.id := "telluric-type", tt.shortName).withOptionalTooltip(
+                  TelluricType.manual
+                    .getOption(tt)
+                    .map(m => s"Star types: ${m.starTypes.toList.mkString(", ")}")
+                )
+              ),
             // Keep the search field and the coords always together
             SearchForm(
               props.obsTargets.focus.id,

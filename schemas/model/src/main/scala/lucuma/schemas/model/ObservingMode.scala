@@ -24,6 +24,7 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.TelluricType
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
@@ -38,6 +39,7 @@ import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.stepconfig.given
+import lucuma.odb.json.tellurictype.decoder.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
@@ -45,6 +47,7 @@ import lucuma.refined.*
 import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
+import monocle.Optional
 import monocle.Prism
 import monocle.macros.GenPrism
 
@@ -1314,6 +1317,7 @@ object ObservingMode:
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
     exposureTimeMode:         ExposureTimeMode,
+    telluricType:             TelluricType,
     acquisition:              Flamingos2LongSlit.Acquisition
   ) extends ObservingMode(Instrument.Flamingos2.some) derives Eq:
     val decker: Flamingos2Decker               =
@@ -1401,6 +1405,8 @@ object ObservingMode:
       Focus[Flamingos2LongSlit](_.explicitTelescopeConfigs)
     val exposureTimeMode: Lens[Flamingos2LongSlit, ExposureTimeMode]                     =
       Focus[Flamingos2LongSlit](_.exposureTimeMode)
+    val telluricType: Lens[Flamingos2LongSlit, TelluricType]                             =
+      Focus[Flamingos2LongSlit](_.telluricType)
     val acquisition: Lens[Flamingos2LongSlit, Flamingos2LongSlit.Acquisition]            =
       Focus[Flamingos2LongSlit](_.acquisition)
 
@@ -1432,6 +1438,7 @@ object ObservingMode:
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
     exposureTimeMode:         ExposureTimeMode,
+    telluricType:             TelluricType,
     acquisition:              Flamingos2Mos.Acquisition
   ) extends ObservingMode(Instrument.Flamingos2.some) derives Eq:
     val decker: Flamingos2Decker               =
@@ -1519,6 +1526,8 @@ object ObservingMode:
       Focus[Flamingos2Mos](_.explicitTelescopeConfigs)
     val exposureTimeMode: Lens[Flamingos2Mos, ExposureTimeMode]                     =
       Focus[Flamingos2Mos](_.exposureTimeMode)
+    val telluricType: Lens[Flamingos2Mos, TelluricType]                             =
+      Focus[Flamingos2Mos](_.telluricType)
     val acquisition: Lens[Flamingos2Mos, Acquisition]                               =
       Focus[Flamingos2Mos](_.acquisition)
 
@@ -1599,7 +1608,8 @@ object ObservingMode:
     exposureTimeMode:         ExposureTimeMode,
     svc:                      Option[Igrins2LongSlit.Svc],
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
-    explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
+    explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
+    telluricType:             TelluricType
   ) extends ObservingMode(Instrument.Igrins2.some) derives Eq:
     val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
@@ -1622,6 +1632,8 @@ object ObservingMode:
       Focus[Igrins2LongSlit](_.defaultTelescopeConfigs)
     val explicitTelescopeConfigs: Lens[Igrins2LongSlit, Option[SlitTelescopeConfigs]] =
       Focus[Igrins2LongSlit](_.explicitTelescopeConfigs)
+    val telluricType: Lens[Igrins2LongSlit, TelluricType]                             =
+      Focus[Igrins2LongSlit](_.telluricType)
 
     // Slit-Viewing Camera acquisition configuration.
     case class Svc(
@@ -1901,6 +1913,7 @@ object ObservingMode:
     defaultWellDepth:          GnirsWellDepth,
     explicitWellDepth:         Option[GnirsWellDepth],
     explicitFocusMotorSteps:   Option[GnirsFocusMotorStepsValue],
+    telluricType:              TelluricType,
     acquisition:               GnirsSpectroscopyAcquisition
   ) extends ObservingMode(Instrument.Gnirs.some) derives Eq:
     val decker: GnirsDecker       =
@@ -1984,6 +1997,8 @@ object ObservingMode:
       Focus[GnirsLongSlit](_.explicitWellDepth)
     val explicitFocusMotorSteps: Lens[GnirsLongSlit, Option[GnirsFocusMotorStepsValue]]            =
       Focus[GnirsLongSlit](_.explicitFocusMotorSteps)
+    val telluricType: Lens[GnirsLongSlit, TelluricType]                                            =
+      Focus[GnirsLongSlit](_.telluricType)
     val acquisition: Lens[GnirsLongSlit, GnirsSpectroscopyAcquisition]                             =
       Focus[GnirsLongSlit](_.acquisition)
 
@@ -2007,6 +2022,7 @@ object ObservingMode:
     defaultWellDepth:          GnirsWellDepth,
     explicitWellDepth:         Option[GnirsWellDepth],
     explicitFocusMotorSteps:   Option[GnirsFocusMotorStepsValue],
+    telluricType:              TelluricType,
     acquisition:               GnirsSpectroscopyAcquisition
   ) extends ObservingMode(Instrument.Gnirs.some) derives Eq:
     val decker: GnirsDecker       =
@@ -2086,6 +2102,8 @@ object ObservingMode:
       Focus[GnirsIfu](_.explicitWellDepth)
     val explicitFocusMotorSteps: Lens[GnirsIfu, Option[GnirsFocusMotorStepsValue]]            =
       Focus[GnirsIfu](_.explicitFocusMotorSteps)
+    val telluricType: Lens[GnirsIfu, TelluricType]                                            =
+      Focus[GnirsIfu](_.telluricType)
     val acquisition: Lens[GnirsIfu, GnirsSpectroscopyAcquisition]                             =
       Focus[GnirsIfu](_.acquisition)
 
@@ -2349,3 +2367,23 @@ object ObservingMode:
 
   val subaruExchange: Prism[ObservingMode, SubaruExchange] =
     GenPrism[ObservingMode, SubaruExchange]
+
+  // Present only for the modes that generate telluric calibrations.
+  val telluricType: Optional[ObservingMode, TelluricType] =
+    Optional[ObservingMode, TelluricType] {
+      case m: Flamingos2LongSlit => m.telluricType.some
+      case m: Flamingos2Mos      => m.telluricType.some
+      case m: Igrins2LongSlit    => m.telluricType.some
+      case m: GnirsLongSlit      => m.telluricType.some
+      case m: GnirsIfu           => m.telluricType.some
+      case _                     => none
+    } { tt =>
+      {
+        case m: Flamingos2LongSlit => m.copy(telluricType = tt)
+        case m: Flamingos2Mos      => m.copy(telluricType = tt)
+        case m: Igrins2LongSlit    => m.copy(telluricType = tt)
+        case m: GnirsLongSlit      => m.copy(telluricType = tt)
+        case m: GnirsIfu           => m.copy(telluricType = tt)
+        case other                 => other
+      }
+    }

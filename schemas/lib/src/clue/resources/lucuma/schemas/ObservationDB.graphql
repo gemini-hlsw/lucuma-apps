@@ -8725,12 +8725,16 @@ enum Flamingos2Reads {
   READS_16
 }
 
-"""Telluric calibration type"""
+"""
+Telluric calibration type.  NO_TELLURIC means no telluric calibration is
+wanted: none are generated and existing ones without visits are removed.
+"""
 enum TelluricTag {
   HOT
   A0V
   SOLAR
   MANUAL
+  NO_TELLURIC
 }
 
 """Telluric calibration type"""
@@ -13419,9 +13423,6 @@ enum ObsStatus {
 
   """ObsStatus Approved"""
   APPROVED
-
-  """ObsStatus ForReview"""
-  FOR_REVIEW
 
   """ObsStatus Ready"""
   READY
@@ -20199,7 +20200,6 @@ enum ObservationWorkflowState {
   UNDEFINED
   UNAPPROVED
   DEFINED
-  FOR_REVIEW
   READY
   ONGOING
   COMPLETED

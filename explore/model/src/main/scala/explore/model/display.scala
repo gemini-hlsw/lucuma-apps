@@ -20,6 +20,7 @@ import lucuma.core.model.ElevationRange
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.Semester
 import lucuma.core.model.SpectralDefinition
+import lucuma.core.model.TelluricType
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
@@ -43,6 +44,11 @@ trait DisplayImplicits:
 
   given Display[Site] =
     Display.byShortName(_.shortName)
+
+  given Display[TelluricType] =
+    Display.byShortName:
+      case TelluricType.NoTelluric => "None"
+      case other                   => other.tag
 
   given Display[TacGroup] =
     Display.byShortName(_.label)

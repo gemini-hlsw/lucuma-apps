@@ -44,6 +44,7 @@ import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.Tree
 import lucuma.react.primereact.Tree.Node
+import lucuma.schemas.model.ObservingMode
 import lucuma.ui.dnd.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
@@ -464,6 +465,13 @@ object ObsTree:
                     (b: ScienceBand) =>
                       ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
                   ).some,
+                  setTelluricTypeCB = obs.observingMode.toOption.flatten
+                    .filter(ObservingMode.telluricType.getOption(_).isDefined)
+                    .map: mode =>
+                      tt =>
+                        ObsActions
+                          .obsTelluricType(obs.id, mode.obsModeType)
+                          .set(props.observations)(tt.some),
                   allocatedScienceBands = props.allocatedScienceBands,
                   associatedObss = associatedObss,
                   programId = props.programId,
