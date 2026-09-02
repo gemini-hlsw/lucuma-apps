@@ -5,6 +5,7 @@ package explore.model
 
 import cats.Order.given
 import cats.syntax.all.*
+import crystal.Pot
 import explore.model.arb.ArbObservation.given
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
@@ -96,8 +97,11 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
     state:         ObservationWorkflowState,
     isCalibration: Boolean
   ): Observation =
-    Observation.basicConfiguration
+    // The effective basic configuration derives from the full observing mode once that is
+    // hydrated, so the summary only decides it while the mode is still pending.
+    Observation.basicConfigSummary
       .replace(config)
+      .andThen(Observation.observingMode.replace(Pot.Pending))
       .andThen(Observation.workflowState.replace(state))
       .andThen(
         Observation.calibrationRole.replace(Option.when(isCalibration)(CalibrationRole.Twilight))

@@ -79,7 +79,7 @@ final case class Observation(
   schedulingConstraints:   SchedulingConstraints,
   attachmentIds:           SortedSet[Attachment.Id],
   scienceRequirements:     ScienceRequirements,
-  basicConfiguration:      Option[BasicConfiguration],
+  basicConfigSummary:      Option[BasicConfiguration],
   observingMode:           Pot[Option[ObservingMode]],
   observationTime:         Option[Instant],
   observationDuration:     Option[TimeSpan],
@@ -98,6 +98,18 @@ final case class Observation(
   blindOffset:             BlindOffset,
   cassRotator:             CassRotator
 ) derives Eq:
+  /**
+   * The lightweight view of the observing mode. Derived from the full mode whenever the detail
+   * query has hydrated it, so that an edit in the configuration panel is reflected immediately;
+   * `basicConfigSummary`, which the bulk query fills in on first paint, covers the window before
+   * that. It is deliberately not settable: it is a projection of the mode, and letting the two
+   * drift is what left the Aladin overlay drawing a stale aperture.
+   */
+  def basicConfiguration: Option[BasicConfiguration] =
+    observingMode.toOption.flatten
+      .map(_.toBasicConfiguration)
+      .orElse(basicConfigSummary)
+
   // The observation reference when it has one, the id otherwise.
   lazy val displayLabel: String = reference.fold(id.show)(_.label)
 
@@ -571,7 +583,7 @@ object Observation:
   val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
   val attachmentIds            = Focus[Observation](_.attachmentIds)
   val scienceRequirements      = Focus[Observation](_.scienceRequirements)
-  val basicConfiguration       = Focus[Observation](_.basicConfiguration)
+  val basicConfigSummary       = Focus[Observation](_.basicConfigSummary)
   val observingMode            = Focus[Observation](_.observingMode)
   val observationTime          = Focus[Observation](_.observationTime)
   val observationDuration      = Focus[Observation](_.observationDuration)
@@ -658,7 +670,7 @@ object Observation:
       fullMode              <- c.downField("observingMode").as[Option[ObservingMode]] match
                                  case Right(opt) => Pot.Ready(opt).asRight
                                  case Left(_)    => Pot.Pending.asRight
-      basicConfiguration    <- fullMode.toOption.flatten match
+      basicConfigSummary    <- fullMode.toOption.flatten match
                                  case Some(mode) => mode.toBasicConfiguration.some.asRight
                                  case None       =>
                                    c.get[Option[BasicConfiguration]]("observingMode")
@@ -688,7 +700,7 @@ object Observation:
       schedulingConstraints,
       SortedSet.from(attachmentIds.map(_.id)),
       scienceRequirements,
-      basicConfiguration,
+      basicConfigSummary,
       fullMode,
       observationTime.map(_.toInstant),
       observationDur,
