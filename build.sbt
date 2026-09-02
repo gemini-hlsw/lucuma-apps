@@ -58,8 +58,11 @@ lazy val esModule = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
   Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(true) },
   Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+  // Small modules in dev keep each file (and its inline source map, as served by Vite)
+  // small enough for browser devtools; a single FewestModules bundle reaches ~100MB
+  // and crashes them (esp. Firefox) when the console is open.
   Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
-    ModuleSplitStyle.FewestModules
+    ModuleSplitStyle.SmallModulesFor(List("explore", "observe", "lucuma"))
   )),
   Compile / fullLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
     ModuleSplitStyle.FewestModules
@@ -458,6 +461,14 @@ lazy val explore_workers = project
   .settings(exploreCommonLibSettings: _*)
   .settings(esModule: _*)
   .settings(
+    // The workers bundle is imported once per worker (6 of them, uncached in dev),
+    // so in dev keep it a single module: with SmallModulesFor each worker would
+    // fetch ~3k modules on page load and Chrome runs out of network resources.
+    // Keep the source map: without it, Vite generates its own identity map with
+    // the full source embedded, nearly tripling the served size.
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
+      ModuleSplitStyle.FewestModules
+    )),
     libraryDependencies ++= LucumaCatalog.value ++
       Http4sDom.value ++
       Log4Cats.value,
