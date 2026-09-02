@@ -117,8 +117,8 @@ object OverviewTabContents
         val showObsAttachments =
           props.proposalIsAccepted || !isScienceProgram
 
-        val attachmentsTile: Tile[?] =
-          props.userVault.fold(Tile.Dummy(OverviewTabTileIds.AttachmentsId.id))(userVault =>
+        val attachmentsTile: Option[Tile[?]] =
+          props.userVault.map(userVault =>
             AttachmentsTile(
               props.programId,
               userVault,
@@ -134,9 +134,8 @@ object OverviewTabContents
 
         // only edit program description here for non-science programs. For science programs it
         // is edited as the abstract on the proposals tab.
-        val descriptionTile: Tile[?] =
-          if (isScienceProgram) Tile.Dummy(OverviewTabTileIds.DescriptionId.id)
-          else
+        val descriptionTile: Option[Tile[?]] =
+          Option.unless(isScienceProgram):
             val descriptionAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
               Aligner(
                 props.detailsUndoSetter,
@@ -168,8 +167,8 @@ object OverviewTabContents
             )
 
         // A duplication check is a proposal concern, so it is offered on science programs only.
-        val archiveDuplicationTile: Tile[?] =
-          if (isScienceProgram)
+        val archiveDuplicationTile: Option[Tile[?]] =
+          Option.when(isScienceProgram):
             ArchiveDuplicationTile(
               props.userId,
               props.programId,
@@ -178,7 +177,6 @@ object OverviewTabContents
               props.detailsUndoSetter.get.proposalStatus,
               props.readonly
             )
-          else Tile.Dummy(OverviewTabTileIds.ArchiveDuplicationId.id)
 
         <.div(ExploreStyles.MultiPanelTile)(
           TileController(
@@ -187,12 +185,12 @@ object OverviewTabContents
             defaultLayouts,
             props.layout,
             List(
-              warningsAndErrorsTile,
-              groupWarningsTile,
+              warningsAndErrorsTile.some,
+              groupWarningsTile.some,
               attachmentsTile,
               descriptionTile,
               archiveDuplicationTile
-            ),
+            ).flattenOption,
             GridLayoutSection.OverviewLayout
           )
         ).withRef(resize.ref)

@@ -582,12 +582,6 @@ object TargetTabContents extends TwoPanels:
             List(asterismEditorTile, skyPlotTile.some).flattenOption
           }
 
-          // We still want to render these 2 tiles, even when not shown, so as not to mess up the stored layout.
-          val dummyTargetTile: Tile[?]    =
-            Tile.Dummy(TargetTabTileIds.AsterismEditor.id)
-          val dummyElevationTile: Tile[?] =
-            Tile.Dummy(TargetTabTileIds.ElevationPlot.id)
-
           /**
            * Renders a single sidereal target editor without an obs context
            */
@@ -655,12 +649,11 @@ object TargetTabContents extends TwoPanels:
 
             val selectedTargetsTiles: List[Tile[?]] =
               List(
-                renderSummary,
-                singleTargetEditorTile.getOrElse(dummyTargetTile),
+                renderSummary.some,
+                singleTargetEditorTile,
                 Option // Show plot if and only if the editor is hidden.
                   .when(singleTargetEditorTile.isEmpty)(skyPlotTile)
-                  .getOrElse(dummyElevationTile)
-              )
+              ).flattenOption
 
             val (tiles, key) =
               observationSetTargetEditorTile
