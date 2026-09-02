@@ -78,11 +78,11 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
         SET = ProgramPropertiesInput(name = name.orUnassign)
       )
 
-  def updateProgramStatus(id: Program.Id, status: ProgramStatus): F[Unit] =
+  def updateProgramExplicitStatus(id: Program.Id, status: Option[ProgramStatus]): F[Unit] =
     updateProgram:
       UpdateProgramsInput(
         WHERE = id.toWhereProgram.assign,
-        SET = ProgramPropertiesInput(status = status.assign)
+        SET = ProgramPropertiesInput(explicitStatus = status.orUnassign)
       )
 
   def updateGoaShouldNotify(id: Program.Id, shouldNotify: Boolean): F[Unit] =

@@ -21,6 +21,8 @@ object ProgramDetailsSubquery extends GraphQLSubquery.Typed[ObservationDB, Progr
       proposal $ProposalSubquery
       proposalStatus
       status
+      explicitStatus
+      defaultStatus
       users $ProgramUserSubquery
       reference $ProgramReferenceSubquery
       allocations $AllocationSubquery

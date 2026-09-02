@@ -111,20 +111,31 @@ How many Archive Matches a Search found, counted per file to stay consistent wit
 floor rather than an exact figure when the Search saturated the archive's 500-record cap.
 _Avoid_: number of duplicates, hits
 
-### Program scheduling
+### Program status
 
 **Active Period**:
-The date interval a program may be observed in, shown as Start and End on the Program Details
-tile. A property of the program's award, not of anyone's decision to schedule it.
-_Avoid_: active (bare — collides with Program Status Active)
+The date interval during which a program's observations may be scheduled, shown as Start and
+End on the Program Details tile. Defaulted from the Call for Proposals when there is one.
+_Avoid_: active (bare — collides with the Active status), observing window (an
+observation-level concept)
 
 **Program Status**:
-Whether a program may be scheduled at all, and whether it is considered finished: Active,
-Inactive, Complete or Incomplete. One value, not two flags — marking a program Complete
-replaces Inactive rather than sitting alongside it. Complete does not mean the program used
-all its allocated time. Readable by anyone with program access, settable only by staff.
-_Avoid_: active/inactive (bare — say Program Status), proposal status (a separate concept:
-where a proposal sits in the submission workflow)
+A program's effective status: the Explicit Status when one is declared, otherwise the Default
+Status. One of Active, Inactive, Complete or Incomplete. Read-only in Explore — it is derived,
+never written. Complete does not mean the program used all its allocated time.
+_Avoid_: program state, activation, proposal status (a separate concept: where a proposal
+sits in the submission workflow)
+
+**Default Status**:
+The derived layer of Program Status: Active while today falls within the Active Period,
+Inactive outside it. Never Complete or Incomplete, and changes on its own as dates pass.
+_Avoid_: computed status, isActive (removed from the API; read the effective status instead)
+
+**Explicit Status**:
+A staff-declared status masking the Default Status. Any status may be declared, Active
+included, which forces a program active outside its Active Period. The only writable part of
+Program Status. Clearing it returns the program to its Default Status.
+_Avoid_: status override, manual status
 
 ### Tile layout
 

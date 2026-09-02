@@ -21,7 +21,7 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.ui.primereact.CheckboxView
-import lucuma.ui.primereact.EnumDropdownView
+import lucuma.ui.primereact.EnumDropdownOptionalView
 import lucuma.ui.primereact.FormInfo
 import lucuma.ui.primereact.given
 
@@ -38,23 +38,26 @@ object ProgramDetailsTile
       useContext(AppContext.ctx).map: ctx =>
         import ctx.given
 
-        val details: ProgramDetails         = props.programDetails.get
-        val thesis: Boolean                 = details.allUsers.exists(_.thesis.exists(_ === true))
-        val users: View[List[ProgramUser]]  = props.programDetails.zoom(ProgramDetails.allUsers)
-        val newDataNotificationView         =
+        val details: ProgramDetails                 = props.programDetails.get
+        val thesis: Boolean                         = details.allUsers.exists(_.thesis.exists(_ === true))
+        val users: View[List[ProgramUser]]          = props.programDetails.zoom(ProgramDetails.allUsers)
+        val newDataNotificationView                 =
           props.programDetails
             .zoom(ProgramDetails.shouldNotify)
             .withOnMod(b => ctx.odbApi.updateGoaShouldNotify(props.programId, b).runAsync)
-        val statusView: View[ProgramStatus] =
+        val statusView: View[Option[ProgramStatus]] =
           props.programDetails
-            .zoom(ProgramDetails.status)
-            .withOnMod(s => ctx.odbApi.updateProgramStatus(props.programId, s).runAsync)
+            .zoom(ProgramDetails.statusAsExplicit)
+            .withOnMod(s => ctx.odbApi.updateProgramExplicitStatus(props.programId, s).runAsync)
 
+        // The clear button removes the staff override, so it is only offered when there
+        // is one; otherwise the status shown is already the derived one.
         val statusInfo: VdomNode =
           if props.userIsStaffOrAdmin then
-            EnumDropdownView(
+            EnumDropdownOptionalView(
               id = "programStatus".refined,
               value = statusView,
+              showClear = details.explicitStatus.isDefined,
               clazz = ExploreStyles.ProgramStatusSelect
             )
           else details.status.shortName
