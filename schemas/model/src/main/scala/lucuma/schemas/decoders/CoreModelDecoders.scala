@@ -3,8 +3,6 @@
 
 package lucuma.schemas.decoders
 
-import cats.data.NonEmptyList
-import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.DecodingFailure
@@ -14,7 +12,6 @@ import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.WavelengthDither
 import lucuma.core.math.dimensional.*
 import lucuma.core.model.Semester
-import lucuma.core.model.TelluricType
 import lucuma.core.util.*
 
 trait CoreModelDecoders:
@@ -48,25 +45,6 @@ trait CoreModelDecoders:
       start <- c.downField("start").as[Timestamp]
       end   <- c.downField("end").as[Timestamp]
     yield TimestampInterval.between(start, end)
-
-  // Mirrors lucuma-odb-schema's query decoder; local until a release includes NO_TELLURIC.
-  given Decoder[TelluricType] = Decoder.instance: c =>
-    c.downField("tag")
-      .as[String]
-      .flatMap:
-        case "HOT"         => TelluricType.Hot.asRight
-        case "A0V"         => TelluricType.A0V.asRight
-        case "SOLAR"       => TelluricType.Solar.asRight
-        case "NO_TELLURIC" => TelluricType.NoTelluric.asRight
-        case "MANUAL"      =>
-          c.downField("starTypes")
-            .as[Option[List[String]]]
-            .flatMap: starTypes =>
-              NonEmptyList
-                .fromList(starTypes.orEmpty)
-                .map(TelluricType.Manual(_))
-                .toRight(DecodingFailure("MANUAL telluric type requires star types", c.history))
-        case tag           => DecodingFailure(s"Invalid TelluricType tag `$tag`", c.history).asLeft
 
   given calculatedValueDecoder[A: Decoder]: Decoder[CalculatedValue[A]] =
     Decoder.instance: c =>

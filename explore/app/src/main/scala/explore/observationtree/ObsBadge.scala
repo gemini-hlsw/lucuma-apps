@@ -96,32 +96,31 @@ object ObsBadge:
     val ConstraintsTab: Layout  = Layout(true, false, Section.Detail, false)
 
   // Dropdown of TelluricType. Labels are kept short so the selector stays narrow.
+  // Manual is not offered, it shows as an empty selection.
   private enum TelluricSelection(val tag: String, val label: String) derives Eq:
     case Hot        extends TelluricSelection("hot", "Hot")
     case A0V        extends TelluricSelection("a0v", "A0V")
     case Solar      extends TelluricSelection("solar", "G2V")
-    case Manual     extends TelluricSelection("manual", "Man")
     case NoTelluric extends TelluricSelection("noTelluric", "None")
 
   private object TelluricSelection:
     given Enumerated[TelluricSelection] =
-      Enumerated.from(Hot, A0V, Solar, Manual, NoTelluric).withTag(_.tag)
+      Enumerated.from(Hot, A0V, Solar, NoTelluric).withTag(_.tag)
 
     given Display[TelluricSelection] = Display.byShortName(_.label)
 
-    def fromTelluricType(tt: TelluricType): TelluricSelection = tt match
-      case TelluricType.Hot        => Hot
-      case TelluricType.A0V        => A0V
-      case TelluricType.Solar      => Solar
-      case TelluricType.Manual(_)  => Manual
-      case TelluricType.NoTelluric => NoTelluric
+    def fromTelluricType(tt: TelluricType): Option[TelluricSelection] = tt match
+      case TelluricType.Hot        => Hot.some
+      case TelluricType.A0V        => A0V.some
+      case TelluricType.Solar      => Solar.some
+      case TelluricType.NoTelluric => NoTelluric.some
+      case TelluricType.Manual(_)  => none
 
-    def toTelluricType(selection: TelluricSelection): Option[TelluricType] = selection match
-      case Hot        => TelluricType.Hot.some
-      case A0V        => TelluricType.A0V.some
-      case Solar      => TelluricType.Solar.some
-      case NoTelluric => TelluricType.NoTelluric.some
-      case Manual     => none
+    def toTelluricType(selection: TelluricSelection): TelluricType = selection match
+      case Hot        => TelluricType.Hot
+      case A0V        => TelluricType.A0V
+      case Solar      => TelluricType.Solar
+      case NoTelluric => TelluricType.NoTelluric
 
   // TODO Make this a component similar to the one in the docs.
   private def renderEnumProgress[A: Enumerated](value: A): VdomNode = {
@@ -283,22 +282,17 @@ object ObsBadge:
         (props.telluricType, props.setTelluricTypeCB).mapN: (telluricType, setCB) =>
           val current = TelluricSelection.fromTelluricType(telluricType)
           <.span(ExploreStyles.ObsBadgeTelluricSelectWrapper)(
-            EnumDropdownView(
+            EnumDropdownOptionalView(
               id = NonEmptyString.unsafeFrom(s"obs-telluric-${obs.id}"),
-              value = View[TelluricSelection](
+              value = View[Option[TelluricSelection]](
                 current,
                 (f, cb) =>
                   val newValue = f(current)
-                  TelluricSelection
-                    .toTelluricType(newValue)
-                    .map(setCB)
-                    .getOrEmpty >> cb(current, newValue)
+                  newValue.map(TelluricSelection.toTelluricType).map(setCB).getOrEmpty >>
+                    cb(current, newValue)
               ),
-              exclude = Option
-                // TODO: Don't support manual mode just yet
-                .unless(current === TelluricSelection.Manual)(TelluricSelection.Manual)
-                .toSet,
-              disabledItems = Set(TelluricSelection.Manual),
+              showClear = false,
+              placeholder = "Man",
               size = PlSize.Mini,
               clazz = ExploreStyles.ObsBadgeTelluricSelect,
               panelClass = ExploreStyles.ObsStateSelectPanel,

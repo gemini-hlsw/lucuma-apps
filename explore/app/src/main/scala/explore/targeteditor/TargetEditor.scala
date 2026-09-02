@@ -643,8 +643,7 @@ object TargetEditor:
 
         val formColumn =
           <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
-            // The telluric star type this calibration target was chosen for; readonly,
-            // it is set from the science observation.
+            // The telluric star type this calibration target was chosen for
             props.telluricType.map: tt =>
               React.Fragment(
                 FormLabel(htmlFor = "telluric-type".refined)("Telluric"),

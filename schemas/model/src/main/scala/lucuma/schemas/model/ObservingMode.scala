@@ -39,6 +39,7 @@ import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.stepconfig.given
+import lucuma.odb.json.tellurictype.decoder.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
