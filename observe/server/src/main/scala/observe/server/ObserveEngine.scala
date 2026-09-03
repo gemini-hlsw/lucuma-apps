@@ -476,15 +476,23 @@ object ObserveEngine {
                   .as(SeqEvent.SequenceCompleted(obsId))
 
   private def updateStep[F[_]](
-    obsId:   Observation.Id,
-    stepGen: Option[StepGen[F]]
+    obsId:      Observation.Id,
+    stepGen:    Option[StepGen[F]],
+    stepIdFrom: Either[SequenceType, Step.Id]
   ): Endo[EngineState[F]] =
     (st: EngineState[F]) =>
       EngineState
         .atSequence[F](obsId)
         .modify { (seqData: SequenceData[F]) =>
+          // A step loaded by id comes from a single subsystem configuration run. Configuring a
+          // science step is not the same as starting science, so the sequence type is kept: it
+          // would otherwise switch to Science, hiding the pending acquisition in the UI and
+          // making the next start pick a science step.
           val newSeqType: SequenceType =
-            stepGen.map(_.sequenceType).getOrElse(seqData.seq.currentSequenceType)
+            stepIdFrom.fold(
+              _ => stepGen.map(_.sequenceType).getOrElse(seqData.seq.currentSequenceType),
+              _ => seqData.seq.currentSequenceType
+            )
 
           // Revive sequence if it was completed - or complete if no more steps
           val newStatus: SequenceStatus =
@@ -553,7 +561,7 @@ object ObserveEngine {
         if ((existingStep, stepGen).tupled.exists(_.isSameAs(_)))
           EngineHandle.debug:
             s"Step for observation [$obsId] is the same as the currently loaded one, not updating state"
-        else EngineHandle.modifyState_(updateStep(obsId, stepGen))
+        else EngineHandle.modifyState_(updateStep(obsId, stepGen, stepIdFrom))
     yield stepGen
 
   /**

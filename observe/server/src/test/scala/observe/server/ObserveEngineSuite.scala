@@ -432,6 +432,61 @@ class ObserveEngineSuite extends TestCommon {
       .exists(_.started)).assert
   }
 
+  test("ObserveEngine configSystem for a science step should not switch the sequence type") {
+    val s0 = (loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      EngineState
+        .sequenceStateAt[IO](seqObsId1)
+        .modify(_.copy(currentSequenceType = SequenceType.Acquisition)))
+      .apply(EngineState.default[IO])
+
+    def step(idx: Int): Step[DynamicConfig.GmosNorth] =
+      Step[DynamicConfig.GmosNorth](
+        stepId(idx),
+        dynamicCfg1,
+        stepCfg1,
+        telescopeCfg1,
+        StepEstimate.Zero,
+        ObserveClass.Science,
+        Breakpoint.Disabled
+      )
+
+    val obsData = s0.selected.gmosNorth.map(_.observation)
+
+    (for {
+      acqAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
+      sciAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
+      odb       <- TestOdbProxy.buildGmosNorth[IO](
+                     seqObsId1,
+                     staticCfg1,
+                     Atom[DynamicConfig.GmosNorth](acqAtomId, none, NonEmptyList.one(step(1))).some,
+                     List(Atom[DynamicConfig.GmosNorth](sciAtomId, none, NonEmptyList.one(step(2)))),
+                     obsData
+                   )
+      oe        <- observeEngineWithODB(odb)
+      sf        <- advanceN(
+                     oe,
+                     s0,
+                     oe.configSystem(seqObsId1, observer, user, stepId(2), TCS, clientId),
+                     2
+                   )
+    } yield {
+      val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      // The science step is loaded so its configuration can run...
+      assertEquals(seq.flatMap(_.seq.loadedStep.map(_.id)), stepId(2).some)
+      assert(
+        seq
+          .flatMap(s => s.configActionCoord(stepId(2), TCS).map(s.seq.getSingleState))
+          .exists(_.started)
+      )
+      // ...but the sequence is still in acquisition, so the pending acquisition stays visible.
+      assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
+    }).assert
+  }
+
   test("ObserveEngine should not run a system configuration if sequence is running") {
     val s0 = (loadSequenceWithResources(
       seqObsId1,
