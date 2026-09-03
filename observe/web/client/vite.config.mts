@@ -13,7 +13,7 @@ const fontImport = Unfonts({
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
   const _dirname = import.meta.dirname;
-  const scalaClassesDir = path.resolve(_dirname, 'target/scala-3.8.4');
+  const scalaClassesDir = path.resolve(_dirname, 'target/scala-3.9.0');
   const isProduction = mode == 'production';
   const sjs = isProduction
     ? path.resolve(scalaClassesDir, 'observe_web_client-opt')
