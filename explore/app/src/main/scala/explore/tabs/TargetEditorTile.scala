@@ -10,6 +10,7 @@ import explore.components.*
 import explore.components.TileContents
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
+import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.GuideStarSelection
 import explore.model.ObservationTargets
@@ -19,14 +20,19 @@ import explore.model.TargetEditObsInfo
 import explore.model.TargetTabTileIds
 import explore.model.UserPreferences
 import explore.targeteditor.TargetEditor
+import explore.targeteditor.UseTrackingMap.useTrackingMap
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
+import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.undo.UndoSetter
+
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 final case class SingleTargetEditorTile(
   programId:          Program.Id,
@@ -45,6 +51,7 @@ final case class SingleTargetEditorTile(
   isStaffOrAdmin:     Boolean,
   obsInfo:            TargetEditObsInfo,
   onClone:            OnCloneParameters => Callback,
+  site:               Option[Site],
   backButton:         Option[VdomNode] = none
 ) extends Tile[SingleTargetEditorTile](
       TargetTabTileIds.AsterismEditor.id,
@@ -55,7 +62,16 @@ final case class SingleTargetEditorTile(
 
 object SingleTargetEditorTile
     extends TileComponent[SingleTargetEditorTile]((props, _) =>
-      TileContents:
+      for
+        ctx         <- useContext(AppContext.ctx)
+        // Same default TargetEditor falls back to when there is no observation time.
+        obsTime     <- useMemo(())(_ => Instant.now().truncatedTo(ChronoUnit.DAYS))
+        trackingMap <- useTrackingMap(
+                         ObservationTargets.one(props.target.get).some,
+                         props.site,
+                         obsTime.value.some
+                       )(ctx)
+      yield TileContents:
         <.div(
           ExploreStyles.AladinFullScreen.when(props.fullScreen.get.value),
           <.div(
@@ -68,8 +84,9 @@ object SingleTargetEditorTile
                 props.target,
                 props.obsAndTargets,
                 ObservationTargets.one(props.target.get),
-                obsTime = none,
+                obsTime = obsTime.value.some,
                 obsConf = none,
+                trackingMap = trackingMap,
                 searching = props.searching,
                 obsInfo = props.obsInfo,
                 onClone = props.onClone,

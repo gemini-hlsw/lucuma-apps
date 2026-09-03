@@ -32,13 +32,11 @@ import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.optics.ModelOptics
 import explore.targeteditor.UseAgsCalculation.*
-import explore.utils.tracking.*
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.*
 import lucuma.ags.syntax.*
-import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -73,6 +71,7 @@ case class AladinCell(
   obsTargets:          ObservationTargets,
   obsTime:             Instant,
   obsConf:             Option[ObsConfiguration],
+  trackingMap:         Pot[ErrorMsgOr[RegionOrTrackingMap]],
   fullScreen:          View[AladinFullScreen],
   userPreferences:     View[UserPreferences],
   guideStarSelection:  View[GuideStarSelection],
@@ -86,10 +85,6 @@ case class AladinCell(
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
-
-  // This matters for non-sidereals - not sure what to default to.
-  // Probably doesn't matters, since we don't do much if there isn't a configuration.
-  val site: Site = obsConf.flatMap(_.configuration).flatMap(_.siteFor).getOrElse(Site.GN)
 
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, obsConf.flatMap(_.posAngleConstraint))
@@ -218,23 +213,10 @@ object AladinCell extends ModelOptics with AladinCommon:
   private val component = ScalaFnComponent[Props]: props =>
     for {
       ctx                 <- useContext(AppContext.ctx)
-      trackingMapResult   <-
-        // Keep the previous tracking map while recomputing: reverting to Pending would unmount
-        // aladin and reload the whole image on every coordinate edit
-        useEffectKeepResultWithDeps((props.obsTargets, props.obsTime, props.site)):
-          (targets, at, s) =>
-            import ctx.given
-            // if there is an unresolved ToO, don't bother getting tracking
-            if (targets.hasUnresolvedTargetOfOpportunity)
-              RegionOrTrackingMap.Empty.asRight.pure
-            else
-              // get it for the full semester for visualization purposes, with
-              // high resolution around the obsTime.
-              getMixedResolutionRegionOrTrackingMap(targets.allTargets.toList, s, at)
       obsTargetsCoordsPot <- useMemo(
                                (props.obsTargets,
                                 props.obsTime,
-                                trackingMapResult.value.value,
+                                props.trackingMap,
                                 props.obsConf.map(_.targetViz),
                                 props.obsConf.flatMap(_.explicitBase)
                                )
@@ -254,7 +236,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                                                      explicitBase
                                      )
       oBaseTracking       <-
-        useMemo((props.obsTargets, trackingMapResult.value.toOption.flatMap(_.toOption))):
+        useMemo((props.obsTargets, props.trackingMap.toOption.flatMap(_.toOption))):
           (obsTargets, trackings) =>
             // We should have trackings for all the targets, so we'll ignore errors here.
             trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
@@ -625,7 +607,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           )
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot: (etr, eco) =>
+        (props.trackingMap, obsTargetsCoordsPot.value).tupled.renderPot: (etr, eco) =>
           (etr, eco).tupled.fold(
             err => Message(severity = Message.Severity.Error, text = err),
             (tr, co) =>

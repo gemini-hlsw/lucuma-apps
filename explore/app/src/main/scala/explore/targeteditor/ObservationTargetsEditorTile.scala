@@ -6,6 +6,7 @@ package explore.targeteditor
 import cats.Order.given
 import cats.effect.IO
 import cats.syntax.all.*
+import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -18,6 +19,7 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.ConfigurationForVisualization
+import explore.model.ErrorMsgOr
 import explore.model.GhostSkySlot
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
@@ -27,6 +29,7 @@ import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.OnCloneParameters
+import explore.model.RegionOrTrackingMap
 import explore.model.TargetEditObsInfo
 import explore.model.TargetList
 import explore.model.UserPreferences
@@ -35,6 +38,7 @@ import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.shortcuts.*
 import explore.shortcuts.given
+import explore.targeteditor.UseTrackingMap.useTrackingMap
 import explore.targets.TargetColumns
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
@@ -92,7 +96,9 @@ final case class ObservationTargetsEditorTile(
   slotPositions:       List[(SlotId, View[Option[Coordinates]])] = Nil,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
-  backButton:          Option[VdomNode] = None
+  backButton:          Option[VdomNode] = None,
+  // Tracking shared by the host; the tile builds its own when the host has no use for it.
+  trackingMap:         Option[Pot[ErrorMsgOr[RegionOrTrackingMap]]] = None
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
       tileId,
@@ -160,6 +166,11 @@ object ObservationTargetsEditorTile
                                    scienceIds.value ++ oBlindId.toList
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
+          ownTrackingMap      <- useTrackingMap(
+                                   obsTargets.value.filter(_ => props.trackingMap.isEmpty),
+                                   distinctSite.value,
+                                   obsTimeOrNow.value.some
+                                 )(ctx)
           _                   <- useLayoutEffectWithDeps(
                                    (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
                                  ): (allTargetIds, focusedTargetId, preferredTargetOpt) =>
@@ -213,6 +224,9 @@ object ObservationTargetsEditorTile
 
           // The effective instant to display. Memoized in the hook above
           val obsTime: Instant = obsTimeOrNow.value
+
+          val trackingMap: Pot[ErrorMsgOr[RegionOrTrackingMap]] =
+            props.trackingMap.getOrElse(ownTrackingMap)
 
           val skyPositions: List[(SlotId, Coordinates)] =
             props.slotPositions.flatMap { case (slot, v) => v.get.map(slot -> _) }
@@ -407,6 +421,7 @@ object ObservationTargetsEditorTile
                     targets.focusOn(focusedTargetId),
                     props.obsTime.get,
                     props.obsConf.some,
+                    trackingMap,
                     props.searching,
                     onClone = props.onCloneTarget,
                     obsInfo = obsInfo,
@@ -465,6 +480,7 @@ object ObservationTargetsEditorTile
                       aladinTargets,
                       obsTime,
                       props.obsConf.some,
+                      trackingMap,
                       fullScreen,
                       props.userPreferences,
                       props.guideStarSelection,

@@ -24,6 +24,7 @@ import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.EmptySiderealTarget
 import explore.model.EmptySourceProfile
+import explore.model.ErrorMsgOr
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
@@ -32,6 +33,7 @@ import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
 import explore.model.PopupState
+import explore.model.RegionOrTrackingMap
 import explore.model.TargetEditObsInfo
 import explore.model.UserPreferences
 import explore.model.display.given
@@ -98,6 +100,7 @@ case class TargetEditor(
   obsTargets:                  ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
   obsTime:                     Option[Instant],
   obsConf:                     Option[ObsConfiguration],
+  trackingMap:                 Pot[ErrorMsgOr[RegionOrTrackingMap]],
   searching:                   View[Set[Target.Id]],
   obsInfo:                     TargetEditObsInfo,
   onClone:                     OnCloneParameters => Callback,
@@ -722,6 +725,7 @@ object TargetEditor:
                   props.obsTargets,
                   ot,
                   props.obsConf,
+                  props.trackingMap,
                   props.fullScreen,
                   props.userPreferences,
                   props.guideStarSelection,

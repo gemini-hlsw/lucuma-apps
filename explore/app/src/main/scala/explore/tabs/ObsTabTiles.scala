@@ -43,15 +43,15 @@ import explore.plots.PlotData
 import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
-import explore.utils.tracking.*
+import explore.targeteditor.UseTrackingMap.useTrackingMap
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.ags.syntax.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
-import lucuma.ags.syntax.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
@@ -72,7 +72,6 @@ import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
-import lucuma.react.primereact.Message
 import lucuma.react.resizeDetector.*
 import lucuma.refined.*
 import lucuma.schemas.model.AGSWavelength
@@ -82,7 +81,6 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
-import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sso.UserVault
@@ -274,26 +272,8 @@ object ObsTabTiles:
                                   sequenceChanged.set(pending)
         obsTimeOrNowPot      <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
                                   vizTime => IO(vizTime.getOrElse(Instant.now()))
-        trackingOptMapPot    <-
-          useEffectKeepResultWithDeps(props.observation.get.basicConfiguration.flatMap(_.siteFor),
-                                      obsTimeOrNowPot.value.toOption,
-                                      props.asterismAsNel.map(_.science)
-          ): (site, obsTime, targets) =>
-            import ctx.given
-            (obsTime,
-             // Only non-sidereals need the site for tracking, so only get tracking if we have a site or if there are no non-sidereal targets
-             targets.filter: ts =>
-               site.isDefined || ts.forall(_.target.asNonsidereal.isEmpty)
-            )
-              .traverseN: (i, ts) =>
-                getRegionOrTrackingMapForObservingNight(ts, site, i)
-                  .flatMap(
-                    _.fold(
-                      err => ToastCtx[IO].showToast(err, Message.Severity.Error).as(None),
-                      _.some.pure[IO]
-                    )
-                  )
-              .map(_.flatten)
+        trackingMapPot       <-
+          useTrackingMap(props.asterismAsNel, props.site, obsTimeOrNowPot.value.toOption)(ctx)
         // Store guide star selection in a view for fast local updates
         // This is not the ideal place for this but we need to share the selected guide star
         // across the configuration and target tile
@@ -354,8 +334,10 @@ object ObsTabTiles:
         isEditingAcquisition <- useStateView(IsEditing.False)
         isEditingScience     <- useStateView(IsEditing.False)
         optAsterismTracking   =
-          trackingOptMapPot.value.toOption.flatten.flatMap: trackingMap =>
-            props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
+          trackingMapPot.toOption
+            .flatMap(_.toOption)
+            .flatMap: trackingMap =>
+              props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
         averagePA             =
           obsTimeOrNowPot.value.toOption.flatMap(props.averagePA(_, optAsterismTracking))
         anglesToTest          =
@@ -756,7 +738,8 @@ object ObsTabTiles:
               slotPositions = slotPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
-              blindOffsetInfo = (props.obsId, blindOffsetView).some
+              blindOffsetInfo = (props.obsId, blindOffsetView).some,
+              trackingMap = trackingMapPot.some
             )
 
           // The ExploreStyles.ConstraintsTile css adds a z-index to the constraints tile react-grid wrapper

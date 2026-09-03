@@ -611,7 +611,8 @@ object TargetTabContents extends TwoPanels:
                   props.readonly,
                   props.isStaffOrAdmin,
                   getObsInfo(none)(targetId),
-                  onCloneTarget4Target
+                  onCloneTarget4Target,
+                  props.sitesForTarget(targetId).headOption
                 )
           }
 
