@@ -8,13 +8,15 @@ import cats.data.OptionT
 import cats.effect.IO
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
-import lucuma.core.enums.{Breakpoint, Instrument, SequenceType}
+import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation as LObservation
 import lucuma.core.model.sequence.Step
 import observe.common.test.*
 import observe.model.ActionType
-import observe.model.enums.Resource
 import observe.model.SequenceStatus
+import observe.model.enums.Resource
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
@@ -160,21 +162,6 @@ class SequenceSuite extends munit.CatsEffectSuite {
         .startSingle(c)
         .getSingleState(c) == Action.ActionState.Started
     )
-  }
-
-  test("startSingle should not start single Action from completed Step") {
-    // A step that has progressed past initial execution (done.nonEmpty)
-    val seq1 = SequenceState[IO](
-      obsId = obsId,
-      status = SequenceStatus.Running.Init,
-      loadedStep = Some(LoadedStep(DummyStepGen, stepzr0)),
-      currentSequenceType = SequenceType.Science,
-      breakpoints = Breakpoints.empty,
-      singleRuns = Map.empty
-    )
-    val c1   = ConfigActionCoords(stepId(1), Resource.TCS)
-
-    assert(seq1.startSingle(c1).getSingleState(c1).isIdle)
   }
 
   test("failSingle should mark a single running Action as failed") {

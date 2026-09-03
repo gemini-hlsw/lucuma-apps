@@ -21,11 +21,11 @@ enum Server(val tag: String) derives Enumerated:
   case Dhs extends Server("Dhs")
   case Gws extends Server("Gws")
 
-type Subsystem         = Resource | Instrument
+type Subsystem = Resource | Instrument
 given Eq[Subsystem] = Eq.instance {
-  case (a: Resource, b: Resource) => a === b
+  case (a: Resource, b: Resource)     => a === b
   case (a: Instrument, b: Instrument) => a === b
-  case _ => false
+  case _                              => false
 }
 
 type SubsystemOrServer = Subsystem | Server

@@ -7,7 +7,9 @@ import cats.Eq
 import cats.derived.*
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.NewType
-import observe.model.{Observation, Subsystem, given}
+import observe.model.Observation
+import observe.model.Subsystem
+import observe.model.given
 
 object ActionIndex extends NewType[Long]
 type ActionIndex = ActionIndex.Type

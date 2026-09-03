@@ -69,8 +69,8 @@ trait ArbNodAndShuffleStep {
     ].contramap(s =>
       (
         s.id,
-       s.configStatus.toList,
-       s.nsStatus
+        s.configStatus.toList,
+        s.nsStatus
       )
     )
 

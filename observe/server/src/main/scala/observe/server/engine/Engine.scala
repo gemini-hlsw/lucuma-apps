@@ -60,7 +60,11 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
   private def cancelPause(id: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.No))
 
-  def startSingle(c: ConfigActionCoords, seq: SequenceState[F], act: Action[F]): EngineHandle[F, Outcome] = {
+  def startSingle(
+    c:   ConfigActionCoords,
+    seq: SequenceState[F],
+    act: Action[F]
+  ): EngineHandle[F, Outcome] = {
     val resultStream: Option[Stream[F, Result]] =
       ((seq.status.isIdle || seq.status.isError) && !seq.getSingleState(c).active).option(act.gen)
 
@@ -87,7 +91,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
             .as[Outcome](Outcome.Ok)
       }
       .getOrElse(EngineHandle.pure(Outcome.Failure))
-    }
+  }
 
   private def completeSingleRun[V <: RetVal](c: ActionCoords, r: V): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(c.obsId)(_.completeSingle(c.actCoords, r))

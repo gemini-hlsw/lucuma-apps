@@ -20,7 +20,7 @@ case class SequenceView(
   loadedStep:      Option[ObserveStep],
   willStopIn:      Option[Int],
   breakpoints:     Set[Step.Id],
-  singleRuns: Map[Step.Id, Map[Subsystem, ActionStatus]]
+  singleRuns:      Map[Step.Id, Map[Subsystem, ActionStatus]]
 ) derives Eq:
   def pausedStep: Option[PausedStep] =
     loadedStep.filter(_.isObservePaused).map(_.id).map(PausedStep(_))

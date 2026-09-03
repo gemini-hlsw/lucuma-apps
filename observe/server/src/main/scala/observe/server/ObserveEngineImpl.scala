@@ -49,7 +49,8 @@ import observe.server.engine.Handle.given
 import observe.server.engine.Result.Partial
 import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
-import observe.server.odb.{OdbObservationData, OdbProxy}
+import observe.server.odb.OdbObservationData
+import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -57,6 +58,7 @@ import java.util.concurrent.TimeUnit
 import scala.annotation.unused
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
+
 import SeqEvent.*
 import ClientEvent.*
 
@@ -624,7 +626,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
 
     val engineLoadedStep: Option[ObserveStep] =
       sequenceState.loadedStep.map: ls =>
-        val stepResources = ls.resources.toList.map{ x => (x, sequenceState.getSingleState(ConfigActionCoords(ls.id, x)).actionStatus) }
+        val stepResources = ls.resources.toList.map { x =>
+          (x, sequenceState.getSingleState(ConfigActionCoords(ls.id, x)).actionStatus)
+        }
 
         StepsView
           .stepsView(instrument)
@@ -647,7 +651,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       engStep,
       None,
       sequenceState.breakpoints.value,
-      sequenceState.getSingleActionStates.view.mapValues(_.view.mapValues(_.actionStatus).toMap).toMap
+      sequenceState.getSingleActionStates.view
+        .mapValues(_.view.mapValues(_.actionStatus).toMap)
+        .toMap
     )
   }
 
@@ -962,18 +968,27 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st0 =>
       if (configSystemCheck(sys, st0))
-        st0.sequences.get(obsId).map{ obsData =>
-          EngineHandle.liftF(systems.odb.readExecutionConfig(obsId).attempt.map(_.toOption)).flatMap { exec =>
-            (for {
-              x <- exec
-              r <- translator.nextStep(OdbObservationData(obsData.observation, x), stepId.asRight)._2
-              act <- r.generator.configs.get(sys).map(_(obsData.overrides))
-            } yield executeEngine.startSingle(ConfigActionCoords(stepId, sys), obsData.seq, act).map[SeqEvent] {
-              case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
-              case _ => NullSeqEvent
-            }).getOrElse(EngineHandle.pure(NullSeqEvent))
+        st0.sequences
+          .get(obsId)
+          .map { obsData =>
+            EngineHandle
+              .liftF(systems.odb.readExecutionConfig(obsId).attempt.map(_.toOption))
+              .flatMap { exec =>
+                (for {
+                  x   <- exec
+                  r   <- translator
+                           .nextStep(OdbObservationData(obsData.observation, x), stepId.asRight)
+                           ._2
+                  act <- r.generator.configs.get(sys).map(_(obsData.overrides))
+                } yield executeEngine
+                  .startSingle(ConfigActionCoords(stepId, sys), obsData.seq, act)
+                  .map[SeqEvent] {
+                    case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
+                    case _                      => NullSeqEvent
+                  }).getOrElse(EngineHandle.pure(NullSeqEvent))
+              }
           }
-      }.getOrElse(EngineHandle.pure(NullSeqEvent))
+          .getOrElse(EngineHandle.pure(NullSeqEvent))
       else EngineHandle.pure(ResourceBusy(obsId, stepId, sys, clientId))
     }
 
@@ -995,27 +1010,27 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
 //      } else EngineHandle.pure(ResourceBusy(obsId, stepId, sys, clientId))
 //    }
 
-    // EngineHandle.getState.flatMap { st0 =>
-    //   if (configSystemCheck(sys, st0))
-    //     ObserveEngine.loadStep(systems.odb, translator, obsId, stepId.asRight) >>
-    //       // We have to reread the state after loading
-    //       EngineHandle.getState.flatMap { st =>
-    //         st.sequences
-    //           .get(obsId)
-    //           .flatMap(_.configActionCoord(stepId, sys))
-    //           .map: c =>
-    //             executeEngine
-    //               .startSingle(ActionCoords(obsId, c))
-    //               .map[SeqEvent]:
-    //                 case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
-    //                 case _                      => NullSeqEvent
-    //           .getOrElse(
-    //             EngineHandle.pure(NullSeqEvent)
-    //           )
-    //       }
-    //   else
-    //     EngineHandle.pure(ResourceBusy(obsId, stepId, sys, clientId))
-    // }
+  // EngineHandle.getState.flatMap { st0 =>
+  //   if (configSystemCheck(sys, st0))
+  //     ObserveEngine.loadStep(systems.odb, translator, obsId, stepId.asRight) >>
+  //       // We have to reread the state after loading
+  //       EngineHandle.getState.flatMap { st =>
+  //         st.sequences
+  //           .get(obsId)
+  //           .flatMap(_.configActionCoord(stepId, sys))
+  //           .map: c =>
+  //             executeEngine
+  //               .startSingle(ActionCoords(obsId, c))
+  //               .map[SeqEvent]:
+  //                 case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
+  //                 case _                      => NullSeqEvent
+  //           .getOrElse(
+  //             EngineHandle.pure(NullSeqEvent)
+  //           )
+  //       }
+  //   else
+  //     EngineHandle.pure(ResourceBusy(obsId, stepId, sys, clientId))
+  // }
 
   /**
    * Triggers the application of a specific step configuration to a system

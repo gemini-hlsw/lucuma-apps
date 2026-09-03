@@ -38,8 +38,8 @@ trait ArbStandardStep {
     ].contramap(s =>
       (
         s.id,
-       s.configStatus.toList,
-       s.observeStatus
+        s.configStatus.toList,
+        s.observeStatus
       )
     )
 

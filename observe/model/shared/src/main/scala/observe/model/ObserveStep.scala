@@ -16,25 +16,25 @@ import observe.model.enums.*
 // TODO Move this class to the server project. It is not shared anymore.
 // Implies a small change to store the paused step id in SequenceView.
 enum ObserveStep(
-  val id:              Step.Id,
-  val configStatus:    Map[Subsystem, ActionStatus]
+  val id:           Step.Id,
+  val configStatus: Map[Subsystem, ActionStatus]
 ) derives Eq,
       Encoder.AsObject,
       Decoder:
   case Standard(
-    override val id:              Step.Id,
-    override val configStatus:    Map[Subsystem, ActionStatus],
-    val observeStatus:            ActionStatus
+    override val id:           Step.Id,
+    override val configStatus: Map[Subsystem, ActionStatus],
+    val observeStatus:         ActionStatus
   ) extends ObserveStep(
         id,
         configStatus
       )
 
   case NodAndShuffle(
-    override val id:              Step.Id,
-    override val configStatus:    Map[Subsystem, ActionStatus],
-    val nsStatus:                 NodAndShuffleStatus,
-    val pendingObserveCmd:        Option[PendingObserveCmd]
+    override val id:           Step.Id,
+    override val configStatus: Map[Subsystem, ActionStatus],
+    val nsStatus:              NodAndShuffleStatus,
+    val pendingObserveCmd:     Option[PendingObserveCmd]
   ) extends ObserveStep(
         id,
         configStatus
@@ -42,15 +42,15 @@ enum ObserveStep(
 
 object ObserveStep:
   // Derivation doesn't generate instances for subtypes.
-  given Eq[Standard]      = Eq.by: x =>
+  given Eq[Standard] = Eq.by: x =>
     (x.id, x.configStatus)
 
   given Eq[NodAndShuffle] = Eq.by: x =>
     (
       x.id,
-     x.configStatus,
-     x.nsStatus,
-     x.pendingObserveCmd
+      x.configStatus,
+      x.nsStatus,
+      x.pendingObserveCmd
     )
 
   def configStatus: Lens[ObserveStep, Map[Subsystem, ActionStatus]] =

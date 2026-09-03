@@ -10,12 +10,18 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbNewType.given
 import lucuma.core.util.arb.ArbUid.given
-import observe.model.{ExecutionState, NsRunningState, ObserveStep, Observer, SequenceStatus, SystemOverrides}
+import observe.model.ExecutionState
+import observe.model.NsRunningState
+import observe.model.ObserveStep
+import observe.model.Observer
+import observe.model.SequenceStatus
+import observe.model.SystemOverrides
 import observe.model.arb.ArbNsRunningState.given
 import observe.model.arb.ObserveModelArbitraries.given
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
+
 import ArbObserveStep.given
 
 trait ArbExecutionState:
