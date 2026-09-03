@@ -138,7 +138,7 @@ case class AsterismGroupObsList(
       clipboardContent.isEmpty ||
       clipboardContent.isTargets && selectedIdsOpt.forall(_.isLeft)
 
-  private val (deleteDisabled, deleteTooltip) =
+  private val (deleteDisabled: Boolean, deleteTooltip: Option[String]) =
     selectedIdsOpt
       .map:
         _.fold(
@@ -153,7 +153,7 @@ case class AsterismGroupObsList(
               (true, " - Cannot delete executed observations.".some)
             else (false, none)
         )
-      .getOrElse((true, none)): (Boolean, Option[String])
+      .getOrElse((true, none))
 
   private val pasteIntoText: Option[String] =
     selectedIdsOpt.flatMap:
@@ -307,12 +307,11 @@ object AsterismGroupObsList:
                                  !props.programSummaries.get.targetsWithObs.keySet.contains(tid)
                                )
 
-                             val (newFocused, needNewPage) =
-                               ((obsMissing, targetMissing) match
+                             val (newFocused: Focused, needNewPage: Boolean) =
+                               (obsMissing, targetMissing) match
                                  case (true, _) => (Focused.None, true)
                                  case (_, true) => (props.focused.withoutTarget, true)
                                  case _         => (props.focused, false)
-                               ): (Focused, Boolean)
 
                              val unfocus: Callback =
                                if (needNewPage) replacePage(newFocused) else Callback.empty

@@ -281,10 +281,9 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     scienceRows:      List[SequenceRow[D]], // Should have completed steps already removed
     alertRow:         Option[AlertRow] = none
   )(using Logger[IO]): List[SequenceTableRowType] = {
-    val (pastVisits, currentVisits) =
-      visits.partition { visitData =>
+    val (pastVisits: List[VisitData], currentVisits: List[VisitData]) =
+      visits.partition: visitData =>
         !currentVisitId.contains_(visitData.visitId)
-      }: (List[VisitData], List[VisitData])
 
     val pastVisitsRows: List[SequenceTableRowType] =
       pastVisits.map: visit =>

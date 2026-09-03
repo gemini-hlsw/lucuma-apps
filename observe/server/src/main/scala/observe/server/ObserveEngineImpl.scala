@@ -435,11 +435,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         systems.odb
           .read(obsId)
           .map: odbData =>
-            val (errs, stepGen) =
-              translator.nextStep(odbData, SequenceType.Acquisition.asLeft): (
-                List[Throwable],
-                Option[StepGen[F]]
-              )
+            val (errs: List[Throwable], stepGen: Option[StepGen[F]]) =
+              translator.nextStep(odbData, SequenceType.Acquisition.asLeft)
             (errs, odbData, stepGen)
           .attempt
           .flatMap(

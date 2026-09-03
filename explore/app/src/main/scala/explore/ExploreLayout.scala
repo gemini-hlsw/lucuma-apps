@@ -324,42 +324,44 @@ object ExploreLayout:
                 val programSummaries: Pot[ProgramSummaries] =
                   props.model.programSummariesValue
 
-                val (showProgsPopupPot, msg, isSubmitted, isNotAccepted, proposalReference) =
-                  programSummaries.toOption
-                    .fold[
-                      (Pot[Boolean], Option[String], Boolean, Boolean, Option[ProposalReference])
-                    ]((pending, none, false, false, none)): pss =>
-                      routingInfo.optProgramId.fold(
-                        // No program id in the URL. If the user has no programs, we are
-                        // auto-creating one and routing to it (see effect above), so keep
-                        // showing the loading indicator - unless that creation failed, in
-                        // which case fall back to the selection popup with a message.
-                        // Otherwise (the user has programs) show the selection popup.
-                        if (pss.programs.isEmpty)
-                          if (programCreateFailed.get)
-                            (true.ready,
-                             "Unable to create a new program. Please try again.".some,
-                             false,
-                             false,
-                             none
-                            )
-                          else (pending, none, false, false, none)
-                        else (true.ready, none, false, false, none)
-                      ): id =>
-                        if (pss.programs.get(id).exists(!_.deleted))
-                          (false.ready,
-                           none,
-                           pss.proposalIsSubmitted,
-                           pss.proposalIsNotAccepted,
-                           pss.proposalId
-                          )
-                        else
+                val (showProgsPopupPot: Pot[Boolean],
+                     msg: Option[String],
+                     isSubmitted: Boolean,
+                     isNotAccepted: Boolean,
+                     proposalReference: Option[ProposalReference]
+                ) =
+                  programSummaries.toOption.fold((pending, none, false, false, none)): pss =>
+                    routingInfo.optProgramId.fold(
+                      // No program id in the URL. If the user has no programs, we are
+                      // auto-creating one and routing to it (see effect above), so keep
+                      // showing the loading indicator - unless that creation failed, in
+                      // which case fall back to the selection popup with a message.
+                      // Otherwise (the user has programs) show the selection popup.
+                      if (pss.programs.isEmpty)
+                        if (programCreateFailed.get)
                           (true.ready,
-                           s"The program id in the url, '$id', either does not exist, is deleted, or you do not have authorization to view it.".some,
+                           "Unable to create a new program. Please try again.".some,
                            false,
                            false,
                            none
                           )
+                        else (pending, none, false, false, none)
+                      else (true.ready, none, false, false, none)
+                    ): id =>
+                      if (pss.programs.get(id).exists(!_.deleted))
+                        (false.ready,
+                         none,
+                         pss.proposalIsSubmitted,
+                         pss.proposalIsNotAccepted,
+                         pss.proposalId
+                        )
+                      else
+                        (true.ready,
+                         s"The program id in the url, '$id', either does not exist, is deleted, or you do not have authorization to view it.".some,
+                         false,
+                         false,
+                         none
+                        )
 
                 val deadline: Option[Timestamp] =
                   programSummaries.toOption

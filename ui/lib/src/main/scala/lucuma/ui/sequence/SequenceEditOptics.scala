@@ -104,16 +104,11 @@ trait SequenceEditOptics[D]:
     stepId: Step.Id
   )(atoms: List[Atom[D]]): (List[Atom[D]], Option[Step[D]]) =
     atoms.foldLeft((List.empty, none)) { case ((accumAtoms, extractedStepOpt), atom) =>
-      val atomSteps: List[Step[D]]        = atom.steps.toList
-      val (extractedStep, remainingSteps) =
-        atomSteps
-          .partition(_.id === stepId)
-          .bimap[Option[Step[D]], Option[NonEmptyList[Step[D]]]](
-            _.headOption,
-            NonEmptyList.fromList
-          )
+      val atomSteps: List[Step[D]]                                                        = atom.steps.toList
+      val (extractedStep: Option[Step[D]], remainingSteps: Option[NonEmptyList[Step[D]]]) =
+        atomSteps.partition(_.id === stepId).bimap(_.headOption, NonEmptyList.fromList)
       // Empty atoms are removed
-      val newAtom: List[Atom[D]]          =
+      val newAtom: List[Atom[D]]                                                          =
         remainingSteps.map(rs => Atom.steps.replace(rs)(atom)).toList
       (accumAtoms ++ newAtom, extractedStepOpt.orElse(extractedStep))
     }

@@ -252,15 +252,15 @@ object GnirsControllerEpics extends GnirsEncoders {
       private def setOtherCCParams(
         dc: GnirsDynamicConfig
       ): List[F[Option[F[Unit]]]] = {
-        val (filterWheel1, filter2Value) = filterWheels(dc.filter): (String, String)
+        val (filterWheel1: String, filter2Value: String) = filterWheels(dc.filter)
         // The pupil-viewer optic lives in filter wheel 1, so selecting it overrides FW1. Matches
         // seqexec Gnirs.getFilter1: slit == PupilViewer || decker == PupilViewer => Filter1.PupilViewer.
-        val pupilViewer: Boolean         =
+        val pupilViewer: Boolean                         =
           GnirsFpu.other.getOption(dc.fpu).contains(GnirsFpuOther.PupilViewer) ||
             dc.decker === GnirsDecker.PupilViewer
-        val filter1Value: String         = if (pupilViewer) "PupilViewer" else filterWheel1
-        val cameraValue: String          = encode(dc.camera)
-        val deckerValue: String          = encode(dc.decker)
+        val filter1Value: String                         = if (pupilViewer) "PupilViewer" else filterWheel1
+        val cameraValue: String                          = encode(dc.camera)
+        val deckerValue: String                          = encode(dc.decker)
 
         val hrIfu: Boolean = dc.fpu match
           case GnirsFpu.Spectroscopy.Ifu(GnirsFpuIfu.HighResolution) => true
@@ -333,8 +333,8 @@ object GnirsControllerEpics extends GnirsEncoders {
         // Old Seqexec uses an absolute tolerance of 0.05V, ~16.7% relative for a 0.3V bias.
         val biasToleranceVolts: Double  = 0.15
 
-        val (lowNoise, digitalAvgs) = readModeEncoder.encode(dc.readMode): (Int, Int)
-        val biasVolts: Double       = encode(config.staticConfig.wellDepth)
+        val (lowNoise: Int, digitalAvgs: Int) = readModeEncoder.encode(dc.readMode)
+        val biasVolts: Double                 = encode(config.staticConfig.wellDepth)
 
         val params: List[F[Option[F[Unit]]]] = List(
           smartSetDoubleParamF(expTimeRelTolerance)(

@@ -414,11 +414,8 @@ object ObsTree:
           item:         Either[Observation, Group],
           inSystemTree: Boolean
         ): VdomNode =
-          val (mainObs, associatedObss) =
-            item.fold(
-              obs => (obs.some, List.empty),
-              group => props.mainAndAssociatedObs(group.id)
-            ): (Option[Observation], List[Observation])
+          val (mainObs: Option[Observation], associatedObss: List[Observation]) =
+            item.fold(obs => (obs.some, List.empty), group => props.mainAndAssociatedObs(group.id))
 
           // If we cannot determine the mainObs, render as a regular group.
           // .toOption.get is safe since it will only happen if we are in a group
