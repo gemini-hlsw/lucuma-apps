@@ -51,6 +51,7 @@ import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
+import lucuma.ags.syntax.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
@@ -155,6 +156,30 @@ case class ObsTabTiles(
     optTracking.flatMap(_.at(obsTime))
 
   def site: Option[Site] = observation.get.basicConfiguration.flatMap(_.siteFor)
+
+  // The explicit duration if set, else the remaining time from the digest.
+  def obsDuration: Option[TimeSpan] =
+    observation.get.observationDuration
+      .orElse(observation.get.execution.digest.remainingObsTime.value)
+
+  // Average PA over the science part of the observation, i.e. after setup.
+  def averagePA(obsTimeOrNow: Instant, optTracking: Option[Tracking]): Option[AveragePABasis] =
+    (site, optTracking, obsDuration, observation.get.execution.digest.fullSetupTime.value)
+      .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
+        fullDuration
+          .subtract(setupDuration)
+          .filter(_ > TimeSpan.Zero)
+          .flatMap: scienceDuration =>
+            val scienceStartTime = obsTimeOrNow.plusNanos(setupDuration.toMicroseconds * 1000)
+            posAngleConstraint match
+              case PosAngleConstraint.AverageParallactic =>
+                averageParallacticAngle(
+                  site.place,
+                  baseTracking,
+                  scienceStartTime,
+                  scienceDuration
+                ).map(AveragePABasis(scienceStartTime, scienceDuration, _))
+              case _                                     => none
 
   def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
     NonEmptySet.fromSet:
@@ -328,6 +353,25 @@ object ObsTabTiles:
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))
         isEditingAcquisition <- useStateView(IsEditing.False)
         isEditingScience     <- useStateView(IsEditing.False)
+        optAsterismTracking   =
+          trackingOptMapPot.value.toOption.flatten.flatMap: trackingMap =>
+            props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
+        averagePA             =
+          obsTimeOrNowPot.value.toOption.flatMap(props.averagePA(_, optAsterismTracking))
+        anglesToTest          =
+          props.posAngleConstraint.anglesToTestAt(averagePA.map(_.averagePA))
+        // The guide star is picked for a set of PAs. When they change (e.g. a new observation
+        // time moves the average PA) the selection must be redone.
+        prevAnglesToTest     <- useRef(none[NonEmptyList[Angle]])
+        _                    <- useEffectWithDeps(anglesToTest): angles =>
+                                  val changed =
+                                    (prevAnglesToTest.value, angles).mapN(_ =!= _).exists(identity)
+                                  prevAnglesToTest.set(angles.orElse(prevAnglesToTest.value)) >>
+                                    guideStarSelection
+                                      .set(GuideStarSelection.Default)
+                                      .when_(
+                                        changed && props.observation.get.needsAGS(props.obsTargets)
+                                      )
       yield
         import ctx.given
 
@@ -363,11 +407,7 @@ object ObsTabTiles:
             }
 
           val digest      = props.observation.get.execution.digest
-          val pendingTime = digest.remainingObsTime.value
-          val setupTime   = digest.fullSetupTime.value
-          val obsDuration =
-            props.observation.get.observationDuration
-              .orElse(pendingTime)
+          val obsDuration = props.obsDuration
 
           val paProps: PAProperties =
             PAProperties(props.obsId, guideStarSelection, agsState, props.posAngleConstraint)
@@ -377,34 +417,7 @@ object ObsTabTiles:
             if (paProps.selectedPA.exists(a => angle.forall(_ === a.flip))) paProps.selectedPA
             else angle
 
-          val optAsterismTracking =
-            trackingOptMapPot.value.toOption.flatten.flatMap: trackingMap =>
-              props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
-
           val trackType = optAsterismTracking.map(_.trackType)
-
-          val averagePA: Option[AveragePABasis] =
-            (basicConfiguration.flatMap(_.siteFor), optAsterismTracking, obsDuration, setupTime)
-              .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
-                // science duration is the obsDuration - setup time
-                fullDuration
-                  .subtract(setupDuration)
-                  .filter(_ > TimeSpan.Zero)
-                  .map: scienceDuration =>
-                    // scienceStartTime is the obsTimeOrNow + setup time
-                    val scienceStartTime =
-                      obsTimeOrNow.plusNanos(setupDuration.toMicroseconds * 1000)
-
-                    props.posAngleConstraint match
-                      case PosAngleConstraint.AverageParallactic =>
-                        averageParallacticAngle(
-                          site.place,
-                          baseTracking,
-                          scienceStartTime,
-                          scienceDuration
-                        ).map(AveragePABasis(scienceStartTime, scienceDuration, _))
-                      case _                                     => none
-              .flatten
 
           // The angle used for `Align to PA` in the finder charts tile.
           // For Unbounded, use the PA of the currently selected guide star (if any)

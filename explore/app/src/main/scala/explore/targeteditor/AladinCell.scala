@@ -417,14 +417,6 @@ object AladinCell extends ModelOptics with AladinCommon:
       anglesDebounce      <- useDebounce(props.anglesToTest, AgsDebounceDelay.toMillis.toInt)
       _                   <- useEffectWithDeps(props.anglesToTest): v =>
                                anglesDebounce.set(v)
-      // Clear the guide-star selection as soon as the PA changes. The
-      _                   <- useEffectWithDeps(props.anglesToTest): _ =>
-                               props.guideStarSelection
-                                 .set(GuideStarSelection.Default)
-                                 .whenA(
-                                   // should check that the candidates list option is definde AND non empty
-                                   props.needsAGS && candidates.value.toOption.flatten.exists(_.nonEmpty)
-                                 )
       // request AGS calculation (on the debounced angles, see `anglesDebounce`)
       agsResults          <- useAgsCalculation(
                                obsTargetsCoordsPot.toOption.flatMap(_.toOption),
