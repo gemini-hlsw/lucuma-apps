@@ -22,8 +22,8 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 ThisBuild / description        := "Lucuma Apps"
 Global / onChangedBuildSource  := ReloadOnSourceChanges
 ThisBuild / turbo              := true
-ThisBuild / scalaVersion       := "3.8.4"
-ThisBuild / crossScalaVersions := Seq("3.8.4")
+ThisBuild / scalaVersion       := "3.9.0"
+ThisBuild / crossScalaVersions := Seq("3.9.0")
 ThisBuild / scalacOptions ++= Seq("-language:implicitConversions", "-explain-cyclic")
 // Order/Hash derivation for large enums (e.g. ObservingModeSummary) exceeds the default of 32
 ThisBuild / scalacOptions ++= Seq("-Xmax-inlines", "64")
