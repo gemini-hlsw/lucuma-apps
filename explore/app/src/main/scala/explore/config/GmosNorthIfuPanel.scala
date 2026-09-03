@@ -25,6 +25,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.gmos.ifu.northIfuTelescopeConfigPresets
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -50,29 +51,31 @@ case class GmosNorthIfuPanel(
     extends ReactFnProps[GmosNorthIfuPanel](GmosNorthIfuPanel.component)
     with GmosSpectroscopyPanelProps[GmosNorthGrating, GmosNorthFilter, GmosNorthIfuFpu]:
 
-  private val M = ObservingMode.GmosNorthIfu
+  private val Mode = ObservingMode.GmosNorthIfu
 
   def mode: ObservingMode   = observingMode.get
   def isCustomized: Boolean = observingMode.get.isCustomized
 
-  def initialGrating: GmosNorthGrating                         = M.initialGrating.get(observingMode.get)
-  def initialFilter: Option[GmosNorthFilter]                   = M.initialFilter.get(observingMode.get)
-  def initialFpu: GmosNorthIfuFpu                              = M.initialFpu.get(observingMode.get)
+  def initialGrating: GmosNorthGrating                         = Mode.initialGrating.get(observingMode.get)
+  def initialFilter: Option[GmosNorthFilter]                   = Mode.initialFilter.get(observingMode.get)
+  def initialFpu: GmosNorthIfuFpu                              = Mode.initialFpu.get(observingMode.get)
   def initialCentralWavelength: Wavelength                     =
-    M.initialCentralWavelength.andThen(CentralWavelength.Value).get(observingMode.get)
-  def defaultXBinning: GmosXBinning                            = M.defaultXBin.get(observingMode.get)
-  def defaultYBinning: GmosYBinning                            = M.defaultYBin.get(observingMode.get)
+    Mode.initialCentralWavelength.andThen(CentralWavelength.Value).get(observingMode.get)
+  def defaultXBinning: GmosXBinning                            = Mode.defaultXBin.get(observingMode.get)
+  def defaultYBinning: GmosYBinning                            = Mode.defaultYBin.get(observingMode.get)
   def defaultReadModeGain: (GmosAmpReadMode, GmosAmpGain)      =
-    (M.defaultAmpReadMode.get(observingMode.get), M.defaultAmpGain.get(observingMode.get))
-  def defaultRoi: GmosRoi                                      = M.defaultRoi.get(observingMode.get)
+    (Mode.defaultAmpReadMode.get(observingMode.get), Mode.defaultAmpGain.get(observingMode.get))
+  def defaultRoi: GmosRoi                                      = Mode.defaultRoi.get(observingMode.get)
   def defaultWavelengthDithers: NonEmptyList[WavelengthDither] =
-    M.defaultWavelengthDithers.get(observingMode.get)
+    Mode.defaultWavelengthDithers.get(observingMode.get)
 
   def resolvedReadModeGain: (GmosAmpReadMode, GmosAmpGain) =
-    (M.explicitAmpReadMode
+    (Mode.explicitAmpReadMode
        .get(observingMode.get)
-       .getOrElse(M.defaultAmpReadMode.get(observingMode.get)),
-     M.explicitAmpGain.get(observingMode.get).getOrElse(M.defaultAmpGain.get(observingMode.get))
+       .getOrElse(Mode.defaultAmpReadMode.get(observingMode.get)),
+     Mode.explicitAmpGain
+       .get(observingMode.get)
+       .getOrElse(Mode.defaultAmpGain.get(observingMode.get))
     )
 
   // Every aperture is offered; the mode has no unavailable ones.
@@ -84,34 +87,34 @@ case class GmosNorthIfuPanel(
 
   def centralWavelengthView: View[Wavelength] =
     observingMode
-      .zoom(M.centralWavelength.andThen(CentralWavelength.Value),
+      .zoom(Mode.centralWavelength.andThen(CentralWavelength.Value),
             GmosNorthIfuInput.centralWavelength.modify
       )
       .view(_.toInput.assign)
 
   def gratingView: View[GmosNorthGrating] =
-    observingMode.zoom(M.grating, GmosNorthIfuInput.grating.modify).view(_.assign)
+    observingMode.zoom(Mode.grating, GmosNorthIfuInput.grating.modify).view(_.assign)
 
   def filterView: View[Option[GmosNorthFilter]] =
-    observingMode.zoom(M.filter, GmosNorthIfuInput.filter.modify).view(_.orUnassign)
+    observingMode.zoom(Mode.filter, GmosNorthIfuInput.filter.modify).view(_.orUnassign)
 
   def fpuView: View[GmosNorthIfuFpu] =
-    observingMode.zoom(M.fpu, GmosNorthIfuInput.fpu.modify).view(_.assign)
+    observingMode.zoom(Mode.fpu, GmosNorthIfuInput.fpu.modify).view(_.assign)
 
   def explicitXBinningView: View[Option[GmosXBinning]] =
     observingMode
-      .zoom(M.explicitXBin, GmosNorthIfuInput.explicitXBin.modify)
+      .zoom(Mode.explicitXBin, GmosNorthIfuInput.explicitXBin.modify)
       .view(_.map(_.value).orUnassign)
 
   def explicitYBinningView: View[Option[GmosYBinning]] =
     observingMode
-      .zoom(M.explicitYBin, GmosNorthIfuInput.explicitYBin.modify)
+      .zoom(Mode.explicitYBin, GmosNorthIfuInput.explicitYBin.modify)
       .view(_.map(_.value).orUnassign)
 
   // The explicit return type drives inference of the `f => i => f(i)` mod function.
   private def readGainAligner: Aligner[Option[(GmosAmpReadMode, GmosAmpGain)], GmosNorthIfuInput] =
     observingMode.zoom(
-      unsafeDisjointOptionZip(M.explicitAmpReadMode, M.explicitAmpGain),
+      unsafeDisjointOptionZip(Mode.explicitAmpReadMode, Mode.explicitAmpGain),
       f => i => f(i)
     )
 
@@ -124,29 +127,29 @@ case class GmosNorthIfuPanel(
     }
 
   def explicitRoiView: View[Option[GmosRoi]] =
-    observingMode.zoom(M.explicitRoi, GmosNorthIfuInput.explicitRoi.modify).view(_.orUnassign)
+    observingMode.zoom(Mode.explicitRoi, GmosNorthIfuInput.explicitRoi.modify).view(_.orUnassign)
 
   def explicitWavelengthDithersView: View[Option[NonEmptyList[WavelengthDither]]] =
     observingMode
-      .zoom(M.explicitWavelengthDithers, GmosNorthIfuInput.explicitWavelengthDithers.modify)
+      .zoom(Mode.explicitWavelengthDithers, GmosNorthIfuInput.explicitWavelengthDithers.modify)
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
   def exposureTimeModeView: View[ExposureTimeMode] =
     observingMode
-      .zoom(M.exposureTimeMode, GmosNorthIfuInput.exposureTimeMode.modify)
+      .zoom(Mode.exposureTimeMode, GmosNorthIfuInput.exposureTimeMode.modify)
       .view(_.toInput.assign)
 
-  // The IFU has its own sky bundle 60" away, so it does not nod: the positions are a plain list
-  // and the only preset is the default.
+  // The IFU has its own sky bundle 60" away, so it does not nod: the positions are a plain list.
+  // The presets are keyed by plain name and depend on the FPU (one slit vs two slits).
   def offsetsControl(disabled: Boolean): VdomNode =
     PresettableTelescopeConfigsEditor(
       telescopeConfigs = observingMode
-        .zoom(M.explicitTelescopeConfigs, GmosNorthIfuInput.explicitTelescopeConfigs.modify)
+        .zoom(Mode.explicitTelescopeConfigs, GmosNorthIfuInput.explicitTelescopeConfigs.modify)
         .view(_.map(_.toList.map(_.toInput)).orUnassign)
-        .removeOptionality(M.defaultTelescopeConfigs.get(observingMode.get)),
-      presets = NonEmptyList.one("Default" -> M.defaultTelescopeConfigs.get(observingMode.get)),
+        .removeOptionality(Mode.defaultTelescopeConfigs.get(observingMode.get)),
+      presets = northIfuTelescopeConfigPresets(Mode.fpu.get(observingMode.get)),
       helpId = "configuration/mos-spatial-offsets.md".refined,
-      defaultConfigs = M.defaultTelescopeConfigs.get(observingMode.get),
+      defaultConfigs = Mode.defaultTelescopeConfigs.get(observingMode.get),
       presetsReadonly = disabled,
       editingReadonly = disabled
     )
@@ -157,10 +160,10 @@ case class GmosNorthIfuPanel(
   override def modeSpecificFields(disabled: Boolean): VdomNode =
     GmosIfuAnalysisEditor(
       analysis = observingMode
-        .zoom(M.explicitIfuAnalysis, GmosNorthIfuInput.explicitIfuAnalysis.modify)
+        .zoom(Mode.explicitIfuAnalysis, GmosNorthIfuInput.explicitIfuAnalysis.modify)
         .view(_.map(_.toInput).orUnassign)
-        .removeOptionality(M.defaultIfuAnalysis.get(observingMode.get)),
-      default = M.defaultIfuAnalysis.get(observingMode.get),
+        .removeOptionality(Mode.defaultIfuAnalysis.get(observingMode.get)),
+      default = Mode.defaultIfuAnalysis.get(observingMode.get),
       readonly = disabled,
       showCustomization = showCustomization,
       allowRevertCustomization = allowRevertCustomization
@@ -169,27 +172,28 @@ case class GmosNorthIfuPanel(
   private def acquisition
     : Aligner[ObservingMode.GmosNorthIfu.Acquisition, GmosNorthIfuAcquisitionInput] =
     observingMode.zoom(
-      M.acquisition,
+      Mode.acquisition,
       forceAssign(GmosNorthIfuInput.acquisition.modify)(GmosNorthIfuAcquisitionInput())
     )
 
   def acquisitionSection(disabled: Boolean): VdomNode =
-    val A                                                           = ObservingMode.GmosNorthIfu.Acquisition
-    val defaultAcquisitionFilter                                    = M.acquisition.andThen(A.defaultFilter).get(observingMode.get)
-    val defaultAcquisitionRoi                                       = M.acquisition.andThen(A.defaultRoi).get(observingMode.get)
+    val ModeAcq                                                     = ObservingMode.GmosNorthIfu.Acquisition
+    val defaultAcquisitionFilter                                    =
+      Mode.acquisition.andThen(ModeAcq.defaultFilter).get(observingMode.get)
+    val defaultAcquisitionRoi                                       = Mode.acquisition.andThen(ModeAcq.defaultRoi).get(observingMode.get)
     val excludedAcquisitionFilters: Set[GmosNorthFilter]            =
       Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
     val explicitAcquisitionFilter: View[Option[GmosNorthFilter]]    =
       acquisition
-        .zoom(A.explicitFilter, GmosNorthIfuAcquisitionInput.explicitFilter.modify)
+        .zoom(ModeAcq.explicitFilter, GmosNorthIfuAcquisitionInput.explicitFilter.modify)
         .view(_.orUnassign)
     val explicitAcquisitionRoi: View[Option[GmosIfuAcquisitionRoi]] =
       acquisition
-        .zoom(A.explicitRoi, GmosNorthIfuAcquisitionInput.explicitRoi.modify)
+        .zoom(ModeAcq.explicitRoi, GmosNorthIfuAcquisitionInput.explicitRoi.modify)
         .view(_.orUnassign)
     val acquisitionExposureTimeMode: View[ExposureTimeMode]         =
       acquisition
-        .zoom(A.exposureTimeMode, GmosNorthIfuAcquisitionInput.exposureTimeMode.modify)
+        .zoom(ModeAcq.exposureTimeMode, GmosNorthIfuAcquisitionInput.exposureTimeMode.modify)
         .view(_.toInput.assign)
     gmosAcqPanel(
       this,
