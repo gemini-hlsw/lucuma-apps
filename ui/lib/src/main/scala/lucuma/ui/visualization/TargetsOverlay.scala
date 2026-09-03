@@ -34,32 +34,32 @@ object TargetsOverlay
       val pixy = p.fov.y.toMicroarcseconds / p.height
       val maxP = max(pixx, pixy)
 
-      val (x0, y0, maxX, maxY, minSide): (Double, Double, Double, Double, Double) =
+      val (x0, y0, maxX, maxY, minSide) =
         p.targets.foldLeft(
           (Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue, 0.0)
         ) { case ((x, y, w, h, s), target) =>
-          val side: Double                   =
+          val side: Double   =
             target match
               case SvgTarget.CrosshairTarget(_, _, sidePx, _) =>
                 maxP * sidePx
               case _                                          =>
                 0.0
-          val offset: Offset                 = target.coordinates.diff(p.baseCoordinates).offset
+          val offset: Offset = target.coordinates.diff(p.baseCoordinates).offset
           // Offset amount
-          val (offP, offQ): (Double, Double) = offset.micros
+          val (offP, offQ)   = offset.micros: (Double, Double)
 
           (x.min(offP), y.min(offQ), w.max(offP), h.max(offQ), s.max(side))
-        }
+        }: (Double, Double, Double, Double, Double)
 
       val w0: Double = abs(maxX - x0)
       val h0: Double = abs(maxY - y0)
 
-      val (x, y, w, h): (Double, Double, Double, Double) =
-        if (w0 == 0 || h0 == 0) (x0 - 2 * minSide, y0 - 2 * minSide, minSide * 2, minSide * 2)
-        else (x0, y0, w0, h0)
+      val (x, y, w, h) =
+        (if (w0 == 0 || h0 == 0) (x0 - 2 * minSide, y0 - 2 * minSide, minSide * 2, minSide * 2)
+         else (x0, y0, w0, h0)): (Double, Double, Double, Double)
 
-      val (viewBoxX, viewBoxY, viewBoxW, viewBoxH): (Double, Double, Double, Double) =
-        calculateViewBox(x, y, w, h, p.fov, p.screenOffset)
+      val (viewBoxX, viewBoxY, viewBoxW, viewBoxH) =
+        calculateViewBox(x, y, w, h, p.fov, p.screenOffset): (Double, Double, Double, Double)
 
       val targetsWithOffsets: List[(Double, Double, SvgTarget)] = p.targets
         .fmap: target =>

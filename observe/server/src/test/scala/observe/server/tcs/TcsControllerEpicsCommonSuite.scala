@@ -866,10 +866,10 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
   test("TcsControllerEpicsCommon should apply an offset if it is not at the right position") {
 
     val offsetDemand =
-      InstrumentOffset(OffsetP(10.0.withUnit[ArcSecond]), OffsetQ(-5.0.withUnit[ArcSecond]))
+      InstrumentOffset(OffsetP(10.0.withUnit[ArcSecond]), OffsetQ((-5.0).withUnit[ArcSecond]))
 
     val offsetCurrent =
-      InstrumentOffset(OffsetP(10.00001.withUnit[ArcSecond]), OffsetQ(-5.0.withUnit[ArcSecond]))
+      InstrumentOffset(OffsetP(10.00001.withUnit[ArcSecond]), OffsetQ((-5.0).withUnit[ArcSecond]))
     val iaa           = 33.degrees
     val wavelength    = Wavelength.fromIntNanometers(440).get
     val recordPrec    = 14
@@ -913,7 +913,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
   ) {
 
     val offset     =
-      InstrumentOffset(OffsetP(10.0.withUnit[ArcSecond]), OffsetQ(-5.0.withUnit[ArcSecond]))
+      InstrumentOffset(OffsetP(10.0.withUnit[ArcSecond]), OffsetQ((-5.0).withUnit[ArcSecond]))
     val iaa        = 33.degrees
     val wavelength = Wavelength.fromIntNanometers(440).get
     val recordPrec = 14

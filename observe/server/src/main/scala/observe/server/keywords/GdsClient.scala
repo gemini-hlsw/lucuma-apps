@@ -49,15 +49,11 @@ sealed trait GdsClient[F[_]] extends Http4sClientDsl[F]:
 
 object GdsClient:
   private def makeClient[F[_]](base: Client[F])(implicit timer: Temporal[F]) = {
-    val max             = 2
-    var attemptsCounter = 1
-    val policy          =
+    val max    = 2
+    val policy =
       RetryPolicy[F](attempts =>
         if (attempts >= max) None
-        else {
-          attemptsCounter = attemptsCounter + 1
-          Some(10.milliseconds)
-        }
+        else Some(10.milliseconds)
       )
     Retry(policy)(base)
   }

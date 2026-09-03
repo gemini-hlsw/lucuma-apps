@@ -75,8 +75,10 @@ case class KeyedIndexedList[K, A] private (private val list: TreeSeqMap[K, (A, N
 
     val baseList: TreeSeqMap[K, (A, NonNegInt)] = removed(key).list
 
-    val (front, back): (TreeSeqMap[K, (A, NonNegInt)], TreeSeqMap[K, (A, NonNegInt)]) =
-      baseList.splitAt(fixedIdx.value)
+    val (front, back) =
+      baseList.splitAt(
+        fixedIdx.value
+      ): (TreeSeqMap[K, (A, NonNegInt)], TreeSeqMap[K, (A, NonNegInt)])
 
     KeyedIndexedList.unsafeFromTreeSeqMap:
       (front + ((key, (elem, fixedIdx)))) ++

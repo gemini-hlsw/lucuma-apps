@@ -173,15 +173,14 @@ object NightPlot:
 
     val shouldHideTargetLabels: Boolean = isSingleTargetPlot || hideLabel
 
-    val (chartData, warnings)
-      : (MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData], List[String]) =
+    val (chartData, warnings) =
       chartAndMoonData._1
         .partition(_._2.isDefined)
         .bimap(
           _.mapValues(_.get),
           _.toList.map: (id, _) =>
             s"Could not compute plot data for ${id.value.fold(_.toString, _.toString)}"
-        )
+        ): (MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData], List[String])
 
     val site: Site               = opts.site
     val timeDisplay: TimeDisplay = opts.timeDisplay
@@ -255,11 +254,11 @@ object NightPlot:
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
       (point: Point, _: Tooltip, _: js.UndefOr[Point]) =>
-        val x: Double                             = point.x
-        val y: Double                             = point.y.toOption.orEmpty
-        val time: String                          = timeFormat(x)
-        val seriesType: SeriesType                = seriesToPlot(point.series.index.toInt).seriesType
-        val (seriesName, value): (String, String) = seriesType match
+        val x: Double              = point.x
+        val y: Double              = point.y.toOption.orEmpty
+        val time: String           = timeFormat(x)
+        val seriesType: SeriesType = seriesToPlot(point.series.index.toInt).seriesType
+        val (seriesName, value)    = (seriesType match
           case SeriesType.Elevation        =>
             ("Elevation",
              formatAngle(y) +
@@ -268,6 +267,7 @@ object NightPlot:
           case SeriesType.ParallacticAngle => ("Parallactic Angle", formatAngle(y))
           case SeriesType.SkyBrightness    => ("Sky Brightness", "%.2f".format(point.y))
           case SeriesType.LunarElevation   => ("Elevation", formatAngle(y))
+        ): (String, String)
 
         s"<strong>${point.series.name}</strong><br/>$time ($timeDisplayStr)<br/>$seriesName: $value"
 

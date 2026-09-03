@@ -28,8 +28,8 @@ object ODBSequencesLoader {
     odbData:                OdbObservationData,
     instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>
-    val (initialBreakpoints, seqType): (Breakpoints, SequenceType) =
-      odbData.executionConfig match
+    val (initialBreakpoints, seqType) =
+      (odbData.executionConfig match
         case InstrumentExecutionConfig.GmosNorth(ec)  =>
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.GmosSouth(ec)  =>
@@ -46,6 +46,7 @@ object ODBSequencesLoader {
           throw new NotImplementedError("Visitor instrument not supported")
         case InstrumentExecutionConfig.Exchange       =>
           throw new NotImplementedError("Exchange instrument not supported")
+      ): (Breakpoints, SequenceType)
 
     val seqState: SequenceState[F] =
       SequenceState.init(odbData.observation.id, seqType, initialBreakpoints)
