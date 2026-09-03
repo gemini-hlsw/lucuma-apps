@@ -1136,7 +1136,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(l.get(rs).interval.value.flatMap(_.toDoubleOption),
                    testVal.toSeconds.toDouble.some
       )
-      assertEquals(l.get(rs).numberOfExposures.value.flatMap(_.toIntOption), -1.some)
+      assertEquals(l.get(rs).numberOfExposures.value.flatMap(_.toIntOption), (-1).some)
       l.get(rs)
         .interval
         .value
@@ -1218,7 +1218,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(rs.frameCount.connected)
       assert(rs.expTime.connected)
       assertEquals(rs.expTime.value.flatMap(_.toDoubleOption), testVal.toSeconds.toDouble.some)
-      assertEquals(rs.frameCount.value.flatMap(_.toIntOption), -1.some)
+      assertEquals(rs.frameCount.value.flatMap(_.toIntOption), (-1).some)
     }
   }
 
@@ -2042,7 +2042,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                              1e-6
           )
         )
-      assertEquals(r1.targetAdjust.vt.value.flatMap(_.toIntOption), -2.some)
+      assertEquals(r1.targetAdjust.vt.value.flatMap(_.toIntOption), (-2).some)
       assertEquals(r2.targetAdjust.frame.value.flatMap(_.toIntOption), 2.some)
       r2.targetAdjust.size.value
         .flatMap(_.toDoubleOption)
@@ -2050,7 +2050,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       r2.targetAdjust.angle.value
         .flatMap(_.toDoubleOption)
         .fold(fail("No angle value set"))(v => assertEqualsDouble(v, 225.0, 1e-6))
-      assertEquals(r2.targetAdjust.vt.value.flatMap(_.toIntOption), -64.some)
+      assertEquals(r2.targetAdjust.vt.value.flatMap(_.toIntOption), (-64).some)
     }
   }
 

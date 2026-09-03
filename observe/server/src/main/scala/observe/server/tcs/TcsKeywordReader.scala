@@ -316,11 +316,11 @@ object DummyTcsKeywordsReader {
 
     override def m2UserFocusOffset: F[Double] = 0.0.pure[F]
 
-    override def pwfs1Freq: F[Double] = -9999.0.pure[F]
+    override def pwfs1Freq: F[Double] = (-9999.0).pure[F]
 
-    override def pwfs2Freq: F[Double] = -9999.0.pure[F]
+    override def pwfs2Freq: F[Double] = (-9999.0).pure[F]
 
-    override def oiwfsFreq: F[Double] = -9999.0.pure[F]
+    override def oiwfsFreq: F[Double] = (-9999.0).pure[F]
 
     override def carouselMode: F[String] = "Basic".pure[F]
 

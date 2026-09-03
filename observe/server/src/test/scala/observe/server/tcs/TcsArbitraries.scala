@@ -63,7 +63,7 @@ trait TcsArbitraries {
     Cogen[(TcsController.OffsetP, TcsController.OffsetQ)].contramap(x => (x.p, x.q))
 
   given Arbitrary[Quantity[Double, ArcSecond]] = Arbitrary(
-    rangedAngleGen(-90.0.withUnit[Degree], 270.0.withUnit[Degree]).map(_.withUnit[ArcSecond])
+    rangedAngleGen((-90.0).withUnit[Degree], 270.0.withUnit[Degree]).map(_.withUnit[ArcSecond])
   )
   given Cogen[Quantity[Double, ArcSecond]]     = Cogen[Double].contramap(_.value)
 

@@ -135,11 +135,11 @@ object ProposalSubmissionBar
                   props.deadline.map: deadlineEither =>
                     val (text, severity) = deadlineEither match
                       case Right(deadline) =>
-                        val (deadlineStr, left): (String, Option[String]) =
+                        val (deadlineStr: String, left: Option[String]) =
                           deadlineAndTimeLeft(now, deadline)
-                        val text: String                                  =
+                        val text: String                                =
                           left.fold(deadlineStr)(l => s"$deadlineStr [$l]")
-                        val severity: Message.Severity                    =
+                        val severity: Message.Severity                  =
                           left.fold(Message.Severity.Error)(_ => Message.Severity.Info)
                         s"Deadline: $text" -> severity
                       case Left(error)     =>

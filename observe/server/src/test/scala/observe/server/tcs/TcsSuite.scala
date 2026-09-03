@@ -42,14 +42,14 @@ class TcsSuite extends munit.DisciplineSuite with TcsArbitraries:
       InstrumentOffset(OffsetP(30.0.withUnit[ArcSecond]), OffsetQ(30.0.withUnit[ArcSecond]))
         .toFocalPlaneOffset(0.arcseconds)
     assertEquals(
-      FocalPlaneOffset(OffsetX(-18.61688924192027.withUnit[Millimeter]),
-                       OffsetY(-18.61688924192027.withUnit[Millimeter])
+      FocalPlaneOffset(OffsetX((-18.61688924192027).withUnit[Millimeter]),
+                       OffsetY((-18.61688924192027).withUnit[Millimeter])
       ),
       skyOffset
     )
 
-    val fpo = FocalPlaneOffset(OffsetX(-18.61688924192027.withUnit[Millimeter]),
-                               OffsetY(-18.61688924192027.withUnit[Millimeter])
+    val fpo = FocalPlaneOffset(OffsetX((-18.61688924192027).withUnit[Millimeter]),
+                               OffsetY((-18.61688924192027).withUnit[Millimeter])
     ).toInstrumentOffset(30.arcseconds)
 
     assertEquals(

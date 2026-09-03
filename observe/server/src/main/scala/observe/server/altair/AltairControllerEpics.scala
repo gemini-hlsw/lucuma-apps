@@ -75,9 +75,9 @@ object AltairControllerEpics {
     private def newPosInRange(
       newPos: (Quantity[Double, Millimeter], Quantity[Double, Millimeter])
     ): Boolean = {
-      val minX = -37.2.withUnit[Millimeter]
+      val minX = (-37.2).withUnit[Millimeter]
       val maxX = 37.2.withUnit[Millimeter]
-      val minY = -37.2.withUnit[Millimeter]
+      val minY = (-37.2).withUnit[Millimeter]
       val maxY = 37.2.withUnit[Millimeter]
 
       newPos match {

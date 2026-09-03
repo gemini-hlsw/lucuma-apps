@@ -163,7 +163,7 @@ case class DynTable(
       val proposed: Map[ColumnId, Int]    = allocate(free, width.value - pinned.values.sum)
       val newlyPinned: Map[ColumnId, Int] =
         proposed.flatMap: (colId, size) =>
-          val (min, max): (Int, Option[Int]) = boundsOf(colId)
+          val (min: Int, max: Option[Int]) = boundsOf(colId)
           if size < min then (colId -> min).some
           else max.filter(size > _).map(colId -> _)
       if newlyPinned.isEmpty then pinned ++ proposed
@@ -184,7 +184,7 @@ case class DynTable(
           case (colId, Visibility.Hidden) => colId
         .toSet
 
-    val (fittingColumns, isOverflowing): (Set[ColumnId], Boolean) =
+    val (fittingColumns: Set[ColumnId], isOverflowing: Boolean) =
       selectFittingColumns(width, hiddenCols, areColsCollapsed)
 
     if isOverflowing then

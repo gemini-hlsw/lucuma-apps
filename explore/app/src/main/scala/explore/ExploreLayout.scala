@@ -324,8 +324,12 @@ object ExploreLayout:
                 val programSummaries: Pot[ProgramSummaries] =
                   props.model.programSummariesValue
 
-                val (showProgsPopupPot, msg, isSubmitted, isNotAccepted, proposalReference)
-                  : (Pot[Boolean], Option[String], Boolean, Boolean, Option[ProposalReference]) =
+                val (showProgsPopupPot: Pot[Boolean],
+                     msg: Option[String],
+                     isSubmitted: Boolean,
+                     isNotAccepted: Boolean,
+                     proposalReference: Option[ProposalReference]
+                ) =
                   programSummaries.toOption.fold((pending, none, false, false, none)): pss =>
                     routingInfo.optProgramId.fold(
                       // No program id in the URL. If the user has no programs, we are

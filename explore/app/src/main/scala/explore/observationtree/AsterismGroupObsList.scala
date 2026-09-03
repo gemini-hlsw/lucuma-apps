@@ -138,7 +138,7 @@ case class AsterismGroupObsList(
       clipboardContent.isEmpty ||
       clipboardContent.isTargets && selectedIdsOpt.forall(_.isLeft)
 
-  private val (deleteDisabled, deleteTooltip): (Boolean, Option[String]) =
+  private val (deleteDisabled: Boolean, deleteTooltip: Option[String]) =
     selectedIdsOpt
       .map:
         _.fold(
@@ -307,7 +307,7 @@ object AsterismGroupObsList:
                                  !props.programSummaries.get.targetsWithObs.keySet.contains(tid)
                                )
 
-                             val (newFocused, needNewPage): (Focused, Boolean) =
+                             val (newFocused: Focused, needNewPage: Boolean) =
                                (obsMissing, targetMissing) match
                                  case (true, _) => (Focused.None, true)
                                  case (_, true) => (props.focused.withoutTarget, true)

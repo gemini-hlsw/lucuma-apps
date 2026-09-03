@@ -153,7 +153,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
           ): (visitsData, acquisition, science, currentVisitId) =>
             import ctx.given
 
-            val (visitRows, nextScienceIndex): (List[VisitData], StepIndex) = visitsData.value
+            val (visitRows: List[VisitData], nextScienceIndex: StepIndex) = visitsData.value
 
             stitchSequence(visitRows, currentVisitId, nextScienceIndex, acquisition, science)
         datasetIdsInFlight            <- useStateView(HashSet.empty[Dataset.Id])

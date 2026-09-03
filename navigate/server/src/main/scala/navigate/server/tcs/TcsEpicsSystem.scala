@@ -388,7 +388,7 @@ object TcsEpicsSystem {
               } yield (x, y)
 
           presV.map(_.use { pair =>
-            val (stream, read): (Stream[F, StreamEvent[String]], F[String]) = pair
+            val (stream: Stream[F, StreamEvent[String]], read: F[String]) = pair
             Temporal[F].realTime.flatMap { t0 =>
               stream
                 .flatMap {
@@ -445,7 +445,7 @@ object TcsEpicsSystem {
               } yield (x, y)
 
           presV.map(_.use { pair =>
-            val (stream, read): (Stream[F, StreamEvent[BinaryYesNo]], F[BinaryYesNo]) = pair
+            val (stream: Stream[F, StreamEvent[BinaryYesNo]], read: F[BinaryYesNo]) = pair
             Temporal[F].realTime.flatMap { t0 =>
               stream
                 .flatMap {

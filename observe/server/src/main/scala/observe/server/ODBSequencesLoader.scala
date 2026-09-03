@@ -28,7 +28,7 @@ object ODBSequencesLoader {
     odbData:                OdbObservationData,
     instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>
-    val (initialBreakpoints, seqType): (Breakpoints, SequenceType) =
+    val (initialBreakpoints: Breakpoints, seqType: SequenceType) =
       odbData.executionConfig match
         case InstrumentExecutionConfig.GmosNorth(ec)  =>
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))

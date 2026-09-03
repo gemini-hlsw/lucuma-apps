@@ -173,8 +173,7 @@ object NightPlot:
 
     val shouldHideTargetLabels: Boolean = isSingleTargetPlot || hideLabel
 
-    val (chartData, warnings)
-      : (MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData], List[String]) =
+    val (chartData: MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData], warnings: List[String]) =
       chartAndMoonData._1
         .partition(_._2.isDefined)
         .bimap(
@@ -255,11 +254,11 @@ object NightPlot:
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
       (point: Point, _: Tooltip, _: js.UndefOr[Point]) =>
-        val x: Double                             = point.x
-        val y: Double                             = point.y.toOption.orEmpty
-        val time: String                          = timeFormat(x)
-        val seriesType: SeriesType                = seriesToPlot(point.series.index.toInt).seriesType
-        val (seriesName, value): (String, String) = seriesType match
+        val x: Double                           = point.x
+        val y: Double                           = point.y.toOption.orEmpty
+        val time: String                        = timeFormat(x)
+        val seriesType: SeriesType              = seriesToPlot(point.series.index.toInt).seriesType
+        val (seriesName: String, value: String) = seriesType match
           case SeriesType.Elevation        =>
             ("Elevation",
              formatAngle(y) +

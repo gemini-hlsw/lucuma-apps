@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, type UserConfig } from 'vite';
 
-const scalaVersion = '3.8.4';
+const scalaVersion = '3.9.0';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
