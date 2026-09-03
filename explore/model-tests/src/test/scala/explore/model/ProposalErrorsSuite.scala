@@ -289,6 +289,21 @@ class ProposalErrorsSuite extends FunSuite:
       List(MissingInvestigatorName)
     )
 
+  // Nothing stops the API from storing a blank name, and the ODB trims before
+  // asking whether one is there; keep the two sides agreeing.
+  test("a blank investigator name is no name at all"):
+    assertEquals(
+      errorsOf(users =
+        List(
+          user(PartnerLink.HasGeminiPartner(Partner.US),
+               ProgramUserRole.Pi,
+               creditName = "   ".some
+          )
+        )
+      ),
+      List(MissingInvestigatorName)
+    )
+
   test("missing investigator educational status"):
     assertEquals(
       errorsOf(users =
