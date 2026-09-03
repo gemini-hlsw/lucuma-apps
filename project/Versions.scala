@@ -44,7 +44,7 @@ object Versions {
   val mouse                  = "1.4.0"
   val mUnit                  = "1.3.5"
   val mUnitCatsEffect        = "2.2.0"
-  val mUnitScalacheck        = "1.3.0"
+  val mUnitScalacheck        = "1.3.1"
   val openTelemetry          = "1.64.0"
   val openTelemetryInstr     = "2.26.1-alpha"
   val otel4s                 = "1.1.0"
