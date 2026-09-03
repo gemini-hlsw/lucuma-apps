@@ -334,6 +334,41 @@ See https://github.com/highcharts/highcharts/issues/13320 */
       }
     }
 
+    /* The signal-per-pixel graph (GMOS IFU 2-slit) arrives as one
+       blue/red signal-and-background quartet per CCD, so the four ITC colors
+       repeat.  They must all be spelled out: Highcharts only defines colors up
+       to index 9, so without this the last CCD's spectra get no stroke at all
+       and simply don't show up. */
+    .signalpixelgraph {
+      &.highcharts-color-0,
+      &.highcharts-color-4,
+      &.highcharts-color-8 {
+        fill: var(--itc-plot-blue);
+        stroke: var(--itc-plot-blue);
+      }
+
+      &.highcharts-color-1,
+      &.highcharts-color-5,
+      &.highcharts-color-9 {
+        fill: var(--itc-plot-lightblue);
+        stroke: var(--itc-plot-lightblue);
+      }
+
+      &.highcharts-color-2,
+      &.highcharts-color-6,
+      &.highcharts-color-10 {
+        fill: var(--itc-plot-red);
+        stroke: var(--itc-plot-red);
+      }
+
+      &.highcharts-color-3,
+      &.highcharts-color-7,
+      &.highcharts-color-11 {
+        fill: var(--itc-plot-lightred);
+        stroke: var(--itc-plot-lightred);
+      }
+    }
+
     .signalchart {
       &.highcharts-color-0 {
         fill: var(--itc-plot-blue);
