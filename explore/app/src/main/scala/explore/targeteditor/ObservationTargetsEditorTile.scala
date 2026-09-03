@@ -44,6 +44,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
+import lucuma.core.model.TelluricType
 import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
@@ -87,6 +88,7 @@ final case class ObservationTargetsEditorTile(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   isStaffOrAdmin:      Boolean,
+  telluricType:        Option[TelluricType] = None,
   slotPositions:       List[(SlotId, View[Option[Coordinates]])] = Nil,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
@@ -416,6 +418,7 @@ object ObservationTargetsEditorTile
                     readonly = props.readonly,
                     allowEditingOngoing = props.allowEditingOngoing,
                     isStaffOrAdmin = props.isStaffOrAdmin,
+                    telluricType = props.telluricType,
                     invalidateSequence = props.sequenceChanged,
                     blindOffsetInfo = props.blindOffsetInfo,
                     renderAladin = false,

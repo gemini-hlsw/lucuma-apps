@@ -119,6 +119,9 @@
   --science-slit-fill-opacity: 0.1;
   --science-slit-fill: lightgray;
 
+  // GMOS IFU sky bundle, amber to match the sky position markers
+  --ifu-sky-fov-color: hsl(40deg 90% 60%);
+
   // Extended vignetting area, maroon-x
   --extended-vignetting-area-stroke-color: orange;
   --extended-vignetting-area-stroke-width: 0.6px;

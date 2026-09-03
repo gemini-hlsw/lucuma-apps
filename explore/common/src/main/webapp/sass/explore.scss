@@ -1738,11 +1738,6 @@ svg.fa-check.explore-success-icon {
           box-shadow: 0 0 0 2.5px var(--site-solid-border-color);
         }
 
-        .obs-badge-extra-associated-obs-checkbox {
-          transform: scale(0.75);
-          margin-right: 0.2em;
-        }
-
         .p-tag.obs-badge-extra-associated-obs-state {
           margin-right: 0.4em;
           padding: 0.15em 0.5em;
@@ -1754,7 +1749,42 @@ svg.fa-check.explore-success-icon {
         .obs-badge-extra-associated-obs-content {
           display: flex;
           justify-content: space-between;
+          align-items: center;
+          gap: 0.5em;
           width: 100%;
+          min-width: 0;
+
+          // Only the title shrinks; the selector and id stay visible
+          > * {
+            flex-shrink: 0;
+          }
+        }
+
+        .obs-badge-extra-associated-obs-title {
+          flex: 1 1 auto;
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        // Sized to its content: compact label padding and a slim chevron
+        .obs-badge-telluric-select.p-dropdown {
+          width: auto;
+          background-color: var(--obs-selected-badge-background);
+
+          .p-dropdown-label {
+            padding: 0.15em 0.4em;
+          }
+
+          .p-dropdown-trigger {
+            width: 1.5em;
+          }
+        }
+
+        // Placeholder row when no telluric obs exists; not clickable
+        &.obs-badge-telluric-only-row {
+          cursor: default;
         }
       }
     }
@@ -4398,6 +4428,11 @@ a.explore-upgrade-link {
       grid-auto-rows: max-content;
     }
 
+    &.program-details-left {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
     .program-details-right {
       margin-top: 3rem;
     }
@@ -4405,6 +4440,10 @@ a.explore-upgrade-link {
     label {
       text-align: right;
       font-weight: bold;
+    }
+
+    .program-status-select {
+      width: 10rem;
     }
 
     .program-details-users {

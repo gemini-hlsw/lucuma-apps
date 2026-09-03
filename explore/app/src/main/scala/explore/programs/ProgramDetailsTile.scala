@@ -13,19 +13,23 @@ import explore.model.ProgramTimes
 import explore.model.ProgramUser
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramStatus
 import lucuma.core.model.Program
+import lucuma.core.syntax.display.*
 import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.ui.primereact.CheckboxView
+import lucuma.ui.primereact.EnumDropdownOptionalView
 import lucuma.ui.primereact.FormInfo
 import lucuma.ui.primereact.given
 
 case class ProgramDetailsTile(
-  programId:         Program.Id,
-  programDetails:    View[ProgramDetails],
-  userIsReadonlyCoi: Boolean
+  programId:          Program.Id,
+  programDetails:     View[ProgramDetails],
+  userIsReadonlyCoi:  Boolean,
+  userIsStaffOrAdmin: Boolean
 ) extends ReactFnProps(ProgramDetailsTile):
   val programTimes: ProgramTimes = programDetails.get.programTimes
 
@@ -34,13 +38,28 @@ object ProgramDetailsTile
       useContext(AppContext.ctx).map: ctx =>
         import ctx.given
 
-        val details: ProgramDetails        = props.programDetails.get
-        val thesis: Boolean                = details.allUsers.exists(_.thesis.exists(_ === true))
-        val users: View[List[ProgramUser]] = props.programDetails.zoom(ProgramDetails.allUsers)
-        val newDataNotificationView        =
+        val details: ProgramDetails                 = props.programDetails.get
+        val thesis: Boolean                         = details.allUsers.exists(_.thesis.exists(_ === true))
+        val users: View[List[ProgramUser]]          = props.programDetails.zoom(ProgramDetails.allUsers)
+        val newDataNotificationView                 =
           props.programDetails
             .zoom(ProgramDetails.shouldNotify)
             .withOnMod(b => ctx.odbApi.updateGoaShouldNotify(props.programId, b).runAsync)
+        val statusView: View[Option[ProgramStatus]] =
+          props.programDetails
+            .zoom(ProgramDetails.statusAsExplicit)
+            .withOnMod(s => ctx.odbApi.updateProgramExplicitStatus(props.programId, s).runAsync)
+
+        // The clear button removes the staff override
+        val statusInfo: VdomNode =
+          if props.userIsStaffOrAdmin then
+            EnumDropdownOptionalView(
+              id = "programStatus".refined,
+              value = statusView,
+              showClear = details.explicitStatus.isDefined,
+              clazz = ExploreStyles.ProgramStatusSelect
+            )
+          else details.status.shortName
 
         <.div(ExploreStyles.ProgramDetailsTile)(
           <.div(ExploreStyles.ProgramDetailsInfoArea, ExploreStyles.ProgramDetailsLeft)(
@@ -49,7 +68,8 @@ object ProgramDetailsTile
             FormInfo(GppDateFormatter.format(details.active.end), "End"),
             // Thesis should be set True if any of the investigators will use the proposal as part of their thesis (3390)
             FormInfo(if (thesis) "Yes" else "No", "Thesis"),
-            FormInfo(s"${details.proprietaryMonths} months", "Proprietary")
+            FormInfo(s"${details.proprietaryMonths} months", "Proprietary"),
+            FormInfo(statusInfo, "Status")
           ),
           <.div(
             TimeAwardTable(details.allocations),

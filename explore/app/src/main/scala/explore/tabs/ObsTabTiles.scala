@@ -61,6 +61,7 @@ import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
+import lucuma.core.model.TelluricType
 import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.ghost.GhostIfuMapping
@@ -703,6 +704,15 @@ object ObsTabTiles:
           val slotPositions =
             ghostSkyPositionView.map(skySlot -> _).toList :+ (SlotId.Base -> baseView)
 
+          // The telluric star type observed by a telluric calibration, shown next to
+          // its system-assigned target. Hidden while the observing mode is hydrating.
+          val telluricType: Option[TelluricType] =
+            Option
+              .when(props.observation.get.calibrationRole.contains(CalibrationRole.Telluric)):
+                props.observation.get.observingMode.toOption.flatten
+              .flatten
+              .flatMap(ObservingMode.telluricType.getOption)
+
           val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
               props.vault.userId,
@@ -729,6 +739,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
+              telluricType = telluricType,
               slotPositions = slotPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),

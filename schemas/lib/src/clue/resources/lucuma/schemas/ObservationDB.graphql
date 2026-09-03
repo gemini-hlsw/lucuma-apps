@@ -4101,11 +4101,11 @@ input ProgramPropertiesInput {
   existence: Existence
 
   """
-  Program status (defaults to ACTIVE for new programs).  Readable by anyone
-  with access to the program, but may be set only by those with staff access
-  or better.  Not nullable.
+  Explicit program status, masking the status derived from the active period.
+  Set to null to return to the derived status.  May be set or cleared only by
+  those with staff access or better.
   """
-  status: ProgramStatus
+  explicitStatus: ProgramStatus
 
   """
   Active period start date (inclusive) for this program.  The date is considered
@@ -8725,12 +8725,16 @@ enum Flamingos2Reads {
   READS_16
 }
 
-"""Telluric calibration type"""
+"""
+Telluric calibration type.  NO_TELLURIC means no telluric calibration is
+wanted: none are generated and existing ones without visits are removed.
+"""
 enum TelluricTag {
   HOT
   A0V
   SOLAR
   MANUAL
+  NO_TELLURIC
 }
 
 """Telluric calibration type"""
@@ -13420,9 +13424,6 @@ enum ObsStatus {
   """ObsStatus Approved"""
   APPROVED
 
-  """ObsStatus ForReview"""
-  FOR_REVIEW
-
   """ObsStatus Ready"""
   READY
 
@@ -14461,6 +14462,12 @@ enum ObservationValidationCode {
   the observation from being executed.
   """
   GENERIC_WARNING
+
+  """Total signal to noise is below recommended threshold."""
+  LOW_TOTAL_SIGNAL_TO_NOISE
+
+  """Likelihood of observing conditions is below recommended percentage."""
+  CONDITIONS_UNLIKELY
 }
 
 """
@@ -14592,16 +14599,23 @@ type Program {
   active: DateInterval!
 
   """
-  Whether the program is currently active, i.e. whether the current UTC date
-  falls within the `active` period (inclusive of both bounds).
-  """
-  isActive: Boolean!
-
-  """
-  Program status: whether the program is active for scheduling purposes and
-  whether it is considered complete.
+  Effective program status: `explicitStatus` when set, otherwise
+  `defaultStatus`.
   """
   status: ProgramStatus!
+
+  """
+  Explicitly declared program status, if any, masking the derived
+  `defaultStatus`.  May be set (and cleared) only by those with staff access
+  or better.
+  """
+  explicitStatus: ProgramStatus
+
+  """
+  Derived program status: ACTIVE when the current UTC date falls within the
+  `active` period (inclusive of both bounds), INACTIVE otherwise.
+  """
+  defaultStatus: ProgramStatus!
 
   """Proposal status of the program"""
   proposalStatus: ProposalStatus!
@@ -18100,6 +18114,20 @@ input WhereEqProgramType {
 Filters on equality of the property.  All supplied
 criteria must match, but usually only one is selected.  E.g., 'EQ: "SUBMITTED'
 """
+input WhereEqProgramStatus {
+  """Matches if the property is exactly the supplied value."""
+  EQ: ProgramStatus
+
+  """Matches if the property is not the supplied value."""
+  NEQ: ProgramStatus
+
+  """Matches if the property value is any of the supplied options."""
+  IN: [ProgramStatus!]
+
+  """Matches if the property value is none of the supplied values."""
+  NIN: [ProgramStatus!]
+}
+
 input WhereEqProposalStatus {
   """Matches if the property is exactly the supplied value."""
   EQ: ProposalStatus
@@ -19770,11 +19798,10 @@ input WhereProgram {
   activeEnd: WhereOrderDate
 
   """
-  When true, matches programs whose active period `[activeStart, activeEnd]` contains the
-  current UTC date; when false, matches the complement. Evaluated in the database, so the
-  date is taken at transaction start.
+  Matches the effective program status. Evaluated in the database, so the
+  derived component is taken at transaction start.
   """
-  isActive: Boolean
+  status: WhereEqProgramStatus
 }
 
 input WhereProgramReference {
@@ -20199,7 +20226,6 @@ enum ObservationWorkflowState {
   UNDEFINED
   UNAPPROVED
   DEFINED
-  FOR_REVIEW
   READY
   ONGOING
   COMPLETED

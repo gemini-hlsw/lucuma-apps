@@ -49,6 +49,7 @@ import lucuma.core.util.*
 import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
+import lucuma.schemas.ObservationDB.Enums.TelluricTag
 import lucuma.schemas.ObservationDB.Scalars.AttachmentId
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
@@ -774,6 +775,15 @@ extension (o: ObservingMode.GnirsImaging)
     explicitWellDepth = o.explicitWellDepth.orUnassign,
     acquisition = o.acquisition.toInput.assign
   )
+
+extension (t: TelluricType)
+  def toInput: TelluricTypeInput = t match
+    case TelluricType.Hot               => TelluricTypeInput(tag = TelluricTag.Hot)
+    case TelluricType.A0V               => TelluricTypeInput(tag = TelluricTag.A0v)
+    case TelluricType.Solar             => TelluricTypeInput(tag = TelluricTag.Solar)
+    case TelluricType.NoTelluric        => TelluricTypeInput(tag = TelluricTag.NoTelluric)
+    case TelluricType.Manual(starTypes) =>
+      TelluricTypeInput(tag = TelluricTag.Manual, starTypes = starTypes.toList.assign)
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
   def toInput: Flamingos2LongSlitAcquisitionInput = Flamingos2LongSlitAcquisitionInput(

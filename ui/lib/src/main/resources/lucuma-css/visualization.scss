@@ -163,22 +163,47 @@
     display: inline;
   }
 
+  // Font size is set per render in user units, so the label keeps a constant screen size.
+  // The group carries the labelled shape's css, so the paint it inherits has to be reset.
+  .viz-shape-label > text {
+    fill: currentcolor;
+    fill-opacity: 1;
+    stroke: none;
+    text-shadow: 0 0 3px black;
+  }
+
   .flamingos2-fpu > polygon,
   .gmos-fpu > polygon {
     display: none;
+  }
+
+  // A shape that evaluates to a single polygon carries the css on the polygon itself; only a
+  // collection gets a wrapping group with polygon children. Both forms have to be matched or
+  // the single-polygon case (the IFU fields) falls through to the plain gray .viz-polygon.
+  .flamingos2-fpu,
+  .flamingos2-fpu > polygon,
+  .gmos-fpu,
+  .gmos-fpu > polygon {
     stroke: var(--science-slit-stroke);
     stroke-width: var(--science-slit-stroke-width);
     fill: var(--science-slit-fill);
     fill-opacity: var(--science-slit-fill-opacity);
   }
 
-  // The IFU sky bundle: same field, drawn dashed because it sits ~60" from the target.
   .gmos-ifu-sky-fov > polygon {
     display: none;
-    stroke: var(--science-slit-stroke);
+  }
+
+  // The IFU sky bundle. Amber rather than the science blue, matching .sky-position-target: it is
+  // not where the target goes, and at 60" off the base it needs to read as a different thing.
+  // `color` is inherited by the "Sky" label, which paints with currentcolor.
+  .gmos-ifu-sky-fov,
+  .gmos-ifu-sky-fov > polygon {
+    color: var(--ifu-sky-fov-color);
+    stroke: var(--ifu-sky-fov-color);
     stroke-width: var(--science-slit-stroke-width);
     stroke-dasharray: 4;
-    fill: var(--science-slit-fill);
+    fill: var(--ifu-sky-fov-color);
     fill-opacity: calc(var(--science-slit-fill-opacity) / 2);
   }
 

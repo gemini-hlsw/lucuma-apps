@@ -256,20 +256,13 @@ object TileController:
                   case l                     => l
                 .when_(!gesturing.get)).unless_(minimized)
 
-        val tilesWithBackButton: List[TileState[?]] = {
-          val topTile =
-            currentLayout.get.get(breakpoint.value).flatMap(_._3.asList.sortBy(_.y).headOption)
-          (topTile, props.renderBackButton)
-            .mapN: (t, _) =>
-              props.tiles
-                .map:
-                  case ti if t.i === ti.tileProps.id.value =>
-                    ti.withBackButton(props.renderBackButton)
-                  case ti                                  => ti
-            .getOrElse(props.tiles)
-        }
-
         val currentLayouts = currentLayout.get
+
+        // A hidden tile draws no content, but it would still get a grid item: an empty,
+        // absolutely positioned div stacked over whatever shares its rows, swallowing the
+        // clicks meant for it. Hidden tiles are therefore left out of the grid entirely;
+        // `currentLayout` keeps their entries, so they come back where they were.
+        val renderedTiles: List[TileState[?]] = props.tiles.filterNot(_.tileProps.hidden)
 
         // react-grid-layout keeps its own copy of the layout, synchronized against its children:
         // a tile that disappears from `tileDefs` is dropped from that copy, and if it comes back
@@ -279,12 +272,29 @@ object TileController:
         // It only re-derives from the `layouts` prop when that prop actually changes,
         // so we restrict it to the rendered tiles: adding or removing a tile then changes the
         // prop and forces rgl to re-derive from `currentLayout`, which is authoritative.
-        val renderedIds: Set[String] = props.tiles.map(_.tileProps.id.value).toSet
+        val renderedIds: Set[String] = renderedTiles.map(_.tileProps.id.value).toSet
 
         val renderedLayouts: Map[BreakpointName, Layout] =
           currentLayouts.view
             .mapValues(e => Layout(e._3.asList.filter(i => renderedIds.contains(i.i))))
             .toMap
+
+        // The back button goes on the topmost tile, which has to be one that is actually
+        // rendered, or it would disappear along with the tile that isn't.
+        val tilesWithBackButton: List[TileState[?]] = {
+          val topTile =
+            currentLayouts
+              .get(breakpoint.value)
+              .flatMap(_._3.asList.filter(i => renderedIds.contains(i.i)).sortBy(_.y).headOption)
+          (topTile, props.renderBackButton)
+            .mapN: (t, _) =>
+              renderedTiles
+                .map:
+                  case ti if t.i === ti.tileProps.id.value =>
+                    ti.withBackButton(props.renderBackButton)
+                  case ti                                  => ti
+            .getOrElse(renderedTiles)
+        }
 
         // rgl only ever reports the tiles it renders, so merge instead of replacing, otherwise a
         // drag or resize would drop the entries of the tiles that aren't currently rendered.

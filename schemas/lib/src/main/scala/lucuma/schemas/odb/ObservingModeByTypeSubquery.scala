@@ -293,6 +293,10 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            telluricType {
+              tag
+              starTypes
+            }
             acquisition {
               defaultFilter
               explicitFilter
@@ -318,6 +322,10 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
+            telluricType {
+              tag
+              starTypes
+            }
             acquisition {
               defaultFilter
               explicitFilter
@@ -334,6 +342,10 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             }
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            telluricType {
+              tag
+              starTypes
+            }
           }
           gnirsImaging @include(if: $$includeGnirsImaging) {
             initialFilters {
@@ -389,6 +401,10 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultWellDepth
             explicitWellDepth
             explicitFocusMotorSteps
+            telluricType {
+              tag
+              starTypes
+            }
             acquisition {
               explicitAcquisitionType
               explicitFilter
@@ -426,6 +442,10 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultWellDepth
             explicitWellDepth
             explicitFocusMotorSteps
+            telluricType {
+              tag
+              starTypes
+            }
             acquisition {
               explicitAcquisitionType
               explicitFilter
