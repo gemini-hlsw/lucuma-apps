@@ -56,35 +56,18 @@ object UseAgs:
 
   /**
    * Runs guide star selection for an observation. It lives with the observation, not with Aladin,
-   * so the selected guide star follows time and configuration changes even while the target tile
-   * is minimized and Aladin is unmounted. Aladin only draws what this produces.
+   * so the selected guide star follows time and configuration changes even while the target tile is
+   * minimized and Aladin is unmounted. Aladin only draws what this produces.
    */
   def useAgs(
     obsTargets:         Option[ObservationTargets],
     obsTime:            Option[Instant],
-    trackingMap:        Pot[ErrorMsgOr[RegionOrTrackingMap]],
+    obsCoords:          Reusable[Pot[ErrorMsgOr[ObservationTargetsCoordinatesAt]]],
+    oBaseTracking:      Reusable[Option[Tracking]],
     obsConf:            ObsConfiguration,
     guideStarSelection: View[GuideStarSelection]
   )(ctx: AppContext[IO]): HookResult[AgsData] =
     for
-      obsCoords        <- useMemo(
-                            (obsTargets, obsTime, trackingMap, obsConf.targetViz, obsConf.explicitBase)
-                          ): (targets, at, trPot, targetViz, explicitBase) =>
-                            (targets, at, trPot.toOption).tupled.flatMap: (ts, at, tr) =>
-                              if (ts.hasUnresolvedTargetOfOpportunity)
-                                ObservationTargetsCoordinatesAt.emptyAt(at).toOption
-                              else
-                                tr.toOption.flatMap: map =>
-                                  ObservationTargetsCoordinatesAt(
-                                    at,
-                                    ts,
-                                    map,
-                                    targetViz.slots,
-                                    explicitBase
-                                  ).toOption
-      oBaseTracking    <- useMemo((obsTargets, trackingMap.toOption.flatMap(_.toOption))):
-                            (targets, trackings) =>
-                              (targets, trackings).flatMapN(_.optAsterismTracking(_))
       candidates       <-
         useEffectResultWithDeps(
           (obsTime.map(SiderealDiscretizedObsTime(_, obsConf.posAngleConstraint)),
@@ -175,7 +158,7 @@ object UseAgs:
                             anglesDebounce.set(v)
       // request AGS calculation (on the debounced angles, see `anglesDebounce`)
       results          <- useAgsCalculation(
-                            obsCoords.value,
+                            obsCoords.value.toOption.flatMap(_.toOption),
                             agsCalcProps.value,
                             anglesDebounce.debouncedValue,
                             obsConf.posAngleConstraint.isDefined,
@@ -184,11 +167,10 @@ object UseAgs:
                             obsConf.needGuideStar
                           )(ctx)
       // In case the selected name changes remotely
-      _                <- useEffectWithDeps((obsConf.remoteGSName, results.constrained)):
-                            (n, resultsPot) =>
-                              resultsPot.toOption.foldMap: results =>
-                                val newGss =
-                                  n.fold(AgsSelection(results.headOption.tupleLeft(0))):
-                                    results.pick
-                                guideStarSelection.set(newGss)
+      _                <- useEffectWithDeps((obsConf.remoteGSName, results.constrained)): (n, resultsPot) =>
+                            resultsPot.toOption.foldMap: results =>
+                              val newGss =
+                                n.fold(AgsSelection(results.headOption.tupleLeft(0))):
+                                  results.pick
+                              guideStarSelection.set(newGss)
     yield AgsData(candidates.value.value, results)

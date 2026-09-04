@@ -168,8 +168,9 @@ object ObservationTargetsEditorTile
                                    scienceIds.value ++ oBlindId.toList
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
+          // Skipped (no targets to track) when the host already provides a tracking map.
           ownTrackingMap      <- useTrackingMap(
-                                   obsTargets.value.filter(_ => props.trackingMap.isEmpty),
+                                   obsTargets.value.filterNot(_ => props.trackingMap.isDefined),
                                    distinctSite.value,
                                    obsTimeOrNow.value.some
                                  )(ctx)

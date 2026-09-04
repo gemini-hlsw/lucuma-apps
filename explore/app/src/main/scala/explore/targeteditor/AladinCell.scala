@@ -12,7 +12,6 @@ import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import crystal.react.reuse.*
-import crystal.react.syntax.pot.given
 import eu.timepit.refined.*
 import eu.timepit.refined.auto.*
 import explore.Icons
@@ -25,6 +24,8 @@ import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.optics.ModelOptics
+import explore.targeteditor.UseTrackingMap.useAsterismTracking
+import explore.targeteditor.UseTrackingMap.useObsTargetsCoords
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -180,33 +181,14 @@ object AladinCell extends ModelOptics with AladinCommon:
   private val component = ScalaFnComponent[Props]: props =>
     for {
       ctx                 <- useContext(AppContext.ctx)
-      obsTargetsCoordsPot <- useMemo(
-                               (props.obsTargets,
-                                props.obsTime,
-                                props.trackingMap,
-                                props.obsConf.map(_.targetViz),
-                                props.obsConf.flatMap(_.explicitBase)
-                               )
-                             ): (targets, at, trPot, targetViz, explicitBase) =>
-                               // Generic instrument slot layout, resolved to obs-time coords inside
-                               // ObservationTargetsCoordinatesAt alongside base/blind-offset coords.
-                               val slots = targetViz.foldMap(_.slots)
-                               trPot.map: tr =>
-                                 if (targets.hasUnresolvedTargetOfOpportunity)
-                                   ObservationTargetsCoordinatesAt.emptyAt(at)
-                                 else
-                                   tr.flatMap: map =>
-                                     ObservationTargetsCoordinatesAt(at,
-                                                                     targets,
-                                                                     map,
-                                                                     slots,
-                                                                     explicitBase
-                                     )
-      oBaseTracking       <-
-        useMemo((props.obsTargets, props.trackingMap.toOption.flatMap(_.toOption))):
-          (obsTargets, trackings) =>
-            // We should have trackings for all the targets, so we'll ignore errors here.
-            trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
+      obsTargetsCoordsPot <- useObsTargetsCoords(
+                               props.obsTargets.some,
+                               props.obsTime.some,
+                               props.trackingMap,
+                               props.obsConf.map(_.targetViz),
+                               props.obsConf.flatMap(_.explicitBase)
+                             )
+      oBaseTracking       <- useAsterismTracking(props.obsTargets.some, props.trackingMap)
       // Pending sky-position changes for optimistic updates, keyed by slot:
       optimisticSky       <- useStateView(SortedMap.empty[SlotId, Option[Coordinates]])
       // set of slots we currently have a position for.

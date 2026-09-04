@@ -44,6 +44,8 @@ import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targeteditor.UseAgs.useAgs
+import explore.targeteditor.UseTrackingMap.useAsterismTracking
+import explore.targeteditor.UseTrackingMap.useObsTargetsCoords
 import explore.targeteditor.UseTrackingMap.useTrackingMap
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
@@ -374,14 +376,10 @@ object ObsTabTiles:
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))
         isEditingAcquisition <- useStateView(IsEditing.False)
         isEditingScience     <- useStateView(IsEditing.False)
-        optAsterismTracking   =
-          trackingMapPot.toOption
-            .flatMap(_.toOption)
-            .flatMap: trackingMap =>
-              props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
+        oBaseTracking        <- useAsterismTracking(props.asterismAsNel, trackingMapPot)
         averagePA             =
-          obsTimeOrNowPot.value.toOption.flatMap(props.averagePA(_, optAsterismTracking))
-        trackType             = optAsterismTracking.map(_.trackType)
+          obsTimeOrNowPot.value.toOption.flatMap(props.averagePA(_, oBaseTracking.value))
+        trackType             = oBaseTracking.value.map(_.trackType)
         paProps               =
           PAProperties(props.obsId, guideStarSelection, agsState, props.posAngleConstraint)
         obsConf               =
@@ -405,13 +403,22 @@ object ObsTabTiles:
             props.observation.get.cassRotator,
             maskDesignPot.value.toOption.flatten
           )
+        focusedTargets        = props.asterismAsNel.map: targets =>
+                                  props.focusedTarget.fold(targets)(targets.focusOn)
+        obsCoords            <- useObsTargetsCoords(
+                                  focusedTargets,
+                                  obsTimeOrNowPot.value.toOption,
+                                  trackingMapPot,
+                                  obsConf.targetViz.some,
+                                  obsConf.explicitBase
+                                )
         // AGS follows the observation, not the target tile, so the guide star keeps up with time
         // and configuration changes while the tile is minimized.
         agsData              <- useAgs(
-                                  props.asterismAsNel.map: targets =>
-                                    props.focusedTarget.fold(targets)(targets.focusOn),
+                                  focusedTargets,
                                   obsTimeOrNowPot.value.toOption,
-                                  trackingMapPot,
+                                  obsCoords,
+                                  oBaseTracking,
                                   obsConf,
                                   guideStarSelection
                                 )(ctx)
@@ -446,8 +453,7 @@ object ObsTabTiles:
               obsEditAttachments(props.obsId, ids).runAsync
             }
 
-          val digest      = props.observation.get.execution.digest
-          val obsDuration = props.obsDuration
+          val digest = props.observation.get.execution.digest
 
           // For average and allow flip we need to read the flip from the selected star
           def flipIfNeeded(angle: Option[Angle]): Option[Angle] =
@@ -632,7 +638,7 @@ object ObsTabTiles:
                 pd,
                 props.observation.get.basicConfiguration.flatMap(_.siteFor),
                 obsTimeView.get,
-                obsDuration.map(_.toDuration),
+                props.obsDuration.map(_.toDuration),
                 obsCalibrationGroup.isEmpty,
                 props.observation.get.schedulingConstraints.timingWindows,
                 globalPreferences.get,
@@ -738,7 +744,7 @@ object ObsTabTiles:
           // than one tile ends up having dropdowns in the tile header, we'll need something more complex such
           // as changing the css classes on the various tiles when the dropdown is clicked to control z-index.
           val optAsterismCoords: Option[Coordinates] =
-            props.targetCoords(obsTimeOrNow, optAsterismTracking)
+            props.targetCoords(obsTimeOrNow, oBaseTracking.value)
 
           val conditionsLikelihood: Option[IntCentiPercent] =
             props.obsConditionsLikelihood(optAsterismCoords)
