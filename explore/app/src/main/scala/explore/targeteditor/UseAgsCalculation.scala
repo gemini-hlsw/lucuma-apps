@@ -153,7 +153,7 @@ object UseAgsCalculation:
                                       )
                                     process.guarantee(state.async.set(AgsState.Idle))
 
-                                  guideStarSelection.set(AgsSelection(none)).toAsync *>
+                                  guideStarSelection.mod(_.resetKeepingName).toAsync *>
                                     query.orEmpty.unlessA(guideStarSelection.get.isOverride)
 
                                 case _ =>
@@ -161,7 +161,7 @@ object UseAgsCalculation:
                                   constrainedResults
                                     .setState(Pot.pending[List[AgsAnalysis.Usable]])
                                     .to[IO] *>
-                                    guideStarSelection.set(AgsSelection(none)).toAsync
+                                    guideStarSelection.mod(_.resetKeepingName).toAsync
       // AGS for uconstrained angles
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, hasConstraint, needsAGS)

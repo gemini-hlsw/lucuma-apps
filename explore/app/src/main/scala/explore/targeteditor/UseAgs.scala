@@ -149,7 +149,7 @@ object UseAgs:
                               (prevAnglesToTest.value, angles).mapN(_ =!= _).exists(identity)
                             prevAnglesToTest.set(angles.orElse(prevAnglesToTest.value)) >>
                               guideStarSelection
-                                .set(GuideStarSelection.Default)
+                                .mod(_.resetKeepingName)
                                 .when_(changed && obsConf.needGuideStar)
       // Debounced twin of `anglesToTest` for AGS consumption. We push the live value in on every
       // (structural) change, the debounced output lags by `AgsDebounceDelay`

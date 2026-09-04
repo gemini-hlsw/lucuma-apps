@@ -39,6 +39,14 @@ object GuideStarSelection:
 
     def isOverride: Boolean = fold(_ => false, _ => false, _ => true)
 
+    // Drops a stale analysis, keeping a manual pick as a name for `pick` to re-resolve. Going
+    // straight to AgsSelection would read as a switch back to automatic and erase the ODB name.
+    def resetKeepingName: GuideStarSelection = gs match
+      case AgsOverride(name, _, _)  => RemoteGSSelection(name)
+      case r @ RemoteGSSelection(_) => r
+      case a @ AgsSelection(None)   => a
+      case AgsSelection(_)          => Default
+
     def idx: Option[Int] = fold(_.index.map(_._1), _ => none, _.selectedGSIndex.some)
 
     def targetName: Option[NonEmptyString] =
