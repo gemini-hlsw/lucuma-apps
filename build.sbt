@@ -43,7 +43,6 @@ ThisBuild / resolvers += "Gemini Repository".at(
 
 ThisBuild / evictionErrorLevel := Level.Info
 
-ThisBuild / lucumaCoverage               := false
 ThisBuild / githubWorkflowArtifactUpload := false // Necessary when disabling coverage.
 
 // Uncomment for local gmp testing
@@ -487,7 +486,6 @@ lazy val explore_app: Project = project
   .settings(esModule: _*)
   .settings(commonModuleTest: _*)
   .settings(
-    coverageEnabled      := false,
     libraryDependencies ++=
       GeminiLocales.value ++
         LucumaReact.value,
@@ -559,7 +557,6 @@ lazy val observe_ui_model = project
   .enablePlugins(ScalaJSPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(
-    coverageEnabled := false,
     libraryDependencies ++=
       Crystal.value ++
         LucumaCore.value ++
@@ -579,7 +576,6 @@ lazy val observe_web_client = project
   .settings(esModule: _*)
   .settings(
     Test / test      := {},
-    coverageEnabled  := false,
     libraryDependencies ++=
       Kittens.value ++
         Clue.value ++
@@ -700,9 +696,8 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(
     // And add a custom one
     libraryDependencies ++=
-      JavaTimeJs.value,
-    // In(Test)(LucumaUITestkit.value),
-    coverageEnabled := false
+      JavaTimeJs.value
+      // In(Test)(LucumaUITestkit.value),
   )
 
 /**
