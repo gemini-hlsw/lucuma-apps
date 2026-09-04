@@ -45,6 +45,30 @@ ThisBuild / evictionErrorLevel := Level.Info
 
 ThisBuild / githubWorkflowArtifactUpload := false // Necessary when disabling coverage.
 
+// Files that cannot break a Scala or Scala.js test in this repo. The plugin ships only docs and
+// editor config; everything repo-specific belongs here. Checked before `lucumaAffectedAlwaysPaths`,
+// so an entry here always wins -- drop one to make those files trigger a full test run again.
+ThisBuild / lucumaAffectedIgnorePaths ++= Seq(
+  // bots: these change how PRs are handled, not what the code does
+  ".mergify.yml",
+  ".scala-steward.conf",
+  ".github/renovate.json",
+  // formatters and linters: the `lint` job and the CI check steps run regardless
+  ".scalafmt.conf",
+  ".scalafmt-common.conf",
+  ".scalafix.conf",
+  ".scalafix-common.conf",
+  "**.prettierrc*",
+  ".prettierignore",
+  ".stylelintignore",
+  "stylelint.config.mjs",
+  // deployment concerns, not build inputs
+  ".sopsrc",
+  "**hasura/**",
+  // bundler config: shapes the app build, never a test
+  "**vite.config.*"
+)
+
 // Uncomment for local gmp testing
 // ThisBuild / resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
