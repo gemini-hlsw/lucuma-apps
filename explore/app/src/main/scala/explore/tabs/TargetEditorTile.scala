@@ -22,6 +22,7 @@ import explore.model.UserPreferences
 import explore.targeteditor.AgsData
 import explore.targeteditor.TargetEditor
 import explore.targeteditor.UseTrackingMap.useTrackingMap
+import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
@@ -31,9 +32,6 @@ import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.undo.UndoSetter
-
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 final case class SingleTargetEditorTile(
   programId:          Program.Id,
@@ -65,8 +63,8 @@ object SingleTargetEditorTile
     extends TileComponent[SingleTargetEditorTile]((props, _) =>
       for
         ctx         <- useContext(AppContext.ctx)
-        // Same default TargetEditor falls back to when there is no observation time.
-        obsTime     <- useMemo(())(_ => Instant.now().truncatedTo(ChronoUnit.DAYS))
+        // There is no observation here, so this is always the fallback time.
+        obsTime     <- useMemo(())(_ => obsTimeOrDefault(none))
         trackingMap <- useTrackingMap(
                          ObservationTargets.one(props.target.get).some,
                          props.site,

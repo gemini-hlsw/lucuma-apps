@@ -40,6 +40,7 @@ import explore.shortcuts.*
 import explore.shortcuts.given
 import explore.targeteditor.UseTrackingMap.useTrackingMap
 import explore.targets.TargetColumns
+import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -143,7 +144,7 @@ object ObservationTargetsEditorTile
           ctx                 <- useContext(AppContext.ctx)
           // Memoize the effective observation time (from odb or now)
           // so we don't feed react-datepicker a fresh Instant.now on every render
-          obsTimeOrNow        <- useMemo(props.obsTime.get)(_.getOrElse(Instant.now))
+          obsTimeOrNow        <- useMemo(props.obsTime.get)(obsTimeOrDefault)
           columnVisibility    <- useStateView(TargetColumns.DefaultVisibility)
           // obsEditInfo <- useStateView[Option[ObsIdSetEditInfo]](none)
           adding              <- useStateView(AreAdding(false))

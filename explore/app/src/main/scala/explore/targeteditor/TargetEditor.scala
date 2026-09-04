@@ -88,7 +88,6 @@ import monocle.Prism
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 case class TargetEditor(
   programId:                   Program.Id,
@@ -202,7 +201,7 @@ object TargetEditor:
         resolvePopupState           <- useStateView(PopupState.Closed)
         // If obsTime is not set, change it to now at the start of the day in UTC.
         obsTime                     <- useEffectKeepResultWithDeps(props.obsTime): obsTime =>
-                                         IO(obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS)))
+                                         IO(obsTimeOrDefault(obsTime))
         // select the aligner to use based on whether a clone will be created or not.
         targetAligner               <-
           val obsToCloneTo = props.externalObsToCloneTo.getOrElse(internalObsToCloneTo)

@@ -25,6 +25,7 @@ import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.targets.MotionCorrectedTarget
 import explore.targets.TargetColumns
+import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
@@ -216,14 +217,14 @@ object TargetTable:
                             )
                             .AllColumns
         vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
-                        IO(vizTime.getOrElse(Instant.now()))
+                        IO(obsTimeOrDefault(vizTime))
         rowsPot    <-
           useEffectKeepResultWithDeps(
             (vizTime.value.toOption, props.obsTargets, props.site, props.positions)
           ): (vt, optObsTargets, site, skyPositions) =>
             import ctx.given
 
-            val vizInstant                 = vt.getOrElse(Instant.now())
+            val vizInstant                 = obsTimeOrDefault(vt)
             val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
               AsterismRow.PositionRow(
                 slot,

@@ -30,6 +30,7 @@ import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.syntax.all.given
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 val canvasWidth  = VdomAttr("width")
 val canvasHeight = VdomAttr("height")
@@ -48,6 +49,12 @@ def version(environment: ExecutionEnvironment): NonEmptyString = {
         .orEmpty
   )
 }
+
+// The time to display an observation at: the observation's own time, or the start of the
+// current UTC day when it has none. Truncated so a missing time doesn't make positions
+// (and with them the average PA and guide star) drift on every render.
+def obsTimeOrDefault(obsTime: Option[Instant]): Instant =
+  obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS))
 
 inline def showCount(count: Int, unit: String, plural: String): String =
   if (count == 1) s"$count $unit"

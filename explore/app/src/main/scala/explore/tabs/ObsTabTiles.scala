@@ -47,6 +47,7 @@ import explore.targeteditor.UseAgs.useAgs
 import explore.targeteditor.UseTrackingMap.useAsterismTracking
 import explore.targeteditor.UseTrackingMap.useObsTargetsCoords
 import explore.targeteditor.UseTrackingMap.useTrackingMap
+import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -314,7 +315,7 @@ object ObsTabTiles:
         _                    <- useEffectWithDeps(customSedTimestamps): _ =>
                                   sequenceChanged.set(pending)
         obsTimeOrNowPot      <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
-                                  vizTime => IO(vizTime.getOrElse(Instant.now()))
+                                  vizTime => IO(obsTimeOrDefault(vizTime))
         trackingMapPot       <-
           useTrackingMap(props.asterismAsNel, props.site, obsTimeOrNowPot.value.toOption)(ctx)
         // Store guide star selection in a view for fast local updates
