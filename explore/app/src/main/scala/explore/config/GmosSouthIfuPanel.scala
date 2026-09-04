@@ -25,7 +25,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
-import lucuma.core.model.sequence.gmos.ifu.southIfuTelescopeConfigPresets
+import lucuma.core.model.sequence.gmos
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -148,7 +148,7 @@ case class GmosSouthIfuPanel(
         .zoom(Mode.explicitTelescopeConfigs, GmosSouthIfuInput.explicitTelescopeConfigs.modify)
         .view(_.map(_.toList.map(_.toInput)).orUnassign)
         .removeOptionality(Mode.defaultTelescopeConfigs.get(observingMode.get)),
-      presets = southIfuTelescopeConfigPresets(Mode.fpu.get(observingMode.get)),
+      presets = gmos.ifu.southTelescopeConfigPresets(Mode.fpu.get(observingMode.get)),
       helpId = "configuration/mos-spatial-offsets.md".refined,
       defaultConfigs = Mode.defaultTelescopeConfigs.get(observingMode.get),
       presetsReadonly = disabled,
