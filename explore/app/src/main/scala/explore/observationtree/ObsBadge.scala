@@ -299,13 +299,14 @@ object ObsBadge:
           )
 
       // With no telluric the ODB generates no telluric observation, so the selector
-      // gets its own row to allow turning tellurics back on.
+      // gets its own row to allow turning tellurics back on. An inactive observation
+      // generates no calibrations either, so the row would be misleading there.
       val hasTelluricObs: Boolean =
         props.associatedObss.exists(_.calibrationRole.contains(CalibrationRole.Telluric))
 
       val telluricOnlyRow: Option[VdomNode] =
         telluricDropdown
-          .filterNot(_ => hasTelluricObs)
+          .filterNot(_ => hasTelluricObs || obs.isInactive)
           .map: dropdown =>
             Button(
               clazz = ExploreStyles.ObsBadgeAssociatedObs |+| ExploreStyles.ObsBadgeTelluricOnlyRow,
