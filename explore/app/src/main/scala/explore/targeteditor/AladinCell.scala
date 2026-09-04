@@ -24,8 +24,6 @@ import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.optics.ModelOptics
-import explore.targeteditor.UseTrackingMap.useAsterismTracking
-import explore.targeteditor.UseTrackingMap.useObsTargetsCoords
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -60,7 +58,7 @@ case class AladinCell(
   obsTargets:          ObservationTargets,
   obsTime:             Instant,
   obsConf:             Option[ObsConfiguration],
-  trackingMap:         Pot[ErrorMsgOr[RegionOrTrackingMap]],
+  positions:           ObsPositions,
   ags:                 AgsData,
   fullScreen:          View[AladinFullScreen],
   userPreferences:     View[UserPreferences],
@@ -180,81 +178,73 @@ object AladinCell extends ModelOptics with AladinCommon:
 
   private val component = ScalaFnComponent[Props]: props =>
     for {
-      ctx                 <- useContext(AppContext.ctx)
-      obsTargetsCoordsPot <- useObsTargetsCoords(
-                               props.obsTargets.some,
-                               props.obsTime.some,
-                               props.trackingMap,
-                               props.obsConf.map(_.targetViz),
-                               props.obsConf.flatMap(_.explicitBase)
-                             )
-      oBaseTracking       <- useAsterismTracking(props.obsTargets.some, props.trackingMap)
+      ctx            <- useContext(AppContext.ctx)
       // Pending sky-position changes for optimistic updates, keyed by slot:
-      optimisticSky       <- useStateView(SortedMap.empty[SlotId, Option[Coordinates]])
+      optimisticSky  <- useStateView(SortedMap.empty[SlotId, Option[Coordinates]])
       // set of slots we currently have a position for.
-      realSlots            = obsTargetsCoordsPot.value.toOption
-                               .flatMap(_.toOption)
-                               .fold(SortedSet.empty[SlotId])(c => SortedSet.from(c.slotCoords.keys))
+      realSlots       = props.positions.coords.toOption
+                          .flatMap(_.toOption)
+                          .fold(SortedSet.empty[SlotId])(c => SortedSet.from(c.slotCoords.keys))
       // reconcile local state with the remote values for slot assignments
-      _                   <- useEffectWithDeps((optimisticSky.get, realSlots)): (pending, real) =>
-                               def settled(slot: SlotId, expected: Option[Coordinates]): Boolean =
-                                 expected.fold(!real.contains(slot))(_ => real.contains(slot))
-                               val reconciled                                                    = pending.toList.collect:
-                                 case (slot, expected) if settled(slot, expected) => slot
-                               optimisticSky.mod(_ -- reconciled).whenA(reconciled.nonEmpty)
+      _              <- useEffectWithDeps((optimisticSky.get, realSlots)): (pending, real) =>
+                          def settled(slot: SlotId, expected: Option[Coordinates]): Boolean =
+                            expected.fold(!real.contains(slot))(_ => real.contains(slot))
+                          val reconciled                                                    = pending.toList.collect:
+                            case (slot, expected) if settled(slot, expected) => slot
+                          optimisticSky.mod(_ -- reconciled).whenA(reconciled.nonEmpty)
       // Reference to root
-      root                <- useMemo(())(_ => domRoot)
+      root           <- useMemo(())(_ => domRoot)
       // target options, will be read from the user preferences cache
-      options             <- useStateView(
-                               props.userPreferences.get.asterismPreferences
-                                 .get(UserPreferences.AsterismKey.fromTargetIds(props.obsTargets.ids))
-                                 .fold(pending[AsterismVisualOptions])(_.ready)
-                             )
-      _                   <- useEffectWithDeps((props.uid, props.obsTargets.ids)): (uid, tids) =>
-                               import ctx.given
+      options        <- useStateView(
+                          props.userPreferences.get.asterismPreferences
+                            .get(UserPreferences.AsterismKey.fromTargetIds(props.obsTargets.ids))
+                            .fold(pending[AsterismVisualOptions])(_.ready)
+                        )
+      _              <- useEffectWithDeps((props.uid, props.obsTargets.ids)): (uid, tids) =>
+                          import ctx.given
 
-                               val key = UserPreferences.AsterismKey.fromTargetIds(tids)
+                          val key = UserPreferences.AsterismKey.fromTargetIds(tids)
 
-                               def applyOptions(o: AsterismVisualOptions): Callback =
-                                 options.set(o.ready) *>
-                                   setVariable(root, "saturation", o.saturation) *>
-                                   setVariable(root, "brightness", o.brightness)
+                          def applyOptions(o: AsterismVisualOptions): Callback =
+                            options.set(o.ready) *>
+                              setVariable(root, "saturation", o.saturation) *>
+                              setVariable(root, "brightness", o.brightness)
 
-                               props.userPreferences.get.asterismPreferences.get(key) match
-                                 case Some(o) =>
-                                   applyOptions(o)
-                                 case None    =>
-                                   options.set(pending[AsterismVisualOptions]) *>
-                                     AsterismPreferences
-                                       .queryAsterism[IO](uid, tids)
-                                       .runAsyncAndThen:
-                                         case Right(Some(o)) =>
-                                           // try to read it from the db and send to cache
-                                           props.userPreferences
-                                             .zoom(UserPreferences.asterismVisualOptions(key))
-                                             .set(o.some) *> applyOptions(o)
-                                         case _              =>
-                                           // if not found in db, use default and send to cache
-                                           applyOptions(AsterismVisualOptions.Default)
+                          props.userPreferences.get.asterismPreferences.get(key) match
+                            case Some(o) =>
+                              applyOptions(o)
+                            case None    =>
+                              options.set(pending[AsterismVisualOptions]) *>
+                                AsterismPreferences
+                                  .queryAsterism[IO](uid, tids)
+                                  .runAsyncAndThen:
+                                    case Right(Some(o)) =>
+                                      // try to read it from the db and send to cache
+                                      props.userPreferences
+                                        .zoom(UserPreferences.asterismVisualOptions(key))
+                                        .set(o.some) *> applyOptions(o)
+                                    case _              =>
+                                      // if not found in db, use default and send to cache
+                                      applyOptions(AsterismVisualOptions.Default)
       // Hold the mouse position on a SignallingRef instead of react state to avoid a re-rending loop.
-      mouseSignal         <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
-      setMouseCoords      <- useCallbackWithDeps(mouseSignal.value.value.toOption.isDefined): _ =>
-                               import ctx.given
-                               (coords: Option[Coordinates]) =>
-                                 mouseSignal.value.value.toOption.foldMap(_.set(coords).runAsync)
-      _                   <- useEffectWithDeps(
-                               (obsTargetsCoordsPot.value.toOption
-                                  .flatMap(_.toOption)
-                                  .flatMap(_.baseOrBlindCoords),
-                                mouseSignal.value.value.toOption.isDefined
-                               )
-                             ): (coords, _) =>
-                               setMouseCoords.value(coords)
+      mouseSignal    <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
+      setMouseCoords <- useCallbackWithDeps(mouseSignal.value.value.toOption.isDefined): _ =>
+                          import ctx.given
+                          (coords: Option[Coordinates]) =>
+                            mouseSignal.value.value.toOption.foldMap(_.set(coords).runAsync)
+      _              <- useEffectWithDeps(
+                          (props.positions.coords.toOption
+                             .flatMap(_.toOption)
+                             .flatMap(_.baseOrBlindCoords),
+                           mouseSignal.value.value.toOption.isDefined
+                          )
+                        ): (coords, _) =>
+                          setMouseCoords.value(coords)
       // Reset the offset if the asterism changes. The guide star is reset by AGS itself.
-      _                   <- useEffectWithDeps(props.obsTargets): targets =>
-                               val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
-                               offsetOnCenter.set(Offset.Zero)
-      menuRef             <- usePopupMenuRef
+      _              <- useEffectWithDeps(props.obsTargets): targets =>
+                          val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
+                          offsetOnCenter.set(Offset.Zero)
+      menuRef        <- usePopupMenuRef
     } yield
       import ctx.given
 
@@ -434,7 +424,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             EmptyVdom
 
       val renderBlindOffsetControl =
-        (oBaseTracking.value, props.blindOffsetInfo).mapN: (bt, boInfo) =>
+        (props.positions.baseTracking, props.blindOffsetInfo).mapN: (bt, boInfo) =>
           BlindOffsetControl(
             boInfo._1,
             boInfo._2,
@@ -446,7 +436,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           )
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (props.trackingMap, obsTargetsCoordsPot.value).tupled.renderPot: (etr, eco) =>
+        (props.positions.trackingMap, props.positions.coords).tupled.renderPot: (etr, eco) =>
           (etr, eco).tupled.fold(
             err => Message(severity = Message.Severity.Error, text = err),
             (tr, co) =>

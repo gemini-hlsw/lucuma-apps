@@ -44,8 +44,7 @@ object GuideStarSelection:
     def resetKeepingName: GuideStarSelection = gs match
       case AgsOverride(name, _, _)  => RemoteGSSelection(name)
       case r @ RemoteGSSelection(_) => r
-      case a @ AgsSelection(None)   => a
-      case AgsSelection(_)          => Default
+      case _: AgsSelection          => Default
 
     def idx: Option[Int] = fold(_.index.map(_._1), _ => none, _.selectedGSIndex.some)
 
@@ -60,6 +59,10 @@ object GuideStarSelection:
     def selectedAngle: Option[Angle] = analysis.map(_.posAngle)
 
 extension (r: List[AgsAnalysis.Usable])
+  // The star the ODB names when it names one, else the best candidate.
+  def select(name: Option[NonEmptyString]): GuideStarSelection =
+    name.fold(GuideStarSelection.AgsSelection(r.headOption.tupleLeft(0)))(pick)
+
   def pick(i: Int): GuideStarSelection =
     r.lift(i)
       .fold[GuideStarSelection](GuideStarSelection.AgsSelection(none))(a =>

@@ -24,16 +24,44 @@ import lucuma.ui.reusability.given
 
 import java.time.Instant
 
+/**
+ * Where an observation points, as seen by everything that draws or analyzes it: the tracking of
+ * each target, the tracking of the asterism as a whole (the base) and the resolved coordinates at
+ * the observation time. Computed once per screen with `useObsPositions` and passed down, so the
+ * average PA, AGS and Aladin all work from the same positions.
+ */
+case class ObsPositions(
+  trackingMap:  Pot[ErrorMsgOr[RegionOrTrackingMap]],
+  baseTracking: Option[Tracking],
+  coords:       Pot[ErrorMsgOr[ObservationTargetsCoordinatesAt]]
+)
+
+object ObsPositions:
+  val Pending: ObsPositions = ObsPositions(Pot.pending, none, Pot.pending)
+
+  given Reusability[ObsPositions] = Reusability.by(p => (p.trackingMap, p.baseTracking, p.coords))
+
 object UseTrackingMap:
+  def useObsPositions(
+    targets:      Option[ObservationTargets],
+    site:         Option[Site],
+    obsTime:      Option[Instant],
+    targetViz:    Option[TargetVisualization],
+    explicitBase: Option[Coordinates]
+  )(ctx: AppContext[IO]): HookResult[ObsPositions] =
+    for
+      trackingMap  <- useTrackingMap(targets, site, obsTime)(ctx)
+      baseTracking <- useAsterismTracking(targets, trackingMap)
+      coords       <- useObsTargetsCoords(targets, obsTime, trackingMap, targetViz, explicitBase)
+    yield ObsPositions(trackingMap, baseTracking.value, coords.value)
+
   /**
    * Tracking for every target of an observation: high resolution around the observing night, low
-   * resolution over the semester so Aladin can pan. The component at the top of a screen
-   * (ObsTabTiles or a target tab tile) calls this once and passes the map down, so the average PA
-   * and Aladin are computed from the same positions. The previous map is kept while recomputing so
-   * Aladin does not unmount on every edit. Without a site, non-sidereal targets yield an error
-   * rather than an ephemeris for a guessed site.
+   * resolution over the semester so Aladin can pan. The component at the top of a screen The
+   * previous map is kept while recomputing so Aladin does not unmount on every edit. Without a
+   * site, non-sidereal targets yield an error rather than an ephemeris for a guessed site.
    */
-  def useTrackingMap(
+  private def useTrackingMap(
     targets: Option[ObservationTargets],
     site:    Option[Site],
     obsTime: Option[Instant]
@@ -53,7 +81,7 @@ object UseTrackingMap:
    * Tracking of the asterism as a whole, i.e. the base position over time. `None` while the
    * tracking map is unavailable or when the asterism has an unresolved ToO.
    */
-  def useAsterismTracking(
+  private def useAsterismTracking(
     targets:     Option[ObservationTargets],
     trackingMap: Pot[ErrorMsgOr[RegionOrTrackingMap]]
   ): HookResult[Reusable[Option[Tracking]]] =
@@ -65,7 +93,7 @@ object UseTrackingMap:
    * Positions of everything an observation points at, at `obsTime`: the targets, the base, the
    * blind offset and the instrument slots.
    */
-  def useObsTargetsCoords(
+  private def useObsTargetsCoords(
     targets:      Option[ObservationTargets],
     obsTime:      Option[Instant],
     trackingMap:  Pot[ErrorMsgOr[RegionOrTrackingMap]],

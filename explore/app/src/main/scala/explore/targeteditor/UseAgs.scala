@@ -45,7 +45,7 @@ object AgsData:
     AgsData(Pot.pending, AgsCalculationResults(Pot.pending, Pot.pending))
 
   given Reusability[AgsData] =
-    Reusability.by(d => (d.candidates.toOption.flatten.map(_.length), d.results))
+    Reusability.by(d => (d.candidates.map(_.map(_.length)), d.results))
 
 object UseAgs:
   // Position-angle changes debouncing time
@@ -62,8 +62,7 @@ object UseAgs:
   def useAgs(
     obsTargets:         Option[ObservationTargets],
     obsTime:            Option[Instant],
-    obsCoords:          Reusable[Pot[ErrorMsgOr[ObservationTargetsCoordinatesAt]]],
-    oBaseTracking:      Reusable[Option[Tracking]],
+    positions:          ObsPositions,
     obsConf:            ObsConfiguration,
     guideStarSelection: View[GuideStarSelection]
   )(ctx: AppContext[IO]): HookResult[AgsData] =
@@ -71,7 +70,7 @@ object UseAgs:
       candidates       <-
         useEffectResultWithDeps(
           (obsTime.map(SiderealDiscretizedObsTime(_, obsConf.posAngleConstraint)),
-           oBaseTracking,
+           positions.baseTracking,
            obsConf.explicitBase,
            obsConf.obsModeType,
            obsConf.guideProbe,
@@ -82,7 +81,7 @@ object UseAgs:
 
           // Prefer the explicit base override as the catalog search center
           val searchTracking: Option[Tracking] =
-            explicitBase.map(Tracking.constant).orElse(oTracking.value)
+            explicitBase.map(Tracking.constant).orElse(oTracking)
 
           (discretizedObsTime, obsModeType, searchTracking)
             .mapN: (discretizedObsTime, _, baseTracking) =>
@@ -158,7 +157,7 @@ object UseAgs:
                             anglesDebounce.set(v)
       // request AGS calculation (on the debounced angles, see `anglesDebounce`)
       results          <- useAgsCalculation(
-                            obsCoords.value.toOption.flatMap(_.toOption),
+                            positions.coords.toOption.flatMap(_.toOption),
                             agsCalcProps.value,
                             anglesDebounce.debouncedValue,
                             obsConf.posAngleConstraint.isDefined,
@@ -169,8 +168,5 @@ object UseAgs:
       // In case the selected name changes remotely
       _                <- useEffectWithDeps((obsConf.remoteGSName, results.constrained)): (n, resultsPot) =>
                             resultsPot.toOption.foldMap: results =>
-                              val newGss =
-                                n.fold(AgsSelection(results.headOption.tupleLeft(0))):
-                                  results.pick
-                              guideStarSelection.set(newGss)
+                              guideStarSelection.set(results.select(n))
     yield AgsData(candidates.value.value, results)

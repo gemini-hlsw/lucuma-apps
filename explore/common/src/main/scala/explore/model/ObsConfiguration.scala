@@ -87,12 +87,11 @@ final case class ObsConfiguration(
   // Angles AGS tests. Visual mode defaults to PA 0 when e.g. the average PA is not available.
   // Sorted, or two equivalent guide stars could make the angles flip back and forth forever.
   def anglesToTest: Option[NonEmptyList[Angle]] =
-    posAngleConstraint
-      .flatMap: paConstraint =>
-        paConstraint
-          .anglesToTestAt(averagePA.map(_.averagePA))
-          .orElse(NonEmptyList.one(Angle.Angle0).some)
-      .map(_.sorted(using Angle.AngleOrder))
+    posAngleConstraint.map: paConstraint =>
+      paConstraint
+        .anglesToTestAt(averagePA.map(_.averagePA))
+        .getOrElse(NonEmptyList.one(Angle.Angle0))
+        .sorted(using Angle.AngleOrder)
 
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)

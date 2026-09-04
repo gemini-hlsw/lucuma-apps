@@ -19,7 +19,6 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.ConfigurationForVisualization
-import explore.model.ErrorMsgOr
 import explore.model.GhostSkySlot
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
@@ -29,7 +28,6 @@ import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.OnCloneParameters
-import explore.model.RegionOrTrackingMap
 import explore.model.TargetEditObsInfo
 import explore.model.TargetList
 import explore.model.UserPreferences
@@ -38,7 +36,7 @@ import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.shortcuts.*
 import explore.shortcuts.given
-import explore.targeteditor.UseTrackingMap.useTrackingMap
+import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.targets.TargetColumns
 import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
@@ -68,6 +66,10 @@ import monocle.Iso
 import java.time.Instant
 import scala.collection.immutable.SortedSet
 
+/**
+ * `positions` are shared by the host when it has them; otherwise the tile builds its own. AGS runs
+ * with the observation, so only the obs tab has an `ags` to show.
+ */
 final case class ObservationTargetsEditorTile(
   userId:              Option[User.Id],
   tileId:              Tile.TileId,
@@ -98,9 +100,7 @@ final case class ObservationTargetsEditorTile(
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None,
-  // Tracking shared by the host; the tile builds its own when the host has no use for it.
-  trackingMap:         Option[Pot[ErrorMsgOr[RegionOrTrackingMap]]] = None,
-  // AGS runs with the observation, so only the obs tab has something to show
+  positions:           Option[ObsPositions] = None,
   ags:                 AgsData = AgsData.Empty
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
@@ -169,11 +169,13 @@ object ObservationTargetsEditorTile
                                    scienceIds.value ++ oBlindId.toList
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
-          // Skipped (no targets to track) when the host already provides a tracking map.
-          ownTrackingMap      <- useTrackingMap(
-                                   obsTargets.value.filterNot(_ => props.trackingMap.isDefined),
+          // Skipped (no targets) when the host already provides positions.
+          ownPositions        <- useObsPositions(
+                                   obsTargets.value.filter(_ => props.positions.isEmpty),
                                    distinctSite.value,
-                                   obsTimeOrNow.value.some
+                                   obsTimeOrNow.value.some,
+                                   props.obsConf.targetViz.some,
+                                   props.obsConf.explicitBase
                                  )(ctx)
           _                   <- useLayoutEffectWithDeps(
                                    (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
@@ -229,8 +231,7 @@ object ObservationTargetsEditorTile
           // The effective instant to display. Memoized in the hook above
           val obsTime: Instant = obsTimeOrNow.value
 
-          val trackingMap: Pot[ErrorMsgOr[RegionOrTrackingMap]] =
-            props.trackingMap.getOrElse(ownTrackingMap)
+          val positions: ObsPositions = props.positions.getOrElse(ownPositions)
 
           val skyPositions: List[(SlotId, Coordinates)] =
             props.slotPositions.flatMap { case (slot, v) => v.get.map(slot -> _) }
@@ -425,7 +426,7 @@ object ObservationTargetsEditorTile
                     targets.focusOn(focusedTargetId),
                     props.obsTime.get,
                     props.obsConf.some,
-                    trackingMap,
+                    positions,
                     props.ags,
                     props.searching,
                     onClone = props.onCloneTarget,
@@ -485,7 +486,7 @@ object ObservationTargetsEditorTile
                       aladinTargets,
                       obsTime,
                       props.obsConf.some,
-                      trackingMap,
+                      positions,
                       props.ags,
                       fullScreen,
                       props.userPreferences,

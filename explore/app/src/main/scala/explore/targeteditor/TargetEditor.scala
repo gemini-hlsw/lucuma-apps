@@ -24,7 +24,6 @@ import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.EmptySiderealTarget
 import explore.model.EmptySourceProfile
-import explore.model.ErrorMsgOr
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
@@ -33,7 +32,6 @@ import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
 import explore.model.PopupState
-import explore.model.RegionOrTrackingMap
 import explore.model.TargetEditObsInfo
 import explore.model.UserPreferences
 import explore.model.display.given
@@ -99,7 +97,7 @@ case class TargetEditor(
   obsTargets:                  ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
   obsTime:                     Option[Instant],
   obsConf:                     Option[ObsConfiguration],
-  trackingMap:                 Pot[ErrorMsgOr[RegionOrTrackingMap]],
+  positions:                   ObsPositions,
   ags:                         AgsData,
   searching:                   View[Set[Target.Id]],
   obsInfo:                     TargetEditObsInfo,
@@ -200,8 +198,7 @@ object TargetEditor:
         internalReadonlyForStatuses <- useStateView(false)
         resolvePopupState           <- useStateView(PopupState.Closed)
         // If obsTime is not set, change it to now at the start of the day in UTC.
-        obsTime                     <- useEffectKeepResultWithDeps(props.obsTime): obsTime =>
-                                         IO(obsTimeOrDefault(obsTime))
+        obsTime                     <- useMemo(props.obsTime)(obsTimeOrDefault)
         // select the aligner to use based on whether a clone will be created or not.
         targetAligner               <-
           val obsToCloneTo = props.externalObsToCloneTo.getOrElse(internalObsToCloneTo)
@@ -719,25 +716,23 @@ object TargetEditor:
             ),
             <.div(ExploreStyles.TargetGrid)(
               // If there is an unresolved ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
-              obsTime.value.renderPot(ot =>
-                AladinCell(
-                  props.userId,
-                  props.obsTargets,
-                  ot,
-                  props.obsConf,
-                  props.trackingMap,
-                  props.ags,
-                  props.fullScreen,
-                  props.userPreferences,
-                  props.guideStarSelection,
-                  props.blindOffsetInfo,
-                  props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
-                  none,
-                  none,
-                  resetSky,
-                  props.isStaffOrAdmin,
-                  props.readonly
-                )
+              AladinCell(
+                props.userId,
+                props.obsTargets,
+                obsTime.value,
+                props.obsConf,
+                props.positions,
+                props.ags,
+                props.fullScreen,
+                props.userPreferences,
+                props.guideStarSelection,
+                props.blindOffsetInfo,
+                props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
+                none,
+                none,
+                resetSky,
+                props.isStaffOrAdmin,
+                props.readonly
               ),
               formColumn,
               optSiderealTrackingAligner.map(siderealTracking),

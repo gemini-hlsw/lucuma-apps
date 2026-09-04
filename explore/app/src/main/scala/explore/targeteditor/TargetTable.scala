@@ -216,15 +216,13 @@ object TargetTable:
                                 case _                                => none
                             )
                             .AllColumns
-        vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
-                        IO(obsTimeOrDefault(vizTime))
+        vizTime    <- useMemo(props.vizTime)(obsTimeOrDefault)
         rowsPot    <-
           useEffectKeepResultWithDeps(
-            (vizTime.value.toOption, props.obsTargets, props.site, props.positions)
-          ): (vt, optObsTargets, site, skyPositions) =>
+            (vizTime.value, props.obsTargets, props.site, props.positions)
+          ): (vizInstant, optObsTargets, site, skyPositions) =>
             import ctx.given
 
-            val vizInstant                 = obsTimeOrDefault(vt)
             val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
               AsterismRow.PositionRow(
                 slot,
@@ -236,7 +234,7 @@ object TargetTable:
             optObsTargets
               .foldMap: obsTargets =>
                 ObservationRegionsOrCoordinatesAt
-                  .build(obsTargets, vt, site)
+                  .build(obsTargets, vizInstant.some, site)
                   .map: rorc =>
                     val scienceRows = rorc.science.map: (twi, loc) =>
                       AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))

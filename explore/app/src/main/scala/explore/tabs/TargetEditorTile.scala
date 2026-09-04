@@ -21,7 +21,7 @@ import explore.model.TargetTabTileIds
 import explore.model.UserPreferences
 import explore.targeteditor.AgsData
 import explore.targeteditor.TargetEditor
-import explore.targeteditor.UseTrackingMap.useTrackingMap
+import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -62,14 +62,16 @@ final case class SingleTargetEditorTile(
 object SingleTargetEditorTile
     extends TileComponent[SingleTargetEditorTile]((props, _) =>
       for
-        ctx         <- useContext(AppContext.ctx)
+        ctx       <- useContext(AppContext.ctx)
         // There is no observation here, so this is always the fallback time.
-        obsTime     <- useMemo(())(_ => obsTimeOrDefault(none))
-        trackingMap <- useTrackingMap(
-                         ObservationTargets.one(props.target.get).some,
-                         props.site,
-                         obsTime.value.some
-                       )(ctx)
+        obsTime   <- useMemo(())(_ => obsTimeOrDefault(none))
+        positions <- useObsPositions(
+                       ObservationTargets.one(props.target.get).some,
+                       props.site,
+                       obsTime.value.some,
+                       none,
+                       none
+                     )(ctx)
       yield TileContents:
         <.div(
           ExploreStyles.AladinFullScreen.when(props.fullScreen.get.value),
@@ -85,7 +87,7 @@ object SingleTargetEditorTile
                 ObservationTargets.one(props.target.get),
                 obsTime = obsTime.value.some,
                 obsConf = none,
-                trackingMap = trackingMap,
+                positions = positions,
                 ags = AgsData.Empty,
                 searching = props.searching,
                 obsInfo = props.obsInfo,
