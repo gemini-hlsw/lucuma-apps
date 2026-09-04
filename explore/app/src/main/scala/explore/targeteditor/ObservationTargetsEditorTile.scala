@@ -98,7 +98,9 @@ final case class ObservationTargetsEditorTile(
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None,
   // Tracking shared by the host; the tile builds its own when the host has no use for it.
-  trackingMap:         Option[Pot[ErrorMsgOr[RegionOrTrackingMap]]] = None
+  trackingMap:         Option[Pot[ErrorMsgOr[RegionOrTrackingMap]]] = None,
+  // AGS runs with the observation, so only the obs tab has something to show
+  ags:                 AgsData = AgsData.Empty
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
       tileId,
@@ -422,6 +424,7 @@ object ObservationTargetsEditorTile
                     props.obsTime.get,
                     props.obsConf.some,
                     trackingMap,
+                    props.ags,
                     props.searching,
                     onClone = props.onCloneTarget,
                     obsInfo = obsInfo,
@@ -481,6 +484,7 @@ object ObservationTargetsEditorTile
                       obsTime,
                       props.obsConf.some,
                       trackingMap,
+                      props.ags,
                       fullScreen,
                       props.userPreferences,
                       props.guideStarSelection,

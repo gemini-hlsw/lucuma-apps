@@ -21,11 +21,12 @@ import java.time.Instant
 
 object UseTrackingMap:
   /**
-   * Tracking for every target of an observation: high resolution around the observing night for
-   * average PA and AGS, low resolution over the semester so Aladin can pan. Built once per host and
-   * shared with the target tile so both see the same positions. The previous map is kept while
-   * recomputing so Aladin does not unmount on every edit. Without a site, non-sidereal targets
-   * yield an error rather than an ephemeris for a guessed site.
+   * Tracking for every target of an observation: high resolution around the observing night, low
+   * resolution over the semester so Aladin can pan. The component at the top of a screen
+   * (ObsTabTiles or a target tab tile) calls this once and passes the map down, so the average PA
+   * and Aladin are computed from the same positions. The previous map is kept while recomputing so
+   * Aladin does not unmount on every edit. Without a site, non-sidereal targets yield an error
+   * rather than an ephemeris for a guessed site.
    */
   def useTrackingMap(
     targets: Option[ObservationTargets],
@@ -37,10 +38,10 @@ object UseTrackingMap:
     useEffectKeepResultWithDeps((targets, site, obsTime)): (targets, site, obsTime) =>
       obsTime.traverse: at =>
         targets match
-          case None                                          =>
+          case None                                            =>
             RegionOrTrackingMap.Empty.asRight.pure[IO]
           case Some(ts) if ts.hasUnresolvedTargetOfOpportunity =>
             RegionOrTrackingMap.Empty.asRight.pure[IO]
-          case Some(ts)                                      =>
+          case Some(ts)                                        =>
             getMixedResolutionRegionOrTrackingMap(ts.allTargets.toList, site, at)
     .map(_.value.value.flatMap(_.fold(Pot.pending)(_.ready)))

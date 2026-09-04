@@ -43,11 +43,11 @@ import explore.plots.PlotData
 import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
+import explore.targeteditor.UseAgs.useAgs
 import explore.targeteditor.UseTrackingMap.useTrackingMap
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.ags.syntax.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
@@ -150,10 +150,51 @@ case class ObsTabTiles(
     ObservationTargets.fromTargets:
       obsTargets.toList.map((_, t) => t)
 
+  val scienceTargets: List[TargetWithId] = asterismAsNel.map(_.science).orEmpty
+
   def targetCoords(obsTime: Instant, optTracking: Option[Tracking]): Option[Coordinates] =
     optTracking.flatMap(_.at(obsTime))
 
   def site: Option[Site] = observation.get.basicConfiguration.flatMap(_.siteFor)
+
+  val basicConfiguration: Option[BasicConfiguration] = observation.get.basicConfiguration
+
+  // The IFU mapping for ghost. TODO: Add support for explicit base
+  def ghostIfuMapping(obsTimeOrNow: Instant): Option[GhostIfuMapping] =
+    observation.get.observingMode.toOption.flatten match
+      case Some(ghost: ObservingMode.GhostIfu) =>
+        val ctx = IfuMappingContext(
+          ghost.resolutionMode,
+          ghost.skyPosition,
+          posAngleConstraint,
+          none,
+          Timestamp.fromInstantTruncatedAndBounded(obsTimeOrNow)
+        )
+
+        // Whether `sky` is within the minimum IFU-arm separation of any science target.
+        def tooCloseToScience(sky: Coordinates): Boolean =
+          scienceTargets.exists: t =>
+            t.target.asSidereal
+              .flatMap(_.tracking.at(obsTimeOrNow))
+              .exists(GhostGeometry.tooClose(_, sky))
+
+        GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
+          case Right(mapping)                                         =>
+            mapping.some
+          // Derivation fails when the sky is too close to the science target.
+          // Fall back to TargetPlusSky so the sky marker stays visible and
+          // the keep-out zone can flag it
+          case Left(_) if ghost.skyPosition.exists(tooCloseToScience) =>
+            (scienceTargets.headOption.map(_.id), ghost.skyPosition)
+              .mapN(GhostIfuMapping.TargetPlusSky.apply)
+          case Left(_)                                                =>
+            none
+      case _                                   => none
+
+  def targetVisualization(obsTimeOrNow: Instant): TargetVisualization =
+    basicConfiguration
+      .map(_.targetVisualization(scienceTargets, ghostIfuMapping(obsTimeOrNow)))
+      .getOrElse(TargetVisualization.Empty)
 
   // The explicit duration if set, else the remaining time from the digest.
   def obsDuration: Option[TimeSpan] =
@@ -340,20 +381,40 @@ object ObsTabTiles:
               props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
         averagePA             =
           obsTimeOrNowPot.value.toOption.flatMap(props.averagePA(_, optAsterismTracking))
-        anglesToTest          =
-          props.posAngleConstraint.anglesToTestAt(averagePA.map(_.averagePA))
-        // The guide star is picked for a set of PAs. When they change (e.g. a new observation
-        // time moves the average PA) the selection must be redone.
-        prevAnglesToTest     <- useRef(none[NonEmptyList[Angle]])
-        _                    <- useEffectWithDeps(anglesToTest): angles =>
-                                  val changed =
-                                    (prevAnglesToTest.value, angles).mapN(_ =!= _).exists(identity)
-                                  prevAnglesToTest.set(angles.orElse(prevAnglesToTest.value)) >>
-                                    guideStarSelection
-                                      .set(GuideStarSelection.Default)
-                                      .when_(
-                                        changed && props.observation.get.needsAGS(props.obsTargets)
-                                      )
+        trackType             = optAsterismTracking.map(_.trackType)
+        paProps               =
+          PAProperties(props.obsId, guideStarSelection, agsState, props.posAngleConstraint)
+        obsConf               =
+          ObsConfiguration(
+            props.basicConfiguration,
+            selectedConfig.get,
+            paProps.some,
+            props.constraintSet.get.some,
+            props.sciConfigs,
+            props.acqConfigs,
+            averagePA,
+            props.obsDuration.map(_.toDuration),
+            props.observation.get.needsAGS(props.obsTargets),
+            props.observation.get.selectedGSName,
+            props.observation.get.calibrationRole,
+            trackType,
+            obsTimeOrNowPot.value.toOption
+              .map(props.targetVisualization)
+              .getOrElse(TargetVisualization.Empty),
+            props.observation.get.explicitBase,
+            props.observation.get.cassRotator,
+            maskDesignPot.value.toOption.flatten
+          )
+        // AGS follows the observation, not the target tile, so the guide star keeps up with time
+        // and configuration changes while the tile is minimized.
+        agsData              <- useAgs(
+                                  props.asterismAsNel.map: targets =>
+                                    props.focusedTarget.fold(targets)(targets.focusOn),
+                                  obsTimeOrNowPot.value.toOption,
+                                  trackingMapPot,
+                                  obsConf,
+                                  guideStarSelection
+                                )(ctx)
       yield
         import ctx.given
 
@@ -364,9 +425,6 @@ object ObsTabTiles:
 
           val asterismIds: View[SortedSet[Target.Id]] =
             props.observation.model.zoom(Observation.scienceTargetIds)
-
-          val basicConfiguration: Option[BasicConfiguration] =
-            props.observation.get.basicConfiguration
 
           // ETM normalized to science requirements so it matches the table rows on ===.
           val revertedInstrumentConfig: List[ItcInstrumentConfig] =
@@ -391,15 +449,10 @@ object ObsTabTiles:
           val digest      = props.observation.get.execution.digest
           val obsDuration = props.obsDuration
 
-          val paProps: PAProperties =
-            PAProperties(props.obsId, guideStarSelection, agsState, props.posAngleConstraint)
-
           // For average and allow flip we need to read the flip from the selected star
           def flipIfNeeded(angle: Option[Angle]): Option[Angle] =
             if (paProps.selectedPA.exists(a => angle.forall(_ === a.flip))) paProps.selectedPA
             else angle
-
-          val trackType = optAsterismTracking.map(_.trackType)
 
           // The angle used for `Align to PA` in the finder charts tile.
           // For Unbounded, use the PA of the currently selected guide star (if any)
@@ -457,10 +510,10 @@ object ObsTabTiles:
             )
 
           val odbOrSelectedConfig: Option[BasicConfiguration] =
-            basicConfiguration.orElse(selectedConfig.get.toBasicConfiguration())
+            props.basicConfiguration.orElse(selectedConfig.get.toBasicConfiguration())
 
           val isVisitorMode: Boolean =
-            basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
+            props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
 
           val itcTile =
             odbOrSelectedConfig match
@@ -501,8 +554,6 @@ object ObsTabTiles:
                 none
               case None => ItcEmptyTile().some
 
-          val scienceTargets: List[TargetWithId] = props.asterismAsNel.map(_.science).orEmpty
-
           val ghostSkyPositionView: Option[View[Option[Coordinates]]] =
             props.observation
               .zoom(ghostSkyPositionLens)
@@ -519,68 +570,7 @@ object ObsTabTiles:
               .withOnMod: coords =>
                 ctx.odbApi.updateExplicitBase(List(props.obsId), coords).runAsync
 
-          // Calculate the IFU mapping for ghost
-          // TODO: Add support for explicit base
-          val ghostIfuMapping: Option[GhostIfuMapping] =
-            props.observation.get.observingMode.toOption.flatten match
-              case Some(ghost: ObservingMode.GhostIfu) =>
-                val ctx = IfuMappingContext(
-                  ghost.resolutionMode,
-                  ghost.skyPosition,
-                  props.posAngleConstraint,
-                  none,
-                  Timestamp.fromInstantTruncatedAndBounded(obsTimeOrNow)
-                )
-
-                // Whether `sky` is within the minimum IFU-arm separation of any science target.
-                def tooCloseToScience(sky: Coordinates): Boolean =
-                  scienceTargets.exists: t =>
-                    t.target.asSidereal
-                      .flatMap(_.tracking.at(obsTimeOrNow))
-                      .exists(GhostGeometry.tooClose(_, sky))
-
-                GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
-                  case Right(mapping)                                         =>
-                    mapping.some
-                  // Derivation fails when the sky is too close to the science target.
-                  // Fall back to TargetPlusSky so the sky marker stays visible and
-                  // the keep-out zone can flag it
-                  case Left(_) if ghost.skyPosition.exists(tooCloseToScience) =>
-                    (scienceTargets.headOption.map(_.id), ghost.skyPosition)
-                      .mapN(GhostIfuMapping.TargetPlusSky.apply)
-                  case Left(_)                                                =>
-                    none
-              case _                                   => none
-
-          val targetVisualization: TargetVisualization =
-            basicConfiguration
-              .map(
-                _.targetVisualization(
-                  scienceTargets,
-                  ghostIfuMapping
-                )
-              )
-              .getOrElse(TargetVisualization.Empty)
-
-          val obsConf: ObsConfiguration =
-            ObsConfiguration(
-              basicConfiguration,
-              selectedConfig.get,
-              paProps.some,
-              props.constraintSet.get.some,
-              props.sciConfigs,
-              props.acqConfigs,
-              averagePA,
-              obsDuration.map(_.toDuration),
-              props.observation.get.needsAGS(props.obsTargets),
-              props.observation.get.selectedGSName,
-              props.observation.get.calibrationRole,
-              trackType,
-              targetVisualization,
-              props.observation.get.explicitBase,
-              props.observation.get.cassRotator,
-              maskDesignPot.value.toOption.flatten
-            )
+          val ghostIfuMapping: Option[GhostIfuMapping] = props.ghostIfuMapping(obsTimeOrNow)
 
           // If we have an observation calibration group we want to plot the targets together
           val obsCalibrationGroup: Map[ObjectPlotData.Id, ObjectPlotData] =
@@ -739,7 +729,8 @@ object ObsTabTiles:
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some,
-              trackingMap = trackingMapPot.some
+              trackingMap = trackingMapPot.some,
+              ags = agsData
             )
 
           // The ExploreStyles.ConstraintsTile css adds a z-index to the constraints tile react-grid wrapper

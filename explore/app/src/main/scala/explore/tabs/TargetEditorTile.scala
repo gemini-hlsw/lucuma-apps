@@ -19,6 +19,7 @@ import explore.model.OnCloneParameters
 import explore.model.TargetEditObsInfo
 import explore.model.TargetTabTileIds
 import explore.model.UserPreferences
+import explore.targeteditor.AgsData
 import explore.targeteditor.TargetEditor
 import explore.targeteditor.UseTrackingMap.useTrackingMap
 import japgolly.scalajs.react.*
@@ -87,6 +88,7 @@ object SingleTargetEditorTile
                 obsTime = obsTime.value.some,
                 obsConf = none,
                 trackingMap = trackingMap,
+                ags = AgsData.Empty,
                 searching = props.searching,
                 obsInfo = props.obsInfo,
                 onClone = props.onClone,

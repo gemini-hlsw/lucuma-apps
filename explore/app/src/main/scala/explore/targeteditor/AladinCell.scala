@@ -3,7 +3,6 @@
 
 package explore.targeteditor
 
-import boopickle.DefaultBasic.*
 import cats.Order.given
 import cats.data.NonEmptyList
 import cats.effect.IO
@@ -16,40 +15,29 @@ import crystal.react.reuse.*
 import crystal.react.syntax.pot.given
 import eu.timepit.refined.*
 import eu.timepit.refined.auto.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.common.UserPreferencesQueries.AsterismPreferences
 import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
-import explore.events.*
 import explore.model.*
 import explore.model.InteractiveRegion
-import explore.model.WorkerClients.*
-import explore.model.boopickle.*
-import explore.model.boopickle.CatalogPicklers.given
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.optics.ModelOptics
-import explore.targeteditor.UseAgsCalculation.*
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.ags.*
-import lucuma.ags.syntax.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.model.Target
-import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
-import lucuma.react.primereact.hooks.useDebounce
 import lucuma.schemas.model.SlotId
-import lucuma.schemas.model.syntax.minimizeEphemeris
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
 import lucuma.ui.aladin.AladinFullScreenControl
 import lucuma.ui.aladin.Fov
@@ -72,6 +60,7 @@ case class AladinCell(
   obsTime:             Instant,
   obsConf:             Option[ObsConfiguration],
   trackingMap:         Pot[ErrorMsgOr[RegionOrTrackingMap]],
+  ags:                 AgsData,
   fullScreen:          View[AladinFullScreen],
   userPreferences:     View[UserPreferences],
   guideStarSelection:  View[GuideStarSelection],
@@ -86,30 +75,14 @@ case class AladinCell(
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
 
-  val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
-    SiderealDiscretizedObsTime(obsTime, obsConf.flatMap(_.posAngleConstraint))
-
   val anglesToTest: Option[NonEmptyList[Angle]] =
-    for
-      conf         <- obsConf
-      paConstraint <- conf.posAngleConstraint
-      angles       <-
-        // For visual mode we want to default to PA 0 if needed e.g. average parallactic not available
-        paConstraint
-          .anglesToTestAt(obsConf.flatMap(_.averagePA).map(_.averagePA))
-          .orElse(NonEmptyList.one(Angle.Angle0).some)
-    // We sort the angles or we could end up in a loop where the angles are tested back and forth
-    // This is rare but can happen if each angle finds an equivalent guide star
-    yield angles.sorted(using Angle.AngleOrder)
+    obsConf.flatMap(_.anglesToTest)
 
   def durationAvailable: Boolean =
     obsConf.flatMap(_.obsDuration).isDefined
 
   def modeSelected: Boolean =
     obsConf.exists(_.configuration.isDefined)
-
-  def selectedGSName: Option[NonEmptyString] =
-    obsConf.flatMap(_.remoteGSName)
 
 end AladinCell
 
@@ -140,9 +113,6 @@ object AladinCell extends ModelOptics with AladinCommon:
   import GuideStarSelection.*
 
   private type Props = AladinCell
-
-  // only compare candidates by id
-  private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
 
   private val fovLens: Lens[AsterismVisualOptions, Fov] =
     Lens[AsterismVisualOptions, Fov](t => Fov(t.fovRA, t.fovDec)): f =>
@@ -207,9 +177,6 @@ object AladinCell extends ModelOptics with AladinCommon:
     (offsetChangeInAladin, offsetOnCenter)
   }
 
-  // Position-angle changes debouncing time
-  private val AgsDebounceDelay: FiniteDuration = 500.millis
-
   private val component = ScalaFnComponent[Props]: props =>
     for {
       ctx                 <- useContext(AppContext.ctx)
@@ -253,90 +220,6 @@ object AladinCell extends ModelOptics with AladinCommon:
                                val reconciled                                                    = pending.toList.collect:
                                  case (slot, expected) if settled(slot, expected) => slot
                                optimisticSky.mod(_ -- reconciled).whenA(reconciled.nonEmpty)
-      candidates          <-
-        useEffectResultWithDeps(
-          (props.siderealDiscretizedObsTime,
-           oBaseTracking,
-           props.obsConf.flatMap(_.explicitBase),
-           props.obsConf.flatMap(_.obsModeType),
-           props.obsConf.flatMap(_.guideProbe),
-           props.needsAGS
-          )
-        ):
-          (
-            siderealDiscretizedObsTime,
-            oTracking,
-            explicitBase,
-            obsModeType,
-            guideProbe,
-            needsAGS
-          ) =>
-            import ctx.given
-
-            // Prefer the explicit base override as the catalog search center
-            val searchTracking: Option[Tracking] =
-              explicitBase.map(Tracking.constant).orElse(oTracking.value)
-
-            (obsModeType, searchTracking)
-              .mapN: (_, baseTracking) =>
-                if (needsAGS)
-                  (for
-                    _          <- props.obsConf
-                                    .flatMap(_.agsState)
-                                    .foldMap(_.async.set(AgsState.LoadingCandidates))
-                    candidates <-
-                      guideProbe.foldMap: gp =>
-                        CatalogClient[IO]
-                          .requestSingle:
-                            CatalogMessage.GSRequest(
-                              baseTracking.minimizeEphemeris(siderealDiscretizedObsTime.obsTime),
-                              siderealDiscretizedObsTime.obsTime,
-                              gp
-                            )
-                  yield candidates)
-                    .guarantee:
-                      props.obsConf
-                        .flatMap(_.agsState)
-                        .foldMap(_.async.set(AgsState.Idle))
-                else none.pure
-              .getOrElse(List.empty.some.pure)
-      agsCalcProps        <- useMemo(
-                               (props.obsTargets.focus.id,
-                                props.obsTime,
-                                props.obsConf.flatMap(_.constraints),
-                                props.obsConf.flatMap(_.agsWavelength),
-                                props.obsConf.flatMap(_.configuration),
-                                props.obsConf.flatMap(_.obsModeType),
-                                props.obsConf.flatMap(_.guidedAcqOffsets),
-                                props.obsConf.flatMap(_.guidedSciOffsets),
-                                candidates.value.toOption.flatten,
-                                props.obsConf.flatMap(_.trackType)
-                               )
-                             ):
-                               case (focusedId,
-                                     obsTime,
-                                     Some(constraints),
-                                     Some(agsWavelength),
-                                     observingMode,
-                                     Some(obsModeType),
-                                     acqOffsets,
-                                     sciOffsets,
-                                     Some(cands),
-                                     trackType
-                                   ) =>
-                                 AgsCalcProps(
-                                   focusedId,
-                                   obsTime,
-                                   constraints,
-                                   agsWavelength,
-                                   observingMode,
-                                   obsModeType,
-                                   acqOffsets,
-                                   sciOffsets,
-                                   cands,
-                                   trackType
-                                 ).some
-                               case _ => none
       // Reference to root
       root                <- useMemo(())(_ => domRoot)
       // target options, will be read from the user preferences cache
@@ -385,37 +268,10 @@ object AladinCell extends ModelOptics with AladinCommon:
                                )
                              ): (coords, _) =>
                                setMouseCoords.value(coords)
-      // Reset offset and gs if asterism change
+      // Reset the offset if the asterism changes. The guide star is reset by AGS itself.
       _                   <- useEffectWithDeps(props.obsTargets): targets =>
                                val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
-                               // if the coordinates change, reset ags && offset
-                               for
-                                 _ <- props.guideStarSelection.set(GuideStarSelection.Default)
-                                 _ <- offsetOnCenter.set(Offset.Zero)
-                               yield ()
-      // Debounced twin of `props.anglesToTest` for AGS consumption. We push the
-      // live value in on every (structural) change, the debounced output lags by
-      // `AgsDebounceDelay`
-      anglesDebounce      <- useDebounce(props.anglesToTest, AgsDebounceDelay.toMillis.toInt)
-      _                   <- useEffectWithDeps(props.anglesToTest): v =>
-                               anglesDebounce.set(v)
-      // request AGS calculation (on the debounced angles, see `anglesDebounce`)
-      agsResults          <- useAgsCalculation(
-                               obsTargetsCoordsPot.toOption.flatMap(_.toOption),
-                               agsCalcProps.value,
-                               anglesDebounce.debouncedValue,
-                               props.obsConf.flatMap(_.posAngleConstraint).isDefined,
-                               props.obsConf.flatMap(_.agsState),
-                               props.guideStarSelection,
-                               props.needsAGS
-                             )(ctx)
-      // In case the selected name changes remotely
-      _                   <- useEffectWithDeps((props.selectedGSName, agsResults.constrained)): (n, resultsPot) =>
-                               resultsPot.toOption.foldMap: results =>
-                                 val newGss =
-                                   n.fold(AgsSelection(results.headOption.tupleLeft(0))):
-                                     results.pick
-                                 props.guideStarSelection.set(newGss)
+                               offsetOnCenter.set(Offset.Zero)
       menuRef             <- usePopupMenuRef
     } yield
       import ctx.given
@@ -475,6 +331,7 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val guideStar = props.guideStarSelection.get.analysis
 
+      val agsResults     = props.ags.results
       val agsResultsList = agsResults.constrained.toOption.getOrElse(List.empty)
 
       // Apply the optimistic sky changes.
@@ -575,7 +432,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                     agsState.get,
                     props.modeSelected,
                     props.durationAvailable,
-                    candidates.value.value.nonEmpty
+                    props.ags.candidates.isReady
                   )
                 )
           else EmptyVdom
