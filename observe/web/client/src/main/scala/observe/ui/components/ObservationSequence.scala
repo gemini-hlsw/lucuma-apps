@@ -206,7 +206,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  props.getMaskName
                 )
               case ModeSignalToNoise.Flamingos2Imaging(snByFilter)            =>
                 Flamingos2ImagingSequenceTable(
