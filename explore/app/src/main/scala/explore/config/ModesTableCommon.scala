@@ -53,6 +53,7 @@ import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.table.FilterMethod
 import workers.WorkerClient
 
 import scala.collection.decorators.*
@@ -147,6 +148,18 @@ trait ModesTableCommon:
                  ExploreStyles.SelectedDown,
                  idx => visibleRows.exists(_.end - 2 < idx)
     )
+
+  // Modes columns are narrow, a placeholder would be truncated
+  def selectFilter[A](display: A => String): FilterMethod.Select[A] =
+    FilterMethod.Select(
+      display,
+      placeholder = "",
+      clazz = ExploreStyles.ModesTableFilter,
+      panelClass = ExploreStyles.ModesTableFilterPanel
+    )
+
+  def textFilter[A](convert: A => String): FilterMethod.Text[A] =
+    FilterMethod.Text(convert, placeholder = "", clazz = ExploreStyles.ModesTableFilter)
 
   def filterToggleButton(showFilters: View[Visible]): VdomNode =
     Button(

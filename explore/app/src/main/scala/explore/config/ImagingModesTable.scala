@@ -180,7 +180,7 @@ object ImagingModesTable extends ModesTableCommon:
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable
-        .withFilterMethod(FilterMethod.StringSelect()),
+        .withFilterMethod(selectFilter[String](identity)),
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
@@ -201,12 +201,12 @@ object ImagingModesTable extends ModesTableCommon:
         .withCell(_.value.filterStr)
         .withColumnSize(FixedSize(69.toPx))
         .sortableBy(_.filterStr)
-        .withFilterMethod(FilterMethod.Select(_.filterStr)),
+        .withFilterMethod(selectFilter(_.filterStr)),
       column(FilterTypeColumnId, row => ImagingModeRow.filter.get(row.entry))
         .withCell(_.value.filterTypeStr)
         .withColumnSize(FixedSize(85.toPx))
         .sortableBy(_.filterTypeStr)
-        .withFilterMethod(FilterMethod.Select(_.filterTypeStr)),
+        .withFilterMethod(selectFilter(_.filterTypeStr)),
       column(LambdaColumnId, row => ImagingModeRow.filter.get(row.entry).wavelength)
         .withHeader(s"λ ${units.symbol}")
         .withCell(_.value.fold("-")(_.shortName))
@@ -227,7 +227,7 @@ object ImagingModesTable extends ModesTableCommon:
         .withCell(cell => formatFov(cell.value))
         .withColumnSize(FixedSize(75.toPx))
         .sortable
-        .withFilterMethod(FilterMethod.Select(formatFov))
+        .withFilterMethod(selectFilter(formatFov))
     )
 
   private val component = ScalaFnComponent[ImagingModesTable]: props =>

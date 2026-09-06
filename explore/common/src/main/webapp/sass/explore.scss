@@ -4016,6 +4016,29 @@ $help-title-height: 40px;
 .explore-modes-table {
   grid-area: table;
 
+  // Filter inputs sit in narrow columns
+  .explore-modes-table-filter {
+    font-size: 0.8em;
+
+    .p-dropdown-label,
+    &.p-inputtext {
+      font-size: inherit;
+      padding: 0.15em 0.3em;
+    }
+
+    .p-dropdown-trigger {
+      width: 1.5em;
+    }
+
+    .p-dropdown-clear-icon {
+      right: 1.75em;
+    }
+
+    &.p-dropdown-clearable .p-dropdown-label {
+      padding-right: 1.6em;
+    }
+  }
+
   .explore-warning-itc-icon {
     margin-left: 0.4em;
     margin-bottom: 0.4em;
@@ -4023,6 +4046,14 @@ $help-title-height: 40px;
 
   .explore-warning-label {
     color: var(--warning-background-color);
+  }
+}
+
+// Dropdown panels are portaled, so this can't nest under the table
+.explore-modes-table-filter-panel {
+  .p-dropdown-item {
+    font-size: 0.8em;
+    padding: 0.3em 0.75em;
   }
 }
 

@@ -192,7 +192,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable
-        .withFilterMethod(FilterMethod.StringSelect()),
+        .withFilterMethod(selectFilter[String](identity)),
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
@@ -218,7 +218,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(cell => slitWidthCell(cell.value._1, cell.value._2.value))
         .withColumnSize(FixedSize(100.toPx))
         .sortableBy(_._2)
-        .withFilterMethod(FilterMethod.Select(v => formatSlitWidth(v._2.value))),
+        .withFilterMethod(selectFilter(v => formatSlitWidth(v._2.value))),
       column(SlitLengthColumnId,
              row =>
                (SpectroscopyModeRow.instrument.get(row.entry),
@@ -228,22 +228,22 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(cell => formatSlitLength(cell.value._1, cell.value._2.value))
         .withColumnSize(FixedSize(105.toPx))
         .sortableBy(_._2)
-        .withFilterMethod(FilterMethod.Select(v => formatSlitLength(v._1, v._2.value))),
+        .withFilterMethod(selectFilter(v => formatSlitLength(v._1, v._2.value))),
       column(GratingColumnId, row => SpectroscopyModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.gratingStr)
         .withColumnSize(FixedSize(96.toPx))
         .sortableBy(_.gratingStr)
-        .withFilterMethod(FilterMethod.Select(_.gratingStr)),
+        .withFilterMethod(selectFilter(_.gratingStr)),
       column(FilterColumnId, row => SpectroscopyModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.filterStr)
         .withColumnSize(FixedSize(69.toPx))
         .sortableBy(_.filterStr)
-        .withFilterMethod(FilterMethod.Select(_.filterStr)),
+        .withFilterMethod(selectFilter(_.filterStr)),
       column(FPUColumnId, row => SpectroscopyModeRow.fpu.get(row.entry))
         .withCell(cell => formatFPU(cell.value))
         .withColumnSize(FixedSize(62.toPx))
         .sortable
-        .withFilterMethod(FilterMethod.Select(formatFPU)),
+        .withFilterMethod(selectFilter(formatFPU)),
       column(WavelengthIntervalColumnId, row => row.wavelengthInterval)
         .withHeader(s"$IntervalPrefix ${units.symbol}")
         .withCell(cell => cell.value.fold("-")(_.shortName))

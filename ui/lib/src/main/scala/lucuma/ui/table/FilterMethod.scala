@@ -21,7 +21,8 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
     val display:     A => String,
     val placeholder: String = "<Filter>",
     val showCount:   Boolean = true,
-    val clazz:       Css = Css.Empty
+    val clazz:       Css = Css.Empty,
+    val panelClass:  Css = Css.Empty
   ) extends FilterMethod[A, String]((a, b) => display(a) === b)
 
   protected[table] def filterFn[T, TM, TF]: FilterFn.Type[T, TM, WithFilterMethod, TF, F, Nothing] =
@@ -29,8 +30,8 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
 
   def stringCompare(a: A, f: String): Boolean =
     this match
-      case Text(_, _, _, _)         => compare(a, f)
-      case Select(display, _, _, _) => display(a).toLowerCase.contains(f.toLowerCase)
+      case Text(_, _, _, _)            => compare(a, f)
+      case Select(display, _, _, _, _) => display(a).toLowerCase.contains(f.toLowerCase)
 
   protected[table] def render[T, TM, CM <: WithFilterMethod, TF](
     col: Column[T, Any, TM, CM, TF, Any, Any]
@@ -44,15 +45,16 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
           clazz
         )
       case other                                    =>
-        val s: Select[A]                                   = other.asInstanceOf[Select[A]] // This avoids unchecked warnings on A
-        val Select(display, placeholder, showCount, clazz) = s
+        val s: Select[A]                                               = other.asInstanceOf[Select[A]] // This avoids unchecked warnings on A
+        val Select(display, placeholder, showCount, clazz, panelClass) = s
 
         ColumnFilter.Select(
           col.asInstanceOf[Column[T, A, TM, CM, TF, String, Any]],
           display,
           placeholder,
           showCount,
-          clazz
+          clazz,
+          panelClass
         )
 
 object FilterMethod:
@@ -66,9 +68,10 @@ object FilterMethod:
   def StringSelect(
     placeholder: String = "<Filter>",
     showCount:   Boolean = true,
-    clazz:       Css = Css.Empty
+    clazz:       Css = Css.Empty,
+    panelClass:  Css = Css.Empty
   ): Select[String] =
-    Select(identity(_), placeholder, showCount, clazz)
+    Select(identity(_), placeholder, showCount, clazz, panelClass)
 
   def globalFilterFn[T, TM, CM <: WithFilterMethod](
     colDefs: List[ColumnDef[T, ?, TM, CM, String, ?, ?]]

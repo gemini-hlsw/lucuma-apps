@@ -42,7 +42,8 @@ object ColumnFilter:
     display:     A => String = (a: A) => a.toString,
     placeholder: String = "<Filter>",
     showCount:   Boolean = true,
-    clazz:       Css = Css.Empty
+    clazz:       Css = Css.Empty,
+    panelClass:  Css = Css.Empty
   ) extends ReactFnProps(Select.component):
     // Group by displayed text: distinct raw values can render identically.
     protected[table] val options: List[SelectItem[String]] =
@@ -68,7 +69,8 @@ object ColumnFilter:
         onChange = props.col.setFilterValue(_),
         showClear = true,
         placeholder = props.placeholder,
-        clazz = props.clazz
+        clazz = props.clazz,
+        panelClass = props.panelClass
       ).withMods(^.width := "100%")
 
   object Select extends SelectBuilder[Any]

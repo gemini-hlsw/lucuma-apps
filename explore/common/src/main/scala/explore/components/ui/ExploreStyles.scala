@@ -469,6 +469,8 @@ object ExploreStyles:
   val ModesTableTarget: Css                = Css("explore-modes-table-target")
   val ModesTableInfo: Css                  = Css("explore-modes-table-info")
   val ModesTableCount: Css                 = Css("explore-modes-table-count")
+  val ModesTableFilter: Css                = Css("explore-modes-table-filter")
+  val ModesTableFilterPanel: Css           = Css("explore-modes-table-filter-panel")
   val ModesTable: Css                      = Css("explore-modes-table")
   val ModesHeader: Css                     = Css("explore-modes-header")
   val ScrollButton: Css                    = Css("scroll-button")
