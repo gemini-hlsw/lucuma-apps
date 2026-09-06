@@ -1065,30 +1065,8 @@ val mainCond: String                            = "github.ref == 'refs/heads/mai
 val notMainCond: String                         = "github.ref != 'refs/heads/main'"
 val geminiRepoCond: String                      = "startsWith(github.repository, 'gemini')"
 val isMergedCond: String                        = "github.event.pull_request.merged == true"
-def changedProjectCond(project: String): String =
-  s"steps.changedProjects.outputs.${project} == 'true'"
 def allConds(conds: String*): String            = conds.mkString("(", " && ", ")")
 def anyConds(conds: String*): String            = conds.mkString("(", " || ", ")")
-val exploreChangedCond: String                  =
-  anyConds(
-    changedProjectCond("explore"),
-    changedProjectCond("schemas"),
-    changedProjectCond("ui"),
-    changedProjectCond("projectDef")
-  )
-val observeChangedCond: String                  =
-  anyConds(
-    changedProjectCond("observe"),
-    changedProjectCond("schemas"),
-    changedProjectCond("ui"),
-    changedProjectCond("projectDef")
-  )
-val navigateChangedCond: String                 =
-  anyConds(
-    changedProjectCond("navigate"),
-    changedProjectCond("schemas"),
-    changedProjectCond("projectDef")
-  )
 
 val herokuToken = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
 
@@ -1220,7 +1198,7 @@ def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use
 
 lazy val firebaseDeployDev = firebaseDeploy(
   "Deploy staging app to Firebase",
-  allConds(mainCond, exploreChangedCond),
+  mainCond,
   live = true
 )
 
@@ -1231,38 +1209,18 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
     """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' """
   ),
   name = Some("Record deployment SHA"),
-  cond = Some(allConds(mainCond, exploreChangedCond))
+  cond = Some(mainCond)
 )
 
 ThisBuild / githubWorkflowBuildPreamble ++= setupNodePnpmInstall
 
-val usePathsFilter: WorkflowStep = WorkflowStep.Use(
-  UseRef.Public("dorny", "paths-filter", "v4"),
-  Map(
-    "filters" ->
-      """projectDef:
-  - 'build.sbt'
-  - 'project/**'
-schemas:
-  - 'schemas/**'
-ui:
-  - 'ui/**'
-explore:
-  - 'explore/**'
-navigate:
-  - 'navigate/**'
-observe:
-  - 'observe/**'"""
-  ),
-  "changedProjects".some
-)
-
-ThisBuild / githubWorkflowAddedJobs +=
+// Explore is only built and deployed when the diff can actually reach it. `explore_app` sits at
+// the bottom of the graph, so this also fires for ui_lib, schemas_lib and everything upstream.
+ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
   WorkflowJob(
     "explore-deploy",
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
-      usePathsFilter ::
       setupNodePnpmInstall :::
       exploreSbtLink ::
       exploreNpmBuild ::
@@ -1277,9 +1235,12 @@ ThisBuild / githubWorkflowAddedJobs +=
     scalas = Nil,
     javas = githubWorkflowJavaVersions.value.toList.take(1),
     cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
-  )
+  ),
+  explore_app
+)
 
-ThisBuild / githubWorkflowAddedJobs +=
+// Only publish an image the merge could actually have changed.
+ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
   WorkflowJob(
     "observe-deploy",
     "Build and publish Observe Docker image / Deploy to Heroku",
@@ -1292,9 +1253,11 @@ ThisBuild / githubWorkflowAddedJobs +=
     scalas = List(scalaVersion.value),
     javas = githubWorkflowJavaVersions.value.toList.take(1),
     cond = Some(allConds(mainCond, geminiRepoCond))
-  )
+  ),
+  observe_deploy
+)
 
-ThisBuild / githubWorkflowAddedJobs +=
+ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
   WorkflowJob(
     "navigate-deploy",
     "Build and publish Navigate Docker image",
@@ -1305,7 +1268,9 @@ ThisBuild / githubWorkflowAddedJobs +=
     scalas = List(scalaVersion.value),
     javas = githubWorkflowJavaVersions.value.toList.take(1),
     cond = Some(allConds(mainCond, geminiRepoCond))
-  )
+  ),
+  navigate_deploy
+)
 
 lazy val lucumaCssStep = WorkflowStep.Sbt(List("ui_css/lucumaCss"), name = Some("Import CSS files"))
 
