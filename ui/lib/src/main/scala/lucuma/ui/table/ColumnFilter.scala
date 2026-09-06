@@ -44,14 +44,16 @@ object ColumnFilter:
     showCount:   Boolean = true,
     clazz:       Css = Css.Empty
   ) extends ReactFnProps(Select.component):
+    // Group by displayed text: distinct raw values can render identically.
     protected[table] val options: List[SelectItem[String]] =
       col
         .getFacetedUniqueValues()
-        .filter((a, _) => display(a).nonEmpty)
+        .toList
+        .groupMapReduce((a, _) => display(a))(_._2)(_ + _)
+        .filter((name, _) => name.nonEmpty)
         .toList
         .sortBy(_._2)
-        .map: (a, count) =>
-          val name: String  = display(a)
+        .map: (name, count) =>
           val label: String = if showCount then s"$name (${count})" else name
           SelectItem(name, label)
 

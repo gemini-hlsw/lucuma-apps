@@ -25,6 +25,7 @@ import explore.model.Progress
 import explore.model.WorkerClients.ItcClient
 import explore.model.boopickle.*
 import explore.model.boopickle.ItcPicklers.given
+import explore.model.enums.Visible
 import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.ItcInstrumentConfig
@@ -146,6 +147,15 @@ trait ModesTableCommon:
                  ExploreStyles.SelectedDown,
                  idx => visibleRows.exists(_.end - 2 < idx)
     )
+
+  def filterToggleButton(showFilters: View[Visible]): VdomNode =
+    Button(
+      icon = Icons.Filter,
+      severity =
+        if showFilters.get.value then Button.Severity.Primary else Button.Severity.Secondary,
+      onClick = showFilters.mod(_.flip),
+      tooltip = "Toggle column filters"
+    ).compact
 
   def tableOnChangeHandler(
     visibleRows: View[Option[Range.Inclusive]],
