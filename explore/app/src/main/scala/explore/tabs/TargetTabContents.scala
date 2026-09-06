@@ -98,6 +98,13 @@ case class TargetTabContents(
               .get(obsId)
               .flatMap(_.basicConfiguration.flatMap(_.siteFor))
 
+  // Only when every observation using the target agrees, so a non-sidereal target is never
+  // tracked for the wrong site.
+  private def unambiguousSiteForTarget(targetId: Target.Id): Option[Site] =
+    sitesForTarget(targetId).distinct match
+      case site :: Nil => site.some
+      case _           => none
+
   private val obsAndTargets: UndoSetter[ObservationsAndTargets] =
     programSummaries.zoom((ProgramSummaries.observations, ProgramSummaries.targets).disjointZip)
 
@@ -612,7 +619,7 @@ object TargetTabContents extends TwoPanels:
                   props.isStaffOrAdmin,
                   getObsInfo(none)(targetId),
                   onCloneTarget4Target,
-                  props.sitesForTarget(targetId).headOption
+                  props.unambiguousSiteForTarget(targetId)
                 )
           }
 
