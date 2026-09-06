@@ -39,6 +39,13 @@ object GuideStarSelection:
 
     def isOverride: Boolean = fold(_ => false, _ => false, _ => true)
 
+    // Drops a stale analysis, keeping a manual pick as a name for `pick` to re-resolve. Going
+    // straight to AgsSelection would read as a switch back to automatic and erase the ODB name.
+    def resetKeepingName: GuideStarSelection = gs match
+      case AgsOverride(name, _, _)  => RemoteGSSelection(name)
+      case r @ RemoteGSSelection(_) => r
+      case _: AgsSelection          => Default
+
     def idx: Option[Int] = fold(_.index.map(_._1), _ => none, _.selectedGSIndex.some)
 
     def targetName: Option[NonEmptyString] =
@@ -52,6 +59,10 @@ object GuideStarSelection:
     def selectedAngle: Option[Angle] = analysis.map(_.posAngle)
 
 extension (r: List[AgsAnalysis.Usable])
+  // The star the ODB names when it names one, else the best candidate.
+  def select(name: Option[NonEmptyString]): GuideStarSelection =
+    name.fold(GuideStarSelection.AgsSelection(r.headOption.tupleLeft(0)))(pick)
+
   def pick(i: Int): GuideStarSelection =
     r.lift(i)
       .fold[GuideStarSelection](GuideStarSelection.AgsSelection(none))(a =>

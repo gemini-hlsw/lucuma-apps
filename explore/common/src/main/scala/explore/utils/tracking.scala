@@ -148,12 +148,14 @@ object tracking:
   // the low-res ephemeris from getRegionOrTrackingForSemester.
   def getMixedResolutionRegionOrTracking(
     target:        Target,
-    site:          Site,
+    site:          Option[Site],
     when:          Instant,
     lowResCadence: ElementsPerDay = 2
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
-    target.resolution match
-      case Some(TargetResolution.Nonsidereal(key)) =>
+    (target.resolution, site) match
+      case (Some(TargetResolution.Nonsidereal(_)), None)         =>
+        "No site is known. This is likely a missing observing mode.".asLeft.pure[IO]
+      case (Some(TargetResolution.Nonsidereal(key)), Some(site)) =>
         val semester = Semester
           .fromSiteAndInstant(site, when)
           .getOrElse:
@@ -165,13 +167,13 @@ object tracking:
         (lowRes, highRes).mapN: (low, high) =>
           (low, high).mapN: (lowTrack, highTrack) =>
             RegionOrTracking.fromTracking(lowTrack ++ highTrack)
-
-      case Some(TargetResolution.Sidereal(t, _)) => RegionOrTracking.fromTracking(t).asRight.pure
-      case None                                  => regionOf(target).asRight.pure
+      case (Some(TargetResolution.Sidereal(t, _)), _)            =>
+        RegionOrTracking.fromTracking(t).asRight.pure
+      case (None, _)                                             => regionOf(target).asRight.pure
 
   def getMixedResolutionRegionOrTrackingMap(
     targetWithIds: List[TargetWithId],
-    site:          Site,
+    site:          Option[Site],
     when:          Instant,
     lowResCadence: ElementsPerDay = 2
   )(using

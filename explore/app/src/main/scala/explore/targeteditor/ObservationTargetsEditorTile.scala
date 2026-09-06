@@ -6,6 +6,7 @@ package explore.targeteditor
 import cats.Order.given
 import cats.effect.IO
 import cats.syntax.all.*
+import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -35,7 +36,9 @@ import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.shortcuts.*
 import explore.shortcuts.given
+import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.targets.TargetColumns
+import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -92,7 +95,9 @@ final case class ObservationTargetsEditorTile(
   slotPositions:       List[(SlotId, View[Option[Coordinates]])] = Nil,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
-  backButton:          Option[VdomNode] = None
+  backButton:          Option[VdomNode] = None,
+  positions:           Option[ObsPositions] = None,
+  ags:                 AgsData = AgsData.Empty
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
       tileId,
@@ -135,7 +140,7 @@ object ObservationTargetsEditorTile
           ctx                 <- useContext(AppContext.ctx)
           // Memoize the effective observation time (from odb or now)
           // so we don't feed react-datepicker a fresh Instant.now on every render
-          obsTimeOrNow        <- useMemo(props.obsTime.get)(_.getOrElse(Instant.now))
+          obsTimeOrNow        <- useMemo(props.obsTime.get)(obsTimeOrDefault)
           columnVisibility    <- useStateView(TargetColumns.DefaultVisibility)
           // obsEditInfo <- useStateView[Option[ObsIdSetEditInfo]](none)
           adding              <- useStateView(AreAdding(false))
@@ -160,6 +165,13 @@ object ObservationTargetsEditorTile
                                    scienceIds.value ++ oBlindId.toList
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
+          ownPositions        <- useObsPositions(
+                                   obsTargets.value.filter(_ => props.positions.isEmpty),
+                                   distinctSite.value,
+                                   obsTimeOrNow.value.some,
+                                   props.obsConf.targetViz.some,
+                                   props.obsConf.explicitBase
+                                 )(ctx)
           _                   <- useLayoutEffectWithDeps(
                                    (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
                                  ): (allTargetIds, focusedTargetId, preferredTargetOpt) =>
@@ -213,6 +225,8 @@ object ObservationTargetsEditorTile
 
           // The effective instant to display. Memoized in the hook above
           val obsTime: Instant = obsTimeOrNow.value
+
+          val positions: ObsPositions = props.positions.getOrElse(ownPositions)
 
           val skyPositions: List[(SlotId, Coordinates)] =
             props.slotPositions.flatMap { case (slot, v) => v.get.map(slot -> _) }
@@ -407,6 +421,8 @@ object ObservationTargetsEditorTile
                     targets.focusOn(focusedTargetId),
                     props.obsTime.get,
                     props.obsConf.some,
+                    positions,
+                    props.ags,
                     props.searching,
                     onClone = props.onCloneTarget,
                     obsInfo = obsInfo,
@@ -465,6 +481,8 @@ object ObservationTargetsEditorTile
                       aladinTargets,
                       obsTime,
                       props.obsConf.some,
+                      positions,
+                      props.ags,
                       fullScreen,
                       props.userPreferences,
                       props.guideStarSelection,

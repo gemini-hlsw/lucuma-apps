@@ -134,14 +134,12 @@ object UseAgsCalculation:
                                     (for
                                       _ <- r.map(l => constrainedResults.setState(Pot.Ready(l))).getOrEmpty
                                       _ <-
-                                        val index      = 0.some.filter(_ => r.exists(_.nonEmpty))
-                                        val selectedGS = index.flatMap(i => r.flatMap(_.lift(i)))
                                         guideStarSelection
                                           .mod:
-                                            case AgsSelection(_)               =>
-                                              AgsSelection(selectedGS.tupleLeft(0))
+                                            case _: AgsSelection               =>
+                                              r.fold(Default)(_.select(none))
                                             case rem @ RemoteGSSelection(name) =>
-                                              r.map(_.pick(name)).getOrElse(rem)
+                                              r.fold(rem)(_.select(name.some))
                                             case a: AgsOverride                =>
                                               a
                                     yield ()).toAsync
@@ -153,7 +151,7 @@ object UseAgsCalculation:
                                       )
                                     process.guarantee(state.async.set(AgsState.Idle))
 
-                                  guideStarSelection.set(AgsSelection(none)).toAsync *>
+                                  guideStarSelection.mod(_.resetKeepingName).toAsync *>
                                     query.orEmpty.unlessA(guideStarSelection.get.isOverride)
 
                                 case _ =>
@@ -161,7 +159,7 @@ object UseAgsCalculation:
                                   constrainedResults
                                     .setState(Pot.pending[List[AgsAnalysis.Usable]])
                                     .to[IO] *>
-                                    guideStarSelection.set(AgsSelection(none)).toAsync
+                                    guideStarSelection.mod(_.resetKeepingName).toAsync
       // AGS for uconstrained angles
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, hasConstraint, needsAGS)

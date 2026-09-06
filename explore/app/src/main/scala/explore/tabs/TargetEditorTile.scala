@@ -10,6 +10,7 @@ import explore.components.*
 import explore.components.TileContents
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
+import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.GuideStarSelection
 import explore.model.ObservationTargets
@@ -18,10 +19,14 @@ import explore.model.OnCloneParameters
 import explore.model.TargetEditObsInfo
 import explore.model.TargetTabTileIds
 import explore.model.UserPreferences
+import explore.targeteditor.AgsData
 import explore.targeteditor.TargetEditor
+import explore.targeteditor.UseTrackingMap.useObsPositions
+import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
+import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -45,6 +50,7 @@ final case class SingleTargetEditorTile(
   isStaffOrAdmin:     Boolean,
   obsInfo:            TargetEditObsInfo,
   onClone:            OnCloneParameters => Callback,
+  site:               Option[Site],
   backButton:         Option[VdomNode] = none
 ) extends Tile[SingleTargetEditorTile](
       TargetTabTileIds.AsterismEditor.id,
@@ -55,7 +61,18 @@ final case class SingleTargetEditorTile(
 
 object SingleTargetEditorTile
     extends TileComponent[SingleTargetEditorTile]((props, _) =>
-      TileContents:
+      for
+        ctx       <- useContext(AppContext.ctx)
+        // There is no observation here, so this is always the fallback time.
+        obsTime   <- useMemo(())(_ => obsTimeOrDefault(none))
+        positions <- useObsPositions(
+                       ObservationTargets.one(props.target.get).some,
+                       props.site,
+                       obsTime.value.some,
+                       none,
+                       none
+                     )(ctx)
+      yield TileContents:
         <.div(
           ExploreStyles.AladinFullScreen.when(props.fullScreen.get.value),
           <.div(
@@ -68,8 +85,10 @@ object SingleTargetEditorTile
                 props.target,
                 props.obsAndTargets,
                 ObservationTargets.one(props.target.get),
-                obsTime = none,
+                obsTime = obsTime.value.some,
                 obsConf = none,
+                positions = positions,
+                ags = AgsData.Empty,
                 searching = props.searching,
                 obsInfo = props.obsInfo,
                 onClone = props.onClone,

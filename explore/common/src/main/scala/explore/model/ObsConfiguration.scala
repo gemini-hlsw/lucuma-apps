@@ -4,6 +4,7 @@
 package explore.model
 
 import cats.Eq
+import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.derived.*
 import cats.syntax.all.*
@@ -82,6 +83,15 @@ final case class ObsConfiguration(
   // To draw visualization
   def fallbackPA: Option[Angle] =
     posAngleProperties.map(_.constraint.fallbackPosAngle(averagePA.map(_.averagePA)))
+
+  // Angles AGS tests. Visual mode defaults to PA 0 when e.g. the average PA is not available.
+  // Sorted, or two equivalent guide stars could make the angles flip back and forth forever.
+  def anglesToTest: Option[NonEmptyList[Angle]] =
+    posAngleConstraint.map: paConstraint =>
+      paConstraint
+        .anglesToTestAt(averagePA.map(_.averagePA))
+        .getOrElse(NonEmptyList.one(Angle.Angle0))
+        .sorted(using Angle.AngleOrder)
 
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)
