@@ -180,6 +180,7 @@ object ObsSummaryTile
                          table
                            .getColumn(ScienceBandColumnId.value)
                            .foldMap(_.toggleVisibility(showScienceBand))
+        _           <- useResetHiddenFilters(table, props.showFilters.get.value)
         resizer     <- useResizeDetector
         adding      <- useStateView(AddingObservation(false)) // adding new observation
       } yield {
@@ -192,9 +193,7 @@ object ObsSummaryTile
                 severity =
                   if props.showFilters.get.value then Button.Severity.Primary
                   else Button.Severity.Secondary,
-                onClick = props.showFilters.mod(_.flip) >>
-                  (table.resetColumnFilters() >> table.resetGlobalFilter())
-                    .when_(props.showFilters.get.value),
+                onClick = props.showFilters.mod(_.flip),
                 tooltip = "Toggle column filters"
               ).compact,
               Button(

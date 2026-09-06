@@ -4,6 +4,7 @@
 package lucuma.ui.table.hooks
 
 export UseDynTable.useDynTable, UseReactTableWithStateStore.useReactTableWithStateStore,
-  UseTableDragAndDrop.useTableDragAndDrop, UseTableDragAndDrop.useVirtualizedTableDragAndDrop
+  UseTableDragAndDrop.useTableDragAndDrop, UseTableDragAndDrop.useVirtualizedTableDragAndDrop,
+  UseResetHiddenFilters.useResetHiddenFilters
 
 export UseReactTableWithStateStore.syntax.*

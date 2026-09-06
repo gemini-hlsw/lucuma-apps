@@ -198,6 +198,7 @@ object ArchiveDuplicationTile
                                   TableStore(props.userId, TableId.ArchiveDuplication),
                                   ColumnsExcludedFromVisibility
                                 )
+          _                <- useResetHiddenFilters(table, showFilters.get.value)
           resizer          <- useResizeDetector
         yield
           val sweep: Callback =
@@ -246,8 +247,7 @@ object ArchiveDuplicationTile
                     severity =
                       if showFilters.get.value then Button.Severity.Primary
                       else Button.Severity.Secondary,
-                    onClick = showFilters.mod(_.flip) >>
-                      table.resetColumnFilters().when_(showFilters.get.value),
+                    onClick = showFilters.mod(_.flip),
                     tooltip = "Toggle column filters"
                   ).compact
                 ),

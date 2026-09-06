@@ -238,8 +238,7 @@ object ProgramTable:
                    ),
                    TableStore(props.userId.some, TableId.ProgramsSelector)
                  )
-      _     <- useEffectWithDeps(props.showFilters): showFilters =>
-                 (table.resetColumnFilters() >> table.resetGlobalFilter()).unless_(showFilters)
+      _     <- useResetHiddenFilters(table, props.showFilters)
     } yield
       val globalFilterRow =
         if props.showFilters then
