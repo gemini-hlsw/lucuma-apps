@@ -1059,14 +1059,14 @@ addCommandAlias("stopNavigateAll", stopNavigateAllCommands.mkString(";", ";", ""
 
 // BEGIN GITHUB ACTIONS
 
-val pushCond: String                            = "github.event_name == 'push'"
-val prCond: String                              = "github.event_name == 'pull_request'"
-val mainCond: String                            = "github.ref == 'refs/heads/main'"
-val notMainCond: String                         = "github.ref != 'refs/heads/main'"
-val geminiRepoCond: String                      = "startsWith(github.repository, 'gemini')"
-val isMergedCond: String                        = "github.event.pull_request.merged == true"
-def allConds(conds: String*): String            = conds.mkString("(", " && ", ")")
-def anyConds(conds: String*): String            = conds.mkString("(", " || ", ")")
+val pushCond: String                 = "github.event_name == 'push'"
+val prCond: String                   = "github.event_name == 'pull_request'"
+val mainCond: String                 = "github.ref == 'refs/heads/main'"
+val notMainCond: String              = "github.ref != 'refs/heads/main'"
+val geminiRepoCond: String           = "startsWith(github.repository, 'gemini')"
+val isMergedCond: String             = "github.event.pull_request.merged == true"
+def allConds(conds: String*): String = conds.mkString("(", " && ", ")")
+def anyConds(conds: String*): String = conds.mkString("(", " || ", ")")
 
 val herokuToken = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
 
@@ -1236,7 +1236,9 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
     javas = githubWorkflowJavaVersions.value.toList.take(1),
     cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
   ),
-  explore_app
+  explore_app,
+  // reached only via `fastLinkJS`; can't be a dependsOn without merging the bundles
+  explore_workers
 )
 
 // Only publish an image the merge could actually have changed.
@@ -1254,7 +1256,9 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
     javas = githubWorkflowJavaVersions.value.toList.take(1),
     cond = Some(allConds(mainCond, geminiRepoCond))
   ),
-  observe_deploy
+  observe_deploy,
+  // reached only via `buildJsModule`; can't be a dependsOn, it's Scala.js and this is JVM
+  observe_web_client
 )
 
 ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(

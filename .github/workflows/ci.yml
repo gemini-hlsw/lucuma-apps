@@ -182,7 +182,7 @@ jobs:
   explore-deploy:
     name: Build and deploy Explore
     needs: [affected]
-    if: (((github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && startsWith(github.repository, 'gemini'))) && (contains(fromJSON(needs.affected.outputs.projects), 'explore_app'))
+    if: (((github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && startsWith(github.repository, 'gemini'))) && (contains(fromJSON(needs.affected.outputs.projects), 'explore_app') || contains(fromJSON(needs.affected.outputs.projects), 'explore_workers'))
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -266,7 +266,7 @@ jobs:
   observe-deploy:
     name: Build and publish Observe Docker image / Deploy to Heroku
     needs: [affected]
-    if: ((github.ref == 'refs/heads/main' && startsWith(github.repository, 'gemini'))) && (contains(fromJSON(needs.affected.outputs.projects), 'observe_deploy'))
+    if: ((github.ref == 'refs/heads/main' && startsWith(github.repository, 'gemini'))) && (contains(fromJSON(needs.affected.outputs.projects), 'observe_deploy') || contains(fromJSON(needs.affected.outputs.projects), 'observe_web_client'))
     strategy:
       matrix:
         os: [ubuntu-22.04]
