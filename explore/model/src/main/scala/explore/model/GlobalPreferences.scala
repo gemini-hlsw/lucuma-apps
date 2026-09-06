@@ -48,7 +48,9 @@ case class GlobalPreferences(
   lastOpenPrograms:                     List[Program.Id] = List.empty,
   agsVisibility:                        Option[AGSVisibility] = None,
   exploreGuideButton:                   Visible = Visible.Shown,
-  obsTreeWidth:                         Option[Int] = None
+  obsTreeWidth:                         Option[Int] = None,
+  spectroscopyModesTableFilters:        Visible = Visible.Hidden,
+  imagingModesTableFilters:             Visible = Visible.Hidden
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
@@ -87,6 +89,9 @@ object GlobalPreferences:
   val exploreGuideButton                   = Focus[GlobalPreferences](_.exploreGuideButton)
   val obsTreeWidth                         =
     Focus[GlobalPreferences](_.obsTreeWidth).withDefault(Constants.DefaultTreeWidth)
+  val spectroscopyModesTableFilters        =
+    Focus[GlobalPreferences](_.spectroscopyModesTableFilters)
+  val imagingModesTableFilters             = Focus[GlobalPreferences](_.imagingModesTableFilters)
 
   private val MaxLastOpenPrograms = 6
 

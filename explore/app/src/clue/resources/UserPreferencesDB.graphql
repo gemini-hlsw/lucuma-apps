@@ -3711,6 +3711,8 @@ type LucumaUserPreferences {
   obsTreeWidth: Int
   observationTableFilters: Boolean!
   programsTableFilters: Boolean!
+  spectroscopyModesTableFilters: Boolean!
+  imagingModesTableFilters: Boolean!
   scienceOffsets: Boolean!
   showCatalog: Boolean!
   updatedAt: timestamptz
@@ -3813,6 +3815,8 @@ input LucumaUserPreferencesBoolExp {
   obsTreeWidth: IntComparisonExp
   observationTableFilters: BooleanComparisonExp
   programsTableFilters: BooleanComparisonExp
+  spectroscopyModesTableFilters: BooleanComparisonExp
+  imagingModesTableFilters: BooleanComparisonExp
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
   updatedAt: TimestamptzComparisonExp
@@ -3888,6 +3892,8 @@ input LucumaUserPreferencesInsertInput {
   obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
+  spectroscopyModesTableFilters: Boolean
+  imagingModesTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -3971,6 +3977,8 @@ input LucumaUserPreferencesOrderBy {
   obsTreeWidth: OrderBy
   observationTableFilters: OrderBy
   programsTableFilters: OrderBy
+  spectroscopyModesTableFilters: OrderBy
+  imagingModesTableFilters: OrderBy
   scienceOffsets: OrderBy
   showCatalog: OrderBy
   updatedAt: OrderBy
@@ -4056,6 +4064,12 @@ enum LucumaUserPreferencesSelectColumn {
   programsTableFilters
 
   """column name"""
+  spectroscopyModesTableFilters
+
+  """column name"""
+  imagingModesTableFilters
+
+  """column name"""
   scienceOffsets
 
   """column name"""
@@ -4096,6 +4110,8 @@ input LucumaUserPreferencesSetInput {
   obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
+  spectroscopyModesTableFilters: Boolean
+  imagingModesTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -4189,6 +4205,12 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   programsTableFilters
+
+  """column name"""
+  spectroscopyModesTableFilters
+
+  """column name"""
+  imagingModesTableFilters
 
   """column name"""
   scienceOffsets
@@ -5347,6 +5369,8 @@ input lucumaUserPreferences_streamCursorValueInput {
   obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
+  spectroscopyModesTableFilters: Boolean
+  imagingModesTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz

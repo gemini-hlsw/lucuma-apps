@@ -73,7 +73,8 @@ case class SpectroscopyModesTable(
   matrix:                   SpectroscopyModesMatrix,
   customSedTimestamps:      List[Timestamp],
   units:                    WavelengthUnits,
-  instrument:               Option[Instrument]
+  instrument:               Option[Instrument],
+  showFilters:              View[Visible]
 ) extends ReactFnProps(SpectroscopyModesTable.component)
 
 private object SpectroscopyModesTable extends ModesTableCommon:
@@ -366,8 +367,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                               ),
                               TableStore(props.userId, TableId.SpectroscopyModes)
                             )
-        showFilters    <- useStateView(Visible.Hidden)
-        _              <- useResetHiddenFilters(table, showFilters.get.value)
+        _              <- useResetHiddenFilters(table, props.showFilters.get.value)
         // We need to have an indicator of whether we need to scrollTo the selectedIndex as
         // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"
         // as the index change, and it would use the old index so it would scroll to the wrong location.
@@ -434,7 +434,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             <.div(ExploreStyles.ModesTableInfo)(
               errLabel.toTagMod,
               selectedTarget,
-              filterToggleButton(showFilters)
+              filterToggleButton(props.showFilters)
             )
           ),
           <.div(
@@ -466,7 +466,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
               onChange = tableOnChangeHandler(visibleRows, atTop),
               virtualizerRef = virtualizerRef,
               columnFilterRenderer =
-                if showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+                if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
               emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
             ),
             scrollUpButton(

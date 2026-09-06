@@ -73,7 +73,8 @@ final case class ImagingModesTable(
   units:               WavelengthUnits,
   targetView:          View[Option[ItcTarget]],
   capability:          Option[ImagingCapability],
-  instrument:          Option[Instrument]
+  instrument:          Option[Instrument],
+  showFilters:         View[Visible]
 ) extends ReactFnProps(ImagingModesTable.component)
 
 object ImagingModesTable extends ModesTableCommon:
@@ -322,8 +323,7 @@ object ImagingModesTable extends ModesTableCommon:
                               ),
                               TableStore(props.userId, TableId.ImagingModes)
                             )
-      showFilters      <- useStateView(Visible.Hidden)
-      _                <- useResetHiddenFilters(table, showFilters.get.value)
+      _                <- useResetHiddenFilters(table, props.showFilters.get.value)
       // We need to have an indicator of whether we need to scrollTo the selectedIndex as
       // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"
       // as the index change, and it would use the old index so it would scroll to the wrong location.
@@ -436,7 +436,7 @@ object ImagingModesTable extends ModesTableCommon:
             ExploreStyles.ModesTableInfo,
             errlabel.toTagMod,
             targetSelector.toTagMod,
-            filterToggleButton(showFilters)
+            filterToggleButton(props.showFilters)
           )
         ),
         <.div(
@@ -461,7 +461,7 @@ object ImagingModesTable extends ModesTableCommon:
             onChange = tableOnChangeHandler(visibleRows, atTop),
             virtualizerRef = virtualizerRef,
             columnFilterRenderer =
-              if showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+              if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
             emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
           ),
           scrollUpButton(
