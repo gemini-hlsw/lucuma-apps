@@ -25,10 +25,7 @@ import lucuma.ui.reusability.given
 import java.time.Instant
 
 /**
- * Where an observation points, as seen by everything that draws or analyzes it: the tracking of
- * each target, the tracking of the asterism as a whole (the base) and the resolved coordinates at
- * the observation time. Computed once per screen with `useObsPositions` and passed down, so the
- * average PA, AGS and Aladin all work from the same positions.
+ * Where an observation points, as seen by everything that draws or analyzes it.
  */
 case class ObsPositions(
   trackingMap:  Pot[ErrorMsgOr[RegionOrTrackingMap]],

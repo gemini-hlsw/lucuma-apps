@@ -66,10 +66,6 @@ import monocle.Iso
 import java.time.Instant
 import scala.collection.immutable.SortedSet
 
-/**
- * `positions` are shared by the host when it has them; otherwise the tile builds its own. AGS runs
- * with the observation, so only the obs tab has an `ags` to show.
- */
 final case class ObservationTargetsEditorTile(
   userId:              Option[User.Id],
   tileId:              Tile.TileId,
@@ -169,7 +165,6 @@ object ObservationTargetsEditorTile
                                    scienceIds.value ++ oBlindId.toList
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
-          // Skipped (no targets) when the host already provides positions.
           ownPositions        <- useObsPositions(
                                    obsTargets.value.filter(_ => props.positions.isEmpty),
                                    distinctSite.value,

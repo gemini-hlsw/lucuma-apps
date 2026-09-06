@@ -45,6 +45,7 @@ object AgsData:
     AgsData(Pot.pending, AgsCalculationResults(Pot.pending, Pot.pending))
 
   given Reusability[AgsData] =
+    // We don't want to check every candidate, the length is enough to know if the catalog changed.
     Reusability.by(d => (d.candidates.map(_.map(_.length)), d.results))
 
 object UseAgs:
@@ -55,9 +56,7 @@ object UseAgs:
   private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
 
   /**
-   * Runs guide star selection for an observation. It lives with the observation, not with Aladin,
-   * so the selected guide star follows time and configuration changes even while the target tile is
-   * minimized and Aladin is unmounted. Aladin only draws what this produces.
+   * Runs guide star selection for an observation.
    */
   def useAgs(
     obsTargets:         Option[ObservationTargets],
