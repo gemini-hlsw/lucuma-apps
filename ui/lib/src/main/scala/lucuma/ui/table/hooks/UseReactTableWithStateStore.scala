@@ -26,7 +26,7 @@ private object UseReactTableWithStateStore:
   def useReactTableWithStateStore[T, TM, CM, TF](
     options: TableOptionsWithStateStore[DefaultA, T, TM, CM, TF]
   ): HookResult[Table[T, TM, CM, TF]] =
-    def preferencesOf(state: TableState[TF]): TablePreferences =
+    def preferencesOf(state: TableState[TF]): TablePreferences[TF] =
       TablePreferences.fromState(state).withoutColumns(options.appControlledColumns)
 
     for
@@ -37,7 +37,7 @@ private object UseReactTableWithStateStore:
                              .flatMap(_.columnVisibility)
                              .getOrElse(table.initialState.columnVisibility)
       loaded        <- useRef(Loaded(false))
-      lastPersisted <- useRef(none[TablePreferences])
+      lastPersisted <- useRef(none[TablePreferences[TF]])
       _             <- useEffectOnMount:
                          options.stateStore
                            .load()

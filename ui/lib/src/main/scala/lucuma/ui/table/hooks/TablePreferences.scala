@@ -7,22 +7,26 @@ import cats.Eq
 import japgolly.scalajs.react.Callback
 import lucuma.react.table.*
 
+import scalajs.js.JSConverters.*
+
 /**
  * The subset of a table's state that constitutes a user preference
  */
-case class TablePreferences(
+case class TablePreferences[TF](
   columnVisibility: ColumnVisibility,
   columnSizing:     ColumnSizing,
   columnPinning:    ColumnPinning,
-  sorting:          Sorting
+  sorting:          Sorting,
+  columnFilters:    ColumnFilters,
+  globalFilter:     Option[TF]
 ):
   /**
    * Merge with stored preferences on top of the table's defaults, stored entries win.
    */
-  def withDefaultVisibility(defaults: ColumnVisibility): TablePreferences =
+  def withDefaultVisibility(defaults: ColumnVisibility): TablePreferences[TF] =
     copy(columnVisibility = ColumnVisibility(defaults.value ++ columnVisibility.value))
 
-  def withoutColumns(columnIds: Set[ColumnId]): TablePreferences =
+  def withoutColumns(columnIds: Set[ColumnId]): TablePreferences[TF] =
     if columnIds.isEmpty then this
     else
       copy(
@@ -32,18 +36,21 @@ case class TablePreferences(
           columnPinning.left.filterNot(columnIds.contains),
           columnPinning.right.filterNot(columnIds.contains)
         ),
-        sorting = Sorting(sorting.value.filterNot(sort => columnIds.contains(sort.columnId)))
+        sorting = Sorting(sorting.value.filterNot(sort => columnIds.contains(sort.columnId))),
+        columnFilters = ColumnFilters(columnFilters.value -- columnIds)
       )
 
-  def toTableState[TF]: TableState[TF] =
+  def toTableState: TableState[TF] =
     TableState[TF](
       columnVisibility = columnVisibility,
       columnSizing = columnSizing,
       columnPinning = columnPinning,
-      sorting = sorting
+      sorting = sorting,
+      columnFilters = columnFilters,
+      globalFilter = globalFilter.orUndefined
     )
 
-  def applyTo[T, TM, CM, TF](
+  def applyTo[T, TM, CM](
     table:                Table[T, TM, CM, TF],
     appControlledColumns: Set[ColumnId]
   ): Callback =
@@ -57,13 +64,29 @@ case class TablePreferences(
       table.setColumnVisibility(ColumnVisibility(columnVisibility.value ++ appControlled)) >>
         table.setColumnSizing(columnSizing) >>
         table.setColumnPinning(columnPinning) >>
-        table.setSorting(sorting)
+        table.setSorting(sorting) >>
+        table.setColumnFilters(columnFilters) >>
+        table.setGlobalFilter(globalFilter)
 
 object TablePreferences:
-  val Empty: TablePreferences =
-    TablePreferences(ColumnVisibility.Empty, ColumnSizing.Empty, ColumnPinning.Empty, Sorting.Empty)
+  def Empty[TF]: TablePreferences[TF] =
+    TablePreferences(
+      ColumnVisibility.Empty,
+      ColumnSizing.Empty,
+      ColumnPinning.Empty,
+      Sorting.Empty,
+      ColumnFilters.Empty,
+      None
+    )
 
-  def fromState[TF](state: TableState[TF]): TablePreferences =
-    TablePreferences(state.columnVisibility, state.columnSizing, state.columnPinning, state.sorting)
+  def fromState[TF](state: TableState[TF]): TablePreferences[TF] =
+    TablePreferences(
+      state.columnVisibility,
+      state.columnSizing,
+      state.columnPinning,
+      state.sorting,
+      state.columnFilters,
+      state.globalFilter
+    )
 
-  given Eq[TablePreferences] = Eq.fromUniversalEquals
+  given [TF]: Eq[TablePreferences[TF]] = Eq.fromUniversalEquals
