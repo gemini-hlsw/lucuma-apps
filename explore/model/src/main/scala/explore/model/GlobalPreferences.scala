@@ -50,7 +50,8 @@ case class GlobalPreferences(
   exploreGuideButton:                   Visible = Visible.Shown,
   obsTreeWidth:                         Option[Int] = None,
   spectroscopyModesTableFilters:        Visible = Visible.Hidden,
-  imagingModesTableFilters:             Visible = Visible.Hidden
+  imagingModesTableFilters:             Visible = Visible.Hidden,
+  archiveDuplicationTableFilters:       Visible = Visible.Hidden
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
@@ -82,6 +83,8 @@ object GlobalPreferences:
   val wavelengthUnits                      = Focus[GlobalPreferences](_.wavelengthUnits)
   val observationTableFilters              = Focus[GlobalPreferences](_.observationTableFilters)
   val programsTableFilters                 = Focus[GlobalPreferences](_.programsTableFilters)
+  val archiveDuplicationTableFilters       =
+    Focus[GlobalPreferences](_.archiveDuplicationTableFilters)
   val logLevel                             = Focus[GlobalPreferences](_.logLevel)
   val lastOpenPrograms                     = Focus[GlobalPreferences](_.lastOpenPrograms)
   val agsVisibility                        =

@@ -4,6 +4,7 @@
 package explore.tabs
 
 import cats.data.NonEmptySet
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
@@ -13,6 +14,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.archiveDuplication.ArchiveDuplicationTile
 import explore.attachments.AttachmentsTile
 import explore.common.Aligner
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.AutoHeightTable
 import explore.components.SimpleTile
 import explore.components.Tile
@@ -22,6 +24,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.ExploreGridLayouts
+import explore.model.GlobalPreferences
 import explore.model.Group
 import explore.model.GroupList
 import explore.model.ObsAttachmentAssignmentMap
@@ -33,6 +36,7 @@ import explore.model.TargetAttachmentAssignmentMap
 import explore.model.TargetList
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.GroupWarning
+import explore.model.enums.Visible
 import explore.model.layout.LayoutsMap
 import explore.validations.GroupWarningsTile
 import explore.validations.ObservationValidationsTableBody
@@ -73,6 +77,7 @@ case class OverviewTabContents(
   groups:                      GroupList,
   groupWarnings:               Map[Group.Id, NonEmptySet[GroupWarning]],
   detailsUndoSetter:           UndoSetter[ProgramDetails],
+  globalPreferences:           View[GlobalPreferences],
   layout:                      LayoutsMap,
   proposalIsAccepted:          Boolean,
   readonly:                    Boolean
@@ -88,6 +93,15 @@ object OverviewTabContents
         import ctx.given
 
         val defaultLayouts = ExploreGridLayouts.sectionLayout(GridLayoutSection.OverviewLayout)
+
+        val archiveDuplicationFilters: View[Visible] =
+          props.globalPreferences
+            .zoom(GlobalPreferences.archiveDuplicationTableFilters)
+            .withOnMod: v =>
+              props.userId.foldMap: uid =>
+                GlobalUserPreferences
+                  .storeTableFilterPreferences[IO](uid, archiveDuplicationTableFilters = v.some)
+                  .runAsync
 
         val warningsAndErrorsTile = SimpleTile(
           OverviewTabTileIds.WarningsAndErrorsId.id,
@@ -175,6 +189,7 @@ object OverviewTabContents
               props.observations.get,
               props.targets,
               props.detailsUndoSetter.get.proposalStatus,
+              archiveDuplicationFilters,
               props.readonly
             )
 

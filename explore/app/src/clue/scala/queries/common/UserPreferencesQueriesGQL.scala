@@ -237,6 +237,7 @@ object UserPreferencesQueriesGQL {
           wavelengthUnits
           observationTableFilters
           programsTableFilters
+          archiveDuplicationTableFilters
           logLevel
           lastOpenPrograms
           exploreGuideButton
@@ -274,6 +275,7 @@ object UserPreferencesQueriesGQL {
           wavelengthUnits
           observationTableFilters
           programsTableFilters
+          archiveDuplicationTableFilters
           logLevel
           lastOpenPrograms
           exploreGuideButton

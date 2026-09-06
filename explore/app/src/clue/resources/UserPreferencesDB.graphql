@@ -3713,6 +3713,7 @@ type LucumaUserPreferences {
   programsTableFilters: Boolean!
   spectroscopyModesTableFilters: Boolean!
   imagingModesTableFilters: Boolean!
+  archiveDuplicationTableFilters: Boolean!
   scienceOffsets: Boolean!
   showCatalog: Boolean!
   updatedAt: timestamptz
@@ -3817,6 +3818,7 @@ input LucumaUserPreferencesBoolExp {
   programsTableFilters: BooleanComparisonExp
   spectroscopyModesTableFilters: BooleanComparisonExp
   imagingModesTableFilters: BooleanComparisonExp
+  archiveDuplicationTableFilters: BooleanComparisonExp
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
   updatedAt: TimestamptzComparisonExp
@@ -3894,6 +3896,7 @@ input LucumaUserPreferencesInsertInput {
   programsTableFilters: Boolean
   spectroscopyModesTableFilters: Boolean
   imagingModesTableFilters: Boolean
+  archiveDuplicationTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -3979,6 +3982,7 @@ input LucumaUserPreferencesOrderBy {
   programsTableFilters: OrderBy
   spectroscopyModesTableFilters: OrderBy
   imagingModesTableFilters: OrderBy
+  archiveDuplicationTableFilters: OrderBy
   scienceOffsets: OrderBy
   showCatalog: OrderBy
   updatedAt: OrderBy
@@ -4062,6 +4066,7 @@ enum LucumaUserPreferencesSelectColumn {
 
   """column name"""
   programsTableFilters
+  archiveDuplicationTableFilters
 
   """column name"""
   spectroscopyModesTableFilters
@@ -4112,6 +4117,7 @@ input LucumaUserPreferencesSetInput {
   programsTableFilters: Boolean
   spectroscopyModesTableFilters: Boolean
   imagingModesTableFilters: Boolean
+  archiveDuplicationTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -4205,6 +4211,7 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   programsTableFilters
+  archiveDuplicationTableFilters
 
   """column name"""
   spectroscopyModesTableFilters
@@ -5371,6 +5378,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   programsTableFilters: Boolean
   spectroscopyModesTableFilters: Boolean
   imagingModesTableFilters: Boolean
+  archiveDuplicationTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
