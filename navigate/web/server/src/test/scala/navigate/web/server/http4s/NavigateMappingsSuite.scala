@@ -1116,6 +1116,128 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Query telescope state with shutters tracking") {
+    val testState = TelescopeState.default.copy(enclosure =
+      EnclosureState(
+        dome = DomeMode.MinVibration.some,
+        shutters = ShutterMode.Tracking(Distance.fromLongMicrometers(1500000)).some,
+        eastVentGateOpen = IntPercent.unsafeFrom(10),
+        westVentGateOpen = IntPercent.unsafeFrom(20)
+      )
+    )
+    for {
+      mp <- buildMapping(engIO = buildServerWithTelescopeState(testState))
+      r  <- mp.compileAndRun(
+              """
+          | query {
+          |   telescopeState {
+          |     mount {
+          |       parked
+          |       follow
+          |     }
+          |     scs {
+          |       parked
+          |       follow
+          |     }
+          |     crcs {
+          |       parked
+          |       follow
+          |     }
+          |     pwfs1 {
+          |       parked
+          |       follow
+          |     }
+          |     pwfs2 {
+          |       parked
+          |       follow
+          |     }
+          |     oiwfs {
+          |       parked
+          |       follow
+          |     }
+          |     enclosure {
+          |       domeEnabled
+          |       domeMode
+          |       shuttersEnabled
+          |       shuttersMode {
+          |         mode
+          |         aperture {
+          |           micrometers
+          |         }
+          |       }
+          |       eastVentGateAperture
+          |       westVentGateAperture
+          |     }
+          |   }
+          | }
+          |""".stripMargin
+            )
+    } yield assertEquals(r.hcursor.downField("data").downField("telescopeState").as[TelescopeState],
+                         testState.asRight[DecodingFailure]
+    )
+  }
+
+  test("Query telescope state with shutters fully open") {
+    val testState = TelescopeState.default.copy(enclosure =
+      EnclosureState(
+        dome = DomeMode.MinVibration.some,
+        shutters = ShutterMode.FullyOpen.some,
+        eastVentGateOpen = IntPercent.unsafeFrom(10),
+        westVentGateOpen = IntPercent.unsafeFrom(20)
+      )
+    )
+    for {
+      mp <- buildMapping(engIO = buildServerWithTelescopeState(testState))
+      r  <- mp.compileAndRun(
+              """
+          | query {
+          |   telescopeState {
+          |     mount {
+          |       parked
+          |       follow
+          |     }
+          |     scs {
+          |       parked
+          |       follow
+          |     }
+          |     crcs {
+          |       parked
+          |       follow
+          |     }
+          |     pwfs1 {
+          |       parked
+          |       follow
+          |     }
+          |     pwfs2 {
+          |       parked
+          |       follow
+          |     }
+          |     oiwfs {
+          |       parked
+          |       follow
+          |     }
+          |     enclosure {
+          |       domeEnabled
+          |       domeMode
+          |       shuttersEnabled
+          |       shuttersMode {
+          |         mode
+          |         aperture {
+          |           micrometers
+          |         }
+          |       }
+          |       eastVentGateAperture
+          |       westVentGateAperture
+          |     }
+          |   }
+          | }
+          |""".stripMargin
+            )
+    } yield assertEquals(r.hcursor.downField("data").downField("telescopeState").as[TelescopeState],
+                         testState.asRight[DecodingFailure]
+    )
+  }
+
   test("Query guide state") {
     for {
       mp <- buildMapping()
@@ -2647,9 +2769,10 @@ class NavigateMappingsSuite extends CatsEffectSuite {
 
   test("Enable shutters tracking.") {
     for {
-      mp <- buildMapping()
-      r  <- mp.compileAndRun(
-              """
+      captured <- Ref.of[IO, Option[ShutterMode]](none)
+      mp       <- buildMapping(engIO = buildServerCapturingShutterMode(captured))
+      r        <- mp.compileAndRun(
+                    """
           | mutation {
           |   ecsEnableShutters(
           |     mode: {
@@ -2660,16 +2783,49 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |     }
           |   ) { result } }
           """.stripMargin
-            )
-    } yield assertEquals(
-      r.hcursor
-        .downField("data")
-        .downField("ecsEnableShutters")
-        .downField("result")
-        .as[String]
-        .toOption,
-      "SUCCESS".some
-    )
+                  )
+      md       <- captured.get
+    } yield {
+      assertEquals(
+        r.hcursor
+          .downField("data")
+          .downField("ecsEnableShutters")
+          .downField("result")
+          .as[String]
+          .toOption,
+        "SUCCESS".some
+      )
+      assertEquals(md, ShutterMode.Tracking(Distance.fromLongMicrometers(1500000)).some)
+    }
+  }
+
+  test("Enable shutters fully open.") {
+    for {
+      captured <- Ref.of[IO, Option[ShutterMode]](none)
+      mp       <- buildMapping(engIO = buildServerCapturingShutterMode(captured))
+      r        <- mp.compileAndRun(
+                    """
+          | mutation {
+          |   ecsEnableShutters(
+          |     mode: {
+          |       mode: FULLY_OPEN
+          |     }
+          |   ) { result } }
+          """.stripMargin
+                  )
+      md       <- captured.get
+    } yield {
+      assertEquals(
+        r.hcursor
+          .downField("data")
+          .downField("ecsEnableShutters")
+          .downField("result")
+          .as[String]
+          .toOption,
+        "SUCCESS".some
+      )
+      assertEquals(md, ShutterMode.FullyOpen.some)
+    }
   }
 
 }
@@ -3017,6 +3173,48 @@ object NavigateMappingsTest {
     g
   )
 
+  def buildServerWithTelescopeState(ts: TelescopeState): IO[NavigateEngine[IO]] = for {
+    r <- Ref.of[IO, GuideState](GuideState.default)
+    p <- Ref.of[IO, TelescopeState](ts)
+    q <- Ref.of[IO, GuidersQualityValues](GuidersQualityValues.default)
+    g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
+    u <- Ref.of[IO, AcMechsState](
+           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
+         )
+    v <-
+      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    w <-
+      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
+  } yield new NavigateEngineTest(
+    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
+    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
+    g
+  )
+
+  def buildServerCapturingShutterMode(
+    captured: Ref[IO, Option[ShutterMode]]
+  ): IO[NavigateEngine[IO]] = for {
+    r <- Ref.of[IO, GuideState](GuideState.default)
+    p <- Ref.of[IO, TelescopeState](TelescopeState.default)
+    g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
+    u <- Ref.of[IO, AcMechsState](
+           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
+         )
+    v <-
+      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    w <-
+      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
+  } yield new NavigateEngineTest(
+    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
+    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
+    g
+  ) {
+    override def ecsEnableShutters(mode: ShutterMode): IO[CommandResult] =
+      captured.set(mode.some).as(CommandResult.CommandSuccess)
+  }
+
   def buildBadServer: IO[NavigateEngine[IO]] = for {
     r <- Ref.of[IO, GuideState](GuideState.default)
     p <- Ref.of[IO, TelescopeState](TelescopeState.default)
@@ -3211,8 +3409,13 @@ object NavigateMappingsTest {
     for {
       mode <- h.downField("mode").as[String]
       apt  <- h.downField("aperture").as[Option[Distance]]
+      tag   = mode match {
+                case "FULLY_OPEN" => ShutterMode.FullyOpen.tag
+                case "TRACKING"   => ShutterMode.TrackingTag
+                case other        => other
+              }
       shMd <- ShutterMode
-                .fromTag(mode, apt)
+                .fromTag(tag, apt)
                 .toRight[DecodingFailure](
                   DecodingFailure.apply("Unable to decode ShutterMode", h.history)
                 )
