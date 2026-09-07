@@ -26,6 +26,7 @@ import explore.model.display.*
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.ExposureTimeModeType.*
 import explore.model.enums.TableId
+import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.*
 import explore.model.reusability.given
@@ -72,7 +73,8 @@ case class SpectroscopyModesTable(
   matrix:                   SpectroscopyModesMatrix,
   customSedTimestamps:      List[Timestamp],
   units:                    WavelengthUnits,
-  instrument:               Option[Instrument]
+  instrument:               Option[Instrument],
+  showFilters:              View[Visible]
 ) extends ReactFnProps(SpectroscopyModesTable.component)
 
 private object SpectroscopyModesTable extends ModesTableCommon:
@@ -88,14 +90,15 @@ private object SpectroscopyModesTable extends ModesTableCommon:
     val rowId: RowId                = RowId(entry.id.orEmpty.toString)
     val config: ItcInstrumentConfig = entry.instrumentConfig
 
-  private val ColDef = ColumnDef[SpectroscopyModeRowWithResult].WithTableMeta[TableMeta]
+  private val ColDef =
+    ColumnDef[SpectroscopyModeRowWithResult].WithTableMeta[TableMeta].WithColumnFilters
 
   private val decFormat = new DecimalFormat("0.###")
 
   private def column[V](
     id:       ColumnId,
     accessor: SpectroscopyModeRowWithResult => V
-  ): ColumnDef.Single.WithTableMeta[SpectroscopyModeRowWithResult, V, TableMeta] =
+  ): ColDef.TypeFor[V] =
     ColDef(id, accessor, columnNames.getOrElse(id, id.value))
 
   private val InstrumentColumnId: ColumnId         = ColumnId("instrument")
@@ -189,7 +192,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       )
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
-        .sortable,
+        .sortable
+        .withFilterMethod(selectFilter[String](identity)),
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
@@ -214,7 +218,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       )
         .withCell(cell => slitWidthCell(cell.value._1, cell.value._2.value))
         .withColumnSize(FixedSize(100.toPx))
-        .sortableBy(_._2),
+        .sortableBy(_._2)
+        .withFilterMethod(selectFilter(v => formatSlitWidth(v._2.value))),
       column(SlitLengthColumnId,
              row =>
                (SpectroscopyModeRow.instrument.get(row.entry),
@@ -223,19 +228,23 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       )
         .withCell(cell => formatSlitLength(cell.value._1, cell.value._2.value))
         .withColumnSize(FixedSize(105.toPx))
-        .sortableBy(_._2),
+        .sortableBy(_._2)
+        .withFilterMethod(selectFilter(v => formatSlitLength(v._1, v._2.value))),
       column(GratingColumnId, row => SpectroscopyModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.gratingStr)
         .withColumnSize(FixedSize(96.toPx))
-        .sortableBy(_.gratingStr),
+        .sortableBy(_.gratingStr)
+        .withFilterMethod(selectFilter(_.gratingStr)),
       column(FilterColumnId, row => SpectroscopyModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.filterStr)
         .withColumnSize(FixedSize(69.toPx))
-        .sortableBy(_.filterStr),
+        .sortableBy(_.filterStr)
+        .withFilterMethod(selectFilter(_.filterStr)),
       column(FPUColumnId, row => SpectroscopyModeRow.fpu.get(row.entry))
         .withCell(cell => formatFPU(cell.value))
         .withColumnSize(FixedSize(62.toPx))
-        .sortable,
+        .sortable
+        .withFilterMethod(selectFilter(formatFPU)),
       column(WavelengthIntervalColumnId, row => row.wavelengthInterval)
         .withHeader(s"$IntervalPrefix ${units.symbol}")
         .withCell(cell => cell.value.fold("-")(_.shortName))
@@ -245,19 +254,16 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(_.value.toString)
         .withColumnSize(FixedSize(70.toPx))
         .sortable
-      // TODO Enable this column when we have the data
-      // column(AvailablityColumnId, _.configurationSummary)
-      //   .withCell(_.value.fold("No")(_ => "Yes"))
-      //   .withColumnSize(FixedSize(66.toPx))
-      //   .sortable
     )
 
   private def useColumns(
     expTimeModeType: Option[ExposureTimeModeType],
     units:           WavelengthUnits
-  ): HookResult[
-    Reusable[List[ColumnDef.Single.WithTableMeta[SpectroscopyModeRowWithResult, ?, TableMeta]]]
-  ] =
+  ): HookResult[Reusable[
+    List[
+      ColumnDef.Single[SpectroscopyModeRowWithResult, ?, TableMeta, WithFilterMethod, Nothing, ?, ?]
+    ]
+  ]] =
     useMemo(expTimeModeType, units): (m, u) =>
       m match
         case Some(ExposureTimeModeType.SignalToNoise) | None =>
@@ -355,20 +361,23 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                                 rows,
                                 getRowId = (row, _, _) => row.rowId,
                                 enableSorting = true,
+                                enableColumnFilters = true,
+                                enableFacetedUniqueValues = true,
                                 meta = TableMeta(itcProgress.get)
                               ),
                               TableStore(props.userId, TableId.SpectroscopyModes)
                             )
+        _              <- useResetHiddenFilters(table, props.showFilters.get.value)
         // We need to have an indicator of whether we need to scrollTo the selectedIndex as
         // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"
         // as the index change, and it would use the old index so it would scroll to the wrong location.
         // By having it as state with the following `useEffectWithDepsBy`, the scrollTo effect will run
         // in the following "hook cycle" and get the proper index.
         scrollTo       <- useStateView(ScrollTo.Scroll)
-        _              <- useEffectWithDeps(table.getState().sorting)(_ => scrollTo.set(ScrollTo.Scroll))
-        sortedRows     <- useMemo((rows, table.getState().sorting))(_ =>
-                            table.getSortedRowModel().rows.map(_.original).toList
-                          )
+        _              <- useEffectWithDeps((table.getState().sorting, table.getState().columnFilters)): _ =>
+                            scrollTo.set(ScrollTo.Scroll)
+        sortedRows     <- useMemo((rows, table.getState().sorting, table.getState().columnFilters)):
+                            _ => table.getRowModel().rows.map(_.original).toList
         itcHookData    <- useItc(
                             itcResults,
                             itcProgress,
@@ -424,7 +433,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             ),
             <.div(ExploreStyles.ModesTableInfo)(
               errLabel.toTagMod,
-              selectedTarget
+              selectedTarget,
+              filterToggleButton(props.showFilters)
             )
           ),
           <.div(
@@ -455,6 +465,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                 ),
               onChange = tableOnChangeHandler(visibleRows, atTop),
               virtualizerRef = virtualizerRef,
+              columnFilterRenderer =
+                if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
               emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
             ),
             scrollUpButton(

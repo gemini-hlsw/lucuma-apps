@@ -61,27 +61,34 @@ object Routing:
       .from(page)
       .map: routingInfo =>
         withProgramSummaries(model): programSummaries =>
-          // if we got this far, we will have program details
-          programSummaries
-            .zoom(ProgramSummaries.optProgramDetails.some)
-            .map: detailsUndoSetter =>
-              OverviewTabContents(
-                routingInfo.programId,
-                model.rootModel.zoom(RootModel.vault).get,
-                programSummaries,
-                programSummaries.model.zoom(ProgramSummaries.attachments),
-                programSummaries.model.get.obsAttachmentAssignments,
-                programSummaries.model.get.targetAttachmentAssignments,
-                programSummaries.model.zoom(ProgramSummaries.observations),
-                programSummaries.model.get.targets,
-                programSummaries.model.get.targetObservations,
-                programSummaries.model.get.groups,
-                programSummaries.model.get.groupWarnings,
-                detailsUndoSetter,
-                userPreferences(model.rootModel).overviewTabLayout,
-                programSummaries.get.proposalIsAccepted,
-                programSummaries.get.programIsReadonly || model.userIsReadonlyCoi
-              )
+          model.rootModel
+            .zoom(RootModel.userPreferences)
+            .mapValuePot: (userPrefs: View[UserPreferences]) =>
+              // if we got this far, we will have program details
+              programSummaries
+                .zoom(ProgramSummaries.optProgramDetails.some)
+                .map: detailsUndoSetter =>
+                  OverviewTabContents(
+                    routingInfo.programId,
+                    model.rootModel.zoom(RootModel.vault).get,
+                    programSummaries,
+                    programSummaries.model.zoom(ProgramSummaries.attachments),
+                    programSummaries.model.get.obsAttachmentAssignments,
+                    programSummaries.model.get.targetAttachmentAssignments,
+                    programSummaries.model.zoom(ProgramSummaries.observations),
+                    programSummaries.model.get.targets,
+                    programSummaries.model.get.targetObservations,
+                    programSummaries.model.get.groups,
+                    programSummaries.model.get.groupWarnings,
+                    detailsUndoSetter,
+                    userPrefs.zoom(UserPreferences.globalPreferences),
+                    userPrefs.get.overviewTabLayout,
+                    programSummaries.get.proposalIsAccepted,
+                    programSummaries.get.programIsReadonly || model.userIsReadonlyCoi
+                  ): VdomNode
+                .orEmpty
+            .toOption
+            .orEmpty
       .orEmpty
 
   private def targetTab(page: Page, model: RootModelViews): VdomElement =

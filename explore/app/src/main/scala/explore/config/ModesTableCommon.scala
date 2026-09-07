@@ -25,6 +25,7 @@ import explore.model.Progress
 import explore.model.WorkerClients.ItcClient
 import explore.model.boopickle.*
 import explore.model.boopickle.ItcPicklers.given
+import explore.model.enums.Visible
 import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.ItcInstrumentConfig
@@ -44,6 +45,8 @@ import lucuma.react.fa.IconSize
 import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.HTMLTableVirtualizer
 import lucuma.react.table.HeaderContext
 import lucuma.typed.tanstackVirtualCore as rawVirtual
@@ -52,6 +55,7 @@ import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.table.FilterMethod
 import workers.WorkerClient
 
 import scala.collection.decorators.*
@@ -146,6 +150,28 @@ trait ModesTableCommon:
                  ExploreStyles.SelectedDown,
                  idx => visibleRows.exists(_.end - 2 < idx)
     )
+
+  // Modes columns are narrow, a placeholder would be truncated
+  def selectFilter[A](display: A => String): FilterMethod.Select[A] =
+    FilterMethod.Select(
+      display,
+      placeholder = "",
+      clazz = ExploreStyles.ModesTableFilter,
+      panelClass = ExploreStyles.ModesTableFilterPanel
+    )
+
+  def textFilter[A](convert: A => String): FilterMethod.Text[A] =
+    FilterMethod.Text(convert, placeholder = "", clazz = ExploreStyles.ModesTableFilter)
+
+  def filterToggleButton(showFilters: View[Visible]): VdomNode =
+    Button(
+      icon = Icons.Filter,
+      severity =
+        if showFilters.get.value then Button.Severity.Primary else Button.Severity.Secondary,
+      onClick = showFilters.mod(_.flip),
+      tooltip = "Filters on/off",
+      tooltipOptions = TooltipOptions(position = Tooltip.Position.Bottom)
+    ).tiny.compact
 
   def tableOnChangeHandler(
     visibleRows: View[Option[Range.Inclusive]],

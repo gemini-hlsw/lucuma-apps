@@ -11,9 +11,11 @@ import clue.data.syntax.*
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.GlobalPreferences
 import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.Imaging
@@ -22,6 +24,7 @@ import explore.model.display.given
 import explore.model.enums.ConfigurationMode
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.PosAngleOptions
+import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
@@ -58,6 +61,8 @@ import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.syntax.effect.*
+import monocle.Lens
+import org.typelevel.log4cats.Logger
 
 case class BasicConfigurationPanel(
   userId:              Option[User.Id],
@@ -75,8 +80,16 @@ case class BasicConfigurationPanel(
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,
   units:               WavelengthUnits,
+  globalPreferences:   View[GlobalPreferences],
   targetView:          View[Option[ItcTarget]]
-) extends ReactFnProps(BasicConfigurationPanel.component)
+) extends ReactFnProps(BasicConfigurationPanel.component):
+  private def tableFilters(
+    lens:  Lens[GlobalPreferences, Visible],
+    store: (User.Id, Visible) => IO[Unit]
+  )(using Logger[IO]): View[Visible] =
+    globalPreferences
+      .zoom(lens)
+      .withOnMod(v => userId.traverse_(store(_, v)).runAsync)
 
 private object BasicConfigurationPanel:
   private type Props = BasicConfigurationPanel
@@ -338,7 +351,15 @@ private object BasicConfigurationPanel:
                     props.confMatrix.spectroscopy,
                     props.customSedTimestamps,
                     props.units,
-                    specInstrumentFilter.get
+                    specInstrumentFilter.get,
+                    props.tableFilters(
+                      GlobalPreferences.spectroscopyModesTableFilters,
+                      (uid, v) =>
+                        GlobalUserPreferences.storeTableFilterPreferences[IO](
+                          uid,
+                          spectroscopyModesTableFilters = v.some
+                        )
+                    )
                   )
                 ),
               imagingView.mapValue(s =>
@@ -355,7 +376,15 @@ private object BasicConfigurationPanel:
                   props.units,
                   props.targetView,
                   imagingCap.get,
-                  imagingInstrumentFilter.get
+                  imagingInstrumentFilter.get,
+                  props.tableFilters(
+                    GlobalPreferences.imagingModesTableFilters,
+                    (uid, v) =>
+                      GlobalUserPreferences.storeTableFilterPreferences[IO](
+                        uid,
+                        imagingModesTableFilters = v.some
+                      )
+                  )
                 )
               )
             )

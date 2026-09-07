@@ -19,6 +19,7 @@ import explore.common.ScienceQueries.UpdateScienceRequirements
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.GlobalPreferences
 import explore.model.IsActive
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSetEditInfo
@@ -86,6 +87,7 @@ final case class ConfigurationTile(
   readonly:                 Boolean,
   obsIdSetEditInfo:         ObsIdSetEditInfo,          // for determining edit permissions
   units:                    WavelengthUnits,
+  globalPreferences:        View[GlobalPreferences],
   isStaffOrAdmin:           Boolean,
   targetView:               View[Option[ItcTarget]],
   hasMaterializedSequence:  Boolean,
@@ -616,6 +618,7 @@ object ConfigurationTile
                       props.customSedTimestamps,
                       !props.permissions.isFullEdit,
                       props.units,
+                      props.globalPreferences,
                       props.targetView
                     )
                   )

@@ -113,22 +113,34 @@ object UserPreferencesQueries:
         .void
 
     def storeTableFilterPreferences[F[_]: ApplicativeThrow](
-      userId:                  User.Id,
-      observationTableFilters: Option[Visible] = None,
-      programsTableFilters:    Option[Visible] = None
+      userId:                         User.Id,
+      observationTableFilters:        Option[Visible] = None,
+      programsTableFilters:           Option[Visible] = None,
+      spectroscopyModesTableFilters:  Option[Visible] = None,
+      imagingModesTableFilters:       Option[Visible] = None,
+      archiveDuplicationTableFilters: Option[Visible] = None
     )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
       UserPreferencesAladinUpdate[F]
         .execute(
           objects = LucumaUserPreferencesInsertInput(
             userId = userId.show.assign,
             observationTableFilters = observationTableFilters.map(_.value).orIgnore,
-            programsTableFilters = programsTableFilters.map(_.value).orIgnore
+            programsTableFilters = programsTableFilters.map(_.value).orIgnore,
+            spectroscopyModesTableFilters = spectroscopyModesTableFilters.map(_.value).orIgnore,
+            imagingModesTableFilters = imagingModesTableFilters.map(_.value).orIgnore,
+            archiveDuplicationTableFilters = archiveDuplicationTableFilters.map(_.value).orIgnore
           ),
           update_columns = List(
             LucumaUserPreferencesUpdateColumn.ObservationTableFilters.some
               .filter(_ => observationTableFilters.isDefined),
             LucumaUserPreferencesUpdateColumn.ProgramsTableFilters.some
-              .filter(_ => programsTableFilters.isDefined)
+              .filter(_ => programsTableFilters.isDefined),
+            LucumaUserPreferencesUpdateColumn.SpectroscopyModesTableFilters.some
+              .filter(_ => spectroscopyModesTableFilters.isDefined),
+            LucumaUserPreferencesUpdateColumn.ImagingModesTableFilters.some
+              .filter(_ => imagingModesTableFilters.isDefined),
+            LucumaUserPreferencesUpdateColumn.ArchiveDuplicationTableFilters.some
+              .filter(_ => archiveDuplicationTableFilters.isDefined)
           ).flattenOption.widen[LucumaUserPreferencesUpdateColumn]
         )
         .attempt

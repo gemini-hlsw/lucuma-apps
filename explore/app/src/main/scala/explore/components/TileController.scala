@@ -26,6 +26,7 @@ import lucuma.core.model.User
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.react.gridlayout.*
+import lucuma.ui.hooks.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -34,6 +35,7 @@ import org.scalajs.dom
 import queries.schemas.UserPreferencesDB
 
 import scala.concurrent.duration.*
+import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
 case class TileController(
@@ -197,6 +199,14 @@ object TileController:
                                   )
         // While a drag or resize gesture is in flight, measurements are recorded but not applied.
         gesturing      <- useStateView(false)
+        // Auto heights are capped to the viewport, and a measurement can land while the window is
+        // briefly short (startup, restore). Content re-measures don't fire on a window resize, so
+        // the cap is re-applied here when the viewport height changes.
+        viewportHeight <- useViewportHeight
+        _              <- useEffectWithDeps(viewportHeight): vp =>
+                            currentLayout
+                              .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.get, vp, _))
+                              .unless_(gesturing.get)
         storeThrottler <- useMemo(())(_ => Throttler.unsafe[IO](1.second))
       yield
         import ctx.given

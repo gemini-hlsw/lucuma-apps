@@ -64,6 +64,7 @@ final case class ArchiveDuplicationTile(
   observations:   ObservationList,
   targets:        TargetList,
   proposalStatus: ProposalStatus,
+  showFilters:    View[Visible],
   readonly:       Boolean
 ) extends Tile[ArchiveDuplicationTile](
       id = OverviewTabTileIds.ArchiveDuplicationId.id,
@@ -82,7 +83,6 @@ object ArchiveDuplicationTile
           duplications     <- useStateView(Map.empty[Observation.Id, Pot[ArchiveDuplication]])
           matches          <- useStateView(Map.empty[Observation.Id, Pot[List[ArchiveMatch]]])
           columnVisibility <- useStateView(DefaultColumnVisibility)
-          showFilters      <- useStateView(Visible.Hidden)
           headersLoaded    <- useStateView(false)
           _                <- useEffectOnMount:
                                 ctx.odbApi
@@ -198,7 +198,7 @@ object ArchiveDuplicationTile
                                   TableStore(props.userId, TableId.ArchiveDuplication),
                                   ColumnsExcludedFromVisibility
                                 )
-          _                <- useResetHiddenFilters(table, showFilters.get.value)
+          _                <- useResetHiddenFilters(table, props.showFilters.get.value)
           resizer          <- useResizeDetector
         yield
           val sweep: Callback =
@@ -245,9 +245,9 @@ object ArchiveDuplicationTile
                     size = Button.Size.Small,
                     icon = Icons.Filter,
                     severity =
-                      if showFilters.get.value then Button.Severity.Primary
+                      if props.showFilters.get.value then Button.Severity.Primary
                       else Button.Severity.Secondary,
-                    onClick = showFilters.mod(_.flip),
+                    onClick = props.showFilters.mod(_.flip),
                     tooltip = "Toggle column filters"
                   ).compact
                 ),
@@ -272,7 +272,7 @@ object ArchiveDuplicationTile
                 containerRef = resizer.ref,
                 tableMod = ExploreStyles.ExploreTable,
                 columnFilterRenderer =
-                  if showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+                  if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
                 headerCellMod = _ => ExploreStyles.StickyHeader,
                 emptyMessage = <.div("No observations to check against the archive.")
               )

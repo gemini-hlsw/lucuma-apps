@@ -237,10 +237,13 @@ object UserPreferencesQueriesGQL {
           wavelengthUnits
           observationTableFilters
           programsTableFilters
+          archiveDuplicationTableFilters
           logLevel
           lastOpenPrograms
           exploreGuideButton
           obsTreeWidth
+          spectroscopyModesTableFilters
+          imagingModesTableFilters
         }
       }
     """
@@ -272,10 +275,13 @@ object UserPreferencesQueriesGQL {
           wavelengthUnits
           observationTableFilters
           programsTableFilters
+          archiveDuplicationTableFilters
           logLevel
           lastOpenPrograms
           exploreGuideButton
           obsTreeWidth
+          spectroscopyModesTableFilters
+          imagingModesTableFilters
         }
       }
     """

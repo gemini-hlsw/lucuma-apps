@@ -777,6 +777,7 @@ object ObsTabTiles:
             props.readonly, // execution status is taken care of in the configuration tile
             ObsIdSetEditInfo.of(props.observation.get),
             globalPreferences.get.wavelengthUnits,
+            globalPreferences,
             props.isStaffOrAdminUser,
             selectedItcTarget,
             props.observation.get.hasMaterializedSequence,

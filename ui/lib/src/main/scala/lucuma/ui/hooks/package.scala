@@ -4,3 +4,4 @@
 package lucuma.ui.hooks
 
 export UseTheme.syntax.*
+export UseViewportHeight.useViewportHeight

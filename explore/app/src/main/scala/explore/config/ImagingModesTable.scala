@@ -23,6 +23,7 @@ import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.ExposureTimeModeType.*
 import explore.model.enums.TableId
+import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.*
 import explore.model.reusability.given
@@ -72,7 +73,8 @@ final case class ImagingModesTable(
   units:               WavelengthUnits,
   targetView:          View[Option[ItcTarget]],
   capability:          Option[ImagingCapability],
-  instrument:          Option[Instrument]
+  instrument:          Option[Instrument],
+  showFilters:         View[Visible]
 ) extends ReactFnProps(ImagingModesTable.component)
 
 object ImagingModesTable extends ModesTableCommon:
@@ -134,7 +136,8 @@ object ImagingModesTable extends ModesTableCommon:
     val rowId: RowId                = RowId(entry.id.orEmpty.toString)
     val config: ItcInstrumentConfig = entry.instrumentConfig
 
-  private val ColDef = ColumnDef[ImagingModeRowWithResult].WithTableMeta[TableMeta]
+  private val ColDef =
+    ColumnDef[ImagingModeRowWithResult].WithTableMeta[TableMeta].WithColumnFilters
 
   private val InstrumentColumnId: ColumnId  = ColumnId("instrument")
   private val TimeColumnId: ColumnId        = ColumnId("time")
@@ -160,8 +163,11 @@ object ImagingModesTable extends ModesTableCommon:
   private def column[V](
     id:       ColumnId,
     accessor: ImagingModeRowWithResult => V
-  ): ColumnDef.Single.WithTableMeta[ImagingModeRowWithResult, V, TableMeta] =
+  ): ColDef.TypeFor[V] =
     ColDef(id, accessor, columnNames.getOrElse(id, id.value))
+
+  private def formatFov(fov: Angle): String =
+    f"${Angle.arcseconds.get(fov)}%.0f\""
 
   private def columns(units: WavelengthUnits) =
     given Display[BoundedInterval[Wavelength]] = wavelengthIntervalDisplay(units)
@@ -174,7 +180,8 @@ object ImagingModesTable extends ModesTableCommon:
       column(InstrumentColumnId, row => row.entry.instrumentConfig.instrumentLabel)
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
-        .sortable,
+        .sortable
+        .withFilterMethod(selectFilter[String](identity)),
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
@@ -194,11 +201,13 @@ object ImagingModesTable extends ModesTableCommon:
       column(FilterColumnId, row => ImagingModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.filterStr)
         .withColumnSize(FixedSize(69.toPx))
-        .sortableBy(_.filterStr),
+        .sortableBy(_.filterStr)
+        .withFilterMethod(selectFilter(_.filterStr)),
       column(FilterTypeColumnId, row => ImagingModeRow.filter.get(row.entry))
         .withCell(_.value.filterTypeStr)
         .withColumnSize(FixedSize(85.toPx))
-        .sortableBy(_.filterTypeStr),
+        .sortableBy(_.filterTypeStr)
+        .withFilterMethod(selectFilter(_.filterTypeStr)),
       column(LambdaColumnId, row => ImagingModeRow.filter.get(row.entry).wavelength)
         .withHeader(s"λ ${units.symbol}")
         .withCell(_.value.fold("-")(_.shortName))
@@ -216,11 +225,10 @@ object ImagingModesTable extends ModesTableCommon:
         .withColumnSize(FixedSize(100.toPx))
         .sortableBy(_._2),
       column(FovColumnId, _.entry.fov)
-        .withCell: cell =>
-          val arcSeconds = Angle.arcseconds.get(cell.value)
-          f"$arcSeconds%.0f\""
+        .withCell(cell => formatFov(cell.value))
         .withColumnSize(FixedSize(75.toPx))
         .sortable
+        .withFilterMethod(selectFilter(formatFov))
     )
 
   private val component = ScalaFnComponent[ImagingModesTable]: props =>
@@ -309,20 +317,23 @@ object ImagingModesTable extends ModesTableCommon:
                                 rows,
                                 getRowId = (row, _, _) => row.rowId,
                                 enableSorting = true,
+                                enableColumnFilters = true,
+                                enableFacetedUniqueValues = true,
                                 meta = TableMeta(itcProgress.get)
                               ),
                               TableStore(props.userId, TableId.ImagingModes)
                             )
+      _                <- useResetHiddenFilters(table, props.showFilters.get.value)
       // We need to have an indicator of whether we need to scrollTo the selectedIndex as
       // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"
       // as the index change, and it would use the old index so it would scroll to the wrong location.
       // By having it as state with the following `useEffectWithDepsBy`, the scrollTo effect will run
       // in the following "hook cycle" and get the proper index.
       scrollTo         <- useStateView(ScrollTo.Scroll)
-      _                <- useEffectWithDeps(table.getState().sorting)(_ => scrollTo.set(ScrollTo.Scroll))
-      sortedRows       <- useMemo((rows, table.getState().sorting))(_ =>
-                            table.getSortedRowModel().rows.map(_.original).toList
-                          )
+      _                <- useEffectWithDeps((table.getState().sorting, table.getState().columnFilters)): _ =>
+                            scrollTo.set(ScrollTo.Scroll)
+      sortedRows       <- useMemo((rows, table.getState().sorting, table.getState().columnFilters)): _ =>
+                            table.getRowModel().rows.map(_.original).toList
       // Use selected target for ITC calculations if specified, otherwise use full asterism
       effectiveTargets <- useMemo(props.targets.toOption, props.targetView.get):
                             (targets, selectedTarget) =>
@@ -424,7 +435,8 @@ object ImagingModesTable extends ModesTableCommon:
           <.div(
             ExploreStyles.ModesTableInfo,
             errlabel.toTagMod,
-            targetSelector.toTagMod
+            targetSelector.toTagMod,
+            filterToggleButton(props.showFilters)
           )
         ),
         <.div(
@@ -448,6 +460,8 @@ object ImagingModesTable extends ModesTableCommon:
               ),
             onChange = tableOnChangeHandler(visibleRows, atTop),
             virtualizerRef = virtualizerRef,
+            columnFilterRenderer =
+              if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
             emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
           ),
           scrollUpButton(
