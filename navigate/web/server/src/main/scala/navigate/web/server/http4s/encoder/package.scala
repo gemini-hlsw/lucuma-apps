@@ -116,7 +116,7 @@ package object encoder {
       )
     case ShutterMode.Tracking(aperture) =>
       Json.obj(
-        "mode"     -> ShutterMode.FullyOpen.tag.toScreamingSnakeCase.asJson,
+        "mode"     -> ShutterMode.TrackingTag.toScreamingSnakeCase.asJson,
         "aperture" -> aperture.asJson
       )
   }
