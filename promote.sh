@@ -50,6 +50,12 @@ if ! [[ " ${VALID_ENVS[*]} " =~ " ${SOURCE_ENV} " ]] || ! [[ " ${VALID_ENVS[*]} 
   exit 1
 fi
 
+# GitHub auth: prefer an explicit GPP_GITHUB_TOKEN, otherwise borrow the credential `gh` already
+# holds. Nothing to export by hand and nothing to expire in a drawer.
+if [ -z "${GPP_GITHUB_TOKEN:-}" ]; then
+  GPP_GITHUB_TOKEN=$(gh auth token 2>/dev/null || true)
+fi
+
 # Check environment variables
 echo "##### Environment Variables Status"
 echo "GPP_SLACK_WEBHOOK_URL: $([ -n "$GPP_SLACK_WEBHOOK_URL" ] && echo "✓ Set" || echo "✗ Not set")"
@@ -57,7 +63,7 @@ echo "GPP_SLACK_CHANNEL: $([ -n "$GPP_SLACK_CHANNEL" ] && echo "✓ Set ($GPP_SL
 if [ -n "$GPP_GITHUB_TOKEN" ]; then
     echo "GPP_GITHUB_TOKEN: ✓ Set"
   else
-    echo "GPP_GITHUB_TOKEN:  ✗ Not set (This is necessary for recording deployments)"
+    echo "GPP_GITHUB_TOKEN:  ✗ Not set, and \`gh auth token\` gave nothing. Run \`gh auth login\`."
     exit 1
 fi
 echo
