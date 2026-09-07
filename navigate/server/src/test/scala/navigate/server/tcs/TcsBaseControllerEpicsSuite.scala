@@ -1336,8 +1336,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.ecs.update(_ =>
                      TestEcsEpicsSystem.State(
                        TestChannel.State.of(0),
-                       TestChannel.State.of(testTelState.enclosure.eastVentGateOpen.value.toDouble / 100.0),
-                       TestChannel.State.of(testTelState.enclosure.westVentGateOpen.value.toDouble / 100.0)
+                       TestChannel.State.of(testTelState.enclosure.eastVentGateOpen.value.toDouble),
+                       TestChannel.State.of(testTelState.enclosure.westVentGateOpen.value.toDouble)
                      )
                    )
       s         <- ctr.getTelescopeState
