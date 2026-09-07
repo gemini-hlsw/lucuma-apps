@@ -4004,11 +4004,15 @@ $help-title-height: 40px;
   flex-grow: 0;
   overflow: hidden;
   justify-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .explore-modes-table-title {
   grid-area: table-header;
   display: flex;
+  align-items: center;
   gap: 0.5em;
   justify-content: space-between;
 }

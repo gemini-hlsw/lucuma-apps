@@ -45,6 +45,8 @@ import lucuma.react.fa.IconSize
 import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.HTMLTableVirtualizer
 import lucuma.react.table.HeaderContext
 import lucuma.typed.tanstackVirtualCore as rawVirtual
@@ -167,8 +169,9 @@ trait ModesTableCommon:
       severity =
         if showFilters.get.value then Button.Severity.Primary else Button.Severity.Secondary,
       onClick = showFilters.mod(_.flip),
-      tooltip = "Toggle column filters"
-    ).compact
+      tooltip = "Filters on/off",
+      tooltipOptions = TooltipOptions(position = Tooltip.Position.Bottom)
+    ).tiny.compact
 
   def tableOnChangeHandler(
     visibleRows: View[Option[Range.Inclusive]],
