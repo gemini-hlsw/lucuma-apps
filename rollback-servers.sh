@@ -29,8 +29,14 @@ if ! [[ " ${VALID_ENVS[*]} " =~ " ${ENV} " ]]; then
   exit 1
 fi
 
+# GitHub auth: prefer an explicit GPP_GITHUB_TOKEN, otherwise borrow the credential `gh` already
+# holds. Nothing to export by hand and nothing to expire in a drawer.
+if [ -z "${GPP_GITHUB_TOKEN:-}" ]; then
+  GPP_GITHUB_TOKEN=$(gh auth token 2>/dev/null || true)
+fi
+
 if [ -z "$GPP_GITHUB_TOKEN" ]; then
-  echo "Error: GPP_GITHUB_TOKEN must be set"
+  echo "Error: GPP_GITHUB_TOKEN is not set and \`gh auth token\` gave nothing. Run \`gh auth login\`."
   exit 1
 fi
 
@@ -175,35 +181,34 @@ send_slack_notification() {
 
 echo "Rolling back ${docker_systems[*]} in $ENV to commit $SHA"
 
+# Two phases. Resolving every system before touching anything means a missing or incomplete
+# deployment record aborts with nothing changed, rather than leaving dev on a mix of versions
+# that was never tested together.
+
+declare -A resolved_shas
+
+echo
+echo "##### Resolving deployments"
+
 for system in "${docker_systems[@]}"; do
-  echo "==> Processing $system"
-
   repo_name=${repo["$system"]}
-  base_name="${image_name["$system"]}-${ENV}"
 
+  echo "==> $system"
   echo "  Fetching GitHub deployment for ref=$SHA ..."
-  if gh_output=$(curl "${gh_curl_opts[@]}" "https://api.github.com/repos/$repo_name/deployments?ref=${SHA}&environment=${deploy_env}&task=deploy:${system}&per_page=1"); then
-    gh_ok=true
-  else
-    gh_ok=false
-  fi
-
-  if [ "$DEBUG" = true ]; then echo "  *** GITHUB RESPONSE: $gh_output"; fi
-
-  if [ "$gh_ok" = false ]; then
+  if ! gh_output=$(curl "${gh_curl_opts[@]}" "https://api.github.com/repos/$repo_name/deployments?ref=${SHA}&environment=${deploy_env}&task=deploy:${system}&per_page=1"); then
     echo "  ! Failed to query GitHub for deployment of $system at $SHA"
     exit 1
   fi
 
-  # Extract docker_image_shas payload as compact JSON
+  if [ "$DEBUG" = true ]; then echo "  *** GITHUB RESPONSE: $gh_output"; fi
+
   docker_shas_json=$(echo "$gh_output" | jq -c '.[0].payload.docker_image_shas // empty' || true)
   if [ -z "$docker_shas_json" ]; then
     echo "  ! No docker_image_shas found in deployment payload for $system@$SHA"
     exit 1
   fi
 
-  echo "  Found docker image SHAs payload: $docker_shas_json"
-
+  # Check every process type up front, so the apply phase cannot fail on a missing entry.
   IFS=' ' read -r -a proc_types <<< "${process_types["$system"]}"
   for proc in "${proc_types[@]}"; do
     docker_image_sha=$(echo "$docker_shas_json" | jq -r --arg p "$proc" '.[$p] // "none"')
@@ -211,6 +216,25 @@ for system in "${docker_systems[@]}"; do
       echo "  ! No docker image SHA for process '$proc' in payload - cannot proceed."
       exit 1
     fi
+    echo "  $proc -> $docker_image_sha"
+  done
+
+  resolved_shas["$system"]=$docker_shas_json
+done
+
+echo
+echo "##### Applying"
+
+for system in "${docker_systems[@]}"; do
+  echo "==> $system"
+
+  repo_name=${repo["$system"]}
+  base_name="${image_name["$system"]}-${ENV}"
+  docker_shas_json=${resolved_shas["$system"]}
+
+  IFS=' ' read -r -a proc_types <<< "${process_types["$system"]}"
+  for proc in "${proc_types[@]}"; do
+    docker_image_sha=$(echo "$docker_shas_json" | jq -r --arg p "$proc" '.[$p]')
 
     echo "  Deploying ${base_name}/${proc} -> $docker_image_sha"
     body=$(printf '{"updates":[{"type":"%s","docker_image":"%s"}]}' "$proc" "$docker_image_sha")
@@ -225,6 +249,7 @@ for system in "${docker_systems[@]}"; do
 
     if [ "$heroku_ok" = false ]; then
       echo "  ! Error deploying ${base_name}/${proc} to Heroku: $heroku_out"
+      echo "  ! STOPPING. Systems already rolled back may differ from those not yet processed."
       exit 1
     else
       echo "  ✓ Deployed ${base_name}/${proc}"
@@ -253,5 +278,3 @@ for system in "${docker_systems[@]}"; do
 
   echo
 done
-
-echo "Rollback complete."
