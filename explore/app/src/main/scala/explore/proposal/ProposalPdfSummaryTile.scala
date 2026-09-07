@@ -39,11 +39,10 @@ import lucuma.ui.table.*
 import scala.concurrent.duration.*
 
 final case class ProposalPdfSummaryTile(
-  programId:         Program.Id,
-  authToken:         NonEmptyString,
-  attachments:       View[AttachmentList],
-  readOnly:          Boolean,
-  hasProposalErrors: Boolean
+  programId:   Program.Id,
+  authToken:   NonEmptyString,
+  attachments: View[AttachmentList],
+  readOnly:    Boolean
 ) extends Tile[ProposalPdfSummaryTile](
       id = ProposalTabTileIds.PdfSummaryId.id,
       title = "PDF Summary",
@@ -163,20 +162,24 @@ object ProposalPdfSummaryTile
                       )
           yield ()
 
+        // Proposal errors do not gate this: whether a proposal can be rendered is the ODB's
+        // call, and it answers with a toast.
         val tooltip =
           if (request.get.isDefined) "Generating..."
-          else if (props.hasProposalErrors) "Fix proposal errors first"
           else "Regenerate the PDF summary"
 
         val title =
-          Button(
-            severity = Button.Severity.Secondary,
-            icon = Icons.Gears,
-            loading = request.get.isDefined,
-            disabled = request.get.isDefined || props.hasProposalErrors,
-            tooltip = tooltip,
-            onClick = regenerate.runAsync
-          ).tiny.compact.unless(props.readOnly)
+          // In a span so the button doesn't take up the full width of the title bar.
+          <.span(
+            Button(
+              severity = Button.Severity.Secondary,
+              icon = Icons.Gears,
+              loading = request.get.isDefined,
+              disabled = request.get.isDefined,
+              tooltip = tooltip,
+              onClick = regenerate.runAsync
+            ).tiny.compact
+          ).unless(props.readOnly)
 
         val timeoutMessage = "Still no PDF summary. Try again."
 

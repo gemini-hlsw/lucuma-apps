@@ -457,8 +457,7 @@ object ProposalEditor
                 props.programId,
                 token,
                 props.attachments,
-                props.proposalOrUserIsReadonly,
-                props.errors.exists(_.nonEmpty)
+                props.proposalOrUserIsReadonly
               )
             )
 
