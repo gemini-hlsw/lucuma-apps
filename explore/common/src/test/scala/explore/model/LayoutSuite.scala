@@ -173,6 +173,33 @@ class LayoutSuite extends FunSuite {
     assertEquals(mergedLayout, expectedObservationMdLayout)
   }
 
+  test("A tile missing from the stored layout is placed below its stored predecessors") {
+    val default  = Layout(
+      List[LayoutItem](
+        LayoutItem(i = "A", x = 0, y = 0, w = 12, h = 10),
+        LayoutItem(i = "B", x = 0, y = 10, w = 12, h = 8),
+        LayoutItem(i = "New", x = 0, y = 18, w = 12, h = 5),
+        LayoutItem(i = "C", x = 0, y = 23, w = 12, h = 4)
+      )
+    )
+    // The user's tiles grew, so B ends well past New's default position.
+    val stored   = Layout(
+      List[LayoutItem](
+        LayoutItem(i = "A", x = 0, y = 0, w = 12, h = 20),
+        LayoutItem(i = "B", x = 0, y = 20, w = 12, h = 12),
+        LayoutItem(i = "C", x = 0, y = 32, w = 12, h = 4)
+      )
+    )
+    val merged   = mergeLayouts(default, stored)
+    val newItemY = merged.asList.find(_.i == "New").map(_.y)
+    assertEquals(newItemY, Some(32))
+  }
+
+  test("A tile missing from the stored layout keeps its default position when that is lower") {
+    val merged = mergeLayouts(observationMdLayout, dbObservationMdLayout)
+    assertEquals(merged.asList.find(_.i == "Z").map(_.y), Some(15))
+  }
+
   test("SectionLayoutsMaps merge correctly") {
     val mergedMap = mergeSectionLayoutsMaps(originalMap, dbMap)
     assertEquals(mergedMap, expectedMap)

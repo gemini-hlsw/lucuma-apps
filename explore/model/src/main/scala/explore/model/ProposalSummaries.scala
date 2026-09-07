@@ -12,8 +12,8 @@ import lucuma.core.util.Timestamp
 
 /**
  * The Proposal Summaries among a program's attachments and the bookkeeping for a Regenerate
- * request. Rendering is asynchronous with no failure signal, so a request is considered done
- * only when every summary that existed when it was made has been replaced by a newer one.
+ * request. Rendering is asynchronous with no failure signal, so a request is considered done only
+ * when every summary that existed when it was made has been replaced by a newer one.
  */
 object ProposalSummaries:
   def of(attachments: AttachmentList): List[Attachment] =

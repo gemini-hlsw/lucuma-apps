@@ -132,9 +132,7 @@ object ProposalPdfSummaryTile
                       import ctx.given
                       req
                         .filterNot(_.anyPending(summaries))
-                        .fold(Callback.empty)(_ =>
-                          (request.set(none).toAsync *> timeout.cancel).runAsync
-                        )
+                        .fold(Callback.empty)(_ => (request.set(none).toAsync *> timeout.cancel).runAsync)
         table    <- useReactTable(
                       TableOptions(
                         cols,

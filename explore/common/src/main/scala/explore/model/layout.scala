@@ -162,11 +162,24 @@ object layout {
   // of required LayoutItems since it originates with the DefaultLayout.
   // So, any extra LayoutItems from the db are ignored.
   def mergeLayouts(current: Layout, fromDb: Layout): Layout =
+    val stored = fromDb.asList
+
+    // A tile the stored layout does not know keeps its default order: it goes below every stored
+    // tile that precedes it by default, wherever the user left those.
+    def placeNewItem(item: LayoutItem): LayoutItem =
+      val predecessorsBottom = current.asList
+        .filter(_.y < item.y)
+        .flatMap(p => stored.find(_.i === p.i))
+        .map(s => s.y + s.h)
+        .maxOption
+        .getOrElse(item.y)
+      item.copy(y = math.max(item.y, predecessorsBottom))
+
     val list = current.asList.foldLeft(List.empty[LayoutItem]) { (acc, currentItem) =>
-      fromDb.asList
+      stored
         .find(_.i === currentItem.i)
         .map(dbItem => mergeLayoutItems(currentItem, dbItem))
-        .getOrElse(currentItem) :: acc
+        .getOrElse(placeNewItem(currentItem)) :: acc
     }
     Layout(list.reverse)
 
