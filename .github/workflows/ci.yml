@@ -103,8 +103,8 @@ jobs:
         if: matrix.project == 'rootJS'
         run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' Test/scalaJSLinkerResult
 
-      - name: Test
-        run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' test
+      - name: Test affected projects
+        run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' lucumaTestAffected
 
   publish:
     name: Publish Artifacts
