@@ -126,7 +126,8 @@ trait ObsAttachmentUtils extends AttachmentUtils:
                           None,
                           false,
                           f.size.toLong,
-                          Timestamp.unsafeFromInstantTruncated(now)
+                          Timestamp.unsafeFromInstantTruncated(now),
+                          None
                         )
                       )
                     )).toAsync

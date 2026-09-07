@@ -82,6 +82,8 @@ object reusability:
   given Reusability[BlindOffset]            = Reusability.byEq
   given [V: Eq]: Reusability[Perishable[V]] = Reusability.byEq
 
+  given Reusability[ProposalSummaries.Request] = Reusability.byEq
+
   /**
    */
   given Reusability[PosAngleConstraint] = Reusability.byEq

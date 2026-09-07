@@ -145,7 +145,8 @@ class ProposalErrorsSuite extends FunSuite:
       description = none,
       checked = false,
       fileSize = 1L,
-      updatedAt = Now
+      updatedAt = Now,
+      proposalSummary = none
     )
 
   private val bothAttachments: AttachmentList =

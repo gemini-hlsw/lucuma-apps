@@ -4254,6 +4254,13 @@ div.spectroscopy-table-emptymessage {
     }
   }
 
+  .explore-proposal-pdf-summary-tile {
+    .explore-proposal-pdf-summary-empty {
+      padding: 1rem;
+      color: var(--text-color-secondary);
+    }
+  }
+
   .explore-proposal-errors-tile {
     padding: 1rem;
 
