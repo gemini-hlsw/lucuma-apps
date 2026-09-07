@@ -26,6 +26,7 @@ import lucuma.core.model.User
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.react.gridlayout.*
+import lucuma.ui.hooks.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -201,14 +202,8 @@ object TileController:
         // Auto heights are capped to the viewport, and a measurement can land while the window is
         // briefly short (startup, restore). Content re-measures don't fire on a window resize, so
         // the cap is re-applied here when the viewport height changes.
-        viewportHeight <- useState(dom.window.innerHeight.toInt)
-        _              <- useEffectOnMount:
-                            CallbackTo:
-                              val listener: js.Function1[dom.Event, Unit] =
-                                _ => viewportHeight.setState(dom.window.innerHeight.toInt).runNow()
-                              dom.window.addEventListener("resize", listener)
-                              Callback(dom.window.removeEventListener("resize", listener))
-        _              <- useEffectWithDeps(viewportHeight.value): vp =>
+        viewportHeight <- useViewportHeight
+        _              <- useEffectWithDeps(viewportHeight): vp =>
                             currentLayout
                               .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.get, vp, _))
                               .unless_(gesturing.get)
