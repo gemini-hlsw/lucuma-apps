@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Roll back SSO, ITC and ODB in a given environment to a given commit SHA.
+# Roll back SSO, ITC, ODB and RESOURCE in a given environment to a given commit SHA.
 # If SHA is not provided, list SHAs appearing in the last 10 deployment records for the environment.
 # Usage: rollback-servers.sh <env> [<commit-sha>] [--debug]
 
@@ -72,7 +72,11 @@ repo["ODB"]="gemini-hlsw/lucuma-odb"
 image_name["ODB"]="lucuma-postgres-odb"
 process_types["ODB"]="web calibration obscalc"
 
-docker_systems=("SSO" "ITC" "ODB")
+repo["RESOURCE"]="gemini-hlsw/lucuma-odb"
+image_name["RESOURCE"]="lucuma-resource"
+process_types["RESOURCE"]="web"
+
+docker_systems=("SSO" "ITC" "ODB" "RESOURCE")
 deploy_env=$(map_github_deploy_env "$ENV")
 
 # GitHub curl base options (re-usable)
@@ -169,7 +173,7 @@ send_slack_notification() {
   fi
 }
 
-echo "Rolling back SSO/ITC/ODB in $ENV to commit $SHA"
+echo "Rolling back ${docker_systems[*]} in $ENV to commit $SHA"
 
 for system in "${docker_systems[@]}"; do
   echo "==> Processing $system"
