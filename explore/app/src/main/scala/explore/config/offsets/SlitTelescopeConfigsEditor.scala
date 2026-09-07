@@ -19,13 +19,21 @@ import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.ui.syntax.all.given
 
+/**
+ * Editor for slit-based telescope offset configurations.
+ *
+ * `showCustomization` hides the revert-to-default addon for calibration observations: their
+ * defaults are managed by the ODB, and reverting would replace their (correct) explicit offsets
+ * with the science pattern.
+ */
 final case class SlitTelescopeConfigsEditor[P <: SlitOffsetPreset](
-  explicitValue:    View[Option[SlitTelescopeConfigs]],
-  defaultValue:     SlitTelescopeConfigs,
-  defaultForPreset: P => SlitTelescopeConfigs,
-  helpId:           NonEmptyString,
-  presetsReadonly:  Boolean, // selecting a preset
-  editingReadonly:  Boolean  // editing the individual offsets.
+  explicitValue:     View[Option[SlitTelescopeConfigs]],
+  defaultValue:      SlitTelescopeConfigs,
+  defaultForPreset:  P => SlitTelescopeConfigs,
+  helpId:            NonEmptyString,
+  presetsReadonly:   Boolean, // selecting a preset
+  editingReadonly:   Boolean, // editing the individual offsets.
+  showCustomization: Boolean = true
 )(using val enumerated: Enumerated[P], val display: Display[P])
     extends ReactFnProps(SlitTelescopeConfigsEditor.component)
 
@@ -70,7 +78,7 @@ object SlitTelescopeConfigsEditor:
           onSelect =
             (p: Option[P]) => p.foldMap(preset => value.set(props.defaultForPreset(preset))),
           disabled = props.presetsReadonly,
-          showRevert = value.get =!= props.defaultValue,
+          showRevert = props.showCustomization && value.get =!= props.defaultValue,
           onRevert = props.explicitValue.set(none)
         ),
         alongSlitView.map: alongSlitTelescopeConfigs =>

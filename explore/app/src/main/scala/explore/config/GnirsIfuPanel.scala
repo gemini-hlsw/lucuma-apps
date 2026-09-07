@@ -134,7 +134,8 @@ case class GnirsIfuPanel(
       defaultConfigs = gnirs.defaultIfuTelescopeConfigs(fpu),
       helpId = "configuration/ifu-spatial-offsets.md".refined,
       presetsReadonly = !permissions.isFullEdit,
-      editingReadonly = !permissions.isFullEdit
+      editingReadonly = !permissions.isFullEdit,
+      showCustomization = calibrationRole.isEmpty
     )
 
 object GnirsIfuPanel extends GnirsSpectroscopyPanelBuilder[GnirsFpuIfu, GnirsIfuPanel]

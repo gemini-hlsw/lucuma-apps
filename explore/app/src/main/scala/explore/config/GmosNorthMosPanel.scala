@@ -190,7 +190,8 @@ case class GmosNorthMosPanel(
       defaultConfigs = ObservingMode.GmosNorthMos.defaultTelescopeConfigs.get(observingMode.get),
       helpId = "configuration/mos-spatial-offsets.md".refined,
       presetsReadonly = disabled,
-      editingReadonly = disabled
+      editingReadonly = disabled,
+      showCustomization = calibrationRole.isEmpty
     )
 
   private def acquisitionTypeView: View[GmosMosAcquisitionType] =

@@ -152,7 +152,8 @@ object Flamingos2ConfigFields:
             defaultForPreset = props.defaultForPreset,
             helpId = props.offsetsHelpId,
             presetsReadonly = props.presetsReadonly,
-            editingReadonly = props.disableSimpleEdit
+            editingReadonly = props.disableSimpleEdit,
+            showCustomization = props.calibrationRole.isEmpty
           )
         )
       )

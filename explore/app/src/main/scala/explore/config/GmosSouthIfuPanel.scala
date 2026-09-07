@@ -152,7 +152,8 @@ case class GmosSouthIfuPanel(
       helpId = "configuration/mos-spatial-offsets.md".refined,
       defaultConfigs = Mode.defaultTelescopeConfigs.get(observingMode.get),
       presetsReadonly = disabled,
-      editingReadonly = disabled
+      editingReadonly = disabled,
+      showCustomization = calibrationRole.isEmpty
     )
 
   def maskControl: VdomNode = EmptyVdom

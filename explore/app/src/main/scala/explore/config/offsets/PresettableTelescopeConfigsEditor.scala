@@ -13,13 +13,21 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 
+/**
+ * Editor for non-slit telescope offset configurations, selectable from a set of named presets.
+ *
+ * `showCustomization` hides the revert-to-default addon for calibration observations: their
+ * defaults are managed by the ODB, and reverting would replace their (correct) explicit offsets
+ * with the science pattern.
+ */
 final case class PresettableTelescopeConfigsEditor(
-  telescopeConfigs: View[NonEmptyList[TelescopeConfig]],
-  presets:          NonEmptyList[(String, NonEmptyList[TelescopeConfig])],
-  defaultConfigs:   NonEmptyList[TelescopeConfig],
-  helpId:           NonEmptyString,
-  presetsReadonly:  Boolean, // selecting a preset
-  editingReadonly:  Boolean  // editing the individual offsets.
+  telescopeConfigs:  View[NonEmptyList[TelescopeConfig]],
+  presets:           NonEmptyList[(String, NonEmptyList[TelescopeConfig])],
+  defaultConfigs:    NonEmptyList[TelescopeConfig],
+  helpId:            NonEmptyString,
+  presetsReadonly:   Boolean, // selecting a preset
+  editingReadonly:   Boolean, // editing the individual offsets.
+  showCustomization: Boolean = true
 ) extends ReactFnProps(PresettableTelescopeConfigsEditor)
 
 object PresettableTelescopeConfigsEditor
@@ -45,7 +53,8 @@ object PresettableTelescopeConfigsEditor
           activePreset = activePreset,
           onSelect = onSelect,
           disabled = props.presetsReadonly,
-          showRevert = props.telescopeConfigs.get =!= props.defaultConfigs,
+          showRevert =
+            props.showCustomization && props.telescopeConfigs.get =!= props.defaultConfigs,
           onRevert = props.telescopeConfigs.set(props.defaultConfigs)
         ),
         TelescopeConfigsEditor(

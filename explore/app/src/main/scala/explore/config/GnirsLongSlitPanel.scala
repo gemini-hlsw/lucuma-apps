@@ -151,7 +151,8 @@ case class GnirsLongSlitPanel(
         gnirs.defaultSlitTelescopeConfigs(_, prism, camera, GnirsGratingWavelength(wavelength)),
       helpId = "configuration/slit-spatial-offsets.md".refined,
       presetsReadonly = !permissions.isFullEdit,
-      editingReadonly = !permissions.isFullEdit
+      editingReadonly = !permissions.isFullEdit,
+      showCustomization = calibrationRole.isEmpty
     )
 
 object GnirsLongSlitPanel extends GnirsSpectroscopyPanelBuilder[GnirsFpuSlit, GnirsLongSlitPanel]
