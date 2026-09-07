@@ -466,10 +466,19 @@ object ObserveEngine {
           Event.modifyState[F]:
             stepGenOpt
               .map: stepGen =>
-                executeEngine
-                  .startLoadedStep(obsId)
-                  .as:
-                    SeqEvent.NewStepLoaded(obsId, stepGen.sequenceType, stepGen.atomId, stepGen.id)
+                // The observer explicitly requested this step at the "proceed to science?"
+                // prompt, so a breakpoint on it must not stop the sequence, the same as a Run
+                // click would.
+                modifySequenceStatus(obsId)(_.withStarting(true)) *>
+                  executeEngine
+                    .startLoadedStep(obsId)
+                    .as:
+                      SeqEvent.NewStepLoaded(
+                        obsId,
+                        stepGen.sequenceType,
+                        stepGen.atomId,
+                        stepGen.id
+                      )
               .getOrElse:
                 EngineHandle
                   .fromSingleEvent(Event.sequenceComplete(obsId))
