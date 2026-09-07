@@ -4259,6 +4259,15 @@ div.spectroscopy-table-emptymessage {
       padding: 1rem;
       color: var(--text-color-secondary);
     }
+
+    .explore-proposal-pdf-summary-partner {
+      display: flex;
+      align-items: center;
+
+      img.partner-split-flag {
+        margin-left: 0;
+      }
+    }
   }
 
   .explore-proposal-errors-tile {

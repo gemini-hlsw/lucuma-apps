@@ -14,6 +14,7 @@ import explore.components.Tile
 import explore.components.TileComponent
 import explore.components.TileContents
 import explore.components.ui.ExploreStyles
+import explore.components.ui.PartnerFlags
 import explore.model.AppContext
 import explore.model.Attachment
 import explore.model.AttachmentList
@@ -23,6 +24,7 @@ import explore.model.reusability.given
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.Partner
 import lucuma.core.model.Program
 import lucuma.core.util.Timestamp
 import lucuma.core.util.time.format.GppDateFormatter
@@ -70,6 +72,16 @@ object ProposalPdfSummaryTile
 
       val tableLabelButtonClasses = ProposalAttachmentsTable.tableLabelButtonClasses
 
+      def partnerCell(partner: Partner): VdomNode =
+        <.span(ExploreStyles.ProposalPdfSummaryPartner)(
+          <.img(
+            ^.src := PartnerFlags.smallFlag(partner),
+            ^.alt := s"${partner.shortName} Flag",
+            ExploreStyles.PartnerSplitFlag
+          ),
+          partner.shortName
+        )
+
       def linkButtons(att: Attachment, urlMap: UrlMap): VdomNode =
         urlMap
           .get(att.toMapKey)
@@ -87,7 +99,7 @@ object ProposalPdfSummaryTile
 
       val columns: List[ColumnDef.WithTableMeta[Attachment, ?, TableMeta]] = List(
         ColDef(PartnerColumnId, _.summaryPartner, "Partner")
-          .withCell(_.value.foldMap(_.shortName)),
+          .withCell(_.value.map(partnerCell)),
         ColDef(GeneratedColumnId, identity, "Generated at")
           .withCell: cell =>
             cell.table.options.meta.map: meta =>
