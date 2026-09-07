@@ -47,6 +47,18 @@ object ProposalQueriesGQL:
     """
 
   @GraphQL
+  trait RegenerateProposalSummaries extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation($$input: RegenerateProposalSummariesInput!) {
+        regenerateProposalSummaries(input: $$input) {
+          program {
+            id
+          }
+        }
+      }
+    """
+
+  @GraphQL
   trait AddProgramUser extends GraphQLOperation[ObservationDB]:
     val document = gql"""
       mutation($$input: AddProgramUserInput!) {
