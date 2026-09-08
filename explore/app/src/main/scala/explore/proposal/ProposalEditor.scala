@@ -476,8 +476,8 @@ object ProposalEditor
                 usersTile.some,
                 abstractTile.some,
                 attachmentsTile.some,
-                pdfSummaryTile,
-                errorsTile
+                errorsTile,
+                pdfSummaryTile
               ).flattenOption,
               GridLayoutSection.ProposalLayout,
               storeLayout = true

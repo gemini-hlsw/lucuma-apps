@@ -2873,6 +2873,11 @@ svg.fa-check.explore-success-icon {
 
 .partner-flag-item {
   display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 img.partner-split-flag {
@@ -2880,6 +2885,11 @@ img.partner-split-flag {
   width: 32px;
   margin-right: 0.5em;
   margin-left: 0.5em;
+  // In a narrow flex cell the label would otherwise squeeze the flag,
+  // making flags render at different widths per row. Note `object-fit`
+  // must stay `fill`: `contain` letterboxes each flag by its own aspect
+  // ratio, which is what makes the widths differ again.
+  flex: 0 0 auto;
 }
 
 .partner-splits-editor-dialog {
