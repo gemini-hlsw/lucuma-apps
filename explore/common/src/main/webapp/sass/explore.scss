@@ -2881,14 +2881,12 @@ svg.fa-check.explore-success-icon {
 }
 
 img.partner-split-flag {
-  height: 16px;
-  width: 32px;
+  height: 18px;
+  width: 24px;
+  object-fit: contain;
   margin-right: 0.5em;
   margin-left: 0.5em;
-  // In a narrow flex cell the label would otherwise squeeze the flag,
-  // making flags render at different widths per row. Note `object-fit`
-  // must stay `fill`: `contain` letterboxes each flag by its own aspect
-  // ratio, which is what makes the widths differ again.
+  // Otherwise a long label squeezes the flag in a narrow cell.
   flex: 0 0 auto;
 }
 
