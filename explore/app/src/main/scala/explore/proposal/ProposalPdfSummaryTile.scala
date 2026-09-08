@@ -8,6 +8,7 @@ import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
+import eu.timepit.refined.types.numeric.NonNegLong
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.Tile
@@ -69,6 +70,8 @@ object ProposalPdfSummaryTile
       val ColDef = ColumnDef[Attachment].WithTableMeta[TableMeta]
 
       val PartnerColumnId   = ColumnId("partner")
+      val FileNameColumnId  = ColumnId("fileName")
+      val SizeColumnId      = ColumnId("size")
       val GeneratedColumnId = ColumnId("generated")
       val ActionsColumnId   = ColumnId("actions")
 
@@ -100,6 +103,9 @@ object ProposalPdfSummaryTile
       val columns: List[ColumnDef.WithTableMeta[Attachment, ?, TableMeta]] = List(
         ColDef(PartnerColumnId, _.summaryPartner, "Partner")
           .withCell(_.value.map(partnerCell)),
+        ColDef(FileNameColumnId, _.fileName.value, "File Name"),
+        ColDef(SizeColumnId, a => NonNegLong.from(a.fileSize).toOption, "Size")
+          .withCell(_.value.foldMap(_.toHumanReadableByteCount)),
         ColDef(GeneratedColumnId, identity, "Generated at")
           .withCell: cell =>
             cell.table.options.meta.map: meta =>
