@@ -87,9 +87,7 @@ object ProposalPdfSummaryTile
           partner.shortName
         )
 
-      // Only opening: the PDF viewer the browser opens has its own save control, and a download
-      // link cannot be offered alongside anyway, since the `download` attribute is ignored on the
-      // cross-origin URL the summary is served from.
+      // Open the default PDF viewer in the browser.
       def openButton(att: Attachment, urlMap: UrlMap): VdomNode =
         urlMap
           .get(att.toMapKey)
@@ -139,11 +137,10 @@ object ProposalPdfSummaryTile
                           _.updated(_, Pot.pending)
                         )
                       )
-                      val fetch   = added.traverse_(key =>
+                      val fetch   = added.traverse_ : key =>
                         ProposalAttachmentsTable
                           .getAttachmentUrl(key._1, client)
                           .flatMap(pot => urlMap.mod(_.updated(key, pot)).toAsync)
-                      )
                       // A new PDF landing after the timeout is the answer the banner was waiting for.
                       val settle  = timedOut.set(false).when_(added.nonEmpty)
                       (reset.toAsync *> fetch *> settle.toAsync).runAsync
@@ -152,7 +149,8 @@ object ProposalPdfSummaryTile
                       import ctx.given
                       req
                         .filterNot(_.anyPending(summaries))
-                        .fold(Callback.empty)(_ => (request.set(none).toAsync *> timeout.cancel).runAsync)
+                        .map(_ => (request.set(none).toAsync *> timeout.cancel).runAsync)
+                        .getOrEmpty
         table    <- useReactTable(
                       TableOptions(
                         cols,
