@@ -93,7 +93,7 @@ object ProposalPdfSummaryTile
           .get(att.toMapKey)
           .foldMap:
             case Pot.Ready(url) =>
-              <.a(Icons.Eye, ^.href := url, ^.target := "_blank", tableLabelButtonClasses)
+              <.a(Icons.Eye, ^.href := url, ^.target := "_blank", ^.rel := "noopener noreferrer", tableLabelButtonClasses)
                 .withTooltip("Open in a new tab")
             case Pot.Pending    => <.span(Icons.Spinner.withSpin(true))
             case Pot.Error(t)   => <.span(Icons.ExclamationTriangle).withTooltip(t.getMessage)
