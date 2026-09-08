@@ -84,18 +84,16 @@ object ProposalPdfSummaryTile
           partner.shortName
         )
 
-      def linkButtons(att: Attachment, urlMap: UrlMap): VdomNode =
+      // Only opening: the PDF viewer the browser opens has its own save control, and a download
+      // link cannot be offered alongside anyway, since the `download` attribute is ignored on the
+      // cross-origin URL the summary is served from.
+      def openButton(att: Attachment, urlMap: UrlMap): VdomNode =
         urlMap
           .get(att.toMapKey)
           .foldMap:
             case Pot.Ready(url) =>
-              React.Fragment(
-                <.a(Icons.Eye, ^.href := url, ^.target := "_blank", tableLabelButtonClasses)
-                  .withTooltip("Open in a new tab"),
-                <.a(Icons.FileArrowDown, ^.href := url, ^.download := att.fileName.value)
-                  .apply(tableLabelButtonClasses)
-                  .withTooltip("Download")
-              )
+              <.a(Icons.Eye, ^.href := url, ^.target := "_blank", tableLabelButtonClasses)
+                .withTooltip("Open in a new tab")
             case Pot.Pending    => <.span(Icons.Spinner.withSpin(true))
             case Pot.Error(t)   => <.span(Icons.ExclamationTriangle).withTooltip(t.getMessage)
 
@@ -111,7 +109,7 @@ object ProposalPdfSummaryTile
                 <.span(GppDateFormatter.format(cell.value.updatedAt.toLocalDateTime)),
         ColDef(ActionsColumnId, identity, "")
           .withCell: cell =>
-            cell.table.options.meta.map(meta => linkButtons(cell.value, meta.urlMap))
+            cell.table.options.meta.map(meta => openButton(cell.value, meta.urlMap))
       )
 
       for
