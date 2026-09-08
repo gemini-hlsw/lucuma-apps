@@ -56,6 +56,8 @@ class ProposalSummariesSuite extends FunSuite:
   private def splits(ps: Partner*): List[PartnerSplit] =
     ps.toList.map(p => PartnerSplit(p, IntPercent.unsafeFrom(100 / ps.size)))
 
+  private def zero(p: Partner): PartnerSplit = PartnerSplit(p, IntPercent.unsafeFrom(0))
+
   private val noSplits: List[PartnerSplit] = Nil
 
   test("of keeps only the summaries for the current partners, sorted by partner"):
@@ -145,3 +147,22 @@ class ProposalSummariesSuite extends FunSuite:
       att(2, AttachmentType.Summary, T2, Partner.CL.some)
     )
     assert(!req.anyPending(ProposalSummaries.of(after, splits(Partner.CL))))
+
+  test("a partner dropped to zero percent is not one the proposal requests time from"):
+    val l = list(
+      att(1, AttachmentType.Summary, T0, Partner.US.some),
+      att(2, AttachmentType.Summary, T0, Partner.CL.some)
+    )
+    // The splits editor leaves a zeroed partner in the list rather than removing it.
+    assertEquals(
+      ProposalSummaries.of(l, splits(Partner.US) :+ zero(Partner.CL)).map(_.summaryPartner),
+      List(Partner.US.some)
+    )
+
+  test("splits that are all zero call for the single partnerless summary"):
+    val l       = list(
+      att(1, AttachmentType.Summary, T0),
+      att(2, AttachmentType.Summary, T0, Partner.US.some)
+    )
+    val allZero = List(zero(Partner.US), zero(Partner.CL))
+    assertEquals(ProposalSummaries.of(l, allZero).map(_.summaryPartner), List(none))

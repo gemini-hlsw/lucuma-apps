@@ -245,6 +245,14 @@ the proposal tab. Submission produces the final set; before submission the inves
 ask for a fresh set.
 _Avoid_: generated PDF, attachment (when this specific one is meant)
 
+**Partner Split**:
+The share of time a proposal requests from one partner. A split of zero percent is a partner
+the proposal does _not_ request time from: the splits editor seeds every partner of the Call
+for Proposals at zero, so dropping a partner leaves its split behind at zero rather than
+removing it. Anything reading the splits to answer "which partners does this proposal have"
+must ignore the zeroes.
+_Avoid_: partner allocation (that is the awarded time, decided later)
+
 **Regenerate** (a Proposal Summary):
 Asking the ODB for a fresh set of Proposal Summaries before submission. Strictly on request,
 never automatic. Not possible after submission: the submitted set is final.

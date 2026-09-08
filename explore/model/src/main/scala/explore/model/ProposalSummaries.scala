@@ -18,11 +18,16 @@ import lucuma.core.util.Timestamp
 object ProposalSummaries:
 
   /**
-   * The Proposal Summaries the proposal currently calls for: one per partner it is split between,
-   * or a single partnerless one when it has no splits.
+   * The Proposal Summaries the proposal currently calls for: one per partner it requests time from,
+   * or a single partnerless one when it requests time from none.
+   *
+   * A split of zero percent is a partner the proposal does not request time from. The splits editor
+   * seeds every partner of the Call for Proposals at zero, so dropping a partner leaves its split
+   * behind at zero rather than removing it from the list.
    */
   def expectedFor(splits: List[PartnerSplit]): Set[Option[Partner]] =
-    if (splits.isEmpty) Set(none) else splits.map(_.partner.some).toSet
+    val requested = splits.filter(_.percent.value > 0).map(_.partner.some).toSet
+    if (requested.isEmpty) Set(none) else requested
 
   /**
    * The Proposal Summaries worth showing. A summary rendered for a partner the proposal no longer
