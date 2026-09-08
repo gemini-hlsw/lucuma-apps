@@ -13,6 +13,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import explore.model.AppConfig
 import explore.model.boopickle.Boopickle.*
+import explore.utils.truncateLogMessage
 import explore.utils.version
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.ui.otel.OtelSdk
@@ -84,7 +85,7 @@ trait WorkerServer[T: Pickler](using Monoid[IO[Unit]]):
   ): (LoggerFactory[IO], Tracer[IO], TracerProvider[IO]) ?=> IO[Invocation => IO[Unit]]
 
   protected def setupLoggerFactory: IO[LoggerFactory[IO]] =
-    IO.pure(ConsoleLoggerFactory.create[IO])
+    IO.pure(ConsoleLoggerFactory.create[IO].withModifiedString(truncateLogMessage))
 
   protected def mount(
     self:         DedicatedWorkerGlobalScope,

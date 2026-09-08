@@ -55,7 +55,7 @@ object ExploreMain {
 
   def setupLogger[F[_]: Sync]: F[Logger[F]] = Sync[F].delay {
     LogLevelLogger.setLevel(LogLevelLogger.Level.INFO)
-    LogLevelLogger.createForRoot[F]
+    LogLevelLogger.createForRoot[F].withModifiedString(utils.truncateLogMessage)
   }
 
   private def setupOtel(config: AppConfig)(using Logger[IO]): Resource[IO, OtelSdk.OtelResources] =
