@@ -445,10 +445,20 @@ object ProposalEditor
                     token,
                     props.attachments,
                     props.proposal.get.proposalType,
-                    props.proposalOrUserIsReadonly,
-                    props.errors.exists(_.nonEmpty)
+                    props.proposalOrUserIsReadonly
                   )
                 )
+              )
+            )
+
+          val pdfSummaryTile: Option[Tile[?]] =
+            props.authToken.map(token =>
+              ProposalPdfSummaryTile(
+                props.programId,
+                token,
+                props.attachments,
+                props.proposal.get.proposalType,
+                props.proposalOrUserIsReadonly
               )
             )
 
@@ -466,7 +476,8 @@ object ProposalEditor
                 usersTile.some,
                 abstractTile.some,
                 attachmentsTile.some,
-                errorsTile
+                errorsTile,
+                pdfSummaryTile
               ).flattenOption,
               GridLayoutSection.ProposalLayout,
               storeLayout = true

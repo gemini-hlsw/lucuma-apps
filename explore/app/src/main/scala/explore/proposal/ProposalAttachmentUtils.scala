@@ -59,7 +59,8 @@ trait ProposalAttachmentUtils extends AttachmentUtils:
                               none,
                               false,
                               f.size.toLong,
-                              Timestamp.unsafeFromInstantTruncated(now)
+                              Timestamp.unsafeFromInstantTruncated(now),
+                              none
                             )
                   )
                 ).toAsync

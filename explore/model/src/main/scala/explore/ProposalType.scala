@@ -18,6 +18,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
 import lucuma.refined.*
 import monocle.Focus
+import monocle.Getter
 import monocle.Lens
 import monocle.Optional
 import monocle.Prism
@@ -35,6 +36,14 @@ object ProposalType:
     GenPrism[ProposalType, KeckProposalType]
   val subaruProposalType: Prism[ProposalType, SubaruProposalType] =
     GenPrism[ProposalType, SubaruProposalType]
+
+  // The partner splits of any proposal type, empty for the types that cannot have them.
+  val anyPartnerSplits: Getter[ProposalType, List[PartnerSplit]] =
+    Getter[ProposalType, List[PartnerSplit]] {
+      case k: KeckProposalType   => k.partnerSplits
+      case s: SubaruProposalType => s.partnerSplits
+      case g: GeminiProposalType => GeminiProposalType.partnerSplits.getOption(g).orEmpty
+    }
 
   // Exchange proposal requesting time at Keck.
   case class KeckProposalType(minPercentTime: IntPercent, partnerSplits: List[PartnerSplit])

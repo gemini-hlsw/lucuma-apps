@@ -14,24 +14,28 @@ import io.circe.refined.given
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.Partner
 import lucuma.core.model
 import lucuma.core.util.Timestamp
 import monocle.Focus
 import monocle.Lens
 
 case class Attachment(
-  id:             Attachment.Id,
-  attachmentType: AttachmentType,
-  fileName:       NonEmptyString,
-  mask:           Option[Attachment.Mask],
-  description:    Option[NonEmptyString],
-  checked:        Boolean,
-  fileSize:       Long,
-  updatedAt:      Timestamp
+  id:              Attachment.Id,
+  attachmentType:  AttachmentType,
+  fileName:        NonEmptyString,
+  mask:            Option[Attachment.Mask],
+  description:     Option[NonEmptyString],
+  checked:         Boolean,
+  fileSize:        Long,
+  updatedAt:       Timestamp,
+  proposalSummary: Option[Attachment.ProposalSummary]
 ) derives Eq:
   def maskName: Option[NonEmptyString]   = mask.map(_.name)
   def maskInstrument: Option[Instrument] = mask.map(_.instrument)
   def displayName: NonEmptyString        = maskName.getOrElse(fileName)
+  def isProposalSummary: Boolean         = attachmentType === AttachmentType.Summary
+  def summaryPartner: Option[Partner]    = proposalSummary.flatMap(_.partner)
 
   def isForPurpose(purpose: AttachmentPurpose): Boolean        =
     attachmentType.purpose === purpose
@@ -51,9 +55,17 @@ object Attachment:
   val fileSize: Lens[Attachment, Long]                      = Focus[Attachment](_.fileSize)
   val updatedAt: Lens[Attachment, Timestamp]                = Focus[Attachment](_.updatedAt)
 
+  val proposalSummary: Lens[Attachment, Option[ProposalSummary]] =
+    Focus[Attachment](_.proposalSummary)
+
   // The design read from a MOS mask attachment's file.
   case class Mask(name: NonEmptyString, instrument: Instrument) derives Eq
   object Mask:
     given Decoder[Mask] = deriveDecoder
+
+  // How a Proposal Summary was rendered. Partner is empty for a proposal without splits.
+  case class ProposalSummary(partner: Option[Partner]) derives Eq
+  object ProposalSummary:
+    given Decoder[ProposalSummary] = deriveDecoder
 
   given Decoder[Attachment] = deriveDecoder

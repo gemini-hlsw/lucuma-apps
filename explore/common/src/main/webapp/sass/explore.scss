@@ -2873,13 +2873,22 @@ svg.fa-check.explore-success-icon {
 
 .partner-flag-item {
   display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 img.partner-split-flag {
-  height: 16px;
-  width: 32px;
+  height: 18px;
+  width: 24px;
+  object-fit: contain;
   margin-right: 0.5em;
   margin-left: 0.5em;
+
+  // Otherwise a long label squeezes the flag in a narrow cell.
+  flex: 0 0 auto;
 }
 
 .partner-splits-editor-dialog {
@@ -4250,6 +4259,22 @@ div.spectroscopy-table-emptymessage {
     .explore-tile-title {
       a {
         color: var(--site-text-color);
+      }
+    }
+  }
+
+  .explore-proposal-pdf-summary-tile {
+    .explore-proposal-pdf-summary-empty {
+      padding: 1rem;
+      color: var(--text-color-secondary);
+    }
+
+    .explore-proposal-pdf-summary-partner {
+      display: flex;
+      align-items: center;
+
+      img.partner-split-flag {
+        margin-left: 0;
       }
     }
   }

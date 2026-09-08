@@ -22,5 +22,6 @@ object AttachmentSubquery extends GraphQLSubquery.Typed[ObservationDB, Attachmen
       checked
       fileSize
       updatedAt
+      proposalSummary { partner }
     }
   """

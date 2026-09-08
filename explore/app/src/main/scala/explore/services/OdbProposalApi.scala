@@ -12,7 +12,8 @@ import lucuma.schemas.ObservationDB.Types.UpdateProposalInput
 
 trait OdbProposalApi[F[_]]:
   def openCfps(): F[List[CallForProposal]]
-  def resolveProposalReference(proposalRef: ProposalReference): F[Option[Program.Id]]
-  def createProposal(programId:             Program.Id, proposal:  Proposal): F[Unit]
-  def updateProposal(input:                 UpdateProposalInput): F[Unit]
-  def setProposalStatus(programId:          Program.Id, newStatus: ProposalStatus): F[Unit]
+  def resolveProposalReference(proposalRef:  ProposalReference): F[Option[Program.Id]]
+  def createProposal(programId:              Program.Id, proposal:  Proposal): F[Unit]
+  def updateProposal(input:                  UpdateProposalInput): F[Unit]
+  def setProposalStatus(programId:           Program.Id, newStatus: ProposalStatus): F[Unit]
+  def regenerateProposalSummaries(programId: Program.Id): F[Unit]

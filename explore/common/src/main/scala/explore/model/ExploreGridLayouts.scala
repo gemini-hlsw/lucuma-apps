@@ -499,6 +499,7 @@ object ExploreGridLayouts:
     private lazy val AbstractHeight: NonNegInt    = 8.refined
     private lazy val AttachmentsHeight: NonNegInt = 8.refined
     private lazy val ErrorsHeight: NonNegInt      = 4.refined
+    private lazy val PdfSummaryHeight: NonNegInt  = 5.refined
 
     private lazy val layoutMedium: Layout = Layout(
       List(
@@ -536,6 +537,13 @@ object ExploreGridLayouts:
           y = (DetailsHeight |+| AbstractHeight |+| AttachmentsHeight).value,
           w = DefaultWidth.value,
           h = ErrorsHeight.value
+        ),
+        LayoutItem(
+          i = ProposalTabTileIds.PdfSummaryId.id.value,
+          x = 0,
+          y = (DetailsHeight |+| AbstractHeight |+| AttachmentsHeight |+| ErrorsHeight).value,
+          w = DefaultWidth.value,
+          h = PdfSummaryHeight.value
         )
       )
     )

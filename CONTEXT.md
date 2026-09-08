@@ -235,3 +235,25 @@ observation using it whose workflow state is Defined or higher. Stricter than th
 ODB's own backing-observation rule, which accepts any active observation. See
 `docs/adr/0008-aeon-required-instruments-track-defined-observations.md`.
 _Avoid_: backing observation (that names the ODB's looser rule, not this one).
+
+### Proposal summaries
+
+**Proposal Summary**:
+The PDF the ODB renders from a proposal, one per partner the proposal applies to, each in
+that partner's layout. Stored on the program as a Summary attachment and listed in the "PDF Summary" tile of
+the proposal tab. Submission produces the final set; before submission the investigators may
+ask for a fresh set.
+_Avoid_: generated PDF, attachment (when this specific one is meant)
+
+**Partner Split**:
+The share of time a proposal requests from one partner. A split of zero percent is a partner
+the proposal does _not_ request time from: the splits editor seeds every partner of the Call
+for Proposals at zero, so dropping a partner leaves its split behind at zero rather than
+removing it. Anything reading the splits to answer "which partners does this proposal have"
+must ignore the zeroes.
+_Avoid_: partner allocation (that is the awarded time, decided later)
+
+**Regenerate** (a Proposal Summary):
+Asking the ODB for a fresh set of Proposal Summaries before submission. Strictly on request,
+never automatic. Not possible after submission: the submitted set is final.
+_Avoid_: generate (the first request is also a Regenerate), refresh, rebuild

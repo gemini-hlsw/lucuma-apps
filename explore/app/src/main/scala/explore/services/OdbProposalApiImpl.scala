@@ -16,6 +16,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.ProposalReference
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.CreateProposalInput
+import lucuma.schemas.ObservationDB.Types.RegenerateProposalSummariesInput
 import lucuma.schemas.ObservationDB.Types.SetProposalStatusInput
 import lucuma.schemas.ObservationDB.Types.UpdateProposalInput
 import queries.common.CallsQueriesGQL.*
@@ -52,5 +53,11 @@ trait OdbProposalApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
     SetProposalStatus[F]
       .execute:
         SetProposalStatusInput(programId = programId.assign, status = newStatus)
+      .raiseGraphQLErrorsOnNoData
+      .void
+
+  def regenerateProposalSummaries(programId: Program.Id): F[Unit] =
+    RegenerateProposalSummaries[F]
+      .execute(RegenerateProposalSummariesInput(programId = programId))
       .raiseGraphQLErrorsOnNoData
       .void
