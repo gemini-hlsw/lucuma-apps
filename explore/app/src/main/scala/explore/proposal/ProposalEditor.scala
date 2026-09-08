@@ -457,6 +457,7 @@ object ProposalEditor
                 props.programId,
                 token,
                 props.attachments,
+                props.proposal.get.proposalType,
                 props.proposalOrUserIsReadonly
               )
             )

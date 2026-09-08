@@ -20,6 +20,7 @@ import explore.model.Attachment
 import explore.model.AttachmentList
 import explore.model.ProposalSummaries
 import explore.model.ProposalTabTileIds
+import explore.model.ProposalType
 import explore.model.reusability.given
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -41,10 +42,11 @@ import lucuma.ui.table.*
 import scala.concurrent.duration.*
 
 final case class ProposalPdfSummaryTile(
-  programId:   Program.Id,
-  authToken:   NonEmptyString,
-  attachments: View[AttachmentList],
-  readOnly:    Boolean
+  programId:    Program.Id,
+  authToken:    NonEmptyString,
+  attachments:  View[AttachmentList],
+  proposalType: Option[ProposalType],
+  readOnly:     Boolean
 ) extends Tile[ProposalPdfSummaryTile](
       id = ProposalTabTileIds.PdfSummaryId.id,
       title = "PDF Summary",
@@ -120,7 +122,10 @@ object ProposalPdfSummaryTile
         timedOut <- useStateView(false)
         timeout  <- useSingleEffect
         cols     <- useMemo(())(_ => columns)
-        rows     <- useMemo(props.attachments.reuseByValue)(v => ProposalSummaries.of(v.get))
+        splits   <- useMemo(props.proposalType): pt =>
+                      pt.foldMap(ProposalType.anyPartnerSplits.get)
+        rows     <- useMemo((props.attachments.reuseByValue, splits)): (v, s) =>
+                      ProposalSummaries.of(v.get, s.value)
         _        <- useEffectWithDeps(rows): summaries =>
                       import ctx.given
                       val current = summaries.value.map(_.toMapKey).toSet
@@ -158,7 +163,7 @@ object ProposalPdfSummaryTile
 
         val regenerate: IO[Unit] =
           for
-            req    <- IO(ProposalSummaries.Request(props.attachments.get))
+            req    <- IO(ProposalSummaries.Request(rows.value))
             _      <- (request.set(req.some) *> timedOut.set(false)).toAsync
             result <- ctx.odbApi.regenerateProposalSummaries(props.programId).attempt
             _      <- result.fold(
