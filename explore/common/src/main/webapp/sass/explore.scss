@@ -2886,6 +2886,7 @@ img.partner-split-flag {
   object-fit: contain;
   margin-right: 0.5em;
   margin-left: 0.5em;
+
   // Otherwise a long label squeezes the flag in a narrow cell.
   flex: 0 0 auto;
 }
