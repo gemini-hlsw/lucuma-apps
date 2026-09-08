@@ -3394,6 +3394,16 @@ type Mutation {
   """
   setProgramResourceLimit(input: SetProgramResourceLimitInput!): SetProgramResourceLimitResult!
 
+  """
+  Regenerate the proposal summary PDFs for a proposal: one per partner it
+  applies to, each in that partner's style, replacing the existing SUMMARY
+  attachments once rendered.
+  Rendering is asynchronous and completion shows up as the program's SUMMARY
+  attachments.
+  Requires write access to the program (staff, or membership as PI, CoI or support).
+  """
+  regenerateProposalSummaries(input: RegenerateProposalSummariesInput!): RegenerateProposalSummariesResult!
+
   """Set the proposal status."""
   setProposalStatus(input: SetProposalStatusInput!): SetProposalStatusResult!
 
@@ -4126,6 +4136,12 @@ input ProgramPropertiesInput {
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
   activeEnd: Date
+
+  """
+  List of validation codes to treat as 'dismissed' by the workflow computation. This
+  field can only be set by staff users.
+  """
+  dismissedWarnings: [ObservationValidationCode!]
 }
 
 """ProgramNote creation and edit properties."""
@@ -4608,7 +4624,7 @@ type Queue implements GeminiProposalType {
   exchangePartner: ExchangePartner
 
   """
-  Whether this proposal should be considered for Band 3. Defaults to UNSET
+  Whether this proposal should be considered for Band 3. Defaults to CONSIDER
   on creation; must be CONSIDER or DO_NOT_CONSIDER before the proposal can
   be submitted.
   """
@@ -4934,7 +4950,7 @@ input QueueInput {
   exchangePartner: ExchangePartner
 
   """
-  Whether this proposal should be considered for Band 3. Defaults to UNSET
+  Whether this proposal should be considered for Band 3. Defaults to CONSIDER
   on creation; must be CONSIDER or DO_NOT_CONSIDER before the proposal can
   be submitted.
   """
@@ -5547,6 +5563,19 @@ input SetProposalStatusInput {
   proposalReference: ProposalReferenceLabel
   programReference: ProgramReferenceLabel
   status: ProposalStatus!
+}
+
+"""Input for the `regenerateProposalSummaries` mutation."""
+input RegenerateProposalSummariesInput {
+  programId: ProgramId!
+}
+
+"""The result of requesting proposal summary regeneration."""
+type RegenerateProposalSummariesResult {
+  """
+  The program whose summaries were queued; the rendered PDFs appear as its SUMMARY attachments.
+  """
+  program: Program!
 }
 
 """The result of setting the proposal status."""
@@ -6861,7 +6890,49 @@ type Attachment {
   checked: Boolean!
   fileSize: Long!
   updatedAt: Timestamp!
+
+  """
+  How an ODB-generated proposal summary was rendered.  Present exactly for
+  SUMMARY attachments; null for every other type.  Not settable.
+  """
+  proposalSummary: ProposalSummaryProperties
   program: Program!
+}
+
+"""Properties of an ODB-generated proposal summary PDF."""
+type ProposalSummaryProperties {
+  """
+  The partner the summary was rendered for.  Null for the single summary of a
+  proposal with no partner splits.
+  """
+  partner: Partner
+
+  """
+  The style the summary was produced in.  Recorded at generation, so it stays
+  accurate if the partner-to-style mapping changes later.
+  """
+  style: ProposalSummaryStyle!
+}
+
+"""The layouts a proposal summary PDF can be rendered in."""
+enum ProposalSummaryStyle {
+  """The default Gemini layout."""
+  GEMINI_STANDARD
+
+  """Gemini layout for dual-anonymous review: investigators omitted."""
+  GEMINI_DARP
+
+  """Gemini layout without the investigator list."""
+  GEMINI_NO_INVESTIGATORS
+
+  """Gemini layout with the investigator list moved to the end."""
+  GEMINI_INVESTIGATORS_AT_END
+
+  """The Chilean TAC layout."""
+  CHILE
+
+  """The NOIRLab dual-anonymous review layout."""
+  NOIRLAB_DARP
 }
 
 input AttachmentPropertiesInput {
@@ -11568,8 +11639,8 @@ type GmosNorthIfu {
   ifuAnalysis: GmosIfuAnalysis!
 
   """
-  Default IFU sampling: sum within one lenslet pitch (0.2 arcsec) of the field
-  centre, which encloses only the element on the target.
+  Default IFU sampling: the single element on the field centre, which is where a
+  centred target sits.
   """
   defaultIfuAnalysis: GmosIfuAnalysis!
 
@@ -11792,8 +11863,8 @@ type GmosSouthIfu {
   ifuAnalysis: GmosIfuAnalysis!
 
   """
-  Default IFU sampling: sum within one lenslet pitch (0.2 arcsec) of the field
-  centre, which encloses only the element on the target.
+  Default IFU sampling: the single element on the field centre, which is where a
+  centred target sits.
   """
   defaultIfuAnalysis: GmosIfuAnalysis!
 
@@ -14710,6 +14781,9 @@ type Program {
   against `resourceLimit`.
   """
   resourceCount: NonNegInt!
+
+  """List of validation codes that have been dismissed for this program."""
+  dismissedWarnings: [ObservationValidationCode!]!
 }
 
 """ProgramId id formatted as `p-[1-9a-f][0-9a-f]*`"""
