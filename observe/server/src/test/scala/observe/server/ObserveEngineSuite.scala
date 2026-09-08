@@ -1067,6 +1067,122 @@ class ObserveEngineSuite extends TestCommon {
     }
   }
 
+  test(
+    "ObserveEngine proceedAfterPrompt should run an acquisition step that has a breakpoint"
+  ) {
+    val acquisitionStepCount = 2
+    val scienceAtomCount     = 2
+    val scienceStepCount     = 2
+    val firstScienceStepId   = acquisitionStepCount * 2 + 1
+
+    // The first acquisition step carries a breakpoint, the same as the ODB does for every
+    // GMOS IFU acquisition step (including the one reloaded when the observer asks for
+    // another acquisition image). It must still run immediately, without requiring a Run
+    // click, because the observer explicitly requested it at the "proceed to science?" prompt.
+    val acquisitionSteps = NonEmptyList(
+      Step[DynamicConfig.GmosNorth](
+        stepId(1),
+        dynamicCfg1,
+        stepCfg1,
+        telescopeCfg1,
+        StepEstimate.Zero,
+        ObserveClass.Science,
+        Breakpoint.Enabled
+      ),
+      List
+        .range(2, acquisitionStepCount + 1)
+        .map(i =>
+          Step[DynamicConfig.GmosNorth](
+            stepId(i),
+            dynamicCfg1,
+            stepCfg1,
+            telescopeCfg1,
+            StepEstimate.Zero,
+            ObserveClass.Science,
+            Breakpoint.Disabled
+          )
+        )
+    )
+    val scienceSteps     = NonEmptyList(
+      Step[DynamicConfig.GmosNorth](
+        stepId(firstScienceStepId),
+        dynamicCfg1,
+        stepCfg1,
+        telescopeCfg1,
+        StepEstimate.Zero,
+        ObserveClass.Science,
+        Breakpoint.Disabled
+      ),
+      List
+        .range(firstScienceStepId + 1, firstScienceStepId + scienceStepCount)
+        .map(i =>
+          Step[DynamicConfig.GmosNorth](
+            stepId(i),
+            dynamicCfg1,
+            stepCfg1,
+            telescopeCfg1,
+            StepEstimate.Zero,
+            ObserveClass.Science,
+            Breakpoint.Disabled
+          )
+        )
+    )
+
+    for {
+      acqAtomId            <- IO.randomUUID.map(Atom.Id.fromUuid)
+      atomIds              <- List
+                                .fill(scienceAtomCount)(IO.randomUUID)
+                                .parSequence
+                                .map(_.map(Atom.Id.fromUuid))
+      odb                  <- TestOdbProxy.buildGmosNorth[IO](
+                                seqObsId1,
+                                staticCfg1,
+                                Atom[DynamicConfig.GmosNorth](acqAtomId, none, acquisitionSteps).some,
+                                atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, scienceSteps))
+                              )
+      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      eo                    = EngineObserver(observeEngine)
+      _                    <-
+        eo.executeAndWaitResult(
+          _.loadSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.LoadSequence(seqObsId1, clientId))
+                ) =>
+              true
+          }
+        )
+      _                    <- eng.offer:
+                                Event.modifyState[IO]:
+                                  EngineHandle
+                                    .modifySequenceState[IO](seqObsId1):
+                                      SequenceState.status.replace:
+                                        SequenceStatus.Running.Init.withWaitingUserPrompt(true)
+                                    .as(SeqEvent.NullSeqEvent)
+      r                    <-
+        eo.executeAndWaitResult(
+          _.proceedAfterPrompt(seqObsId1, user, observer, SequenceType.Acquisition),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.AcquisitionCompleted(seqObsId1))
+                ) =>
+              true
+          }
+        )
+    } yield r.sequences
+      .get(seqObsId1)
+      .map(_.seq.status)
+      .map { s =>
+        assertNotEquals(s, SequenceStatus.Idle)
+        assertEquals(s, SequenceStatus.Running.Init.withWaitingUserPrompt(true))
+      }
+      .getOrElse(fail("Sequence id not loaded"))
+  }
+
   test("ObserveEngine should automatically load new science steps and atoms") {
     val atomCount = 2
     val stepCount = 3
