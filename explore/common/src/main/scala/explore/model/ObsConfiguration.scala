@@ -102,8 +102,6 @@ final case class ObsConfiguration(
   def cassRotatorFixed: Boolean =
     cassRotator === CassRotator.Fixed
 
-  // The probe AGS and the visualization use. An explicit probe that a mode change has
-  // left unusable is ignored so the drawing never shows an impossible probe.
   def guideProbe: Option[GuideProbe] =
     val default = configuration.flatMap(_.guideProbe(trackType))
     explicitGuideProbe
