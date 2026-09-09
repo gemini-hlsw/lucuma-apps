@@ -191,9 +191,6 @@ object ProposalPdfSummaryTile
         val title =
           <.span(ExploreStyles.ProposalPdfSummaryTitle)(
             HelpIcon("proposal/main/pdf-summary.md".refined),
-            // Clickable during a render on purpose: the ODB queues one request behind a running
-            // one, so edits made mid-render are not lost.
-            // In a span so the button doesn't take up the full width of the title bar.
             <.span(
               Button(
                 severity = Button.Severity.Secondary,
