@@ -30,6 +30,7 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
                                  SortedMap.empty,
                                  SortedMap.empty,
                                  SortedMap.empty,
+                                 ProposalSummaryGeneration.Idle,
                                  SortedMap.empty,
                                  SortedMap.empty
   )

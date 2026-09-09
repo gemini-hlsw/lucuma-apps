@@ -52,7 +52,7 @@ object ProposalQueriesGQL:
       mutation($$input: RegenerateProposalSummariesInput!) {
         regenerateProposalSummaries(input: $$input) {
           program {
-            id
+            proposalSummaryGeneration $ProposalSummaryGenerationSubquery
           }
         }
       }

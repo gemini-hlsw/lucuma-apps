@@ -5,9 +5,9 @@ package explore.cache
 
 import cats.Order.given
 import cats.syntax.all.*
-import explore.model.Attachment
 import explore.model.GroupList
 import explore.model.Observation
+import explore.model.ProgramAttachments
 import explore.model.ProgramInfo
 import explore.model.ProgramSummaries
 import explore.model.syntax.all.*
@@ -117,9 +117,11 @@ trait CacheModifierUpdaters {
             identity
 
   protected def modifyAttachments(
-    attachments: List[Attachment]
+    attachments: ProgramAttachments
   ): ProgramSummaries => ProgramSummaries =
-    ProgramSummaries.attachments.replace(attachments.toSortedMap(_.id))
+    ProgramSummaries.attachments
+      .replace(attachments.attachments.toSortedMap(_.id))
+      .andThen(ProgramSummaries.summaryGeneration.replace(attachments.proposalSummaryGeneration))
 
   protected def modifyPrograms(programInfo: ProgramInfo): ProgramSummaries => ProgramSummaries =
     ProgramSummaries.programs.modify(_.updated(programInfo.id, programInfo))

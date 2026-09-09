@@ -5,6 +5,7 @@ package explore.services
 
 import explore.model.CallForProposal
 import explore.model.Proposal
+import explore.model.ProposalSummaryGeneration
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.ProposalReference
@@ -16,4 +17,4 @@ trait OdbProposalApi[F[_]]:
   def createProposal(programId:              Program.Id, proposal:  Proposal): F[Unit]
   def updateProposal(input:                  UpdateProposalInput): F[Unit]
   def setProposalStatus(programId:           Program.Id, newStatus: ProposalStatus): F[Unit]
-  def regenerateProposalSummaries(programId: Program.Id): F[Unit]
+  def regenerateProposalSummaries(programId: Program.Id): F[ProposalSummaryGeneration]

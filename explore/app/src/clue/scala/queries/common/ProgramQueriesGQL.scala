@@ -77,6 +77,7 @@ object ProgramQueriesGQL:
         programEdit(input: $$input) {
           value {
             attachments $AttachmentSubquery
+            proposalSummaryGeneration $ProposalSummaryGenerationSubquery
           }
         }
       }

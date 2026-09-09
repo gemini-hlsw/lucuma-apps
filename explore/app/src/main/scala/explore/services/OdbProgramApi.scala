@@ -6,6 +6,7 @@ package explore.services
 import cats.effect.Resource
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
+import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
 import explore.model.ProgramInfo
 import explore.model.ProgramNote
@@ -105,12 +106,12 @@ trait OdbProgramApi[F[_]]:
 
   def allPrograms: F[List[ProgramInfo]]
 
-  def allProgramAttachments(programId: Program.Id): F[List[Attachment]]
+  def allProgramAttachments(programId: Program.Id): F[ProgramAttachments]
 
   def programEditsSubscription(programId: Program.Id): Resource[F, fs2.Stream[F, ProgramDetails]]
 
   def programAttachmentsDeltaSubscription(
     programId: Program.Id
-  ): Resource[F, fs2.Stream[F, List[Attachment]]]
+  ): Resource[F, fs2.Stream[F, ProgramAttachments]]
 
   def programDeltaSubscription(programId: Program.Id): Resource[F, fs2.Stream[F, ProgramInfo]]

@@ -281,6 +281,7 @@ object ExploreStyles:
   val ProposalPdfSummaryTile: Css    = Css("explore-proposal-pdf-summary-tile")
   val ProposalPdfSummaryEmpty: Css   = Css("explore-proposal-pdf-summary-empty")
   val ProposalPdfSummaryPartner: Css = Css("explore-proposal-pdf-summary-partner")
+  val ProposalPdfSummaryTitle: Css   = Css("explore-proposal-pdf-summary-title")
   val CfpData: Css                   = Css("cfp-data")
 
   val ProgramDescription: Css = Css("explore-program-description")

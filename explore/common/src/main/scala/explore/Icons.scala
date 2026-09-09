@@ -46,6 +46,10 @@ object Icons {
   val faArrowsRepeat: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faArrowsRotate")
+  val faArrowsRotate: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-light-svg-icons", "faBars")
   val faBars: FAIcon = js.native
 
@@ -306,6 +310,10 @@ object Icons {
   val faFileArrowDown: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-light-svg-icons", "faFilePdf")
+  val faFilePdf: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-light-svg-icons", "faGears")
   val faGears: FAIcon = js.native
 
@@ -442,6 +450,7 @@ object Icons {
     faArrowRightToLine,
     faArrowUp,
     faArrowsRepeat,
+    faArrowsRotate,
     faBars,
     faBarCodeRead,
     faClockRotateLeft,
@@ -504,6 +513,7 @@ object Icons {
     faFilter,
     faFileArrowUp,
     faFileArrowDown,
+    faFilePdf,
     faGears,
     faFileCirclePlus,
     faExpandDiagonal,
@@ -548,6 +558,7 @@ object Icons {
   val ArrowRightToLine            = FontAwesomeIcon(faArrowRightToLine)
   val ArrowUp                     = FontAwesomeIcon(faArrowUp)
   val ArrowsRepeat                = FontAwesomeIcon(faArrowsRepeat)
+  val ArrowsRotate                = FontAwesomeIcon(faArrowsRotate)
   val Bars                        = FontAwesomeIcon(faBars)
   val BarCodeRead                 = FontAwesomeIcon(faBarCodeRead)
   val ClockRotateLeft             = FontAwesomeIcon(faClockRotateLeft)
@@ -608,6 +619,7 @@ object Icons {
   val FileCirclePlus              = FontAwesomeIcon(faFileCirclePlus)
   val FileArrowUp                 = FontAwesomeIcon(faFileArrowUp)
   val FileArrowDown               = FontAwesomeIcon(faFileArrowDown)
+  val FilePdf                     = FontAwesomeIcon(faFilePdf)
   val Gears                       = FontAwesomeIcon(faGears)
   val ExpandDiagonal              = FontAwesomeIcon(faExpandDiagonal)
   val ContractDiagonal            = FontAwesomeIcon(faContractDiagonal)

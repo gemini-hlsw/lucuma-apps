@@ -11,6 +11,7 @@ import clue.syntax.*
 import explore.common.ProposalOdbExtensions.*
 import explore.model.CallForProposal
 import explore.model.Proposal
+import explore.model.ProposalSummaryGeneration
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.ProposalReference
@@ -56,8 +57,9 @@ trait OdbProposalApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
       .raiseGraphQLErrorsOnNoData
       .void
 
-  def regenerateProposalSummaries(programId: Program.Id): F[Unit] =
+  // The ODB commits the job before building the response, so this already reads Pending.
+  def regenerateProposalSummaries(programId: Program.Id): F[ProposalSummaryGeneration] =
     RegenerateProposalSummaries[F]
       .execute(RegenerateProposalSummariesInput(programId = programId))
       .raiseGraphQLErrorsOnNoData
-      .void
+      .map(_.regenerateProposalSummaries.program.proposalSummaryGeneration)

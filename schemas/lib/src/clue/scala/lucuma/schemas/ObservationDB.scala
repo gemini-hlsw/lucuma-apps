@@ -193,6 +193,7 @@ trait ObservationDB {
     type ProgramType                         = enums.ProgramType
     type ProgramUserRole                     = enums.ProgramUserRole
     type ProposalStatus                      = enums.ProposalStatus
+    type ProposalSummaryGenerationState      = enums.ProposalSummaryGenerationState
     type QuasarSpectrum                      = enums.QuasarSpectrum
     type SchedulingMode                      = enums.SchedulingMode
     type ScienceBand                         = enums.ScienceBand
