@@ -47,6 +47,7 @@ object GuideProbeControl:
           options = options,
           showClear = props.explicitGuideProbe.get.isDefined,
           disabled = props.readonly,
+          panelClass = ExploreStyles.AladinGuideProbePanel,
           placeholder = placeholder,
           onChange = props.explicitGuideProbe.set
         )

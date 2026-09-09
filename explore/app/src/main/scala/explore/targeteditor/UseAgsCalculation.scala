@@ -18,9 +18,9 @@ import explore.model.enums.AgsState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import lucuma.ags.*
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
-import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
