@@ -43,6 +43,11 @@ case class Proposal(
       pi.exists(_.partnerLink.geminiPartnerOption.exists(_ === partner))
     private def hasUser(partner: Partner): Boolean =
       users.exists(_.partnerLink.geminiPartnerOption.exists(_ === partner))
+    // The rules about the team speak of investigators, so support and external
+    // users are not held to them.  The ODB draws the same line, in SQL, with
+    // `c_role IN ('pi', 'coi', 'coi_ro')`.
+    private def investigators: List[ProgramUser]   =
+      users.filter(_.role.isInvestigator)
 
   private def cfPError(users: List[ProgramUser]): List[ProposalSubmissionError] =
     call.fold(List(MissingCfp))(cfp =>
@@ -105,19 +110,36 @@ case class Proposal(
     geminiPartnerSplits.orElse(externalPartnerSplits)
 
   private def usersAndTimesErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
+    val investigators      = users.investigators
     val partnerError       =
-      Option.unless(users.forall(_.partnerLink.isSet))(UnspecifiedInvestigatorPartner)
+      Option.unless(investigators.forall(_.partnerLink.isSet))(UnspecifiedInvestigatorPartner)
     val partnerSplitsError = partnerSplits.flatMap(splits =>
       Option.when(splits.foldLeft(0)(_ + _.percent.value) != 100)(InvalidPartnerSplits)
     )
-    val piEmail            = users.pi.flatMap(_.email)
-    val piEmailError       =
-      piEmail.fold(MissingPiEmail.some)(e =>
-        Option.unless(EmailAddress.from(e).isRight)(InvalidPiEmail)
+    // What every investigator must supply.  `name` is empty rather than absent
+    // when unset, so it is tested for emptiness -- and trimmed first, because
+    // nothing stops the API from storing a blank one and the ODB trims too.
+    val nameError          =
+      Option.when(investigators.exists(_.name.trim.isEmpty))(MissingInvestigatorName)
+    // Missing and malformed are independent, as they are in the ODB: one
+    // investigator with no email and another with a bad one is two problems.
+    val emails             = investigators.map(_.email)
+    val missingEmailError  = Option.when(emails.exists(_.isEmpty))(MissingInvestigatorEmail)
+    val invalidEmailError  =
+      Option.when(emails.flattenOption.exists(EmailAddress.from(_).isLeft))(
+        InvalidInvestigatorEmail
       )
+    val educationError     =
+      Option.when(investigators.exists(_.educationalStatus.isEmpty))(
+        MissingInvestigatorEducationalStatus
+      )
+    val affiliationError   =
+      Option.when(investigators.exists(_.affiliation.isEmpty))(MissingInvestigatorAffiliation)
     val notInvitedError    =
       Option
-        .when(users.exists(u => !u.isConfirmed && !u.successfullyInvited))(UninvitedInvestigator)
+        .when(investigators.exists(u => !u.isConfirmed && !u.successfullyInvited))(
+          UninvitedInvestigator
+        )
 
     // only validate this if the splits are valid and all partners have been affiliated.
     val affiliationMismatches: List[ProposalSubmissionError] =
@@ -144,7 +166,11 @@ case class Proposal(
 
     List(
       partnerError.toList,
-      piEmailError.toList,
+      nameError.toList,
+      missingEmailError.toList,
+      invalidEmailError.toList,
+      educationError.toList,
+      affiliationError.toList,
       notInvitedError.toList,
       partnerSplitsError.toList,
       affiliationMismatches

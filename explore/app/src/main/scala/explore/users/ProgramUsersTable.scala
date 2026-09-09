@@ -36,6 +36,7 @@ import lucuma.core.model.PartnerLink
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Enumerated
 import lucuma.core.validation.InputValidSplitEpi
+import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
@@ -236,23 +237,29 @@ object ProgramUsersTable:
     case _                                  => "Unspecified Partner"
   }
 
+  /**
+   * Flags a missing value that would keep the proposal from being submitted. Only investigators
+   * must be complete, so support and external users are left alone, and a field the user cannot
+   * currently edit is not nagged about.
+   */
+  private def warnIfEmpty(pu: ProgramUser, isEmpty: Boolean, disabled: Boolean): Css =
+    ExploreStyles.WarningInput.when_(isEmpty && pu.role.isInvestigator && !disabled)
+
   private def partnerSelector(
-    id:       ProgramUser.Id,
+    pu:       ProgramUser,
     value:    View[Option[PartnerLink]],
-    readOnly: Boolean
+    disabled: Boolean
   ): VdomNode =
     FormDropdownOptional(
-      id = NonEmptyString.unsafeFrom(s"$id-partner"),
+      id = NonEmptyString.unsafeFrom(s"${pu.id}-partner"),
       value = value.get,
       onChange = value.set,
       options = partnerLinkOptions.map { pl =>
         new SelectItem[PartnerLink](value = pl, label = pl.toString)
       },
-      clazz = ExploreStyles.PartnerSelector |+| ExploreStyles.WarningInput.when_(
-        value.get.isEmpty && !readOnly
-      ),
+      clazz = ExploreStyles.PartnerSelector |+| warnIfEmpty(pu, value.get.isEmpty, disabled),
       showClear = true,
-      disabled = readOnly,
+      disabled = disabled,
       itemTemplate = pl => partnerItem(pl.value),
       valueTemplate = pl => partnerItem(pl.value),
       emptyMessageTemplate = "Select a partner"
@@ -415,7 +422,8 @@ object ProgramUsersTable:
                 value = view,
                 disabled = meta.isActive.get.value,
                 validFormat = InputValidSplitEpi.nonEmptyString.optional,
-                placeholder = pu.name
+                placeholder = pu.name,
+                groupClass = warnIfEmpty(pu, pu.name.trim.isEmpty, meta.isActive.get.value)
               ).clearable: VdomNode
             else pu.name: VdomNode
       ).sortableBy(_.get.name),
@@ -440,7 +448,8 @@ object ProgramUsersTable:
                 disabled = meta.isActive.get.value,
                 validFormat = ExploreModelValidators.MailValidator.optional,
                 validateOnPaste = false,
-                placeholder = pu.email.orUndefined
+                placeholder = pu.email.orUndefined,
+                groupClass = warnIfEmpty(pu, pu.email.isEmpty, meta.isActive.get.value)
               ).clearable: VdomNode
             else pu.email.getOrElse("-"): VdomNode
       ).sortableBy(_.get.email),
@@ -458,7 +467,7 @@ object ProgramUsersTable:
             val plOptView: View[Option[PartnerLink]] = plView.zoom(partnerLinkIso)
             val canEdit                              = meta.canEditUserFields(cell.get)
 
-            partnerSelector(programUserId, plOptView, !canEdit || meta.isActive.get.value)
+            partnerSelector(cell.get, plOptView, !canEdit || meta.isActive.get.value)
       ).sortableBy(_.get.toString),
       ColDef(
         Column.EducationalStatus.id,
@@ -482,7 +491,8 @@ object ProgramUsersTable:
               valueTemplate = _.value.shortName,
               emptyMessageTemplate = "No Selection",
               disabled = !canEdit || meta.isActive.get.value,
-              clazz = ExploreStyles.PartnerSelector
+              clazz = ExploreStyles.PartnerSelector |+|
+                warnIfEmpty(cell.get, view.get.isEmpty, !canEdit || meta.isActive.get.value)
             )
       ).sortableBy(_.get.toString),
       ColDef(
@@ -546,7 +556,9 @@ object ProgramUsersTable:
               id = NonEmptyString.unsafeFrom(s"$programUserId-affiliation"),
               value = view,
               disabled = !canEdit || meta.isActive.get.value,
-              validFormat = InputValidSplitEpi.nonEmptyString.optional
+              validFormat = InputValidSplitEpi.nonEmptyString.optional,
+              groupClass =
+                warnIfEmpty(cell.get, view.get.isEmpty, !canEdit || meta.isActive.get.value)
             ): VdomNode
       ).sortableBy(_.get.toString),
       column(Column.OrcidId, _.get.user.flatMap(_.orcidId).foldMap(_.value)).sortable,

@@ -87,12 +87,18 @@ class ProposalErrorsSuite extends FunSuite:
       )
     )
 
+  /**
+   * An investigator who satisfies every rule about the team, so that a test can take away just the
+   * one thing it is about.
+   */
   private def user(
     partnerLink: PartnerLink,
     role:        ProgramUserRole,
     email:       Option[String] = "pi@example.com".some,
     education:   Option[EducationalStatus] = EducationalStatus.PhD.some,
-    confirmed:   Boolean = true
+    confirmed:   Boolean = true,
+    creditName:  Option[String] = "Test Investigator".some,
+    affiliation: Option[NonEmptyString] = NonEmptyString.unsafeFrom("Test University").some
   ): ProgramUser =
     ProgramUser(
       id = ProgramUser.Id.fromLong(1L).get,
@@ -102,8 +108,8 @@ class ProposalErrorsSuite extends FunSuite:
       educationalStatus = education,
       thesis = none,
       gender = none,
-      affiliation = none,
-      preferredProfile = UserProfile(none, none, none, email),
+      affiliation = affiliation,
+      preferredProfile = UserProfile(none, none, creditName, email),
       invitations =
         if confirmed then
           List(
@@ -235,15 +241,15 @@ class ProposalErrorsSuite extends FunSuite:
       List(InvalidPartnerSplits)
     )
 
-  test("missing PI email"):
+  test("missing investigator email"):
     assertEquals(
       errorsOf(users =
         List(user(PartnerLink.HasGeminiPartner(Partner.US), ProgramUserRole.Pi, email = none))
       ),
-      List(MissingPiEmail)
+      List(MissingInvestigatorEmail)
     )
 
-  test("unparseable PI email"):
+  test("unparseable investigator email"):
     assertEquals(
       errorsOf(users =
         List(
@@ -253,7 +259,67 @@ class ProposalErrorsSuite extends FunSuite:
           )
         )
       ),
-      List(InvalidPiEmail)
+      List(InvalidInvestigatorEmail)
+    )
+
+  test("a co-investigator's email is required too"):
+    val coi = user(PartnerLink.HasGeminiPartner(Partner.US), ProgramUserRole.Coi, email = none)
+    assertEquals(errorsOf(users = List(pi, coi)), List(MissingInvestigatorEmail))
+
+  // The ODB accumulates these two independently; keep the two sides agreeing.
+  test("a missing email and a malformed one are both reported"):
+    val coi = user(PartnerLink.HasGeminiPartner(Partner.US),
+                   ProgramUserRole.Coi,
+                   email = "not an email".some
+    )
+    assertEquals(
+      errorsOf(users =
+        List(user(PartnerLink.HasGeminiPartner(Partner.US), ProgramUserRole.Pi, email = none), coi)
+      ),
+      List(MissingInvestigatorEmail, InvalidInvestigatorEmail)
+    )
+
+  test("missing investigator name"):
+    assertEquals(
+      errorsOf(users =
+        List(
+          user(PartnerLink.HasGeminiPartner(Partner.US), ProgramUserRole.Pi, creditName = none)
+        )
+      ),
+      List(MissingInvestigatorName)
+    )
+
+  // Nothing stops the API from storing a blank name, and the ODB trims before
+  // asking whether one is there; keep the two sides agreeing.
+  test("a blank investigator name is no name at all"):
+    assertEquals(
+      errorsOf(users =
+        List(
+          user(PartnerLink.HasGeminiPartner(Partner.US),
+               ProgramUserRole.Pi,
+               creditName = "   ".some
+          )
+        )
+      ),
+      List(MissingInvestigatorName)
+    )
+
+  test("missing investigator educational status"):
+    assertEquals(
+      errorsOf(users =
+        List(user(PartnerLink.HasGeminiPartner(Partner.US), ProgramUserRole.Pi, education = none))
+      ),
+      List(MissingInvestigatorEducationalStatus)
+    )
+
+  test("missing investigator affiliation"):
+    assertEquals(
+      errorsOf(users =
+        List(
+          user(PartnerLink.HasGeminiPartner(Partner.US), ProgramUserRole.Pi, affiliation = none)
+        )
+      ),
+      List(MissingInvestigatorAffiliation)
     )
 
   test("an investigator who was never invited"):
@@ -352,8 +418,11 @@ class ProposalErrorsSuite extends FunSuite:
         MissingBand3Consideration,
         UnspecifiedInvestigatorPartner,
         InvalidPartnerSplits,
-        MissingPiEmail,
-        InvalidPiEmail,
+        MissingInvestigatorName,
+        MissingInvestigatorEmail,
+        InvalidInvestigatorEmail,
+        MissingInvestigatorEducationalStatus,
+        MissingInvestigatorAffiliation,
         UninvitedInvestigator,
         UhTimeWithoutUhPi,
         UnmatchedPartnerTime,
