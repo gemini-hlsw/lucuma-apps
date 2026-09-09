@@ -32,9 +32,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.Message
-import lucuma.react.table.HTMLTableVirtualizer
 import lucuma.refined.*
-import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.*
@@ -74,12 +72,6 @@ object ProgramsPopup:
       (if (onClose.isEmpty) ctx.replacePage((AppTab.Observations, programId, Focused.None).some)
        else ctx.pushPage((AppTab.Observations, programId, Focused.None).some))
 
-  private val ScrollOptions =
-    rawVirtual.mod
-      .ScrollToOptions()
-      .setBehavior(rawVirtual.mod.ScrollBehavior.smooth)
-      .setAlign(rawVirtual.mod.ScrollAlignment.start) // force to go as far as possible
-
   private def addProgram(
     programsMod:     Endo[ProgramInfoList] => Callback,
     adding:          View[IsAdding],
@@ -93,12 +85,11 @@ object ProgramsPopup:
 
   private val component = ScalaFnComponent[Props]: props =>
     for {
-      ctx            <- useContext(AppContext.ctx)
-      isOpen         <- useStateView(IsOpen(true))
-      isAdding       <- useStateView(IsAdding(false))    // Adding new program
-      showDeleted    <- useStateView(ShowDeleted(false)) // Show deleted
-      newProgramId   <- useStateView(none[Program.Id])   // Recently added program
-      virtualizerRef <- useRef(none[HTMLTableVirtualizer])
+      ctx          <- useContext(AppContext.ctx)
+      isOpen       <- useStateView(IsOpen(true))
+      isAdding     <- useStateView(IsAdding(false))    // Adding new program
+      showDeleted  <- useStateView(ShowDeleted(false)) // Show deleted
+      newProgramId <- useStateView(none[Program.Id])   // Recently added program
     } yield
       import ctx.given
 
@@ -137,16 +128,6 @@ object ProgramsPopup:
             .map(_._2.withOnMod(_ => newProgramId.set(none)))
             .filter(vpi => showDeleted.get.value || !vpi.get.deleted)
             .sortBy(_.get.id)
-
-      // When "isAdding" is switched off, it is safe to scroll to the bottom since the new program has been added.
-      val isAddingWithScroll: View[IsAdding] =
-        isAdding.withOnMod: newValue =>
-          if (!newValue.value)
-            virtualizerRef.get
-              .map:
-                _.foreach: virtualizer =>
-                  virtualizer.scrollToIndex(virtualizer.getTotalSize(), ScrollOptions)
-          else Callback.empty
 
       Dialog(
         visible = isOpen.get.value,
@@ -189,7 +170,7 @@ object ProgramsPopup:
               loading = isAdding.get.value,
               onClick = addProgram(
                 pis.mod,
-                isAddingWithScroll,
+                isAdding,
                 programId => newProgramId.set(programId.some)
               ).runAsync
             ).small.compact,
@@ -212,7 +193,6 @@ object ProgramsPopup:
               props.onClose.isEmpty,
               onHide.some,
               newProgramId.get,
-              virtualizerRef,
               showFilters = showFilters.get.value
             )
       )
