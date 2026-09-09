@@ -19,6 +19,7 @@ import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
@@ -207,6 +208,17 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
 
     updateObservations(obsIds, editInput)
   }
+
+  def updateExplicitGuideProbe(
+    obsIds: List[Observation.Id],
+    probe:  Option[GuideProbe]
+  ): F[Unit] =
+    updateObservations(
+      obsIds,
+      ObservationPropertiesInput(targetEnvironment =
+        TargetEnvironmentInput(explicitGuideProbe = probe.orUnassign).assign
+      )
+    )
 
   def updateNotes(
     obsIds: List[Observation.Id],

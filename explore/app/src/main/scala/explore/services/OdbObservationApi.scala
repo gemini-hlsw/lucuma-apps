@@ -12,6 +12,7 @@ import explore.model.Attachment
 import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
@@ -65,6 +66,12 @@ trait OdbObservationApi[F[_]]:
   def updateExplicitBase(
     obsIds:       List[Observation.Id],
     explicitBase: Option[Coordinates]
+  ): F[Unit]
+
+  // Overrides the guide probe used by AGS on the given observations. None resets it.
+  def updateExplicitGuideProbe(
+    obsIds: List[Observation.Id],
+    probe:  Option[GuideProbe]
   ): F[Unit]
 
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]

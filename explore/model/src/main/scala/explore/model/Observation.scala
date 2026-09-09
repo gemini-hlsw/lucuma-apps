@@ -25,6 +25,7 @@ import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosXBinning
 import lucuma.core.enums.GmosYBinning
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
@@ -96,7 +97,8 @@ final case class Observation(
   execution:               Execution,
   explicitBase:            Option[Coordinates],
   blindOffset:             BlindOffset,
-  cassRotator:             CassRotator
+  cassRotator:             CassRotator,
+  explicitGuideProbe:      Option[GuideProbe]
 ) derives Eq:
   /**
    * The lightweight view of the observing mode. Derived from the full mode whenever the detail
@@ -627,6 +629,9 @@ object Observation:
   val cassRotator: Lens[Observation, CassRotator]               = Focus[Observation](_.cassRotator)
   // The user-supplied override of the Base Position. None means the computed base applies.
   val explicitBase: Lens[Observation, Option[Coordinates]]      = Focus[Observation](_.explicitBase)
+  // The user-selected guide probe. None means the default for the mode applies.
+  val explicitGuideProbe: Lens[Observation, Option[GuideProbe]] =
+    Focus[Observation](_.explicitGuideProbe)
 
   val calculatedValues
     : Lens[Observation,
@@ -689,6 +694,7 @@ object Observation:
       explicitBase          <- targetEnv.downField("explicitBase").as[Option[Coordinates]]
       blindOffset           <- targetEnv.as[BlindOffset]
       cassRotator           <- targetEnv.get[CassRotator]("cassRotator")
+      explicitGuideProbe    <- targetEnv.get[Option[GuideProbe]]("explicitGuideProbe")
     } yield Observation(
       id,
       reference.flatten,
@@ -720,6 +726,7 @@ object Observation:
       execution,
       explicitBase,
       blindOffset,
-      cassRotator
+      cassRotator,
+      explicitGuideProbe
     )
   )

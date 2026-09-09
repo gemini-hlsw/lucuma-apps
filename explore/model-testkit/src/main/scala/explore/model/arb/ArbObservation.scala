@@ -15,6 +15,7 @@ import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
 import lucuma.core.arb.ArbTime
 import lucuma.core.enums.CassRotator
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ScienceBand
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
@@ -94,6 +95,7 @@ trait ArbObservation:
         explicitBase          <- arbitrary[Option[Coordinates]]
         blindOffset           <- arbitrary[BlindOffset]
         cassRotator           <- arbitrary[CassRotator]
+        explicitGuideProbe    <- arbitrary[Option[GuideProbe]]
       yield Observation(
         id,
         reference,
@@ -122,7 +124,8 @@ trait ArbObservation:
         execution,
         explicitBase,
         blindOffset,
-        cassRotator
+        cassRotator,
+        explicitGuideProbe
       )
     )
 
@@ -149,7 +152,7 @@ trait ArbObservation:
        Option[Configuration],
        SortedSet[ConfigurationRequest.Id],
        CalculatedValue[ObservationWorkflow],
-       (Option[Group.Id], Short, Execution, Option[Coordinates], BlindOffset)
+       (Option[Group.Id], Short, Execution, Option[Coordinates], BlindOffset, Option[GuideProbe])
       )
     ]
       .contramap(o =>
@@ -174,7 +177,13 @@ trait ArbObservation:
          o.configuration,
          o.configurationRequestIds,
          o.workflow,
-         (o.groupId, o.groupIndex.value, o.execution, o.explicitBase, o.blindOffset)
+         (o.groupId,
+          o.groupIndex.value,
+          o.execution,
+          o.explicitBase,
+          o.blindOffset,
+          o.explicitGuideProbe
+         )
         )
       )
 
