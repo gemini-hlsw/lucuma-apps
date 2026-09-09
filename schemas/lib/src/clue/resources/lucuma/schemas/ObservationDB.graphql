@@ -6921,6 +6921,54 @@ type ProposalSummaryProperties {
   style: ProposalSummaryStyle!
 }
 
+"""
+State of a program's proposal summary regeneration.
+
+PENDING while any partner is still rendering, and FAILED only once every render
+has stopped and at least one failed.
+
+PENDING always terminates given an internal timeout and amount of retries.
+"""
+type ProposalSummaryGeneration {
+  """The state of `ProposalSummaryGeneration`."""
+  state: ProposalSummaryGenerationState!
+
+  """When the last regeneration was requested. Null when state is IDLE."""
+  requestedAt: Timestamp
+
+  """
+  The renders of the last regeneration that failed, one entry per partner.
+  Empty unless state is FAILED.
+  """
+  failures: [ProposalSummaryFailure!]!
+}
+
+"""One failed render of a proposal summary regeneration."""
+type ProposalSummaryFailure {
+  """
+  The partner whose render failed.  Null for the single render of a proposal
+  with no partner splits.
+  """
+  partner: Partner
+
+  """Why this render failed, in terms an investigator can act on."""
+  message: String!
+}
+
+"""The states of `ProposalSummaryGeneration`."""
+enum ProposalSummaryGenerationState {
+  """No regeneration has been requested, or the last one finished."""
+  IDLE
+
+  """A regeneration is queued or rendering."""
+  PENDING
+
+  """
+  Every render of the last regeneration stopped, and at least one failed.
+  """
+  FAILED
+}
+
 """The layouts a proposal summary PDF can be rendered in."""
 enum ProposalSummaryStyle {
   """The default Gemini layout."""
@@ -14791,6 +14839,9 @@ type Program {
 
   """Observatory archive properties related to this program."""
   goa: GoaProperties!
+
+  """Where this program's proposal summary regeneration stands."""
+  proposalSummaryGeneration: ProposalSummaryGeneration!
 
   """
   Maximum number of resources (observations, groups, targets, attachments, and

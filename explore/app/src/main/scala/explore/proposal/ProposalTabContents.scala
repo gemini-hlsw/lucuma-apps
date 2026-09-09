@@ -14,6 +14,7 @@ import explore.model.CallForProposal
 import explore.model.ProgramDetails
 import explore.model.ProgramUser
 import explore.model.Proposal
+import explore.model.ProposalSummaryGeneration
 import explore.model.layout.LayoutsMap
 import explore.model.reusability.given
 import explore.services.OdbProposalApi
@@ -47,6 +48,7 @@ case class ProposalTabContents(
   programDetails:           View[ProgramDetails],
   cfps:                     List[CallForProposal],
   attachments:              View[AttachmentList],
+  summaryGeneration:        View[ProposalSummaryGeneration],
   undoStacks:               View[UndoStacks[IO, ProgramDetails]],
   layout:                   LayoutsMap,
   userIsReadonlyCoi:        Boolean,
@@ -142,6 +144,7 @@ object ProposalTabContents:
                 proposal,
                 props.users,
                 props.attachments,
+                props.summaryGeneration,
                 errors,
                 props.userVault.map(_.token),
                 props.cfps,

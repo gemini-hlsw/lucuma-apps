@@ -20,6 +20,7 @@ import explore.model.AppContext
 import explore.model.Attachment
 import explore.model.AttachmentList
 import explore.model.ProposalSummaries
+import explore.model.ProposalSummaryGeneration
 import explore.model.ProposalTabTileIds
 import explore.model.ProposalType
 import explore.model.reusability.given
@@ -40,14 +41,13 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 
-import scala.concurrent.duration.*
-
 final case class ProposalPdfSummaryTile(
-  programId:    Program.Id,
-  authToken:    NonEmptyString,
-  attachments:  View[AttachmentList],
-  proposalType: Option[ProposalType],
-  readOnly:     Boolean
+  programId:         Program.Id,
+  authToken:         NonEmptyString,
+  attachments:       View[AttachmentList],
+  summaryGeneration: View[ProposalSummaryGeneration],
+  proposalType:      Option[ProposalType],
+  readOnly:          Boolean
 ) extends Tile[ProposalPdfSummaryTile](
       id = ProposalTabTileIds.PdfSummaryId.id,
       title = "PDF Summary",
@@ -57,15 +57,12 @@ final case class ProposalPdfSummaryTile(
 
 object ProposalPdfSummaryTile
     extends TileComponent[ProposalPdfSummaryTile]((props, _) =>
-      // The ODB gives no failure signal, so a request that outlives this is abandoned.
-      val RequestTimeout = 2.minutes
-
       type UrlMapKey = (Attachment.Id, Timestamp)
       type UrlMap    = Map[UrlMapKey, Pot[String]]
 
       extension (a: Attachment) def toMapKey: UrlMapKey = (a.id, a.updatedAt)
 
-      case class TableMeta(urlMap: UrlMap, request: Option[ProposalSummaries.Request])
+      case class TableMeta(urlMap: UrlMap, generation: ProposalSummaryGeneration)
 
       val ColDef = ColumnDef[Attachment].WithTableMeta[TableMeta]
 
@@ -76,6 +73,9 @@ object ProposalPdfSummaryTile
       val ActionsColumnId   = ColumnId("actions")
 
       val tableLabelButtonClasses = ProposalAttachmentsTable.tableLabelButtonClasses
+
+      def partnerLabel(partner: Option[Partner]): String =
+        partner.fold("Proposal")(_.shortName)
 
       def partnerCell(partner: Partner): VdomNode =
         <.span(ExploreStyles.ProposalPdfSummaryPartner)(
@@ -112,112 +112,115 @@ object ProposalPdfSummaryTile
         ColDef(GeneratedColumnId, identity, "Generated at")
           .withCell: cell =>
             cell.table.options.meta.map: meta =>
-              if (meta.request.exists(_.isPending(cell.value)))
+              if (meta.generation.isPending)
                 <.span(Icons.Spinner.withSpin(true), " Generating...")
               else
-                <.span(GppDateFormatter.format(cell.value.updatedAt.toLocalDateTime)),
+                // A failure beside the timestamp means this PDF is the one the render failed to
+                // replace.
+                <.span(
+                  GppDateFormatter.format(cell.value.updatedAt.toLocalDateTime),
+                  meta.generation
+                    .failureFor(cell.value.summaryPartner)
+                    .map(f =>
+                      <.span(
+                        " ",
+                        Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
+                      ).withTooltip(f.message)
+                    )
+                ),
         ColDef(ActionsColumnId, identity, "")
           .withCell: cell =>
             cell.table.options.meta.map(meta => openButton(cell.value, meta.urlMap))
       )
 
       for
-        ctx      <- useContext(AppContext.ctx)
-        client   <- useMemo(props.authToken)(token => OdbRestClient[IO](ctx.odbRestURI, token))
-        urlMap   <- useStateView[UrlMap](Map.empty)
-        request  <- useStateView(none[ProposalSummaries.Request])
-        timedOut <- useStateView(false)
-        timeout  <- useSingleEffect
-        cols     <- useMemo(())(_ => columns)
-        splits   <- useMemo(props.proposalType): pt =>
-                      pt.foldMap(ProposalType.anyPartnerSplits.get)
-        rows     <- useMemo((props.attachments.reuseByValue, splits)): (v, s) =>
-                      ProposalSummaries.of(v.get, s.value)
-        _        <- useEffectWithDeps(rows): summaries =>
-                      import ctx.given
-                      val current = summaries.value.map(_.toMapKey).toSet
-                      val added   = current.filterNot(urlMap.get.contains).toList
-                      val reset   = urlMap.mod(m =>
-                        added.foldLeft(m.filter((k, _) => current.contains(k)))(
-                          _.updated(_, Pot.pending)
-                        )
-                      )
-                      val fetch   = added.traverse_ : key =>
-                        ProposalAttachmentsTable
-                          .getAttachmentUrl(key._1, client)
-                          .flatMap(pot => urlMap.mod(_.updated(key, pot)).toAsync)
-                      // A new PDF landing after the timeout is the answer the banner was waiting for.
-                      val settle  = timedOut.set(false).when_(added.nonEmpty)
-                      (reset.toAsync *> fetch *> settle.toAsync).runAsync
-        // Every summary present at request time has been replaced, so the request is done.
-        _        <- useEffectWithDeps((request.get, rows.value)): (req, summaries) =>
-                      import ctx.given
-                      req
-                        .filterNot(_.anyPending(summaries))
-                        .map(_ => (request.set(none).toAsync *> timeout.cancel).runAsync)
-                        .getOrEmpty
-        table    <- useReactTable(
-                      TableOptions(
-                        cols,
-                        rows,
-                        enableSorting = false,
-                        getRowId = (row, _, _) => RowId(row.id.toString),
-                        meta = TableMeta(urlMap.get, request.get)
+        ctx    <- useContext(AppContext.ctx)
+        client <- useMemo(props.authToken)(token => OdbRestClient[IO](ctx.odbRestURI, token))
+        urlMap <- useStateView[UrlMap](Map.empty)
+        cols   <- useMemo(())(_ => columns)
+        splits <- useMemo(props.proposalType): pt =>
+                    pt.foldMap(ProposalType.anyPartnerSplits.get)
+        rows   <- useMemo((props.attachments.reuseByValue, splits)): (v, s) =>
+                    ProposalSummaries.of(v.get, s.value)
+        _      <- useEffectWithDeps(rows): summaries =>
+                    import ctx.given
+                    val current = summaries.value.map(_.toMapKey).toSet
+                    val added   = current.filterNot(urlMap.get.contains).toList
+                    val reset   = urlMap.mod(m =>
+                      added.foldLeft(m.filter((k, _) => current.contains(k)))(
+                        _.updated(_, Pot.pending)
                       )
                     )
+                    val fetch   = added.traverse_ : key =>
+                      ProposalAttachmentsTable
+                        .getAttachmentUrl(key._1, client)
+                        .flatMap(pot => urlMap.mod(_.updated(key, pot)).toAsync)
+                    (reset.toAsync *> fetch).runAsync
+        table  <- useReactTable(
+                    TableOptions(
+                      cols,
+                      rows,
+                      enableSorting = false,
+                      getRowId = (row, _, _) => RowId(row.id.toString),
+                      meta = TableMeta(urlMap.get, props.summaryGeneration.get)
+                    )
+                  )
       yield
         import ctx.given
 
+        val generation = props.summaryGeneration.get
+
+        // The ODB commits the job before answering, so the reply already says Pending.
         val regenerate: IO[Unit] =
-          for
-            req    <- IO(ProposalSummaries.Request(rows.value))
-            _      <- (request.set(req.some) *> timedOut.set(false)).toAsync
-            result <- ctx.odbApi.regenerateProposalSummaries(props.programId).attempt
-            _      <- result.fold(
-                        t =>
-                          request.set(none).toAsync *>
-                            ToastCtx[IO].showToast(t.getMessage, Message.Severity.Error, true),
-                        _ =>
-                          ToastCtx[IO].showToast("PDF summary regeneration requested") *>
-                            timeout.submit(
-                              IO.sleep(RequestTimeout) *>
-                                (request.set(none) *> timedOut.set(true)).toAsync
-                            )
-                      )
-          yield ()
+          ctx.odbApi
+            .regenerateProposalSummaries(props.programId)
+            .attempt
+            .flatMap:
+              _.fold(
+                t => ToastCtx[IO].showToast(t.getMessage, Message.Severity.Error, true),
+                g => props.summaryGeneration.set(g).toAsync
+              )
 
-        // Proposal errors do not gate this: whether a proposal can be rendered is the ODB's
-        // call, and it answers with a toast.
-        val tooltip =
-          if (request.get.isDefined) "Generating..."
-          else "Regenerate the PDF summary"
-
+        // Clickable during a render on purpose: the ODB queues one request behind a running one,
+        // so edits made mid-render are not lost.
         val title =
           // In a span so the button doesn't take up the full width of the title bar.
           <.span(
             Button(
               severity = Button.Severity.Secondary,
               icon = Icons.Gears,
-              loading = request.get.isDefined,
-              disabled = request.get.isDefined,
-              tooltip = tooltip,
+              tooltip =
+                if (generation.isPending) "Regenerate again with the latest changes"
+                else "Regenerate the PDF summary",
               onClick = regenerate.runAsync
             ).tiny.compact
           ).unless(props.readOnly)
 
-        val timeoutMessage = "Still no PDF summary. Try again."
+        // Failures with no row to hang them on, as after a first-ever render fails.
+        val orphanFailures =
+          generation.failuresWithout(rows.value.map(_.summaryPartner).toSet)
+
+        val orphanFailureMessages =
+          orphanFailures.map: f =>
+            <.div(
+              Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
+              s" ${partnerLabel(f.partner)}: ${f.message}"
+            )
 
         val emptyMessage =
-          if (request.get.isDefined)
+          if (generation.isPending)
             <.span(Icons.Spinner.withSpin(true), " Generating the PDF summary...")
-          else if (timedOut.get) <.span(timeoutMessage)
-          else <.span("No PDF summaries yet.")
+          else if (orphanFailures.isEmpty) <.span("No PDF summaries yet.")
+          else EmptyVdom
 
         TileContents(
           title = title,
           body = <.div(ExploreStyles.ProposalPdfSummaryTile)(
             if (rows.isEmpty)
-              <.div(ExploreStyles.ProposalPdfSummaryEmpty, emptyMessage)
+              <.div(ExploreStyles.ProposalPdfSummaryEmpty,
+                    emptyMessage,
+                    orphanFailureMessages.toTagMod
+              )
             else
               <.div(
                 PrimeTable(
@@ -226,7 +229,8 @@ object ProposalPdfSummaryTile
                   compact = Compact.Very,
                   tableMod = ExploreStyles.AttachmentsTable
                 ),
-                <.div(ExploreStyles.ProposalPdfSummaryEmpty, timeoutMessage).when(timedOut.get)
+                <.div(ExploreStyles.ProposalPdfSummaryEmpty, orphanFailureMessages.toTagMod)
+                  .when(orphanFailures.nonEmpty)
               )
           )
         )

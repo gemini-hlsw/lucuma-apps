@@ -10,6 +10,7 @@ import clue.StreamingClient
 import clue.data.syntax.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
+import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
 import explore.model.ProgramInfo
 import explore.model.ProgramNote
@@ -282,12 +283,13 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
       _.id
     )
 
-  def allProgramAttachments(programId: Program.Id): F[List[Attachment]] =
+  def allProgramAttachments(programId: Program.Id): F[ProgramAttachments] =
     AllProgramAttachments[F]
       .query(programId)
       .processErrors
       .map:
-        _.program.fold(List.empty)(_.attachments)
+        _.program.fold(ProgramAttachments.Empty): p =>
+          ProgramAttachments(p.attachments, p.proposalSummaryGeneration)
 
   def programEditsSubscription(programId: Program.Id): Resource[F, fs2.Stream[F, ProgramDetails]] =
     ProgramEditDetailsSubscription
@@ -297,11 +299,14 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
 
   def programAttachmentsDeltaSubscription(
     programId: Program.Id
-  ): Resource[F, fs2.Stream[F, List[Attachment]]] =
+  ): Resource[F, fs2.Stream[F, ProgramAttachments]] =
     ProgramEditAttachmentSubscription
       .subscribe[F](programId.toProgramEditInput)
       .processErrors("ProgramEditAttachmentSubscription")
-      .map(_.map(_.programEdit.value.attachments))
+      .map(_.map: v =>
+        ProgramAttachments(v.programEdit.value.attachments,
+                           v.programEdit.value.proposalSummaryGeneration
+        ))
 
   def programDeltaSubscription(
     programId: Program.Id

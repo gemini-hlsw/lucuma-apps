@@ -8,9 +8,9 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.Throttler
-import explore.model.Attachment
 import explore.model.Group
 import explore.model.Observation
+import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
 import explore.model.ProgramInfo
 import explore.model.ProgramSummaries
@@ -126,7 +126,7 @@ object ProgramCacheController
     val groups: IO[List[Group]] =
       props.odbApi.allProgramGroups(props.programId).logTime("AllProgramGroups")
 
-    val attachments: IO[List[Attachment]] =
+    val attachments: IO[ProgramAttachments] =
       props.odbApi.allProgramAttachments(props.programId).logTime("AllProgramAttachments")
 
     val programs: IO[List[ProgramInfo]] =

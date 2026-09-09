@@ -188,6 +188,7 @@ object Routing:
                 detailsView,
                 model.rootModel.zoom(RootModel.cfps).get.toOption.orEmpty,
                 programSummaries.model.zoom(ProgramSummaries.attachments),
+                programSummaries.model.zoom(ProgramSummaries.summaryGeneration),
                 model.rootModel.zoom(RootModel.otherUndoStacks).zoom(ModelUndoStacks.forProposal),
                 userPreferences(model.rootModel).proposalTabLayout,
                 model.userIsReadonlyCoi,

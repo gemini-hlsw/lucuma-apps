@@ -45,6 +45,7 @@ case class ProgramSummaries(
   observations:           ObservationList,
   groups:                 GroupList,
   attachments:            AttachmentList,
+  summaryGeneration:      ProposalSummaryGeneration,
   programs:               ProgramInfoList,
   configurationRequests:  ConfigurationRequestList,
   calculatedValueOrphans: CalculatedValueOrphanMap = Map.empty
@@ -368,6 +369,8 @@ object ProgramSummaries:
     Focus[ProgramSummaries](_.observations)
   val groups: Lens[ProgramSummaries, GroupList]                                = Focus[ProgramSummaries](_.groups)
   val attachments: Lens[ProgramSummaries, AttachmentList]                      = Focus[ProgramSummaries](_.attachments)
+  val summaryGeneration: Lens[ProgramSummaries, ProposalSummaryGeneration]     =
+    Focus[ProgramSummaries](_.summaryGeneration)
   val programs: Lens[ProgramSummaries, ProgramInfoList]                        = Focus[ProgramSummaries](_.programs)
   val configurationRequests: Lens[ProgramSummaries, ConfigurationRequestList]  =
     Focus[ProgramSummaries](_.configurationRequests)
@@ -396,7 +399,7 @@ object ProgramSummaries:
     targetList:        List[TargetWithId],
     obsList:           List[Observation],
     groupList:         List[Group],
-    attachments:       List[Attachment],
+    attachments:       ProgramAttachments,
     programs:          List[ProgramInfo],
     configRequests:    List[ConfigurationRequest]
   ): ProgramSummaries =
@@ -405,7 +408,8 @@ object ProgramSummaries:
       targetList.toSortedMap(_.id, identity),
       obsList.toSortedMap(_.id),
       groupList.toSortedMap(_.id),
-      attachments.toSortedMap(_.id),
+      attachments.attachments.toSortedMap(_.id),
+      attachments.proposalSummaryGeneration,
       programs.toSortedMap(_.id),
       configRequests.toSortedMap(_.id)
     )

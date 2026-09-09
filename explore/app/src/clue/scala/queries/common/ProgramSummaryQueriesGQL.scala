@@ -95,6 +95,7 @@ object ProgramSummaryQueriesGQL {
       query($$programId: ProgramId!) {
         program(programId: $$programId) {
           attachments $AttachmentSubquery
+          proposalSummaryGeneration $ProposalSummaryGenerationSubquery
         }
       }
     """

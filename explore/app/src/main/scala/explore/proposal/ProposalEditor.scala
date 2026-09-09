@@ -27,6 +27,7 @@ import explore.model.ExploreGridLayouts
 import explore.model.ProgramDetails
 import explore.model.ProgramUser
 import explore.model.Proposal
+import explore.model.ProposalSummaryGeneration
 import explore.model.ProposalTabTileIds
 import explore.model.ProposalType
 import explore.model.ProposalType.GeminiProposalType
@@ -71,6 +72,7 @@ case class ProposalEditor(
   proposal:           UndoSetter[Proposal],
   users:              View[List[ProgramUser]],
   attachments:        View[AttachmentList],
+  summaryGeneration:  View[ProposalSummaryGeneration],
   errors:             Option[List[ProposalSubmissionError]],
   authToken:          Option[NonEmptyString],
   cfps:               List[CallForProposal],
@@ -457,6 +459,7 @@ object ProposalEditor
                 props.programId,
                 token,
                 props.attachments,
+                props.summaryGeneration,
                 props.proposal.get.proposalType,
                 props.proposalOrUserIsReadonly
               )
