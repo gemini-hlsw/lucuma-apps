@@ -31,6 +31,7 @@ import lucuma.core.enums.Partner
 import lucuma.core.model.Program
 import lucuma.core.util.Timestamp
 import lucuma.core.util.time.format.GppDateFormatter
+import lucuma.core.util.time.format.GppTimeTZFormatterWithZone
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
@@ -103,6 +104,10 @@ object ProposalPdfSummaryTile
             case Pot.Pending    => <.span(Icons.Spinner.withSpin(true))
             case Pot.Error(t)   => <.span(Icons.ExclamationTriangle).withTooltip(t.getMessage)
 
+      def generatedAt(ts: Timestamp): String =
+        val ldt = ts.toLocalDateTime
+        s"${GppDateFormatter.format(ldt)} ${GppTimeTZFormatterWithZone.format(ldt)}"
+
       val columns: List[ColumnDef.WithTableMeta[Attachment, ?, TableMeta]] = List(
         ColDef(PartnerColumnId, _.summaryPartner, "Partner")
           .withCell(_.value.map(partnerCell)),
@@ -118,7 +123,7 @@ object ProposalPdfSummaryTile
                 // A failure beside the timestamp means this PDF is the one the render failed to
                 // replace.
                 <.span(
-                  GppDateFormatter.format(cell.value.updatedAt.toLocalDateTime),
+                  generatedAt(cell.value.updatedAt),
                   meta.generation
                     .failureFor(cell.value.summaryPartner)
                     .map(f =>
