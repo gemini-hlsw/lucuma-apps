@@ -42,6 +42,7 @@ import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ProgramType
 import lucuma.core.math.Coordinates
 import lucuma.core.model.Observation
@@ -97,7 +98,8 @@ final case class ObservationTargetsEditorTile(
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None,
   positions:           Option[ObsPositions] = None,
-  ags:                 AgsData = AgsData.Empty
+  ags:                 AgsData = AgsData.Empty,
+  explicitGuideProbe:  Option[View[Option[GuideProbe]]] = None
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
       tileId,
@@ -492,7 +494,8 @@ object ObservationTargetsEditorTile
                       addSkyMode.get,
                       resetSky,
                       props.isStaffOrAdmin,
-                      editorReadonly
+                      editorReadonly,
+                      props.explicitGuideProbe
                     ),
                     formContent
                   )

@@ -24,6 +24,12 @@ given Display[TimeUnit] = Display.by(
   _.toString.toLowerCase()
 )
 
+given Display[GuideProbe] = Display.byShortName:
+  case GuideProbe.PWFS1           => "PWFS1"
+  case GuideProbe.PWFS2           => "PWFS2"
+  case GuideProbe.GmosOIWFS       => "GMOS OIWFS"
+  case GuideProbe.Flamingos2OIWFS => "F2 OIWFS"
+
 given Display[GmosXBinning] = Display.by(_.shortName, _.longName)
 
 given Display[GmosYBinning] = Display.by(_.shortName, _.longName)

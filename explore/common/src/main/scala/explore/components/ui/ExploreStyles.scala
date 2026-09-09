@@ -237,6 +237,7 @@ object ExploreStyles:
   val AladinFOV: Css              = Css("aladin-status-fov")
   val AladinGuideStarLoading: Css = Css("aladin-status-gs-loading")
   val AladinGuideStar: Css        = Css("aladin-status-gs")
+  val AladinGuideProbe: Css       = Css("aladin-guide-probe")
   val AladinDetailText: Css       = Css("aladin-detail-text")
   val AladinCurrentCoords: Css    = Css("aladin-status-current-coordinates")
   val AladinCenterButton: Css     = Css("aladin-status-center-button")

@@ -669,6 +669,12 @@ object ObsTabTiles:
             if bo.isManual then setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
             else Callback.empty
 
+        // Like the blind offset, the guide probe override does not participate in undo/redo
+        val explicitGuideProbeView = props.observation.model
+          .zoom(Observation.explicitGuideProbe)
+          .withOnMod: probe =>
+            odbApi.updateExplicitGuideProbe(List(props.obsId), probe).runAsync
+
         // Only ghost has sky positions. this is the only place where we know it is ghost related
         // but it is abstracted away downstream.
         // The sky can be assigned to IFU1 (SkyPlusTarget) or IFU2 (TargetPlusSky) depending on the mapping.
@@ -720,6 +726,7 @@ object ObsTabTiles:
             // Any target changes invalidate the sequence
             sequenceChanged = sequenceChanged.set(pending),
             blindOffsetInfo = (props.obsId, blindOffsetView).some,
+            explicitGuideProbe = explicitGuideProbeView.some,
             positions = positions.some,
             ags = agsData
           )
