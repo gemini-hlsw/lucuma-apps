@@ -3,9 +3,7 @@
 
 package explore.targeteditor
 
-import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -14,11 +12,12 @@ import lucuma.core.enums.ObservingModeType
 import lucuma.core.model.probes
 import lucuma.core.util.Display
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.DropdownOptional
+import lucuma.react.primereact.SelectItem
 import lucuma.ui.display.given
-import lucuma.ui.primereact.EnumDropdownOptionalView
-import lucuma.ui.primereact.given
 
-// Lets the user override the guide probe AGS uses. Only probes the mode supports are offered.
+// Lets the user override the guide probe AGS uses. Only probes the mode supports are offered,
+// best-first as ordered by `allowedProbes`.
 case class GuideProbeControl(
   obsModeType:        ObservingModeType,
   defaultProbe:       Option[GuideProbe],
@@ -31,18 +30,24 @@ object GuideProbeControl:
 
   private val component =
     ScalaFnComponent[Props]: props =>
-      val allowed: Set[GuideProbe] = probes.allowedProbes(props.obsModeType).toSet
-      val placeholder: String      =
-        props.defaultProbe.fold("Default")(p => s"${Display[GuideProbe].shortName(p)} (default)")
+      val display                               = Display[GuideProbe]
+      val options: List[SelectItem[GuideProbe]] =
+        probes
+          .allowedProbes(props.obsModeType)
+          .toList
+          .map(p => SelectItem(label = display.shortName(p), value = p))
+      val placeholder: String                   =
+        props.defaultProbe.fold("Default")(p => s"${display.shortName(p)} (default)")
 
       <.div(
         ExploreStyles.AladinGuideProbe,
-        EnumDropdownOptionalView(
-          id = NonEmptyString.unsafeFrom("guide-probe"),
-          value = props.explicitGuideProbe,
-          exclude = GuideProbe.values.toSet -- allowed,
+        DropdownOptional(
+          id = "guide-probe",
+          value = props.explicitGuideProbe.get,
+          options = options,
           showClear = props.explicitGuideProbe.get.isDefined,
           disabled = props.readonly,
-          placeholder = placeholder
+          placeholder = placeholder,
+          onChange = props.explicitGuideProbe.set
         )
       )

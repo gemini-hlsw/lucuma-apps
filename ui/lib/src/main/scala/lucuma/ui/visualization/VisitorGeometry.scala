@@ -64,7 +64,6 @@ object VisitorGeometry:
           blindOffset,
           scienceOffsets,
           fallbackPosAngle,
-          conf,
           guideProbe,
           gs,
           candidatesVisibilityCss

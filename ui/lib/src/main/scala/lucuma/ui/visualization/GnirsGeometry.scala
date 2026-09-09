@@ -103,7 +103,6 @@ object GnirsGeometry:
           blindOffset,
           scienceOffsets,
           fallbackPosAngle,
-          conf,
           guideProbe,
           gs,
           candidatesVisibilityCss

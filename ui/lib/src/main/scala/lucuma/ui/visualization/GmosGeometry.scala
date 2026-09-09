@@ -124,7 +124,7 @@ object GmosGeometry extends WithPwfsGeometry:
     guideProbe: Option[GuideProbe]
   ): SortedMap[Css, ShapeExpression] =
     conf
-      .map: c =>
+      .as:
         guideProbe match
           case Some(GuideProbe.GmosOIWFS)                      =>
             oiwfsCandidatesArea(posAngle, extraCss)

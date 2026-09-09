@@ -447,7 +447,6 @@ def useVisualizationShapes(
                blindOffset,
                vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
-               vizConf.map(_.configuration),
                vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
@@ -475,7 +474,6 @@ def useVisualizationShapes(
                blindOffset,
                vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
-               vizConf.map(_.configuration),
                vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss,

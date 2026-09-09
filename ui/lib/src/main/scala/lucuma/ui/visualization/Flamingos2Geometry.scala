@@ -78,7 +78,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     guideProbe:    Option[GuideProbe]
   ): SortedMap[Css, ShapeExpression] =
     configuration
-      .map: c =>
+      .as:
         guideProbe match
           case Some(GuideProbe.Flamingos2OIWFS)                =>
             oiwfsCandidatesArea(lw, posAngle, extraCss)

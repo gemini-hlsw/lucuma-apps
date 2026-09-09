@@ -457,7 +457,6 @@ object AladinCell extends ModelOptics with AladinCommon:
               React.Fragment(
                 <.div(
                   ExploreStyles.AladinContainerColumn,
-                  // One flex row so the guider dropdown takes the button height without sizing math
                   <.div(
                     ExploreStyles.AladinTopRightControls,
                     renderGuideProbeControl,

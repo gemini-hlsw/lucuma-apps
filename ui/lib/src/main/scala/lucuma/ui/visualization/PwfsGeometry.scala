@@ -18,7 +18,6 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.react.common.style.Css
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
@@ -45,7 +44,6 @@ trait PwfsGeometry extends WithPwfsGeometry:
     blindOffset:             Option[Coordinates],
     scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
-    conf:                    Option[BasicConfiguration],
     guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
