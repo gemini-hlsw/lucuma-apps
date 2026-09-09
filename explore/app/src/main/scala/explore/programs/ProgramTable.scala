@@ -17,7 +17,6 @@ import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbProgramApi
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
@@ -28,7 +27,9 @@ import lucuma.react.primereact.InputGroup
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
+import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.primereact.*
+import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
@@ -43,7 +44,6 @@ case class ProgramTable(
   isRequired:       Boolean,
   onClose:          Option[Callback],
   newProgramId:     Option[Program.Id],
-  virtualizerRef:   UseRef[Option[HTMLTableVirtualizer]],
   showFilters:      Boolean = true
 ) extends ReactFnProps(ProgramTable.component)
 
@@ -94,10 +94,17 @@ object ProgramTable:
   private val PiColumnId: ColumnId        = ColumnId("pi")
   private val NameColumnId: ColumnId      = ColumnId("name")
 
+  private val ScrollOptions =
+    rawVirtual.mod
+      .ScrollToOptions()
+      .setBehavior(rawVirtual.mod.ScrollBehavior.auto)
+      .setAlign(rawVirtual.mod.ScrollAlignment.start)
+
   private val component = ScalaFnComponent[Props](props =>
     for {
-      ctx   <- useContext(AppContext.ctx)
-      cols  <-
+      ctx            <- useContext(AppContext.ctx)
+      virtualizerRef <- useRef(none[HTMLTableVirtualizer])
+      cols           <-
         useMemo(()): _ =>
           import ctx.given
 
@@ -214,31 +221,44 @@ object ProgramTable:
             ).sortableBy(_.get.name.foldMap(_.value))
               .withFilterMethod(FilterMethod.Text(_.get.name.foldMap(_.value)))
           )
-      rows  <- useMemo(props.programInfos)(identity)
-      table <- useReactTableWithStateStore:
-                 import ctx.given
+      rows           <- useMemo(props.programInfos)(identity)
+      table          <- useReactTableWithStateStore:
+                          import ctx.given
 
-                 TableOptionsWithStateStore(
-                   TableOptions(
-                     cols,
-                     rows,
-                     enableSorting = true,
-                     enableColumnResizing = false,
-                     enableColumnFilters = true,
-                     enableGlobalFilter = true,
-                     globalFilterFn = FilterMethod.globalFilterFn(cols),
-                     enableFacetedUniqueValues = true,
-                     meta = TableMeta(
-                       props.currentProgramId,
-                       props.userId,
-                       props.isStaff,
-                       props.newProgramId,
-                       props.programInfos.size
-                     )
-                   ),
-                   TableStore(props.userId.some, TableId.ProgramsSelector)
-                 )
-      _     <- useResetHiddenFilters(table, props.showFilters)
+                          TableOptionsWithStateStore(
+                            TableOptions(
+                              cols,
+                              rows,
+                              enableSorting = true,
+                              enableColumnResizing = false,
+                              enableColumnFilters = true,
+                              enableGlobalFilter = true,
+                              globalFilterFn = FilterMethod.globalFilterFn(cols),
+                              enableFacetedUniqueValues = true,
+                              meta = TableMeta(
+                                props.currentProgramId,
+                                props.userId,
+                                props.isStaff,
+                                props.newProgramId,
+                                props.programInfos.size
+                              )
+                            ),
+                            TableStore(props.userId.some, TableId.ProgramsSelector)
+                          )
+      _              <- useResetHiddenFilters(table, props.showFilters)
+      // A new program must be visible so the user can name it: clear any filters hiding it...
+      _              <- useEffectWithDeps(props.newProgramId): newProgramId =>
+                          (table.resetColumnFilters() >> table.resetGlobalFilter())
+                            .when_(newProgramId.isDefined)
+      // ...and scroll to it once it is in the row model (which may take a render after the reset).
+      _              <- useEffectWithDeps((props.newProgramId, table.getRowModel().rows.length)):
+                          (newProgramId, _) =>
+                            newProgramId.foldMap: pid =>
+                              val index = table.getRowModel().rows.indexWhere(_.original.get.id === pid)
+                              virtualizerRef.get
+                                .map: refOpt =>
+                                  refOpt.foreach(_.scrollToIndex(index, ScrollOptions))
+                                .when_(index >= 0)
     } yield
       val globalFilterRow =
         if props.showFilters then
@@ -273,7 +293,7 @@ object ProgramTable:
           striped = true,
           compact = Compact.Very,
           tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
-          virtualizerRef = props.virtualizerRef,
+          virtualizerRef = virtualizerRef,
           columnFilterRenderer = if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
           emptyMessage = "No programs available"
         )
