@@ -11,6 +11,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.NonNegLong
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
+import explore.components.HelpIcon
 import explore.components.Tile
 import explore.components.TileComponent
 import explore.components.TileContents
@@ -36,6 +37,7 @@ import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.react.given
 import lucuma.ui.reusability.given
@@ -94,7 +96,7 @@ object ProposalPdfSummaryTile
           .get(att.toMapKey)
           .foldMap:
             case Pot.Ready(url) =>
-              <.a(Icons.Eye,
+              <.a(Icons.FilePdf,
                   ^.href   := url,
                   ^.target := "_blank",
                   ^.rel    := "noopener noreferrer",
@@ -186,20 +188,23 @@ object ProposalPdfSummaryTile
                 g => props.summaryGeneration.set(g).toAsync
               )
 
-        // Clickable during a render on purpose: the ODB queues one request behind a running one,
-        // so edits made mid-render are not lost.
         val title =
-          // In a span so the button doesn't take up the full width of the title bar.
-          <.span(
-            Button(
-              severity = Button.Severity.Secondary,
-              icon = Icons.Gears,
-              tooltip =
-                if (generation.isPending) "Regenerate again with the latest changes"
-                else "Regenerate the PDF summary",
-              onClick = regenerate.runAsync
-            ).tiny.compact
-          ).unless(props.readOnly)
+          <.span(ExploreStyles.ProposalPdfSummaryTitle)(
+            HelpIcon("proposal/main/pdf-summary.md".refined),
+            // Clickable during a render on purpose: the ODB queues one request behind a running
+            // one, so edits made mid-render are not lost.
+            // In a span so the button doesn't take up the full width of the title bar.
+            <.span(
+              Button(
+                severity = Button.Severity.Secondary,
+                icon = Icons.ArrowsRotate,
+                tooltip =
+                  if (generation.isPending) "Regenerate again with the latest changes"
+                  else "Regenerate the PDF summary",
+                onClick = regenerate.runAsync
+              ).tiny.compact
+            ).unless(props.readOnly)
+          )
 
         // Failures with no row to hang them on, as after a first-ever render fails.
         val orphanFailures =
