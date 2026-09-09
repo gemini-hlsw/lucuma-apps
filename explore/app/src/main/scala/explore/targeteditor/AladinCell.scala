@@ -457,7 +457,12 @@ object AladinCell extends ModelOptics with AladinCommon:
               React.Fragment(
                 <.div(
                   ExploreStyles.AladinContainerColumn,
-                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
+                  // One flex row so the guider dropdown takes the button height without sizing math
+                  <.div(
+                    ExploreStyles.AladinTopRightControls,
+                    renderGuideProbeControl,
+                    AladinFullScreenControl(fullScreenView.zoom(fullScreenIso))
+                  ),
                   <.div(
                     ExploreStyles.AladinToolbox,
                     Button(onClickE = menuRef.toggle).withMods(
@@ -468,7 +473,6 @@ object AladinCell extends ModelOptics with AladinCommon:
                   options.get.renderPot(opt =>
                     React.Fragment(renderAladin(opt, tr, co),
                                    renderToolbar(opt),
-                                   renderGuideProbeControl,
                                    renderAgsOverlay(opt),
                                    renderAddPositionOverlay
                     )
