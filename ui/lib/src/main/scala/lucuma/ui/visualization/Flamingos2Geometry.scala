@@ -15,7 +15,6 @@ import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
-import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.flamingos2.scienceArea
@@ -76,11 +75,11 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     posAngle:      Angle,
     extraCss:      Css,
     configuration: Option[BasicConfiguration],
-    trackType:     Option[TrackType]
+    guideProbe:    Option[GuideProbe]
   ): SortedMap[Css, ShapeExpression] =
     configuration
       .map: c =>
-        c.guideProbe(trackType) match
+        guideProbe match
           case Some(GuideProbe.Flamingos2OIWFS)                =>
             oiwfsCandidatesArea(lw, posAngle, extraCss)
           case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -96,12 +95,12 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     configuration: BasicConfiguration,
     lyotWheel:     Flamingos2LyotWheel,
     port:          PortDisposition,
-    trackType:     Option[TrackType]
+    guideProbe:    Option[GuideProbe]
   ): ShapeExpression =
     configuration match
       case _: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging |
           _: BasicConfiguration.Flamingos2Mos =>
-        configuration.guideProbe(trackType) match
+        guideProbe match
           case Some(GuideProbe.Flamingos2OIWFS)                =>
             flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
           case Some(GuideProbe.PWFS1) | Some(GuideProbe.PWFS2) =>
@@ -117,7 +116,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     guideStarOffset: Offset,
     offsetPos:       Offset,
     mode:            Option[BasicConfiguration],
-    trackType:       Option[TrackType],
+    guideProbe:      Option[GuideProbe],
     port:            PortDisposition,
     lyotWheel:       Flamingos2LyotWheel // in practice this is always F16
   ): SortedMap[Css, ShapeExpression] =
@@ -126,7 +125,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             m @ (_: BasicConfiguration.Flamingos2LongSlit |
             _: BasicConfiguration.Flamingos2Imaging | _: BasicConfiguration.Flamingos2Mos)
           ) =>
-        m.guideProbe(trackType).fold(SortedMap.empty[Css, ShapeExpression]) { p =>
+        guideProbe.fold(SortedMap.empty[Css, ShapeExpression]) { p =>
           p match
             case GuideProbe.Flamingos2OIWFS          =>
               SortedMap(
@@ -151,7 +150,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,
-    trackType:               Option[TrackType],
+    guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css,
     lyotWheel:               Flamingos2LyotWheel = Flamingos2LyotWheel.F16 // in practice this is always F16
@@ -162,7 +161,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
         // Shapes at base position
         val baseShapes: SortedMap[Css, ShapeExpression] =
           shapesForMode(posAngle, Offset.Zero, conf) ++
-            commonShapes(lyotWheel, posAngle, candidatesVisibilityCss, conf, trackType)
+            commonShapes(lyotWheel, posAngle, candidatesVisibilityCss, conf, guideProbe)
 
         // Don't show the probe if there is no usable GS
         val probe = gs
@@ -171,7 +170,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
               referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
 
             val probeShape =
-              probeShapes(posAngle, gsOffset, Offset.Zero, conf, trackType, port, lyotWheel)
+              probeShapes(posAngle, gsOffset, Offset.Zero, conf, guideProbe, port, lyotWheel)
 
             val positions = Ags.generatePositions(
               referenceCoordinates.some,
@@ -184,7 +183,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             val patrolFieldIntersection =
               conf
                 .flatMap: c =>
-                  c.agsParams(port, trackType)
+                  c.agsParams(port, guideProbe)
                 .map: params =>
                   val calcs = params.posCalculations(positions.value.toNonEmptyList)
                   PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField

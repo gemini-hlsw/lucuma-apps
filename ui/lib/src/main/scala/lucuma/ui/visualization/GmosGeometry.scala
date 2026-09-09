@@ -15,7 +15,6 @@ import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.Site
-import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gmos
 import lucuma.core.geom.gmos.oiwfs
@@ -119,14 +118,14 @@ object GmosGeometry extends WithPwfsGeometry:
 
   // Shape to display always
   def commonShapes(
-    posAngle:  Angle,
-    extraCss:  Css,
-    conf:      Option[BasicConfiguration],
-    trackType: Option[TrackType]
+    posAngle:   Angle,
+    extraCss:   Css,
+    conf:       Option[BasicConfiguration],
+    guideProbe: Option[GuideProbe]
   ): SortedMap[Css, ShapeExpression] =
     conf
       .map: c =>
-        c.guideProbe(trackType) match
+        guideProbe match
           case Some(GuideProbe.GmosOIWFS)                      =>
             oiwfsCandidatesArea(posAngle, extraCss)
           case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -140,11 +139,11 @@ object GmosGeometry extends WithPwfsGeometry:
     guideStarOffset: Offset,
     offsetPos:       Offset,
     mode:            Option[BasicConfiguration],
-    trackType:       Option[TrackType],
+    guideProbe:      Option[GuideProbe],
     port:            PortDisposition
   ): SortedMap[Css, ShapeExpression] =
     mode
-      .flatMap(c => c.guideProbe(trackType).map((c, _)))
+      .flatMap(c => guideProbe.map((c, _)))
       .flatMap: (c, probe) =>
         (c, probe) match
           case (_, p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2))                          =>
@@ -201,7 +200,7 @@ object GmosGeometry extends WithPwfsGeometry:
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,
-    trackType:               Option[TrackType],
+    guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
@@ -211,7 +210,7 @@ object GmosGeometry extends WithPwfsGeometry:
         // Shapes at base position
         val baseShapes: SortedMap[Css, ShapeExpression] =
           shapesForMode(posAngle, Offset.Zero, conf, port) ++
-            commonShapes(posAngle, candidatesVisibilityCss, conf, trackType)
+            commonShapes(posAngle, candidatesVisibilityCss, conf, guideProbe)
 
         // Don't show the probe if there is no usable GS
         val probe = gs
@@ -219,7 +218,7 @@ object GmosGeometry extends WithPwfsGeometry:
             val gsOffset   =
               referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
             val probeShape =
-              probeShapes(posAngle, gsOffset, Offset.Zero, conf, trackType, port)
+              probeShapes(posAngle, gsOffset, Offset.Zero, conf, guideProbe, port)
 
             val positions = Ags.generatePositions(
               referenceCoordinates.some,
@@ -232,7 +231,7 @@ object GmosGeometry extends WithPwfsGeometry:
             val patrolFieldIntersection =
               conf
                 .flatMap: c =>
-                  c.agsParams(port, trackType)
+                  c.agsParams(port, guideProbe)
                 .map: params =>
                   val calcs = params.posCalculations(positions.value.toNonEmptyList)
                   PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField

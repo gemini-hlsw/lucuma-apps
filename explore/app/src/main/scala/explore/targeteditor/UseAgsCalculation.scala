@@ -20,7 +20,7 @@ import japgolly.scalajs.react.*
 import lucuma.ags.*
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
-import lucuma.core.enums.TrackType
+import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
@@ -42,7 +42,7 @@ case class AgsCalcProps(
   acqOffsets:    Option[AcquisitionOffsets],
   sciOffsets:    Option[ScienceOffsets],
   candidates:    List[GuideStarCandidate],
-  trackType:     Option[TrackType]
+  guideProbe:    Option[GuideProbe]
 )
 
 object AgsCalcProps:
@@ -56,7 +56,7 @@ object AgsCalcProps:
      p.acqOffsets,
      p.sciOffsets,
      p.candidates.length,
-     p.trackType
+     p.guideProbe
     )
 
 case class AgsCalculationResults(
@@ -79,7 +79,7 @@ object UseAgsCalculation:
     agsClient:      WorkerClient[IO, AgsMessage.Request]
   )(ctx: AppContext[IO]): IO[Unit] =
     obsCoords.baseCoords.map { baseCoords =>
-      val params = props.observingMode.flatMap(_.agsParams(PortDisposition.Side, props.trackType))
+      val params = props.observingMode.flatMap(_.agsParams(PortDisposition.Side, props.guideProbe))
 
       // For AGS sky coordinates behave like science coords.
       val scienceCoords =

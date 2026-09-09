@@ -11,7 +11,6 @@ import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.ghost
 import lucuma.core.geom.syntax.shapeexpression.*
@@ -77,7 +76,7 @@ object GhostGeometry extends PwfsGeometry:
     scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
-    trackType:               Option[TrackType],
+    guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css,
     ifu1Coords:              Option[Coordinates],
@@ -92,7 +91,7 @@ object GhostGeometry extends PwfsGeometry:
       scienceOffsets,
       fallbackPosAngle,
       conf,
-      trackType,
+      guideProbe,
       gs,
       candidatesVisibilityCss
     ).flatMap: baseGeometries =>

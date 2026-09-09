@@ -103,7 +103,7 @@ def usePatrolFieldShapes(
 
     for
       conf       <- vizConf.map(_.configuration).filter(_ => isVisible)
-      agsParams  <- conf.agsParams(PortDisposition.Side, vizConf.flatMap(_.trackType))
+      agsParams  <- conf.agsParams(PortDisposition.Side, vizConf.flatMap(_.guideProbe))
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
     yield
@@ -298,7 +298,7 @@ def useVisualizationShapes(
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )
@@ -319,7 +319,7 @@ def useVisualizationShapes(
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )
@@ -341,7 +341,7 @@ def useVisualizationShapes(
                  vizConf.map(_.posAngle),
                  vizConf.map(_.configuration),
                  PortDisposition.Side,
-                 vizConf.flatMap(_.trackType),
+                 vizConf.flatMap(_.guideProbe),
                  selectedGS,
                  candidatesVisibilityCss
                )
@@ -363,7 +363,7 @@ def useVisualizationShapes(
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )
@@ -384,7 +384,7 @@ def useVisualizationShapes(
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )
@@ -406,7 +406,7 @@ def useVisualizationShapes(
                  vizConf.map(_.posAngle),
                  vizConf.map(_.configuration),
                  PortDisposition.Side,
-                 vizConf.flatMap(_.trackType),
+                 vizConf.flatMap(_.guideProbe),
                  selectedGS,
                  candidatesVisibilityCss
                )
@@ -429,7 +429,7 @@ def useVisualizationShapes(
                  vizConf.map(_.posAngle),
                  vizConf.map(_.configuration),
                  PortDisposition.Side,
-                 vizConf.flatMap(_.trackType),
+                 vizConf.flatMap(_.guideProbe),
                  selectedGS,
                  candidatesVisibilityCss
                )
@@ -448,7 +448,7 @@ def useVisualizationShapes(
                vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )
@@ -476,7 +476,7 @@ def useVisualizationShapes(
                vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss,
                ifu1Coords,
@@ -501,7 +501,7 @@ def useVisualizationShapes(
                vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )
@@ -520,7 +520,7 @@ def useVisualizationShapes(
                vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
-               vizConf.flatMap(_.trackType),
+               vizConf.flatMap(_.guideProbe),
                selectedGS,
                candidatesVisibilityCss
              )

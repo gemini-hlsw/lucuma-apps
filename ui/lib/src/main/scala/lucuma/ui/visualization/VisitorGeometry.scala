@@ -10,7 +10,6 @@ import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TrackType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.visitors.visitorScienceArea
@@ -51,7 +50,7 @@ object VisitorGeometry:
     scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
-    trackType:               Option[TrackType],
+    guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
@@ -66,7 +65,7 @@ object VisitorGeometry:
           scienceOffsets,
           fallbackPosAngle,
           conf,
-          trackType,
+          guideProbe,
           gs,
           candidatesVisibilityCss
         )

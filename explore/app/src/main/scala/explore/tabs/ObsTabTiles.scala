@@ -395,7 +395,8 @@ object ObsTabTiles:
             targetViz,
             props.observation.get.explicitBase,
             props.observation.get.cassRotator,
-            maskDesignPot.value.toOption.flatten
+            maskDesignPot.value.toOption.flatten,
+            props.observation.get.explicitGuideProbe
           )
         focusedTargets        = props.asterismAsNel.map: targets =>
                                   props.focusedTarget.fold(targets)(targets.focusOn)

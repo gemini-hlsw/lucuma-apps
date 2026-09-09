@@ -25,6 +25,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.probes
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
@@ -54,7 +55,8 @@ final case class ObsConfiguration(
   targetViz:          TargetVisualization,
   explicitBase:       Option[Coordinates],
   cassRotator:        CassRotator,
-  maskDesign:         Option[MaskDesign]
+  maskDesign:         Option[MaskDesign],
+  explicitGuideProbe: Option[GuideProbe]
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -100,8 +102,13 @@ final case class ObsConfiguration(
   def cassRotatorFixed: Boolean =
     cassRotator === CassRotator.Fixed
 
+  // The probe AGS and the visualization use. An explicit probe that a mode change has
+  // left unusable is ignored so the drawing never shows an impossible probe.
   def guideProbe: Option[GuideProbe] =
-    configuration.flatMap(_.guideProbe(trackType))
+    val default = configuration.flatMap(_.guideProbe(trackType))
+    explicitGuideProbe
+      .filter(p => obsModeType.exists(probes.isProbeAllowed(_, p)))
+      .orElse(default)
 
   def guidedAcqOffsets =
     acquisitionOffsets.flatMap(_.asAcqOffsets)
@@ -132,5 +139,6 @@ object ObsConfiguration:
       TargetVisualization.Empty,
       none,
       CassRotator.Following,
+      none,
       none
     )

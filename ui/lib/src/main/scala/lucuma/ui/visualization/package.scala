@@ -19,7 +19,6 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
-import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -217,8 +216,8 @@ extension (conf: BasicConfiguration)
         List.empty
 
   def agsParams(
-    port:      PortDisposition,
-    trackType: Option[TrackType]
+    port:       PortDisposition,
+    guideProbe: Option[GuideProbe]
   ): Option[AgsParams & SingleProbeAgsParams] =
     val base =
       conf match
@@ -265,7 +264,7 @@ extension (conf: BasicConfiguration)
         case BasicConfiguration.KeckExchange(_, _) | BasicConfiguration.SubaruExchange(_, _) =>
           none
 
-    conf.guideProbe(trackType) match
+    guideProbe match
       case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
       case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
       case _                      => base
