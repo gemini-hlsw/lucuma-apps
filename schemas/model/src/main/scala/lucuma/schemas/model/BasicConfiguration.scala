@@ -235,7 +235,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       Wavelength.Min
 
   def guideProbe(trackType: Option[TrackType]): Option[GuideProbe] =
-    trackType.flatMap(probes.guideProbe(obsModeType, _))
+    trackType.flatMap(probes.defaultGuideProbe(obsModeType, _))
 
   def targetVisualization(
     scienceTargets: List[TargetWithId],
