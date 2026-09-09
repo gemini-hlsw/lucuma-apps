@@ -35,6 +35,7 @@ object ExecutionVisitsSubquery
                   interval $TimestampIntervalSubquery
                   stepConfig {
                     stepType
+                    __typename
                     ... on Gcal {
                       continuum
                       arcs

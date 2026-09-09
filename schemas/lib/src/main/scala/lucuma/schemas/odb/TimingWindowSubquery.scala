@@ -16,17 +16,14 @@ object TimingWindowSubquery extends GraphQLSubquery.Typed[ObservationDB, TimingW
           inclusion
           startUtc
           end {
+            __typename
             ... on TimingWindowEndAt {
               atUtc
             }
             ... on TimingWindowEndAfter {
-              after {
-                milliseconds
-              }         
+              after { milliseconds }
               repeat {
-                period {
-                  milliseconds
-                }
+                period { milliseconds }
                 times
               }
             }

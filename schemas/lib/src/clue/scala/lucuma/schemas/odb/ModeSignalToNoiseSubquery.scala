@@ -16,6 +16,7 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
   override val subquery = gql"""
     {
       itcType
+      __typename
         ... on ItcSpectroscopy {
           acquisition {
             selected {

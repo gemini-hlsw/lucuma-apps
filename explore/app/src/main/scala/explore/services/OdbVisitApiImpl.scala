@@ -14,6 +14,7 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.odb.VisitQueriesGQL.ObservationVisits
 import queries.common.ObsQueriesGQL.*
+import queries.common.ObsQueriesGQL.StepEventSubscription.Data.ExecutionEventAdded
 
 trait OdbVisitApiImpl[F[_]: Sync](using StreamingClient[F, ObservationDB]) extends OdbVisitApi[F]:
   def observationVisits(obsId: Observation.Id): F[Option[ExecutionVisits]] =
@@ -31,8 +32,11 @@ trait OdbVisitApiImpl[F[_]: Sync](using StreamingClient[F, ObservationDB]) exten
       .ignoreGraphQLErrors
       .map:
         _.filter: data =>
-          List(StepStage.StartStep, StepStage.EndStep)
-            .contains_(data.executionEventAdded.value.stepStage)
+          // `value` is polymorphic (ExecutionEvent); only StepEvents carry a stage.
+          data.executionEventAdded.value match
+            case ExecutionEventAdded.Value.stepEvent(v) =>
+              List(StepStage.StartStep, StepStage.EndStep).contains_(v.stepStage)
+            case _                                      => false
 
   def datasetEventSubscription(
     obsId: Observation.Id

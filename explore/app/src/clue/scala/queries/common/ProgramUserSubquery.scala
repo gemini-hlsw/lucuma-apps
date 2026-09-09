@@ -18,6 +18,7 @@ object ProgramUserSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramU
       user $UserSubquery
       partnerLink {
         linkType
+        __typename
         ... on HasGeminiPartner {
           geminiPartner
         }

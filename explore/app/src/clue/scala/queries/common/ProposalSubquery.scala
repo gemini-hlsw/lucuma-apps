@@ -22,6 +22,7 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
       }
       gemini {
         scienceSubtype
+        __typename
         ... on Classical {
           minPercentTime
           partnerSplits $PartnerSplitSubquery
