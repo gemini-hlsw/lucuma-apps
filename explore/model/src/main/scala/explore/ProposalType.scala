@@ -103,7 +103,7 @@ object ProposalType:
         }
         case ScienceSubtype.Queue     => {
           case Classical(_, minTime, splits, exchange, aeon, jwst, lt) =>
-            // On conversion consider for band 3 gets unset.
+            // Matches the ODB's own classical -> queue conversion default.
             Queue(ScienceSubtype.Queue,
                   TooActivationCeiling.Default,
                   minTime,
@@ -112,7 +112,7 @@ object ProposalType:
                   aeon,
                   jwst,
                   lt,
-                  ConsiderForBand3.Unset
+                  ConsiderForBand3.Consider
             )
           case i                                                       => i
         }
@@ -415,7 +415,7 @@ object ProposalType:
               none,
               false,
               false,
-              ConsiderForBand3.Unset
+              ConsiderForBand3.Consider
         )
     }
 
