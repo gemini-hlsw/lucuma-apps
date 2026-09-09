@@ -3395,12 +3395,16 @@ type Mutation {
   setProgramResourceLimit(input: SetProgramResourceLimitInput!): SetProgramResourceLimitResult!
 
   """
-  Regenerate the proposal summary PDFs for a proposal: one per partner it
-  applies to, each in that partner's style, replacing the existing SUMMARY
-  attachments once rendered.
-  Rendering is asynchronous and completion shows up as the program's SUMMARY
-  attachments.
-  Requires write access to the program (staff, or membership as PI, CoI or support).
+  Regenerate the proposal summary PDFs: one per partner, in that partner's
+  style, replacing the SUMMARY attachments once rendered.
+  
+  Rendering is asynchronous, the new attachments and the flip back to IDLE
+  arrive in one programEdit event.
+  
+  A request while GENERATING is a no-op, or queues at most one more render if the
+  previous one is already rendering.  The state stays GENERATING either way.
+  
+  Requires write access to the program (staff, PI, CoI or support).
   """
   regenerateProposalSummaries(input: RegenerateProposalSummariesInput!): RegenerateProposalSummariesResult!
 
@@ -6924,16 +6928,15 @@ type ProposalSummaryProperties {
 """
 State of a program's proposal summary regeneration.
 
-PENDING while any partner is still rendering, and FAILED only once every render
-has stopped and at least one failed.
-
-PENDING always terminates given an internal timeout and amount of retries.
+GENERATING is expected to terminate under normal operation (timeouts and retries), but may remain GENERATING if rendering is unavailable.
 """
 type ProposalSummaryGeneration {
   """The state of `ProposalSummaryGeneration`."""
   state: ProposalSummaryGenerationState!
 
-  """When the last regeneration was requested. Null when state is IDLE."""
+  """
+  When the oldest render still outstanding was requested. Null when state is IDLE.
+  """
   requestedAt: Timestamp
 
   """
@@ -6961,7 +6964,7 @@ enum ProposalSummaryGenerationState {
   IDLE
 
   """A regeneration is queued or rendering."""
-  PENDING
+  GENERATING
 
   """
   Every render of the last regeneration stopped, and at least one failed.
@@ -14840,7 +14843,7 @@ type Program {
   """Observatory archive properties related to this program."""
   goa: GoaProperties!
 
-  """Where this program's proposal summary regeneration stands."""
+  """State of this program's proposal summary regeneration."""
   proposalSummaryGeneration: ProposalSummaryGeneration!
 
   """

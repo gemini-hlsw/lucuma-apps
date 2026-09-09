@@ -119,7 +119,7 @@ object ProposalPdfSummaryTile
         ColDef(GeneratedColumnId, identity, "Generated at")
           .withCell: cell =>
             cell.table.options.meta.map: meta =>
-              if (meta.generation.isPending)
+              if (meta.generation.isGenerating)
                 <.span(Icons.Spinner.withSpin(true), " Generating...")
               else
                 // A failure beside the timestamp means this PDF is the one the render failed to
@@ -196,7 +196,7 @@ object ProposalPdfSummaryTile
                 severity = Button.Severity.Secondary,
                 icon = Icons.ArrowsRotate,
                 tooltip =
-                  if (generation.isPending) "Regenerate again with the latest changes"
+                  if (generation.isGenerating) "Regenerate again with the latest changes"
                   else "Regenerate the PDF summary",
                 onClick = regenerate.runAsync
               ).tiny.compact
@@ -215,7 +215,7 @@ object ProposalPdfSummaryTile
             )
 
         val emptyMessage =
-          if (generation.isPending)
+          if (generation.isGenerating)
             <.span(Icons.Spinner.withSpin(true), " Generating the PDF summary...")
           else if (orphanFailures.isEmpty) <.span("No PDF summaries yet.")
           else EmptyVdom

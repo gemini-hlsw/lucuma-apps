@@ -9,20 +9,20 @@ import cats.syntax.all.*
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 import lucuma.core.enums.Partner
+import lucuma.core.enums.ProposalSummaryGenerationState
 import lucuma.core.util.Timestamp
-import lucuma.schemas.model.enums.ProposalSummaryGenerationState
 
 /**
  * Where the program's Proposal Summary regeneration stands, aggregated by the ODB over the
- * per-partner renders. A Pending always reaches a terminal state, so the client needs no timers of
- * its own.
+ * per-partner renders. A Generating always reaches a terminal state, so the client needs no timers
+ * of its own.
  */
 case class ProposalSummaryGeneration(
   state:       ProposalSummaryGenerationState,
   requestedAt: Option[Timestamp],
   failures:    List[ProposalSummaryGeneration.Failure]
 ) derives Eq:
-  def isPending: Boolean = state === ProposalSummaryGenerationState.Pending
+  def isGenerating: Boolean = state === ProposalSummaryGenerationState.Generating
 
   def failureFor(partner: Option[Partner]): Option[ProposalSummaryGeneration.Failure] =
     failures.find(_.partner === partner)
