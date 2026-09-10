@@ -63,13 +63,19 @@ def insertIntoList[A](elem: A, nextTo: A => Boolean, position: Edge): Endo[List[
  * The position-based counterpart of [[insertIntoList]], for lists whose elements are not unique --
  * where a predicate on the element cannot identify a single row. Indices are zipped on before the
  * source is removed, so there is no index-shift arithmetic to get wrong.
+ *
+ * Returns the list unchanged when the two positions are the same, or when either is out of range --
+ * a drag whose endpoints cannot be located moves nothing.
  */
 def moveInList[A](from: Int, nextTo: Int, position: Edge): Endo[List[A]] =
   list =>
-    // Dropping an element onto itself must be a no-op.  Without this the predicate below
-    // finds no match in the list the source was just removed from, `insertIntoList`
-    // returns that list unchanged, and the element is dropped altogether.
-    if from == nextTo then list
+    // Both guards protect against losing the dragged element.  `insertIntoList` returns
+    // its input unchanged when it cannot locate the target, and the input here is the list
+    // with the source *already removed*, so anything that stops the target being found --
+    // the element's own position, or an index that isn't in the list, which a stale drag
+    // can produce -- would otherwise drop the element altogether.  Past these guards the
+    // source-removed list still holds `nextTo`, so the predicate always matches.
+    if from == nextTo || !list.indices.contains(nextTo) then list
     else
       list
         .lift(from)

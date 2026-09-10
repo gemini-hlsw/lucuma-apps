@@ -30,6 +30,16 @@ class MoveInListSuite extends munit.FunSuite:
   test("an out-of-range source leaves the list alone"):
     assertEquals(moveInList[String](9, 1, Edge.Top)(abcd), abcd)
 
+  // The same footgun from the other end, and the one a stale drag is most likely to hit:
+  // an unlocatable target used to remove the source and then never re-insert it.
+  test("an out-of-range target leaves the list alone"):
+    List(Edge.Top, Edge.Bottom).foreach: edge =>
+      assertEquals(moveInList[String](1, 9, edge)(abcd), abcd)
+      assertEquals(moveInList[String](1, -1, edge)(abcd), abcd)
+
+  test("an empty list has nothing to move"):
+    assertEquals(moveInList[String](0, 1, Edge.Top)(Nil), Nil)
+
   // The reason this function exists: with duplicate elements a predicate on the value
   // cannot pick out a single row, so only the dragged position may move.
   test("only the dragged position moves when elements repeat"):
