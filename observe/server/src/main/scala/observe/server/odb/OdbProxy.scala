@@ -4,6 +4,7 @@
 package observe.server.odb
 
 import cats.effect.Sync
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import clue.FetchClient
 import clue.syntax.*
@@ -41,7 +42,8 @@ object OdbProxy {
   val FullFuture: NonNegInt = NonNegInt.unsafeFrom(100)
 
   def apply[F[_]](
-    evCmds: OdbCommands[F]
+    evCmds:    OdbCommands[F],
+    stepSpans: StepSpans[F]
   )(using FetchClient[F, ObservationDB])(using F: Sync[F]): OdbProxy[F] =
     new OdbProxy[F] {
       override def read(oid: Observation.Id): F[OdbObservationData] =
@@ -109,15 +111,20 @@ object OdbProxy {
               ObserveFailure.Unexpected(s"OdbProxy: $other cannot execute sequences")
 
       // The sequence the ODB generates depends on the events we sent, so they have to be in first.
+      // The engine calls this after each step to load the next one, so it is the last ODB wait of
+      // a step and closes the step's span.
       private def readingConfig[A <: InstrumentExecutionConfig](oid: Observation.Id)(
         read: F[Option[A]]
       ): F[InstrumentExecutionConfig] =
-        evCmds.flushEvents(oid) >>
-          read.flatMap:
-            _.fold(
-              F.raiseError[InstrumentExecutionConfig]:
-                ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
-            )(_.pure[F])
+        stepSpans
+          .wait(StepSpans.ReadExecutionConfig, oid):
+            evCmds.flushEvents(oid) >>
+              read.flatMap:
+                _.fold(
+                  F.raiseError[InstrumentExecutionConfig]:
+                    ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
+                )(_.pure[F])
+          .guarantee(stepSpans.endCurrent(oid))
 
       override def resetAcquisition(obsId: Observation.Id): F[Unit] =
         evCmds.flushEvents(obsId) >>

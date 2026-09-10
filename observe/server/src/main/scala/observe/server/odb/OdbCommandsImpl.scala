@@ -42,10 +42,15 @@ import org.typelevel.log4cats.Logger
  * Everything the ODB needs to be told about an event (visit id, dataset id, client time,
  * idempotency key) is resolved before submitting, so that a background send is unaffected by later
  * state changes.
+ *
+ * The places the sequence does block on the ODB (the first step event before a dataset can be
+ * recorded, `recordDataset`, the flush, and reading the next step in `OdbProxy`) are traced as
+ * children of a per-step span, see `StepSpans`.
  */
 case class OdbCommandsImpl[F[_]: UUIDGen](
   idTracker:   Ref[F, ObsRecordedIds],
-  eventSender: OdbEventSender[F]
+  eventSender: OdbEventSender[F],
+  stepSpans:   StepSpans[F]
 )(using client: FetchClientWithPars[F, Request[F], ObservationDB])(using
   val F:       Sync[F],
   L:           Logger[F]
@@ -67,19 +72,24 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
 
   override def flushEvents(obsId: Observation.Id): F[Unit] =
     L.debug(s"Awaiting pending ODB events for obsId: $obsId") >>
-      eventSender.flush(obsId) >>
+      stepSpans.wait(StepSpans.Flush, obsId)(eventSender.flush(obsId)) >>
       L.debug(s"All ODB events acknowledged for obsId: $obsId")
 
   /** Submits an event mutation to be sent in the background, checking that the ODB recorded it. */
   private def submitEvent[D](obsId: Observation.Id, description: String)(
     mutation: F[GraphQLResponse[D]]
   ): F[Unit] =
-    eventSender.submit(obsId, description, checked(description)(mutation))
+    eventSender.submit(obsId, description, stepSpans.inStep(obsId)(checked(description)(mutation)))
 
   private def submitStepEvent[D](obsId: Observation.Id, stepId: Step.Id, description: String)(
     mutation: F[GraphQLResponse[D]]
   ): F[Unit] =
-    eventSender.submitStepEvent(obsId, stepId, description, checked(description)(mutation))
+    eventSender.submitStepEvent(
+      obsId,
+      stepId,
+      description,
+      stepSpans.inStep(obsId)(checked(description)(mutation))
+    )
 
   private def checked[D](description: String)(mutation: F[GraphQLResponse[D]]): F[Unit] =
     mutation.flatMap(OdbCommandsImpl.checkEventRecorded(description))
@@ -117,7 +127,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     yield true
 
   override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
-    recordStepEvent(obsId, stepId, StepStage.StartStep).void
+    stepSpans.start(obsId, stepId) >> recordStepEvent(obsId, stepId, StepStage.StartStep).void
 
   override def stepStartConfigure(obsId: Observation.Id, stepId: Step.Id): F[Unit] =
     recordStepEvent(obsId, stepId, StepStage.StartConfigure).void
@@ -140,8 +150,10 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       // The ODB refuses to record a dataset for a step it has no event for yet. Waiting here keeps
       // that ordering out of the ODB, where creating the step's execution row would drag the
       // dataset path into the observation-execution mutex.
-      _       <- eventSender.awaitStepRecorded(obsId, stepId)
-      dataset <- recordDataset(stepId, visitId, fileId)
+      _       <- stepSpans.wait(StepSpans.WaitStepRecorded, obsId):
+                   eventSender.awaitStepRecorded(obsId, stepId)
+      dataset <-
+        stepSpans.wait(StepSpans.RecordDataset, obsId)(recordDataset(stepId, visitId, fileId))
       _       <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
       _       <- L.debug(s"Recorded dataset id ${dataset.id}")
       _       <- submitDatasetEvent(obsId, dataset.id, DatasetStage.StartExpose)
@@ -198,6 +210,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.EndObserve)
 
+  // The step span stays open: the engine reads the next step right after, see OdbProxy.
   override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.EndStep) <*
       flushEvents(obsId) <*
@@ -206,7 +219,8 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.Abort) <*
       flushEvents(obsId) <*
-      eventSender.forgetStep(obsId, stepId)
+      eventSender.forgetStep(obsId, stepId) <*
+      stepSpans.end(obsId, stepId)
 
   override def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.Stop) <* flushEvents(obsId)
@@ -247,6 +261,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     for
       result <- recordSequenceEvent(obsId, SequenceCommand.Stop)
       _      <- flushEvents(obsId)
+      _      <- stepSpans.endCurrent(obsId)
       _      <- setCurrentVisitId(obsId, none)
     yield result
 
@@ -256,14 +271,15 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
     for
       idempotencyKey <- newIdempotencyKey
       clientTime     <- clientTimeNow
-      result         <- RecordVisitMutation[F]
-                          .execute(
-                            obsId,
-                            idempotencyKey,
-                            clientTime,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-                          .raiseGraphQLErrors
+      result         <- stepSpans.wait(StepSpans.RecordVisit, obsId):
+                          RecordVisitMutation[F]
+                            .execute(
+                              obsId,
+                              idempotencyKey,
+                              clientTime,
+                              addIdempotencyKey(idempotencyKey)
+                            )
+                            .raiseGraphQLErrors
     yield result.recordVisit.visit.id
 
   private def recordDataset(

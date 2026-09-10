@@ -51,6 +51,7 @@ import observe.server.odb.OdbCommands
 import observe.server.odb.OdbCommandsImpl
 import observe.server.odb.OdbEventSender
 import observe.server.odb.OdbProxy
+import observe.server.odb.StepSpans
 import observe.server.tcs.*
 import org.http4s.AuthScheme
 import org.http4s.Credentials
@@ -160,12 +161,13 @@ object Systems {
                                               ).pure[F]
         idTracker                      <- Resource.eval(Ref.of[F, ObsRecordedIds](ObsRecordedIds.Empty))
         eventSender                    <- OdbEventSender[F]
+        stepSpans                      <- Resource.eval(StepSpans[F])
         odbCommands: OdbCommands[F]     =
           if (settings.odbNotifications)
-            OdbCommandsImpl[F](idTracker, eventSender)(using tracingFetch)
+            OdbCommandsImpl[F](idTracker, eventSender, stepSpans)(using tracingFetch)
           else
             DummyOdbCommands[F]
-      yield OdbProxy[F](odbCommands)(using tracingWS)
+      yield OdbProxy[F](odbCommands, stepSpans)(using tracingWS)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
