@@ -33,6 +33,7 @@ import observe.web.server.OcsBuildInfo
 import observe.web.server.config.*
 import observe.web.server.logging.SubscriptionAppender
 import observe.web.server.otel.ObserveOtel
+import observe.web.server.otel.SpanEventLogger
 import org.http4s.HttpRoutes
 import org.http4s.Request
 import org.http4s.client.Client
@@ -341,13 +342,13 @@ object WebServerLauncher extends IOApp with LogInitialization {
 
   // We build a client with the default retry policy, which will retry GET requests as
   // well as non-GET requests that contain the `Idempotency-Key` header (which we set in `OdbProxy`).
-  private def mkClient[F[_]: {Async, Network, Logger}](
+  private def mkClient[F[_]: {Async, Network, Logger, Tracer}](
     timeout: FiniteDuration
   ): Resource[F, Client[F]] =
     EmberClientBuilder
       .default[F]
       .withTimeout(timeout)
-      .withLogger(Logger[F])
+      .withLogger(SpanEventLogger(Logger[F]))
       .build
 
   private def tracedClient(
