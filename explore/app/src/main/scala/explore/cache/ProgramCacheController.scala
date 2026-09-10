@@ -42,14 +42,16 @@ case class ProgramCacheController(
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
   override val resetSignal: fs2.Stream[IO, ResetType],
-  isProgramSelected:        Boolean
+  isProgramSelected:        Boolean,
+  loadProgress:             LoadProgressRef[IO]
 )(using val odbApi: OdbApi[IO], logger: Logger[IO], tracer: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
     with CacheControllerComponent.Props[ProgramSummaries]:
-  val modState     = modProgramSummaries
-  given Logger[IO] = logger
-  given Tracer[IO] = tracer
+  val modState              = modProgramSummaries
+  given Logger[IO]          = logger
+  given Tracer[IO]          = tracer
+  given LoadProgressRef[IO] = loadProgress
 
 object ProgramCacheController
     extends CacheControllerComponent[ProgramSummaries, ProgramCacheController]
@@ -114,35 +116,39 @@ object ProgramCacheController
 
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
-        props.odbApi.programDetails(props.programId).logTime("ProgramDetailsQuery")
+        props.odbApi.programDetails(props.programId).reportingProgress(LoadStep.ProgramDetails)
 
     val targets: IO[List[TargetWithId]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
+        props.odbApi.allProgramTargets(props.programId).reportingProgress(LoadStep.Targets)
 
     val observations: IO[List[Observation]] =
       whenProgramSelected(empty = Nil):
         Tracer[IO]
           .span("explore-mode-summary")
           .surround:
-            props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
+            props.odbApi
+              .allProgramObservations(props.programId)
+              .reportingProgress(LoadStep.Observations)
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       whenProgramSelected(empty = Nil):
         props.odbApi
           .allProgramConfigurationRequests(props.programId)
-          .logTime("AllProgramConfigurationRequests")
+          .reportingProgress(LoadStep.ConfigurationRequests)
 
     val groups: IO[List[Group]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi.allProgramGroups(props.programId).logTime("AllProgramGroups")
+        props.odbApi.allProgramGroups(props.programId).reportingProgress(LoadStep.Groups)
 
     val attachments: IO[ProgramAttachments] =
       whenProgramSelected(empty = ProgramAttachments.Empty):
-        props.odbApi.allProgramAttachments(props.programId).logTime("AllProgramAttachments")
+        props.odbApi
+          .allProgramAttachments(props.programId)
+          .reportingProgress(LoadStep.Attachments)
 
     val programs: IO[List[ProgramInfo]] =
-      props.odbApi.allPrograms.logTime("AllPrograms")
+      props.odbApi.allPrograms.reportingProgress(LoadStep.Programs)
 
     def initializeSummaries(
       observations: List[Observation],
@@ -188,8 +194,11 @@ object ProgramCacheController
                 val full = modeById.get(id).flatten
                 Observation.observingMode.replace(Pot.Ready(full))(o)
 
-    (observations, groups)
-      .parFlatMapN: (obs, grps) =>
+    val clearProgressThenLoadObservationsAndGroups =
+      props.loadProgress.set(LoadProgress.Empty) >> (observations, groups).parTupled
+
+    clearProgressThenLoadObservationsAndGroups
+      .flatMap: (obs, grps) =>
         val delayed = Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated"))
         initializeSummaries(obs, grps).map((_, delayed))
       .logTime("InitialProgramRender")

@@ -4941,3 +4941,33 @@ span.explore-offsets-count {
   grid-template-columns: [label] auto [field] 1fr;
   column-gap: 1em;
 }
+
+.load-progress-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.load-progress-step {
+  display: grid;
+  grid-template-columns: [icon] 1.2em [label] auto;
+  align-items: center;
+  column-gap: 0.5em;
+  color: var(--site-text-color);
+}
+
+.load-progress-pending {
+  opacity: 0.35;
+
+  svg {
+    font-size: 0.4em;
+  }
+}
+
+.load-progress-done {
+  opacity: 0.55;
+}

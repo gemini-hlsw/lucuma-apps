@@ -19,6 +19,22 @@
   --solar-system-size: 400px;
 }
 
+/* No box of its own, so an existing SolarProgress with no message renders exactly
+   as it did before this wrapper existed. */
+.solar-progress {
+  display: contents;
+}
+
+/* Sits just under the orbits. The scale factor applies to the orbits, so the
+   visible half-height is half the scaled size. */
+.solar-progress-message {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--solar-system-size) * var(--solar-system-scale-factor) / 2 + 0.5rem);
+  transform: translateX(-50%);
+  z-index: 9999;
+}
+
 .solar-system {
   position: absolute;
   left: calc(50% - var(--solar-system-size) / 2);
