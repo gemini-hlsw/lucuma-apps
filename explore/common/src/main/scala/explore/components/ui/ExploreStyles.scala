@@ -457,6 +457,9 @@ object ExploreStyles:
   val GnirsWavelengthGridHeader: Css       = Css("explore-gnirs-wavelength-grid-header")
   val GnirsWavelengthGridAction: Css       = Css("explore-gnirs-wavelength-grid-action")
   val GnirsWavelengthCenter: Css           = Css("explore-gnirs-wavelength-center")
+  // Each row is its own subgrid, so it has a box to drag.
+  val GnirsWavelengthRow: Css              = Css("explore-gnirs-wavelength-row")
+  val GnirsWavelengthDragHandle: Css       = Css("explore-gnirs-wavelength-drag-handle")
   val TelescopeConfigGeneratorOffsets: Css = Css("explore-telescope-config-generator-offsets")
   val AcquisitionCustomizationGrid: Css    = Css("explore-acquisition-customization-grid")
   val SvcTelescopeConfigsEditor: Css       = Css("explore-svc-telescope-configs-editor")
