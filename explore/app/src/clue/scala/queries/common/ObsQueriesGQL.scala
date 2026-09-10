@@ -229,6 +229,7 @@ object ObsQueriesGQL:
       subscription($$obsId: ObservationId!) {
         executionEventAdded(input: { observationId: $$obsId, eventType: { EQ: STEP } }) {
           value {
+            __typename
             ... on StepEvent {
               stepStage
             }

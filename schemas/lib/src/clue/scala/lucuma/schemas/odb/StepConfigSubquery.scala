@@ -16,6 +16,7 @@ object StepConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, StepConfi
   override val subquery = gql"""
         {
           stepType
+          __typename
           ... on Gcal {
             continuum
             arcs
