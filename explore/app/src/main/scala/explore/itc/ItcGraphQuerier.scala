@@ -34,9 +34,9 @@ case class ItcGraphQuerier(
   configs:             Option[ItcInstrumentConfig], // configs for imaging or single config for spectroscopy
   allTargets:          TargetList,
   customSedTimestamps: List[Timestamp],
-  // GNIRS spectroscopy has one configuration per central wavelength; this picks
-  // which one to graph.  Other modes have a single configuration and ignore it.
-  selectedWavelength:  Option[Wavelength] = none
+  // GNIRS spectroscopy has one configuration per central wavelength; this picks which
+  // one to graph, by position.  Other modes have a single configuration and ignore it.
+  selectedConfigIndex: Option[Int] = none
 ) derives Eq:
 
   private val constraints = observation.constraints
@@ -47,9 +47,7 @@ case class ItcGraphQuerier(
   // When we use the remote configuration we don't need the exposure time.
   private val remoteConfig: Option[ItcInstrumentConfig] =
     val all = observation.toInstrumentConfig(allTargets)
-    selectedWavelength
-      .flatMap(w => all.find(c => ItcGraphQuerier.centralWavelength(c).contains(w)))
-      .orElse(all.headOption)
+    selectedConfigIndex.flatMap(all.lift).orElse(all.headOption)
 
   private def requirementsExposureTimeMode: EitherNec[ItcQueryProblem, ExposureTimeMode] =
     observation.scienceRequirements.exposureTimeMode.toRightNec(

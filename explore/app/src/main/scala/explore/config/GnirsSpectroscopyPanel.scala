@@ -159,8 +159,8 @@ abstract class GnirsSpectroscopyPanelBuilder[
         props.centralWavelengthsView
 
       // Where a single representative wavelength is needed (the along-slit offset
-      // defaults are computed from the grating setting), use the first, which is
-      // the shortest and the one the sequence starts at.
+      // defaults are computed from the grating setting), use the first in the
+      // user-specified order, which is the one the sequence starts at.
       val primaryWavelength: Wavelength =
         centralWavelengthsView.get.head.centralWavelength.value
 

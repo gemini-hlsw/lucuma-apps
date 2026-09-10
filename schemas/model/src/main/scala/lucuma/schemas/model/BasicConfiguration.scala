@@ -494,9 +494,9 @@ object BasicConfiguration:
         prism   <- c.downField("prism").as[GnirsPrism]
         grating <- c.downField("grating").as[GnirsGrating]
         camera  <- c.downField("camera").as[GnirsCamera]
-        // The basic configuration keeps a single representative wavelength (the
-        // first, i.e. the shortest); the full per-wavelength list lives on the
-        // observing mode.
+        // The basic configuration keeps a single representative wavelength: the first
+        // in the user-specified order, which is the one the sequence starts at and the
+        // one acquisition is sized for.  The full list lives on the observing mode.
         cws     <- c.downField("centralWavelengths").as[NonEmptyList[Json]]
         cw      <- cws.head.hcursor.downField("centralWavelength").as[CentralWavelength]
       yield GnirsSpectroscopy(filter, fpu, prism, grating, camera, cw)

@@ -55,3 +55,27 @@ def insertIntoList[A](elem: A, nextTo: A => Boolean, position: Edge): Endo[List[
     computeIndexInList(nextTo, position)(list).fold(list): idx =>
       val (before, after) = list.splitAt(idx)
       before ++ (elem :: after)
+
+/**
+ * Moves the element at `from` to the `position` side of the element at `nextTo`. Both are positions
+ * in the original list.
+ *
+ * The position-based counterpart of [[insertIntoList]], for lists whose elements are not unique --
+ * where a predicate on the element cannot identify a single row. Indices are zipped on before the
+ * source is removed, so there is no index-shift arithmetic to get wrong.
+ */
+def moveInList[A](from: Int, nextTo: Int, position: Edge): Endo[List[A]] =
+  list =>
+    // Dropping an element onto itself must be a no-op.  Without this the predicate below
+    // finds no match in the list the source was just removed from, `insertIntoList`
+    // returns that list unchanged, and the element is dropped altogether.
+    if from == nextTo then list
+    else
+      list
+        .lift(from)
+        .fold(list): elem =>
+          insertIntoList[(A, Int)](
+            (elem, from),
+            (p: (A, Int)) => p._2 == nextTo,
+            position
+          )(list.zipWithIndex.filterNot(_._2 == from)).map(_._1)

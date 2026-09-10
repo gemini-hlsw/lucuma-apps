@@ -1809,8 +1809,11 @@ object ObservingMode:
       Focus[GnirsImaging](_.acquisition)
 
   /**
-   * One GNIRS spectroscopy science configuration: a central wavelength with the exposure time mode
-   * and coadds that apply there. Shared by the long slit and the IFU.
+   * One entry in a GNIRS spectroscopy observation's ordered central wavelength list: a central
+   * wavelength with the exposure time mode and coadds that apply there. Shared by the long slit and
+   * the IFU. The order is the user's -- it is the order the sequence executes the wavelengths in,
+   * and the first entry is the one acquisition is sized for -- and a wavelength may appear more
+   * than once, each occurrence being an independent configuration.
    */
   case class GnirsCentralWavelengthConfig(
     centralWavelength: CentralWavelength,

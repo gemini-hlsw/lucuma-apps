@@ -66,6 +66,10 @@ object Icons {
   val faStarExclamation: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faGripDotsVertical")
+  val faGripDotsVertical: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-light-svg-icons", "faTrashCan")
   val faTrash: FAIcon = js.native
 
@@ -460,6 +464,7 @@ object Icons {
     faLinkSlash,
     faThinPlus,
     faThinMinus,
+    faGripDotsVertical,
     faTrash,
     faTrashUndo,
     faBullseye,
@@ -568,6 +573,7 @@ object Icons {
   val LinkSlash                   = FontAwesomeIcon(faLinkSlash)
   val ThinPlus                    = FontAwesomeIcon(faThinPlus)
   val ThinMinus                   = FontAwesomeIcon(faThinMinus)
+  val GripDotsVertical            = FontAwesomeIcon(faGripDotsVertical)
   val TrashUnstyled               = FontAwesomeIcon(faTrash)
   val Trash                       = TrashUnstyled.withClass(ExploreStyles.TrashIcon)
   val TrashUndo                   = FontAwesomeIcon(faTrashUndo)

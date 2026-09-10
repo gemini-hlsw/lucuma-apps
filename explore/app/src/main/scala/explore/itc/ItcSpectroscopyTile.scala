@@ -3,7 +3,6 @@
 
 package explore.itc
 
-import cats.Order.given
 import cats.data.EitherNec
 import cats.effect.IO
 import cats.syntax.all.*
@@ -71,26 +70,27 @@ object ItcSpectroscopyTile
       for
         ctx         <- useContext(AppContext.ctx)
         tileState   <- useStateView(ItcTileState.Empty)
-        // One configuration per central wavelength for GNIRS spectroscopy; a
-        // single one for every other spectroscopy mode.
+        // One configuration per central wavelength for GNIRS spectroscopy; a single one
+        // for every other spectroscopy mode.  Kept in configuration order and with its
+        // position, since a wavelength may repeat and the position -- not the value --
+        // is what picks a configuration out of the list the querier reads.
         wavelengths  =
           props.observation
             .toInstrumentConfig(props.obsTargets)
-            .flatMap(ItcGraphQuerier.centralWavelength)
-            .distinct
-            .sorted
-        _           <- // Pick a wavelength, and re-pick if the list changes under us.
+            .zipWithIndex
+            .flatMap((c, i) => ItcGraphQuerier.centralWavelength(c).tupleLeft(i))
+        _           <- // Pick a configuration, and re-pick if the list changes under us.
           useEffectWithDeps(wavelengths): ws =>
-            val selected = tileState.zoom(ItcTileState.selectedWavelength)
-            if selected.get.exists(ws.contains) then Callback.empty
-            else selected.set(ws.headOption)
+            val selected = tileState.zoom(ItcTileState.selectedConfigIndex)
+            if selected.get.exists(i => ws.exists(_._1 === i)) then Callback.empty
+            else selected.set(ws.headOption.map(_._1))
         graphQuerier =
           ItcGraphQuerier(
             props.observation,
             props.selectedConfig,
             props.obsTargets,
             props.customSedTimestamps,
-            tileState.get.selectedWavelength
+            tileState.get.selectedConfigIndex
           )
         _           <-
           useEffectWithDeps(graphQuerier): querier =>
@@ -149,11 +149,15 @@ object ItcSpectroscopyTile
         // Label in the user's preferred wavelength units, as the rest of the UI does.
         val units: WavelengthUnits = props.globalPreferences.get.wavelengthUnits
 
+        // Numbered, because two entries may be at the same wavelength and would
+        // otherwise be indistinguishable.  The numbers match the row order in the
+        // central wavelengths panel.
         val wavelengthOptions =
-          wavelengths.map: w =>
+          wavelengths.zipWithIndex.map: (indexed, pos) =>
+            val (configIndex, w) = indexed
             SelectItem(
-              label = s"${units.toInputFormat.reverseGet(w)} ${units.symbol}",
-              value = w
+              label = s"${pos + 1}: ${units.toInputFormat.reverseGet(w)} ${units.symbol}",
+              value = configIndex
             )
 
         val wavelengthSelector: Option[VdomNode] =
@@ -162,9 +166,8 @@ object ItcSpectroscopyTile
               <.label("λ:"),
               Dropdown(
                 clazz = ExploreStyles.ItcTileTargetSelector,
-                value = tileState.get.selectedWavelength.getOrElse(wavelengths.head),
-                onChange =
-                  (w: Wavelength) => tileState.zoom(ItcTileState.selectedWavelength).set(w.some),
+                value = tileState.get.selectedConfigIndex.getOrElse(wavelengths.head._1),
+                onChange = (i: Int) => tileState.zoom(ItcTileState.selectedConfigIndex).set(i.some),
                 options = wavelengthOptions
               )
             )

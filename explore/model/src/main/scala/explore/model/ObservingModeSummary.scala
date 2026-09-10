@@ -605,8 +605,8 @@ object ObservingModeSummary:
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
       case g: ObservingMode.GnirsLongSlit      =>
-        // The summary keeps one representative wavelength (the first, i.e. the
-        // shortest) with its exposure time mode.
+        // The summary keeps one representative wavelength -- the first in the
+        // user-specified order -- with its exposure time mode.
         GnirsSpectroscopy(
           g.filter,
           GnirsFpu.Spectroscopy.Slit(g.fpu),
@@ -617,8 +617,8 @@ object ObservingModeSummary:
           g.centralWavelengths.head.exposureTimeMode
         )
       case g: ObservingMode.GnirsIfu           =>
-        // The summary keeps one representative wavelength (the first, i.e. the
-        // shortest) with its exposure time mode.
+        // The summary keeps one representative wavelength -- the first in the
+        // user-specified order -- with its exposure time mode.
         GnirsSpectroscopy(
           g.filter,
           GnirsFpu.Spectroscopy.Ifu(g.fpu),

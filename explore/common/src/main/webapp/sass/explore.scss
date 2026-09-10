@@ -2250,12 +2250,26 @@ svg.fa-check.explore-success-icon {
     padding-top: 0.5em;
     gap: 0.5em;
 
-    // Column order follows the DOM order of the ExposureTimeMode controls.  They
-    // are placed by column but auto-placed by row, so a column that precedes the
-    // previous control's would push it onto a new row.
+    // Every control is placed by column name.  The header cells are direct children
+    // of this grid; each wavelength row is a subgrid (see below) spanning all the
+    // columns, so that a row is a single element -- something to drag -- while its
+    // controls still line up with the headers and with the other rows.
     grid-template-columns:
-      [action] auto [wavelength] 1fr [mode] 1fr [sn] 1fr
+      [handle] auto [action] auto [wavelength] 1fr [mode] 1fr [sn] 1fr
       [time] 1fr [count] 1fr [coadds] 1fr [sn-at] 1fr;
+
+    .explore-gnirs-wavelength-row {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: subgrid;
+      align-items: center;
+      gap: 0.5em;
+    }
+
+    .explore-gnirs-wavelength-drag-handle {
+      grid-column: handle;
+      cursor: grab;
+    }
 
     .pl-form-field {
       width: 100%;
