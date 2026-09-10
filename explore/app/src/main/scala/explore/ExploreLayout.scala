@@ -12,12 +12,14 @@ import crystal.react.hooks.*
 import crystal.syntax.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.cache.CfpCacheController
+import explore.cache.LoadProgress
 import explore.cache.ModesCacheController
 import explore.cache.PreferencesCacheController
 import explore.cache.ProgramCacheController
 import explore.cache.ResetType
 import explore.common.UserPreferencesQueries
 import explore.common.UserPreferencesQueries.WavelengthUnitsPreference
+import explore.components.LoadProgressIndicator
 import explore.components.ToastPortal
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
@@ -197,7 +199,11 @@ object ExploreLayout:
         // Reset the program cache when the program changes. Clearing the summaries here would
         // hit the throttle and delay the reload, so the reset signal does it.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
-                                  ctx.resetProgramCache(none)
+                                  // Clear it here too: the cache controller also clears it, but not
+                                  // until its subscriptions are up, which can outlast the delay
+                                  // before the checklist is shown.
+                                  ctx.loadProgress.set(LoadProgress.Empty) >>
+                                    ctx.resetProgramCache(none)
         // Track recently opened programs and update prefs db
         _                    <- useEffectWithDeps(
                                   (routingInfo.flatMap(_.optProgramId), props.model.userId)
@@ -410,7 +416,8 @@ object ExploreLayout:
                       }.toAsync,
                       ctx.resetProgramCacheTopic.subscribeUnbounded // On error, keep the current program cache.
                         .map(_.fold(ResetType.Wipe)(_ => ResetType.Keep)),
-                      isProgramSelected = routingInfo.optProgramId.isDefined
+                      isProgramSelected = routingInfo.optProgramId.isDefined,
+                      ctx.loadProgress
                     ),
                     userVault.mapValue: (vault: View[UserVault]) =>
                       React.Fragment(
@@ -440,58 +447,61 @@ object ExploreLayout:
                               prefs
                             )
                           ),
-                        showProgsPopupPot.renderPot(showProgsPopup =>
-                          if (showProgsPopup)
-                            props.model.rootModel
-                              .zoom:
-                                RootModel.userPreferences
-                                  .andThen(Pot.readyPrism)
-                                  .andThen(UserPreferences.globalPreferences)
-                              .asView
-                              .map: globalPrefs =>
-                                ProgramsPopup(
-                                  currentProgramId = none,
-                                  vault.get.user.id,
-                                  vault.get.isStaff,
-                                  props.model.programSummaries.throttlerView
-                                    .zoom(Pot.readyPrism)
-                                    .zoom(ProgramSummaries.programs),
-                                  undoStacks = view.zoom(RootModel.undoStacks),
-                                  globalPreferences = globalPrefs,
-                                  message = msg
+                        showProgsPopupPot.renderPot(
+                          showProgsPopup =>
+                            if (showProgsPopup)
+                              props.model.rootModel
+                                .zoom:
+                                  RootModel.userPreferences
+                                    .andThen(Pot.readyPrism)
+                                    .andThen(UserPreferences.globalPreferences)
+                                .asView
+                                .map: globalPrefs =>
+                                  ProgramsPopup(
+                                    currentProgramId = none,
+                                    vault.get.user.id,
+                                    vault.get.isStaff,
+                                    props.model.programSummaries.throttlerView
+                                      .zoom(Pot.readyPrism)
+                                      .zoom(ProgramSummaries.programs),
+                                    undoStacks = view.zoom(RootModel.undoStacks),
+                                    globalPreferences = globalPrefs,
+                                    message = msg
+                                  )
+                            else
+                              React.Fragment(
+                                SideTabs(
+                                  "side-tabs".refined,
+                                  routingInfoView.zoom(RoutingInfo.appTab),
+                                  tab =>
+                                    ctx.pageUrl(
+                                      (tab, routingInfo.programId, routingInfo.focused).some
+                                    ),
+                                  _.separatorAfter,
+                                  tab =>
+                                    programSummaries.toOption
+                                      .flatMap(_.optProgramDetails)
+                                      .forall: program =>
+                                        // Only show Program and Proposal tabs for Science proposals, and Program only for Accepted ones
+                                        (tab =!= AppTab.Proposal && tab =!= AppTab.Program) ||
+                                          program.programType.hasProposal &&
+                                          (tab === AppTab.Proposal || program.proposalStatus === ProposalStatus.Accepted) ||
+                                          // Also show program for engineering and calibration proposals
+                                          (tab === AppTab.Program && (program.programType === ProgramType.Engineering || program.programType === ProgramType.Calibration))
+                                ),
+                                <.div(
+                                  LayoutStyles.MainBody,
+                                  LayoutStyles.WithMessage.when(isSubmitted || isNotAccepted)
+                                )(
+                                  props.resolution.renderP(props.model),
+                                  TagMod.when(isSubmitted):
+                                    SubmittedProposalMessage(proposalReference, deadline)
+                                  ,
+                                  Message(text = "The proposal was not accepted.")
+                                    .when(isNotAccepted)
                                 )
-                          else
-                            React.Fragment(
-                              SideTabs(
-                                "side-tabs".refined,
-                                routingInfoView.zoom(RoutingInfo.appTab),
-                                tab =>
-                                  ctx.pageUrl(
-                                    (tab, routingInfo.programId, routingInfo.focused).some
-                                  ),
-                                _.separatorAfter,
-                                tab =>
-                                  programSummaries.toOption
-                                    .flatMap(_.optProgramDetails)
-                                    .forall: program =>
-                                      // Only show Program and Proposal tabs for Science proposals, and Program only for Accepted ones
-                                      (tab =!= AppTab.Proposal && tab =!= AppTab.Program) ||
-                                        program.programType.hasProposal &&
-                                        (tab === AppTab.Proposal || program.proposalStatus === ProposalStatus.Accepted) ||
-                                        // Also show program for engineering and calibration proposals
-                                        (tab === AppTab.Program && (program.programType === ProgramType.Engineering || program.programType === ProgramType.Calibration))
                               ),
-                              <.div(
-                                LayoutStyles.MainBody,
-                                LayoutStyles.WithMessage.when(isSubmitted || isNotAccepted)
-                              )(
-                                props.resolution.renderP(props.model),
-                                TagMod.when(isSubmitted):
-                                  SubmittedProposalMessage(proposalReference, deadline)
-                                ,
-                                Message(text = "The proposal was not accepted.").when(isNotAccepted)
-                              )
-                            )
+                          pendingRender = LoadProgressIndicator(ctx.loadProgress)
                         )
                       )
                   )

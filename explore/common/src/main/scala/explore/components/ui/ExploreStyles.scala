@@ -170,6 +170,11 @@ object ExploreStyles:
 
   val NotesTile: Css = Css("observer-notes-tile")
 
+  val LoadProgressList: Css    = Css("load-progress-list")
+  val LoadProgressStep: Css    = Css("load-progress-step")
+  val LoadProgressPending: Css = Css("load-progress-pending")
+  val LoadProgressDone: Css    = Css("load-progress-done")
+
   val FinderChartsTile: Css          = Css("finder-charts-tile")
   val FinderChartsBody: Css          = Css("finder-charts-body")
   val FinderChartsTileTitle: Css     = Css("finder-charts-tile-title")
