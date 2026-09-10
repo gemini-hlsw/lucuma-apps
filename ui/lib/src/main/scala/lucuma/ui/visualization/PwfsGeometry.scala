@@ -13,13 +13,11 @@ import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.react.common.style.Css
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
@@ -46,15 +44,14 @@ trait PwfsGeometry extends WithPwfsGeometry:
     blindOffset:             Option[Coordinates],
     scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
-    conf:                    Option[BasicConfiguration],
-    trackType:               Option[TrackType],
+    guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
     posAngle(gs, fallbackPosAngle)
       .map: posAngle =>
         val candidatesArea: SortedMap[Css, ShapeExpression] =
-          conf.flatMap(_.guideProbe(trackType)) match
+          guideProbe match
             case Some(GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
               pwfsCandidatesArea(candidatesAreaCss, posAngle, candidatesVisibilityCss)
             case _                                         =>
@@ -64,7 +61,7 @@ trait PwfsGeometry extends WithPwfsGeometry:
 
         val probe = gs.map: gs =>
           val gsOffset   = referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
-          val probeShape = conf.flatMap(_.guideProbe(trackType)) match
+          val probeShape = guideProbe match
             case Some(p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2)) =>
               pwfsProbeShapes(p, gsOffset, Offset.Zero)
             case _                                               =>
@@ -79,8 +76,8 @@ trait PwfsGeometry extends WithPwfsGeometry:
           )
 
           val patrolFieldIntersection =
-            conf
-              .flatMap(c => c.guideProbe(trackType).map(agsParamsFor))
+            guideProbe
+              .map(agsParamsFor)
               .map: params =>
                 val calcs = params.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField

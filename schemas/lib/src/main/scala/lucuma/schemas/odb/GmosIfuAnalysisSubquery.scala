@@ -4,12 +4,12 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import clue.annotation.GraphQL
+import clue.annotation.GraphQLType
 import lucuma.core.model.GmosIfuAnalysis
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
-@GraphQL
+@GraphQLType("GmosIfuAnalysis")
 object GmosIfuAnalysisSubquery extends GraphQLSubquery.Typed[ObservationDB, GmosIfuAnalysis]:
   override val subquery = gql"""
         {

@@ -1632,6 +1632,55 @@ svg.fa-check.explore-success-icon {
     'fov    agsstatus guidestar curr   center' min-content / max-content min-content 1fr 1fr min-content;
 }
 
+.aladin-top-right-controls {
+  position: absolute;
+  z-index: 120;
+  top: 10px;
+  right: 5px;
+  display: flex;
+  align-items: stretch;
+  gap: 0.3em;
+
+  // The button is positioned by the row, not by its own class
+  .gpp-aladin-fullscreen-button {
+    position: static;
+  }
+}
+
+.aladin-guide-probe {
+  display: flex;
+
+  .p-dropdown {
+    min-height: 0;
+    align-items: center;
+    background: var(--button-background-color-semi);
+    border-color: var(--gray-500);
+
+    &:not(.p-disabled):hover,
+    &:not(.p-disabled).p-focus {
+      border-color: var(--gray-200);
+      box-shadow: 0 0 0 0.5px var(--gray-200);
+    }
+
+    .p-dropdown-label,
+    .p-dropdown-trigger {
+      font-size: smaller;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+}
+
+// The option panel is appended to body, so it cannot inherit from the control
+.aladin-guide-probe-panel.p-dropdown-panel {
+  font-size: smaller;
+
+  .p-dropdown-item {
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;
+  }
+}
+
 // ------
 // Obs badge
 // ------

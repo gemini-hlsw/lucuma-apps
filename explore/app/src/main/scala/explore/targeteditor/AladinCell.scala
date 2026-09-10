@@ -27,6 +27,7 @@ import explore.optics.ModelOptics
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -69,7 +70,8 @@ case class AladinCell(
   addSkySlot:          Option[SlotId],
   resetSky:            Option[SlotId => IO[Unit]],
   isStaffOrAdmin:      Boolean,
-  blindOffsetReadonly: Boolean
+  blindOffsetReadonly: Boolean,
+  explicitGuideProbe:  Option[View[Option[GuideProbe]]] = none
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -389,6 +391,18 @@ object AladinCell extends ModelOptics with AladinCommon:
               offsetOnCenter
             )
 
+      // Only meaningful once a mode is chosen, since the allowed probes depend on it.
+      val renderGuideProbeControl: VdomNode =
+        (props.obsConf.flatMap(_.obsModeType), props.explicitGuideProbe).mapN: (modeType, view) =>
+          GuideProbeControl(
+            modeType,
+            props.obsConf
+              .flatMap(_.configuration)
+              .flatMap(_.guideProbe(props.obsConf.flatMap(_.trackType))),
+            view,
+            props.blindOffsetReadonly
+          )
+
       val renderAgsOverlay: AsterismVisualOptions => VdomNode =
         (_: AsterismVisualOptions) =>
           if (props.needsAGS && globalPreferences.get.agsOverlay)
@@ -443,7 +457,11 @@ object AladinCell extends ModelOptics with AladinCommon:
               React.Fragment(
                 <.div(
                   ExploreStyles.AladinContainerColumn,
-                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
+                  <.div(
+                    ExploreStyles.AladinTopRightControls,
+                    renderGuideProbeControl,
+                    AladinFullScreenControl(fullScreenView.zoom(fullScreenIso))
+                  ),
                   <.div(
                     ExploreStyles.AladinToolbox,
                     Button(onClickE = menuRef.toggle).withMods(

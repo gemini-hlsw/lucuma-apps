@@ -15,7 +15,6 @@ import lucuma.core.enums.GnirsFpuIfu
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gnirs.scienceArea
 import lucuma.core.math.Angle
@@ -82,7 +81,7 @@ object GnirsGeometry:
     scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
-    trackType:               Option[TrackType],
+    guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
@@ -104,8 +103,7 @@ object GnirsGeometry:
           blindOffset,
           scienceOffsets,
           fallbackPosAngle,
-          conf,
-          trackType,
+          guideProbe,
           gs,
           candidatesVisibilityCss
         )

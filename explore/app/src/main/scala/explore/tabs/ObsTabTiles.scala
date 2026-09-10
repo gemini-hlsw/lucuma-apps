@@ -51,6 +51,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -395,7 +396,8 @@ object ObsTabTiles:
             targetViz,
             props.observation.get.explicitBase,
             props.observation.get.cassRotator,
-            maskDesignPot.value.toOption.flatten
+            maskDesignPot.value.toOption.flatten,
+            props.observation.get.explicitGuideProbe
           )
         focusedTargets        = props.asterismAsNel.map: targets =>
                                   props.focusedTarget.fold(targets)(targets.focusOn)
@@ -668,6 +670,14 @@ object ObsTabTiles:
             if bo.isManual then setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
             else Callback.empty
 
+        // The guide probe override. Undoable, like the explicit base
+        val explicitGuideProbeView: View[Option[GuideProbe]] =
+          props.observation
+            .zoom(Observation.explicitGuideProbe)
+            .undoableView(Iso.id[Option[GuideProbe]].asLens)
+            .withOnMod: probe =>
+              odbApi.updateExplicitGuideProbe(List(props.obsId), probe).runAsync
+
         // Only ghost has sky positions. this is the only place where we know it is ghost related
         // but it is abstracted away downstream.
         // The sky can be assigned to IFU1 (SkyPlusTarget) or IFU2 (TargetPlusSky) depending on the mapping.
@@ -719,6 +729,7 @@ object ObsTabTiles:
             // Any target changes invalidate the sequence
             sequenceChanged = sequenceChanged.set(pending),
             blindOffsetInfo = (props.obsId, blindOffsetView).some,
+            explicitGuideProbe = explicitGuideProbeView.some,
             positions = positions.some,
             ags = agsData
           )

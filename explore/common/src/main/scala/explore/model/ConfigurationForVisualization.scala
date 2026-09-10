@@ -12,7 +12,6 @@ import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.PosAngleConstraint
@@ -30,7 +29,7 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  trackType:                  Option[TrackType],
+  guideProbe:                 Option[GuideProbe],
   targetVisualization:        TargetVisualization,
   maskDesign:                 Option[MaskDesign]
 ) derives Eq:
@@ -56,9 +55,6 @@ case class ConfigurationForVisualization private (
   def agsWavelength: AGSWavelength =
     configuration.agsWavelength
 
-  def guideProbe: Option[GuideProbe] =
-    configuration.guideProbe(trackType)
-
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength
 
@@ -74,7 +70,7 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.trackType,
+          obsConfig.guideProbe,
           obsConfig.targetViz,
           obsConfig.maskDesign
         )
