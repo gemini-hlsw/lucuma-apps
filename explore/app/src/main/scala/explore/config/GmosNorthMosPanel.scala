@@ -188,7 +188,7 @@ case class GmosNorthMosPanel(
         "Default" -> ObservingMode.GmosNorthMos.defaultTelescopeConfigs.get(observingMode.get)
       ),
       defaultConfigs = ObservingMode.GmosNorthMos.defaultTelescopeConfigs.get(observingMode.get),
-      helpId = "configuration/mos-spatial-offsets.md".refined,
+      helpId = "configuration/gmos/mos-spatial-offsets.md".refined,
       presetsReadonly = disabled,
       editingReadonly = disabled
     )

@@ -188,7 +188,7 @@ case class GmosSouthMosPanel(
         "Default" -> ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(observingMode.get)
       ),
       defaultConfigs = ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(observingMode.get),
-      helpId = "configuration/mos-spatial-offsets.md".refined,
+      helpId = "configuration/gmos/mos-spatial-offsets.md".refined,
       presetsReadonly = disabled,
       editingReadonly = disabled
     )

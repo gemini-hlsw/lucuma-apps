@@ -90,7 +90,7 @@ trait GmosMosPanelProps[Grating, Filter]
   override def excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
   override def fpuLabel: String                       = "Custom Slit Width"
   override def fpuHelpId: Option[Help.Id]             =
-    Some("configuration/gmos/mos-slit-width.md".refined)
+    Some("configuration/mos-slit-width.md".refined)
 
   private def maskIsBound: Boolean = customMaskAttachmentIdView.get.isDefined
 
@@ -102,7 +102,7 @@ trait GmosMosPanelProps[Grating, Filter]
         attachmentIdView = customMaskAttachmentIdView,
         attachments = maskContext.attachments,
         obsAttachmentIds = maskContext.obsAttachmentIds,
-        helpId = "configuration/gmos/mos-mask.md".refined,
+        helpId = "configuration/mos-mask.md".refined,
         disabled = !permissions.isFullEdit
       )
     else EmptyVdom

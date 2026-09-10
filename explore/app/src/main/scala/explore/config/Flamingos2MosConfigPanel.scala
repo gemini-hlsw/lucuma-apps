@@ -179,7 +179,7 @@ object Flamingos2MosConfigPanel
               attachmentIdView = attachmentIdView,
               attachments = props.maskContext.attachments,
               obsAttachmentIds = props.maskContext.obsAttachmentIds,
-              helpId = "configuration/f2/mos-mask.md".refined,
+              helpId = "configuration/mos-mask.md".refined,
               disabled = !props.permissions.isFullEdit
             )
           else EmptyVdom
@@ -189,7 +189,7 @@ object Flamingos2MosConfigPanel
             React.Fragment(
               FormLabel(htmlFor = "slit-width".refined)(
                 "Custom Slit Width",
-                HelpIcon("configuration/f2/mos-slit-width.md".refined)
+                HelpIcon("configuration/mos-slit-width.md".refined)
               ),
               <.label(^.id := "slit-width",
                       ExploreStyles.FormValue |+| ExploreStyles.FormValueRight,
@@ -203,7 +203,7 @@ object Flamingos2MosConfigPanel
               defaultValue = props.observingMode.get.initialSlitWidth,
               label = "Custom Slit Width".some,
               exclude = excludedSlitWidths,
-              helpId = Some("configuration/f2/mos-slit-width.md".refined),
+              helpId = Some("configuration/mos-slit-width.md".refined),
               disabled = disableSimpleEdit,
               showCustomization = showCustomization,
               allowRevertCustomization = allowRevertCustomization
