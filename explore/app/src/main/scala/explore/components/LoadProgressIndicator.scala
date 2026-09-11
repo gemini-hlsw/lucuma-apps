@@ -26,7 +26,7 @@ object LoadProgressIndicator:
   private val ShowChecklistAfter: FiniteDuration = 600.milliseconds
 
   private def stepItem(step: LoadStep, state: LoadStepState): VdomNode =
-    val (indicator, stateCss): (VdomNode, Css) = state match
+    val (indicator: VdomNode, stateCss: Css) = state match
       case LoadStepState.Pending  =>
         (Icons.Circle.withFixedWidth(), ExploreStyles.LoadProgressPending)
       case LoadStepState.InFlight =>
