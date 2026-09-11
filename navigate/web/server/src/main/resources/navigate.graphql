@@ -574,6 +574,7 @@ type Mutation {
     adjustTarget(target: AdjustTarget!, offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
     adjustPointing(offset: HandsetAdjustmentInput!): OperationOutcome!
     adjustOrigin(offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
+    offset(offset: OffsetInput!, guiding: Boolean!): OperationOutcome!
     resetTargetAdjustment(target: AdjustTarget!, openLoops: Boolean!): OperationOutcome!
     absorbTargetAdjustment(target: AdjustTarget!): OperationOutcome!
     resetLocalPointingAdjustment: OperationOutcome!

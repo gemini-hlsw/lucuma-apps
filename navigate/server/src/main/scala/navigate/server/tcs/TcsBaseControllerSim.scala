@@ -70,6 +70,7 @@ import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
 import navigate.server.tcs.TcsBaseController.AcCommands
 import navigate.server.tcs.TcsBaseController.PwfsMechanismCommands
+import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
@@ -276,6 +277,11 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def originAdjust(handsetAdjustment: HandsetAdjustment, openLoops: Boolean)(
     guide: GuideConfig
+  ): F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def offset(offset: Offset, guiding: Boolean)(
+    guide:       GuideConfig,
+    wfsTracking: WfsGuideStates
   ): F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
