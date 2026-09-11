@@ -52,9 +52,9 @@ object render:
 
   def validationSeverityIcon(severity: ObsValidationSeverity): VdomNode =
     severity match
-      case ObsValidationSeverity.Error               => Icons.ErrorIcon
-      case ObsValidationSeverity.AcknowledgedWarning => Icons.AcknowledgedWarningIcon
-      case ObsValidationSeverity.Warning             => Icons.MissingInfoIcon
+      case ObsValidationSeverity.Error            => Icons.ErrorIcon
+      case ObsValidationSeverity.DismissedWarning => Icons.DismissedWarningIcon
+      case ObsValidationSeverity.Warning          => Icons.MissingInfoIcon
 
   given Render[ObsValidationSeverity] = Render.by: severity =>
     React.Fragment(validationSeverityIcon(severity), " ", severity.fullLabel)

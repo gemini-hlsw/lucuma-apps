@@ -169,6 +169,11 @@ case class ProgramSummaries(
   lazy val allocatedScienceBands: SortedSet[ScienceBand] =
     optProgramDetails.foldMap(_.allocations.scienceBands)
 
+  // Warning codes the program has dismissed. Empty until the program details load, so warnings
+  // briefly render as non-dismissed on first paint.
+  lazy val dismissedWarnings: DismissedWarnings =
+    optProgramDetails.foldMap(_.dismissedWarnings)
+
   lazy val obs4ConfigRequests: Map[ConfigurationRequest.Id, List[Observation]] =
     observations.values.toList
       .filterNot(_.isCalibration)

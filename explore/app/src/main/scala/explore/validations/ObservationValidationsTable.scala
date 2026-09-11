@@ -10,6 +10,7 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.AutoHeightTable
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.DismissedWarnings
 import explore.model.Focused
 import explore.model.Observation
 import explore.model.ObservationList
@@ -53,10 +54,11 @@ object ObservationValidationsTableTileState:
   val visibleRowCount = Focus[ObservationValidationsTableTileState](_.visibleRowCount)
 
 case class ObservationValidationsTableBody(
-  userId:       Option[User.Id],
-  programId:    Program.Id,
-  observations: View[ObservationList],
-  tileState:    View[ObservationValidationsTableTileState]
+  userId:            Option[User.Id],
+  programId:         Program.Id,
+  observations:      View[ObservationList],
+  dismissedWarnings: DismissedWarnings,
+  tileState:         View[ObservationValidationsTableTileState]
 ) extends ReactFnProps(ObservationValidationsTableBody.component)
 
 object ObservationValidationsTableBody {
@@ -133,7 +135,8 @@ object ObservationValidationsTableBody {
         ),
         ColDef(
           ValidationSeverityColumnId,
-          cell = cell => cell.row.original.value.severity(cell.row.getIsExpanded()),
+          cell = cell =>
+            cell.row.original.value.severity(cell.row.getIsExpanded(), props.dismissedWarnings),
           header = columnNames(ValidationSeverityColumnId)
         ).withSize(180.toPx),
         ColDef(
@@ -266,7 +269,10 @@ object ObservationValidationsTableBody {
     private def severityCell(severity: ObsValidationSeverity): VdomElement =
       <.span(severity.renderVdom)
 
-    def severity(isExpanded: Boolean): VdomElement =
+    def severity(
+      isExpanded:        Boolean,
+      dismissedWarnings: DismissedWarnings
+    ): VdomElement =
       fold(
         r =>
           // Collapsed observation rows aggregate all of the observation's validations, so they
@@ -274,9 +280,9 @@ object ObservationValidationsTableBody {
           // mirroring the category and message cells.
           if (isExpanded)
             r.obs.workflow.value.validationErrors.headOption
-              .fold(<.span())(ov => severityCell(r.obs.severityOf(ov.code)))
-          else r.obs.validationSeverity.fold(<.span())(severityCell),
-        r => severityCell(r.obs.severityOf(r.validation.code)),
+              .fold(<.span())(ov => severityCell(r.obs.severityOf(ov.code, dismissedWarnings)))
+          else r.obs.validationSeverity(dismissedWarnings).fold(<.span())(severityCell),
+        r => severityCell(r.obs.severityOf(r.validation.code, dismissedWarnings)),
         _ => <.span()
       )
 

@@ -13,6 +13,7 @@ import explore.EditableLabel
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.DismissedWarnings
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.syntax.all.*
@@ -57,6 +58,7 @@ final case class ObsBadge(
   deleteCB:              Callback,
   cloneCB:               Option[Callback] = none,
   allocatedScienceBands: SortedSet[ScienceBand],
+  dismissedWarnings:     DismissedWarnings,
   associatedObss:        List[Observation] = List.empty,
   programId:             Program.Id,
   hasBlindOffset:        Boolean = false,
@@ -260,14 +262,16 @@ object ObsBadge:
               .toTagMod(using
                 ov =>
                   <.div(
-                    ov.code.name + obs.severityOf(ov.code).acknowledgedSuffix,
+                    ov.code.name +
+                      obs.severityOf(ov.code, props.dismissedWarnings).dismissedSuffix,
                     <.ul(ov.messages.toList.toTagMod(using i => <.li(i)))
                   )
               )
           )
 
       lazy val validationIcon: VdomNode =
-        obs.validationSeverity
+        obs
+          .validationSeverity(props.dismissedWarnings)
           .map(severity =>
             <.span(validationSeverityIcon(severity)).withTooltip(content = validationTooltip)
           )

@@ -347,6 +347,7 @@ object TargetTabContents extends TwoPanels:
               copyCallback,
               pasteCallback,
               props.programSummaries.get.allocatedScienceBands,
+              props.programSummaries.get.dismissedWarnings,
               props.readonly
             )
 

@@ -11,6 +11,7 @@ import eu.timepit.refined.api.RefinedTypeOps
 import eu.timepit.refined.numeric.Interval
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Parallax
@@ -90,6 +91,9 @@ type ObsAttachmentAssignmentMap    = Map[Attachment.Id, SortedSet[Observation.Id
 type TargetAttachmentAssignmentMap = Map[Attachment.Id, SortedSet[Target.Id]]
 type ProgramInfoList               = SortedMap[Program.Id, ProgramInfo]
 type ConfigurationRequestList      = SortedMap[ConfigurationRequest.Id, ConfigurationRequest]
+
+// The warning codes a program has dismissed.
+type DismissedWarnings = Set[ObservationValidationCode.Warning]
 
 type ObservationsAndTargets = (ObservationList, TargetList)
 
