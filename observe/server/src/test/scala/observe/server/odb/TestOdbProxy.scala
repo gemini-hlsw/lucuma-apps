@@ -251,7 +251,10 @@ object TestOdbProxy {
               )
             }
 
-          override def readExecutionConfig(obsId: Observation.Id): F[InstrumentExecutionConfig] =
+          override def readExecutionConfig(
+            obsId:       Observation.Id,
+            futureLimit: NonNegInt
+          ): F[InstrumentExecutionConfig] =
             read(obsId).map(_.executionConfig)
 
           override def visitStart(obsId: Observation.Id): F[Unit] = addEvent(

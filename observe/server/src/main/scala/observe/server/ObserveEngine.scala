@@ -533,8 +533,10 @@ object ObserveEngine {
         obsData <- EngineHandle.inspectState[F, Option[OdbObservation]](
                      EngineState.sequenceDataAt(obsId).andThen(SequenceData.observation).getOption
                    )
+        // Jumping to a chosen step needs the future atoms, moving on to the next one does not.
+        limit    = stepIdFrom.fold(_ => OdbProxy.NextAtomOnly, _ => OdbProxy.FullFuture)
         odbEx   <- EngineHandle
-                     .liftF(odb.readExecutionConfig(obsId))
+                     .liftF(odb.readExecutionConfig(obsId, limit))
                      .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
       yield obsData.flatMap(od =>
         translator.nextStep(OdbObservationData(od, odbEx), stepIdFrom)._2

@@ -78,13 +78,13 @@ object ObsQueriesGql:
   @GraphQL
   trait ObsExecutionQuery extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$obsId: ObservationId!) {
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
         observation(observationId: $$obsId) {
           id
           title
           observationTime
         }
-        executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) $ExecutionConfigSubquery
       }
     """
   }
