@@ -3,25 +3,38 @@
 
 package explore.model.enums
 
-import cats.Eq
-import cats.derived.*
+import cats.Order
+import explore.model.DismissedWarnings
+import lucuma.core.enums.ObservationValidationCode
 
 /**
- * How an observation's validations should be presented to the user. `AcknowledgedWarning` still
- * reads as "Warning", but is displayed with a checkmark over the warning icon.
+ * How an observation's validations should be presented to the user. `DismissedWarning` still reads
+ * as "Warning", but is displayed with a checkmark over the warning icon. The cases are declared in
+ * ascending severity, so the `Order` picks the most severe.
  */
-enum ObsValidationSeverity(val label: String) derives Eq:
-  case Error               extends ObsValidationSeverity("Error")
-  case AcknowledgedWarning extends ObsValidationSeverity("Warning")
-  case Warning             extends ObsValidationSeverity("Warning")
+enum ObsValidationSeverity(val label: String):
+  case DismissedWarning extends ObsValidationSeverity("Warning")
+  case Warning          extends ObsValidationSeverity("Warning")
+  case Error            extends ObsValidationSeverity("Error")
 
   /**
-   * Appended to the severity label, or to a validation code's name, to call out that the
-   * observation's warnings have been acknowledged.
+   * Appended to the severity label, or to a validation code's name, to call out that the warning
+   * has been dismissed.
    */
-  def acknowledgedSuffix: String =
+  def dismissedSuffix: String =
     this match
-      case AcknowledgedWarning => " (Acknowledged)"
-      case Error | Warning     => ""
+      case DismissedWarning => " (Dismissed)"
+      case Error | Warning  => ""
 
-  def fullLabel: String = label + acknowledgedSuffix
+  def fullLabel: String = label + dismissedSuffix
+
+object ObsValidationSeverity:
+  // Ascending severity, matching the declaration order of the cases.
+  given Order[ObsValidationSeverity] = Order.by(_.ordinal)
+
+  /** The severity of a validation code, given the warnings dismissed by its program. */
+  def of(
+    code:      ObservationValidationCode,
+    dismissed: DismissedWarnings
+  ): ObsValidationSeverity =
+    code.fold(_ => Error, w => if (dismissed.contains(w)) DismissedWarning else Warning)

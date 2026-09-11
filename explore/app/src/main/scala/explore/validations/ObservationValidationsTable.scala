@@ -10,6 +10,7 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.AutoHeightTable
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.DismissedWarnings
 import explore.model.Focused
 import explore.model.Observation
 import explore.model.ObservationList
@@ -53,10 +54,11 @@ object ObservationValidationsTableTileState:
   val visibleRowCount = Focus[ObservationValidationsTableTileState](_.visibleRowCount)
 
 case class ObservationValidationsTableBody(
-  userId:       Option[User.Id],
-  programId:    Program.Id,
-  observations: View[ObservationList],
-  tileState:    View[ObservationValidationsTableTileState]
+  userId:            Option[User.Id],
+  programId:         Program.Id,
+  observations:      View[ObservationList],
+  dismissedWarnings: DismissedWarnings,
+  tileState:         View[ObservationValidationsTableTileState]
 ) extends ReactFnProps(ObservationValidationsTableBody.component)
 
 object ObservationValidationsTableBody {
@@ -64,7 +66,12 @@ object ObservationValidationsTableBody {
 
   private type Props = ObservationValidationsTableBody
 
-  private val ColDef = ColumnDef[Expandable[ValidationsTableRow]]
+  // The dismissed warnings change while the table is mounted, so they travel as table metadata
+  // rather than being captured by the column closures.
+  private case class TableMeta(dismissedWarnings: DismissedWarnings)
+
+  private val ColDef =
+    ColumnDef[Expandable[ValidationsTableRow]].WithTableMeta[TableMeta]
 
   private val ObservationIdColumnId      = ColumnId("observation_id")
   private val ObservationTitleColumnId   = ColumnId("observation_title")
@@ -101,7 +108,7 @@ object ObservationValidationsTableBody {
       def goToObs(obsId: Observation.Id): Callback =
         focusObs(props.programId, obsId.some, ctx)
 
-      def toggleAll(row: Row[Expandable[ValidationsTableRow], Nothing, ?, Nothing]): Callback =
+      def toggleAll(row: Row[Expandable[ValidationsTableRow], TableMeta, ?, Nothing]): Callback =
         row.toggleExpanded() *> row.subRows.traverse(r => toggleAll(r)).void
 
       List(
@@ -133,7 +140,11 @@ object ObservationValidationsTableBody {
         ),
         ColDef(
           ValidationSeverityColumnId,
-          cell = cell => cell.row.original.value.severity(cell.row.getIsExpanded()),
+          cell = cell =>
+            cell.row.original.value.severity(
+              cell.row.getIsExpanded(),
+              cell.table.options.meta.foldMap(_.dismissedWarnings)
+            ),
           header = columnNames(ValidationSeverityColumnId)
         ).withSize(180.toPx),
         ColDef(
@@ -173,7 +184,8 @@ object ObservationValidationsTableBody {
           enableExpanding = true,
           initialState = TableState(expanded = Expanded.AllRows),
           getSubRows = (row, _) => row.subRows,
-          getRowId = (row, _, _) => RowId(row.value.rowId)
+          getRowId = (row, _, _) => RowId(row.value.rowId),
+          meta = TableMeta(props.dismissedWarnings)
         ),
         TableStore(props.userId, TableId.ObservationValidations)
       )
@@ -266,7 +278,10 @@ object ObservationValidationsTableBody {
     private def severityCell(severity: ObsValidationSeverity): VdomElement =
       <.span(severity.renderVdom)
 
-    def severity(isExpanded: Boolean): VdomElement =
+    def severity(
+      isExpanded:        Boolean,
+      dismissedWarnings: DismissedWarnings
+    ): VdomElement =
       fold(
         r =>
           // Collapsed observation rows aggregate all of the observation's validations, so they
@@ -274,9 +289,9 @@ object ObservationValidationsTableBody {
           // mirroring the category and message cells.
           if (isExpanded)
             r.obs.workflow.value.validationErrors.headOption
-              .fold(<.span())(ov => severityCell(r.obs.severityOf(ov.code)))
-          else r.obs.validationSeverity.fold(<.span())(severityCell),
-        r => severityCell(r.obs.severityOf(r.validation.code)),
+              .fold(<.span())(ov => severityCell(r.obs.severityOf(ov.code, dismissedWarnings)))
+          else r.obs.validationSeverity(dismissedWarnings).fold(<.span())(severityCell),
+        r => severityCell(r.obs.severityOf(r.validation.code, dismissedWarnings)),
         _ => <.span()
       )
 

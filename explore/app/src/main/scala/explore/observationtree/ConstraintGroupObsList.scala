@@ -12,6 +12,7 @@ import explore.components.ActionButtons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ConstraintGroupList
+import explore.model.DismissedWarnings
 import explore.model.Focused
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
@@ -55,6 +56,7 @@ case class ConstraintGroupObsList(
   pasteCallback:         Callback,
   clipboardObsContents:  Option[ObsIdSet],
   allocatedScienceBands: SortedSet[ScienceBand],
+  dismissedWarnings:     DismissedWarnings,
   readonly:              Boolean
 ) extends ReactFnProps[ConstraintGroupObsList](ConstraintGroupObsList.component)
     with ViewCommon:

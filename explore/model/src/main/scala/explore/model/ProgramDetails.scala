@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
+import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ProgramStatus
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
@@ -41,7 +42,8 @@ case class ProgramDetails(
   proprietaryMonths: NonNegInt,
   shouldNotify:      Boolean,
   active:            DateInterval,
-  programTimes:      ProgramTimes
+  programTimes:      ProgramTimes,
+  dismissedWarnings: DismissedWarnings
 ) derives Eq:
   val allUsers: List[ProgramUser] = pi.fold(users)(_ :: users)
 
@@ -71,6 +73,8 @@ object ProgramDetails:
   val shouldNotify: Lens[ProgramDetails, Boolean]                   = Focus[ProgramDetails](_.shouldNotify)
   val active: Lens[ProgramDetails, DateInterval]                    = Focus[ProgramDetails](_.active)
   val programTimes: Lens[ProgramDetails, ProgramTimes]              = Focus[ProgramDetails](_.programTimes)
+  val dismissedWarnings: Lens[ProgramDetails, DismissedWarnings]    =
+    Focus[ProgramDetails](_.dismissedWarnings)
 
   given Decoder[ProgramDetails] = Decoder.instance(c =>
     for {
@@ -94,22 +98,26 @@ object ProgramDetails:
       ter   <- c.downField("timeEstimateRange").as[CalculatedValue[Option[ProgramTimeRange]]]
       teb   <- c.downField("timeEstimateBanded").as[List[CalculatedValue[BandedProgramTime]]]
       tc    <- c.downField("timeCharge").as[List[BandedProgramTime]]
-    } yield ProgramDetails(n,
-                           d,
-                           t,
-                           p,
-                           ps,
-                           st,
-                           est,
-                           dst,
-                           pi,
-                           us,
-                           r.flatten,
-                           as,
-                           notes,
-                           pm,
-                           sn,
-                           ac,
-                           ProgramTimes(ter, teb, tc)
+      dw    <- c.get[List[ObservationValidationCode]]("dismissedWarnings")
+    } yield ProgramDetails(
+      n,
+      d,
+      t,
+      p,
+      ps,
+      st,
+      est,
+      dst,
+      pi,
+      us,
+      r.flatten,
+      as,
+      notes,
+      pm,
+      sn,
+      ac,
+      ProgramTimes(ter, teb, tc),
+      // The GraphQL field is typed as the whole enum; keep only the warnings.
+      dw.flatMap(_.asWarning).toSet
     )
   )

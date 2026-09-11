@@ -671,9 +671,9 @@ object Icons {
   val ErrorIcon        = ExclamationTriangle.withClass(ExploreStyles.ErrorIcon)
   val SuccessCheckmark = Checkmark.withClass(ExploreStyles.SuccessIcon)
 
-  // Warnings that have been acknowledged: a checkmark over the warning triangle.
-  val AcknowledgedWarningIcon =
-    LayeredIcon(fixedWidth = true, clazz = ExploreStyles.AcknowledgedWarningIcon)(
+  // Warnings that have been dismissed: a checkmark over the warning triangle.
+  val DismissedWarningIcon =
+    LayeredIcon(fixedWidth = true, clazz = ExploreStyles.DismissedWarningIcon)(
       MissingInfoIcon,
       SuccessCheckmark
     )

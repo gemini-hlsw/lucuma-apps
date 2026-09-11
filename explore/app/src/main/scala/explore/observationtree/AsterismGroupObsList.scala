@@ -14,6 +14,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.AsterismGroup
 import explore.model.AsterismGroupList
+import explore.model.DismissedWarnings
 import explore.model.EmptySiderealTarget
 import explore.model.Focused
 import explore.model.LocalClipboard
@@ -70,6 +71,7 @@ case class AsterismGroupObsList(
   copyCallback:          Callback,
   pasteCallback:         Callback,
   allocatedScienceBands: SortedSet[ScienceBand],
+  dismissedWarnings:     DismissedWarnings,
   readonly:              Boolean
 ) extends ReactFnProps[AsterismGroupObsList](AsterismGroupObsList.component)
     with ViewCommon:

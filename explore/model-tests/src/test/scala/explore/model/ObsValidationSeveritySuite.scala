@@ -6,7 +6,6 @@ package explore.model
 import explore.model.arb.ArbObservation
 import explore.model.enums.ObsValidationSeverity
 import lucuma.core.enums.ObservationValidationCode
-import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.ObservationValidation
 import munit.FunSuite
 import org.scalacheck.Arbitrary.arbitrary
@@ -14,70 +13,63 @@ import org.scalacheck.Arbitrary.arbitrary
 class ObsValidationSeveritySuite extends FunSuite:
   import ArbObservation.given
 
-  private val ErrorCode   = ObservationValidationCode.ConfigurationError
-  private val WarningCode = ObservationValidationCode.LowTotalSignalToNoise
+  private val ErrorCode    = ObservationValidationCode.ConfigurationError
+  private val WarningCode  = ObservationValidationCode.LowTotalSignalToNoise
+  private val WarningCode2 = ObservationValidationCode.ConditionsUnlikely
 
   private val baseObs: Observation =
     arbitrary[Observation].sample.get
 
-  private def obsWith(
-    state:            ObservationWorkflowState,
-    codes:            List[ObservationValidationCode],
-    validTransitions: List[ObservationWorkflowState] = List.empty
-  ): Observation =
-    Observation.workflowState.replace(state)(
-      Observation.workflowValidTransitions.replace(validTransitions)(
-        Observation.validationErrors
-          .replace(codes.map(c => ObservationValidation.fromMsgs(c, "a message")))(baseObs)
-      )
-    )
+  private def obsWith(codes: ObservationValidationCode*): Observation =
+    Observation.validationErrors
+      .replace(codes.toList.map(c => ObservationValidation.fromMsgs(c, "a message")))(baseObs)
+
+  private val nothingDismissed: DismissedWarnings = Set.empty
 
   test("no validations has no severity"):
-    ObservationWorkflowState.values.foreach: state =>
-      assertEquals(obsWith(state, List.empty).validationSeverity, None)
+    assertEquals(obsWith().validationSeverity(nothingDismissed), None)
+    assertEquals(obsWith().validationSeverity(Set(WarningCode)), None)
 
-  test("a fatal validation is an Error in every state"):
-    ObservationWorkflowState.values.foreach: state =>
-      val obs = obsWith(state, List(ErrorCode))
-      assertEquals(obs.validationSeverity, Some(ObsValidationSeverity.Error))
-      assertEquals(obs.severityOf(ErrorCode), ObsValidationSeverity.Error)
+  test("an error is an Error whatever has been dismissed"):
+    val obs = obsWith(ErrorCode)
+    assertEquals(obs.validationSeverity(nothingDismissed), Some(ObsValidationSeverity.Error))
+    assertEquals(obs.validationSeverity(Set(WarningCode)), Some(ObsValidationSeverity.Error))
+    assertEquals(obs.severityOf(ErrorCode, Set(WarningCode)), ObsValidationSeverity.Error)
 
-  test("warnings before Ready are unacknowledged"):
-    List(ObservationWorkflowState.Undefined,
-         ObservationWorkflowState.Unapproved,
-         ObservationWorkflowState.Defined
-    ).foreach: state =>
-      val obs = obsWith(state, List(WarningCode))
-      assertEquals(obs.validationSeverity, Some(ObsValidationSeverity.Warning))
-      assertEquals(obs.severityOf(WarningCode), ObsValidationSeverity.Warning)
-
-  test("warnings at Ready or later are acknowledged"):
-    List(ObservationWorkflowState.Ready,
-         ObservationWorkflowState.Ongoing,
-         ObservationWorkflowState.Completed
-    ).foreach: state =>
-      val obs = obsWith(state, List(WarningCode))
-      assertEquals(obs.validationSeverity, Some(ObsValidationSeverity.AcknowledgedWarning))
-      assertEquals(obs.severityOf(WarningCode), ObsValidationSeverity.AcknowledgedWarning)
-
-  test("an inactive observation acknowledges warnings based on its valid transitions"):
+  test("a warning is dismissed only when its code is in the program's dismissed list"):
+    val obs = obsWith(WarningCode)
+    assertEquals(obs.validationSeverity(nothingDismissed), Some(ObsValidationSeverity.Warning))
+    assertEquals(obs.severityOf(WarningCode, nothingDismissed), ObsValidationSeverity.Warning)
     assertEquals(
-      obsWith(ObservationWorkflowState.Inactive,
-              List(WarningCode),
-              List(ObservationWorkflowState.Ready)
-      ).validationSeverity,
-      Some(ObsValidationSeverity.AcknowledgedWarning)
+      obs.validationSeverity(Set(WarningCode)),
+      Some(ObsValidationSeverity.DismissedWarning)
     )
     assertEquals(
-      obsWith(ObservationWorkflowState.Inactive,
-              List(WarningCode),
-              List(ObservationWorkflowState.Defined)
-      ).validationSeverity,
-      Some(ObsValidationSeverity.Warning)
+      obs.severityOf(WarningCode, Set(WarningCode)),
+      ObsValidationSeverity.DismissedWarning
     )
 
-  test("errors keep warnings on the same observation unacknowledged"):
-    val obs = obsWith(ObservationWorkflowState.Ready, List(ErrorCode, WarningCode))
-    assertEquals(obs.validationSeverity, Some(ObsValidationSeverity.Error))
-    assertEquals(obs.severityOf(ErrorCode), ObsValidationSeverity.Error)
-    assertEquals(obs.severityOf(WarningCode), ObsValidationSeverity.Warning)
+  test("dismissing an unrelated warning leaves this one alone"):
+    val obs = obsWith(WarningCode)
+    assertEquals(obs.validationSeverity(Set(WarningCode2)), Some(ObsValidationSeverity.Warning))
+
+  test("an observation can mix dismissed and non-dismissed warnings"):
+    val obs                          = obsWith(WarningCode, WarningCode2)
+    val dismissed: DismissedWarnings = Set(WarningCode)
+    assertEquals(obs.severityOf(WarningCode, dismissed), ObsValidationSeverity.DismissedWarning)
+    assertEquals(obs.severityOf(WarningCode2, dismissed), ObsValidationSeverity.Warning)
+    // The observation as a whole is still warning, because one warning stands.
+    assertEquals(obs.validationSeverity(dismissed), Some(ObsValidationSeverity.Warning))
+
+  test("an observation with all of its warnings dismissed is a DismissedWarning"):
+    assertEquals(
+      obsWith(WarningCode, WarningCode2).validationSeverity(Set(WarningCode, WarningCode2)),
+      Some(ObsValidationSeverity.DismissedWarning)
+    )
+
+  test("an error outranks a dismissed warning on the same observation"):
+    val obs                          = obsWith(ErrorCode, WarningCode)
+    val dismissed: DismissedWarnings = Set(WarningCode)
+    assertEquals(obs.validationSeverity(dismissed), Some(ObsValidationSeverity.Error))
+    // ...but the warning itself is still reported as dismissed.
+    assertEquals(obs.severityOf(WarningCode, dismissed), ObsValidationSeverity.DismissedWarning)

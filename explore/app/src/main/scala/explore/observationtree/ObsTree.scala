@@ -15,6 +15,7 @@ import explore.ObsGroupHelper
 import explore.components.ActionButtons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.DismissedWarnings
 import explore.model.Focused
 import explore.model.Group
 import explore.model.GroupList
@@ -76,6 +77,7 @@ case class ObsTree(
   pasteCallback:         Callback,
   clipboardObsContents:  Option[ObsIdSet],
   allocatedScienceBands: SortedSet[ScienceBand],
+  dismissedWarnings:     DismissedWarnings,
   addingObservation:     View[AddingObservation],
   readonly:              Boolean
 ) extends ReactFnProps(ObsTree.component)
@@ -473,6 +475,7 @@ object ObsTree:
                           .obsTelluricType(obs.id, mode.obsModeType)
                           .set(props.observations)(tt.some),
                   allocatedScienceBands = props.allocatedScienceBands,
+                  dismissedWarnings = props.dismissedWarnings,
                   associatedObss = associatedObss,
                   programId = props.programId,
                   hasBlindOffset = obs.hasBlindOffset,

@@ -116,6 +116,7 @@ object OverviewTabContents
               props.userId,
               props.programId,
               props.observations,
+              props.detailsUndoSetter.get.dismissedWarnings,
               tileState
             ),
             contentHeightPx = AutoHeightTable.heightPx(tileState.get.visibleRowCount).some

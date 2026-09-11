@@ -13,6 +13,7 @@ import explore.common.TimingWindowsQueries
 import explore.components.ActionButtons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.DismissedWarnings
 import explore.model.Focused
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
@@ -64,6 +65,7 @@ case class SchedulingGroupObsList(
   pasteCallback:         Callback,
   clipboardObsContents:  Option[ObsIdSet],
   allocatedScienceBands: SortedSet[ScienceBand],
+  dismissedWarnings:     DismissedWarnings,
   readonly:              Boolean
 ) extends ReactFnProps[SchedulingGroupObsList](SchedulingGroupObsList.component)
     with ViewCommon:

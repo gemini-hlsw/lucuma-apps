@@ -7,6 +7,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.DismissedWarnings
 import explore.model.ObsIdSet
 import explore.model.Observation
 import explore.model.ObservationList
@@ -27,6 +28,7 @@ trait ViewCommon {
   def programId: Program.Id
   def focusedObsSet: Option[ObsIdSet]
   def allocatedScienceBands: SortedSet[ScienceBand]
+  def dismissedWarnings: DismissedWarnings
   def readonly: Boolean
 
   def renderObsBadge(
@@ -44,6 +46,7 @@ trait ViewCommon {
       readonly = readonly,
       deleteCB = onDelete,
       allocatedScienceBands = allocatedScienceBands,
+      dismissedWarnings = dismissedWarnings,
       programId = programId,
       hasBlindOffset = hasBlindOffset
     )
