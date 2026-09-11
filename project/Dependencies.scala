@@ -205,7 +205,6 @@ object Dependencies {
       "org.typelevel" %% "otel4s-instrumentation-metrics"
     )(otel4s) ++
       depsJVM(
-        "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure",
         "io.opentelemetry" % "opentelemetry-exporter-otlp"
       )(openTelemetry) ++
       depsJVM("io.opentelemetry.instrumentation" % "opentelemetry-runtime-telemetry")(
