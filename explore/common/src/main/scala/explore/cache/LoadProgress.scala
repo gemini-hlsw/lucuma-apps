@@ -30,25 +30,30 @@ enum LoadStepState:
 object LoadStepState:
   given Eq[LoadStepState] = Eq.fromUniversalEquals
 
-case class LoadProgress(states: Map[LoadStep, LoadStepState]):
+// `expected` is declared when a load starts, so the whole list is on screen from the
+// first frame instead of growing a line at a time. Not every load runs every step:
+// with no program in the URL only the program list is being waited on.
+case class LoadProgress(expected: Set[LoadStep], states: Map[LoadStep, LoadStepState]):
   def start(step: LoadStep): LoadProgress =
-    LoadProgress(states.updated(step, LoadStepState.InFlight))
+    LoadProgress(expected + step, states.updated(step, LoadStepState.InFlight))
 
   def complete(step: LoadStep): LoadProgress =
-    LoadProgress(states.updated(step, LoadStepState.Done))
+    LoadProgress(expected + step, states.updated(step, LoadStepState.Done))
 
   def stateOf(step: LoadStep): LoadStepState =
     states.getOrElse(step, LoadStepState.Pending)
 
   def steps: List[(LoadStep, LoadStepState)] =
-    LoadStep.values.toList.map(step => (step, stateOf(step)))
+    LoadStep.values.toList.filter(expected.contains).map(step => (step, stateOf(step)))
 
-  def isIdle: Boolean = states.isEmpty
+  def isIdle: Boolean = expected.isEmpty
 
 object LoadProgress:
-  val Empty: LoadProgress = LoadProgress(Map.empty)
+  val Empty: LoadProgress = LoadProgress(Set.empty, Map.empty)
 
-  given Eq[LoadProgress] = Eq.by(_.states)
+  def expecting(steps: Set[LoadStep]): LoadProgress = LoadProgress(steps, Map.empty)
+
+  given Eq[LoadProgress] = Eq.by(p => (p.expected, p.states))
 
 type LoadProgressRef[F[_]] = SignallingRef[F, LoadProgress]
 

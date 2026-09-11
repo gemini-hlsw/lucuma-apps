@@ -194,10 +194,15 @@ object ProgramCacheController
                 val full = modeById.get(id).flatten
                 Observation.observingMode.replace(Pot.Ready(full))(o)
 
-    val clearProgressThenLoadObservationsAndGroups =
-      props.loadProgress.set(LoadProgress.Empty) >> (observations, groups).parTupled
+    // The steps that actually run, so the checklist doesn't list work that was skipped.
+    val expectedSteps: Set[LoadStep] =
+      if props.isProgramSelected then LoadStep.values.toSet else Set(LoadStep.Programs)
 
-    clearProgressThenLoadObservationsAndGroups
+    val declareProgressThenLoadObservationsAndGroups =
+      props.loadProgress.set(LoadProgress.expecting(expectedSteps)) >>
+        (observations, groups).parTupled
+
+    declareProgressThenLoadObservationsAndGroups
       .flatMap: (obs, grps) =>
         val delayed = Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated"))
         initializeSummaries(obs, grps).map((_, delayed))
