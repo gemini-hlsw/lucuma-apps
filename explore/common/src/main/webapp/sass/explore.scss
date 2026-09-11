@@ -4975,12 +4975,13 @@ span.explore-offsets-count {
 }
 
 .load-progress-list {
+  // No `gap`: a retiring step collapses its own height, and a gap would leave a
+  // hole behind it. The steps carry their own spacing instead.
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
   white-space: nowrap;
 }
 
@@ -4989,6 +4990,8 @@ span.explore-offsets-count {
   grid-template-columns: [icon] 1.2em [label] auto;
   align-items: center;
   column-gap: 0.5em;
+  height: 1.6em;
+  overflow: hidden;
 }
 
 .load-progress-pending {
@@ -4999,6 +5002,27 @@ span.explore-offsets-count {
   }
 }
 
+// Done is terminal, so this runs exactly once per step: hold the tick long enough
+// to be read, then fade and collapse so the remaining steps slide up.
 .load-progress-done {
   opacity: 0.55;
+  animation: load-progress-retire 400ms ease-out 700ms forwards;
+}
+
+@keyframes load-progress-retire {
+  from {
+    opacity: 0.55;
+    height: 1.6em;
+  }
+
+  to {
+    opacity: 0;
+    height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .load-progress-done {
+    animation: none;
+  }
 }
