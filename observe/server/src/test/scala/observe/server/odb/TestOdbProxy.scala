@@ -253,6 +253,7 @@ object TestOdbProxy {
 
           override def readExecutionConfig(
             obsId:       Observation.Id,
+            instrument:  Instrument,
             futureLimit: NonNegInt
           ): F[InstrumentExecutionConfig] =
             read(obsId).map(_.executionConfig)

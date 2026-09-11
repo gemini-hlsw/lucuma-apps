@@ -9,6 +9,7 @@ import clue.FetchClient
 import clue.syntax.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.ObservationDB
@@ -21,10 +22,14 @@ trait OdbProxy[F[_]] private[odb] () extends OdbCommands[F] {
   def resetAcquisition(obsId: Observation.Id): F[Unit]
 
   /**
-   * Reads the execution config with up to `futureLimit` atoms beyond the next one in
-   * `possibleFuture`. The response grows with it, and it crosses the network on every step.
+   * Reads `instrument`'s execution config with up to `futureLimit` atoms beyond the next one in
+   * `possibleFuture`. Both narrow the response, which crosses the network on every step.
    */
-  def readExecutionConfig(oid: Observation.Id, futureLimit: NonNegInt): F[InstrumentExecutionConfig]
+  def readExecutionConfig(
+    oid:         Observation.Id,
+    instrument:  Instrument,
+    futureLimit: NonNegInt
+  ): F[InstrumentExecutionConfig]
 }
 
 object OdbProxy {
@@ -57,21 +62,62 @@ object OdbProxy {
                         ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
                     )((obs, ec) => OdbObservationData(obs, ec).pure[F])
 
-      // The sequence the ODB generates depends on the events we sent, so they have to be in first.
       override def readExecutionConfig(
         oid:         Observation.Id,
+        instrument:  Instrument,
         futureLimit: NonNegInt
       ): F[InstrumentExecutionConfig] =
+        instrument match
+          case Instrument.GmosNorth  =>
+            readingConfig(oid):
+              GmosNorthExecutionQuery[F]
+                .query(oid, futureLimit)
+                .raiseGraphQLErrors
+                .map(_.executionConfig.flatMap(_.gmosNorth))
+          case Instrument.GmosSouth  =>
+            readingConfig(oid):
+              GmosSouthExecutionQuery[F]
+                .query(oid, futureLimit)
+                .raiseGraphQLErrors
+                .map(_.executionConfig.flatMap(_.gmosSouth))
+          case Instrument.Flamingos2 =>
+            readingConfig(oid):
+              Flamingos2ExecutionQuery[F]
+                .query(oid, futureLimit)
+                .raiseGraphQLErrors
+                .map(_.executionConfig.flatMap(_.flamingos2))
+          case Instrument.Igrins2    =>
+            readingConfig(oid):
+              Igrins2ExecutionQuery[F]
+                .query(oid, futureLimit)
+                .raiseGraphQLErrors
+                .map(_.executionConfig.flatMap(_.igrins2))
+          case Instrument.Gnirs      =>
+            readingConfig(oid):
+              GnirsExecutionQuery[F]
+                .query(oid, futureLimit)
+                .raiseGraphQLErrors
+                .map(_.executionConfig.flatMap(_.gnirs))
+          case Instrument.Ghost      =>
+            readingConfig(oid):
+              GhostExecutionQuery[F]
+                .query(oid, futureLimit)
+                .raiseGraphQLErrors
+                .map(_.executionConfig.flatMap(_.ghost))
+          case other                 =>
+            F.raiseError:
+              ObserveFailure.Unexpected(s"OdbProxy: $other cannot execute sequences")
+
+      // The sequence the ODB generates depends on the events we sent, so they have to be in first.
+      private def readingConfig[A <: InstrumentExecutionConfig](oid: Observation.Id)(
+        read: F[Option[A]]
+      ): F[InstrumentExecutionConfig] =
         evCmds.flushEvents(oid) >>
-          ObsExecutionQuery[F]
-            .query(oid, futureLimit)
-            .raiseGraphQLErrors
-            .flatMap {
-              _.executionConfig.fold(
-                F.raiseError[InstrumentExecutionConfig]:
-                  ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
-              )(_.pure[F])
-            }
+          read.flatMap:
+            _.fold(
+              F.raiseError[InstrumentExecutionConfig]:
+                ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
+            )(_.pure[F])
 
       override def resetAcquisition(obsId: Observation.Id): F[Unit] =
         evCmds.flushEvents(obsId) >>

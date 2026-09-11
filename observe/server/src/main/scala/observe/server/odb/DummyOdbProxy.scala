@@ -6,6 +6,7 @@ package observe.server.odb
 import cats.effect.Sync
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
@@ -21,6 +22,7 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
 
   override def readExecutionConfig(
     oid:         Observation.Id,
+    instrument:  Instrument,
     futureLimit: NonNegInt
   ): F[InstrumentExecutionConfig] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.readExecutionConfig: Not implemented."))

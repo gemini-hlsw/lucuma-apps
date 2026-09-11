@@ -29,7 +29,6 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import monocle.Lens
 import mouse.all.*
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
 import observe.model.config.*
 import observe.model.enums.BatchExecState
@@ -530,17 +529,20 @@ object ObserveEngine {
   ): EngineHandle[F, Option[StepGen[F]]] =
     (for
         _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
-        obsData <- EngineHandle.inspectState[F, Option[OdbObservation]](
-                     EngineState.sequenceDataAt(obsId).andThen(SequenceData.observation).getOption
+        seqData <- EngineHandle.inspectState[F, Option[SequenceData[F]]](
+                     EngineState.sequenceDataAt(obsId).getOption
                    )
         // Jumping to a chosen step needs the future atoms, moving on to the next one does not.
         limit    = stepIdFrom.fold(_ => OdbProxy.NextAtomOnly, _ => OdbProxy.FullFuture)
-        odbEx   <- EngineHandle
-                     .liftF(odb.readExecutionConfig(obsId, limit))
-                     .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
-      yield obsData.flatMap(od =>
-        translator.nextStep(OdbObservationData(od, odbEx), stepIdFrom)._2
-      ) // TODO Do something with warnings? (_1)
+        stepGen <-
+          seqData
+            .traverse: sd =>
+              EngineHandle
+                .liftF(odb.readExecutionConfig(obsId, sd.instrument, limit))
+                .map: odbEx =>
+                  translator.nextStep(OdbObservationData(sd.observation, odbEx), stepIdFrom)._2
+            .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
+      yield stepGen.flatten // TODO Do something with warnings? (_1)
     ).handleErrorWith: e =>
       EngineHandle.logError(e)(
         s"Error loading step for observation [$obsId] from [$stepIdFrom]"
