@@ -74,20 +74,68 @@ object ObsQueriesGql:
           type Asterism     = TargetWithId
           type ExplicitBase = Coordinates
 
-  // Query observations with targets.
+  // The execution config for one instrument. Selecting every instrument at once, as
+  // ExecutionConfigSubquery does, makes the document ~39 KB; one of these is a fifth of the size.
+  // Same shape for all of them so OdbProxy can dispatch by instrument.
   @GraphQL
-  trait ObsExecutionQuery extends GraphQLOperation[ObservationDB] {
+  trait GmosNorthExecutionQuery extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      query($$obsId: ObservationId!) {
-        observation(observationId: $$obsId) {
-          id
-          title
-          observationTime
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          gmosNorth $GmosNorthExecutionConfigSubquery
         }
-        executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery
       }
     """
-  }
+
+  @GraphQL
+  trait GmosSouthExecutionQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          gmosSouth $GmosSouthExecutionConfigSubquery
+        }
+      }
+    """
+
+  @GraphQL
+  trait Flamingos2ExecutionQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          flamingos2 $Flamingos2ExecutionConfigSubquery
+        }
+      }
+    """
+
+  @GraphQL
+  trait Igrins2ExecutionQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          igrins2 $Igrins2ExecutionConfigSubquery
+        }
+      }
+    """
+
+  @GraphQL
+  trait GnirsExecutionQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          gnirs $GnirsExecutionConfigSubquery
+        }
+      }
+    """
+
+  @GraphQL
+  trait GhostExecutionQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          ghost $GhostExecutionConfigSubquery
+        }
+      }
+    """
 
   // Lightweight query to determine the skipTargets parameter in the query above.
   @GraphQL
