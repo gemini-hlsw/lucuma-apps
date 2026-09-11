@@ -4,8 +4,10 @@
 package observe.ui.components.sequence.byInstrument
 
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
+import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
@@ -38,12 +40,16 @@ final case class Flamingos2SequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
+  getMaskName:          Attachment.Id => Option[NonEmptyString]
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:
   lazy val toInstrumentVisits =
     case ExecutionVisits.Flamingos2(visits) => visits
+
+  override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
+    getMaskName(attachmentId)
 
 object Flamingos2SequenceTable
     extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
