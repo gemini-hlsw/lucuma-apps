@@ -541,7 +541,7 @@ backup["ITC"]=false
 
 repo["ODB"]="gemini-hlsw/lucuma-odb"
 image_name["ODB"]="lucuma-postgres-odb"
-process_types["ODB"]="web calibration obscalc"
+process_types["ODB"]="web calibration obscalc pdfSummary"
 backup["ODB"]=true
 
 repo["RESOURCE"]="gemini-hlsw/lucuma-odb"
