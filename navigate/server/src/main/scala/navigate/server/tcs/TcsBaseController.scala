@@ -48,6 +48,7 @@ import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
 import navigate.server.tcs.TcsBaseController.AcCommands
 import navigate.server.tcs.TcsBaseController.PwfsMechanismCommands
+import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 
 trait TcsBaseController[F[_]] {
   def mcsPark: F[ApplyCommandResult]
@@ -125,6 +126,10 @@ trait TcsBaseController[F[_]] {
   ): F[ApplyCommandResult]
   def originAdjust(handsetAdjustment: HandsetAdjustment, openLoops: Boolean)(
     guide: GuideConfig
+  ): F[ApplyCommandResult]
+  def offset(offset: Offset, guiding: Boolean)(
+    guide:       GuideConfig,
+    wfsTracking: WfsGuideStates
   ): F[ApplyCommandResult]
   def originOffsetAbsorb: F[ApplyCommandResult]
   def originOffsetClear(openLoops:      Boolean)(guide:         GuideConfig): F[ApplyCommandResult]

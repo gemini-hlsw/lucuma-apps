@@ -212,7 +212,7 @@ object TcsEpicsSystem {
     def pwfs2On: VerifiedEpics[F, F, BinaryYesNo]
     def oiwfsOn: VerifiedEpics[F, F, BinaryYesNo]
     def nodState: VerifiedEpics[F, F, NodState]
-    // def instrAA: F[Double]
+    def instrAA: VerifiedEpics[F, F, Angle]
     // def inPosition: F[String]
     // def agInPosition: F[Double]
     val pwfs1ProbeGuideState: ProbeGuideState[F]
@@ -583,6 +583,11 @@ object TcsEpicsSystem {
         override def rotatorDemand: VerifiedEpics[F, F, RotatorAngle] =
           readChannel(channels.telltale, channels.demandRotator).map(
             _.map(RotatorAngle.fromDoubleDegrees)
+          )
+
+        override def instrAA: VerifiedEpics[F, F, Angle] =
+          readChannel(channels.telltale, channels.instrAA).map(
+            _.map(Angle.fromDoubleDegrees)
           )
       }
   }
@@ -1404,15 +1409,26 @@ object TcsEpicsSystem {
       }
     override val instrumentOffsetCommand: InstrumentOffsetCommand[F, TcsCommands[F]] =
       new InstrumentOffsetCommand[F, TcsCommands[F]] {
-        override def offsetX(v: Distance): TcsCommands[F] = addParam(
-          writeCadParam(channels.telltale, channels.instrumentOffset.x)(
-            v.toMillimeters.value.toDouble
+        // Same offset is applied to both beams (A and B).
+        override def offsetX(v: Distance): TcsCommands[F] = addMultipleParams(
+          List(
+            writeCadParam(channels.telltale, channels.instrumentOffsetA.x)(
+              v.toMillimeters.value.toDouble
+            ),
+            writeCadParam(channels.telltale, channels.instrumentOffsetB.x)(
+              v.toMillimeters.value.toDouble
+            )
           )
         )
 
-        override def offsetY(v: Distance): TcsCommands[F] = addParam(
-          writeCadParam(channels.telltale, channels.instrumentOffset.y)(
-            v.toMillimeters.value.toDouble
+        override def offsetY(v: Distance): TcsCommands[F] = addMultipleParams(
+          List(
+            writeCadParam(channels.telltale, channels.instrumentOffsetA.y)(
+              v.toMillimeters.value.toDouble
+            ),
+            writeCadParam(channels.telltale, channels.instrumentOffsetB.y)(
+              v.toMillimeters.value.toDouble
+            )
           )
         )
       }

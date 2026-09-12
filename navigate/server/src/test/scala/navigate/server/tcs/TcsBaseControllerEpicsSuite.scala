@@ -116,8 +116,10 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 import TcsBaseController.*
+import TcsBaseControllerEpics.WfsGuideStates
 import TestTcsEpicsSystem.EnclosureStateChannelsState
 import TestTcsEpicsSystem.GuideConfigState
+import TestTcsEpicsSystem.InstrumentOffsetCommandState
 import TestTcsEpicsSystem.ProbeState
 import TestTcsEpicsSystem.ProbeTrackingState
 import TestTcsEpicsSystem.ProbeTrackingStateState
@@ -910,6 +912,58 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         )
         assertEquals(obtained.probeGuideMode.from.value, probeEncode(from).some)
         assertEquals(obtained.probeGuideMode.to.value, probeEncode(to).some)
+      }
+      .getOrElse {
+        assertEquals(obtained.probeGuideMode.state.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.Off.some
+        )
+      }
+  }
+
+  private def checkPauseResumeGuide(obtained: State, expected: TelescopeGuideConfig): Unit = {
+    assert(obtained.m1Guide.connected)
+    assert(obtained.m2Guide.connected)
+    assert(obtained.m2GuideMode.connected)
+    assert(obtained.mountGuide.mode.connected)
+    assert(obtained.probeGuideMode.state.connected)
+    expected.m1Guide match {
+      case M1GuideConfig.M1GuideOff        =>
+        assertEquals(obtained.m1Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.Off.some
+        )
+      case M1GuideConfig.M1GuideOn(source) =>
+        assertEquals(obtained.m1Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.On.some
+        )
+    }
+    expected.m2Guide match {
+      case M2GuideConfig.M2GuideOff =>
+        assertEquals(obtained.m2Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.Off.some
+        )
+      case M2GuideOn(coma, sources) =>
+        assertEquals(obtained.m2Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.On.some
+        )
+        assertEquals(obtained.m2GuideMode.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     (coma === ComaOption.ComaOn).fold(BinaryOnOff.On, BinaryOnOff.Off).some
+        )
+    }
+    expected.mountGuide match {
+      case MountGuideOption.MountGuideOff =>
+        assertEquals(obtained.mountGuide.mode.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.Off.some
+        )
+      case MountGuideOption.MountGuideOn  =>
+        assertEquals(obtained.mountGuide.mode.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.On.some
+        )
+    }
+    expected.probeGuide
+      .map { case ProbeGuide(from, to) =>
+        assertEquals(obtained.probeGuideMode.state.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                     BinaryOnOff.On.some
+        )
       }
       .getOrElse {
         assertEquals(obtained.probeGuideMode.state.value.flatMap(Enumerated[BinaryOnOff].fromTag),
@@ -1903,7 +1957,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithOiState))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.acquisitionAdj(Offset(Offset.P(pOffset), Offset.Q(qOffset)), none, none)(
                      GuideConfig(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS), none)
@@ -1931,23 +1985,24 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         .flatMap(_.toIntOption)
         .map(x => assertEquals(x, expVt))
         .getOrElse(fail("No value for parameter vt"))
-      checkGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
+      checkPauseResumeGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
     }
   }
 
   private def testWfsSky(
-    guideCfg: TelescopeGuideConfig,
-    wfsStL:   Lens[State, ProbeTrackingStateState],
-    cmdL:     Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]],
-    dfn:      Getter[StateRefs[IO], IO[TestChannel.State[String]]],
-    prefix:   String = ""
+    guideCfg:   TelescopeGuideConfig,
+    wfsStL:     Lens[State, ProbeTrackingStateState],
+    cmdL:       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]],
+    dfn:        Getter[StateRefs[IO], IO[TestChannel.State[String]]],
+    guideState: GuideConfigState,
+    prefix:     String = ""
   ): IO[Unit] = {
     val expTime = TimeSpan.unsafeFromMicroseconds(50000)
 
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, wfsStL)
-      _         <- ctr.enableGuide(guideCfg)
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideState))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- cmdL.get(ctr)(expTime)(GuideConfig(guideCfg, none))
       r1        <- st.tcs.get
@@ -1956,7 +2011,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(sdf.connected)
       assertEquals(sdf.value, s"${prefix}20Hz.fits".some)
 
-      checkGuide(r1, guideCfg)
+      checkPauseResumeGuide(r1, guideCfg)
 
       assert(r1.targetFilter.shortcircuit.connected)
       assertEquals(r1.targetFilter.shortcircuit.value, "Closed".some)
@@ -1977,6 +2032,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       Focus[State](_.pwfs1TrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.pwfs1Sky),
       Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs1.dark)),
+      guideWithP1State,
       "p1_"
     )
   }
@@ -1987,6 +2043,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       Focus[State](_.pwfs2TrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.pwfs2Sky),
       Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs2.dark)),
+      guideWithP2State,
       "p2_"
     )
   }
@@ -1996,7 +2053,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS),
       Focus[State](_.oiwfsTrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.oiwfsSky),
-      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.oi.get.map(_.seqDarkFilename))
+      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.oi.get.map(_.seqDarkFilename)),
+      guideWithOiState
     )
   }
 
@@ -2004,7 +2062,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithOiState))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.targetAdjust(VirtualTelescope.SourceA,
                                     HandsetAdjustment.EquatorialAdjustment(Angle.fromDoubleArcseconds(-8.0),
@@ -2024,7 +2082,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )(GuideConfig(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS), none))
       r2        <- st.tcs.get
     } yield {
-      checkGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
+      checkPauseResumeGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
 
       assert(r1.targetAdjust.frame.connected)
       assert(r1.targetAdjust.size.connected)
@@ -2068,7 +2126,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(guideCfg)
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithOiState))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.originAdjust(HandsetAdjustment.EquatorialAdjustment(Angle.fromDoubleArcseconds(-8.0),
                                                                            Angle.fromDoubleArcseconds(6.0)
@@ -2085,21 +2143,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )(GuideConfig(guideCfg, none))
       r2        <- st.tcs.get
     } yield {
-      assert(r1.m1Guide.connected)
-      assert(r1.m1GuideConfig.source.connected)
-      assert(r1.m2Guide.connected)
-      assert(r1.m2GuideConfig.source.connected)
-      assert(r1.m2GuideConfig.beam.connected)
-      assert(r1.m2GuideMode.connected)
-
-      assertEquals(r1.m1Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag), BinaryOnOff.On.some)
-      assertEquals(r1.m1GuideConfig.source.value, M1Source.OIWFS.tag.toUpperCase.some)
-      assertEquals(r1.m2Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag), BinaryOnOff.On.some)
-      assertEquals(r1.m2GuideConfig.source.value, TipTiltSource.OIWFS.tag.toUpperCase.some)
-      assertEquals(r1.m2GuideConfig.beam.value, "A".some)
-      assertEquals(r1.m2GuideMode.value.flatMap(Enumerated[BinaryOnOff].fromTag),
-                   BinaryOnOff.On.some
-      )
+      checkPauseResumeGuide(r2, guideCfg)
 
       assert(r1.originAdjust.frame.connected)
       assert(r1.originAdjust.size.connected)
@@ -2126,6 +2170,114 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         .flatMap(_.toDoubleOption)
         .fold(fail("No angle value set"))(v => assertEqualsDouble(v, 225.0, 1e-6))
       assertEquals(r2.originAdjust.vt.value.flatMap(_.toIntOption), expectedVTMask.some)
+    }
+  }
+
+  private def checkInstrumentOffset(
+    obtained: InstrumentOffsetCommandState,
+    expX:     Double,
+    expY:     Double
+  ): Unit = {
+    obtained.offsetX.value
+      .flatMap(_.toDoubleOption)
+      .fold(fail("No X value set"))(v => assertEqualsDouble(v, expX, 1e-6))
+    obtained.offsetY.value
+      .flatMap(_.toDoubleOption)
+      .fold(fail("No Y value set"))(v => assertEqualsDouble(v, expY, 1e-6))
+  }
+
+  private def checkTracking(obtained: ProbeTrackingState, expected: TrackingConfig): Unit = {
+    assertEquals(obtained.nodAchopA.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                 expected.nodAchopA.fold(BinaryOnOff.On, BinaryOnOff.Off).some
+    )
+    assertEquals(obtained.nodAchopB.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                 expected.nodAchopB.fold(BinaryOnOff.On, BinaryOnOff.Off).some
+    )
+    assertEquals(obtained.nodBchopA.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                 expected.nodBchopA.fold(BinaryOnOff.On, BinaryOnOff.Off).some
+    )
+    assertEquals(obtained.nodBchopB.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                 expected.nodBchopB.fold(BinaryOnOff.On, BinaryOnOff.Off).some
+    )
+  }
+
+  test("Offset command disables guiding and PWFS1 probe tracking when guiding is false") {
+    val guideCfg    = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
+    val offsetP     = Angle.fromBigDecimalArcseconds(5.0)
+    val offsetQ     = Angle.fromBigDecimalArcseconds(0.0)
+    // Use the same Angle -> Distance conversion the production code uses, so the expected
+    // value matches its internal rounding exactly.
+    val expectedXmm =
+      Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val expectedYmm =
+      Angle.fromBigDecimalArcseconds(0.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+
+    for {
+      (st, ctr) <- createController()
+      // Initial state: PWFS1 is tracking (both the live tracking-status channels offset()
+      // reads via getProbesGuideState, and the command echo channels). Also set the separate live
+      // guide-status mirror (guideStatus, read by getGuideState) to "guiding", since that is
+      // what offset() actually consults to decide whether to pause.
+      _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _         <- ctr.pwfs1ProbeTracking(TrackingConfig.default)
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
+      _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(offsetQ)), guiding = false)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
+      checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
+      checkTracking(r1.pwfs1Tracking, TrackingConfig.noTracking)
+      checkPauseResumeGuide(r1, noGuideConfig)
+    }
+  }
+
+  test("Offset command restores guiding and PWFS1 probe tracking when guiding is true") {
+    val guideCfg      = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
+    val offsetP       = Angle.fromBigDecimalArcseconds(5.0)
+    val offsetQ       = Angle.fromBigDecimalArcseconds(0.0)
+    // Use the same Angle -> Distance conversion the production code uses, so the expected
+    // value matches its internal rounding exactly.
+    val expectedXmm   =
+      Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val expectedYmm   =
+      Angle.fromBigDecimalArcseconds(0.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val rememberedCfg = TrackingConfig.default
+
+    for {
+      (st, ctr) <- createController()
+      // First bring guiding fully up while PWFS1 is tracking, set the separate
+      // live guide-status mirror (guideStatus, read by getGuideState) to "not guiding", and
+      // mark PWFS1 as not currently tracking, matching the "no guiding, tracking disabled"
+      // starting point.
+      _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(GuideConfigState.default))
+      _         <- st.tcs.update(
+                     _.focus(_.pwfs1TrackingState).replace(
+                       ProbeTrackingStateState(
+                         TestChannel.State.of("Off"),
+                         TestChannel.State.of("Off"),
+                         TestChannel.State.of("Off"),
+                         TestChannel.State.of("Off")
+                       )
+                     )
+                   )
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
+      _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(offsetQ)), guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(rememberedCfg, TrackingConfig.noTracking, TrackingConfig.noTracking)
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
+      checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
+      checkTracking(r1.pwfs1Tracking, rememberedCfg)
+      checkPauseResumeGuide(r1, guideCfg)
     }
   }
 
@@ -2245,26 +2397,12 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(guideCfg)
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithOiState))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.targetOffsetClear(VirtualTelescope.SourceA, true)(GuideConfig(guideCfg, none))
       r1        <- st.tcs.get
     } yield {
-      assert(r1.m1Guide.connected)
-      assert(r1.m1GuideConfig.source.connected)
-      assert(r1.m2Guide.connected)
-      assert(r1.m2GuideConfig.source.connected)
-      assert(r1.m2GuideConfig.beam.connected)
-      assert(r1.m2GuideMode.connected)
-
-      assertEquals(r1.m1Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag), BinaryOnOff.On.some)
-      assertEquals(r1.m1GuideConfig.source.value, M1Source.OIWFS.tag.toUpperCase.some)
-      assertEquals(r1.m2Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag), BinaryOnOff.On.some)
-      assertEquals(r1.m2GuideConfig.source.value, TipTiltSource.OIWFS.tag.toUpperCase.some)
-      assertEquals(r1.m2GuideConfig.beam.value, "A".some)
-      assertEquals(r1.m2GuideMode.value.flatMap(Enumerated[BinaryOnOff].fromTag),
-                   BinaryOnOff.On.some
-      )
+      checkPauseResumeGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
 
       assert(r1.targetOffsetClear.vt.connected)
       assert(r1.targetOffsetClear.index.connected)
@@ -2299,26 +2437,12 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(guideCfg)
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithOiState))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.originOffsetClear(true)(GuideConfig(guideCfg, none))
       r1        <- st.tcs.get
     } yield {
-      assert(r1.m1Guide.connected)
-      assert(r1.m1GuideConfig.source.connected)
-      assert(r1.m2Guide.connected)
-      assert(r1.m2GuideConfig.source.connected)
-      assert(r1.m2GuideConfig.beam.connected)
-      assert(r1.m2GuideMode.connected)
-
-      assertEquals(r1.m1Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag), BinaryOnOff.On.some)
-      assertEquals(r1.m1GuideConfig.source.value, M1Source.OIWFS.tag.toUpperCase.some)
-      assertEquals(r1.m2Guide.value.flatMap(Enumerated[BinaryOnOff].fromTag), BinaryOnOff.On.some)
-      assertEquals(r1.m2GuideConfig.source.value, TipTiltSource.OIWFS.tag.toUpperCase.some)
-      assertEquals(r1.m2GuideConfig.beam.value, "A".some)
-      assertEquals(r1.m2GuideMode.value.flatMap(Enumerated[BinaryOnOff].fromTag),
-                   BinaryOnOff.On.some
-      )
+      checkPauseResumeGuide(r1, guideCfg)
 
       assert(r1.originOffsetClear.vt.connected)
       assert(r1.originOffsetClear.index.connected)

@@ -478,6 +478,16 @@ class NavigateMappings[F[_]: Sync](
     Result.failure[OperationOutcome]("Origin adjustment parameters could not be parsed.").pure[F]
   )
 
+  def offset(env: Env): F[Result[OperationOutcome]] = (for {
+    offset  <- env.get[Offset]("offset")
+    guiding <- env.get[Boolean]("guiding")
+  } yield server
+    .offset(offset, guiding)
+    .attempt
+    .map(convertResult)).getOrElse(
+    Result.failure[OperationOutcome]("Offset parameters could not be parsed.").pure[F]
+  )
+
   def adjustPointing(env: Env): F[Result[OperationOutcome]] = (for {
     offset <- env.get[HandsetAdjustment]("offset")
   } yield server
@@ -974,6 +984,15 @@ class NavigateMappings[F[_]: Sync](
         _ <- Elab.env("openLoops", openLoops)
       } yield ()
     case (MutationType,
+          "offset",
+          List(Binding("offset", ObjectValue(offset)), Binding("guiding", BooleanValue(guiding)))
+        ) =>
+      for {
+        o <- Elab.liftR(parseOffset(offset).toResult("Could not parse offset parameter \"offset\""))
+        _ <- Elab.env("offset", o)
+        _ <- Elab.env("guiding", guiding)
+      } yield ()
+    case (MutationType,
           "resetOriginAdjustment",
           List(Binding("openLoops", BooleanValue(openLoops)))
         ) =>
@@ -1287,6 +1306,9 @@ class NavigateMappings[F[_]: Sync](
           },
           RootEffect.computeEncodable("adjustOrigin") { (_, env) =>
             adjustOrigin(env)
+          },
+          RootEffect.computeEncodable("offset") { (_, env) =>
+            offset(env)
           },
           RootEffect.computeEncodable("resetTargetAdjustment")((_, env) =>
             resetTargetAdjustment(env)
