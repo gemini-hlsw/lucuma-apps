@@ -3677,8 +3677,8 @@ type LucumaUserPreferences {
   ItcChartType: ItcChartType!
   acquisitionOffsets: Boolean!
   agsOverlay: Boolean!
-  aladinLegend: Boolean!
   aladinMouseScroll: Boolean!
+  archiveDuplicationTableFilters: Boolean!
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean!
   elevationPlotLunarElevationVisible: Boolean!
@@ -3695,6 +3695,7 @@ type LucumaUserPreferences {
   """An object relationship"""
   explorePlotTime: ExplorePlotTime!
   fullScreen: Boolean!
+  imagingModesTableFilters: Boolean!
   itcChartType: ItcChartTypeEnum!
   itcDetailsOpen: Boolean!
   lastOpenPrograms(
@@ -3711,11 +3712,9 @@ type LucumaUserPreferences {
   obsTreeWidth: Int
   observationTableFilters: Boolean!
   programsTableFilters: Boolean!
-  spectroscopyModesTableFilters: Boolean!
-  imagingModesTableFilters: Boolean!
-  archiveDuplicationTableFilters: Boolean!
   scienceOffsets: Boolean!
   showCatalog: Boolean!
+  spectroscopyModesTableFilters: Boolean!
   updatedAt: timestamptz
   userId: String!
   wavelengthUnits: LucumaWavelengthUnitsEnum!
@@ -3793,8 +3792,8 @@ input LucumaUserPreferencesBoolExp {
   _or: [LucumaUserPreferencesBoolExp!]
   acquisitionOffsets: BooleanComparisonExp
   agsOverlay: BooleanComparisonExp
-  aladinLegend: BooleanComparisonExp
   aladinMouseScroll: BooleanComparisonExp
+  archiveDuplicationTableFilters: BooleanComparisonExp
   createdAt: TimestamptzComparisonExp
   elevationPlotElevationVisible: BooleanComparisonExp
   elevationPlotLunarElevationVisible: BooleanComparisonExp
@@ -3807,6 +3806,7 @@ input LucumaUserPreferencesBoolExp {
   explorePlotRange: ExplorePlotRangeBoolExp
   explorePlotTime: ExplorePlotTimeBoolExp
   fullScreen: BooleanComparisonExp
+  imagingModesTableFilters: BooleanComparisonExp
   itcChartType: ItcChartTypeEnumComparisonExp
   itcDetailsOpen: BooleanComparisonExp
   lastOpenPrograms: JsonbComparisonExp
@@ -3816,11 +3816,9 @@ input LucumaUserPreferencesBoolExp {
   obsTreeWidth: IntComparisonExp
   observationTableFilters: BooleanComparisonExp
   programsTableFilters: BooleanComparisonExp
-  spectroscopyModesTableFilters: BooleanComparisonExp
-  imagingModesTableFilters: BooleanComparisonExp
-  archiveDuplicationTableFilters: BooleanComparisonExp
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
+  spectroscopyModesTableFilters: BooleanComparisonExp
   updatedAt: TimestamptzComparisonExp
   userId: StringComparisonExp
   wavelengthUnits: LucumaWavelengthUnitsEnumComparisonExp
@@ -3871,8 +3869,8 @@ input LucumaUserPreferencesInsertInput {
   ItcChartType: ItcChartTypeObjRelInsertInput
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
-  aladinLegend: Boolean
   aladinMouseScroll: Boolean
+  archiveDuplicationTableFilters: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
   elevationPlotLunarElevationVisible: Boolean
@@ -3885,6 +3883,7 @@ input LucumaUserPreferencesInsertInput {
   explorePlotRange: ExplorePlotRangeObjRelInsertInput
   explorePlotTime: ExplorePlotTimeObjRelInsertInput
   fullScreen: Boolean
+  imagingModesTableFilters: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
   lastOpenPrograms: jsonb
@@ -3894,11 +3893,9 @@ input LucumaUserPreferencesInsertInput {
   obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
-  spectroscopyModesTableFilters: Boolean
-  imagingModesTableFilters: Boolean
-  archiveDuplicationTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
+  spectroscopyModesTableFilters: Boolean
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
@@ -3957,8 +3954,8 @@ input LucumaUserPreferencesOrderBy {
   ItcChartType: ItcChartTypeOrderBy
   acquisitionOffsets: OrderBy
   agsOverlay: OrderBy
-  aladinLegend: OrderBy
   aladinMouseScroll: OrderBy
+  archiveDuplicationTableFilters: OrderBy
   createdAt: OrderBy
   elevationPlotElevationVisible: OrderBy
   elevationPlotLunarElevationVisible: OrderBy
@@ -3971,6 +3968,7 @@ input LucumaUserPreferencesOrderBy {
   explorePlotRange: ExplorePlotRangeOrderBy
   explorePlotTime: ExplorePlotTimeOrderBy
   fullScreen: OrderBy
+  imagingModesTableFilters: OrderBy
   itcChartType: OrderBy
   itcDetailsOpen: OrderBy
   lastOpenPrograms: OrderBy
@@ -3980,11 +3978,9 @@ input LucumaUserPreferencesOrderBy {
   obsTreeWidth: OrderBy
   observationTableFilters: OrderBy
   programsTableFilters: OrderBy
-  spectroscopyModesTableFilters: OrderBy
-  imagingModesTableFilters: OrderBy
-  archiveDuplicationTableFilters: OrderBy
   scienceOffsets: OrderBy
   showCatalog: OrderBy
+  spectroscopyModesTableFilters: OrderBy
   updatedAt: OrderBy
   userId: OrderBy
   wavelengthUnits: OrderBy
@@ -4011,10 +4007,10 @@ enum LucumaUserPreferencesSelectColumn {
   agsOverlay
 
   """column name"""
-  aladinLegend
+  aladinMouseScroll
 
   """column name"""
-  aladinMouseScroll
+  archiveDuplicationTableFilters
 
   """column name"""
   createdAt
@@ -4047,6 +4043,9 @@ enum LucumaUserPreferencesSelectColumn {
   fullScreen
 
   """column name"""
+  imagingModesTableFilters
+
+  """column name"""
   itcChartType
 
   """column name"""
@@ -4066,19 +4065,15 @@ enum LucumaUserPreferencesSelectColumn {
 
   """column name"""
   programsTableFilters
-  archiveDuplicationTableFilters
-
-  """column name"""
-  spectroscopyModesTableFilters
-
-  """column name"""
-  imagingModesTableFilters
 
   """column name"""
   scienceOffsets
 
   """column name"""
   showCatalog
+
+  """column name"""
+  spectroscopyModesTableFilters
 
   """column name"""
   updatedAt
@@ -4096,8 +4091,8 @@ input type for updating data in table "lucumaUserPreferences"
 input LucumaUserPreferencesSetInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
-  aladinLegend: Boolean
   aladinMouseScroll: Boolean
+  archiveDuplicationTableFilters: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
   elevationPlotLunarElevationVisible: Boolean
@@ -4108,6 +4103,7 @@ input LucumaUserPreferencesSetInput {
   elevationPlotTime: ExplorePlotTimeEnum
   exploreGuideButton: Boolean
   fullScreen: Boolean
+  imagingModesTableFilters: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
   lastOpenPrograms: jsonb
@@ -4115,11 +4111,9 @@ input LucumaUserPreferencesSetInput {
   obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
-  spectroscopyModesTableFilters: Boolean
-  imagingModesTableFilters: Boolean
-  archiveDuplicationTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
+  spectroscopyModesTableFilters: Boolean
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
@@ -4156,10 +4150,10 @@ enum LucumaUserPreferencesUpdateColumn {
   agsOverlay
 
   """column name"""
-  aladinLegend
+  aladinMouseScroll
 
   """column name"""
-  aladinMouseScroll
+  archiveDuplicationTableFilters
 
   """column name"""
   createdAt
@@ -4192,6 +4186,9 @@ enum LucumaUserPreferencesUpdateColumn {
   fullScreen
 
   """column name"""
+  imagingModesTableFilters
+
+  """column name"""
   itcChartType
 
   """column name"""
@@ -4211,19 +4208,15 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   programsTableFilters
-  archiveDuplicationTableFilters
-
-  """column name"""
-  spectroscopyModesTableFilters
-
-  """column name"""
-  imagingModesTableFilters
 
   """column name"""
   scienceOffsets
 
   """column name"""
   showCatalog
+
+  """column name"""
+  spectroscopyModesTableFilters
 
   """column name"""
   updatedAt
@@ -5357,8 +5350,8 @@ input lucumaUserPreferences_streamCursorInput {
 input lucumaUserPreferences_streamCursorValueInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
-  aladinLegend: Boolean
   aladinMouseScroll: Boolean
+  archiveDuplicationTableFilters: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
   elevationPlotLunarElevationVisible: Boolean
@@ -5369,6 +5362,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   elevationPlotTime: ExplorePlotTimeEnum
   exploreGuideButton: Boolean
   fullScreen: Boolean
+  imagingModesTableFilters: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
   lastOpenPrograms: jsonb
@@ -5376,11 +5370,9 @@ input lucumaUserPreferences_streamCursorValueInput {
   obsTreeWidth: Int
   observationTableFilters: Boolean
   programsTableFilters: Boolean
-  spectroscopyModesTableFilters: Boolean
-  imagingModesTableFilters: Boolean
-  archiveDuplicationTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
+  spectroscopyModesTableFilters: Boolean
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
