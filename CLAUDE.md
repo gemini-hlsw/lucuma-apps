@@ -52,28 +52,9 @@ sbt scalafmtAll
 sbt scalafixAll
 ```
 
-### Running Explore Locally
+### Running locally
 
-```bash
-# Terminal 1: continuous Scala.js compilation
-sbt -J-Xmx6g '~explore_app/fastLinkJS'
-
-# Terminal 2: install deps + start Vite dev server
-pnpm install --frozen-lockfile --filter explore --prefer-offline
-cd explore && pnpm exec vite
-# Serves at https://local.lucuma.xyz:8080
-```
-
-### Running Observe Locally
-
-```bash
-# Backend
-sbt observe_web_server/reStart
-
-# Frontend (separate terminal)
-sbt '~observe_web_client/fastLinkJS'
-cd observe/web/client && pnpm exec vite
-```
+See `explore/CLAUDE.md` and `observe/CLAUDE.md` for the dev-server commands of each app.
 
 ### CI Lint Checks
 
@@ -109,14 +90,6 @@ The `sbt-clue` plugin generates Scala code from GraphQL:
 - Queries use `@GraphQL` annotation on traits extending `GraphQLOperation[Schema]`
 - The `document` field contains raw GraphQL, often composing fragments via string interpolation
 - Special `// gql:` comments inject imports into generated code
-
-#### The observation subquery
-
-`ObservationSubquery` is the single observation subquery, used by the bulk summary
-query (first paint), the `observationEdit` subscription, and the create/clone
-mutations. It selects only the lightweight `BasicConfiguration` for `observingMode`;
-the full `ObservingMode` is hydrated separately via `ObservingModeByTypeSubquery`
-(see `hydrateObservingMode` in `OdbObservationApiImpl`).
 
 ### State Management (Crystal Views)
 
