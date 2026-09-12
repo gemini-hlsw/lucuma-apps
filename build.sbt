@@ -540,6 +540,10 @@ lazy val observeCommonSettings = Seq(
   testFrameworks += new TestFramework("munit.Framework")
 )
 
+val checkOtelVersion = taskKey[Unit](
+  "Fail if Versions.openTelemetry has drifted from what otel4s-oteljava declares."
+)
+
 lazy val observe_web_server = project
   .in(file("observe/web/server"))
   .dependsOn(observe_server)
@@ -564,6 +568,24 @@ lazy val observe_web_server = project
         PureConfig.value ++
         Logback.value ++
         JuliSlf4j.value,
+    checkOtelVersion    := {
+      val _ = update.value
+      OtelCheck.declaredOtelVersion(
+        csrCacheDirectory.value,
+        otel4s,
+        scalaBinaryVersion.value
+      ) match {
+        case Some(v) if v != openTelemetry =>
+          sys.error(
+            s"Versions.openTelemetry is $openTelemetry but otel4s-oteljava $otel4s " +
+              s"declares $v. Set both to $v and move the io.opentelemetry pin in .scala-steward.conf."
+          )
+        case Some(_)                       => ()
+        case None                          =>
+          streams.value.log.warn("Could not read the otel4s-oteljava pom; skipping version check.")
+      }
+    },
+    Compile / compile   := (Compile / compile).dependsOn(checkOtelVersion).value,
     // Supports launching the server in the background
     reStart / mainClass := Some("observe.web.server.http4s.WebServerLauncher")
   )
