@@ -64,14 +64,19 @@ object UserPreferencesQueries:
   val TableColumnPreferences = TablePreferencesQuery.Data
 
   object GlobalUserPreferences:
-    def loadPreferences[F[_]: MonadThrow](
+    def loadPreferences[F[_]: MonadThrow: Logger](
       userId: User.Id
     )(using FetchClient[F, UserPreferencesDB]): F[GlobalPreferences] =
       UserPreferencesQuery[F]
         .query(userId.show)
         .raiseGraphQLErrors
         .map(_.lucumaUserPreferencesByPk)
-        .handleError(_ => none)
+        // A schema mismatch with the prefs DB shows up here, and would otherwise look
+        // like preferences silently reverting to their defaults on every load.
+        .handleErrorWith: t =>
+          Logger[F]
+            .error(t)("Error loading global user preferences, falling back to defaults")
+            .as(none)
         .map(_.getOrElse(GlobalPreferences.Default))
 
     // We could pass the full prefs but this is more efficient

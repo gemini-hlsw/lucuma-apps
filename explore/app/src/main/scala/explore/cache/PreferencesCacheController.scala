@@ -26,6 +26,7 @@ import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
+import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.extras.LogLevel
 import queries.common.UserPreferencesQueriesGQL.AsterismPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.ObservationPreferencesUpdates
@@ -40,12 +41,13 @@ import scala.concurrent.duration.*
 case class PreferencesCacheController(
   userId:            User.Id,
   modUserPrefrences: (Pot[UserPreferences] => Pot[UserPreferences]) => IO[Unit]
-)(using client: StreamingClient[IO, UserPreferencesDB])
+)(using client: StreamingClient[IO, UserPreferencesDB], logger: Logger[IO])
     extends ReactFnProps[PreferencesCacheController](PreferencesCacheController.component)
     with CacheControllerComponent.Props[UserPreferences]:
   val modState                                 = modUserPrefrences
   val onLoad: IO[Unit]                         = IO.unit
   given StreamingClient[IO, UserPreferencesDB] = client
+  given Logger[IO]                             = logger
 
 object PreferencesCacheController
     extends CacheControllerComponent[UserPreferences, PreferencesCacheController]:
