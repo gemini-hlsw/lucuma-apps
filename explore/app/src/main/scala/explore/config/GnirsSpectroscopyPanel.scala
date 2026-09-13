@@ -140,7 +140,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
 
       given acquisitionFilterEnum: Enumerated[Option[GnirsFilter]] =
         deriveOptionalEnumerated[GnirsFilter]("Auto")(using
-          Enumerated.fromNEL(GnirsFilter.AcquisitionFilters).withTag(_.tag)
+          Enumerated.fromNEL(GnirsFilter.SpectroscopyAcquisitionFilters).withTag(_.tag)
         )
       given acquisitionFilterDisplay: Display[Option[GnirsFilter]] =
         deriveOptionalDisplay[GnirsFilter]("Auto")
