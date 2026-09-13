@@ -41,7 +41,8 @@ case class ProgramCacheController(
   programId:                Program.Id,
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
-  override val resetSignal: fs2.Stream[IO, ResetType]
+  override val resetSignal: fs2.Stream[IO, ResetType],
+  programSelected:          Boolean // Whether the programId is a real program
 )(using val odbApi: OdbApi[IO], logger: Logger[IO], tracer: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
@@ -106,28 +107,39 @@ object ProgramCacheController
   ] = { props =>
     import props.given
 
+    // With no program in the URL, `props.programId` is a placeholder and every
+    // program-scoped query can only come back empty, so skip them.
+    def whenProgramSelected[A](empty: A)(query: => IO[A]): IO[A] =
+      if props.programSelected then query else IO.pure(empty)
+
     val optProgramDetails: IO[Option[ProgramDetails]] =
-      props.odbApi.programDetails(props.programId).logTime("ProgramDetailsQuery")
+      whenProgramSelected(empty = none):
+        props.odbApi.programDetails(props.programId).logTime("ProgramDetailsQuery")
 
     val targets: IO[List[TargetWithId]] =
-      props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
+      whenProgramSelected(empty = Nil):
+        props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
 
     val observations: IO[List[Observation]] =
-      Tracer[IO]
-        .span("explore-mode-summary")
-        .surround:
-          props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
+      whenProgramSelected(empty = Nil):
+        Tracer[IO]
+          .span("explore-mode-summary")
+          .surround:
+            props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
-      props.odbApi
-        .allProgramConfigurationRequests(props.programId)
-        .logTime("AllProgramConfigurationRequests")
+      whenProgramSelected(empty = Nil):
+        props.odbApi
+          .allProgramConfigurationRequests(props.programId)
+          .logTime("AllProgramConfigurationRequests")
 
     val groups: IO[List[Group]] =
-      props.odbApi.allProgramGroups(props.programId).logTime("AllProgramGroups")
+      whenProgramSelected(empty = Nil):
+        props.odbApi.allProgramGroups(props.programId).logTime("AllProgramGroups")
 
     val attachments: IO[ProgramAttachments] =
-      props.odbApi.allProgramAttachments(props.programId).logTime("AllProgramAttachments")
+      whenProgramSelected(empty = ProgramAttachments.Empty):
+        props.odbApi.allProgramAttachments(props.programId).logTime("AllProgramAttachments")
 
     val programs: IO[List[ProgramInfo]] =
       props.odbApi.allPrograms.logTime("AllPrograms")
