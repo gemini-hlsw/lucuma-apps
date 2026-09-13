@@ -195,10 +195,11 @@ object ExploreLayout:
         // the value there when there's an error, and show the error only as a modal on top.
         programError         <- useState(none[ProgramError])
         // Reset the program cache when the program changes.
+        // Deliberately not resetting the summaries through `throttlerView` here: that arms
+        // the view's throttle, which then delays the very load this triggers. The wipe is
+        // CacheControllerComponent's job, via the reset signal below.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
-                                  // reset the summaries to pot.pending when the program id changes
-                                  props.model.programSummaries.throttlerView.set(Pot.pending).toAsync >>
-                                    ctx.resetProgramCache(none)
+                                  ctx.resetProgramCache(none)
         // Track recently opened programs and update prefs db
         _                    <- useEffectWithDeps(
                                   (routingInfo.flatMap(_.optProgramId), props.model.userId)
