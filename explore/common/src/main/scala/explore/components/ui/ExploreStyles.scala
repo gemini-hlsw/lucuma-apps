@@ -648,6 +648,8 @@ object ExploreStyles:
   val TimingWindowInclude: Css                  = Css("timing-window-include")
   val TimingWindowExclude: Css                  = Css("timing-window-exclude")
 
+  val ObservationDetailsForm: Css = Css("observation-details-form")
+
   // Program Tab
   val ProgramDetailsTile: Css     = Css("program-details-tile")
   val ProgramDetailsInfoArea: Css = Css("program-details-info-area")
