@@ -67,4 +67,4 @@ object SequenceTileHelper:
           // has been assigned, OR a new version of the custom sed has been uploaded. This is to
           // catch the latter case.
           refreshSequence.value
-    yield LiveSequence(visits.state, sequenceData.state)
+    yield LiveSequence(visits.state, sequenceData.state, sequenceData.isRunning)

@@ -118,6 +118,15 @@ object SequenceTile
           severity = Message.Severity.Error
         )
 
+        // The sequence takes a few seconds to be regenerated after an edit, and the previous
+        // error (eg: no observing mode) is kept meanwhile, which would be contradictory.
+        val waitingForSequence =
+          Message(
+            text = "Waiting for the sequence to be generated...",
+            severity = Message.Severity.Info,
+            icon = Icons.Spinner.withSpin(true)
+          )
+
         extension [D](execution: View[Option[ExecutionSequence[D]]])
           def flatExecutionSequence: View[List[Atom[D]]] =
             execution.zoom(_.foldMap(s => s.nextAtom +: s.possibleFuture))(modList =>
@@ -436,11 +445,13 @@ object SequenceTile
               ,
               errorRender = m =>
                 <.div(ExploreStyles.SequencesPanelError)(
-                  Message(
-                    text = m.getMessage,
-                    severity = Message.Severity.Warning,
-                    icon = Icons.ExclamationTriangle
-                  )
+                  if liveSequence.isRefreshing then waitingForSequence
+                  else
+                    Message(
+                      text = m.getMessage,
+                      severity = Message.Severity.Warning,
+                      icon = Icons.ExclamationTriangle
+                    )
                 )
             )
 
