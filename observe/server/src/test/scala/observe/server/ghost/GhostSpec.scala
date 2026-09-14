@@ -31,8 +31,8 @@ import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.ghost.GhostDetector
-import lucuma.core.util.TimeSpan
 import lucuma.core.syntax.timespan.*
+import lucuma.core.util.TimeSpan
 import lucuma.refined.*
 import observe.model.CurrentConditions
 
@@ -261,6 +261,36 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
     assertEquals(ifuKeys(dayCal), ifuKeys(nightCal))
     assertEquals(ifuKeys(nightCal).head, "IFU_TARGET_OBJECT".some)
     assertEquals(ifuKeys(nightCal).last, "-55.000000".some)
+  }
+
+  test("darks do not expose the slit viewer") {
+    val cfg = GhostCalibration(
+      StepConfig.Dark,
+      ObserveClass.NightCal,
+      GhostDetector.Blue(
+        GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
+                      PosInt.unsafeFrom(1),
+                      GhostBinning.OneByOne,
+                      GhostReadMode.Fast
+        )
+      ),
+      GhostDetector.Red(
+        GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
+                      PosInt.unsafeFrom(1),
+                      GhostBinning.OneByOne,
+                      GhostReadMode.Slow
+        )
+      ),
+      GhostIfu1FiberAgitator.Disabled,
+      GhostIfu2FiberAgitator.Disabled,
+      GhostResolutionMode.Standard,
+      none,
+      false
+    )
+    val c   = cfg.configuration(CurrentConditions.Default)
+    assertEquals(c.value(GhostSVRepeat.applyItem), "0".some)
+    assertEquals(c.value(GhostSVDuration.applyItem), "0".some)
+    assertEquals(c.value(GhostSVImageType.applyItem), "DARK".some)
   }
 
   test("nighttime biases still leave the ifus alone") {

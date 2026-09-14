@@ -97,8 +97,7 @@ sealed trait GhostConfig extends GhostLUT {
     case ObserveClass.DayCal => true
     case _                   => false
 
-  // Darks always park the IFUs, whatever their observe class, so a nighttime dark
-  // is taken in the same instrument state as a daytime one.
+  // Darks always park the IFUs, whatever their observe class.
   def ifuCalibration: Configuration =
     if (isDayCal || isDark) {
       giapiConfig(GhostIFU1Target, IFUTargetType.TargetXY: IFUTargetType) |+|
