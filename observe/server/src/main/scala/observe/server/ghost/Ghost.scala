@@ -122,7 +122,11 @@ object Ghost {
       ): Either[ObserveFailure, InstrumentStep[F]] =
         import ctx.*
         for
-          kind <- ctx.stepKind(specifics.instrument)
+          // GHOST darks and biases must run with the GCAL shutter closed.
+          kind <- ctx.stepKind(specifics.instrument).map {
+                    case StepKind.DarkOrBias(inst) => StepKind.ExclusiveDarkOrBias(inst)
+                    case other                     => other
+                  }
           cfg  <- buildConfig(staticConf, step, targetEnvironment, observingTime)
         yield new InstrumentStep[F]:
           override def stepType: StepKind = kind

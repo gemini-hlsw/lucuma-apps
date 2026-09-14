@@ -73,19 +73,17 @@ sealed trait GhostConfig extends GhostLUT {
     // Note the base coordinates are already PM corrected in the OT
     // Keyed on how the target tracks, so a resolved Target of Opportunity supplies coordinates
     // like the sidereal target it resolved to.
-    t.asSidereal match {
-      case Some(GemTarget.Sidereal(_, SiderealTracking(baseCoordinates, _, _, _, _), _, _)) =>
+    t.asSidereal match
+      case Some(GemTarget.Sidereal(tracking = SiderealTracking(baseCoordinates = baseCoordinates))) =>
         GhostConfig.UserTargetsApply
           .get(i + 1)
-          .map { case (name, ra, dec) =>
+          .map: (name, ra, dec) =>
             GhostConfig.giapiConfig(name, s""""${t.name.value}"""") |+|
               GhostConfig.giapiConfig(ra, baseCoordinates.ra.toAngle.toDoubleDegrees) |+|
               GhostConfig.giapiConfig(dec, baseCoordinates.dec.toAngle.toSignedDoubleDegrees)
-          }
           .combineAll
-      case None                                                                             =>
+      case None =>
         Configuration.Zero
-    }
 
   def userTargetsConfig: Configuration =
     userTargets.zipWithIndex.map(Function.tupled(targetConfig)).combineAll |+|
@@ -95,10 +93,9 @@ sealed trait GhostConfig extends GhostLUT {
     giapiConfig(ifuNum.targetItem, IFUTargetType.NoTarget: IFUTargetType) |+|
       giapiConfig(ifuNum.demandItem, DemandType.DemandNone: DemandType)
 
-  def isDayCal: Boolean = obsClass match {
+  def isDayCal: Boolean = obsClass match
     case ObserveClass.DayCal => true
     case _                   => false
-  }
 
   def ifuCalibration: Configuration =
     if (isDayCal) {
@@ -292,10 +289,8 @@ sealed trait GhostConfig extends GhostLUT {
       } else
         ifu1Config |+| ifu2Config |+|
           GhostConfig.fiberConfig1(FiberAgitator.None) |+|
-          GhostConfig.fiberConfig2(FiberAgitator.None)
-          |+|
+          GhostConfig.fiberConfig2(FiberAgitator.None) |+|
           userTargetsConfig |+| channelConfig |+| adcConfiguration |+|
-          // agOverride |+|
           svConfiguration(svCameraOverride, scienceMagnitude, conditions) |+| prvMode
     ) |+| giapiConfig(GhostSlitMaskPositionerType, "SMP_DEMAND_POSITION")
 
