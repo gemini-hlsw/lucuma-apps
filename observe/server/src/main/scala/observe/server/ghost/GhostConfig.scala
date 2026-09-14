@@ -74,15 +74,15 @@ sealed trait GhostConfig extends GhostLUT {
     // Keyed on how the target tracks, so a resolved Target of Opportunity supplies coordinates
     // like the sidereal target it resolved to.
     t.asSidereal match
-      case Some(GemTarget.Sidereal(tracking = SiderealTracking(baseCoordinates = baseCoordinates))) =>
+      case Some(GemTarget.Sidereal(tracking = SiderealTracking(baseCoordinates = baseCoords))) =>
         GhostConfig.UserTargetsApply
           .get(i + 1)
           .map: (name, ra, dec) =>
             GhostConfig.giapiConfig(name, s""""${t.name.value}"""") |+|
-              GhostConfig.giapiConfig(ra, baseCoordinates.ra.toAngle.toDoubleDegrees) |+|
-              GhostConfig.giapiConfig(dec, baseCoordinates.dec.toAngle.toSignedDoubleDegrees)
+              GhostConfig.giapiConfig(ra, baseCoords.ra.toAngle.toDoubleDegrees) |+|
+              GhostConfig.giapiConfig(dec, baseCoords.dec.toAngle.toSignedDoubleDegrees)
           .combineAll
-      case None =>
+      case None                                                                                =>
         Configuration.Zero
 
   def userTargetsConfig: Configuration =
@@ -97,8 +97,10 @@ sealed trait GhostConfig extends GhostLUT {
     case ObserveClass.DayCal => true
     case _                   => false
 
+  // Darks always park the IFUs, whatever their observe class, so a nighttime dark
+  // is taken in the same instrument state as a daytime one.
   def ifuCalibration: Configuration =
-    if (isDayCal) {
+    if (isDayCal || isDark) {
       giapiConfig(GhostIFU1Target, IFUTargetType.TargetXY: IFUTargetType) |+|
         giapiConfig(GhostIFU2Target, IFUTargetType.TargetXY: IFUTargetType) |+|
         giapiConfig(GhostIFU1Type, DemandType.DemandXY: DemandType) |+|
