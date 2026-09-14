@@ -715,7 +715,8 @@ object ConfigurationTile
                       revertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos South Imaging
                   optGmosSouthImagingAligner.map: aligner =>
@@ -728,7 +729,8 @@ object ConfigurationTile
                       revertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Flamingos2 Long Slit
                   optFlamingos2Aligner.map: f2Aligner =>
