@@ -172,7 +172,7 @@ record_github_deployment() {
   # Secure curl options handling
   local curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
   curl_opts+=( "${DEBUG_CURL[@]}" )
-  
+
   local payload_object=""
   if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi
 
@@ -541,7 +541,7 @@ backup["ITC"]=false
 
 repo["ODB"]="gemini-hlsw/lucuma-odb"
 image_name["ODB"]="lucuma-postgres-odb"
-process_types["ODB"]="web calibration obscalc pdfSummary"
+process_types["ODB"]="web calibration obscalc pdfsummary"
 backup["ODB"]=true
 
 repo["RESOURCE"]="gemini-hlsw/lucuma-odb"
