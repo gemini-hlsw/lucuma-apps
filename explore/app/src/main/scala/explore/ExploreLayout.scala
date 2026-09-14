@@ -194,11 +194,10 @@ object ExploreLayout:
         // We keep a separate state from the Pot in props.model.programSummaries so that we can keep
         // the value there when there's an error, and show the error only as a modal on top.
         programError         <- useState(none[ProgramError])
-        // Reset the program cache when the program changes.
+        // Reset the program cache when the program changes. Clearing the summaries here would
+        // hit the throttle and delay the reload, so the reset signal does it.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
-                                  // reset the summaries to pot.pending when the program id changes
-                                  props.model.programSummaries.throttlerView.set(Pot.pending).toAsync >>
-                                    ctx.resetProgramCache(none)
+                                  ctx.resetProgramCache(none)
         // Track recently opened programs and update prefs db
         _                    <- useEffectWithDeps(
                                   (routingInfo.flatMap(_.optProgramId), props.model.userId)
@@ -410,7 +409,8 @@ object ExploreLayout:
                         case _                               => None
                       }.toAsync,
                       ctx.resetProgramCacheTopic.subscribeUnbounded // On error, keep the current program cache.
-                        .map(_.fold(ResetType.Wipe)(_ => ResetType.Keep))
+                        .map(_.fold(ResetType.Wipe)(_ => ResetType.Keep)),
+                      isProgramSelected = routingInfo.optProgramId.isDefined
                     ),
                     userVault.mapValue: (vault: View[UserVault]) =>
                       React.Fragment(
