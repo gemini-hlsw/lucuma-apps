@@ -37,7 +37,7 @@ object SequenceTileHelper:
         useEffectKeepResultOnMount:
           ctx.odbApi.sequenceData(obsId, calibrationRole.forall(_.needsITC))
       refreshVisits                           <- useThrottledCallback(5.seconds)(visits.refresh.value.to[IO])
-      refreshSequence                         <- useThrottledCallback(7.seconds)(sequenceData.refresh.to[IO])
+      refreshSequence                         <- useThrottledCallback(2.seconds)(sequenceData.refresh.to[IO])
       _                                       <-
         useEffectStreamResourceOnMount: // Subscribe to observation edits
           ctx.odbApi
