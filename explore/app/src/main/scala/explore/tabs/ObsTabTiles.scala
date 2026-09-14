@@ -153,6 +153,14 @@ case class ObsTabTiles(
 
   val scienceTargets: List[TargetWithId] = asterismAsNel.map(_.science).orEmpty
 
+  private val blindOffsetTarget: Option[TargetWithId] =
+    observation.get.blindOffset.blindOffsetTargetId.flatMap(programSummaries.targets.get)
+
+  // Blind offsets are not part of the asterism, we need to include it explicitly.
+  private val asterismWithBlindOffset: Option[ObservationTargets] =
+    ObservationTargets.fromTargets:
+      obsTargets.toList.map((_, t) => t) ++ blindOffsetTarget.toList
+
   def targetCoords(obsTime: Instant, optTracking: Option[Tracking]): Option[Coordinates] =
     optTracking.flatMap(_.at(obsTime))
 
@@ -310,7 +318,7 @@ object ObsTabTiles:
         obsTimeOrNow         <- useMemo(props.observation.model.get.observationTime)(obsTimeOrDefault)
         targetViz             = props.targetVisualization(obsTimeOrNow.value)
         positions            <- useObsPositions(
-                                  props.asterismAsNel,
+                                  props.asterismWithBlindOffset,
                                   props.site,
                                   obsTimeOrNow.value.some,
                                   targetViz.some,
