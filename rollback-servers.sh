@@ -76,7 +76,7 @@ process_types["ITC"]="web"
 
 repo["ODB"]="gemini-hlsw/lucuma-odb"
 image_name["ODB"]="lucuma-postgres-odb"
-process_types["ODB"]="web calibration obscalc"
+process_types["ODB"]="web calibration obscalc pdfSummary"
 
 repo["RESOURCE"]="gemini-hlsw/lucuma-odb"
 image_name["RESOURCE"]="lucuma-resource"
