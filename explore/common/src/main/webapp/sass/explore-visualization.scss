@@ -272,21 +272,8 @@ $brightness: var(--aladin-image-brightness);
       stroke-dasharray: 2;
     }
 
-    .blind-offset-target {
-      stroke: hsl(300deg 100% 25%);
-      fill: hsl(300deg 100% 25% / 40%);
-      stroke-width: 1px;
-    }
-
-    .science-target {
-      fill: hsl(240deg 100% 60.2% / 40%);
-      stroke: hsl(240deg 100% 60.2%);
-      stroke-width: 1px;
-      pointer-events: stroke;
-    }
-
-    .blind-offset-selected-target,
-    .science-selected-target {
+    // Explore-only; .science-selected-target is owned by lucuma-css.
+    .blind-offset-selected-target {
       stroke: hsl(33deg 100% 50%);
       stroke-width: 2px;
     }
