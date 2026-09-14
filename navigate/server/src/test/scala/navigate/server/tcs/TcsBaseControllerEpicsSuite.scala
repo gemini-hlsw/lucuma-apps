@@ -2281,6 +2281,26 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
+  test("Central wavelength command sets the same wavelength on both source A and B beams") {
+    val wavelength      = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
+    val expectedWavelµm = Wavelength.decimalMicrometers.reverseGet(wavelength).doubleValue
+
+    for {
+      (st, ctr) <- createController()
+      _         <- ctr.centralWavelength(wavelength)
+      r1        <- st.tcs.get
+    } yield {
+      assert(r1.wavelSourceA.connected)
+      assert(r1.wavelSourceB.connected)
+      r1.wavelSourceA.value
+        .flatMap(_.toDoubleOption)
+        .fold(fail("No Source A wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
+      r1.wavelSourceB.value
+        .flatMap(_.toDoubleOption)
+        .fold(fail("No Source B wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
+    }
+  }
+
   test("Apply pointing correction") {
     for {
       (st, ctr) <- createController()

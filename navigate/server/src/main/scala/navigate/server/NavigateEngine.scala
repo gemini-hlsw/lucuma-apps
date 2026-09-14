@@ -22,6 +22,7 @@ import lucuma.core.enums.Site
 import lucuma.core.enums.SlewStage
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.IntPercent
 import lucuma.core.model.LocalObservingNight
@@ -170,6 +171,7 @@ trait NavigateEngine[F[_]] {
   def targetOffsetClear(target:                      VirtualTelescope, openLoops:  Boolean): F[CommandResult]
   def originAdjust(handsetAdjustment:                HandsetAdjustment, openLoops: Boolean): F[CommandResult]
   def offset(offset:                                 Offset, guiding:              Boolean): F[CommandResult]
+  def centralWavelength(wavelength:                  Wavelength): F[CommandResult]
   def originOffsetAbsorb: F[CommandResult]
   def originOffsetClear(openLoops:                   Boolean): F[CommandResult]
   def pointingAdjust(handsetAdjustment:              HandsetAdjustment): F[CommandResult]
@@ -692,6 +694,13 @@ object NavigateEngine {
         stateRef.get.flatMap(s =>
           systems.tcsCommon.offset(offset, guiding)(s.guideConfig, s.wfsTrackingConfig)
         )
+      )
+
+    override def centralWavelength(wavelength: Wavelength): F[CommandResult] =
+      simpleCommand(
+        engine,
+        CentralWavelength(wavelength),
+        systems.tcsCommon.centralWavelength(wavelength)
       )
 
     override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[CommandResult] =

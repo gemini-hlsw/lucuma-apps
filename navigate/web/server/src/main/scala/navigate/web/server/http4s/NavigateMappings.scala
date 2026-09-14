@@ -488,6 +488,15 @@ class NavigateMappings[F[_]: Sync](
     Result.failure[OperationOutcome]("Offset parameters could not be parsed.").pure[F]
   )
 
+  def centralWavelength(env: Env): F[Result[OperationOutcome]] = (for {
+    wavelength <- env.get[Wavelength]("wavelength")
+  } yield server
+    .centralWavelength(wavelength)
+    .attempt
+    .map(convertResult)).getOrElse(
+    Result.failure[OperationOutcome]("Central wavelength parameter could not be parsed.").pure[F]
+  )
+
   def adjustPointing(env: Env): F[Result[OperationOutcome]] = (for {
     offset <- env.get[HandsetAdjustment]("offset")
   } yield server
@@ -993,6 +1002,18 @@ class NavigateMappings[F[_]: Sync](
         _ <- Elab.env("guiding", guiding)
       } yield ()
     case (MutationType,
+          "centralWavelength",
+          List(Binding("wavelength", ObjectValue(wavelength)))
+        ) =>
+      for {
+        w <- Elab.liftR(
+               parseWavelength(wavelength).toResult(
+                 "Could not parse centralWavelength parameter \"wavelength\""
+               )
+             )
+        _ <- Elab.env("wavelength", w)
+      } yield ()
+    case (MutationType,
           "resetOriginAdjustment",
           List(Binding("openLoops", BooleanValue(openLoops)))
         ) =>
@@ -1309,6 +1330,9 @@ class NavigateMappings[F[_]: Sync](
           },
           RootEffect.computeEncodable("offset") { (_, env) =>
             offset(env)
+          },
+          RootEffect.computeEncodable("centralWavelength") { (_, env) =>
+            centralWavelength(env)
           },
           RootEffect.computeEncodable("resetTargetAdjustment")((_, env) =>
             resetTargetAdjustment(env)
