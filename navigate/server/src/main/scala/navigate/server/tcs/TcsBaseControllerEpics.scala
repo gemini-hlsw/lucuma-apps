@@ -2140,6 +2140,17 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       _            <- resumeGuide(guide.tcsGuide).whenA(guiding && (pause || !gs.isGuiding))
     } yield r
 
+  // Same wavelength is applied to both beams (A and B).
+  override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
+    sys.tcsEpics
+      .startCommand(timeout)
+      .sourceAWavel
+      .wavelength(wavelength)
+      .sourceBWavel
+      .wavelength(wavelength)
+      .post
+      .verifiedRun(ConnectionTimeout)
+
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
     adjustParams(handsetAdjustment).flatMap { case (frame, size, angle) =>
       sys.tcsEpics

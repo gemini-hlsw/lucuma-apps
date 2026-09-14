@@ -18,6 +18,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
@@ -283,6 +284,9 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     guide:       GuideConfig,
     wfsTracking: WfsGuideStates
   ): F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+
+  override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
 
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]

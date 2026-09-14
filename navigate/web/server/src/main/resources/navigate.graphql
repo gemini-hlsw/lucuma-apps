@@ -575,6 +575,7 @@ type Mutation {
     adjustPointing(offset: HandsetAdjustmentInput!): OperationOutcome!
     adjustOrigin(offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
     offset(offset: OffsetInput!, guiding: Boolean!): OperationOutcome!
+    centralWavelength(wavelength: WavelengthInput!): OperationOutcome!
     resetTargetAdjustment(target: AdjustTarget!, openLoops: Boolean!): OperationOutcome!
     absorbTargetAdjustment(target: AdjustTarget!): OperationOutcome!
     resetLocalPointingAdjustment: OperationOutcome!

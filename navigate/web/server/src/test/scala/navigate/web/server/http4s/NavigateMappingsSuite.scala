@@ -28,6 +28,7 @@ import lucuma.core.enums.Site
 import lucuma.core.enums.TipTiltSource
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
@@ -2054,6 +2055,33 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Set the central wavelength") {
+    for {
+      mp <- buildMapping()
+      p  <- mp.compileAndRun(
+              """
+          |mutation {
+          |  centralWavelength(
+          |    wavelength: {
+          |      micrometers: 0.5
+          |    }
+          |  ) {
+          |    result
+          |  }
+          |}
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      p.hcursor
+        .downField("data")
+        .downField("centralWavelength")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
   test("Clear target adjustment") {
     for {
       mp <- buildMapping()
@@ -3046,6 +3074,9 @@ object NavigateMappingsTest {
     ): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
     override def offset(offset: Offset, guiding: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def centralWavelength(wavelength: Wavelength): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
     override def pointingAdjust(handsetAdjustment: HandsetAdjustment): IO[CommandResult] =

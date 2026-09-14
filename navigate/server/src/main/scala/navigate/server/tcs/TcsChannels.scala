@@ -34,6 +34,7 @@ case class TcsChannels[F[_]](
   pwfs2Target:             TargetChannels[F],
   oiwfsTarget:             TargetChannels[F],
   wavelSourceA:            Channel[F, String],
+  wavelSourceB:            Channel[F, String],
   wavelPwfs1:              Channel[F, String],
   wavelPwfs2:              Channel[F, String],
   wavelOiwfs:              Channel[F, String],
@@ -925,6 +926,7 @@ object TcsChannels {
       p2t   <- buildTargetChannels(service, s"${tcsTop.value}pwfs2")
       oit   <- buildTargetChannels(service, s"${tcsTop.value}oiwfs")
       wva   <- service.getChannel[String](tcsTop.value, "wavelSourceA.A")
+      wvb   <- service.getChannel[String](tcsTop.value, "wavelSourceB.A")
       wvp1  <- service.getChannel[String](tcsTop.value, "wavelPwfs1.A")
       wvp2  <- service.getChannel[String](tcsTop.value, "wavelPwfs2.A")
       wvoi  <- service.getChannel[String](tcsTop.value, "wavelOiwfs.A")
@@ -1008,6 +1010,7 @@ object TcsChannels {
       p2t,
       oit,
       wva,
+      wvb,
       wvp1,
       wvp2,
       wvoi,

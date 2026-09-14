@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.model.IntPercent
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
@@ -40,6 +41,7 @@ object NavigateCommand {
   case class AcquisitionAdjust(offset: Offset, ipa: Option[Angle], iaa: Option[Angle])
       extends NavigateCommand
   case class AowfsFollow(enable: Boolean)                                    extends NavigateCommand
+  case class CentralWavelength(wavelength: Wavelength)                       extends NavigateCommand
   case class CrcsFollow(enable: Boolean)                                     extends NavigateCommand
   case class CrcsMove(angle: RotatorAngle)                                   extends NavigateCommand
   case class CrcsStop(brakes: Boolean)                                       extends NavigateCommand
@@ -164,6 +166,8 @@ object NavigateCommand {
       case AcquisitionAdjust(offset, ipa, iaa)                =>
         s"${self.name}(offset = $offset, ipa = $ipa, iaa = $iaa)"
       case AowfsFollow(enable)                                => s"${self.name}(enable = $enable)"
+      case CentralWavelength(wavelength)                      =>
+        s"${self.name}(wavelength = ${wavelength.toNanometers.value.value.toDouble} nm)"
       case CrcsFollow(enable)                                 => s"${self.name}(enable = $enable)"
       case CrcsMove(angle)                                    => f"${self.name}(angle = ${angle.toDoubleDegrees}%.2fº)"
       case CrcsStop(brakes)                                   => s"${self.name}(brakes = $brakes)"

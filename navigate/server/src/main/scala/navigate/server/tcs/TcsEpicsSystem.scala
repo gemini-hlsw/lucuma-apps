@@ -829,6 +829,14 @@ object TcsEpicsSystem {
       )
     }
 
+    override val sourceBWavel: WavelengthCommand[F, TcsCommands[F]] = { (v: Wavelength) =>
+      addParam(
+        writeCadParam(channels.telltale, channels.wavelSourceB)(
+          Wavelength.decimalMicrometers.reverseGet(v).doubleValue
+        )
+      )
+    }
+
     override val pwfs1Wavel: WavelengthCommand[F, TcsCommands[F]] = { (v: Wavelength) =>
       addParam(
         writeCadParam(channels.telltale, channels.wavelPwfs1)(
@@ -2422,6 +2430,7 @@ object TcsEpicsSystem {
     val pwfs2TargetCmd: TargetCommand[F, TcsCommands[F]]
     val oiwfsTargetCmd: TargetCommand[F, TcsCommands[F]]
     val sourceAWavel: WavelengthCommand[F, TcsCommands[F]]
+    val sourceBWavel: WavelengthCommand[F, TcsCommands[F]]
     val pwfs1Wavel: WavelengthCommand[F, TcsCommands[F]]
     val pwfs2Wavel: WavelengthCommand[F, TcsCommands[F]]
     val oiwfsWavel: WavelengthCommand[F, TcsCommands[F]]

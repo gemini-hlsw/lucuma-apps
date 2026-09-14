@@ -8,6 +8,7 @@ import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.IntPercent
 import lucuma.core.model.TelescopeGuideConfig
@@ -131,6 +132,7 @@ trait TcsBaseController[F[_]] {
     guide:       GuideConfig,
     wfsTracking: WfsGuideStates
   ): F[ApplyCommandResult]
+  def centralWavelength(wavelength:     Wavelength): F[ApplyCommandResult]
   def originOffsetAbsorb: F[ApplyCommandResult]
   def originOffsetClear(openLoops:      Boolean)(guide:         GuideConfig): F[ApplyCommandResult]
   def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult]
