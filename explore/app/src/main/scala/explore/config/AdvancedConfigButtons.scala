@@ -46,7 +46,8 @@ object AdvancedConfigButtons
               icon = Icons.ListIcon,
               severity = Button.Severity.Secondary,
               loading = reverting.get,
-              onClick = props.revertConfig.switching(reverting.async).runAsync
+              onClick =
+                props.sequenceChanged *> props.revertConfig.switching(reverting.async).runAsync
             ).compact.small
               .unless(props.isCustomized),
             Button(
