@@ -118,8 +118,7 @@ object SequenceTile
           severity = Message.Severity.Error
         )
 
-        // The sequence takes a few seconds to be regenerated after an edit, and the previous
-        // error (eg: no observing mode) is kept meanwhile, which would be contradictory.
+        // The sequence takes a few seconds to be regenerated after an edit, mark that state.
         val waitingForSequence =
           Message(
             text = "Waiting for the sequence to be generated...",
