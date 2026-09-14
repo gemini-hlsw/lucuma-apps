@@ -88,7 +88,8 @@ case class TcsChannels[F[_]](
   pointingConfig:          PointingConfigChannels[F],
   absorbGuideDir:          Channel[F, CadDirective],
   zeroGuideDir:            Channel[F, CadDirective],
-  instrumentOffset:        InstrumentOffsetCommandChannels[F],
+  instrumentOffsetA:       InstrumentOffsetCommandChannels[F],
+  instrumentOffsetB:       InstrumentOffsetCommandChannels[F],
   azimuthWrap:             Channel[F, String],
   rotatorWrap:             Channel[F, String],
   zeroRotatorGuideDir:     Channel[F, CadDirective],
@@ -100,7 +101,8 @@ case class TcsChannels[F[_]](
   pwfs2UnwrapDir:          Channel[F, CadDirective],
   demandAzimuth:           Channel[F, String],
   demandRotator:           Channel[F, Double],
-  enclosureState:          EnclosureStateChannels[F]
+  enclosureState:          EnclosureStateChannels[F],
+  instrAA:                 Channel[F, Double]
 )
 
 object TcsChannels {
@@ -795,11 +797,12 @@ object TcsChannels {
 
   object InstrumentOffsetCommandChannels {
     def build[F[_]](
-      service: EpicsService[F],
-      top:     TcsTop
+      service:   EpicsService[F],
+      top:       TcsTop,
+      cadPrefix: String
     ): Resource[F, InstrumentOffsetCommandChannels[F]] = for {
-      x <- service.getChannel[String](top.value, "offsetPoA1.A")
-      y <- service.getChannel[String](top.value, "offsetPoA1.B")
+      x <- service.getChannel[String](top.value, s"$cadPrefix.A")
+      y <- service.getChannel[String](top.value, s"$cadPrefix.B")
     } yield InstrumentOffsetCommandChannels(x, y)
   }
 
@@ -976,7 +979,8 @@ object TcsChannels {
       pncf  <- PointingConfigChannels.build(service, tcsTop)
       abgd  <- service.getChannel[CadDirective](tcsTop.value, "absorbGuide.DIR")
       zgud  <- service.getChannel[CadDirective](tcsTop.value, "zeroGuide.DIR")
-      ioff  <- InstrumentOffsetCommandChannels.build(service, tcsTop)
+      ioffA <- InstrumentOffsetCommandChannels.build(service, tcsTop, "offsetPoA1")
+      ioffB <- InstrumentOffsetCommandChannels.build(service, tcsTop, "offsetPoB1")
       azwr  <- service.getChannel[String](tcsTop.value, "azwrap.A")
       rtwr  <- service.getChannel[String](tcsTop.value, "rotwrap.A")
       p1uw  <- service.getChannel[CadDirective](tcsTop.value, "pwfs1Unwrap.DIR")
@@ -989,6 +993,7 @@ object TcsChannels {
       dmaz  <- service.getChannel[String](tcsTop.value, "demandAz.VAL")
       dmrot <- service.getChannel[Double](tcsTop.value, "demandRma.VAL")
       encst <- EnclosureStateChannels.build(service, tcsTop)
+      iaa   <- service.getChannel[Double](tcsTop.value, "sad:instrAA.VAL")
     } yield TcsChannels[F](
       tt,
       tpd,
@@ -1057,7 +1062,8 @@ object TcsChannels {
       pncf,
       abgd,
       zgud,
-      ioff,
+      ioffA,
+      ioffB,
       azwr,
       rtwr,
       zrg,
@@ -1069,7 +1075,8 @@ object TcsChannels {
       p2uw,
       demandAzimuth = dmaz,
       demandRotator = dmrot,
-      enclosureState = encst
+      enclosureState = encst,
+      instrAA = iaa
     )
   }
 }

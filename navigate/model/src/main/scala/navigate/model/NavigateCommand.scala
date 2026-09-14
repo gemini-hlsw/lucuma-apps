@@ -99,6 +99,7 @@ object NavigateCommand {
   case class TargetOffsetAbsorb(target: VirtualTelescope)                    extends NavigateCommand
   case class TargetOffsetClear(target: VirtualTelescope, openLoops: Boolean) extends NavigateCommand
   case class TcsConfigure(config: TcsConfig)                                 extends NavigateCommand
+  case class TelescopeOffset(offset: Offset, guiding: Boolean)               extends NavigateCommand
   case class WfsSky(wfs: GuideProbe, period: TimeSpan)                       extends NavigateCommand
   case object AcStopObserve                                                  extends NavigateCommand
   case object AgAllPark                                                      extends NavigateCommand
@@ -222,6 +223,8 @@ object NavigateCommand {
       case TargetOffsetClear(target, openLoops)               =>
         s"${self.name}(target = $target, openLoops = $openLoops)"
       case TcsConfigure(config)                               => s"${self.name}(config = ${config.show})"
+      case TelescopeOffset(offset, guiding)                   =>
+        s"${self.name}(offset = $offset, guiding = $guiding)"
       case WfsSky(wfs, period)                                =>
         f"${self.name}(wfs = $wfs, period = ${period.toSeconds.toDouble}%.3f)"
       case _                                                  => self.name

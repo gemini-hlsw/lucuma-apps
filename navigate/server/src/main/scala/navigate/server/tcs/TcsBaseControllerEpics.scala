@@ -1261,30 +1261,33 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       params.reduce((a, b) => a.compose(b))(sys.tcsEpics.startCommand(timeout)).post
   }
 
-  def resumeWfsTracking(current: WfsGuideStates): VerifiedEpics[F, F, ApplyCommandResult] = {
+  def resumeWfsTracking(
+    current:   WfsGuideStates,
+    toRestore: WfsGuideStates
+  ): VerifiedEpics[F, F, ApplyCommandResult] = {
     val params = List(
-      current.pwfs1.active.option(
+      (!current.pwfs1.active && toRestore.pwfs1.active).option(
         setProbeTracking(
           Getter[TcsCommands[F], ProbeTrackingCommand[F, TcsCommands[F]]](
             _.pwfs1ProbeTrackingCommand
           ),
-          current.pwfs1
+          toRestore.pwfs1
         )
       ),
-      current.pwfs2.active.option(
+      (!current.pwfs2.active && toRestore.pwfs2.active).option(
         setProbeTracking(
           Getter[TcsCommands[F], ProbeTrackingCommand[F, TcsCommands[F]]](
             _.pwfs2ProbeTrackingCommand
           ),
-          current.pwfs2
+          toRestore.pwfs2
         )
       ),
-      current.oiwfs.active.option(
+      (!current.oiwfs.active && toRestore.oiwfs.active).option(
         setProbeTracking(
           Getter[TcsCommands[F], ProbeTrackingCommand[F, TcsCommands[F]]](
             _.oiwfsProbeTrackingCommand
           ),
-          current.oiwfs
+          toRestore.oiwfs
         )
       )
     ).flattenOption
@@ -1392,7 +1395,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     _  <- skyOffset(SkyOffset)
     r  <- takeSky(guide)(exposureTime)
     _  <- skyOffset(-SkyOffset)
-    _  <- resumeWfsTracking(pg).verifiedRun(ConnectionTimeout)
+    _  <- resumeWfsTracking(WfsGuideStates.noTracking, pg).verifiedRun(ConnectionTimeout)
     _  <- resumeGuide(guide.tcsGuide)
   } yield r
 
@@ -2092,6 +2095,51 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       } <*
       resumeGuide(guide.tcsGuide).whenA(openLoops)
 
+  private def applyOffset(offset: FocalPlaneOffset): F[ApplyCommandResult] = {
+    val (size, _)  = rectToPolar(offset.deltaX.value, offset.deltaY.value)
+    val sizeArcsec = Angle.signedDecimalArcseconds.get(size).doubleValue
+    sys.tcsEpics
+      .startCommand(AdjTimeout)
+      .instrumentOffsetCommand
+      .offsetX(offset.deltaX.value.toLengthInFocalPlane)
+      .instrumentOffsetCommand
+      .offsetY(offset.deltaY.value.toLengthInFocalPlane)
+      .post
+      .verifiedRun(ConnectionTimeout) <*
+      sys.tcsEpics.status
+        .waitInPosition(SettleTime, offsetTimeout(sizeArcsec))
+        .verifiedRun(ConnectionTimeout)
+  }
+
+  override def offset(offset: Offset, guiding: Boolean)(
+    guide:       GuideConfig,
+    wfsTracking: WfsGuideStates
+  ): F[ApplyCommandResult] =
+    for {
+      gs           <- getGuideState
+      pg           <- getProbesGuideState.verifiedRun(ConnectionTimeout)
+      iaa          <- sys.tcsEpics.status.instrAA.verifiedRun(ConnectionTimeout)
+      oiInstrument <- sys.ags.status.oiwfsName.verifiedRun(ConnectionTimeout)
+      fpOffset      = FocalPlaneOffset.fromOffset(offset, iaa)
+      active        = activeWfs(guide.tcsGuide)
+      // guiding = false always forces a pause; otherwise pause only if the offset is large
+      // enough to risk losing lock on an in-use guider.
+      pause         = gs.isGuiding &&
+                        (!guiding || mustPauseWhileOffsetting(fpOffset, oiInstrument, guide.tcsGuide))
+      _            <- pauseGuide.whenA(pause)
+      // When guiding is turned off for this offset, also stop probe tracking on the WFS that
+      // was guiding, so it doesn't try to follow the star through the move. When guiding is
+      // turned back on, restore probe tracking to whatever was last explicitly configured.
+      _            <- pauseWfsTracking(pg)
+                        .verifiedRun(ConnectionTimeout)
+                        .whenA(!guiding)
+      r            <- applyOffset(fpOffset)
+      _            <- resumeWfsTracking(pg, wfsTracking)
+                        .verifiedRun(ConnectionTimeout)
+                        .whenA(guiding)
+      _            <- resumeGuide(guide.tcsGuide).whenA(guiding && (pause || !gs.isGuiding))
+    } yield r
+
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
     adjustParams(handsetAdjustment).flatMap { case (frame, size, angle) =>
       sys.tcsEpics
@@ -2124,6 +2172,60 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   }
 
   private val MaxClearedOffset: Double = 120.0 // arcsec
+
+  // Guiding is paused during an offset only if the move is large enough to risk losing lock
+  // on a guider that is actually in use. Kept as separate constants (even though they agree
+  // today) since each guider's tolerance may need to be tuned independently later.
+  private val Pwfs1OffsetThreshold: Distance =
+    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
+  private val Pwfs2OffsetThreshold: Distance =
+    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
+  private val AoOffsetThreshold: Distance    =
+    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
+
+  private def oiwfsOffsetThreshold(instrument: Instrument): Option[Distance] = instrument match {
+    case Instrument.Flamingos2 | Instrument.GmosSouth | Instrument.GmosNorth =>
+      Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane.some
+    case _                                                                   => none // hasOI instruments without a threshold defined yet
+  }
+
+  private case class ActiveWfs(pwfs1: Boolean, pwfs2: Boolean, oiwfs: Boolean)
+
+  // Which of the PWFS1/PWFS2/OIWFS probes are currently designated as an M1 or M2 guide
+  // source, i.e. are actually in use for guiding right now.
+  private def activeWfs(guide: TelescopeGuideConfig): ActiveWfs = ActiveWfs(
+    pwfs1 = guide.m2Guide.uses(TipTiltSource.PWFS1) || guide.m1Guide.uses(M1Source.PWFS1),
+    pwfs2 = guide.m2Guide.uses(TipTiltSource.PWFS2) || guide.m1Guide.uses(M1Source.PWFS2),
+    oiwfs = guide.m2Guide.uses(TipTiltSource.OIWFS) || guide.m1Guide.uses(M1Source.OIWFS)
+  )
+
+  private def mustPauseWhileOffsetting(
+    offset:       FocalPlaneOffset,
+    oiInstrument: Option[Instrument],
+    guide:        TelescopeGuideConfig
+  ): Boolean = {
+    val dxMm            = offset.deltaX.value.toLengthInFocalPlane.toMillimeters.value.toDouble
+    val dyMm            = offset.deltaY.value.toLengthInFocalPlane.toMillimeters.value.toDouble
+    val distanceSquared = dxMm * dxMm + dyMm * dyMm
+
+    def thresholdSquared(t: Distance): Double = {
+      val mm = t.toMillimeters.value.toDouble
+      mm * mm
+    }
+
+    val active = activeWfs(guide)
+
+    val thresholds = List(
+      active.pwfs1.option(Pwfs1OffsetThreshold),
+      active.pwfs2.option(Pwfs2OffsetThreshold),
+      (guide.m2Guide.uses(TipTiltSource.GAOS) || guide.m1Guide.uses(M1Source.GAOS))
+        .option(AoOffsetThreshold),
+      oiInstrument.filter(_ => active.oiwfs).flatMap(oiwfsOffsetThreshold)
+    )
+
+    // Does the offset movement surpass any of the applicable thresholds?
+    thresholds.exists(_.exists(thresholdSquared(_) < distanceSquared))
+  }
 
   override def targetOffsetClear(target: VirtualTelescope, openLoops: Boolean)(
     guide: GuideConfig
@@ -2729,6 +2831,13 @@ object TcsBaseControllerEpics {
     pwfs2: TrackingConfig,
     oiwfs: TrackingConfig
   )
+
+  object WfsGuideStates {
+    val noTracking: WfsGuideStates = WfsGuideStates(TrackingConfig.noTracking,
+                                                    TrackingConfig.noTracking,
+                                                    TrackingConfig.noTracking
+    )
+  }
 
   extension (x: TelescopeGuideConfig) {
     def isGuiding: Boolean =

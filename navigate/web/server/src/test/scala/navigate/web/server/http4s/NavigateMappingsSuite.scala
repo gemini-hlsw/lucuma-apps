@@ -2026,6 +2026,34 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Offset the telescope") {
+    for {
+      mp <- buildMapping()
+      p  <- mp.compileAndRun(
+              """
+          |mutation {
+          |  offset(
+          |    offset: {
+          |      p: {
+          |        arcseconds: 0.1
+          |      }
+          |      q: {
+          |        arcseconds: 0.0
+          |      }
+          |    }
+          |    guiding: true
+          |  ) {
+          |    result
+          |  }
+          |}
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      p.hcursor.downField("data").downField("offset").downField("result").as[String].toOption,
+      "SUCCESS".some
+    )
+  }
+
   test("Clear target adjustment") {
     for {
       mp <- buildMapping()
@@ -3016,6 +3044,9 @@ object NavigateMappingsTest {
       handsetAdjustment: HandsetAdjustment,
       openLoops:         Boolean
     ): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def offset(offset: Offset, guiding: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
 
     override def pointingAdjust(handsetAdjustment: HandsetAdjustment): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]

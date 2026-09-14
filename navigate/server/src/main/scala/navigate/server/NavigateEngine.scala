@@ -73,6 +73,7 @@ import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ephemeris.EphemerisUpdater
+import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.stateengine.Handler
 import navigate.stateengine.StateEngine
 import navigate.stateengine.StateEngine.Event
@@ -168,6 +169,7 @@ trait NavigateEngine[F[_]] {
   def targetOffsetAbsorb(target:                     VirtualTelescope): F[CommandResult]
   def targetOffsetClear(target:                      VirtualTelescope, openLoops:  Boolean): F[CommandResult]
   def originAdjust(handsetAdjustment:                HandsetAdjustment, openLoops: Boolean): F[CommandResult]
+  def offset(offset:                                 Offset, guiding:              Boolean): F[CommandResult]
   def originOffsetAbsorb: F[CommandResult]
   def originOffsetClear(openLoops:                   Boolean): F[CommandResult]
   def pointingAdjust(handsetAdjustment:              HandsetAdjustment): F[CommandResult]
@@ -312,11 +314,22 @@ object NavigateEngine {
     override def rotMove(angle: RotatorAngle): F[CommandResult] =
       simpleCommand(engine, CrcsMove(angle), systems.tcsCommon.rotMove(angle))
 
+    // tcsConfig/slew apply (or clear) per-guider tracking as part of the TcsConfig; keep
+    // the remembered last-applied tracking config for each guider up to date, the same way
+    // pwfs1ProbeTracking/pwfs2ProbeTracking/oiwfsProbeTracking do for their own mutations.
+    private def recordWfsTrackingConfig(config: TcsConfig): State => State = { s =>
+      val s1 = config.pwfs1.fold(s)(g => s.focus(_.wfsTrackingConfig.pwfs1).replace(g.tracking))
+      val s2 =
+        config.pwfs2.fold(s1)(g => s1.focus(_.wfsTrackingConfig.pwfs2).replace(g.tracking))
+      config.oiwfs.fold(s2)(g => s2.focus(_.wfsTrackingConfig.oiwfs).replace(g.tracking))
+    }
+
     override def tcsConfig(config: TcsConfig): F[CommandResult] = command(
       engine,
       TcsConfigure(config),
       cats.data.State
         .modify[State](_.focus(_.onSwappedTarget).replace(false))
+        .flatMap(_ => cats.data.State.modify[State](recordWfsTrackingConfig(config)))
         .as(stateRef.get.flatMap(st => systems.tcsCommon.tcsConfig(config)(st.guideConfig)))
     )
 
@@ -333,6 +346,7 @@ object NavigateEngine {
             .modify[State](
               _.focus(_.onSwappedTarget).replace(false)
             )
+            .flatMap(_ => cats.data.State.modify[State](recordWfsTrackingConfig(tcsConfig)))
             .flatMap(_ =>
               cats.data.State
                 .modify[State](
@@ -384,10 +398,12 @@ object NavigateEngine {
       systems.tcsCommon.pwfs1Target(target)
     )
 
-    override def pwfs1ProbeTracking(config: TrackingConfig): F[CommandResult] = simpleCommand(
+    override def pwfs1ProbeTracking(config: TrackingConfig): F[CommandResult] = command(
       engine,
       Pwfs1ProbeTracking(config),
-      systems.tcsCommon.pwfs1ProbeTracking(config)
+      cats.data.State
+        .modify[State](_.focus(_.wfsTrackingConfig.pwfs1).replace(config))
+        .as(systems.tcsCommon.pwfs1ProbeTracking(config))
     )
 
     override def pwfs1Park: F[CommandResult] = simpleCommand(
@@ -408,10 +424,12 @@ object NavigateEngine {
       systems.tcsCommon.pwfs2Target(target)
     )
 
-    override def pwfs2ProbeTracking(config: TrackingConfig): F[CommandResult] = simpleCommand(
+    override def pwfs2ProbeTracking(config: TrackingConfig): F[CommandResult] = command(
       engine,
       Pwfs2ProbeTracking(config),
-      systems.tcsCommon.pwfs2ProbeTracking(config)
+      cats.data.State
+        .modify[State](_.focus(_.wfsTrackingConfig.pwfs2).replace(config))
+        .as(systems.tcsCommon.pwfs2ProbeTracking(config))
     )
 
     override def pwfs2Park: F[CommandResult] = simpleCommand(
@@ -432,10 +450,12 @@ object NavigateEngine {
       systems.tcsCommon.oiwfsTarget(target)
     )
 
-    override def oiwfsProbeTracking(config: TrackingConfig): F[CommandResult] = simpleCommand(
+    override def oiwfsProbeTracking(config: TrackingConfig): F[CommandResult] = command(
       engine,
       OiwfsProbeTracking(config),
-      systems.tcsCommon.oiwfsProbeTracking(config)
+      cats.data.State
+        .modify[State](_.focus(_.wfsTrackingConfig.oiwfs).replace(config))
+        .as(systems.tcsCommon.oiwfsProbeTracking(config))
     )
 
     override def oiwfsPark: F[CommandResult] = simpleCommand(
@@ -662,6 +682,15 @@ object NavigateEngine {
         OriginAdjust(handsetAdjustment, openLoops),
         stateRef.get.flatMap(s =>
           systems.tcsCommon.originAdjust(handsetAdjustment, openLoops)(s.guideConfig)
+        )
+      )
+
+    override def offset(offset: Offset, guiding: Boolean): F[CommandResult] =
+      simpleCommand(
+        engine,
+        TelescopeOffset(offset, guiding),
+        stateRef.get.flatMap(s =>
+          systems.tcsCommon.offset(offset, guiding)(s.guideConfig, s.wfsTrackingConfig)
         )
       )
 
@@ -958,7 +987,8 @@ object NavigateEngine {
   case class State(
     commandInProgress: Option[NavigateCommand],
     guideConfig:       GuideConfig,
-    onSwappedTarget:   Boolean
+    onSwappedTarget:   Boolean,
+    wfsTrackingConfig: WfsGuideStates
   ) {
     lazy val tcsActionInProgress: Boolean = commandInProgress.isDefined
   }
@@ -966,7 +996,9 @@ object NavigateEngine {
   val startState: State = State(
     commandInProgress = None,
     guideConfig = GuideConfig.defaultGuideConfig,
-    onSwappedTarget = false
+    onSwappedTarget = false,
+    wfsTrackingConfig =
+      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
   )
 
   /**
