@@ -410,7 +410,7 @@ object ExploreLayout:
                       }.toAsync,
                       ctx.resetProgramCacheTopic.subscribeUnbounded // On error, keep the current program cache.
                         .map(_.fold(ResetType.Wipe)(_ => ResetType.Keep)),
-                      programSelected = routingInfo.optProgramId.isDefined
+                      isProgramSelected = routingInfo.optProgramId.isDefined
                     ),
                     userVault.mapValue: (vault: View[UserVault]) =>
                       React.Fragment(

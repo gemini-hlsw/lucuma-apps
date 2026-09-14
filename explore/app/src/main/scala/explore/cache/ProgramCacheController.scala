@@ -42,7 +42,7 @@ case class ProgramCacheController(
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
   override val resetSignal: fs2.Stream[IO, ResetType],
-  programSelected:          Boolean // Whether the programId is a real program
+  isProgramSelected:        Boolean
 )(using val odbApi: OdbApi[IO], logger: Logger[IO], tracer: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
@@ -110,7 +110,7 @@ object ProgramCacheController
     // With no program in the URL, `props.programId` is a placeholder and every
     // program-scoped query can only come back empty, so skip them.
     def whenProgramSelected[A](empty: A)(query: => IO[A]): IO[A] =
-      if props.programSelected then query else IO.pure(empty)
+      if props.isProgramSelected then query else IO.pure(empty)
 
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
