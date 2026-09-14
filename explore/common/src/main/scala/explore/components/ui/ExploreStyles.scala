@@ -595,7 +595,6 @@ object ExploreStyles:
   val PMGSCorrectionLine            = Css("proper-motion-line-gs")
   val EphemerisTrack                = Css("ephemeris-track-line")
   val EphemerisTrackInObservation   = Css("ephemeris-track-in-observation")
-  val BlindOffsetTarget             = Css("blind-offset-target")
   val BlindOffsetSelectedTarget     = Css("blind-offset-selected-target")
   val BlindOffsetLine               = Css("blind-offset-line")
   val MosMaskOutline                = Css("mos-mask-outline")
