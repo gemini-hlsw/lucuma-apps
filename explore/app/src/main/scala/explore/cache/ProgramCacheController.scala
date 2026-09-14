@@ -150,22 +150,20 @@ object ProgramCacheController
     val programs: IO[List[ProgramInfo]] =
       props.odbApi.allPrograms.reportingProgress(LoadStep.Programs)
 
-    def initializeSummaries(
-      observations: List[Observation],
-      groups:       List[Group]
-    ): IO[ProgramSummaries] =
-      (optProgramDetails, targets, attachments, programs, configurationRequests).mapN:
-        case (pd, ts, as, ps, crs) =>
-          ProgramSummaries
-            .fromLists(
-              pd,
-              ts,
-              observations,
-              groups,
-              as,
-              ps,
-              crs
-            )
+    // All seven queries are independent; only `fromLists` needs them together. Staging
+    // them makes the load cost their sum instead of their maximum, on the critical path
+    // for first paint. The observations come back out so the mode hydration can use them.
+    val initializeSummaries: IO[(ProgramSummaries, List[Observation])] =
+      (
+        observations,
+        groups,
+        optProgramDetails,
+        targets,
+        attachments,
+        programs,
+        configurationRequests
+      ).parMapN: (obs, grps, pd, ts, as, ps, crs) =>
+        (ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs), obs)
 
     // load the details for each mode separately
     def observingModesUpdate(
@@ -198,14 +196,9 @@ object ProgramCacheController
     val expectedSteps: Set[LoadStep] =
       if props.isProgramSelected then LoadStep.values.toSet else Set(LoadStep.Programs)
 
-    val declareProgressThenLoadObservationsAndGroups =
-      props.loadProgress.set(LoadProgress.expecting(expectedSteps)) >>
-        (observations, groups).parTupled
-
-    declareProgressThenLoadObservationsAndGroups
-      .flatMap: (obs, grps) =>
-        val delayed = Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated"))
-        initializeSummaries(obs, grps).map((_, delayed))
+    (props.loadProgress.set(LoadProgress.expecting(expectedSteps)) >> initializeSummaries)
+      .map: (summaries, obs) =>
+        (summaries, Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated")))
       .logTime("InitialProgramRender")
   }
 
