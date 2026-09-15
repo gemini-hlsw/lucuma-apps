@@ -4,7 +4,6 @@
 package navigate.web.server.http4s
 
 import cats.effect.Async
-import cats.syntax.all.*
 import fs2.compression.Compression
 import lucuma.graphql.routes.GraphQLService
 import lucuma.graphql.routes.Routes
@@ -17,7 +16,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.typelevel.otel4s.trace.Tracer.Implicits.noop
 
 class GraphQlRoutes[F[_]: {Async, Compression}](
-  mappings: NavigateMappings[F]
+  graphQLService: GraphQLService[F]
 ) extends Http4sDsl[F] {
 
   private given Logger[F] =
@@ -25,8 +24,8 @@ class GraphQlRoutes[F[_]: {Async, Compression}](
 
   def service(wsb: WebSocketBuilder2[F]): HttpRoutes[F] =
     GZip(
-      Routes.forService(
-        _ => GraphQLService[F](mappings).some.pure[F],
+      Routes.forOpenService(
+        graphQLService,
         wsb
       )
     )
