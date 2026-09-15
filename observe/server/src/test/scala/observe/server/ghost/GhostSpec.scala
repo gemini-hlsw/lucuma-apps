@@ -31,7 +31,9 @@ import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.syntax.timespan.*
 import lucuma.core.util.TimeSpan
+import lucuma.refined.*
 import observe.model.CurrentConditions
 
 import java.time.temporal.ChronoUnit
@@ -198,6 +200,126 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostFiberAgitator2.applyItem),
                  "FA_DEMAND_OFF".some
+    )
+  }
+
+  test("darks park the ifus regardless of observe class") {
+    def ifuKeys(cfg: GhostCalibration): List[Option[String]] =
+      val c = cfg.configuration(CurrentConditions.Default)
+      List(GhostIFU1Target, GhostIFU2Target, GhostIFU1Type, GhostIFU2Type, GhostIFU1X, GhostIFU2X)
+        .map(k => c.value(k.applyItem))
+
+    val dayCal   =
+      GhostCalibration(
+        StepConfig.Dark,
+        ObserveClass.DayCal,
+        GhostDetector.Blue(
+          GhostDetector(1000000.microsecondTimeSpan,
+                        1.refined,
+                        GhostBinning.OneByOne,
+                        GhostReadMode.Fast
+          )
+        ),
+        GhostDetector.Red(
+          GhostDetector(1000000.microsecondTimeSpan,
+                        1.refined,
+                        GhostBinning.OneByOne,
+                        GhostReadMode.Slow
+          )
+        ),
+        GhostIfu1FiberAgitator.Disabled,
+        GhostIfu2FiberAgitator.Disabled,
+        GhostResolutionMode.Standard,
+        none,
+        false
+      )
+    val nightCal =
+      GhostCalibration(
+        StepConfig.Dark,
+        ObserveClass.NightCal,
+        GhostDetector.Blue(
+          GhostDetector(1000000.microsecondTimeSpan,
+                        1.refined,
+                        GhostBinning.OneByOne,
+                        GhostReadMode.Fast
+          )
+        ),
+        GhostDetector.Red(
+          GhostDetector(1000000.microsecondTimeSpan,
+                        1.refined,
+                        GhostBinning.OneByOne,
+                        GhostReadMode.Slow
+          )
+        ),
+        GhostIfu1FiberAgitator.Disabled,
+        GhostIfu2FiberAgitator.Disabled,
+        GhostResolutionMode.Standard,
+        none,
+        false
+      )
+
+    assertEquals(ifuKeys(dayCal), ifuKeys(nightCal))
+    assertEquals(ifuKeys(nightCal).head, "IFU_TARGET_OBJECT".some)
+    assertEquals(ifuKeys(nightCal).last, "-55.000000".some)
+  }
+
+  test("darks do not expose the slit viewer") {
+    val cfg = GhostCalibration(
+      StepConfig.Dark,
+      ObserveClass.NightCal,
+      GhostDetector.Blue(
+        GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
+                      PosInt.unsafeFrom(1),
+                      GhostBinning.OneByOne,
+                      GhostReadMode.Fast
+        )
+      ),
+      GhostDetector.Red(
+        GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
+                      PosInt.unsafeFrom(1),
+                      GhostBinning.OneByOne,
+                      GhostReadMode.Slow
+        )
+      ),
+      GhostIfu1FiberAgitator.Disabled,
+      GhostIfu2FiberAgitator.Disabled,
+      GhostResolutionMode.Standard,
+      none,
+      false
+    )
+    val c   = cfg.configuration(CurrentConditions.Default)
+    assertEquals(c.value(GhostSVRepeat.applyItem), "0".some)
+    assertEquals(c.value(GhostSVDuration.applyItem), "0".some)
+    assertEquals(c.value(GhostSVImageType.applyItem), "DARK".some)
+  }
+
+  test("nighttime biases still leave the ifus alone") {
+    val cfg =
+      GhostCalibration(
+        StepConfig.Bias,
+        ObserveClass.NightCal,
+        GhostDetector.Blue(
+          GhostDetector(1000000.microsecondTimeSpan,
+                        1.refined,
+                        GhostBinning.OneByOne,
+                        GhostReadMode.Fast
+          )
+        ),
+        GhostDetector.Red(
+          GhostDetector(1000000.microsecondTimeSpan,
+                        1.refined,
+                        GhostBinning.OneByOne,
+                        GhostReadMode.Slow
+          )
+        ),
+        GhostIfu1FiberAgitator.Disabled,
+        GhostIfu2FiberAgitator.Disabled,
+        GhostResolutionMode.Standard,
+        none,
+        false
+      )
+    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostIFU1Target.applyItem),
+                 None
     )
   }
 
