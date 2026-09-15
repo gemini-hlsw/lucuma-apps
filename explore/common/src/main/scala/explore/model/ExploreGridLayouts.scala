@@ -319,7 +319,6 @@ object ExploreGridLayouts:
         ObsTabTileIds.ItcId
       ).map(_.id.value)
 
-    // DetailsId is in every list above: the details tile is science-only (ADR-0011).
     def removedTiles(role: Option[CalibrationRole]) =
       role match
         case Some(CalibrationRole.Twilight)           => TwilightRemovedIds

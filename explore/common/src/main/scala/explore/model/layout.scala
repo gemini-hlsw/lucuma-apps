@@ -163,9 +163,7 @@ object layout {
 
   /**
    * Resolves overlaps by moving tiles down only, never up, so a tile the user placed keeps its
-   * position and its gaps. Rows are settled top down, new tiles first, so an inserted tile stays
-   * where it was placed and the stored tiles it lands on cascade downwards. react-grid-layout would
-   * instead move the newcomer, which can bury it at the bottom of the grid.
+   * position and its gaps.
    */
   private def settleDownwards(items: List[(LayoutItem, Boolean)]): List[LayoutItem] =
     def settle(item: LayoutItem, above: List[LayoutItem]): LayoutItem =
