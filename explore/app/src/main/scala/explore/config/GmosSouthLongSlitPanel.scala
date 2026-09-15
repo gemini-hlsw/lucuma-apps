@@ -46,7 +46,8 @@ case class GmosSouthLongSlitPanel(
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
-  units:           WavelengthUnits
+  units:           WavelengthUnits,
+  isStaff:         Boolean
 )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
     extends ReactFnProps[GmosSouthLongSlitPanel](GmosSouthLongSlitPanel.component)
     with GmosLongSlitPanelProps[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]:
@@ -239,4 +240,6 @@ object GmosSouthLongSlitPanel
       GmosSouthFilter,
       GmosSouthFpu,
       GmosSouthLongSlitPanel
-    ]
+    ]:
+
+  override protected val filterTypeGetter: GmosSouthFilter => FilterType = _.filterType

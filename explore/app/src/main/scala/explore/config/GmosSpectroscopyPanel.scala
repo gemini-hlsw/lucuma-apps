@@ -53,6 +53,7 @@ trait GmosSpectroscopyPanelProps[Grating, Filter, Fpu]:
   def sequenceChanged: Callback
   def permissions: ConfigEditPermissions
   def units: WavelengthUnits
+  def isStaff: Boolean
 
   def mode: ObservingMode
   def instrument: Option[Instrument] = mode.instrument
@@ -118,6 +119,8 @@ abstract class GmosSpectroscopyPanelBuilder[
   Fpu: Enumerated: Display,
   Props <: GmosSpectroscopyPanelProps[Grating, Filter, Fpu]
 ]:
+  protected def filterTypeGetter: Filter => FilterType
+
   protected given Display[(GmosAmpReadMode, GmosAmpGain)] =
     Display.by( // Shortname is in lower case for some reason
       { case (r, g) => s"${r.longName}, ${g.shortName} Gain" },
@@ -138,6 +141,13 @@ abstract class GmosSpectroscopyPanelBuilder[
         val showCustomization        = props.showCustomization
         val allowRevertCustomization = props.allowRevertCustomization
         val showAcquisitionConfig    = props.calibrationRole.needsAcquisitionConfig
+
+        // Engineering filters are only offered to staff. One already set on the
+        // observation stays visible, this only governs what can be chosen.
+        val excludedFilters: Set[Filter] =
+          if props.isStaff then Set.empty
+          else
+            Enumerated[Filter].all.filter(f => filterTypeGetter(f) === FilterType.Engineering).toSet
 
         val centralWavelengthView = props.centralWavelengthView
 
@@ -190,6 +200,7 @@ abstract class GmosSpectroscopyPanelBuilder[
                 defaultValue = props.initialFilter,
                 label = "Filter".some,
                 helpId = Some("configuration/gmos/filter.md".refined),
+                exclude = excludedFilters,
                 disabled = disableAdvancedEdit,
                 showClear = true,
                 resetToOriginal = true,
