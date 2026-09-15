@@ -43,6 +43,9 @@ ThisBuild / evictionErrorLevel := Level.Info
 
 ThisBuild / githubWorkflowArtifactUpload := false // Necessary when disabling coverage.
 
+// Required jobs for branch protection: Tests, plus building and linking Explore.
+ThisBuild / lucumaRequiredCheckJobs := Seq("build", "explore-deploy")
+
 // Files that cannot break a Scala or Scala.js test in this repo. The plugin ships only docs and
 // editor config; everything repo-specific belongs here. Checked before `lucumaAffectedAlwaysPaths`,
 // so an entry here always wins -- drop one to make those files trigger a full test run again.
