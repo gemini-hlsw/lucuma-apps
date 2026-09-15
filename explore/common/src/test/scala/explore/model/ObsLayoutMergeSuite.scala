@@ -49,8 +49,11 @@ class ObsLayoutMergeSuite extends FunSuite:
   test("the merged layout has no overlapping tiles"):
     val items    = merged(storedBeforeDetails)
     val overlaps =
-      items.tails.toList.collect { case a :: rest => rest.map((a, _)) }.flatten.filter: (a, b) =>
-        a.y < b.y + b.h && b.y < a.y + a.h
+      items.tails.toList
+        .collect { case a :: rest => rest.map((a, _)) }
+        .flatten
+        .filter: (a, b) =>
+          a.y < b.y + b.h && b.y < a.y + a.h
     assertEquals(overlaps.map((a, b) => (a.i, b.i)), Nil, clue = items.map(i => (i.i, i.y, i.h)))
 
   // The notes tile is hidden before proposal review, and a hidden tile is never persisted.
@@ -78,3 +81,34 @@ class ObsLayoutMergeSuite extends FunSuite:
       clue = items.map(i => (i.i, i.y, i.h))
     )
 
+  // A user who reordered the whole tab: the tile follows its neighbour, nothing is displaced.
+  test("a scrambled stored order keeps the details tile under notes"):
+    val order     = List(
+      ObsTabTileIds.ConfigurationId,
+      ObsTabTileIds.ItcId,
+      ObsTabTileIds.TargetId,
+      ObsTabTileIds.NotesId,
+      ObsTabTileIds.ConstraintsId,
+      ObsTabTileIds.PlotId,
+      ObsTabTileIds.FinderChartsId,
+      ObsTabTileIds.TimingWindowsId
+    ).map(_.id.value)
+    val byId      = storedBeforeDetails.asList.map(i => i.i -> i).toMap
+    val scrambled = Layout(
+      order
+        .foldLeft((List.empty[LayoutItem], 0)): (acc, id) =>
+          val item = byId(id)
+          (item.copy(y = acc._2) :: acc._1, acc._2 + item.h)
+        ._1
+        .reverse
+    )
+    val items     = merged(scrambled)
+    val notes     = items.find(_.i === ObsTabTileIds.NotesId.id.value).get
+    val details   = items.find(_.i === ObsTabTileIds.DetailsId.id.value).get
+    assertEquals(details.y, notes.y + notes.h, clue = items.map(i => (i.i, i.y, i.h)))
+    // the scrambled order itself survives, everything below notes just shifts down by 4
+    assertEquals(
+      items.sortBy(_.y).map(_.i).filterNot(_ === ObsTabTileIds.DetailsId.id.value),
+      order,
+      clue = items.map(i => (i.i, i.y, i.h))
+    )
