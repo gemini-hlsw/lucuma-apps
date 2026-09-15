@@ -4539,6 +4539,20 @@ a.explore-upgrade-link {
   }
 }
 
+// Observation Tab
+.observation-details-form {
+  display: grid;
+  grid-template-columns: [label] auto [value] 1fr;
+  gap: 0.25em 1em;
+  grid-auto-rows: max-content;
+  padding: 0.5em 1em;
+
+  label {
+    text-align: right;
+    font-weight: bold;
+  }
+}
+
 // Program Tab
 .program-details-tile {
   display: flex;

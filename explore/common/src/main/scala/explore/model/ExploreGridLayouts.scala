@@ -176,6 +176,7 @@ object ExploreGridLayouts:
 
   object observations:
     private lazy val NotesMaxHeight: NonNegInt         = 5.refined
+    private lazy val DetailsMinHeight: NonNegInt       = 4.refined
     private lazy val TargetHeight: NonNegInt           = 18.refined
     private lazy val SkyPlotHeight: NonNegInt          = 9.refined
     private lazy val ConstraintsMaxHeight: NonNegInt   = 7.refined
@@ -198,26 +199,34 @@ object ExploreGridLayouts:
           x = 0,
           y = NotesMaxHeight.value,
           w = DefaultWidth.value,
+          h = DetailsMinHeight.value,
+          i = ObsTabTileIds.DetailsId.id.value
+        ),
+        LayoutItem(
+          x = 0,
+          y = (NotesMaxHeight |+| DetailsMinHeight).value,
+          w = DefaultWidth.value,
           h = TargetHeight.value,
           i = ObsTabTileIds.TargetId.id.value
         ),
         LayoutItem(
           x = 0,
-          y = (NotesMaxHeight |+| TargetHeight).value,
+          y = (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight).value,
           w = DefaultWidth.value,
           h = FinderChartHeight.value,
           i = ObsTabTileIds.FinderChartsId.id.value
         ),
         LayoutItem(
           x = 0,
-          y = (NotesMaxHeight |+| TargetHeight |+| FinderChartHeight).value,
+          y = (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight).value,
           w = DefaultWidth.value,
           h = SkyPlotHeight.value,
           i = ObsTabTileIds.PlotId.id.value
         ),
         LayoutItem(
           x = 0,
-          y = (NotesMaxHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight).value,
+          y =
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight).value,
           w = DefaultWidth.value,
           h = ConstraintsMaxHeight.value,
           i = ObsTabTileIds.ConstraintsId.id.value
@@ -225,7 +234,7 @@ object ExploreGridLayouts:
         LayoutItem(
           x = 0,
           y =
-            (NotesMaxHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight).value,
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight).value,
           w = DefaultWidth.value,
           h = TimingWindowsMaxHeight.value,
           i = ObsTabTileIds.TimingWindowsId.id.value
@@ -233,7 +242,7 @@ object ExploreGridLayouts:
         LayoutItem(
           x = 0,
           y =
-            (NotesMaxHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight).value,
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight).value,
           w = DefaultWidth.value,
           h = ConfigurationMaxHeight.value,
           i = ObsTabTileIds.ConfigurationId.id.value
@@ -241,7 +250,7 @@ object ExploreGridLayouts:
         LayoutItem(
           x = 0,
           y =
-            (NotesMaxHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight).value,
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight).value,
           w = DefaultWidth.value,
           h = ItcMaxHeight.value,
           i = ObsTabTileIds.ItcId.id.value
@@ -254,6 +263,7 @@ object ExploreGridLayouts:
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.ItcId,
         ObsTabTileIds.NotesId,
+        ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
@@ -262,7 +272,11 @@ object ExploreGridLayouts:
         .filterNot(l => TwilightRemovedIds.contains(l.i))
 
     lazy val SpecPhotoRemovedIds =
-      List(ObsTabTileIds.FinderChartsId, ObsTabTileIds.NotesId, ObsTabTileIds.TimingWindowsId).map(
+      List(ObsTabTileIds.FinderChartsId,
+           ObsTabTileIds.NotesId,
+           ObsTabTileIds.DetailsId,
+           ObsTabTileIds.TimingWindowsId
+      ).map(
         _.id.value
       )
 
@@ -275,7 +289,7 @@ object ExploreGridLayouts:
         LayoutItem(
           x = 0,
           y =
-            (NotesMaxHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight |+| ItcMaxHeight).value,
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight |+| ItcMaxHeight).value,
           w = DefaultWidth.value,
           h = SequenceMaxHeight.value,
           i = ObsTabTileIds.SequenceId.id.value
@@ -287,6 +301,7 @@ object ExploreGridLayouts:
       List(
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.NotesId,
+        ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
@@ -295,6 +310,7 @@ object ExploreGridLayouts:
     lazy val DaytimePinholeRemovedIds =
       List(
         ObsTabTileIds.NotesId,
+        ObsTabTileIds.DetailsId,
         ObsTabTileIds.TargetId,
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.PlotId,
