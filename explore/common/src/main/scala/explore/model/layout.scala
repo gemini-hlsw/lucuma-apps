@@ -158,6 +158,33 @@ object layout {
       y = fromDb.y
     )
 
+  private def collides(a: LayoutItem, b: LayoutItem): Boolean =
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+
+  /**
+   * Resolves overlaps by moving tiles down only, never up, so a tile the user placed keeps its
+   * position and its gaps. Rows are settled top down, new tiles first, so an inserted tile stays
+   * where it was placed and the stored tiles it lands on cascade downwards. react-grid-layout would
+   * instead move the newcomer, which can bury it at the bottom of the grid.
+   */
+  private def settleDownwards(items: List[(LayoutItem, Boolean)]): List[LayoutItem] =
+    def settle(item: LayoutItem, above: List[LayoutItem]): LayoutItem =
+      above
+        .filter(collides(item, _))
+        .map(p => p.y + p.h)
+        .maxOption
+        .fold(item)(y => settle(item.copy(y = y), above))
+
+    val settled: Map[String, LayoutItem] =
+      items.zipWithIndex
+        .sortBy { case ((item, isNew), index) => (item.y, if isNew then 0 else 1, index) }
+        .foldLeft(List.empty[LayoutItem]): (above, entry) =>
+          settle(entry._1._1, above) :: above
+        .fproductLeft(_.i)
+        .toMap
+
+    items.map((item, _) => settled.getOrElse(item.i, item))
+
   // As with the other merges, the current Layout is expected to have all
   // of required LayoutItems since it originates with the DefaultLayout.
   // So, any extra LayoutItems from the db are ignored.
@@ -175,13 +202,15 @@ object layout {
         .getOrElse(item.y)
       item.copy(y = math.max(item.y, predecessorsBottom))
 
-    val list = current.asList.foldLeft(List.empty[LayoutItem]) { (acc, currentItem) =>
-      stored
-        .find(_.i === currentItem.i)
-        .map(dbItem => mergeLayoutItems(currentItem, dbItem))
-        .getOrElse(placeNewItem(currentItem)) :: acc
-    }
-    Layout(list.reverse)
+    val placed: List[(LayoutItem, Boolean)] =
+      current.asList.map: currentItem =>
+        stored
+          .find(_.i === currentItem.i)
+          .fold((placeNewItem(currentItem), true))(dbItem =>
+            (mergeLayoutItems(currentItem, dbItem), false)
+          )
+
+    Layout(settleDownwards(placed))
 
   def mergeLayoutEntries(current: LayoutEntry, fromDb: LayoutEntry): LayoutEntry =
     (current._1, current._2, mergeLayouts(current._3, fromDb._3))
