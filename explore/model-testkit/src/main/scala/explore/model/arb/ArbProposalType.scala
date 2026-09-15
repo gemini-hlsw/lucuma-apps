@@ -73,9 +73,9 @@ trait ArbProposalType:
   given Arbitrary[DemoScience] =
     Arbitrary {
       for {
-        scienceSubtype <- arbitrary[ScienceSubtype]
-        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
-        minPercentType <- arbitrary[IntPercent]
+        scienceSubtype       <- arbitrary[ScienceSubtype]
+        tooActivationCeiling <- arbitrary[TooActivationCeiling]
+        minPercentType       <- arbitrary[IntPercent]
       } yield DemoScience(scienceSubtype, tooActivationCeiling, minPercentType)
     }
 
@@ -91,9 +91,9 @@ trait ArbProposalType:
   given Arbitrary[DirectorsTime] =
     Arbitrary {
       for {
-        scienceSubtype <- arbitrary[ScienceSubtype]
-        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
-        minPercentType <- arbitrary[IntPercent]
+        scienceSubtype       <- arbitrary[ScienceSubtype]
+        tooActivationCeiling <- arbitrary[TooActivationCeiling]
+        minPercentType       <- arbitrary[IntPercent]
       } yield DirectorsTime(scienceSubtype, tooActivationCeiling, minPercentType)
     }
 
@@ -109,11 +109,11 @@ trait ArbProposalType:
   given Arbitrary[FastTurnaround] =
     Arbitrary {
       for {
-        scienceSubtype <- arbitrary[ScienceSubtype]
-        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
-        minPercentType <- arbitrary[IntPercent]
-        reviewer       <- arbitrary[Option[ProgramUser.Id]]
-        mentor         <- arbitrary[Option[ProgramUser.Id]]
+        scienceSubtype       <- arbitrary[ScienceSubtype]
+        tooActivationCeiling <- arbitrary[TooActivationCeiling]
+        minPercentType       <- arbitrary[IntPercent]
+        reviewer             <- arbitrary[Option[ProgramUser.Id]]
+        mentor               <- arbitrary[Option[ProgramUser.Id]]
       } yield FastTurnaround(scienceSubtype, tooActivationCeiling, minPercentType, reviewer, mentor)
     }
 
@@ -133,13 +133,13 @@ trait ArbProposalType:
   given Arbitrary[LargeProgram] =
     Arbitrary {
       for {
-        scienceSubtype      <- arbitrary[ScienceSubtype]
-        tooActivationCeiling       <- arbitrary[TooActivationCeiling]
-        minPercentType      <- arbitrary[IntPercent]
-        minPercentTotalTime <- arbitrary[IntPercent]
-        totalTime           <- arbitrary[TimeSpan]
-        aeonMultiFacility   <- arbitrary[Option[AeonMultiFacility]]
-        jwstSynergy         <- arbitrary[Boolean]
+        scienceSubtype       <- arbitrary[ScienceSubtype]
+        tooActivationCeiling <- arbitrary[TooActivationCeiling]
+        minPercentType       <- arbitrary[IntPercent]
+        minPercentTotalTime  <- arbitrary[IntPercent]
+        totalTime            <- arbitrary[TimeSpan]
+        aeonMultiFacility    <- arbitrary[Option[AeonMultiFacility]]
+        jwstSynergy          <- arbitrary[Boolean]
       } yield LargeProgram(scienceSubtype,
                            tooActivationCeiling,
                            minPercentType,
@@ -185,15 +185,15 @@ trait ArbProposalType:
   given Arbitrary[Queue] =
     Arbitrary {
       for {
-        scienceSubtype    <- arbitrary[ScienceSubtype]
-        tooActivationCeiling     <- arbitrary[TooActivationCeiling]
-        minPercentType    <- arbitrary[IntPercent]
-        partnerSplits     <- arbitrary[List[PartnerSplit]]
-        exchangePartner   <- arbitrary[Option[ExchangePartner]]
-        aeonMultiFacility <- arbitrary[Option[AeonMultiFacility]]
-        jwstSynergy       <- arbitrary[Boolean]
-        usLongTerm        <- arbitrary[Boolean]
-        considerForBand3  <- arbitrary[ConsiderForBand3]
+        scienceSubtype       <- arbitrary[ScienceSubtype]
+        tooActivationCeiling <- arbitrary[TooActivationCeiling]
+        minPercentType       <- arbitrary[IntPercent]
+        partnerSplits        <- arbitrary[List[PartnerSplit]]
+        exchangePartner      <- arbitrary[Option[ExchangePartner]]
+        aeonMultiFacility    <- arbitrary[Option[AeonMultiFacility]]
+        jwstSynergy          <- arbitrary[Boolean]
+        usLongTerm           <- arbitrary[Boolean]
+        considerForBand3     <- arbitrary[ConsiderForBand3]
       } yield Queue(scienceSubtype,
                     tooActivationCeiling,
                     minPercentType,
@@ -235,9 +235,9 @@ trait ArbProposalType:
   given Arbitrary[SystemVerification] =
     Arbitrary {
       for {
-        scienceSubtype <- arbitrary[ScienceSubtype]
-        tooActivationCeiling  <- arbitrary[TooActivationCeiling]
-        minPercentTime <- arbitrary[IntPercent]
+        scienceSubtype       <- arbitrary[ScienceSubtype]
+        tooActivationCeiling <- arbitrary[TooActivationCeiling]
+        minPercentTime       <- arbitrary[IntPercent]
       } yield SystemVerification(scienceSubtype, tooActivationCeiling, minPercentTime)
     }
 

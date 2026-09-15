@@ -14,6 +14,7 @@ import fs2.compression.Compression
 import fs2.io.file.Files
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
+import lucuma.graphql.routes.GraphQLService
 import navigate.model.config.*
 import navigate.server.CaServiceInit
 import navigate.server.NavigateEngine
@@ -36,6 +37,7 @@ import org.http4s.server.middleware.Logger as Http4sLogger
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.otel4s.trace.Tracer.Implicits.noop
 import pureconfig.ConfigObjectSource
 import pureconfig.ConfigSource
 
@@ -89,36 +91,37 @@ object WebServerLauncher extends IOApp with LogInitialization {
     val ssl: F[Option[TLSContext[F]]] = conf.webServer.tls.traverse(makeContext[F])
 
     def router(
-      wsBuilder:                    WebSocketBuilder2[F],
-      proxyService:                 HttpRoutes[F],
-      mappings:                     NavigateMappings[F]
+      wsBuilder:                      WebSocketBuilder2[F],
+      proxyService:                   HttpRoutes[F],
+      graphQLService:                 GraphQLService[F]
     ) = Router[F](
       "/"                 -> new StaticRoutes().service,
-      "/navigate"         -> new GraphQlRoutes(mappings).service(wsBuilder),
+      "/navigate"         -> new GraphQlRoutes(graphQLService).service(wsBuilder),
       ProxyRoute.toString -> proxyService
     )
 
     def loggedRoutes(
-      wsBuilder:    WebSocketBuilder2[F],
-      proxyService: HttpRoutes[F],
-      mappings:     NavigateMappings[F]
+      wsBuilder:      WebSocketBuilder2[F],
+      proxyService:   HttpRoutes[F],
+      graphQLService: GraphQLService[F]
     ) =
       Http4sLogger.httpRoutes(logHeaders = false, logBody = false)(
-        router(wsBuilder, proxyService, mappings)
+        router(wsBuilder, proxyService, graphQLService)
       )
 
-    def builder(proxyService: HttpRoutes[F], mappings: NavigateMappings[F]) =
+    def builder(proxyService: HttpRoutes[F], graphQLService: GraphQLService[F]) =
       EmberServerBuilder
         .default[F]
         .withHost(conf.webServer.host)
         .withPort(conf.webServer.port)
-        .withHttpWebSocketApp(wsb => loggedRoutes(wsb, proxyService, mappings).orNotFound)
+        .withHttpWebSocketApp(wsb => loggedRoutes(wsb, proxyService, graphQLService).orNotFound)
 
     for
-      proxyService <- ProxyBuilder.buildService[F](conf.webServer.proxyBaseUri, ProxyRoute)
-      mappings     <- NavigateMappings[F](conf, se, topics).toResource
-      build         = builder(proxyService, mappings)
-      server       <- ssl.toResource.flatMap(_.fold(build)(build.withTLS(_)).build)
+      proxyService   <- ProxyBuilder.buildService[F](conf.webServer.proxyBaseUri, ProxyRoute)
+      mapping        <- NavigateMappings[F](conf, se, topics).toResource
+      graphQLService <- GraphQLService[F](mapping).toResource
+      build           = builder(proxyService, graphQLService)
+      server         <- ssl.toResource.flatMap(_.fold(build)(build.withTLS(_)).build)
     yield server
   }
 
