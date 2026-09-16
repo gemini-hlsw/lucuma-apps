@@ -43,6 +43,7 @@ import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.NavigateCommand
 import navigate.model.NavigateCommand.*
 import navigate.model.NavigateEvent
@@ -172,6 +173,12 @@ trait NavigateEngine[F[_]] {
   def originAdjust(handsetAdjustment:                HandsetAdjustment, openLoops: Boolean): F[CommandResult]
   def offset(offset:                                 Offset, guiding:              Boolean): F[CommandResult]
   def centralWavelength(wavelength:                  Wavelength): F[CommandResult]
+  def configureStep(
+    offset:     Option[Offset],
+    wavelength: Option[Wavelength],
+    lightPath:  Option[LightPath],
+    guiding:    Boolean
+  ): F[CommandResult]
   def originOffsetAbsorb: F[CommandResult]
   def originOffsetClear(openLoops:                   Boolean): F[CommandResult]
   def pointingAdjust(handsetAdjustment:              HandsetAdjustment): F[CommandResult]
@@ -703,6 +710,23 @@ object NavigateEngine {
         systems.tcsCommon.centralWavelength(wavelength)
       )
 
+    override def configureStep(
+      offset:     Option[Offset],
+      wavelength: Option[Wavelength],
+      lightPath:  Option[LightPath],
+      guiding:    Boolean
+    ): F[CommandResult] =
+      simpleCommand(
+        engine,
+        ConfigureStep(offset, wavelength, lightPath, guiding),
+        stateRef.get.flatMap(s =>
+          systems.tcsCommon.configureStep(offset, wavelength, lightPath, guiding)(
+            s.guideConfig,
+            s.wfsTrackingConfig
+          )
+        )
+      )
+
     override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[CommandResult] =
       simpleCommand(
         engine,
@@ -1012,7 +1036,7 @@ object NavigateEngine {
 
   /**
    * This is used for simple commands, just an F that executes the command when evaluated, producing
-   * a result. It relies in command().
+   * a result. It relies on command().
    *
    * @param engine
    *   The state machine.
@@ -1020,8 +1044,6 @@ object NavigateEngine {
    *   : The command type, used for logs.
    * @param cmd
    *   : The actual command, wrapped in effect F.
-   * @param f
-   *   : Lens to the command guard flag in the global state.
    * @tparam F
    *   : Type of effect that wraps the command execution.
    * @return

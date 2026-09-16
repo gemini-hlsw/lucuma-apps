@@ -58,6 +58,7 @@ import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.HandsetAdjustment.HorizontalAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.MechSystemState
 import navigate.model.NavigateEvent
 import navigate.model.NavigateState
@@ -1562,7 +1563,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
 
   test("Process ac stop observe command")(testWfsStopObserve("ac"))
 
-  def m1Test(name: String, mutation: String) =
+  def m1Test(name: String, mutation: String): Unit =
     test(s"Process M1 $name command") {
       for {
         mp <- buildMapping()
@@ -2079,6 +2080,56 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         .as[String]
         .toOption,
       "SUCCESS".some
+    )
+  }
+
+  test("Configure a step with offset, wavelength and light path") {
+    for {
+      mp <- buildMapping()
+      p  <- mp.compileAndRun(
+              """
+          |mutation {
+          |  configureStep(
+          |    config: {
+          |      offset: {
+          |        p: { arcseconds: 0.1 }
+          |        q: { arcseconds: 0.0 }
+          |      }
+          |      wavelength: {
+          |        micrometers: 0.5
+          |      }
+          |      lightPath: {
+          |        from: SKY
+          |        instrument: GMOS_SOUTH
+          |        lightSinkVariant: GMOS_IFU
+          |      }
+          |      guiding: true
+          |    }
+          |  ) {
+          |    result
+          |  }
+          |}
+          |""".stripMargin
+            )
+    } yield assert(
+      extractResult[OperationOutcome](p, "configureStep").exists(_ === OperationOutcome.success)
+    )
+  }
+
+  test("Configure a step with only the mandatory guiding parameter") {
+    for {
+      mp <- buildMapping()
+      p  <- mp.compileAndRun(
+              """
+          |mutation {
+          |  configureStep(config: { guiding: false }) {
+          |    result
+          |  }
+          |}
+          |""".stripMargin
+            )
+    } yield assert(
+      extractResult[OperationOutcome](p, "configureStep").exists(_ === OperationOutcome.success)
     )
   }
 
@@ -2890,7 +2941,7 @@ object NavigateMappingsTest {
   import lucuma.odb.json.offset.query.given
   import lucuma.odb.json.angle.query.given
 
-  val dummyClient = Client.fromHttpApp(HttpApp.notFound[IO])
+  val dummyClient: Client[IO] = Client.fromHttpApp(HttpApp.notFound[IO])
 
   private given Logger[IO] = NoOpLogger.impl[IO]
 
@@ -3078,6 +3129,13 @@ object NavigateMappingsTest {
 
     override def centralWavelength(wavelength: Wavelength): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
+
+    override def configureStep(
+      offset:     Option[Offset],
+      wavelength: Option[Wavelength],
+      lightPath:  Option[LightPath],
+      guiding:    Boolean
+    ): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
     override def pointingAdjust(handsetAdjustment: HandsetAdjustment): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]

@@ -59,6 +59,7 @@ import navigate.model.GuiderConfig
 import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.NavigateState
 import navigate.model.Origin
 import navigate.model.PointingCorrections
@@ -495,6 +496,18 @@ class NavigateMappings[F[_]: Sync](
     .attempt
     .map(convertResult)).getOrElse(
     Result.failure[OperationOutcome]("Central wavelength parameter could not be parsed.").pure[F]
+  )
+
+  def configureStep(env: Env): F[Result[OperationOutcome]] = (for {
+    offset     <- env.get[Option[Offset]]("offset")
+    wavelength <- env.get[Option[Wavelength]]("wavelength")
+    lightPath  <- env.get[Option[LightPath]]("lightPath")
+    guiding    <- env.get[Boolean]("guiding")
+  } yield server
+    .configureStep(offset, wavelength, lightPath, guiding)
+    .attempt
+    .map(convertResult)).getOrElse(
+    Result.failure[OperationOutcome]("ConfigureStep parameters could not be parsed.").pure[F]
   )
 
   def adjustPointing(env: Env): F[Result[OperationOutcome]] = (for {
@@ -1013,6 +1026,19 @@ class NavigateMappings[F[_]: Sync](
              )
         _ <- Elab.env("wavelength", w)
       } yield ()
+    case (MutationType, "configureStep", List(Binding("config", ObjectValue(config))))            =>
+      for {
+        parsed                                  <- Elab.liftR(
+                                                     parseConfigureStepInput(config).toResult(
+                                                       "Could not parse configureStep parameter \"config\""
+                                                     )
+                                                   )
+        (offset, wavelength, lightPath, guiding) = parsed
+        _                                       <- Elab.env("offset", offset)
+        _                                       <- Elab.env("wavelength", wavelength)
+        _                                       <- Elab.env("lightPath", lightPath)
+        _                                       <- Elab.env("guiding", guiding)
+      } yield ()
     case (MutationType,
           "resetOriginAdjustment",
           List(Binding("openLoops", BooleanValue(openLoops)))
@@ -1333,6 +1359,9 @@ class NavigateMappings[F[_]: Sync](
           },
           RootEffect.computeEncodable("centralWavelength") { (_, env) =>
             centralWavelength(env)
+          },
+          RootEffect.computeEncodable("configureStep") { (_, env) =>
+            configureStep(env)
           },
           RootEffect.computeEncodable("resetTargetAdjustment")((_, env) =>
             resetTargetAdjustment(env)
@@ -1811,6 +1840,52 @@ object NavigateMappings extends GrackleParsers {
               parseEnumerated[AcquisitionAdjustmentCommand](v)
             }.flatten
     } yield cmd.fold(AcquisitionAdjustment(o, ipa, iaa))(AcquisitionAdjustment(o, ipa, iaa, _))
+
+  def parseLightPathInput(l: List[(String, Value)]): Option[LightPath] =
+    for {
+      from <- l.collectFirst { case ("from", EnumValue(v)) =>
+                parseEnumerated[LightSource](v)
+              }.flatten
+      ins  <-
+        l.collectFirst { case ("instrument", EnumValue(v)) =>
+          parseEnumerated[Instrument](v)
+        }.flatten
+      lsv  <-
+        l.collectFirst { case ("lightSinkVariant", EnumValue(v)) =>
+          parseEnumerated[LightSinkVariant](v)
+        } match {
+          case Some(None) => None
+          case None       => Some(None)
+          case x          => x
+        }
+      to   <- LightSink.fromInstrumentAndVariant(ins, lsv)
+    } yield LightPath(from, to)
+
+  def parseConfigureStepInput(
+    l: List[(String, Value)]
+  ): Option[(Option[Offset], Option[Wavelength], Option[LightPath], Boolean)] =
+    for {
+      offset     <- l.collectFirst { case ("offset", ObjectValue(v)) => parseOffset(v) } match {
+                      case Some(None) => None
+                      case None       => Some(None)
+                      case x          => x
+                    }
+      wavelength <- l.collectFirst { case ("wavelength", ObjectValue(v)) =>
+                      parseWavelength(v)
+                    } match {
+                      case Some(None) => None
+                      case None       => Some(None)
+                      case x          => x
+                    }
+      lightPath  <- l.collectFirst { case ("lightPath", ObjectValue(v)) =>
+                      parseLightPathInput(v)
+                    } match {
+                      case Some(None) => None
+                      case None       => Some(None)
+                      case x          => x
+                    }
+      guiding    <- l.collectFirst { case ("guiding", BooleanValue(v)) => v }
+    } yield (offset, wavelength, lightPath, guiding)
 
   def parseHandsetAdjustment(l: List[(String, Value)]): Option[HandsetAdjustment] =
     l.find(_._2 != Value.AbsentValue) match {
