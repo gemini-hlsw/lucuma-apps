@@ -496,6 +496,9 @@ object ObsTabTiles:
 
         val notesTile = NotesTile(notesView, hidden = hideTiles)
 
+        val observationDetailsTile =
+          ObservationDetailsTile(props.observation, props.obsIsReadonly)
+
         val sequenceTile =
           SequenceTile(
             props.obsId,
@@ -811,6 +814,7 @@ object ObsTabTiles:
         val alltiles: List[Tile[?]] =
           List(
             notesTile.some,
+            observationDetailsTile.some,
             targetTile.some,
             Option.unless(props.vault.isGuest)(finderChartsTile),
             skyPlotTile,

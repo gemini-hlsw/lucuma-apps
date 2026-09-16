@@ -163,6 +163,22 @@ How tall a tile's content and title bar actually are, unconstrained by the space
 has given the tile. What gets measured to compute a Derived Height.
 _Avoid_: content height (ambiguous with the clipped, grid-constrained height)
 
+### Observation identity
+
+**Observation Id**:
+The observation's internal database identifier, rendered `o-1a2b`. Always present, stable
+for the life of the observation, and meaningless outside the system.
+
+**Observation Reference**:
+The observation's human-facing label, rendered `G-2026A-0123-Q-0001`. Optional: it exists
+only once the program itself has a reference, so an observation in an unaccepted proposal
+has none. This is the string a PI quotes in correspondence.
+_Avoid_: observation name (that is the user-supplied free-text title)
+
+**Display Label**:
+The rule for naming an observation in the interface: its Observation Reference when it has
+one, its Observation Id otherwise. Never both.
+
 # Telescope Offset Configuration
 
 How Gemini instruments specify where the telescope points at each step of a

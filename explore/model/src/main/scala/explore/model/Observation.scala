@@ -115,6 +115,8 @@ final case class Observation(
   // The observation reference when it has one, the id otherwise.
   lazy val displayLabel: String = reference.fold(id.show)(_.label)
 
+  lazy val referenceWithId: String = reference.fold(id.show)(r => s"${r.label} (${id.show})")
+
   val site: Option[Site] = basicConfiguration.flatMap(_.siteFor)
 
   lazy val observingModeSummary: Option[ObservingModeSummary] =

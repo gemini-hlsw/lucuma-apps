@@ -166,8 +166,8 @@ object ObsBadge:
       val obs    = props.obs
       val layout = props.layout
 
-      val identifier: VdomNode = obs.reference.fold(<.span(obsIdentifier(obs))): ref =>
-        <.span(obsIdentifier(obs)).withTooltip(content = s"${ref.label} (${obs.id})")
+      val identifier: VdomNode = obs.reference.fold(<.span(obsIdentifier(obs))): _ =>
+        <.span(obsIdentifier(obs)).withTooltip(content = obs.referenceWithId)
 
       val deleteButton =
         Button(
