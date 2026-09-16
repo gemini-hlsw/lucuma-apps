@@ -54,6 +54,7 @@ object GmosImagingConfigPanel {
     def sequenceChanged: Callback
     def readonly: Boolean
     def units: WavelengthUnits
+    def isStaff: Boolean
     def instrument = observingMode.get.instrument
 
   sealed abstract class GmosImagingConfigPanelBuilder[
@@ -145,9 +146,13 @@ object GmosImagingConfigPanel {
 
           val filtersView: View[NonEmptyList[ImagingFilter]] = filters(props.observingMode)
 
+          // Engineering filters are only offered to staff.
+          val hiddenFilterTypes: Set[FilterType] =
+            Set(FilterType.Spectroscopic) ++ Option.unless(props.isStaff)(FilterType.Engineering)
+
           val allowedFilters: Set[Filter] =
             Enumerated[Filter].all
-              .filterNot(f => filterTypeGetter(f) === FilterType.Spectroscopic)
+              .filterNot(f => hiddenFilterTypes.contains(filterTypeGetter(f)))
               .toSet
 
           val initialFilters: NonEmptyList[ImagingFilter] =
@@ -234,7 +239,8 @@ object GmosImagingConfigPanel {
     revertConfig:                 IO[Unit],
     sequenceChanged:              Callback,
     readonly:                     Boolean,
-    units:                        WavelengthUnits
+    units:                        WavelengthUnits,
+    isStaff:                      Boolean
   ) extends ReactFnProps[GmosImagingConfigPanel.GmosNorthImaging](
         GmosImagingConfigPanel.GmosNorthImaging.component
       )
@@ -365,7 +371,8 @@ object GmosImagingConfigPanel {
     revertConfig:                 IO[Unit],
     sequenceChanged:              Callback,
     readonly:                     Boolean,
-    units:                        WavelengthUnits
+    units:                        WavelengthUnits,
+    isStaff:                      Boolean
   ) extends ReactFnProps[GmosImagingConfigPanel.GmosSouthImaging](
         GmosImagingConfigPanel.GmosSouthImaging.component
       )

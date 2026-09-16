@@ -635,7 +635,8 @@ object ConfigurationTile
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos South Long Slit
                   optGmosSouthAligner.map: southAligner =>
@@ -648,7 +649,8 @@ object ConfigurationTile
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos North MOS
                   optGmosNorthMosAligner.map: northMosAligner =>
@@ -662,7 +664,8 @@ object ConfigurationTile
                       props.sequenceChanged,
                       props.permissions,
                       props.units,
-                      props.maskContext
+                      props.maskContext,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos South MOS
                   optGmosSouthMosAligner.map: southMosAligner =>
@@ -676,7 +679,8 @@ object ConfigurationTile
                       props.sequenceChanged,
                       props.permissions,
                       props.units,
-                      props.maskContext
+                      props.maskContext,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos North IFU
                   optGmosNorthIfuAligner.map: ifuAligner =>
@@ -689,7 +693,8 @@ object ConfigurationTile
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos South IFU
                   optGmosSouthIfuAligner.map: ifuAligner =>
@@ -702,7 +707,8 @@ object ConfigurationTile
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
@@ -715,7 +721,8 @@ object ConfigurationTile
                       revertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Gmos South Imaging
                   optGmosSouthImagingAligner.map: aligner =>
@@ -728,7 +735,8 @@ object ConfigurationTile
                       revertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
-                      props.units
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // Flamingos2 Long Slit
                   optFlamingos2Aligner.map: f2Aligner =>

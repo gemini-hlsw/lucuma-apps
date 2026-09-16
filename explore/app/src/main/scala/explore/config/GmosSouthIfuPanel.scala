@@ -46,7 +46,8 @@ case class GmosSouthIfuPanel(
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
-  units:           WavelengthUnits
+  units:           WavelengthUnits,
+  isStaff:         Boolean
 )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
     extends ReactFnProps[GmosSouthIfuPanel](GmosSouthIfuPanel.component)
     with GmosSpectroscopyPanelProps[GmosSouthGrating, GmosSouthFilter, GmosSouthIfuFpu]:
@@ -213,4 +214,6 @@ object GmosSouthIfuPanel
       GmosSouthFilter,
       GmosSouthIfuFpu,
       GmosSouthIfuPanel
-    ]
+    ]:
+
+  override protected val filterTypeGetter: GmosSouthFilter => FilterType = _.filterType

@@ -46,7 +46,8 @@ case class GmosNorthMosPanel(
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits,
-  maskContext:     MosMaskContext
+  maskContext:     MosMaskContext,
+  isStaff:         Boolean
 )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
     extends ReactFnProps[GmosNorthMosPanel](GmosNorthMosPanel.component)
     with GmosMosPanelProps[GmosNorthGrating, GmosNorthFilter]:
@@ -242,4 +243,6 @@ object GmosNorthMosPanel
       GmosNorthFilter,
       GmosCustomSlitWidth,
       GmosNorthMosPanel
-    ]
+    ]:
+
+  override protected val filterTypeGetter: GmosNorthFilter => FilterType = _.filterType
