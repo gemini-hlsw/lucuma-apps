@@ -347,7 +347,9 @@ trait GhostLUT {
     redConfig:  GhostDetector.Red,
     coAdds:     Option[PosInt]
   ): Int =
-    if (obsType === StepConfig.Bias) {
+    // The slit viewer is never used for darks.
+    if (obsType === StepConfig.Dark) 0
+    else if (obsType === StepConfig.Bias) {
       val scienceReadout  = readoutTime(blueConfig, redConfig)
       val noCoaddsDefined =
         (scienceReadout.toSeconds.toDouble / svReadoutTime.toSeconds.toDouble).floor.toInt.min(100)
@@ -389,6 +391,7 @@ trait GhostLUT {
 
   def svCalibExposureTime(stepCfg: StepConfig): TimeSpan = stepCfg match {
     case StepConfig.Bias => BiasSVTime
+    case StepConfig.Dark => TimeSpan.Zero
     case x if x.isArc    => ArcSVTime
     case x if x.isFlat   => FlatSVTime
     case _               => TimeSpan.Zero

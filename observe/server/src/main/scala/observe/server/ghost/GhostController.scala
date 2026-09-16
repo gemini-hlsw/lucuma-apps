@@ -40,7 +40,10 @@ object GhostController {
 
   val ConfigureTimeout: TimeSpan = TimeSpan.unsafeFromDuration(90, ChronoUnit.SECONDS)
 
-  def apply[F[_]: {Sync, Logger}](client: GhostClient[F], gds: GdsClient[F]): GhostController[F] =
+  def apply[F[_]: {Sync, Logger as L}](
+    client: GhostClient[F],
+    gds:    GdsClient[F]
+  ): GhostController[F] =
     new AbstractGiapiInstrumentController[F, GhostConfig, GhostClient[F]](client, ConfigureTimeout)
       with GhostController[F] {
 
@@ -57,16 +60,22 @@ object GhostController {
         client.giapi.getO[Int](GuidingStateItem).map(_.contains(AGIdleValue))
 
       def configuration(config: GhostConfig, conds: CurrentConditions): F[Configuration] =
+        // Darks and biases never guide, so move focus.
+        val darkOrBias = config.isDark || config.isBias
+
         for {
           idle      <- isAGIdle
+          moveFocus  = idle || darkOrBias
           baseConfig = config.configuration(conds)
-          cfg        = baseConfig |+| (if (idle) config.moveIFUToFocus else Configuration.Zero)
+          cfg        = baseConfig |+| (if (moveFocus) config.moveIFUToFocus else Configuration.Zero)
           asList     = cfg.config.toList.sortBy(_._1)
-          _         <- Logger[F].info(
+          _         <- L.info(
                          if (idle) "GHOST AG idle: will send a MOVE_TO to GHOST IFU bFocus and rFocus"
+                         else if (darkOrBias)
+                           "GHOST dark/bias: will send a MOVE_TO to GHOST IFU bFocus and rFocus"
                          else "GHOST AG guiding: will NOT move GHOST IFU bFocus and rFocus"
                        )
-          _         <- Logger[F].debug(pprint.apply(asList).toString)
+          _         <- L.debug(pprint.apply(asList).toString)
         } yield cfg
 
       override def applyConfig(cfg: GhostConfig, conds: CurrentConditions): F[Unit] = doApplyConfig(
@@ -74,7 +83,7 @@ object GhostController {
       )
 
       override def applyConfig(config: GhostConfig): F[Unit] =
-        Logger[F].warn("Invalid call to GhostController.applyConfig(GhostConfig).")
+        L.warn("Invalid call to GhostController.applyConfig(GhostConfig).")
 
       override def stopObserve: F[Unit] =
         client.stop.void
