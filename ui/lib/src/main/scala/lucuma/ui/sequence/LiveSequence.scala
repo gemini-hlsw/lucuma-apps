@@ -12,8 +12,9 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.reusability.given
 
 final case class LiveSequence(
-  visits:   Pot[View[Option[ExecutionVisits]]],
-  sequence: Pot[View[Option[SequenceData]]]
+  visits:       Pot[View[Option[ExecutionVisits]]],
+  sequence:     Pot[View[Option[SequenceData]]],
+  isRefreshing: Boolean
 ):
   val isReady: Boolean                       = visits.isReady && sequence.isReady
   val sequenceInstrument: Option[Instrument] =
@@ -21,4 +22,4 @@ final case class LiveSequence(
 
 object LiveSequence:
   given Reusability[LiveSequence] =
-    Reusability.by(x => (x.visits.map(_.get), x.sequence.map(_.get)))
+    Reusability.by(x => (x.visits.map(_.get), x.sequence.map(_.get), x.isRefreshing))
