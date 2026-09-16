@@ -303,6 +303,23 @@ input AcquisitionAdjustmentInput {
     command: AcquistionAdjustmentCommand! = ASK_USER
 }
 
+input LightPathInput {
+    from: LightSource!
+    instrument: Instrument!
+    lightSinkVariant: LightSinkVariant
+}
+
+input ConfigureStepInput {
+    """ Offset to apply. Kept unchanged if not present. """
+    offset: OffsetInput
+    """ Central wavelength to set. Kept unchanged if not present. """
+    wavelength: WavelengthInput
+    """ Light path to configure. Kept unchanged if not present. """
+    lightPath: LightPathInput
+    """ Guiding state to leave the telescope in once the step is configured. """
+    guiding: Boolean!
+}
+
 type AcquisitionAdjustmentState {
     offset: Offset!
     ipa: Angle
@@ -576,6 +593,7 @@ type Mutation {
     adjustOrigin(offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
     offset(offset: OffsetInput!, guiding: Boolean!): OperationOutcome!
     centralWavelength(wavelength: WavelengthInput!): OperationOutcome!
+    configureStep(config: ConfigureStepInput!): OperationOutcome!
     resetTargetAdjustment(target: AdjustTarget!, openLoops: Boolean!): OperationOutcome!
     absorbTargetAdjustment(target: AdjustTarget!): OperationOutcome!
     resetLocalPointingAdjustment: OperationOutcome!

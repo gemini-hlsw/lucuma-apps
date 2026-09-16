@@ -40,6 +40,7 @@ import navigate.model.GuidersQualityValues
 import navigate.model.GuidersQualityValues.GuiderQuality
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.MechSystemState
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
@@ -287,6 +288,16 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
+
+  override def configureStep(
+    offset:      Option[Offset],
+    wavelength:  Option[Wavelength],
+    lightPath:   Option[LightPath],
+    guiding:     Boolean
+  )(
+    guide:       GuideConfig,
+    wfsTracking: WfsGuideStates
+  ): F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]

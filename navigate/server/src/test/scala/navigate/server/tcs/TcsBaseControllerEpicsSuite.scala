@@ -59,6 +59,7 @@ import navigate.model.GuiderConfig
 import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.MechSystemState
 import navigate.model.Origin
 import navigate.model.PwfsMechsState
@@ -2299,6 +2300,295 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         .flatMap(_.toDoubleOption)
         .fold(fail("No Source B wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
     }
+  }
+
+  test(
+    "ConfigureStep command applies offset, wavelength and light path together, and pauses guiding when guiding is false"
+  ) {
+    val guideCfg        = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
+    val offsetP         = Angle.fromBigDecimalArcseconds(5.0)
+    val offsetQ         = Angle.fromBigDecimalArcseconds(0.0)
+    // Use the same Angle -> Distance conversion the production code uses, so the expected
+    // value matches its internal rounding exactly.
+    val expectedXmm     =
+      Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val expectedYmm     =
+      Angle.fromBigDecimalArcseconds(0.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val wavelength      = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
+    val expectedWavelµm = Wavelength.decimalMicrometers.reverseGet(wavelength).doubleValue
+
+    for {
+      (st, ctr) <- createController(site = Site.GN)
+      // Light path system state: Sky -> GmosNorth at port 3, matching the "Configure light path"
+      // test's setup for that same transition.
+      _         <- st.ags.update(_.focus(_.gmosPort.value).replace(3.some))
+      _         <- st.ags.update(
+                     _.focus(_.aoParked.value)
+                       .replace(0.some)
+                       .focus(_.aoName.value)
+                       .replace("IN".some)
+                       .focus(_.hwParked.value)
+                       .replace(0.some)
+                       .focus(_.hwName.value)
+                       .replace("IN".some)
+                       .focus(_.sfParked.value)
+                       .replace(1.some)
+                   )
+      // Guiding state: PWFS1 is tracking and guiding, matching the "Offset command disables
+      // guiding..." test's setup.
+      _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _         <- ctr.pwfs1ProbeTracking(TrackingConfig.default)
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
+      _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- ctr.configureStep(
+                     Offset(Offset.P(offsetP), Offset.Q(offsetQ)).some,
+                     wavelength.some,
+                     LightPath(LightSource.Sky, LightSink.GmosNorth).some,
+                     guiding = false
+                   )(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
+      checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
+      r1.wavelSourceA.value
+        .flatMap(_.toDoubleOption)
+        .fold(fail("No Source A wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
+      r1.wavelSourceB.value
+        .flatMap(_.toDoubleOption)
+        .fold(fail("No Source B wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
+      assertEquals(r1.scienceFoldMech.position.value, "gmos3".some)
+      checkTracking(r1.pwfs1Tracking, TrackingConfig.noTracking)
+      checkPauseResumeGuide(r1, noGuideConfig)
+    }
+  }
+
+  test(
+    "ConfigureStep command resumes guiding and restores tracking when guiding is true, with no offset/wavelength/lightPath change requested"
+  ) {
+    val guideCfg      = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
+    val rememberedCfg = TrackingConfig.default
+
+    for {
+      (st, ctr) <- createController()
+      // Starting point: not guiding, PWFS1 tracking off, matching the "Offset command
+      // restores guiding..." test's setup.
+      _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(GuideConfigState.default))
+      _         <- st.tcs.update(
+                     _.focus(_.pwfs1TrackingState).replace(
+                       ProbeTrackingStateState(
+                         TestChannel.State.of("Off"),
+                         TestChannel.State.of("Off"),
+                         TestChannel.State.of("Off"),
+                         TestChannel.State.of("Off")
+                       )
+                     )
+                   )
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(rememberedCfg, TrackingConfig.noTracking, TrackingConfig.noTracking)
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      checkTracking(r1.pwfs1Tracking, rememberedCfg)
+      checkPauseResumeGuide(r1, guideCfg)
+    }
+  }
+
+  test(
+    "ConfigureStep command pauses guiding, and keeps it paused, when OIWFS is an active guider and the light path does not route starlight to OIWFS's instrument"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is currently configured for GMOS, but the requested light path sends Sky light
+      // to Flamingos2 instead, so OIWFS can't be guiding on that light.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      // Guiding is currently on.
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- ctr.configureStep(
+                     none,
+                     none,
+                     LightPath(LightSource.Sky, LightSink.Flamingos2).some,
+                     guiding = true
+                   )(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, noGuideConfig)
+  }
+
+  test(
+    "ConfigureStep command enables guiding when OIWFS is an active guider and the light path routes starlight to OIWFS's instrument"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is currently configured for GMOS (GmosSouth, since the default site is GS), and
+      // the requested light path sends Sky light to that very same instrument.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- ctr.configureStep(
+                     none,
+                     none,
+                     LightPath(LightSource.Sky, LightSink.GmosSouth).some,
+                     guiding = true
+                   )(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, guideCfg)
+  }
+
+  test(
+    "ConfigureStep command keeps guiding disabled when OIWFS is an active guider, no light path change is requested, and the light path currently in effect routes starlight elsewhere"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is currently configured for GMOS, but the science fold is currently routing Sky
+      // light to the acquisition camera instead.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- st.ags.update(
+                     _.focus(_.sfParked.value)
+                       .replace(0.some)
+                       .focus(_.sfName.value)
+                       .replace("ac".some)
+                   )
+      // Guiding is currently on.
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, noGuideConfig)
+  }
+
+  test(
+    "ConfigureStep command enables guiding when OIWFS is an active guider, no light path change is requested, and the light path currently in effect routes starlight to OIWFS's instrument"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is currently configured for GMOS (GmosSouth, since the default site is GS), and
+      // the science fold is currently routing Sky light to that very same instrument, at port 3.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- st.ags.update(
+                     _.focus(_.sfParked.value)
+                       .replace(0.some)
+                       .focus(_.sfName.value)
+                       .replace("gmos3".some)
+                   )
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, guideCfg)
+  }
+
+  test(
+    "ConfigureStep command enables guiding when OIWFS is an active guider, the science fold is parked, and OIWFS's instrument is at the bottom port with the AO fold in"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is configured for GMOS (GmosSouth, since the default site is GS), which is at the
+      // bottom port (port 1). The science fold and the HR pickoff mirror stay parked (the
+      // defaults), and the AO fold is in, so starlight is reaching GmosSouth via AO.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- st.ags.update(
+                     _.focus(_.port1Label.value)
+                       .replace("GMOS".some)
+                       .focus(_.aoParked.value)
+                       .replace(0.some)
+                       .focus(_.aoName.value)
+                       .replace("IN".some)
+                   )
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, guideCfg)
+  }
+
+  test(
+    "ConfigureStep command enables guiding when OIWFS is an active guider, the science fold is parked, and OIWFS's instrument is at the bottom port with the AO fold out"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is configured for GMOS (GmosSouth), which is at the bottom port. The science
+      // fold, the HR pickoff mirror and the AO fold all stay at their defaults (parked/out),
+      // so starlight is reaching GmosSouth straight from the sky.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- st.ags.update(_.focus(_.port1Label.value).replace("GMOS".some))
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, guideCfg)
+  }
+
+  test(
+    "ConfigureStep command keeps guiding disabled when OIWFS is an active guider, the science fold is parked, and OIWFS's instrument is not at the bottom port"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is configured for GMOS, but Flamingos2 is the one at the bottom port, so the
+      // parked science fold isn't sending GMOS any starlight.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- st.ags.update(_.focus(_.port1Label.value).replace("F2".some))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, noGuideConfig)
+  }
+
+  test(
+    "ConfigureStep command keeps guiding disabled when OIWFS is an active guider, the science fold is parked, and the HR pickoff mirror diverts starlight to the acquisition camera"
+  ) {
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
+
+    for {
+      (st, ctr) <- createController()
+      // OIWFS is configured for GMOS, which is at the bottom port, but the HR pickoff mirror
+      // is in, diverting starlight to the acquisition camera instead.
+      _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
+      _         <- st.ags.update(
+                     _.focus(_.port1Label.value)
+                       .replace("GMOS".some)
+                       .focus(_.hwParked.value)
+                       .replace(0.some)
+                       .focus(_.hwName.value)
+                       .replace("IN".some)
+                   )
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- ctr.configureStep(none, none, none, guiding = true)(
+                     GuideConfig(guideCfg, none),
+                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                   )
+      r1        <- st.tcs.get
+    } yield checkPauseResumeGuide(r1, noGuideConfig)
   }
 
   test("Apply pointing correction") {
