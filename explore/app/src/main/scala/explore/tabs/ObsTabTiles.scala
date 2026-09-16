@@ -506,6 +506,7 @@ object ObsTabTiles:
             asterismIds.get,
             customSedTimestamps,
             props.calibrationRole,
+            props.observation.get.hasMaterializedSequence,
             sequenceChanged,
             isEditingAcquisition,
             isEditingScience,

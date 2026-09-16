@@ -31,6 +31,7 @@ import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.react.primereact.Message
+import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
@@ -43,16 +44,17 @@ import org.scalajs.dom.HTMLElement
 import scala.collection.immutable.SortedSet
 
 final case class SequenceTile(
-  obsId:                Observation.Id,
-  obsExecution:         Execution,
-  asterismIds:          SortedSet[Target.Id],
-  customSedTimestamps:  List[Timestamp],
-  calibrationRole:      Option[CalibrationRole],
-  sequenceChanged:      View[Pot[Unit]],
-  isEditingAcquisition: View[IsEditing],
-  isEditingScience:     View[IsEditing],
-  isUserStaffOrAdmin:   Boolean,
-  attachments:          AttachmentList
+  obsId:                   Observation.Id,
+  obsExecution:            Execution,
+  asterismIds:             SortedSet[Target.Id],
+  customSedTimestamps:     List[Timestamp],
+  calibrationRole:         Option[CalibrationRole],
+  hasMaterializedSequence: Boolean,
+  sequenceChanged:         View[Pot[Unit]],
+  isEditingAcquisition:    View[IsEditing],
+  isEditingScience:        View[IsEditing],
+  isUserStaffOrAdmin:      Boolean,
+  attachments:             AttachmentList
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
       "Sequence",
@@ -87,6 +89,18 @@ object SequenceTile
         val isEditEnabled: IsEditEnabled =
           IsEditEnabled(sizeState.isMaximized && liveSequence.isReady)
 
+        // A materialized sequence isn't regenerated when the configuration changes, and with no
+        // sequence yet the body already shows a spinner, so this only marks an in-place update.
+        val isUpdating: Boolean =
+          liveSequence.isRefreshing &&
+            !props.hasMaterializedSequence &&
+            liveSequence.sequence.toOption.exists(_.get.isDefined)
+
+        val updatingIndicator: Option[VdomNode] =
+          Option.when(isUpdating):
+            <.span(Icons.Spinner.withSpin(true))
+              .withTooltip(content = "Updating sequence...")
+
         val title =
           <.span(
             execution.digest.programTimeEstimate.value
@@ -107,7 +121,8 @@ object SequenceTile
                     HelpIcon("target/main/sequence-times.md".refined),
                     planned,
                     executed,
-                    pending
+                    pending,
+                    updatingIndicator
                   )
                 )
               .getOrElse(executed)
