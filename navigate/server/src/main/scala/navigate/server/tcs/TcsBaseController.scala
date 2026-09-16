@@ -21,6 +21,7 @@ import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
 import navigate.model.RotatorAngle
@@ -133,6 +134,15 @@ trait TcsBaseController[F[_]] {
     wfsTracking: WfsGuideStates
   ): F[ApplyCommandResult]
   def centralWavelength(wavelength:     Wavelength): F[ApplyCommandResult]
+  def configureStep(
+    offset:      Option[Offset],
+    wavelength:  Option[Wavelength],
+    lightPath:   Option[LightPath],
+    guiding:     Boolean
+  )(
+    guide:       GuideConfig,
+    wfsTracking: WfsGuideStates
+  ): F[ApplyCommandResult]
   def originOffsetAbsorb: F[ApplyCommandResult]
   def originOffsetClear(openLoops:      Boolean)(guide:         GuideConfig): F[ApplyCommandResult]
   def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult]

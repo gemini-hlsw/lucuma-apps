@@ -62,6 +62,7 @@ import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.HandsetAdjustment.HorizontalAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.LightPath
 import navigate.model.MechSystemState
 import navigate.model.Origin
 import navigate.model.PointingCorrections
@@ -101,6 +102,7 @@ import navigate.model.enums.DomeMode
 import navigate.model.enums.HrwfsPickupPosition
 import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
+import navigate.model.enums.LightSource.sendsStarlight
 import navigate.model.enums.OiwfsWavelength
 import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.NotParked
@@ -2150,6 +2152,132 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .wavelength(wavelength)
       .post
       .verifiedRun(ConnectionTimeout)
+
+  // A LightSink for the given instrument, disregarding its light-sink variant (e.g. which of
+  // NIRI's f-ratios, or GMOS's IFU mode): only its instrument identity matters to callers here.
+  private def lightSinkFor(instrument: Instrument): Option[LightSink] =
+    LightSink
+      .fromInstrumentAndVariant(instrument, none)
+      .orElse(LightSink.values.find(_.instrument === instrument))
+
+  // The instrument reported at a given AGS port. The label generally matches
+  // Instrument.referenceName, except GMOS and Visitor, which are reported without their
+  // site-specific suffix (both GmosNorth/GmosSouth show up as "GMOS", both
+  // VisitorNorth/VisitorSouth as "VISITOR"); site is used to discriminate those.
+  private def instrumentAtPort(label: String): Option[Instrument] = label match {
+    case "GMOS"    => (site === Site.GS).fold(Instrument.GmosSouth, Instrument.GmosNorth).some
+    case "VISITOR" => (site === Site.GS).fold(Instrument.VisitorSouth, Instrument.VisitorNorth).some
+    case other     => Instrument.values.find(_.referenceName.value === other)
+  }
+
+  // When the science fold is parked, starlight reaches either the acquisition camera or the
+  // instrument at the bottom port (port 1), depending on the HR pickoff mirror: if it's in,
+  // the light is diverted to the acquisition camera; if it's out (or parked), it passes
+  // through to the bottom port instrument. Either way, it's the AO fold position, not the
+  // science fold, that decides whether that starlight came from the sky or through AO: AO if
+  // the AO fold is in, Sky otherwise (out or parked).
+  private def parkedLightPath: F[Option[LightPath]] =
+    for {
+      hwParked <-
+        sys.ags.status.hwParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      hwPos    <- hwParked.fold(AgMechPosition.Parked.pure[F],
+                                sys.ags.status.hwName.verifiedRun(ConnectionTimeout)
+                  )
+      aoParked <-
+        sys.ags.status.aoParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      aoPos    <- aoParked.fold(AgMechPosition.Parked.pure[F],
+                                sys.ags.status.aoName.verifiedRun(ConnectionTimeout)
+                  )
+      sink     <- hwPos match {
+                    case AgMechPosition.In =>
+                      lightSinkFor(
+                        (site === Site.GS).fold(Instrument.AcqCamSouth, Instrument.AcqCamNorth)
+                      )
+                        .pure[F]
+                    case _                 =>
+                      sys.ags.status
+                        .portLabel(1)
+                        .verifiedRun(ConnectionTimeout)
+                        .map(instrumentAtPort(_).flatMap(lightSinkFor))
+                  }
+    } yield sink.map { s =>
+      val source = aoPos match {
+        case AgMechPosition.In => LightSource.AO
+        case _                 => LightSource.Sky
+      }
+      LightPath(source, s)
+    }
+
+  // The science fold decodes to a LightSinkName; calcLightSink is the inverse of the LightSink
+  // -> LightSinkName mapping (toLightSinkName), used here to recover the LightSink.
+  private def configuredLightPath: F[Option[LightPath]] =
+    sys.ags.status.sfName.verifiedRun(ConnectionTimeout).map {
+      case ScienceFold.Position(source, sink, port) =>
+        scala.util.Try(calcLightSink(sink, port, site)).toOption.map(LightPath(source, _))
+      case _                                        => none
+    }
+
+  // The light path currently in effect, as read back from the science fold (or, when it's
+  // parked, from the AO fold, HR pickoff mirror and bottom port).
+  private def currentLightPath: F[Option[LightPath]] =
+    for {
+      sfParked <-
+        sys.ags.status.sfParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      result   <- if (sfParked) parkedLightPath else configuredLightPath
+    } yield result
+
+  override def configureStep(
+    offset:      Option[Offset],
+    wavelength:  Option[Wavelength],
+    lightPath:   Option[LightPath],
+    guiding:     Boolean
+  )(
+    guide:       GuideConfig,
+    wfsTracking: WfsGuideStates
+  ): F[ApplyCommandResult] =
+    for {
+      gs               <- getGuideState
+      pg               <- getProbesGuideState.verifiedRun(ConnectionTimeout)
+      oiInstrument     <- sys.ags.status.oiwfsName.verifiedRun(ConnectionTimeout)
+      // Only consult the rotator angle channel when there is actually an offset to apply.
+      fpOffsetAndPause <- offset.traverse { o =>
+                            sys.tcsEpics.status.instrAA.verifiedRun(ConnectionTimeout).map { iaa =>
+                              val fp = FocalPlaneOffset.fromOffset(o, iaa)
+                              (fp, mustPauseWhileOffsetting(fp, oiInstrument, guide.tcsGuide))
+                            }
+                          }
+      fpOffset          = fpOffsetAndPause.map(_._1)
+      // OIWFS guiding may only stay/become enabled while starlight (Sky or AO) is being routed
+      // to the same instrument OIWFS is configured for. The light path in effect once this
+      // command completes is the one requested here, or, if none is requested, whatever is
+      // currently configured. If that condition isn't met, guiding is forced off regardless of
+      // the requested `guiding` value, and stays off until the light path is restored.
+      oiwfsActive       = activeWfs(guide.tcsGuide).oiwfs
+      effectiveGuiding <-
+        if (!guiding || !oiwfsActive) guiding.pure[F]
+        else
+          lightPath
+            .fold(currentLightPath)(_.some.pure[F])
+            .map(_.exists(lp => lp.from.sendsStarlight && oiInstrument.contains(lp.to.instrument)))
+      // guiding = false always forces a pause; otherwise pause only if the offset (when there
+      // is one) is large enough to risk losing lock on an in-use guider.
+      pause             = gs.isGuiding && (!effectiveGuiding || fpOffsetAndPause.exists(_._2))
+      _                <- pauseGuide.whenA(pause)
+      // When guiding is turned off, also stop probe tracking on the WFS that was guiding, so it
+      // doesn't try to follow the star through the reconfiguration. When guiding is turned back
+      // on, restore probe tracking to whatever was last explicitly configured.
+      _                <- pauseWfsTracking(pg)
+                            .verifiedRun(ConnectionTimeout)
+                            .whenA(!effectiveGuiding)
+      lpResult         <- lightPath.traverse(lp => this.lightPath(lp.from, lp.to))
+      wlResult         <- wavelength.traverse(centralWavelength)
+      offResult        <- fpOffset.traverse(applyOffset)
+      _                <- resumeWfsTracking(pg, wfsTracking)
+                            .verifiedRun(ConnectionTimeout)
+                            .whenA(effectiveGuiding)
+      _                <-
+        resumeGuide(guide.tcsGuide).whenA(effectiveGuiding && (pause || !gs.isGuiding))
+    } yield offResult.orElse(wlResult).orElse(lpResult).getOrElse(ApplyCommandResult.Completed)
 
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
     adjustParams(handsetAdjustment).flatMap { case (frame, size, angle) =>

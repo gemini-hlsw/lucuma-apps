@@ -12,3 +12,12 @@ enum LightSource(val tag: String) derives Enumerated {
 
   case GCAL extends LightSource("Gcal")
 }
+
+object LightSource {
+  extension (self: LightSource) {
+    def sendsStarlight: Boolean = self match {
+      case Sky | AO => true
+      case GCAL     => false
+    }
+  }
+}
