@@ -3,11 +3,17 @@
 
 package explore.tabs
 
+import cats.syntax.all.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.ObsTabTileIds
 import explore.model.Observation
+import explore.syntax.ui.*
+import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.util.TimeSpan
+import lucuma.ui.components.TimeSpanView
+import lucuma.ui.format.TimeSpanFormatter
 import lucuma.ui.primereact.FormInfo
 import lucuma.ui.undo.UndoSetter
 
@@ -23,8 +29,40 @@ final case class ObservationDetailsTile(
 
 object ObservationDetailsTile
     extends TileComponent[ObservationDetailsTile]((props, _) =>
+      val digest = props.observation.get.execution.digest
+
+      def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
+        TimeSpanView(time, TimeSpanFormatter.HoursMinutesLetter, tooltip = tooltip)
+
+      val scienceTooltip: VdomNode =
+        "Includes the flats and arcs taken within the science sequence."
+
+      val totalTooltip: VdomNode =
+        "Does not include time for telluric standards or other separately scheduled calibrations."
+
+      val estimatedDuration: VdomNode =
+        digest.value.fold(EmptyVdom): d =>
+          val setupCount: Int = d.setupCount.value
+
+          <.div(ExploreStyles.ObservationDetailsColumn)(
+            <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)("Estimated Duration")
+              .withOptionalTooltip(digest.staleTooltip),
+            FormInfo(
+              duration(d.science.timeEstimate.programTime, scienceTooltip.some),
+              "Science Sequence"
+            ),
+            FormInfo(
+              <.span(s"$setupCount × ", duration(d.setup.full)),
+              "Setup"
+            ),
+            FormInfo(duration(d.fullTimeEstimate.programTime, totalTooltip.some), "Total")
+          )
+
       TileContents:
         <.div(ExploreStyles.ObservationDetailsForm)(
-          FormInfo(props.observation.get.referenceWithId, "Observation")
+          <.div(ExploreStyles.ObservationDetailsColumn)(
+            FormInfo(props.observation.get.referenceWithId, "Observation")
+          ),
+          estimatedDuration
         )
     )
