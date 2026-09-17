@@ -128,3 +128,6 @@ TASK_*.md
 .pi/
 
 CONTEXT-MAP.md
+
+# sbt 2 writes a semanticdb next to build.sbt
+*.semanticdb

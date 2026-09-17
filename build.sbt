@@ -1,18 +1,16 @@
 import Dependencies.*
 import Versions.*
-import _root_.cats.effect.kernel.syntax.resource
 import com.github.sbt.git.SbtGit.GitKeys.*
 import org.scalajs.linker.interface.ModuleSplitStyle
 import org.typelevel.sbt.gha.PermissionValue
 import org.typelevel.sbt.gha.Permissions
 import sbt.Keys.*
 import sbt.nio.file.FileTreeView
+import xsbti.HashedVirtualFileRef
 
 import scala.sys.process.*
 
 import NativePackagerHelper.*
-
-name := "lucuma-apps"
 
 ThisBuild / githubWorkflowPublishTargetBranches := Seq(
   RefPredicate.StartsWith(Ref.Tag("v")),
@@ -75,8 +73,6 @@ ThisBuild / lucumaAffectedIgnorePaths ++= Seq(
 // Uncomment for local gmp testing
 // ThisBuild / resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
-enablePlugins(GitBranchPrompt)
-
 // Build JS module for deployment, only used for observe web client
 val buildJsModule = taskKey[File]("Build JS module for deployment")
 
@@ -95,36 +91,60 @@ lazy val esModule = Seq(
   ))
 )
 
+// sbt 2 links into the shared target/out tree at the repo root, where Node and Vite resolve
+// modules against that location and no longer find the package's own node_modules (pnpm does
+// not hoist). Keep linker output inside the project, at the same paths as before.
+def jsLinkerOutputInProject(config: Configuration, prefix: String) = {
+  def dir(suffix: String) = Def.setting(
+    baseDirectory.value / "target" / s"scala-${scalaVersion.value}" / s"$prefix-$suffix"
+  )
+  Seq(
+    config / fastLinkJS / scalaJSLinkerOutputDirectory := dir("fastopt").value,
+    config / fullLinkJS / scalaJSLinkerOutputDirectory := dir("opt").value
+  )
+}
+
+lazy val jsTestOutputInProject = Seq(
+  Test / fastLinkJS / scalaJSLinkerOutputDirectory :=
+    baseDirectory.value / "target" / "scalajs" / "test-fastopt",
+  Test / fullLinkJS / scalaJSLinkerOutputDirectory :=
+    baseDirectory.value / "target" / "scalajs" / "test-opt"
+)
+
 //////////////
 // Projects
 //////////////
 
-lazy val root = tlCrossRootProject.aggregate(
-  schemas_model,
-  schemas_testkit,
-  schemas_tests,
-  schemas_lib,
-  ui_lib,
-  ui_testkit,
-  ui_tests,
-  ui_css,
-  ui_demo,
-  explore_model,
-  explore_modelTests,
-  explore_common,
-  explore_app,
-  explore_workers,
-  observe_web_server,
-  observe_web_client,
-  observe_server,
-  observe_model,
-  observe_ui_model,
-  navigate_epics,
-  navigate_stateengine,
-  navigate_server,
-  navigate_web_server,
-  navigate_model
-)
+// No `name` here: sbt 2 derives the output directory from the artifact name, and
+// tlCrossRootProject's root/rootJVM/rootJS/rootNative all share this base directory.
+lazy val root = tlCrossRootProject
+  .enablePlugins(GitBranchPrompt)
+  .aggregate(
+    schemas_model,
+    schemas_testkit,
+    schemas_tests,
+    schemas_lib,
+    ui_lib,
+    ui_testkit,
+    ui_tests,
+    ui_css,
+    ui_demo,
+    explore_model,
+    explore_modelTests,
+    explore_common,
+    explore_app,
+    explore_workers,
+    observe_web_server,
+    observe_web_client,
+    observe_server,
+    observe_model,
+    observe_ui_model,
+    navigate_epics,
+    navigate_stateengine,
+    navigate_server,
+    navigate_web_server,
+    navigate_model
+  )
 
 // BEGIN SCHEMAS
 
@@ -189,7 +209,7 @@ lazy val schemas_lib =
       Compile / clueSourceDirectory := (ThisBuild / baseDirectory).value / "schemas" / "lib" / "src" / "clue",
       // Include schema files in jar.
       Compile / unmanagedResourceDirectories += (Compile / clueSourceDirectory).value / "resources",
-      createNpmProject              := {
+      createNpmProject              := Def.uncached {
         val npmDir = target.value / "npm"
 
         val navigateSchemaFile: File     =
@@ -204,7 +224,7 @@ lazy val schemas_lib =
              |  "name": "@gemini-hlsw/lucuma-apps-schemas",
              |  "version": "$semVerWithPrerelease",
              |  "type": "module",
-             |  "license": "${licenses.value.head._1}",
+             |  "license": "${licenses.value.head.spdxId}",
              |  "exports": {
              |    "./package.json": "./package.json",
              |    "./navigate": "./${navigateSchemaFile.getName}",
@@ -234,7 +254,7 @@ lazy val schemas_lib =
 
         streams.value.log.info(s"Created NPM project in ${npmDir}")
       },
-      npmPublish                    := npmPublishForDir("npm").value
+      npmPublish                    := Def.uncached(npmPublishForDir("npm").value)
     )
     .jsSettings(
       Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
@@ -304,14 +324,15 @@ lazy val ui_tests =
             Log4CatsLogLevel.value
         )
     )
-    .settings(commonModuleTest: _*)
+    .settings(jsTestOutputInProject *)
+    .settings(commonModuleTest *)
 
 lazy val ui_css = project
   .in(file("ui/css"))
   .dependsOn(ui_lib)
   .enablePlugins(LucumaCssPlugin)
   .settings(
-    createNpmProject := {
+    createNpmProject := Def.uncached {
       val _      = (Compile / lucumaCss).value
       val cssDir = target.value / "lucuma-css"
       IO.write(
@@ -319,7 +340,7 @@ lazy val ui_css = project
         s"""|{
           |  "name": "@gemini-hlsw/lucuma-ui-css",
           |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
-          |  "license": "${licenses.value.head._1}",
+          |  "license": "${licenses.value.head.spdxId}",
           |  "repository": {
           |    "type": "git",
           |    "url": "git+https://github.com/gemini-hlsw/lucuma-ui.git"
@@ -329,7 +350,7 @@ lazy val ui_css = project
       )
       streams.value.log.info(s"Created NPM project in ${cssDir}")
     },
-    npmPublish       := npmPublishForDir("lucuma-css").value
+    npmPublish       := Def.uncached(npmPublishForDir("lucuma-css").value)
   )
 
 lazy val ui_demo =
@@ -337,6 +358,7 @@ lazy val ui_demo =
     .in(file("ui/demo"))
     .enablePlugins(ScalaJSPlugin, LucumaCssPlugin)
     .dependsOn(ui_lib, ui_css)
+    .settings(jsLinkerOutputInProject(Compile, "ui_demo") *)
     .settings(
       Compile / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
       Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
@@ -346,7 +368,8 @@ lazy val ui_demo =
         ScalaJsReact.value ++
           Log4CatsLogLevel.value ++
           LucumaReact.value,
-      Keys.test := {}
+      Keys.test     := Def.uncached(TestResult.Passed),
+      Keys.testFull := Def.uncached(TestResult.Passed)
     )
 
 // BEGIN EXPLORE
@@ -425,26 +448,26 @@ lazy val explore_model = project
   .in(file("explore/model"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(schemas_lib.js, ui_lib)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonLibSettings: _*)
-  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreCommonSettings *)
+  .settings(exploreCommonLibSettings *)
+  .settings(exploreCommonJsLibSettings *)
 
 lazy val explore_modelTestkit = project
   .in(file("explore/model-testkit"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(explore_model, schemas_testkit.js)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonLibSettings: _*)
-  .settings(exploreTestkitLibSettings: _*)
-  .settings(commonModuleTest: _*)
+  .settings(exploreCommonSettings *)
+  .settings(exploreCommonLibSettings *)
+  .settings(exploreTestkitLibSettings *)
+  .settings(commonModuleTest *)
 
 lazy val explore_modelTests = project
   .in(file("explore/model-tests"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(explore_modelTestkit)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonLibSettings: _*)
-  .settings(commonModuleTest: _*)
+  .settings(exploreCommonSettings *)
+  .settings(exploreCommonLibSettings *)
+  .settings(commonModuleTest *)
 
 lazy val explore_common = project
   .in(file("explore/common"))
@@ -456,9 +479,9 @@ lazy val explore_common = project
     ui_testkit           % Test
   )
   .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonJsLibSettings: _*)
-  .settings(commonModuleTest: _*)
+  .settings(exploreCommonSettings *)
+  .settings(exploreCommonJsLibSettings *)
+  .settings(commonModuleTest *)
   .settings(
     libraryDependencies ++=
       LucumaSsoFrontendClient.value ++
@@ -482,10 +505,11 @@ lazy val explore_workers = project
   .in(file("explore/workers"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(explore_model, explore_common)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonJsLibSettings: _*)
-  .settings(exploreCommonLibSettings: _*)
-  .settings(esModule: _*)
+  .settings(jsLinkerOutputInProject(Compile, "explore_workers") *)
+  .settings(exploreCommonSettings *)
+  .settings(exploreCommonJsLibSettings *)
+  .settings(exploreCommonLibSettings *)
+  .settings(esModule *)
   .settings(
     // The workers bundle is imported once per worker (6 of them, uncached in dev),
     // so in dev keep it a single module: with SmallModulesFor each worker would
@@ -508,22 +532,23 @@ lazy val explore_app: Project = project
   .in(file("explore/app"))
   .dependsOn(explore_model, explore_common)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonJsLibSettings: _*)
-  .settings(esModule: _*)
-  .settings(commonModuleTest: _*)
+  .settings(jsLinkerOutputInProject(Compile, "explore_app") *)
+  .settings(exploreCommonSettings *)
+  .settings(exploreCommonJsLibSettings *)
+  .settings(esModule *)
+  .settings(commonModuleTest *)
   .settings(
     libraryDependencies ++=
       GeminiLocales.value ++
         LucumaReact.value,
     // Build workers when you build explore
-    Compile / fastLinkJS := (Compile / fastLinkJS)
-      .dependsOn(explore_workers / Compile / fastLinkJS)
-      .value,
-    Compile / fullLinkJS := (Compile / fullLinkJS)
-      .dependsOn(explore_workers / Compile / fullLinkJS)
-      .value,
-    buildJsModule        := {
+    Compile / fastLinkJS := Def.uncached(
+      (Compile / fastLinkJS).dependsOn(explore_workers / Compile / fastLinkJS).value
+    ),
+    Compile / fullLinkJS := Def.uncached(
+      (Compile / fullLinkJS).dependsOn(explore_workers / Compile / fullLinkJS).value
+    ),
+    buildJsModule        := Def.uncached {
       val jsFiles = (Compile / fullLinkJSOutput).value
       if (sys.env.getOrElse("POST_STAGE_CLEAN", "false").equals("true")) {
         println("Cleaning up...")
@@ -552,7 +577,7 @@ lazy val observe_web_server = project
   .dependsOn(observe_server)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin)
-  .settings(observeCommonSettings: _*)
+  .settings(observeCommonSettings *)
   .settings(
     libraryDependencies ++=
       UnboundId.value ++
@@ -571,7 +596,9 @@ lazy val observe_web_server = project
         PureConfig.value ++
         Logback.value ++
         JuliSlf4j.value,
-    checkOtelVersion    := {
+    // Uncached: the pom it reads lives in the coursier cache and is not a declared input, so a
+    // cached pass would outlive the thing it is guarding.
+    checkOtelVersion    := Def.uncached {
       val _ = update.value
       OtelCheck.declaredOtelVersion(
         csrCacheDirectory.value,
@@ -588,7 +615,7 @@ lazy val observe_web_server = project
           streams.value.log.warn("Could not read the otel4s-oteljava pom; skipping version check.")
       }
     },
-    Compile / compile   := (Compile / compile).dependsOn(checkOtelVersion).value,
+    Compile / compile   := Def.uncached((Compile / compile).dependsOn(checkOtelVersion).value),
     // Supports launching the server in the background
     reStart / mainClass := Some("observe.web.server.http4s.WebServerLauncher")
   )
@@ -604,7 +631,7 @@ lazy val observe_ui_model = project
   .in(file("observe/web/client-model"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, ui_testkit % Test)
   .enablePlugins(ScalaJSPlugin)
-  .settings(lucumaGlobalSettings: _*)
+  .settings(lucumaGlobalSettings *)
   .settings(
     libraryDependencies ++=
       Crystal.value ++
@@ -621,10 +648,12 @@ lazy val observe_web_client = project
   .in(file("observe/web/client"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, observe_ui_model)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, NoPublishPlugin)
-  .settings(lucumaGlobalSettings: _*)
-  .settings(esModule: _*)
+  .settings(jsLinkerOutputInProject(Compile, "observe_web_client") *)
+  .settings(lucumaGlobalSettings *)
+  .settings(esModule *)
   .settings(
-    Test / test      := {},
+    Test / test      := Def.uncached(TestResult.Passed),
+    Test / testFull  := Def.uncached(TestResult.Passed),
     libraryDependencies ++=
       Kittens.value ++
         Clue.value ++
@@ -654,13 +683,13 @@ lazy val observe_web_client = project
   )
   .settings(
     buildJsModule / fileInputs += (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob,
-    buildJsModule := {
-      if ((Process("pnpm" :: "build" :: Nil, baseDirectory.value) !) != 0)
+    buildJsModule := Def.uncached {
+      if (Process("pnpm" :: "build" :: Nil, baseDirectory.value).! != 0)
         throw new Exception("Error building web client")
       else
         baseDirectory.value / "deploy" // Must match directory declared in vite.config.mts
     },
-    buildJsModule := buildJsModule.dependsOn(Compile / fullLinkJS).value
+    buildJsModule := Def.uncached(buildJsModule.dependsOn(Compile / fullLinkJS).value)
   )
 
 lazy val observe_server = project
@@ -668,7 +697,7 @@ lazy val observe_server = project
   .dependsOn(schemas_lib.jvm)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin, CluePlugin)
-  .settings(observeCommonSettings: _*)
+  .settings(observeCommonSettings *)
   .settings(
     libraryDependencies ++=
       Http4sCirce.value ++
@@ -706,14 +735,14 @@ lazy val observe_server = project
     buildInfoPackage          := "observe.server"
   )
   .settings(
-    unmanagedSources / excludeFilter := (unmanagedSources / excludeFilter).value
-      || (Compile / sourceDirectory).value + "/scala/observe/server/flamingos2/*"
-      || (Compile / sourceDirectory).value + "/scala/observe/server/ghost/*"
-      || (Compile / sourceDirectory).value + "/scala/observe/server/gnirs/*"
-      || (Compile / sourceDirectory).value + "/scala/observe/server/gpi/*"
-      || (Compile / sourceDirectory).value + "/scala/observe/server/gsaoi/*"
-      || (Compile / sourceDirectory).value + "/scala/observe/server/nifs/*"
-      || (Compile / sourceDirectory).value + "/scala/observe/server/niri/*"
+    unmanagedSources / excludeFilter := {
+      val src         = (Compile / sourceDirectory).value.getPath
+      val unsupported =
+        List("flamingos2", "ghost", "gnirs", "gpi", "gsaoi", "nifs", "niri")
+      unsupported.foldLeft((unmanagedSources / excludeFilter).value)((filter, inst) =>
+        filter || s"$src/scala/observe/server/$inst/*"
+      )
+    }
   )
 
 // Unfortunately crossProject doesn't seem to work properly at the module/build.sbt level
@@ -754,16 +783,19 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
  */
 lazy val observeDeployedAppMappings = Seq(
   Universal / mappings ++= {
-    val clientDir: File                         = (observe_web_client / buildJsModule).value
-    val clientMappings: Seq[(File, String)]     =
+    // sbt 2 mappings are keyed by HashedVirtualFileRef, not File.
+    val conv                               = fileConverter.value
+    def ref(f: File): HashedVirtualFileRef = conv.toVirtualFile(f.toPath)
+    val clientDir: File                    = (observe_web_client / buildJsModule).value
+    val clientMappings                     =
       directory(clientDir).flatMap(path =>
         // Don't include environment confs, if present.
         if (path._2.endsWith(".conf.json")) None
-        else Some(path._1 -> ("app/" + path._1.relativeTo(clientDir).get.getPath))
+        else Some(ref(path._1) -> ("app/" + path._1.relativeTo(clientDir).get.getPath))
       )
-    val siteConfigDir: File                     = (ThisProject / baseDirectory).value / "conf"
-    val siteConfigMappings: Seq[(File, String)] = directory(siteConfigDir).map(path =>
-      path._1 -> ("conf/" + path._1.relativeTo(siteConfigDir).get.getPath)
+    val siteConfigDir: File                = (ThisProject / baseDirectory).value / "conf"
+    val siteConfigMappings                 = directory(siteConfigDir).map(path =>
+      ref(path._1) -> ("conf/" + path._1.relativeTo(siteConfigDir).get.getPath)
     )
     clientMappings ++ siteConfigMappings
   }
@@ -790,8 +822,8 @@ lazy val observe_deploy = project
   .in(file("observe/deploy"))
   .dependsOn(observe_web_server)
   .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
-  .settings(observeDeployedAppMappings: _*)
-  .settings(observeCommonSettings: _*)
+  .settings(observeDeployedAppMappings *)
+  .settings(observeCommonSettings *)
   .settings(
     description          := "Observe Server",
     Docker / packageName := "gpp-obs",
@@ -893,7 +925,7 @@ lazy val navigate_web_server = project
     navigate_model % "compile->compile;test->test"
   )
   .enablePlugins(BuildInfoPlugin, GitBranchPrompt)
-  .settings(navigateCommonSettings: _*)
+  .settings(navigateCommonSettings *)
   .settings(
     name                := "navigate_web_server",
     libraryDependencies ++=
@@ -919,7 +951,7 @@ lazy val navigate_web_server = project
     reStart / mainClass := Some("navigate.web.server.http4s.WebServerLauncher"),
     // Don't include configuration files in the JAR. We want them outside, so they are editable.
     Compile / packageBin / mappings ~= {
-      _.filterNot(f => f._1.getName.endsWith("logback.xml"))
+      _.filterNot(_._2.endsWith("logback.xml"))
     }
   )
   .settings(
@@ -953,8 +985,12 @@ lazy val navigate_server = project
     navigate_model % "compile->compile;test->test"
   )
   .enablePlugins(CluePlugin)
-  .settings(navigateCommonSettings: _*)
+  .settings(navigateCommonSettings *)
   .settings(
+    // The ephemeris suites list a resource *directory* and read it through fs2. sbt 2 jars
+    // test resources by default, and neither listing nor FileChannel work on a zip filesystem,
+    // so keep this module's test output as a plain directory.
+    Test / exportJars := false,
     libraryDependencies ++=
       CatsEffect.value ++
         Fs2.value ++
@@ -975,12 +1011,15 @@ lazy val navigate_server = project
 
 lazy val navigateDeployedAppMappings = Seq(
   // Copy the resource directory, with customized configuration files, but first remove existing mappings.
-  Universal / mappings ++= { // maps =>
-    val siteConfigDir: File                     = (ThisProject / baseDirectory).value / "conf"
-    val siteConfigMappings: Seq[(File, String)] = directory(siteConfigDir).map(path =>
-      path._1 -> ("conf/" + path._1.relativeTo(siteConfigDir).get.getPath)
+  Universal / mappings ++= {
+    val conv                = fileConverter.value
+    val siteConfigDir: File = (ThisProject / baseDirectory).value / "conf"
+    directory(siteConfigDir).map(path =>
+      conv.toVirtualFile(path._1.toPath) -> ("conf/" + path._1
+        .relativeTo(siteConfigDir)
+        .get
+        .getPath)
     )
-    siteConfigMappings
   }
 )
 
@@ -1004,8 +1043,8 @@ lazy val navigate_deploy = project
     // Additional launch options, -J params will be added as jvm parameters
     Universal / javaOptions ++= Seq("-J-Xmx1024m", "-J-Xms256m")
   )
-  .settings(navigateDeployedAppMappings: _*)
-  .settings(navigateCommonSettings: _*)
+  .settings(navigateDeployedAppMappings *)
+  .settings(navigateCommonSettings *)
 
 // BEGIN ALIASES
 
@@ -1043,20 +1082,20 @@ def runCmds(cmds: List[String]): Unit = {
       case _                       => List(echo, Process(fixedCmd))
     }
   }
-  batch.reduceLeft(_ #&& _) ! match {
+  batch.reduceLeft(_ #&& _).! match {
     case 0 => ()
     case n => throw new Exception(s"Error in CSS format (dark), exit code $n")
   }
 }
 
 val lintCheck: TaskKey[Unit] = taskKey[Unit]("Lint style files")
-lintCheck := {
+LocalRootProject / lintCheck := Def.uncached {
   val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
   runCmds(allLintCmds(fix = false))
 }
 
 val lintFix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
-lintFix := {
+LocalRootProject / lintFix := Def.uncached {
   val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
   runCmds(allLintCmds(fix = true))
 }
@@ -1096,7 +1135,10 @@ def anyConds(conds: String*): String = conds.mkString("(", " || ", ")")
 val herokuToken = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
-ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
+ThisBuild / githubWorkflowSbtCommand           := "sbt -v"
+// sbt 2 keeps a server: -J options on a later invocation reach an already-booted JVM and are
+// ignored, so the heap has to be set for the whole workflow instead.
+ThisBuild / githubWorkflowEnv += ("SBT_OPTS" -> "-Xmx6g -Xss4M")
 ThisBuild / githubWorkflowEnv += herokuToken
 
 ThisBuild / githubWorkflowPermissions := Some(
@@ -1150,13 +1192,13 @@ lazy val dockerHubLogin =
 
 lazy val sbtDockerPublishObserve =
   WorkflowStep.Sbt(
-    List("clean", "observe_deploy/docker:publish"),
+    List("clean", "observe_deploy/Docker/publish"),
     name = Some("Build and Publish Observe Docker image")
   )
 
 lazy val sbtDockerPublishNavigate =
   WorkflowStep.Sbt(
-    List("clean", "navigate_deploy/docker:publish"),
+    List("clean", "navigate_deploy/Docker/publish"),
     name = Some("Build and Publish Navigate Docker image")
   )
 

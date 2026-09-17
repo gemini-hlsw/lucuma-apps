@@ -9,7 +9,7 @@ export default {
     'csstools/value-no-unknown-custom-properties': [
       true,
       {
-        importFrom: ['vars.css', 'ui/css/target/lucuma-css/dark-theme.css'],
+        importFrom: ['vars.css', 'target/out/sjs1/scala-3.9.0/ui_css/lucuma-css/dark-theme.css'],
       },
     ],
     'no-descending-specificity': null,

@@ -17,6 +17,7 @@ object all
     with ArbDhsTypes
     with ArbNsSubexposure
     with ArbNsRunningState
+    with ArbObsRecordedIds
     with ArbStepProgress
     with ArbObservationProgress
     with ArbUserPrompt
