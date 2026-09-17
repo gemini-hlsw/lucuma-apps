@@ -4,15 +4,10 @@
 package explore.cache
 
 import cats.Eq
-import cats.Monad
-import cats.effect.Clock
-import cats.syntax.all.*
-import explore.utils.*
+import cats.derived.*
 import fs2.concurrent.SignallingRef
-import org.typelevel.log4cats.Logger
 
-// Declaration order is display order, so it follows the order the queries are kicked off.
-enum LoadStep(val label: String):
+enum LoadStep(val tag: String) derives Eq:
   case Observations          extends LoadStep("Observations")
   case Groups                extends LoadStep("Groups")
   case ProgramDetails        extends LoadStep("Program details")
@@ -21,48 +16,23 @@ enum LoadStep(val label: String):
   case Programs              extends LoadStep("Program list")
   case ConfigurationRequests extends LoadStep("Configuration requests")
 
-object LoadStep:
-  given Eq[LoadStep] = Eq.fromUniversalEquals
+enum LoadStepState derives Eq:
+  case InFlight, Done
 
-enum LoadStepState:
-  case Pending, InFlight, Done
-
-object LoadStepState:
-  given Eq[LoadStepState] = Eq.fromUniversalEquals
-
-// `expected` is declared when a load starts, so the whole list is on screen from the
-// first frame instead of growing a line at a time. Not every load runs every step:
-// with no program in the URL only the program list is being waited on.
-case class LoadProgress(expected: Set[LoadStep], states: Map[LoadStep, LoadStepState]):
+// All gating queries start in the same tick, so a step is either in flight or done.
+case class LoadProgress(states: Map[LoadStep, LoadStepState]) derives Eq:
   def start(step: LoadStep): LoadProgress =
-    LoadProgress(expected + step, states.updated(step, LoadStepState.InFlight))
+    LoadProgress(states.updated(step, LoadStepState.InFlight))
 
   def complete(step: LoadStep): LoadProgress =
-    LoadProgress(expected + step, states.updated(step, LoadStepState.Done))
-
-  def stateOf(step: LoadStep): LoadStepState =
-    states.getOrElse(step, LoadStepState.Pending)
+    LoadProgress(states.updated(step, LoadStepState.Done))
 
   def steps: List[(LoadStep, LoadStepState)] =
-    LoadStep.values.toList.filter(expected.contains).map(step => (step, stateOf(step)))
+    states.toList.sortBy(_._1.ordinal)
 
-  def isIdle: Boolean = expected.isEmpty
+  def isIdle: Boolean = states.isEmpty
 
 object LoadProgress:
-  val Empty: LoadProgress = LoadProgress(Set.empty, Map.empty)
-
-  def expecting(steps: Set[LoadStep]): LoadProgress = LoadProgress(steps, Map.empty)
-
-  given Eq[LoadProgress] = Eq.by(p => (p.expected, p.states))
+  val Empty: LoadProgress = LoadProgress(Map.empty)
 
 type LoadProgressRef[F[_]] = SignallingRef[F, LoadProgress]
-
-extension [F[_], A](effect: F[A])
-  // Sibling of `logTime`: reports the step to the UI as well as the log, so the two
-  // can't drift. A step that fails is deliberately left in flight — the load collapses
-  // to a Pot.Error anyway, and a step that never ticks is the useful signal.
-  def reportingProgress(
-    step: LoadStep
-  )(using progress: LoadProgressRef[F], C: Clock[F], M: Monad[F], L: Logger[F]): F[A] =
-    progress.update(_.start(step)) >>
-      effect.logTime(step.label).flatTap(_ => progress.update(_.complete(step)))

@@ -48,10 +48,9 @@ case class ProgramCacheController(
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
     with CacheControllerComponent.Props[ProgramSummaries]:
-  val modState              = modProgramSummaries
-  given Logger[IO]          = logger
-  given Tracer[IO]          = tracer
-  given LoadProgressRef[IO] = loadProgress
+  val modState     = modProgramSummaries
+  given Logger[IO] = logger
+  given Tracer[IO] = tracer
 
 object ProgramCacheController
     extends CacheControllerComponent[ProgramSummaries, ProgramCacheController]
@@ -114,41 +113,41 @@ object ProgramCacheController
     def whenProgramSelected[A](empty: A)(query: => IO[A]): IO[A] =
       if props.isProgramSelected then query else IO.pure(empty)
 
+    def tracked[A](step: LoadStep)(query: IO[A]): IO[A] =
+      props.loadProgress.update(_.start(step)) >>
+        query.logTime(step.tag).flatTap(_ => props.loadProgress.update(_.complete(step)))
+
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
-        props.odbApi.programDetails(props.programId).reportingProgress(LoadStep.ProgramDetails)
+        tracked(LoadStep.ProgramDetails)(props.odbApi.programDetails(props.programId))
 
     val targets: IO[List[TargetWithId]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi.allProgramTargets(props.programId).reportingProgress(LoadStep.Targets)
+        tracked(LoadStep.Targets)(props.odbApi.allProgramTargets(props.programId))
 
     val observations: IO[List[Observation]] =
       whenProgramSelected(empty = Nil):
         Tracer[IO]
           .span("explore-mode-summary")
           .surround:
-            props.odbApi
-              .allProgramObservations(props.programId)
-              .reportingProgress(LoadStep.Observations)
+            tracked(LoadStep.Observations)(props.odbApi.allProgramObservations(props.programId))
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi
-          .allProgramConfigurationRequests(props.programId)
-          .reportingProgress(LoadStep.ConfigurationRequests)
+        tracked(LoadStep.ConfigurationRequests)(
+          props.odbApi.allProgramConfigurationRequests(props.programId)
+        )
 
     val groups: IO[List[Group]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi.allProgramGroups(props.programId).reportingProgress(LoadStep.Groups)
+        tracked(LoadStep.Groups)(props.odbApi.allProgramGroups(props.programId))
 
     val attachments: IO[ProgramAttachments] =
       whenProgramSelected(empty = ProgramAttachments.Empty):
-        props.odbApi
-          .allProgramAttachments(props.programId)
-          .reportingProgress(LoadStep.Attachments)
+        tracked(LoadStep.Attachments)(props.odbApi.allProgramAttachments(props.programId))
 
     val programs: IO[List[ProgramInfo]] =
-      props.odbApi.allPrograms.reportingProgress(LoadStep.Programs)
+      tracked(LoadStep.Programs)(props.odbApi.allPrograms)
 
     // All seven queries are independent; only `fromLists` needs them together. Staging
     // them makes the load cost their sum instead of their maximum, on the critical path
@@ -192,11 +191,7 @@ object ProgramCacheController
                 val full = modeById.get(id).flatten
                 Observation.observingMode.replace(Pot.Ready(full))(o)
 
-    // The steps that actually run, so the checklist doesn't list work that was skipped.
-    val expectedSteps: Set[LoadStep] =
-      if props.isProgramSelected then LoadStep.values.toSet else Set(LoadStep.Programs)
-
-    (props.loadProgress.set(LoadProgress.expecting(expectedSteps)) >> initializeSummaries)
+    (props.loadProgress.set(LoadProgress.Empty) >> initializeSummaries)
       .map: (summaries, obs) =>
         (summaries, Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated")))
       .logTime("InitialProgramRender")

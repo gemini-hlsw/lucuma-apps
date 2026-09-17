@@ -11,15 +11,13 @@ import lucuma.react.common.ReactFnProps
 case class SolarProgress(css: Css = Css.Empty, message: Option[VdomNode] = None)
     extends ReactFnProps(SolarProgress.component)
 
-object SolarProgress {
+object SolarProgress:
   private type Props = SolarProgress
 
-  private val component = ScalaFnComponent[Props] { p =>
-    // The wrapper is `display: contents`, so it adds no box of its own. The message is a
-    // sibling of the orbits rather than a child because `.solar-system` is scaled down,
-    // and anything inside it would be scaled with it.
-    <.div(
-      ^.cls := "solar-progress",
+  private val component = ScalaFnComponent[Props]: p =>
+    // The message is a sibling of the orbits rather than a child because `.solar-system` is
+    // scaled down, and anything inside it would be scaled with it.
+    React.Fragment(
       <.div(
         ^.cls := "solar-system",
         p.css,
@@ -41,5 +39,3 @@ object SolarProgress {
       ),
       p.message.map(m => <.div(^.cls := "solar-progress-message", m))
     )
-  }
-}

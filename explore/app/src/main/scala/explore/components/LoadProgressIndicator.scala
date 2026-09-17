@@ -27,8 +27,6 @@ object LoadProgressIndicator:
 
   private def stepItem(step: LoadStep, state: LoadStepState): VdomNode =
     val (indicator: VdomNode, stateCss: Css) = state match
-      case LoadStepState.Pending  =>
-        (Icons.Circle.withFixedWidth(), ExploreStyles.LoadProgressPending)
       case LoadStepState.InFlight =>
         (Icons.Spinner.withSpin(true).withFixedWidth(), Css.Empty)
       case LoadStepState.Done     =>
@@ -36,13 +34,11 @@ object LoadProgressIndicator:
 
     <.li(ExploreStyles.LoadProgressStep |+| stateCss, ^.key := step.toString)(
       indicator,
-      <.span(step.label)
+      <.span(step.tag)
     )
 
   private val component = ScalaFnComponent[LoadProgressIndicator]: props =>
     for {
-      // A single timer for the whole list, so a fast load never flashes text and the
-      // list never appears line by line.
       overdue  <- useEffectResultOnMount(IO.sleep(ShowChecklistAfter))
       progress <- useStreamOnMount(props.progress.discrete)
     } yield
