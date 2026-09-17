@@ -179,6 +179,34 @@ _Avoid_: observation name (that is the user-supplied free-text title)
 The rule for naming an observation in the interface: its Observation Reference when it has
 one, its Observation Id otherwise. Never both.
 
+### Estimated duration
+
+**Estimated Duration**:
+What an observation is predicted to take, broken down by what the time is spent on. An
+estimate, not a charge: it is recomputed as the observation changes and says nothing about
+time already used.
+_Avoid_: planned time (that is the program-level figure), execution duration
+
+**Science Sequence** (as a duration):
+The time the science sequence itself takes, including the flats and arcs taken within it.
+It is not science exposures alone, and the ODB offers no split between the two.
+_Avoid_: Science (the unqualified word reads as exposures only, which is wrong by the
+on-sky calibrations)
+
+**Setup** (as a duration):
+Full setup time — slew, configuration and target acquisition — multiplied by the number of
+setups an observation is expected to need. The estimate charges full setup every time, even
+though a re-acquisition is cheaper, so the ODB's separate re-acquisition figure never
+reaches the total.
+_Avoid_: acquisition (setup already contains it; a separate acquisition figure would
+double-count)
+
+**Total** (as a duration):
+Science Sequence plus Setup. It is the observation's own execution time and excludes
+calibrations scheduled as separate observations, Tellurics above all, so it is not yet the
+whole cost of getting the data.
+_Avoid_: full duration, total programme time
+
 # Telescope Offset Configuration
 
 How Gemini instruments specify where the telescope points at each step of a
