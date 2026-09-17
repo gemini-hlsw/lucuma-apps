@@ -29,6 +29,7 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  SBT_OPTS: '-Xmx6g -Xss4M'
   HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
 
@@ -67,7 +68,7 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -89,22 +90,22 @@ jobs:
         run: pnpm ci --offline
 
       - name: Check that workflows are up to date
-        run: sbt -v -J-Xmx6g githubWorkflowCheck
+        run: sbt -v githubWorkflowCheck
 
       - name: Check headers and formatting
         if: matrix.java == 'temurin@25' && matrix.os == 'ubuntu-22.04'
-        run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' headerCheckAll scalafmtCheckAll 'project /' scalafmtSbtCheck lucumaScalafmtCheck lucumaScalafixCheck lucumaSlackNotifyCheck
+        run: sbt -v 'project ${{ matrix.project }}; ++ ${{ matrix.scala }}; headerCheckAll; scalafmtCheckAll; project /; scalafmtSbtCheck; lucumaScalafmtCheck; lucumaScalafixCheck; lucumaSlackNotifyCheck'
 
       - name: Check scalafix lints
         if: matrix.java == 'temurin@25' && matrix.os == 'ubuntu-22.04'
-        run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' 'scalafixAll --check'
+        run: sbt -v 'project ${{ matrix.project }}; ++ ${{ matrix.scala }}; scalafix --check; Test/scalafix --check'
 
       - name: scalaJSLink
         if: matrix.project == 'rootJS'
-        run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' Test/scalaJSLinkerResult
+        run: sbt -v 'project ${{ matrix.project }}; ++ ${{ matrix.scala }}; Test/scalaJSLinkerResult'
 
       - name: Test affected projects
-        run: sbt -v -J-Xmx6g 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' lucumaTestAffected
+        run: sbt -v 'project ${{ matrix.project }}; ++ ${{ matrix.scala }}; lucumaTestAffected'
 
   publish:
     name: Publish Artifacts
@@ -135,7 +136,7 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -152,7 +153,7 @@ jobs:
 
       - name: NPM Publish
         if: startsWith(github.ref, 'refs/tags/v')
-        run: sbt -v -J-Xmx6g ui_css/npmPublish
+        run: sbt -v ui_css/npmPublish
 
   validate-steward:
     name: Validate Steward Config
@@ -208,7 +209,7 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -230,7 +231,7 @@ jobs:
         run: pnpm ci --offline
 
       - name: Link Explore
-        run: sbt -v -J-Xmx6g explore_app/buildJsModule
+        run: sbt -v explore_app/buildJsModule
 
       - name: Build Explore
         env:
@@ -293,7 +294,7 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -318,7 +319,7 @@ jobs:
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
 
       - name: Build and Publish Observe Docker image
-        run: 'sbt -v -J-Xmx6g ''++ ${{ matrix.scala }}'' clean observe_deploy/docker:publish'
+        run: sbt -v '++ ${{ matrix.scala }}; clean; observe_deploy/Docker/publish'
 
       - name: Deploy and release app in Heroku
         run: |
@@ -361,13 +362,13 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
 
       - name: Build and Publish Navigate Docker image
-        run: 'sbt -v -J-Xmx6g ''++ ${{ matrix.scala }}'' clean navigate_deploy/docker:publish'
+        run: sbt -v '++ ${{ matrix.scala }}; clean; navigate_deploy/Docker/publish'
 
   lint:
     name: Run linters
@@ -398,7 +399,7 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -420,7 +421,7 @@ jobs:
         run: pnpm ci --offline
 
       - name: Import CSS files
-        run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss
+        run: sbt -v '++ ${{ matrix.scala }}; ui_css/lucumaCss'
 
       - name: Run linters
         run: |
@@ -468,13 +469,13 @@ jobs:
 
       - name: sbt update
         if: matrix.java == 'temurin@25' && steps.setup-java-temurin-25.outputs.cache-hit == 'false'
-        run: sbt -v -J-Xmx6g +update
+        run: sbt -v +update
 
       - name: Compute affected projects
         id: report
         env:
           LUCUMA_AFFECTED_PUSH_BASE: ${{ github.event.before }}
-        run: sbt -v -J-Xmx6g lucumaAffectedReport
+        run: sbt -v lucumaAffectedReport
 
   required-checks:
     name: REQUIRED CHECKS FOR BRANCH PROTECTION - AGGREGATED

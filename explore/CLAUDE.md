@@ -4,7 +4,7 @@
 
 ```bash
 # Terminal 1: continuous Scala.js compilation
-sbt -J-Xmx6g '~explore_app/fastLinkJS'
+sbt '~explore_app/fastLinkJS'
 
 # Terminal 2: install deps + start Vite dev server
 pnpm install --frozen-lockfile --filter explore --prefer-offline

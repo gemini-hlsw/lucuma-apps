@@ -17,40 +17,58 @@ Plus two shared libraries:
 
 ## Build System
 
-Scala 3.8.2 on sbt 1.12.5. Frontend bundled with Vite. JS dependencies managed with pnpm 10.30.3. Java 17 (temurin).
+Scala 3.9.0 on sbt 2.0.8. Frontend bundled with Vite. JS dependencies managed with pnpm. Java 17
+or later (the build targets 25).
+
+sbt 2 takes **one `;`-separated argument**, not several words. `sbt clean compile test` is a
+syntax error; `sbt "clean; compile; testFull"` is the equivalent. Folding `++` into the same
+string matters too: `sbt '++ 3' foo --bar` passes the aggregated project keys to `foo`.
+
+Two renamed keys catch people out:
+
+- `test` is now incremental (the old `testQuick`) and its success is cached by content hash,
+  surviving `clean`. **`testFull` is the old always-run-everything `test`.**
+- `scalafixAll` is gone. Run `scalafix` and `Test/scalafix` separately.
 
 ### Essential Commands
 
 ```bash
-# Compile everything (needs extra memory)
-sbt -J-Xmx6g compile
+# Compile everything
+sbt compile
 
 # Compile only JVM or JS subprojects
-sbt -J-Xmx6g 'project rootJVM' compile
-sbt -J-Xmx6g 'project rootJS' compile
+sbt "rootJVM/Test/compile"
+sbt "rootJS/Test/compile"
 
 # Run all tests
-sbt -J-Xmx6g test
+sbt "rootJVM/testFull"
+sbt "rootJS/testFull"
 
 # Run tests for a specific subproject
-sbt -J-Xmx6g explore_model/test
+sbt explore_model/testFull
 
 # Run a specific test suite
-sbt -J-Xmx6g "testOnly *MySuite*"
+sbt "testOnly *MySuite*"
 
 # Run a single test within a suite (MUnit filter)
-sbt -J-Xmx6g "testOnly *MySuite* -- *testname*"
-
-# For JS tests, link first then test
-sbt -J-Xmx6g 'project rootJS' Test/scalaJSLinkerResult
-sbt -J-Xmx6g 'project rootJS' test
+sbt "testOnly *MySuite* -- *testname*"
 
 # Format code
-sbt scalafmtAll
+sbt "scalafmtAll; scalafmtSbt"
 
 # Run scalafix
-sbt scalafixAll
+sbt "scalafix; Test/scalafix"
 ```
+
+Heap size comes from `.jvmopts` (gitignored), not from `-J-Xmx...` on the command line: sbt 2
+keeps a background server, and a later invocation hands its command to a server that already
+booted. For the same reason a forked process inherits the _server's_ environment, not your
+shell — after changing anything the app reads from the environment, `shutdown` the server.
+
+**In a git worktree, pass `--server`.** The `sbt` wrapper switches to the thin client for sbt 2
+builds, and that client attaches to whichever server is already running — usually the main
+checkout's. Symptom: paths in the log point at another directory. `project/target/active.json`
+names the socket in use.
 
 ### Running locally
 
@@ -61,12 +79,12 @@ See `explore/CLAUDE.md` and `observe/CLAUDE.md` for the dev-server commands of e
 ```bash
 # Headers, formatting and scalafix. CI runs these for both matrix legs,
 # so check with rootJS as well as rootJVM.
-sbt -J-Xmx6g 'project rootJVM' '++ 3' headerCheckAll scalafmtCheckAll \
-  'project /' scalafmtSbtCheck lucumaScalafmtCheck lucumaScalafixCheck
-sbt -J-Xmx6g 'project rootJVM' '++ 3' 'scalafixAll --check'
+sbt "project rootJVM; ++ 3.9.0; headerCheckAll; scalafmtCheckAll; project /; \
+  scalafmtSbtCheck; lucumaScalafmtCheck; lucumaScalafixCheck; lucumaSlackNotifyCheck"
+sbt "project rootJVM; ++ 3.9.0; scalafix --check; Test/scalafix --check"
 
 # CSS linting
-sbt -J-Xmx6g '++ 3.8.2' ui_css/lucumaCss
+sbt "++ 3.9.0; ui_css/lucumaCss"
 pnpm exec stylelint explore/common/src/main/webapp/sass
 pnpm exec stylelint observe/web/client/src/main/webapp/styles
 pnpm exec stylelint ui/lib/src/main/resources/lucuma-css
@@ -76,8 +94,26 @@ pnpm exec prettier --check .
 ```
 
 Scalafmt and Scalafix are enforced in CI (see `.github/workflows/ci.yml`) for both
-the `rootJS` and `rootJVM` matrix legs. Fix violations with `sbt scalafmtAll
-scalafmtSbt` and `sbt scalafixAll`.
+the `rootJS` and `rootJVM` matrix legs. `LucumaWorkflowSyntaxPlugin` rewrites every `sbt` line
+in the generated workflow, so run `sbt githubWorkflowGenerate` and commit the result rather
+than hand-editing it.
+
+### Build Layout
+
+sbt 2 puts every module's output under `target/out/<platform>/scala-<ver>/<artifact>/` at the
+repo root, keyed by **artifact name**, not module directory. `lucumaCss` writes there too.
+
+Scala.js **linker** output is deliberately kept inside each project (see
+`jsLinkerOutputInProject` in `build.sbt`): Node and Vite resolve npm imports against the
+location of the linked file, and pnpm does not hoist, so output at the repo root cannot find
+the package's own `node_modules`.
+
+Two more sbt 2 traps this build works around:
+
+- **Bare settings apply to every subproject.** A top-level `foo := ...` is a _common_ setting
+  now, so root-only tasks are scoped (`LocalRootProject / lintCheck := ...`).
+- **Every task is cached to disk.** On a hit sbt returns the cached value without running the
+  body, so anything with side effects needs `Def.uncached { ... }`.
 
 ## Architecture and Patterns
 

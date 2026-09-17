@@ -150,7 +150,10 @@ export default defineConfig(async ({ mode }) => {
   const imagesCommon = path.resolve(webappCommon, 'images');
   const publicDirProd = path.resolve(common, 'src/main/public');
   const publicDirDev = path.resolve(common, 'src/main/publicdev');
-  const lucumaCss = path.resolve(_dirname, `app/target/lucuma-css`);
+  const lucumaCss = path.resolve(
+    _dirname,
+    `../target/out/sjs1/scala-${scalaVersion}/explore_app/lucuma-css`,
+  );
 
   if (!(await pathExists(publicDirDev))) {
     await fs.mkdir(publicDirDev);
