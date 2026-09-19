@@ -16,6 +16,7 @@ import explore.model.display.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -32,6 +33,7 @@ import scala.collection.immutable.SortedSet
 
 final case class ObservationDetailsTile(
   observation:           UndoSetter[Observation],
+  programType:           ProgramType,
   allocatedScienceBands: SortedSet[ScienceBand],
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
@@ -40,8 +42,12 @@ final case class ObservationDetailsTile(
       autoHeight = true,
       autoHeightMinRows = 4
     )(ObservationDetailsTile):
-  // A program with no allocations has no band to pick, so the selector would offer nothing.
-  val showScienceBand: Boolean = allocatedScienceBands.nonEmpty
+  val hasAllocations: Boolean = allocatedScienceBands.nonEmpty
+
+  // Only a science program is ever allocated band time. Other program types would sit forever on
+  // an empty selector, so the band is shown for them only when one is somehow already set.
+  val showScienceBand: Boolean =
+    programType === ProgramType.Science || observation.get.scienceBand.isDefined
 
 object ObservationDetailsTile
     extends TileComponent[ObservationDetailsTile]((props, _) =>
@@ -77,9 +83,13 @@ object ObservationDetailsTile
             id = NonEmptyString.unsafeFrom(s"science-band-${props.observation.get.id}"),
             value = scienceBandView,
             label = "Band",
-            // Only the bands the program actually holds an allocation for can be chosen.
-            exclude = Enumerated[ScienceBand].all.toSet -- props.allocatedScienceBands,
-            disabled = props.readonly,
+            // Only bands the program holds an allocation for can be chosen.
+            exclude = Enumerated[ScienceBand].all.toSet
+              -- props.allocatedScienceBands
+              -- scienceBandView.get,
+            disabled = props.readonly || !props.hasAllocations,
+            // A disabled control swallows tooltips, so the reason has to be on its face.
+            placeholder = if props.hasAllocations then "Not set" else "No time allocation",
             clazz = ExploreStyles.ObservationDetailsBand
           )
 

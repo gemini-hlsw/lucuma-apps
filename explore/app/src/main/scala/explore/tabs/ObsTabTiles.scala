@@ -498,6 +498,7 @@ object ObsTabTiles:
 
         val observationDetailsTile =
           ObservationDetailsTile(props.observation,
+                                 props.programType,
                                  props.programSummaries.allocatedScienceBands,
                                  props.obsIsReadonly
           )
