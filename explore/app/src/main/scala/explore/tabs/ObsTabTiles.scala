@@ -497,7 +497,10 @@ object ObsTabTiles:
         val notesTile = NotesTile(notesView, hidden = hideTiles)
 
         val observationDetailsTile =
-          ObservationDetailsTile(props.observation, props.obsIsReadonly)
+          ObservationDetailsTile(props.observation,
+                                 props.programSummaries.allocatedScienceBands,
+                                 props.obsIsReadonly
+          )
 
         val sequenceTile =
           SequenceTile(

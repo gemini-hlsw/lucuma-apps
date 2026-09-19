@@ -4563,6 +4563,11 @@ a.explore-upgrade-link {
     font-weight: bold;
   }
 
+  .observation-details-band {
+    justify-self: start;
+    min-width: 12ch;
+  }
+
   @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
     flex-flow: row wrap;
 
