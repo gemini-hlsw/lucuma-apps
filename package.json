@@ -1,7 +1,7 @@
 {
   "name": "@gemini-hlsw/lucuma-apps",
   "private": true,
-  "packageManager": "pnpm@12.4.2",
+  "packageManager": "pnpm@12.5.0",
   "devDependencies": {
     "prettier": "3.9.8",
     "stylelint": "17.15.0",
