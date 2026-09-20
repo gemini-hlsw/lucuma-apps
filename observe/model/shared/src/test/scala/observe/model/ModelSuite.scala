@@ -14,7 +14,6 @@ import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbNewType.given
 import observe.model.GmosParameters.*
 import observe.model.arb.ArbClientConfig.given
-import observe.model.arb.ArbStepProgress.given
 import observe.model.arb.ObserveModelArbitraries.given
 import observe.model.arb.all.given
 import observe.model.dhs.*
