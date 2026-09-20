@@ -8,8 +8,6 @@ import mkcert from 'vite-plugin-mkcert';
 import { VitePWA } from 'vite-plugin-pwa';
 import type { RuntimeCaching } from 'workbox-build';
 
-const scalaVersion = '3.9.0';
-
 const fontImport = Unfonts({
   fontsource: {
     families: ['Lato'],
@@ -136,12 +134,12 @@ const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOpt
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
   const _dirname = import.meta.dirname;
-  const scalaClassesDir = path.resolve(_dirname, `app/target/scala-${scalaVersion}`);
+  const scalaClassesDir = path.resolve(_dirname, 'app/target/scalajs');
   const isProduction = mode === 'production';
   const sjs = isProduction
     ? path.resolve(scalaClassesDir, `explore_app-opt`)
     : path.resolve(scalaClassesDir, `explore_app-fastopt`);
-  const workersScalaClassesDir = path.resolve(_dirname, `workers/target/scala-${scalaVersion}`);
+  const workersScalaClassesDir = path.resolve(_dirname, 'workers/target/scalajs');
   const workersSjs = isProduction
     ? path.resolve(workersScalaClassesDir, 'explore_workers-opt')
     : path.resolve(workersScalaClassesDir, 'explore_workers-fastopt');
@@ -150,10 +148,7 @@ export default defineConfig(async ({ mode }) => {
   const imagesCommon = path.resolve(webappCommon, 'images');
   const publicDirProd = path.resolve(common, 'src/main/public');
   const publicDirDev = path.resolve(common, 'src/main/publicdev');
-  const lucumaCss = path.resolve(
-    _dirname,
-    `../target/out/sjs1/scala-${scalaVersion}/explore_app/lucuma-css`,
-  );
+  const lucumaCss = path.resolve(_dirname, 'app/target/lucuma-css');
 
   if (!(await pathExists(publicDirDev))) {
     await fs.mkdir(publicDirDev);

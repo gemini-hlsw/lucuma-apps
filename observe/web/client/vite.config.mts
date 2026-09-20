@@ -13,8 +13,7 @@ const fontImport = Unfonts({
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
   const _dirname = import.meta.dirname;
-  const scalaClassesDir = path.resolve(_dirname, 'target/scala-3.9.0');
-  const sbtOut = path.resolve(_dirname, '../../../target/out/sjs1/scala-3.9.0/observe_web_client');
+  const scalaClassesDir = path.resolve(_dirname, 'target/scalajs');
   const isProduction = mode == 'production';
   const sjs = isProduction
     ? path.resolve(scalaClassesDir, 'observe_web_client-opt')
@@ -25,7 +24,7 @@ export default defineConfig(async ({ mode }) => {
   // sbt 2 packages resources into a jar instead of copying them into the classes directory,
   // so read the sounds straight from the source tree.
   const resourceDir = path.resolve(_dirname, 'src/main/resources');
-  const lucumaCss = path.resolve(sbtOut, 'lucuma-css');
+  const lucumaCss = path.resolve(_dirname, 'target/lucuma-css');
 
   return {
     // TODO Remove this if we get EnvironmentPlugin to work.

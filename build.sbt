@@ -91,24 +91,21 @@ lazy val esModule = Seq(
   ))
 )
 
-// sbt 2 links into the shared target/out tree at the repo root, where Node and Vite resolve
-// modules against that location and no longer find the package's own node_modules (pnpm does
-// not hoist). Keep linker output inside the project, at the same paths as before.
-def jsLinkerOutputInProject(config: Configuration, prefix: String) = {
-  def dir(suffix: String) = Def.setting(
-    baseDirectory.value / "target" / s"scala-${scalaVersion.value}" / s"$prefix-$suffix"
-  )
+// sbt 2 writes into the shared target/out tree at the repo root, keyed by Scala version, where
+// Node and Vite cannot resolve the package's own node_modules (pnpm does not hoist). Keep JS
+// output inside the project under version-free paths so vite configs need not track the
+// Scala version.
+def jsOutputInProject(config: Configuration, prefix: String) = {
+  def dir(suffix: String) =
+    Def.setting(baseDirectory.value / "target" / "scalajs" / s"$prefix-$suffix")
   Seq(
     config / fastLinkJS / scalaJSLinkerOutputDirectory := dir("fastopt").value,
     config / fullLinkJS / scalaJSLinkerOutputDirectory := dir("opt").value
   )
 }
 
-lazy val jsTestOutputInProject = Seq(
-  Test / fastLinkJS / scalaJSLinkerOutputDirectory :=
-    baseDirectory.value / "target" / "scalajs" / "test-fastopt",
-  Test / fullLinkJS / scalaJSLinkerOutputDirectory :=
-    baseDirectory.value / "target" / "scalajs" / "test-opt"
+lazy val lucumaCssInProject = Seq(
+  lucumaCssOutputDirectory := baseDirectory.value / "target" / "lucuma-css"
 )
 
 //////////////
@@ -324,17 +321,18 @@ lazy val ui_tests =
             Log4CatsLogLevel.value
         )
     )
-    .settings(jsTestOutputInProject *)
+    .settings(jsOutputInProject(Test, "test") *)
     .settings(commonModuleTest *)
 
 lazy val ui_css = project
   .in(file("ui/css"))
   .dependsOn(ui_lib)
   .enablePlugins(LucumaCssPlugin)
+  .settings(lucumaCssInProject *)
   .settings(
     createNpmProject := Def.uncached {
       val _      = (Compile / lucumaCss).value
-      val cssDir = target.value / "lucuma-css"
+      val cssDir = lucumaCssOutputDirectory.value
       IO.write(
         cssDir / "package.json",
         s"""|{
@@ -358,7 +356,8 @@ lazy val ui_demo =
     .in(file("ui/demo"))
     .enablePlugins(ScalaJSPlugin, LucumaCssPlugin)
     .dependsOn(ui_lib, ui_css)
-    .settings(jsLinkerOutputInProject(Compile, "ui_demo") *)
+    .settings(jsOutputInProject(Compile, "ui_demo") *)
+    .settings(lucumaCssInProject *)
     .settings(
       Compile / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
       Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
@@ -505,7 +504,7 @@ lazy val explore_workers = project
   .in(file("explore/workers"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(explore_model, explore_common)
-  .settings(jsLinkerOutputInProject(Compile, "explore_workers") *)
+  .settings(jsOutputInProject(Compile, "explore_workers") *)
   .settings(exploreCommonSettings *)
   .settings(exploreCommonJsLibSettings *)
   .settings(exploreCommonLibSettings *)
@@ -532,7 +531,8 @@ lazy val explore_app: Project = project
   .in(file("explore/app"))
   .dependsOn(explore_model, explore_common)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
-  .settings(jsLinkerOutputInProject(Compile, "explore_app") *)
+  .settings(jsOutputInProject(Compile, "explore_app") *)
+  .settings(lucumaCssInProject *)
   .settings(exploreCommonSettings *)
   .settings(exploreCommonJsLibSettings *)
   .settings(esModule *)
@@ -648,7 +648,8 @@ lazy val observe_web_client = project
   .in(file("observe/web/client"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, observe_ui_model)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, NoPublishPlugin)
-  .settings(jsLinkerOutputInProject(Compile, "observe_web_client") *)
+  .settings(jsOutputInProject(Compile, "observe_web_client") *)
+  .settings(lucumaCssInProject *)
   .settings(lucumaGlobalSettings *)
   .settings(esModule *)
   .settings(
