@@ -24,11 +24,9 @@ sbt 2 takes **one `;`-separated argument**, not several words. `sbt clean compil
 syntax error; `sbt "clean; compile; testFull"` is the equivalent. Folding `++` into the same
 string matters too: `sbt '++ 3' foo --bar` passes the aggregated project keys to `foo`.
 
-Two renamed keys catch people out:
-
-- `test` is now incremental (the old `testQuick`) and its success is cached by content hash,
-  surviving `clean`. **`testFull` is the old always-run-everything `test`.**
-- `scalafixAll` is gone. Run `scalafix` and `Test/scalafix` separately.
+One renamed key catches people out: `test` is now incremental (the old `testQuick`) and its
+success is cached by content hash, surviving `clean`. **`testFull` is the old
+always-run-everything `test`.**
 
 ### Essential Commands
 
@@ -57,7 +55,7 @@ sbt "testOnly *MySuite* -- *testname*"
 sbt "scalafmtAll; scalafmtSbt"
 
 # Run scalafix
-sbt "scalafix; Test/scalafix"
+sbt scalafixAll
 ```
 
 Heap size comes from `.jvmopts` (gitignored), not from `-J-Xmx...` on the command line: sbt 2
@@ -81,7 +79,7 @@ See `explore/CLAUDE.md` and `observe/CLAUDE.md` for the dev-server commands of e
 # so check with rootJS as well as rootJVM.
 sbt "project rootJVM; ++ 3.9.0; headerCheckAll; scalafmtCheckAll; project /; \
   scalafmtSbtCheck; lucumaScalafmtCheck; lucumaScalafixCheck; lucumaSlackNotifyCheck"
-sbt "project rootJVM; ++ 3.9.0; scalafix --check; Test/scalafix --check"
+sbt "project rootJVM; ++ 3.9.0; scalafixAll --check"
 
 # CSS linting
 sbt "++ 3.9.0; ui_css/lucumaCss"

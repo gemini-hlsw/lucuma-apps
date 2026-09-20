@@ -106,7 +106,7 @@ jobs:
 
       - name: Check scalafix lints
         if: matrix.java == 'temurin@25' && matrix.os == 'ubuntu-22.04'
-        run: sbt -v 'project ${{ matrix.project }}; ++ ${{ matrix.scala }}; scalafix --check; Test/scalafix --check'
+        run: sbt -v 'project ${{ matrix.project }}; ++ ${{ matrix.scala }}; scalafixAll --check'
 
       - name: scalaJSLink
         if: matrix.project == 'rootJS'
