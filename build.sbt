@@ -92,9 +92,7 @@ lazy val esModule = Seq(
 )
 
 // sbt 2 writes into the shared target/out tree at the repo root, keyed by Scala version, where
-// Node and Vite cannot resolve the package's own node_modules (pnpm does not hoist). Keep JS
-// output inside the project under version-free paths so vite configs need not track the
-// Scala version.
+// Node and Vite cannot resolve the package's own node_modules (pnpm does not hoist).
 def jsOutputInProject(config: Configuration, prefix: String) = {
   def dir(suffix: String) =
     Def.setting(baseDirectory.value / "target" / "scalajs" / s"$prefix-$suffix")
@@ -112,8 +110,6 @@ lazy val lucumaCssInProject = Seq(
 // Projects
 //////////////
 
-// No `name` here: sbt 2 derives the output directory from the artifact name, and
-// tlCrossRootProject's root/rootJVM/rootJS/rootNative all share this base directory.
 lazy val root = tlCrossRootProject
   .enablePlugins(GitBranchPrompt)
   .aggregate(
@@ -988,9 +984,6 @@ lazy val navigate_server = project
   .enablePlugins(CluePlugin)
   .settings(navigateCommonSettings *)
   .settings(
-    // The ephemeris suites list a resource *directory* and read it through fs2. sbt 2 jars
-    // test resources by default, and neither listing nor FileChannel work on a zip filesystem,
-    // so keep this module's test output as a plain directory.
     Test / exportJars := false,
     libraryDependencies ++=
       CatsEffect.value ++
