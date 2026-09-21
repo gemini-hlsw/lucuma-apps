@@ -6,6 +6,7 @@ package lucuma.ui.visualization
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.probeBands
 import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
 import lucuma.react.common.ReactFnComponent
@@ -41,10 +42,12 @@ object GuideStarTooltip
       <.div(VisualizationStyles.AgsTooltip)(
         <.div(id),
         <.div(
-          p.analysis.target.gBrightness.map:
-            case (Band.GaiaRP, v) =>
-              React.Fragment("G", <.sub("RP"), f": ${v}%.2f ")
-            case (b, v)           => React.Fragment(f"${b.shortName}: ${v}%.2f "),
+          p.analysis.target
+            .brightnessIn(probeBands(p.analysis.guideProbe))
+            .map:
+              case (Band.GaiaRP, v) =>
+                React.Fragment("G", <.sub("RP"), f": ${v}%.2f ")
+              case (b, v)           => React.Fragment(f"${b.shortName}: ${v}%.2f "),
           guideSpeedIcon,
           speedText
         ),

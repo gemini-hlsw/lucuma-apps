@@ -14,6 +14,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.probeBands
 import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
 import lucuma.react.common.ReactFnProps
@@ -110,7 +111,7 @@ object AgsOverlay:
                 <.div(ExploreStyles.AgsGuideSpeed, analysis.guideSpeed.tag),
                 <.div(
                   ExploreStyles.AgsGBrightness,
-                  analysis.target.gBrightness.map { case (b, v) =>
+                  analysis.target.brightnessIn(probeBands(analysis.guideProbe)).map { case (b, v) =>
                     React.Fragment(
                       if (b === Band.GaiaRP) React.Fragment(s"G", <.sub("RP")) else b.shortName,
                       s": ${v.value.value.setScale(2, RoundingMode.HALF_DOWN).toString()}"
