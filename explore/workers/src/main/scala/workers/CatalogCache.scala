@@ -28,7 +28,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 1000
-  private val CacheVersion: Int = 12
+  private val CacheVersion: Int = 13
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
