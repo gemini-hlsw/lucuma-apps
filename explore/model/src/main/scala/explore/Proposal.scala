@@ -223,13 +223,21 @@ case class Proposal(
    * semester requirement, which `CallForProposal` always carries, and the rejection of a proposal
    * holding both an exchange partner and partner splits, which `partnerSplits` makes
    * unrepresentable.
+   *
+   * One case where no deadline resolves is deliberately not reported: the deadline follows the PI's
+   * partner, so a PI without one has none, and `UnspecifiedInvestigatorPartner` already says so.
+   * `MissingDeadline` would only repeat it.
    */
   private def deadlineErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
-    call.foldMap(_ =>
-      deadline(users.pi.map(_.partnerLink)) match
-        case None | Some(Left(_)) => List(MissingDeadline)
-        case Some(Right(_))       => Nil
-    )
+    call.foldMap: _ =>
+      val piPartnerLink = users.pi.map(_.partnerLink)
+      // A missing PI is not covered by UnspecifiedInvestigatorPartner, which quantifies
+      // over the investigators there are, so that still counts as a missing deadline.
+      if piPartnerLink.exists(_.isUnspecifiedPartner) then Nil
+      else
+        deadline(piPartnerLink) match
+          case None | Some(Left(_)) => List(MissingDeadline)
+          case Some(Right(_))       => Nil
 
   def errors(
     title:                    Option[NonEmptyString], // from program name

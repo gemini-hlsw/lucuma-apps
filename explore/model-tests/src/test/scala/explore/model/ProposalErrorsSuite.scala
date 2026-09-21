@@ -392,9 +392,20 @@ class ProposalErrorsSuite extends FunSuite:
   test("undefined observations"):
     assertEquals(errorsOf(undefined = true), List(UndefinedObservations))
 
-  test("no deadline for the PI"):
+  test("the call sets no deadline for the PI's partner"):
     val p = valid.copy(call = geminiCall(partners = List((Partner.US, none))).some)
     assertEquals(errorsOf(p), List(MissingDeadline))
+
+  // The deadline follows the PI's partner, so a PI without one has no deadline, and
+  // UnspecifiedInvestigatorPartner already says so.
+  test("an unspecified PI partner is not also a missing deadline"):
+    assertEquals(
+      errorsOf(users = List(user(PartnerLink.HasUnspecifiedPartner, ProgramUserRole.Pi))),
+      List(UnspecifiedInvestigatorPartner)
+    )
+
+  test("no PI at all is still a missing deadline"):
+    assertEquals(errorsOf(users = Nil), List(MissingDeadline))
 
   // Only whether a deadline resolves is checked here; a deadline that has passed is
   // reported by ProposalSubmissionBar.
