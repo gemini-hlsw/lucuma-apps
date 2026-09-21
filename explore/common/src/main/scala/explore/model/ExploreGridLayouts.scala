@@ -176,7 +176,7 @@ object ExploreGridLayouts:
 
   object observations:
     private lazy val NotesMaxHeight: NonNegInt         = 5.refined
-    private lazy val DetailsMinHeight: NonNegInt       = 4.refined
+    private lazy val DetailsMinHeight: NonNegInt       = 5.refined
     private lazy val TargetHeight: NonNegInt           = 18.refined
     private lazy val SkyPlotHeight: NonNegInt          = 9.refined
     private lazy val ConstraintsMaxHeight: NonNegInt   = 7.refined

@@ -4541,15 +4541,47 @@ a.explore-upgrade-link {
 
 // Observation Tab
 .observation-details-form {
-  display: grid;
-  grid-template-columns: [label] auto [value] 1fr;
-  gap: 0.25em 1em;
-  grid-auto-rows: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em 2em;
   padding: 0.5em 1em;
+
+  .observation-details-column {
+    display: grid;
+    grid-template-columns: [label] auto [value] 1fr;
+    gap: 0.25em 1em;
+    grid-auto-rows: max-content;
+  }
 
   label {
     text-align: right;
     font-weight: bold;
+  }
+
+  .observation-details-section {
+    grid-column: 1 / -1;
+    font-weight: bold;
+  }
+
+  .observation-details-select {
+    justify-self: start;
+    min-width: 12ch;
+  }
+
+  .observation-details-priority {
+    justify-self: start;
+
+    .p-button {
+      padding: 0 0.6em;
+    }
+  }
+
+  @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
+    flex-flow: row wrap;
+
+    .observation-details-column {
+      flex: 1;
+    }
   }
 }
 

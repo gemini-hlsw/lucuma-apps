@@ -62,10 +62,11 @@ class ObsLayoutMergeSuite extends FunSuite:
       storedBeforeDetails.asList.filterNot(_.i === ObsTabTileIds.NotesId.id.value)
     )
     val items        = merged(withoutNotes)
-    val detY         = items.find(_.i === ObsTabTileIds.DetailsId.id.value).map(_.y)
+    val details      = items.find(_.i === ObsTabTileIds.DetailsId.id.value)
     val targetY      = items.find(_.i === ObsTabTileIds.TargetId.id.value).map(_.y)
-    assertEquals(detY, Some(5), clue = items.map(i => (i.i, i.y, i.h)))
-    assertEquals(targetY, Some(9), clue = items.map(i => (i.i, i.y, i.h)))
+    assertEquals(details.map(_.y), Some(5), clue = items.map(i => (i.i, i.y, i.h)))
+    // Derived, not a literal: the default details height moves whenever the tile gains a row.
+    assertEquals(targetY, details.map(d => d.y + d.h), clue = items.map(i => (i.i, i.y, i.h)))
 
   // Settling must not disturb a layout the user already arranged, gaps included.
   test("a stored layout that knows every tile is returned untouched"):
@@ -106,7 +107,7 @@ class ObsLayoutMergeSuite extends FunSuite:
     val notes     = items.find(_.i === ObsTabTileIds.NotesId.id.value).get
     val details   = items.find(_.i === ObsTabTileIds.DetailsId.id.value).get
     assertEquals(details.y, notes.y + notes.h, clue = items.map(i => (i.i, i.y, i.h)))
-    // the scrambled order itself survives, everything below notes just shifts down by 4
+    // the scrambled order itself survives, everything below notes just shifts down
     assertEquals(
       items.sortBy(_.y).map(_.i).filterNot(_ === ObsTabTileIds.DetailsId.id.value),
       order,

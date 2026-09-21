@@ -3772,6 +3772,12 @@ input ObservationPropertiesInput {
 
   """Set the notes for  thhe observer"""
   observerNotes: NonEmptyString
+
+  """
+  The PI's declared priority for this observation. Defaults to MEDIUM on
+  creation. Cannot be set to null.
+  """
+  priority: ObservationPriority
 }
 
 """Observation times properties"""
@@ -6173,6 +6179,13 @@ input TargetEnvironmentInput {
   override and fall back to the default probe for the mode and target type.
   """
   explicitGuideProbe: GuideProbe
+
+  """
+  Altair adaptive optics configuration, only for GNIRS observations. On create,
+  absence means no Altair. On edit, absence leaves the configuration alone,
+  null clears it, and a value replaces it entirely.
+  """
+  altair: AltairInput
 }
 
 """Target properties"""
@@ -12846,12 +12859,71 @@ enum FieldLens {
   OUT
 }
 
+"""
+Altair neutral density filter position. The filter attenuates only the Altair
+wavefront sensor path, never the science beam, and is used for very bright
+natural guide stars.
+"""
+enum AltairNdFilter {
+  IN
+  OUT
+}
+
+"""
+Altair (Gemini North adaptive optics) configuration. Only GNIRS observations
+may be configured to observe behind Altair.
+"""
+type Altair {
+  """The Altair guiding mode."""
+  mode: AltairMode!
+
+  """
+  The user's field lens override, or null for AUTO. When AUTO the field lens
+  follows the guide star separation. The LGS modes always use the field lens,
+  so an explicit value of OUT is rejected for them.
+  """
+  explicitFieldLens: FieldLens
+
+  """
+  The cassegrain rotator tracking mode used while observing behind Altair.
+  """
+  cassRotator: CassRotator!
+
+  """The Altair neutral density filter position."""
+  ndFilter: AltairNdFilter!
+}
+
+"""
+Altair configuration creation and editing parameters. The value replaces the
+observation's entire Altair configuration.
+"""
+input AltairInput {
+  """The Altair guiding mode."""
+  mode: AltairMode!
+
+  """
+  Overrides the automatic field lens choice. Omit (or assign null) for AUTO, in
+  which case the field lens follows the guide star separation. The LGS modes
+  always use the field lens, so OUT is rejected for them.
+  """
+  fieldLens: FieldLens
+
+  """
+  The cassegrain rotator tracking mode used while observing behind Altair.
+  """
+  cassRotator: CassRotator = FOLLOWING
+
+  """The Altair neutral density filter position."""
+  ndFilter: AltairNdFilter = OUT
+}
+
 """Enumeration for Guide Probes"""
 enum GuideProbe {
   PWFS1
   PWFS2
   GMOS_OIWFS
   FLAMINGOS2_OIWFS
+  ALTAIR_AOWFS
 }
 
 """
@@ -13763,6 +13835,12 @@ type Observation {
   """Notes for the observer"""
   observerNotes: NonEmptyString
 
+  """
+  The PI's declared priority for this observation, relative to the other
+  observations of the same program. Defaults to MEDIUM.
+  """
+  priority: ObservationPriority!
+
   """Parameters relevant to approved configurations."""
   configuration: Configuration!
 
@@ -14615,6 +14693,17 @@ type ObservationValidation {
 
   """Particular errors for this validation type"""
   messages: [String!]!
+}
+
+"""
+The PI's statement of which of their observations matter more. Advisory: the
+scheduler may weigh it when choosing among a program's observations. Meaningful
+only relative to the other observations of the same program.
+"""
+enum ObservationPriority {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 """Types of observation validations"""
@@ -15773,7 +15862,7 @@ enum ScienceMode {
   SPECTROSCOPY
 }
 
-"""Science observation priorities."""
+"""Science bands, ranking a program's time allocation."""
 enum ScienceBand {
   BAND1
   BAND2
@@ -17287,8 +17376,18 @@ type TargetEnvironment {
   """
   explicitGuideProbe: GuideProbe
 
-  """The cassegrain rotator tracking mode."""
+  """
+  The cassegrain rotator tracking mode: the value stored with the Altair
+  configuration when the observation has one, otherwise derived from the
+  instrument.
+  """
   cassRotator: CassRotator!
+
+  """
+  Altair adaptive optics configuration, only for GNIRS observations. Null when
+  the observation does not observe behind Altair.
+  """
+  altair: Altair
 }
 
 type TargetGroup {
@@ -18556,6 +18655,9 @@ input WhereObservation {
   """Matches the observation science band."""
   scienceBand: WhereOptionOrderScienceBand
 
+  """Matches the PI's declared observation priority."""
+  priority: WhereOrderObservationPriority
+
   """Matches on the instrument in use, if any."""
   instrument: WhereOptionEqInstrument
 
@@ -19691,6 +19793,40 @@ input WhereProposalReference {
 
   """Matches the index in the proposal reference."""
   semesterIndex: WhereOrderPosInt
+}
+
+"""
+Filters on equality or order comparisons of observation priorities.  All
+supplied criteria must match, but usually only one is selected.
+"""
+input WhereOrderObservationPriority {
+  """Matches if the priority is exactly the supplied value."""
+  EQ: ObservationPriority
+
+  """Matches if the priority is not the supplied value."""
+  NEQ: ObservationPriority
+
+  """Matches if the priority is any of the supplied options."""
+  IN: [ObservationPriority!]
+
+  """Matches if the priority is none of the supplied values."""
+  NIN: [ObservationPriority!]
+
+  """Matches if the priority is ordered after (>) the supplied value."""
+  GT: ObservationPriority
+
+  """Matches if the priority is ordered before (<) the supplied value."""
+  LT: ObservationPriority
+
+  """
+  Matches if the priority is ordered after or equal (>=) the supplied value.
+  """
+  GTE: ObservationPriority
+
+  """
+  Matches if the priority is ordered before or equal (<=) the supplied value.
+  """
+  LTE: ObservationPriority
 }
 
 """
