@@ -28,6 +28,7 @@ import lucuma.core.enums.GmosYBinning
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.Site
 import lucuma.core.math.Coordinates
@@ -89,6 +90,7 @@ final case class Observation(
   observerNotes:           Option[NonEmptyString],
   calibrationRole:         Option[CalibrationRole],
   scienceBand:             Option[ScienceBand],
+  priority:                ObservationPriority,
   configuration:           Option[Configuration],
   configurationRequestIds: SortedSet[ConfigurationRequest.Id],
   workflow:                CalculatedValue[ObservationWorkflow],
@@ -574,6 +576,7 @@ object Observation:
   val observerNotes            = Focus[Observation](_.observerNotes)
   val calibrationRole          = Focus[Observation](_.calibrationRole)
   val scienceBand              = Focus[Observation](_.scienceBand)
+  val priority                 = Focus[Observation](_.priority)
   val configuration            = Focus[Observation](_.configuration)
   val configurationRequestIds  = Focus[Observation](_.configurationRequestIds)
   val workflow                 = Focus[Observation](_.workflow)
@@ -666,6 +669,7 @@ object Observation:
       observerNotes         <- c.get[Option[NonEmptyString]]("observerNotes")
       calibrationRole       <- c.get[Option[CalibrationRole]]("calibrationRole")
       scienceBand           <- c.get[Option[ScienceBand]]("scienceBand")
+      priority              <- c.get[ObservationPriority]("priority")
       configuration         <- c.get[Configuration]("configuration").fold(_ => none.asRight, _.some.asRight)
       crIds                 <- c.get[List[ConfigurationRequestIdWrapper]]("configurationRequests")
       workflow              <- c.get[CalculatedValue[ObservationWorkflow]]("workflow")
@@ -699,6 +703,7 @@ object Observation:
       observerNotes,
       calibrationRole,
       scienceBand,
+      priority,
       configuration,
       SortedSet.from(crIds.map(_.id)),
       workflow,

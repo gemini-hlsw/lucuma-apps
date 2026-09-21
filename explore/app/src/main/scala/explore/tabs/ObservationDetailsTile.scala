@@ -16,6 +16,7 @@ import explore.model.display.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.util.Enumerated
@@ -90,7 +91,28 @@ object ObservationDetailsTile
             disabled = props.readonly || !props.hasAllocations,
             // A disabled control swallows tooltips, so the reason has to be on its face.
             placeholder = if props.hasAllocations then "Not set" else "No time allocation",
-            clazz = ExploreStyles.ObservationDetailsBand
+            clazz = ExploreStyles.ObservationDetailsSelect
+          )
+
+        val priorityView: View[ObservationPriority] =
+          props.observation
+            .zoom(Observation.priority)
+            .undoableView(Iso.id[ObservationPriority].asLens)
+            .withOnMod: priority =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(priority = priority.assign)
+                )
+                .runAsync
+
+        val prioritySelector: VdomNode =
+          FormEnumDropdownView(
+            id = NonEmptyString.unsafeFrom(s"priority-${props.observation.get.id}"),
+            value = priorityView,
+            label = "Priority",
+            disabled = props.readonly,
+            clazz = ExploreStyles.ObservationDetailsSelect
           )
 
         val estimatedDuration: VdomNode =
@@ -117,7 +139,8 @@ object ObservationDetailsTile
           <.div(ExploreStyles.ObservationDetailsForm)(
             <.div(ExploreStyles.ObservationDetailsColumn)(
               FormInfo(props.observation.get.referenceWithId, "Observation"),
-              scienceBandSelector.when(props.showScienceBand)
+              scienceBandSelector.when(props.showScienceBand),
+              prioritySelector
             ),
             estimatedDuration
           )

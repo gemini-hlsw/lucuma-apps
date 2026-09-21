@@ -64,6 +64,7 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           observerNotes
           calibrationRole
           scienceBand
+          priority
           configuration $ConfigurationSubquery
           configurationRequests { id }
           workflow $CalculatedObservationWorkflowSubquery

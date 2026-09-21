@@ -182,6 +182,7 @@ trait ObservationDB {
     type MultipleFiltersMode                 = enums.MultipleFiltersMode
     type ObsActiveStatus                     = enums.ObsActiveStatus
     type ObservationWorkflowState            = enums.ObservationWorkflowState
+    type ObservationPriority                 = enums.ObservationPriority
     type ObsStatus                           = enums.ObsStatus
     type ObserveClass                        = enums.ObserveClass
     type ObservationValidationCode           = enums.ObservationValidationCode
