@@ -29,6 +29,7 @@ given Display[GuideProbe] = Display.byShortName:
   case GuideProbe.PWFS2           => "PWFS2"
   case GuideProbe.GmosOIWFS       => "GMOS OIWFS"
   case GuideProbe.Flamingos2OIWFS => "F2 OIWFS"
+  case GuideProbe.AltairAOWFS     => "Altair AOWFS"
 
 given Display[GmosXBinning] = Display.by(_.shortName, _.longName)
 

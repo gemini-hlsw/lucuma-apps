@@ -296,6 +296,11 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[TargetIntegrationTime] = generatePickler
 
+  given Pickler[IArray[Double]] =
+    transformPickler[IArray[Double], Array[Double]](IArray.unsafeFromArray)(iarr =>
+      IArray.genericWrapArray(iarr).toArray
+    )
+
   given Pickler[ItcSeries] = generatePickler
 
   given Pickler[ItcGraph] = generatePickler
