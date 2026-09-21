@@ -75,7 +75,7 @@ object ObservationDetailsTile
               ctx.odbApi
                 .updateObservations(
                   List(props.observation.get.id),
-                  ObservationPropertiesInput(scienceBand = band.orUnassign)
+                  ObservationPropertiesInput(scienceBand = band.orIgnore)
                 )
                 .runAsync
 
@@ -89,6 +89,7 @@ object ObservationDetailsTile
               -- props.allocatedScienceBands
               -- scienceBandView.get,
             disabled = props.readonly || !props.hasAllocations,
+            showClear = false,
             // A disabled control swallows tooltips, so the reason has to be on its face.
             placeholder = if props.hasAllocations then "Not set" else "No time allocation",
             clazz = ExploreStyles.ObservationDetailsSelect
