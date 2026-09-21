@@ -26,9 +26,9 @@ import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosXBinning
 import lucuma.core.enums.GmosYBinning
 import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
-import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.Site
 import lucuma.core.math.Coordinates
