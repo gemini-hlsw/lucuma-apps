@@ -4568,6 +4568,14 @@ a.explore-upgrade-link {
     min-width: 12ch;
   }
 
+  .observation-details-priority {
+    justify-self: start;
+
+    .p-button {
+      padding: 0 0.6em;
+    }
+  }
+
   @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
     flex-flow: row wrap;
 

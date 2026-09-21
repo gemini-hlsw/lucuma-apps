@@ -39,7 +39,11 @@ object Versions {
   val lucumaPrimeStyles      = "0.5.0"
   val lucumaReact            = "0.106.0"
   val lucumaRefined          = "0.1.4"
+<<<<<<< HEAD
   val lucumaServers          = "0.96.1"
+=======
+  val lucumaServers          = "0.96-d3233c5-20260920T224225Z-SNAPSHOT"
+>>>>>>> 8c0b4a29a0 (Add a control to change the obs priority)
   val monocle                = "3.3.0"
   val mouse                  = "1.4.0"
   val mUnit                  = "1.3.6"

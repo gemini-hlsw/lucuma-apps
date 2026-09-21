@@ -107,12 +107,12 @@ object ObservationDetailsTile
                 .runAsync
 
         val prioritySelector: VdomNode =
-          FormEnumDropdownView(
+          SelectButtonEnumView(
             id = NonEmptyString.unsafeFrom(s"priority-${props.observation.get.id}"),
-            value = priorityView,
+            view = priorityView,
             label = "Priority",
             disabled = props.readonly,
-            clazz = ExploreStyles.ObservationDetailsSelect
+            groupClass = ExploreStyles.ObservationDetailsPriority
           )
 
         val estimatedDuration: VdomNode =
