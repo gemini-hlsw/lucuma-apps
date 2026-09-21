@@ -658,6 +658,8 @@ object NavigateEngine {
           WfsSky(wfs, period),
           stateRef.get.flatMap(s => systems.tcsCommon.oiwfsSky(period)(s.guideConfig))
         )
+      case enums.GuideProbe.AltairAOWFS =>
+        ???
     }
 
     override def getGuideDemand: F[GuideConfig] = stateRef.get.map(_.guideConfig)

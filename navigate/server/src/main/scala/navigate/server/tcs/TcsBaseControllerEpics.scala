@@ -2042,6 +2042,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
              Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
              pol._2 + alignAngle.getOrElse(Angle.Angle0)
             ).pure[F]
+          case GuideProbe.AltairAOWFS     =>
+            ???
         }
     }
 
