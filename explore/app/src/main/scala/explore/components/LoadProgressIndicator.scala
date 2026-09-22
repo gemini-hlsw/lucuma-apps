@@ -13,7 +13,6 @@ import explore.cache.LoadStepState
 import explore.components.ui.ExploreStyles
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.ui.components.SolarProgress
 
@@ -22,20 +21,22 @@ case class LoadProgressIndicator(progress: LoadProgressRef[IO])
 
 object LoadProgressIndicator:
   private def stepItem(step: LoadStep, state: LoadStepState): VdomNode =
-    val (indicator: VdomNode, stateCss: Css) = state match
-      case LoadStepState.InFlight =>
-        (Icons.Spinner.withSpin(true).withFixedWidth(), Css.Empty)
-      case LoadStepState.Done     =>
-        (Icons.Checkmark.withFixedWidth(), ExploreStyles.LoadProgressDone)
+    val detail: Option[String] = state match
+      case LoadStepState.InFlight(page) if page > 1 => s"page $page".some
+      case _                                        => none
 
-    <.li(ExploreStyles.LoadProgressStep |+| stateCss, ^.key := step.toString)(
-      indicator,
-      <.span(step.label)
+    <.li(
+      ExploreStyles.LoadProgressStep,
+      ExploreStyles.LoadProgressDone.when(state === LoadStepState.Done),
+      ^.key := step.toString
+    )(
+      <.span(ExploreStyles.LoadProgressSpinner)(Icons.Spinner.withFixedWidth()),
+      <.span(step.label, detail.map(d => <.span(ExploreStyles.LoadProgressDetail, d)))
     )
 
   private val component = ScalaFnComponent[LoadProgressIndicator]: props =>
     useStreamOnMount(props.progress.discrete).map: progress =>
-      val checklist: Option[VdomNode] =
+      val steps: Option[VdomNode] =
         progress.toOption
           .filter(_.nonEmpty)
           .map: states =>
@@ -43,4 +44,4 @@ object LoadProgressIndicator:
               states.toList.sortBy(_._1.ordinal).map(stepItem).toTagMod
             )
 
-      SolarProgress(message = checklist)
+      SolarProgress(message = steps)

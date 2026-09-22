@@ -6,6 +6,7 @@ package explore.cache
 import cats.effect.IO
 import cats.effect.Resource
 import cats.syntax.all.*
+import org.scalajs.dom
 import crystal.Pot
 import crystal.Throttler
 import explore.model.Group
@@ -113,11 +114,27 @@ object ProgramCacheController
     def whenProgramSelected[A](empty: A)(query: => IO[A]): IO[A] =
       if props.isProgramSelected then query else IO.pure(empty)
 
-    def tracked[A](step: LoadStep)(query: IO[A]): IO[A] =
-      props.loadProgress.update(_.updated(step, LoadStepState.InFlight)) >>
+    def tracked[A](step: LoadStep, clearOthers: Boolean = false)(query: IO[A]): IO[A] =
+      val begin: LoadProgress => LoadProgress = progress =>
+        (if clearOthers then Map.empty else progress).updated(step, LoadStepState.InFlight(1))
+
+      props.loadProgress.update(begin) >>
         query
           .logTime(step.label)
           .flatTap(_ => props.loadProgress.update(_.updated(step, LoadStepState.Done)))
+
+    val afterNextPaint: IO[Unit] =
+      IO.async_ : cb =>
+        dom.window.requestAnimationFrame: _ =>
+          dom.window.setTimeout(() => cb(Right(())), 0)
+          ()
+        ()
+
+    def nextPage(step: LoadStep): IO[Unit] =
+      props.loadProgress.update:
+        _.updatedWith(step):
+          case Some(LoadStepState.InFlight(page)) => LoadStepState.InFlight(page + 1).some
+          case other                              => other
 
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
@@ -132,7 +149,8 @@ object ProgramCacheController
         Tracer[IO]
           .span("explore-mode-summary")
           .surround:
-            tracked(LoadStep.Observations)(props.odbApi.allProgramObservations(props.programId))
+            tracked(LoadStep.Observations):
+              props.odbApi.allProgramObservations(props.programId, nextPage(LoadStep.Observations))
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       whenProgramSelected(empty = Nil):
@@ -161,8 +179,12 @@ object ProgramCacheController
         attachments,
         programs,
         configurationRequests
-      ).parMapN: (obs, grps, pd, ts, as, ps, crs) =>
-        (ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs), obs)
+      ).parTupled.flatMap: (obs, grps, pd, ts, as, ps, crs) =>
+        // Every query is done here, so drop their rows and let the browser paint the new one
+        // before the summaries build blocks the thread.
+        tracked(LoadStep.Preparing, clearOthers = true):
+          afterNextPaint >> IO(ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs))
+        .map((_, obs))
 
     // load the details for each mode separately
     def observingModesUpdate(

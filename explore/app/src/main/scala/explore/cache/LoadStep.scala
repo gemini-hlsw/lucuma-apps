@@ -15,10 +15,12 @@ enum LoadStep(val label: String) derives Eq:
   case Attachments           extends LoadStep("Attachments")
   case Programs              extends LoadStep("Program list")
   case ConfigurationRequests extends LoadStep("Configuration requests")
+  case Preparing             extends LoadStep("Preparing program")
 
-// All gating queries start in the same tick, so a step is either in flight or done.
+// A step stays as Done just long enough for its row to fade out.
 enum LoadStepState derives Eq:
-  case InFlight, Done
+  case InFlight(page: Int)
+  case Done
 
 type LoadProgress          = Map[LoadStep, LoadStepState]
 type LoadProgressRef[F[_]] = SignallingRef[F, LoadProgress]

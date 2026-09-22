@@ -123,7 +123,12 @@ trait OdbObservationApi[F[_]]:
   def programObservationsDeltaSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ProgramObservationsDelta.Data.ObservationEdit]]
-  def allProgramObservations(programId:  Program.Id): F[List[Observation]]
+
+  /**
+   * Fetches every observation in the program. `onPage` runs each time a page comes back and another
+   * one is still needed.
+   */
+  def allProgramObservations(programId: Program.Id, onPage: F[Unit]): F[List[Observation]]
 
   /**
    * Fetches (id, full ObservingMode) pairs for every observation in the program of a given mode
