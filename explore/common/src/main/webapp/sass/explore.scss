@@ -3483,6 +3483,11 @@ input[type='file'].explore-fileupload {
   color: var(--site-text-color);
 }
 
+// Keep the help icon on the same row as its label text
+label:has(.explore-help-icon) {
+  white-space: nowrap;
+}
+
 .explore-help-icon-floating {
   position: absolute;
   top: 3px;
