@@ -114,8 +114,10 @@ object ProgramCacheController
       if props.isProgramSelected then query else IO.pure(empty)
 
     def tracked[A](step: LoadStep)(query: IO[A]): IO[A] =
-      props.loadProgress.update(_.start(step)) >>
-        query.logTime(step.tag).flatTap(_ => props.loadProgress.update(_.complete(step)))
+      props.loadProgress.update(_.updated(step, LoadStepState.InFlight)) >>
+        query
+          .logTime(step.label)
+          .flatTap(_ => props.loadProgress.update(_.updated(step, LoadStepState.Done)))
 
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
@@ -149,9 +151,7 @@ object ProgramCacheController
     val programs: IO[List[ProgramInfo]] =
       tracked(LoadStep.Programs)(props.odbApi.allPrograms)
 
-    // All seven queries are independent; only `fromLists` needs them together. Staging
-    // them makes the load cost their sum instead of their maximum, on the critical path
-    // for first paint. The observations come back out so the mode hydration can use them.
+    // The seven queries are independent; run them concurrently so the load costs their maximum, not their sum.
     val initializeSummaries: IO[(ProgramSummaries, List[Observation])] =
       (
         observations,
@@ -191,7 +191,7 @@ object ProgramCacheController
                 val full = modeById.get(id).flatten
                 Observation.observingMode.replace(Pot.Ready(full))(o)
 
-    (props.loadProgress.set(LoadProgress.Empty) >> initializeSummaries)
+    (props.loadProgress.set(Map.empty: LoadProgress) >> initializeSummaries)
       .map: (summaries, obs) =>
         (summaries, Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated")))
       .logTime("InitialProgramRender")

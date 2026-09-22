@@ -4981,6 +4981,14 @@ span.explore-offsets-count {
   display: flex;
   flex-direction: column;
   white-space: nowrap;
+  opacity: 0;
+  animation: load-progress-appear 0s linear 600ms forwards;
+}
+
+@keyframes load-progress-appear {
+  to {
+    opacity: 1;
+  }
 }
 
 .load-progress-step {

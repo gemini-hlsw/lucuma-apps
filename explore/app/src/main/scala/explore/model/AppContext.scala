@@ -152,7 +152,7 @@ object AppContext:
         GraphQLClients
           .build[F](config.odbURI, config.preferencesDBURI, config.sso.uri, reconnectionStrategy)
       resetProgramCacheTopic <- Topic[F, Option[ProgramError]]
-      loadProgress           <- SignallingRef[F].of(LoadProgress.Empty)
+      loadProgress           <- SignallingRef[F].of(Map.empty: LoadProgress)
       httpClient              = FetchClientBuilder[F]
                                   .withRequestTimeout(4.seconds)
                                   .withCache(dom.RequestCache.`no-store`)

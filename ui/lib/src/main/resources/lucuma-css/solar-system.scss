@@ -13,20 +13,20 @@
 /* GRID STYLING */
 
 :root {
-  --solar-system-bodies-color: var(--explore-accent-color);
   --solar-system-period-factor: 0.7;
   --solar-system-scale-factor: 0.5;
   --solar-system-size: 400px;
+  --solar-system-outer-orbit: 355px;
 }
 
 .solar-progress-message {
   position: absolute;
   left: 50%;
-  top: calc(50% + var(--solar-system-size) * var(--solar-system-scale-factor) / 2 + 0.5rem);
+  top: calc(50% + var(--solar-system-outer-orbit) * var(--solar-system-scale-factor) / 2);
   transform: translateX(-50%);
   z-index: 9999;
   font-size: 0.8em;
-  color: var(--solar-system-bodies-color);
+  color: var(--explore-accent-color);
 }
 
 .solar-system {
@@ -51,8 +51,8 @@
 }
 
 .mars-orbit {
-  width: 355px;
-  height: 355px;
+  width: var(--solar-system-outer-orbit);
+  height: var(--solar-system-outer-orbit);
   animation: spin calc(23.4s * var(--solar-system-period-factor)) linear 0s infinite;
 }
 

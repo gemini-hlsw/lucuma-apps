@@ -17,14 +17,10 @@ import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.ui.components.SolarProgress
 
-import scala.concurrent.duration.*
-
 case class LoadProgressIndicator(progress: LoadProgressRef[IO])
     extends ReactFnProps(LoadProgressIndicator.component)
 
 object LoadProgressIndicator:
-  private val ShowChecklistAfter: FiniteDuration = 600.milliseconds
-
   private def stepItem(step: LoadStep, state: LoadStepState): VdomNode =
     val (indicator: VdomNode, stateCss: Css) = state match
       case LoadStepState.InFlight =>
@@ -34,20 +30,17 @@ object LoadProgressIndicator:
 
     <.li(ExploreStyles.LoadProgressStep |+| stateCss, ^.key := step.toString)(
       indicator,
-      <.span(step.tag)
+      <.span(step.label)
     )
 
   private val component = ScalaFnComponent[LoadProgressIndicator]: props =>
-    for {
-      overdue  <- useEffectResultOnMount(IO.sleep(ShowChecklistAfter))
-      progress <- useStreamOnMount(props.progress.discrete)
-    } yield
+    useStreamOnMount(props.progress.discrete).map: progress =>
       val checklist: Option[VdomNode] =
-        (overdue.toOption *> progress.toOption)
-          .filterNot(_.isIdle)
-          .map: p =>
+        progress.toOption
+          .filter(_.nonEmpty)
+          .map: states =>
             <.ul(ExploreStyles.LoadProgressList)(
-              p.steps.map(stepItem).toTagMod
+              states.toList.sortBy(_._1.ordinal).map(stepItem).toTagMod
             )
 
       SolarProgress(message = checklist)
