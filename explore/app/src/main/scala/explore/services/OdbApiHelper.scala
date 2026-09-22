@@ -104,15 +104,14 @@ trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
     fetch:      Option[Id] => F[R],
     getList:    R => List[A],
     getHasMore: R => Boolean,
-    getId:      A => Id,
-    onPage:     F[Unit] = F.unit
+    getId:      A => Id
   ): F[List[A]] = {
     def go(id: Option[Id], accum: List[A]): F[List[A]] =
       fetch(id).flatMap(result =>
         val list = getList(result)
         // Fetching with offset includes the offset, so .dropRight(1) ensures we don't include it twice.
         val all  = accum.dropRight(1) ++ list
-        if (getHasMore(result)) onPage >> go(list.lastOption.map(getId), all)
+        if (getHasMore(result)) go(list.lastOption.map(getId), all)
         else all.pure
       )
 

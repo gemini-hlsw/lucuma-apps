@@ -173,7 +173,6 @@ object ExploreStyles:
   val LoadProgressList: Css    = Css("load-progress-list")
   val LoadProgressStep: Css    = Css("load-progress-step")
   val LoadProgressDone: Css    = Css("load-progress-done")
-  val LoadProgressDetail: Css  = Css("load-progress-detail")
   val LoadProgressSpinner: Css = Css("load-progress-spinner")
 
   val FinderChartsTile: Css          = Css("finder-charts-tile")

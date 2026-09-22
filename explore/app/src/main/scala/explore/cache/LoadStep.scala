@@ -19,8 +19,7 @@ enum LoadStep(val label: String) derives Eq:
 
 // A step stays as Done just long enough for its row to fade out.
 enum LoadStepState derives Eq:
-  case InFlight(page: Int)
-  case Done
+  case InFlight, Done
 
 type LoadProgress          = Map[LoadStep, LoadStepState]
 type LoadProgressRef[F[_]] = SignallingRef[F, LoadProgress]

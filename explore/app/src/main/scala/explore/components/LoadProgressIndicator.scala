@@ -21,17 +21,13 @@ case class LoadProgressIndicator(progress: LoadProgressRef[IO])
 
 object LoadProgressIndicator:
   private def stepItem(step: LoadStep, state: LoadStepState): VdomNode =
-    val detail: Option[String] = state match
-      case LoadStepState.InFlight(page) if page > 1 => s"page $page".some
-      case _                                        => none
-
     <.li(
       ExploreStyles.LoadProgressStep,
       ExploreStyles.LoadProgressDone.when(state === LoadStepState.Done),
       ^.key := step.toString
     )(
       <.span(ExploreStyles.LoadProgressSpinner)(Icons.Spinner.withFixedWidth()),
-      <.span(step.label, detail.map(d => <.span(ExploreStyles.LoadProgressDetail, d)))
+      <.span(step.label)
     )
 
   private val component = ScalaFnComponent[LoadProgressIndicator]: props =>

@@ -466,7 +466,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .processErrors("ProgramObservationsDelta", ignorePendingObsCalc)
       .map(_.map(_.observationEdit))
 
-  def allProgramObservations(programId: Program.Id, onPage: F[Unit]): F[List[Observation]] =
+  def allProgramObservations(programId: Program.Id): F[List[Observation]] =
     drain[Observation, Observation.Id, AllProgramObservations.Data.Observations](
       offset =>
         AllProgramObservations[F]
@@ -476,8 +476,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           .map(_.observations),
       _.matches,
       _.hasMore,
-      _.id,
-      onPage
+      _.id
     )
 
   // One flag per `ObservingMode`, for the `@include` directives in `ObservingModeByTypeSubquery`

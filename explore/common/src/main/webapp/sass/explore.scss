@@ -5005,8 +5005,6 @@ span.explore-offsets-count {
   overflow: hidden;
 }
 
-// Spins an HTML wrapper rather than the svg so the browser can run the animation on the
-// compositor while the main thread is busy building the program.
 .load-progress-spinner {
   display: inline-block;
   line-height: 1;
@@ -5018,11 +5016,6 @@ span.explore-offsets-count {
   to {
     transform: rotate(360deg);
   }
-}
-
-.load-progress-detail {
-  margin-left: 0.5em;
-  opacity: 0.6;
 }
 
 .load-progress-done {
