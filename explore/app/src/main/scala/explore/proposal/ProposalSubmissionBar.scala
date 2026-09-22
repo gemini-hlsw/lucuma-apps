@@ -102,12 +102,19 @@ object ProposalSubmissionBar
           // Whether the deadline has passed depends on the clock above, so it is
           // reported here rather than by Proposal.errors -- validating it there
           // would tie the whole proposal tab's re-rendering to this clock.
-          val isDueDeadline: Boolean = props.deadline.flatMap(_.toOption).forall(_ < now)
+          //
+          // Only a deadline that actually resolved counts, either way: while one cannot
+          // be worked out -- most often because the PI's partner has not been chosen
+          // yet -- claiming it has passed is simply false, and the errors tile already
+          // reports the real problem and blocks submission.
+          val resolvedDeadline: Option[Timestamp] = props.deadline.flatMap(_.toOption)
+          val deadlinePassed: Boolean             = resolvedDeadline.exists(_ < now)
+          val deadlineOpen: Boolean               = resolvedDeadline.exists(_ >= now)
 
           val errorMessage: Option[String] =
             Option
               .when(props.proposalStatus.get === ProposalStatus.NotSubmitted):
-                if (isDueDeadline) ProposalSubmissionError.PastDeadline.message.some
+                if (deadlinePassed) ProposalSubmissionError.PastDeadline.message.some
                 else
                   Option.when(props.hasProposalErrors):
                     "Proposal cannot be submitted with errors. See errors tile for details."
@@ -128,9 +135,7 @@ object ProposalSubmissionBar
                     label = "Submit Proposal",
                     onClick = updateStatus(ProposalStatus.Submitted),
                     disabled =
-                      isUpdatingStatus.get.value || props.hasProposalErrors || isDueDeadline || !props.canSubmit
-                    // Temporarily enable submission even if there are errors for testing against API validation
-                    // isUpdatingStatus.get.value || isDueDeadline || !props.canSubmit
+                      isUpdatingStatus.get.value || props.hasProposalErrors || deadlinePassed || !props.canSubmit
                   ).compact.tiny,
                   props.deadline.map: deadlineEither =>
                     val (text, severity) = deadlineEither match
@@ -159,10 +164,10 @@ object ProposalSubmissionBar
                 "Retract Proposal",
                 severity = Button.Severity.Warning,
                 onClick = updateStatus(ProposalStatus.NotSubmitted),
-                disabled = isUpdatingStatus.get.value || isDueDeadline || !props.canSubmit
+                disabled = isUpdatingStatus.get.value || !deadlineOpen || !props.canSubmit
               ).compact.tiny
                 .when:
-                  props.proposalStatus.get === ProposalStatus.Submitted && !isDueDeadline
+                  props.proposalStatus.get === ProposalStatus.Submitted && deadlineOpen
               ,
               errorMessage
                 .map(r =>
