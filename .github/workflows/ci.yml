@@ -29,9 +29,8 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  SBT_OPTS: '-Dlmcoursier.internal.shaded.coursier.exception-retry=10'
+  SBT_OPTS: '-Xmx6g -Xss4M -Dlmcoursier.internal.shaded.coursier.exception-retry=10'
   LUCUMA_AFFECTED_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-  SBT_OPTS: '-Xmx6g -Xss4M'
   HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
 

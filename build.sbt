@@ -1132,7 +1132,10 @@ ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
 ThisBuild / githubWorkflowSbtCommand           := "sbt -v"
 // sbt 2 keeps a server: -J options on a later invocation reach an already-booted JVM and are
 // ignored, so the heap has to be set for the whole workflow instead.
-ThisBuild / githubWorkflowEnv += ("SBT_OPTS" -> "-Xmx6g -Xss4M")
+// SBT_OPTS is a single string, so setting it replaces whatever sbt-lucuma contributed: the
+// coursier retry, which guards against flaky Central lookups, has to be carried explicitly.
+ThisBuild / githubWorkflowEnv += ("SBT_OPTS" ->
+  "-Xmx6g -Xss4M -Dlmcoursier.internal.shaded.coursier.exception-retry=10")
 ThisBuild / githubWorkflowEnv += herokuToken
 
 ThisBuild / githubWorkflowPermissions := Some(

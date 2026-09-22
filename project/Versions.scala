@@ -52,7 +52,7 @@ object Versions {
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.10"
   val sbtBuildInfo           = "0.13.2"
-  val sbtLucuma              = "0.17-52b45db-SNAPSHOT"
+  val sbtLucuma              = "0.17-04f40af-SNAPSHOT"
   val scalaCollectionContrib = "0.4.0"
   val scalaJsDom             = "2.8.1"
   val scalaJsReact           = "4.0.0"
