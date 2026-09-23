@@ -10,12 +10,15 @@ import cats.syntax.all.*
 import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.cache.LoadProgress
+import explore.cache.LoadProgressRef
 import explore.events.*
 import explore.model.Constants.HorizonsProxyMod
 import explore.model.enums.AppTab
 import explore.services.OdbApi
 import explore.services.OdbApiImpl
 import explore.utils
+import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
@@ -66,6 +69,7 @@ case class AppContext[F[_]](
   broadcastChannel:       BroadcastChannel[F, ExploreEvent],
   toastRef:               ToastRef,
   resetProgramCacheTopic: Topic[F, Option[ProgramError]], // Error message (if any)
+  loadProgress:           LoadProgressRef[F],
   simbadClient:           SimbadClient[F]
 )(using
   val F:                  Async[F],
@@ -148,6 +152,7 @@ object AppContext:
         GraphQLClients
           .build[F](config.odbURI, config.preferencesDBURI, config.sso.uri, reconnectionStrategy)
       resetProgramCacheTopic <- Topic[F, Option[ProgramError]]
+      loadProgress           <- SignallingRef[F].of(Map.empty: LoadProgress)
       httpClient              = FetchClientBuilder[F]
                                   .withRequestTimeout(4.seconds)
                                   .withCache(dom.RequestCache.`no-store`)
@@ -173,6 +178,7 @@ object AppContext:
       broadcastChannel,
       null, // toastRef will be completed later in RootComponent
       resetProgramCacheTopic,
+      loadProgress,
       simbadClient
     )
 

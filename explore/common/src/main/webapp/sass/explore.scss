@@ -3483,6 +3483,11 @@ input[type='file'].explore-fileupload {
   color: var(--site-text-color);
 }
 
+// Keep the help icon on the same row as its label text
+label:has(.explore-help-icon) {
+  white-space: nowrap;
+}
+
 .explore-help-icon-floating {
   position: absolute;
   top: 3px;
@@ -4972,4 +4977,60 @@ span.explore-offsets-count {
   display: grid;
   grid-template-columns: [label] auto [field] 1fr;
   column-gap: 1em;
+}
+
+.load-progress-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  opacity: 0;
+  animation: load-progress-appear 0s linear 600ms forwards;
+}
+
+@keyframes load-progress-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+.load-progress-stage {
+  display: grid;
+  grid-template-columns: [icon] 1.2em [label] auto;
+  align-items: center;
+  column-gap: 0.5em;
+  height: 1.6em;
+  overflow: hidden;
+}
+
+.load-progress-spinner {
+  display: inline-block;
+  line-height: 1;
+  will-change: transform;
+  animation: load-progress-spin 2s linear infinite;
+}
+
+@keyframes load-progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.load-progress-done {
+  animation: load-progress-retire 400ms ease-out forwards;
+}
+
+@keyframes load-progress-retire {
+  to {
+    opacity: 0;
+    height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .load-progress-done {
+    display: none;
+  }
 }

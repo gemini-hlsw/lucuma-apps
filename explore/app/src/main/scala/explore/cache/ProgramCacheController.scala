@@ -30,6 +30,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.TargetWithId
 import monocle.Optional
+import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
 import queries.common.ObsQueriesGQL
@@ -42,7 +43,8 @@ case class ProgramCacheController(
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
   override val resetSignal: fs2.Stream[IO, ResetType],
-  isProgramSelected:        Boolean
+  isProgramSelected:        Boolean,
+  loadProgress:             LoadProgressRef[IO]
 )(using val odbApi: OdbApi[IO], logger: Logger[IO], tracer: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
@@ -112,54 +114,68 @@ object ProgramCacheController
     def whenProgramSelected[A](empty: A)(query: => IO[A]): IO[A] =
       if props.isProgramSelected then query else IO.pure(empty)
 
+    def tracked[A](stage: LoadStage, clearOthers: Boolean = false)(query: IO[A]): IO[A] =
+      val begin: LoadProgress => LoadProgress = progress =>
+        (if clearOthers then Map.empty else progress).updated(stage, LoadStageState.InFlight)
+
+      props.loadProgress.update(begin) >>
+        query
+          .logTime(stage.label)
+          .flatTap(_ => props.loadProgress.update(_.updated(stage, LoadStageState.Done)))
+
+    val afterNextPaint: IO[Unit] =
+      IO.async_ : cb =>
+        dom.window.requestAnimationFrame: _ =>
+          dom.window.setTimeout(() => cb(Right(())), 0)
+          ()
+        ()
+
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
-        props.odbApi.programDetails(props.programId).logTime("ProgramDetailsQuery")
+        tracked(LoadStage.ProgramDetails)(props.odbApi.programDetails(props.programId))
 
     val targets: IO[List[TargetWithId]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
+        tracked(LoadStage.Targets)(props.odbApi.allProgramTargets(props.programId))
 
     val observations: IO[List[Observation]] =
       whenProgramSelected(empty = Nil):
         Tracer[IO]
           .span("explore-mode-summary")
           .surround:
-            props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
+            tracked(LoadStage.Observations)(props.odbApi.allProgramObservations(props.programId))
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi
-          .allProgramConfigurationRequests(props.programId)
-          .logTime("AllProgramConfigurationRequests")
+        tracked(LoadStage.ConfigurationRequests)(
+          props.odbApi.allProgramConfigurationRequests(props.programId)
+        )
 
     val groups: IO[List[Group]] =
       whenProgramSelected(empty = Nil):
-        props.odbApi.allProgramGroups(props.programId).logTime("AllProgramGroups")
+        tracked(LoadStage.Groups)(props.odbApi.allProgramGroups(props.programId))
 
     val attachments: IO[ProgramAttachments] =
       whenProgramSelected(empty = ProgramAttachments.Empty):
-        props.odbApi.allProgramAttachments(props.programId).logTime("AllProgramAttachments")
+        tracked(LoadStage.Attachments)(props.odbApi.allProgramAttachments(props.programId))
 
     val programs: IO[List[ProgramInfo]] =
-      props.odbApi.allPrograms.logTime("AllPrograms")
+      tracked(LoadStage.Programs)(props.odbApi.allPrograms)
 
-    def initializeSummaries(
-      observations: List[Observation],
-      groups:       List[Group]
-    ): IO[ProgramSummaries] =
-      (optProgramDetails, targets, attachments, programs, configurationRequests).mapN:
-        case (pd, ts, as, ps, crs) =>
-          ProgramSummaries
-            .fromLists(
-              pd,
-              ts,
-              observations,
-              groups,
-              as,
-              ps,
-              crs
-            )
+    // The seven queries are independent; run them concurrently so the load costs their maximum, not their sum.
+    val initializeSummaries: IO[(ProgramSummaries, List[Observation])] =
+      (
+        observations,
+        groups,
+        optProgramDetails,
+        targets,
+        attachments,
+        programs,
+        configurationRequests
+      ).parTupled.flatMap: (obs, grps, pd, ts, as, ps, crs) =>
+        tracked(LoadStage.Preparing, clearOthers = true):
+          afterNextPaint >> IO(ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs))
+        .map((_, obs))
 
     // load the details for each mode separately
     def observingModesUpdate(
@@ -188,10 +204,9 @@ object ProgramCacheController
                 val full = modeById.get(id).flatten
                 Observation.observingMode.replace(Pot.Ready(full))(o)
 
-    (observations, groups)
-      .parFlatMapN: (obs, grps) =>
-        val delayed = Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated"))
-        initializeSummaries(obs, grps).map((_, delayed))
+    (props.loadProgress.set(Map.empty: LoadProgress) >> initializeSummaries)
+      .map: (summaries, obs) =>
+        (summaries, Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated")))
       .logTime("InitialProgramRender")
   }
 

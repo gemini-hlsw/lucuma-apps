@@ -8,30 +8,34 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 
-case class SolarProgress(css: Css = Css.Empty) extends ReactFnProps(SolarProgress.component)
+case class SolarProgress(css: Css = Css.Empty, message: Option[VdomNode] = None)
+    extends ReactFnProps(SolarProgress.component)
 
-object SolarProgress {
+object SolarProgress:
   private type Props = SolarProgress
 
-  private val component = ScalaFnComponent[Props] { p =>
-    <.div(
-      ^.cls := "solar-system",
-      p.css,
+  private val component = ScalaFnComponent[Props]: p =>
+    // The message is a sibling of the orbits rather than a child because `.solar-system` is
+    // scaled down, and anything inside it would be scaled with it.
+    React.Fragment(
       <.div(
-        ^.cls := "mars-orbit orbit",
-        <.div(^.cls    := "planet mars"),
+        ^.cls := "solar-system",
+        p.css,
         <.div(
-          ^.cls := "earth-orbit orbit",
-          <.div(^.cls := "planet earth"),
-          <.div(^.cls := "venus-orbit orbit",
-                <.div(^.cls := "planet venus"),
-                <.div(^.cls := "mercury-orbit orbit",
-                      <.div(^.cls := "planet mercury"),
-                      <.div(^.cls := "sun")
-                )
+          ^.cls := "mars-orbit orbit",
+          <.div(^.cls    := "planet mars"),
+          <.div(
+            ^.cls := "earth-orbit orbit",
+            <.div(^.cls := "planet earth"),
+            <.div(^.cls := "venus-orbit orbit",
+                  <.div(^.cls := "planet venus"),
+                  <.div(^.cls := "mercury-orbit orbit",
+                        <.div(^.cls := "planet mercury"),
+                        <.div(^.cls := "sun")
+                  )
+            )
           )
         )
-      )
+      ),
+      p.message.map(m => <.div(^.cls := "solar-progress-message", m))
     )
-  }
-}
