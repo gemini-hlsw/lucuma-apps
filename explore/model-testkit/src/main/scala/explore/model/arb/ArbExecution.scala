@@ -21,13 +21,20 @@ trait ArbExecution:
     for {
       digest          <- arbitrary[CalculatedValue[Option[ExecutionDigest]]]
       timeCharge      <- arbitrary[TimeSpan]
+      original        <- arbitrary[Option[TimeSpan]]
       acqMaterialized <- arbitrary[Boolean]
       sciMaterialized <- arbitrary[Boolean]
-    } yield Execution(digest, ProgramTime(timeCharge), acqMaterialized, sciMaterialized)
+    } yield Execution(
+      digest,
+      ProgramTime(timeCharge),
+      original.map(ProgramTime(_)),
+      acqMaterialized,
+      sciMaterialized
+    )
   )
 
   given Cogen[Execution] = Cogen[
-    (CalculatedValue[Option[ExecutionDigest]], TimeSpan)
-  ].contramap(e => (e.digest, e.programTimeCharge.value))
+    (CalculatedValue[Option[ExecutionDigest]], TimeSpan, Option[TimeSpan])
+  ].contramap(e => (e.digest, e.programTimeCharge.value, e.originalEstimate.map(_.value)))
 
 object ArbExecution extends ArbExecution

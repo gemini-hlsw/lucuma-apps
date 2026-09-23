@@ -26,6 +26,7 @@ import scala.collection.immutable.SortedSet
 final case class Execution(
   digest:                            CalculatedValue[Option[ExecutionDigest]],
   programTimeCharge:                 ProgramTime,
+  originalEstimate:                  Option[ProgramTime],
   acquisitionSequenceIsMaterialized: Boolean,
   scienceSequenceIsMaterialized:     Boolean
 ) derives Eq:
@@ -55,6 +56,9 @@ object Execution:
     for
       d  <- c.get[CalculatedValue[Option[ExecutionDigest]]]("digest")
       pt <- c.get[ProgramTime]("timeCharge")
+      oe <- c.get[Option[ProgramTime]]("originalEstimate")(using
+              Decoder.decodeOption(using Decoder.instance(_.get[ProgramTime]("total")))
+            )
       a  <- c.get[Boolean]("acquisitionSequenceIsMaterialized")
       s  <- c.get[Boolean]("scienceSequenceIsMaterialized")
-    yield Execution(d, pt, a, s)
+    yield Execution(d, pt, oe, a, s)

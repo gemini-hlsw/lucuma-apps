@@ -14,6 +14,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.DismissedWarnings
+import explore.model.EstimateDisplay
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.syntax.all.*
@@ -66,6 +67,8 @@ final case class ObsBadge(
   readonly:              Boolean = false
 ) extends ReactFnProps(ObsBadge.component):
   val executionTime: CalculatedValue[Option[TimeSpan]] = obs.execution.digest.programTimeEstimate
+  val estimateDisplay: EstimateDisplay                 =
+    EstimateDisplay(obs.execution.originalEstimate.map(_.value), obs.workflow.value.state)
   val isDisabled: Boolean                              = readonly || obs.isCalibration
   val isDisabledExecuted: Boolean                      = isDisabled || obs.isExecuted
   val nonEmptyAllocatedBands                           = NonEmptySet.fromSet(allocatedScienceBands)
@@ -253,6 +256,25 @@ object ObsBadge:
         renderEnumProgress(obs.workflow.state)
       )
 
+      def remainingView(remaining: TimeSpan, label: Option[String]): VdomNode =
+        val tooltip = List(label, props.executionTime.staleTooltipString).flatten.mkString(". ")
+        TimeSpanView(remaining, tooltip = Option.when(tooltip.nonEmpty)(tooltip))
+          .withMods(props.executionTime.staleClass)
+
+      def originalView(original: TimeSpan): VdomNode =
+        TimeSpanView(original, tooltip = ("Original estimate": VdomNode).some)
+
+      val estimateView: TagMod = props.estimateDisplay match
+        case EstimateDisplay.RemainingOnly                  =>
+          props.executionTime.value.map(remainingView(_, none)).whenDefined
+        case EstimateDisplay.RemainingAndOriginal(original) =>
+          props.executionTime.value.fold(originalView(original)): remaining =>
+            <.span(remainingView(remaining, "Remaining estimate".some),
+                   " / ",
+                   originalView(original)
+            )
+        case EstimateDisplay.OriginalOnly(original)         => originalView(original)
+
       lazy val validationTooltip =
         if (obs.hasConfigurationRequestError)
           <.span(obs.workflow.value.validationErrors.head.messages.head)
@@ -365,10 +387,7 @@ object ObsBadge:
                     ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
                   ).withOptionalTooltip(obs.workflow.staleTooltip)
                 ),
-                props.executionTime.value.map(t =>
-                  TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
-                    .withMods(props.executionTime.staleClass)
-                ),
+                estimateView,
                 validationIcon
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
