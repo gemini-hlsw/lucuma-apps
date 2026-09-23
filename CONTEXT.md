@@ -187,6 +187,16 @@ estimate, not a charge: it is recomputed as the observation changes and says not
 time already used.
 _Avoid_: planned time (that is the program-level figure), execution duration
 
+**Remaining Estimate**:
+The Estimated Duration once execution has started: it shrinks as steps are executed, so it
+predicts only what is left to do. Before execution it equals the whole estimate.
+
+**Original Estimate**:
+The Estimated Duration as it stood when the first observe visit began, frozen from then on.
+It does not exist before execution starts, and it is what the actual time is compared with
+afterwards.
+_Avoid_: original planned time, planned time
+
 **Science Sequence** (as a duration):
 The time the science sequence itself takes, including the flats and arcs taken within it.
 It is not science exposures alone, and the ODB offers no split between the two.
