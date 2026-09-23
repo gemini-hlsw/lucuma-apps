@@ -114,14 +114,14 @@ object ProgramCacheController
     def whenProgramSelected[A](empty: A)(query: => IO[A]): IO[A] =
       if props.isProgramSelected then query else IO.pure(empty)
 
-    def tracked[A](step: LoadStep, clearOthers: Boolean = false)(query: IO[A]): IO[A] =
+    def tracked[A](stage: LoadStage, clearOthers: Boolean = false)(query: IO[A]): IO[A] =
       val begin: LoadProgress => LoadProgress = progress =>
-        (if clearOthers then Map.empty else progress).updated(step, LoadStepState.InFlight)
+        (if clearOthers then Map.empty else progress).updated(stage, LoadStageState.InFlight)
 
       props.loadProgress.update(begin) >>
         query
-          .logTime(step.label)
-          .flatTap(_ => props.loadProgress.update(_.updated(step, LoadStepState.Done)))
+          .logTime(stage.label)
+          .flatTap(_ => props.loadProgress.update(_.updated(stage, LoadStageState.Done)))
 
     val afterNextPaint: IO[Unit] =
       IO.async_ : cb =>
@@ -132,35 +132,35 @@ object ProgramCacheController
 
     val optProgramDetails: IO[Option[ProgramDetails]] =
       whenProgramSelected(empty = none):
-        tracked(LoadStep.ProgramDetails)(props.odbApi.programDetails(props.programId))
+        tracked(LoadStage.ProgramDetails)(props.odbApi.programDetails(props.programId))
 
     val targets: IO[List[TargetWithId]] =
       whenProgramSelected(empty = Nil):
-        tracked(LoadStep.Targets)(props.odbApi.allProgramTargets(props.programId))
+        tracked(LoadStage.Targets)(props.odbApi.allProgramTargets(props.programId))
 
     val observations: IO[List[Observation]] =
       whenProgramSelected(empty = Nil):
         Tracer[IO]
           .span("explore-mode-summary")
           .surround:
-            tracked(LoadStep.Observations)(props.odbApi.allProgramObservations(props.programId))
+            tracked(LoadStage.Observations)(props.odbApi.allProgramObservations(props.programId))
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       whenProgramSelected(empty = Nil):
-        tracked(LoadStep.ConfigurationRequests)(
+        tracked(LoadStage.ConfigurationRequests)(
           props.odbApi.allProgramConfigurationRequests(props.programId)
         )
 
     val groups: IO[List[Group]] =
       whenProgramSelected(empty = Nil):
-        tracked(LoadStep.Groups)(props.odbApi.allProgramGroups(props.programId))
+        tracked(LoadStage.Groups)(props.odbApi.allProgramGroups(props.programId))
 
     val attachments: IO[ProgramAttachments] =
       whenProgramSelected(empty = ProgramAttachments.Empty):
-        tracked(LoadStep.Attachments)(props.odbApi.allProgramAttachments(props.programId))
+        tracked(LoadStage.Attachments)(props.odbApi.allProgramAttachments(props.programId))
 
     val programs: IO[List[ProgramInfo]] =
-      tracked(LoadStep.Programs)(props.odbApi.allPrograms)
+      tracked(LoadStage.Programs)(props.odbApi.allPrograms)
 
     // The seven queries are independent; run them concurrently so the load costs their maximum, not their sum.
     val initializeSummaries: IO[(ProgramSummaries, List[Observation])] =
@@ -173,7 +173,7 @@ object ProgramCacheController
         programs,
         configurationRequests
       ).parTupled.flatMap: (obs, grps, pd, ts, as, ps, crs) =>
-        tracked(LoadStep.Preparing, clearOthers = true):
+        tracked(LoadStage.Preparing, clearOthers = true):
           afterNextPaint >> IO(ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs))
         .map((_, obs))
 

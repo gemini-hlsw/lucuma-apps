@@ -171,7 +171,7 @@ object ExploreStyles:
   val NotesTile: Css = Css("observer-notes-tile")
 
   val LoadProgressList: Css    = Css("load-progress-list")
-  val LoadProgressStep: Css    = Css("load-progress-step")
+  val LoadProgressStage: Css   = Css("load-progress-stage")
   val LoadProgressDone: Css    = Css("load-progress-done")
   val LoadProgressSpinner: Css = Css("load-progress-spinner")
 

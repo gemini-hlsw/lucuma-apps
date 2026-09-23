@@ -8,8 +8,8 @@ import cats.syntax.all.*
 import crystal.react.hooks.*
 import explore.Icons
 import explore.cache.LoadProgressRef
-import explore.cache.LoadStep
-import explore.cache.LoadStepState
+import explore.cache.LoadStage
+import explore.cache.LoadStageState
 import explore.components.ui.ExploreStyles
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -20,24 +20,24 @@ case class LoadProgressIndicator(progress: LoadProgressRef[IO])
     extends ReactFnProps(LoadProgressIndicator.component)
 
 object LoadProgressIndicator:
-  private def stepItem(step: LoadStep, state: LoadStepState): VdomNode =
+  private def stageItem(stage: LoadStage, state: LoadStageState): VdomNode =
     <.li(
-      ExploreStyles.LoadProgressStep,
-      ExploreStyles.LoadProgressDone.when(state === LoadStepState.Done),
-      ^.key := step.toString
+      ExploreStyles.LoadProgressStage,
+      ExploreStyles.LoadProgressDone.when(state === LoadStageState.Done),
+      ^.key := stage.toString
     )(
       <.span(ExploreStyles.LoadProgressSpinner)(Icons.Spinner.withFixedWidth()),
-      <.span(step.label)
+      <.span(stage.label)
     )
 
   private val component = ScalaFnComponent[LoadProgressIndicator]: props =>
     useStreamOnMount(props.progress.discrete).map: progress =>
-      val steps: Option[VdomNode] =
+      val stages: Option[VdomNode] =
         progress.toOption
           .filter(_.nonEmpty)
           .map: states =>
             <.ul(ExploreStyles.LoadProgressList)(
-              states.toList.sortBy(_._1.ordinal).map(stepItem).toTagMod
+              states.toList.sortBy(_._1.ordinal).map(stageItem).toTagMod
             )
 
-      SolarProgress(message = steps)
+      SolarProgress(message = stages)
