@@ -673,7 +673,7 @@ object TargetTabContents extends TwoPanels:
 
             TileController(
               props.userId,
-              resize.width.getOrElse(1),
+              resize.width.getOrElse(0),
               ExploreGridLayouts.targets.defaultTargetLayouts,
               props.userPreferences.get.targetTabLayout,
               tiles,

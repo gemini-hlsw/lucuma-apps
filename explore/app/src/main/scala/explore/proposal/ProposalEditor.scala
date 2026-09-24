@@ -471,7 +471,7 @@ object ProposalEditor
           <.div(ExploreStyles.MultiPanelTile)(
             TileController(
               props.optUserId,
-              resize.width.getOrElse(1),
+              resize.width.getOrElse(0),
               defaultLayouts,
               props.layout,
               List(

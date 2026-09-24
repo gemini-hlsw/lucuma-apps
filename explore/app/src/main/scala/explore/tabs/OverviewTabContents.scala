@@ -197,7 +197,7 @@ object OverviewTabContents
         <.div(ExploreStyles.MultiPanelTile)(
           TileController(
             props.userId,
-            resize.width.getOrElse(1),
+            resize.width.getOrElse(0),
             defaultLayouts,
             props.layout,
             List(
