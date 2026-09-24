@@ -19,6 +19,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
+import lucuma.core.model.sequence.StepDigest
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.*
@@ -118,7 +119,14 @@ object ObservationDetailsTile
 
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
-            val setupCount: Int = d.setupCount.value
+            val setupCount: Int   = d.setupCount.value
+            val flats: StepDigest = d.science.steps.flats
+            val arcs: StepDigest  = d.science.steps.arcs
+
+            def stepSummary(s: StepDigest, noun: String): VdomNode =
+              val n     = s.count.value
+              val label = if n === 1 then s"1 $noun" else s"$n ${noun}s"
+              <.span(s"$label (", duration(s.time.programTime), ")")
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
@@ -129,6 +137,10 @@ object ObservationDetailsTile
                 duration(d.science.timeEstimate.programTime, scienceTooltip.some),
                 "Science Sequence"
               ),
+              FormInfo(
+                <.span(stepSummary(flats, "flat"), ", ", stepSummary(arcs, "arc")),
+                "Flats & Arcs"
+              ).when(flats.count.value > 0 || arcs.count.value > 0),
               FormInfo(
                 <.span(s"$setupCount × ", duration(d.setup.full)),
                 "Setup"
