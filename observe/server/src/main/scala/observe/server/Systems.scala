@@ -12,6 +12,7 @@ import cats.effect.kernel.Ref
 import cats.effect.std.SecureRandom
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
+import clue.FetchClient
 import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import clue.http4s.Http4sWebSocketBackend
@@ -26,6 +27,7 @@ import io.circe.syntax.*
 import lucuma.core.enums.Site
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
+import observe.common.NavigateDB
 import observe.model.CurrentConditions
 import observe.model.SystemOverrides
 import observe.model.config.*
@@ -59,6 +61,7 @@ import org.http4s.Headers
 import org.http4s.client.Client
 import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.JdkWSClient
 import org.typelevel.log4cats.Logger
@@ -94,6 +97,9 @@ case class Systems[F[_]] private[server] (
 )
 
 object Systems {
+
+  // Navigate's configureStep only returns once the telescope has settled.
+  private val NavigateTimeout: FiniteDuration = 3.minutes
 
   case class Builder(
     settings:     ObserveEngineConfiguration,
@@ -169,6 +175,20 @@ object Systems {
             DummyOdbCommands[F]
       yield OdbProxy[F](odbCommands, stepSpans)(using tracingWS)
 
+    /**
+     * Client for Navigate, only built when Observe commands the TCS. It has its own http client
+     * because `configureStep` only returns once the telescope has settled.
+     */
+    def navigateClient: Resource[IO, Option[FetchClient[IO, NavigateDB]]] =
+      if (settings.systemControl.tcs.command)
+        for {
+          httpClient                 <- EmberClientBuilder.default[IO].withTimeout(NavigateTimeout).build
+          given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
+          client                     <- Resource.eval:
+                                          Http4sHttpClient.of[IO, NavigateDB](settings.navigateHttp, "Navigate")
+        } yield Otel4sMiddleware(client).some
+      else Resource.pure(none)
+
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
         new DhsClientProvider[F] {
@@ -203,24 +223,30 @@ object Systems {
           )
       else (GcalControllerSim[IO], DummyGcalKeywordsReader[IO]).pure[IO]
 
+    // The step configuration goes to Navigate only when the TCS is fully controlled. The client is
+    // only built in that case, otherwise the TCS configuration is simulated.
     def tcsSouth(
       tcsEpicsO: => Option[TcsEpics[IO]],
-      site:      Site,
-      gcdb:      GuideConfigDb[IO]
+      navigateO: Option[FetchClient[IO, NavigateDB]],
+      site:      Site
     ): TcsSouthController[IO] =
-      tcsEpicsO
-        .map { tcsEpics =>
-          if (settings.systemControl.tcs.command && site === Site.GS)
-            TcsSouthControllerEpics(tcsEpics, gcdb)
+      (tcsEpicsO, navigateO)
+        .mapN { (tcsEpics, navigate) =>
+          given FetchClient[IO, NavigateDB] = navigate
+          if (site === Site.GS) TcsSouthControllerNavigate(tcsEpics)
           else TcsSouthControllerSim[IO]
         }
         .getOrElse(TcsSouthControllerSim[IO])
 
-    def tcsNorth(tcsEpicsO: => Option[TcsEpics[IO]], site: Site): TcsNorthController[IO] =
-      tcsEpicsO
-        .map { tcsEpics =>
-          if (settings.systemControl.tcs.command && site === Site.GN)
-            TcsNorthControllerEpics(tcsEpics)
+    def tcsNorth(
+      tcsEpicsO: => Option[TcsEpics[IO]],
+      navigateO: Option[FetchClient[IO, NavigateDB]],
+      site:      Site
+    ): TcsNorthController[IO] =
+      (tcsEpicsO, navigateO)
+        .mapN { (tcsEpics, navigate) =>
+          given FetchClient[IO, NavigateDB] = navigate
+          if (site === Site.GN) TcsNorthControllerNavigate(tcsEpics)
           else TcsNorthControllerSim[IO]
         }
         .getOrElse(TcsNorthControllerSim[IO])
@@ -243,7 +269,7 @@ object Systems {
       else
         (AltairControllerSim[IO], AltairKeywordReaderDummy[IO]).pure[IO]
 
-    def tcsObjects(gcdb: GuideConfigDb[IO], site: Site): IO[
+    def tcsObjects(navigateO: Option[FetchClient[IO, NavigateDB]], site: Site): IO[
       (
         TcsNorthController[IO],
         TcsSouthController[IO],
@@ -259,8 +285,8 @@ object Systems {
                                   .sequence
         a                    <- altair(tcsEpicsO)
         (altairCtr, altairKR) = a
-        tcsNCtr               = tcsNorth(tcsEpicsO, site)
-        tcsSCtr               = tcsSouth(tcsEpicsO, site, gcdb)
+        tcsNCtr               = tcsNorth(tcsEpicsO, navigateO, site)
+        tcsSCtr               = tcsSouth(tcsEpicsO, navigateO, site)
         tcsKR                 = tcsEpicsO.map(TcsKeywordsReaderEpics[IO]).getOrElse(DummyTcsKeywordsReader[IO])
         condsR                = tcsEpicsO
                                   .map(ConditionSetReaderEpics.apply(site, _))
@@ -460,7 +486,8 @@ object Systems {
         gcdb                                              <- Resource.eval(GuideConfigDb.newDb[IO])
         gcals                                             <- Resource.eval(gcal)
         (gcalCtr, gcalKR)                                  = gcals
-        v                                                 <- Resource.eval(tcsObjects(gcdb, site))
+        navigateO                                         <- navigateClient
+        v                                                 <- Resource.eval(tcsObjects(navigateO, site))
         (tcsGN, tcsGS, tcsKR, altairCtr, altairKR, condsR) = v
         w                                                 <- Resource.eval(gemsObjects)
         (gemsCtr, gemsKR, gsaoiCtr, gsaoiKR)               = w

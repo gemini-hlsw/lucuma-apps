@@ -38,6 +38,7 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
 import navigate.model.CommandResult
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -177,6 +178,7 @@ trait NavigateEngine[F[_]] {
     offset:     Option[Offset],
     wavelength: Option[Wavelength],
     lightPath:  Option[LightPath],
+    defocus:    Option[Distance],
     guiding:    Boolean
   ): F[CommandResult]
   def originOffsetAbsorb: F[CommandResult]
@@ -716,13 +718,14 @@ object NavigateEngine {
       offset:     Option[Offset],
       wavelength: Option[Wavelength],
       lightPath:  Option[LightPath],
+      defocus:    Option[Distance],
       guiding:    Boolean
     ): F[CommandResult] =
       simpleCommand(
         engine,
-        ConfigureStep(offset, wavelength, lightPath, guiding),
+        ConfigureStep(offset, wavelength, lightPath, defocus, guiding),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.configureStep(offset, wavelength, lightPath, guiding)(
+          systems.tcsCommon.configureStep(offset, wavelength, lightPath, defocus, guiding)(
             s.guideConfig,
             s.wfsTrackingConfig
           )

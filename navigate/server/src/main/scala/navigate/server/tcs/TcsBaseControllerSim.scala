@@ -34,6 +34,7 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -293,6 +294,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     offset:      Option[Offset],
     wavelength:  Option[Wavelength],
     lightPath:   Option[LightPath],
+    defocus:     Option[Distance],
     guiding:     Boolean
   )(
     guide:       GuideConfig,
