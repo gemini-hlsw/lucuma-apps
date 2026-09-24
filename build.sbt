@@ -917,6 +917,8 @@ lazy val navigate_web_server = project
         ),
     // Supports launching the server in the background
     reStart / mainClass := Some("navigate.web.server.http4s.WebServerLauncher"),
+    // Observe's stitched copy of the schema, checked against navigate.graphql by NavigateSchemaSuite
+    Test / unmanagedResourceDirectories += (ThisBuild / baseDirectory).value / "observe" / "server" / "src" / "clue" / "resources",
     // Don't include configuration files in the JAR. We want them outside, so they are editable.
     Compile / packageBin / mappings ~= {
       _.filterNot(f => f._1.getName.endsWith("logback.xml"))

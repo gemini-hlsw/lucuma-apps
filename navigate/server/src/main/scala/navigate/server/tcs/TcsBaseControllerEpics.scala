@@ -2145,6 +2145,16 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     } yield r
 
   // Same wavelength is applied to both beams (A and B).
+  // The instrument defocus is applied as focus offset B, leaving the instrument's own focus offset
+  // (focus offset A, set on slew from the instrument specifics) unchanged.
+  private def instrumentDefocus(defocus: Distance): F[ApplyCommandResult] =
+    sys.tcsEpics
+      .startCommand(timeout)
+      .focusOffsetCommand
+      .focusOffsetB(defocus)
+      .post
+      .verifiedRun(ConnectionTimeout)
+
   override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
     sys.tcsEpics
       .startCommand(timeout)
@@ -2232,6 +2242,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     offset:      Option[Offset],
     wavelength:  Option[Wavelength],
     lightPath:   Option[LightPath],
+    defocus:     Option[Distance],
     guiding:     Boolean
   )(
     guide:       GuideConfig,
@@ -2273,13 +2284,18 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                             .whenA(!effectiveGuiding)
       lpResult         <- lightPath.traverse(lp => this.lightPath(lp.from, lp.to))
       wlResult         <- wavelength.traverse(centralWavelength)
+      dfResult         <- defocus.traverse(instrumentDefocus)
       offResult        <- fpOffset.traverse(applyOffset)
       _                <- resumeWfsTracking(pg, wfsTracking)
                             .verifiedRun(ConnectionTimeout)
                             .whenA(effectiveGuiding)
       _                <-
         resumeGuide(guide.tcsGuide).whenA(effectiveGuiding && (pause || !gs.isGuiding))
-    } yield offResult.orElse(wlResult).orElse(lpResult).getOrElse(ApplyCommandResult.Completed)
+    } yield offResult
+      .orElse(dfResult)
+      .orElse(wlResult)
+      .orElse(lpResult)
+      .getOrElse(ApplyCommandResult.Completed)
 
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
     adjustParams(handsetAdjustment).flatMap { case (frame, size, angle) =>

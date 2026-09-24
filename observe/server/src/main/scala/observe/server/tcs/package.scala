@@ -12,12 +12,10 @@ import edu.gemini.observe.server.tcs.BinaryYesNo
 import edu.gemini.observe.server.tcs.ParkState
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
-import lucuma.core.util.TimeSpan
 import observe.server.tcs.TcsController.InstrumentOffset
 import observe.server.tcs.TcsController.OffsetP
 import observe.server.tcs.TcsController.OffsetQ
 
-import java.time.temporal.ChronoUnit
 import scala.language.implicitConversions
 
 private class FocalPlaneScale(
@@ -38,9 +36,6 @@ private class FocalPlaneScale(
     counter * (a / base)
 
 }
-
-val tcsTimeout: TimeSpan = TimeSpan.unsafeFromDuration(90, ChronoUnit.SECONDS)
-val agTimeout: TimeSpan  = TimeSpan.unsafeFromDuration(90, ChronoUnit.SECONDS)
 
 object FocalPlaneScale:
   extension (l: Quantity[Double, Millimeter])
@@ -64,14 +59,15 @@ extension (o: Offset) {
     InstrumentOffset(OffsetP(o.p.toAngle.iop), OffsetQ(o.q.toAngle.ioq))
 }
 
-sealed case class WithDebug[A](self: A, debug: String) {
-  def mapDebug(f: String => String): WithDebug[A] = this.copy(debug = f(debug))
+private val MicroarcsecondsPerArcsecond: Double = 1e6
+
+private def arcsecondsToAngle(a: Quantity[Double, ArcSecond]): Angle =
+  Angle.fromMicroarcseconds((a.value * MicroarcsecondsPerArcsecond).round)
+
+extension (o: InstrumentOffset) {
+  def toOffset: Offset =
+    Offset(Offset.P(arcsecondsToAngle(o.p.value)), Offset.Q(arcsecondsToAngle(o.q.value)))
 }
-
-val BottomPort: Int  = 1
-val InvalidPort: Int = 0
-
-val NonStopExposures = -1
 
 // Focal plane scale, expressed with coulomb quantities.
 val FOCAL_PLANE_SCALE =
@@ -91,9 +87,3 @@ given Eq[BinaryOnOff]           = Eq.by[BinaryOnOff, Int](_.ordinal())
 given Eq[BinaryYesNo]           = Eq.by[BinaryYesNo, Int](_.ordinal())
 given Eq[BinaryEnabledDisabled] = Eq.by[BinaryEnabledDisabled, Int](_.ordinal())
 given Eq[ParkState]             = Eq.by[ParkState, Int](_.ordinal())
-
-extension [A](v: A) {
-  def withDebug(msg: String): WithDebug[A] = WithDebug(v, msg)
-}
-
-type SquaredMillis = Millimeter * Millimeter
