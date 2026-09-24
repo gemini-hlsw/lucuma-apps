@@ -2,14 +2,12 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, type UserConfig } from 'vite';
 
-const scalaVersion = '3.9.0';
-
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const sjs =
     mode == 'production'
-      ? path.resolve(__dirname, `target/scala-${scalaVersion}/ui_demo-opt/`)
-      : path.resolve(__dirname, `target/scala-${scalaVersion}/ui_demo-fastopt/`);
+      ? path.resolve(__dirname, 'target/scalajs/ui_demo-opt/')
+      : path.resolve(__dirname, 'target/scalajs/ui_demo-fastopt/');
   return {
     root: 'src/main/webapp',
     // https://github.com/react-grid-layout/react-draggable/issues/806
