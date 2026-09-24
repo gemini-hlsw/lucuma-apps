@@ -189,7 +189,7 @@ object ProgramTabContents
         <.div(ExploreStyles.MultiPanelTile)(
           TileController(
             userId,
-            resize.width.getOrElse(1),
+            resize.width.getOrElse(0),
             defaultLayouts,
             layouts,
             List(

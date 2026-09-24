@@ -165,7 +165,13 @@ object TileController:
         else r
       }(p)
 
+  // Before the grid width is known tiles would render squeezed to nothing, reporting auto heights
+  // far taller than their real ones and picking the breakpoint from a zero width.
   private val component =
+    ScalaFnComponent[Props]: props =>
+      if props.gridWidth > 0 then grid(props) else EmptyVdom
+
+  private val grid =
     ScalaFnComponent[Props]: props =>
       val tileFlags: TileFlags = TileFlags.of(props.tiles)
       for
