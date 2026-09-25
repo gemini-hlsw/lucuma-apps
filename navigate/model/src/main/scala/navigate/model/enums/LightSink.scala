@@ -8,7 +8,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.util.Enumerated
-import navigate.model.enums.LightSinkVariant
+import lucuma.schemas.model.navigate.LightSinkVariant
 
 enum LightSink(val tag: String, val instrument: Instrument, val variant: Option[LightSinkVariant])
     derives Enumerated,

@@ -42,6 +42,8 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.horizons.HorizonsClient
+import lucuma.schemas.model.navigate.LightSource
+import lucuma.schemas.model.navigate.OperationResult
 import monocle.Focus.focus
 import mouse.boolean.given
 import munit.CatsEffectSuite
@@ -87,7 +89,6 @@ import navigate.model.enums.DomeMode
 import navigate.model.enums.FollowStatus
 import navigate.model.enums.FollowStatus.*
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop

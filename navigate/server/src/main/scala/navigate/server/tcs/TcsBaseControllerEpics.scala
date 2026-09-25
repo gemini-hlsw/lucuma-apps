@@ -35,6 +35,8 @@ import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
+import lucuma.schemas.model.navigate.LightSource.sendsStarlight
 import monocle.Focus
 import monocle.Focus.focus
 import monocle.Getter
@@ -101,8 +103,6 @@ import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.HrwfsPickupPosition
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
-import navigate.model.enums.LightSource.sendsStarlight
 import navigate.model.enums.OiwfsWavelength
 import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.NotParked

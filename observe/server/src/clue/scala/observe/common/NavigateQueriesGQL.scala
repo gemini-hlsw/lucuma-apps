@@ -5,6 +5,7 @@ package observe.common
 
 import clue.GraphQLOperation
 import clue.annotation.GraphQL
+import lucuma.schemas.NavigateDB
 
 object NavigateQueriesGQL {
 

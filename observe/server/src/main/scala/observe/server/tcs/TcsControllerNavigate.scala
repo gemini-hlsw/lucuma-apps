@@ -13,14 +13,14 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.Site
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.NavigateDB
+import lucuma.schemas.NavigateDB.Types.ConfigureStepInput
+import lucuma.schemas.NavigateDB.Types.DistanceInput
+import lucuma.schemas.NavigateDB.Types.LightPathInput
 import lucuma.schemas.ObservationDB.Types.OffsetInput
+import lucuma.schemas.model.navigate.LightSinkVariant
+import lucuma.schemas.model.navigate.OperationResult
 import lucuma.schemas.odb.input.*
-import observe.common.NavigateDB
-import observe.common.NavigateDB.Enums.LightSinkVariant
-import observe.common.NavigateDB.Enums.OperationResult
-import observe.common.NavigateDB.Types.ConfigureStepInput
-import observe.common.NavigateDB.Types.DistanceInput
-import observe.common.NavigateDB.Types.LightPathInput
 import observe.common.NavigateQueriesGQL.ConfigureStepMutation
 import observe.server.Length
 import observe.server.ObserveFailure
@@ -28,8 +28,6 @@ import observe.server.tcs.TcsController.*
 import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
-
-import NavigateDB.Enums.LightSource as NavigateLightSource
 
 /**
  * Configures the telescope for a step through Navigate's `configureStep` mutation, instead of
@@ -176,11 +174,7 @@ object TcsControllerNavigate {
 
   def lightPathInput(lp: LightPath, instrument: Instrument): LightPathInput =
     LightPathInput(
-      from = lp.source match {
-        case LightSource.Sky  => NavigateLightSource.Sky
-        case LightSource.AO   => NavigateLightSource.Ao
-        case LightSource.GCAL => NavigateLightSource.Gcal
-      },
+      from = lp.source,
       instrument = instrument,
       lightSinkVariant = lightSinkVariant(lp.sink).orIgnore
     )

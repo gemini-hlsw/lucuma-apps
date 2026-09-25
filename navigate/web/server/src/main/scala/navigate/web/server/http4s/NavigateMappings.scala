@@ -39,6 +39,8 @@ import lucuma.core.util.TimeSpan
 import lucuma.odb.graphql.binding.*
 import lucuma.odb.graphql.schema.SchemaStitcher
 import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
+import lucuma.schemas.model.navigate.LightSinkVariant
+import lucuma.schemas.model.navigate.LightSource
 import mouse.boolean.given
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
@@ -96,8 +98,6 @@ import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSinkVariant
-import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode

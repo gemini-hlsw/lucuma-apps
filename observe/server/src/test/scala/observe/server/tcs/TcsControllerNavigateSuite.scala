@@ -24,14 +24,14 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.TelescopeGuideConfig
+import lucuma.schemas.NavigateDB.Types.ConfigureStepInput
+import lucuma.schemas.NavigateDB.Types.DistanceInput
+import lucuma.schemas.NavigateDB.Types.LightPathInput
 import lucuma.schemas.ObservationDB.Types.OffsetComponentInput
 import lucuma.schemas.ObservationDB.Types.OffsetInput
 import lucuma.schemas.ObservationDB.Types.WavelengthInput
-import observe.common.NavigateDB.Enums.LightSinkVariant
-import observe.common.NavigateDB.Enums.LightSource as NavigateLightSource
-import observe.common.NavigateDB.Types.ConfigureStepInput
-import observe.common.NavigateDB.Types.DistanceInput
-import observe.common.NavigateDB.Types.LightPathInput
+import lucuma.schemas.model.navigate.LightSinkVariant
+import lucuma.schemas.model.navigate.LightSource
 import observe.common.NavigateQueriesGQL.ConfigureStepMutation
 import observe.server.InstrumentGuide
 import observe.server.Length
@@ -98,7 +98,7 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
       ConfigureStepInput(
         offset = expectedOffset.assign,
         wavelength = WavelengthInput.Picometers(wavelength.toPicometers.value).assign,
-        lightPath = LightPathInput(NavigateLightSource.Sky, Instrument.GmosNorth).assign,
+        lightPath = LightPathInput(LightSource.Sky, Instrument.GmosNorth).assign,
         defocus = DistanceInput.Micrometers(-120L).assign,
         guiding = true
       )
@@ -128,7 +128,7 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
     assertEquals(input.wavelength, Ignore)
     assertEquals(
       input.lightPath,
-      LightPathInput(NavigateLightSource.Gcal, Instrument.GmosNorth).assign
+      LightPathInput(LightSource.GCAL, Instrument.GmosNorth).assign
     )
   }
 
@@ -156,12 +156,12 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
         LightPath(LightSource.Sky, LightSinkName.Gmos_Ifu),
         Instrument.GmosNorth
       ),
-      LightPathInput(NavigateLightSource.Sky, Instrument.GmosNorth, LightSinkVariant.GmosIfu.assign)
+      LightPathInput(LightSource.Sky, Instrument.GmosNorth, LightSinkVariant.GmosIfu.assign)
     )
     assertEquals(
       TcsControllerNavigate
         .lightPathInput(LightPath(LightSource.AO, LightSinkName.Niri_f32), Instrument.Niri),
-      LightPathInput(NavigateLightSource.Ao, Instrument.Niri, LightSinkVariant.NiriF32.assign)
+      LightPathInput(LightSource.AO, Instrument.Niri, LightSinkVariant.NiriF32.assign)
     )
   }
 

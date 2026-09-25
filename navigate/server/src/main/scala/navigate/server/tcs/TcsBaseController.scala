@@ -13,6 +13,7 @@ import lucuma.core.model.GuideConfig
 import lucuma.core.model.IntPercent
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
@@ -42,7 +43,6 @@ import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode

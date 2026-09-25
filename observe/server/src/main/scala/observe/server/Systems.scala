@@ -25,9 +25,9 @@ import giapi.client.ghost.GhostClient
 import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
+import lucuma.schemas.NavigateDB
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
-import observe.common.NavigateDB
 import observe.model.CurrentConditions
 import observe.model.SystemOverrides
 import observe.model.config.*

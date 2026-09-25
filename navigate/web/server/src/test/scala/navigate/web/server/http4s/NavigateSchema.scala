@@ -21,22 +21,20 @@ import org.typelevel.log4cats.noop.NoOpLogger
 object NavigateSchema {
   private given Logger[IO] = NoOpLogger.impl[IO]
 
-  val StitchedSchemaResource: String = "NavigateDB.graphql"
+  // Classpath location of the stitched schema, provided by the schemas_navigate project
+  val StitchedSchemaResource: String = "lucuma/schemas/NavigateDB.graphql"
 
   val render: IO[String] =
     NavigateMappings.loadSchema[IO].map(SchemaRenderer.renderSchema)
 }
 
 /**
- * Writes the stitched Navigate schema used by Observe's Clue queries. Run it from the repository
- * root with:
- * {{{
- * sbt "navigate_web_server/Test/runMain navigate.web.server.http4s.RenderNavigateSchema"
- * }}}
+ * Writes the stitched Navigate schema used by Navigate's clients. Run it with `sbt
+ * navigateSchemaGenerate`, which also has Clue regenerate the code from it.
  */
 object RenderNavigateSchema extends IOApp {
   private val DefaultTarget: String =
-    s"observe/server/src/clue/resources/${NavigateSchema.StitchedSchemaResource}"
+    s"schemas/navigate/src/clue/resources/${NavigateSchema.StitchedSchemaResource}"
 
   def run(args: List[String]): IO[ExitCode] = {
     val target = Path(args.headOption.getOrElse(DefaultTarget))
@@ -46,10 +44,7 @@ object RenderNavigateSchema extends IOApp {
           .emit(schema)
           .through(Files[IO].writeUtf8(target))
           .compile
-          .drain >> IO.println(
-          s"Wrote stitched Navigate schema to $target. Run `sbt observe_server/clueClean` so Clue " +
-            "regenerates the Navigate types from it."
-        )
+          .drain >> IO.println(s"Wrote stitched Navigate schema to $target")
       }
       .as(ExitCode.Success)
   }
