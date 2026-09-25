@@ -24,7 +24,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
-import lucuma.ui.format.DurationFormatter
+import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.format.TimeSpanFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -126,17 +126,17 @@ object ObservationDetailsTile
             val flats                     = d.science.steps.flats
             val arcs                      = d.science.steps.arcs
             val gcalTotal                 = flats.time.programTime +| arcs.time.programTime
-            def secs(t: TimeSpan): String = DurationFormatter(t.toDuration)
+            def secs(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
 
             val gcalSetsRow: Option[VdomNode] =
               NonZeroInt
                 .from(gcalSets)
                 .toOption
                 .map: n =>
-                  val sets = if gcalSets === 1 then "1 set" else s"$gcalSets sets"
-                  FormInfo(s"$sets, ${secs(gcalTotal)} (${secs(gcalTotal /| n)} each)",
-                           "Flats & Arcs"
-                  )
+                  val text =
+                    if gcalSets === 1 then s"1 set, ${secs(gcalTotal)}"
+                    else s"$gcalSets sets, ${secs(gcalTotal)} (${secs(gcalTotal /| n)} each)"
+                  FormInfo(text, "Flats & Arcs")
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(

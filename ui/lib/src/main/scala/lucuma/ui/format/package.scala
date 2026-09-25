@@ -13,11 +13,16 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-val DurationFormatter: Duration => String = d =>
+private def durationFormatter(separator: String): Duration => String = d =>
   val hours: Option[Long]  = d.toHours.some.filter(_ > 0)
   val minutes: Option[Int] = d.toMinutesPart.some.filter(_ > 0 || hours.isDefined)
   val seconds: Int         = d.toSecondsPart
-  hours.map(h => s"${h}h").orEmpty + minutes.map(m => s"${m}m").orEmpty + s"${seconds}s"
+  (hours.map(h => s"${h}h").toList ++ minutes.map(m => s"${m}m").toList :+ s"${seconds}s")
+    .mkString(separator)
+
+val DurationFormatter: Duration => String = durationFormatter("")
+
+val DurationSpacedFormatter: Duration => String = durationFormatter(" ")
 
 val DurationLongFormatter: Duration => String = d =>
   val days: Option[Long]   = d.toDays.some.filter(_ > 0)
