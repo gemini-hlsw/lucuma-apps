@@ -27,6 +27,7 @@ import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
 import explore.tabs.DeckShown
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -585,7 +586,7 @@ object ObsTree:
                           adding,
                           ctx
                         ).runAsync *> expandFocusedGroup
-                      ).mini.compact,
+                      ).withMods(testId := "explore-obs-tree-add-obs").mini.compact,
                       Button(
                         severity = Button.Severity.Success,
                         icon = Icons.New,

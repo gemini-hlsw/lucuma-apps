@@ -22,6 +22,7 @@ import explore.model.reusability.given
 import explore.programs.ProgramsPopup
 import explore.users.RedeemInvitationsPopup
 import explore.users.UserPreferencesPopup
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ExecutionEnvironment
@@ -164,7 +165,8 @@ object TopBar:
              MenuItem.Item(
                label = "Manage Programs",
                icon = Icons.ListCheck,
-               command = openManagePrograms
+               command = openManagePrograms,
+               id = "explore-menu-manage-programs"
              )
            ) ::: recentProgramsItem
          else recentProgramsItem)
@@ -347,7 +349,7 @@ object TopBar:
                   onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
                 ).small.compact
               else EmptyVdom,
-              <.span(LayoutStyles.MainUserName)(user.displayName),
+              <.span(LayoutStyles.MainUserName, testId := "explore-topbar-user")(user.displayName),
               RoleSwitch(props.vault, ctx.sso, props.onRoleChange),
               ConnectionsStatus(),
               Button(
@@ -355,7 +357,7 @@ object TopBar:
                 text = true,
                 severity = Button.Severity.Secondary,
                 onClickE = menuRef.toggle
-              )
+              ).withMods(testId := "explore-topbar-menu")
             )
           ),
           PopupTieredMenu(model = menuItems, clazz = ExploreStyles.TopMenu).withRef(menuRef.ref),

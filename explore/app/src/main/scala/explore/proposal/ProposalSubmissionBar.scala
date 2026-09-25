@@ -11,6 +11,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.services.OdbProposalApi
 import explore.syntax.ui.*
+import explore.utils.testId
 import fs2.Stream
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -136,7 +137,7 @@ object ProposalSubmissionBar
                     onClick = updateStatus(ProposalStatus.Submitted),
                     disabled =
                       isUpdatingStatus.get.value || props.hasProposalErrors || deadlinePassed || !props.canSubmit
-                  ).compact.tiny,
+                  ).withMods(testId := "explore-proposal-submit").compact.tiny,
                   props.deadline.map: deadlineEither =>
                     val (text, severity) = deadlineEither match
                       case Right(deadline) =>
@@ -165,7 +166,9 @@ object ProposalSubmissionBar
                 severity = Button.Severity.Warning,
                 onClick = updateStatus(ProposalStatus.NotSubmitted),
                 disabled = isUpdatingStatus.get.value || !deadlineOpen || !props.canSubmit
-              ).compact.tiny
+              ).withMods(testId := "explore-proposal-retract")
+                .compact
+                .tiny
                 .when:
                   props.proposalStatus.get === ProposalStatus.Submitted && deadlineOpen
               ,

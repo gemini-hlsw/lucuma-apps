@@ -22,6 +22,7 @@ import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
 import explore.model.enums.Visible
 import explore.services.OdbProgramApi
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
@@ -139,6 +140,7 @@ object ProgramsPopup:
         dismissableMask = props.onClose.isDefined,
         resizable = true,
         clazz = LucumaPrimeStyles.Dialog.Large |+| ExploreStyles.ProgramsPopup,
+        modifiers = List(testId := "explore-programs-dialog"),
         header = <.span(ExploreStyles.ProgramsPopupTitle)(
           "Proposals & Programs",
           Button(
@@ -173,7 +175,7 @@ object ProgramsPopup:
                 isAdding,
                 programId => newProgramId.set(programId.some)
               ).runAsync
-            ).small.compact,
+            ).withMods(testId := "explore-programs-create").small.compact,
             CheckboxView(
               id = "show-deleted".refined,
               value = showDeleted.as(ShowDeleted.Value),

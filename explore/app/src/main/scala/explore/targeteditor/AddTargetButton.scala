@@ -27,8 +27,10 @@ import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
 import explore.targets.TargetSelectionPopup
 import explore.targets.TargetSource
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
+import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -146,19 +148,19 @@ object AddTargetButton
           )
 
       case class Action(
-        label:    String,
-        icon:     Icon,
-        command:  Callback,
-        disabled: Boolean = false
+        label:     String,
+        icon:      Icon,
+        command:   Callback,
+        disabled:  Boolean = false,
+        testIdOpt: Option[String] = None
       ):
         def toMenuItem: MenuItem                       =
           MenuItem.Item(label, icon = icon, command = command, disabled = disabled)
         def toButton(initialOnClick: Callback): Button =
-          Button(label,
-                 icon = icon,
-                 onClick = initialOnClick >> command,
-                 disabled = disabled
-          ).tiny.compact
+          Button(label, icon = icon, onClick = initialOnClick >> command, disabled = disabled)
+            .withMods(testIdOpt.fold(TagMod.empty)(id => testId := id))
+            .tiny
+            .compact
 
       // The reusable menu content built by `menuItems`, it was a hard to read tuple before
       case class MenuContent(
@@ -320,7 +322,8 @@ object AddTargetButton
             Action(
               "Empty Sidereal Target",
               icon = Icons.Star,
-              command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
+              command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget)),
+              testIdOpt = "explore-target-add-empty-sidereal".some
             ),
             Action(
               "Target of Opportunity",
