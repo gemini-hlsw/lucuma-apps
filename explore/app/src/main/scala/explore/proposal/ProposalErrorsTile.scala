@@ -7,6 +7,7 @@ import explore.Icons
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.ProposalTabTileIds
+import explore.utils.testId
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProposalSubmissionError
 
@@ -21,7 +22,7 @@ final case class ProposalErrorsTile(errors: List[ProposalSubmissionError])
 object ProposalErrorsTile
     extends TileComponent[ProposalErrorsTile]((props, _) =>
       TileContents:
-        <.div(ExploreStyles.ProposalErrorsTile)(
+        <.div(ExploreStyles.ProposalErrorsTile, testId := "explore-proposal-errors")(
           props.errors
             .map: e =>
               <.div(Icons.ErrorIcon, e.message)

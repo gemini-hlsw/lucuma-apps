@@ -26,6 +26,7 @@ import explore.services.OdbObservationApi
 import explore.targets.MotionCorrectedTarget
 import explore.targets.TargetColumns
 import explore.utils.obsTimeOrDefault
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
@@ -277,7 +278,7 @@ object TargetTable:
           if (props.readOnly)
             <.div(LucumaStyles.HVCenter)(Constants.NoTargets)
           else
-            <.div(LucumaStyles.HVCenter)(
+            <.div(LucumaStyles.HVCenter, testId := "explore-target-add")(
               AddTargetButton(
                 "Add a target",
                 props.programId,

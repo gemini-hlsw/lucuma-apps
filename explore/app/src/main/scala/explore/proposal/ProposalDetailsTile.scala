@@ -294,7 +294,7 @@ object ProposalDetailsBody:
           React.Fragment(
             // The first partner splits row, with the button and the flags
             <.div(
-              <.label("Partners"),
+              <.label(testId := "explore-proposal-partners", "Partners"),
               <.div(
                 Button(
                   icon = Icons.Edit,
@@ -443,7 +443,8 @@ object ProposalDetailsBody:
           clazz = ExploreStyles.WarningInput.when_(
             v.get === ConsiderForBand3.Unset && !readonly
           ),
-          disabled = readonly
+          disabled = readonly,
+          modifiers = List(testId := "explore-proposal-band3")
         ),
       Option
         .when(
@@ -693,7 +694,7 @@ object ProposalDetailsBody:
             validFormat = InputValidSplitEpi.nonEmptyString.optional,
             label = "Title",
             disabled = props.readonly
-          )(^.autoFocus := true),
+          )(^.autoFocus := true, testId := "explore-proposal-title"),
           // Category selector
           FormDropdownOptional(
             id = "category".refined,

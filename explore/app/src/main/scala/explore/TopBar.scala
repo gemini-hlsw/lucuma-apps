@@ -349,7 +349,7 @@ object TopBar:
                   onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
                 ).small.compact
               else EmptyVdom,
-              <.span(LayoutStyles.MainUserName)(user.displayName),
+              <.span(LayoutStyles.MainUserName, testId := "explore-topbar-user")(user.displayName),
               RoleSwitch(props.vault, ctx.sso, props.onRoleChange),
               ConnectionsStatus(),
               Button(

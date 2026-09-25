@@ -105,7 +105,9 @@ object UserSelectionForm:
                     clazz = LoginStyles.LoginBoxButton,
                     severity = Button.Severity.Secondary,
                     onClick = guest >> props.message.set(none) >> isOpen.setState(IsOpen(false))
-                  ).big.when(browserInfo.showButtons && props.allowGuest)
+                  ).withMods(VdomAttr("data-testid") := "ui-login-guest")
+                    .big
+                    .when(browserInfo.showButtons && props.allowGuest)
                 )
               ),
               <.div(LoginStyles.LoginMessagesLayout)(
