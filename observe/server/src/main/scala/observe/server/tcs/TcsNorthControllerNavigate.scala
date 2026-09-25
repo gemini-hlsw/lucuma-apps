@@ -8,7 +8,7 @@ import cats.effect.Async
 import cats.syntax.all.*
 import clue.FetchClient
 import lucuma.core.enums.Site
-import observe.common.NavigateDB
+import lucuma.schemas.NavigateDB
 import observe.model.enums.NodAndShuffleStage
 import observe.server.ObserveFailure
 import observe.server.altair.Altair

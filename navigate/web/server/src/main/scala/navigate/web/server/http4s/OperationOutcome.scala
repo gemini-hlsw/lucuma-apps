@@ -6,8 +6,8 @@ package navigate.web.server.http4s
 import cats.Eq
 import cats.syntax.option.*
 import io.circe.Encoder
-
-import OperationResult.*
+import lucuma.schemas.model.navigate.OperationResult
+import lucuma.schemas.model.navigate.OperationResult.*
 
 case class OperationOutcome(
   result: OperationResult,

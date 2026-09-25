@@ -32,6 +32,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.DateInterval
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import monocle.Lens
 import monocle.syntax.all.focus
 import navigate.model.AcMechsState
@@ -69,7 +70,6 @@ import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
 import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode

@@ -34,6 +34,7 @@ import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
@@ -59,7 +60,6 @@ import observe.server.keywords.*
 import observe.server.odb.OdbObservationData
 import observe.server.tcs.*
 import observe.server.tcs.TcsController.LightPath
-import observe.server.tcs.TcsController.LightSource
 import org.typelevel.log4cats.Logger
 
 trait SeqTranslate[F[_]] {
@@ -503,7 +503,7 @@ object SeqTranslate {
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
               useGaos = false,
               insStep,
-              TcsController.LightSource.Sky,
+              LightSource.Sky,
               observation,
               telescopeConfig
             ),
@@ -516,7 +516,7 @@ object SeqTranslate {
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
               useGaos = false,
               insStep,
-              TcsController.LightSource.Sky,
+              LightSource.Sky,
               observation,
               telescopeConfig
             ),
@@ -529,7 +529,7 @@ object SeqTranslate {
               flatOrArcTcsSubsystems(inst),
               useGaos = false,
               insStep,
-              TcsController.LightSource.GCAL,
+              LightSource.GCAL,
               observation,
               telescopeConfig
             ),
@@ -542,7 +542,7 @@ object SeqTranslate {
               NonEmptySet.of(AGUnit, OIWFS, M2, M1, Mount),
               useGaos = false,
               insStep,
-              TcsController.LightSource.GCAL,
+              LightSource.GCAL,
               observation,
               telescopeConfig
             ),
@@ -562,7 +562,7 @@ object SeqTranslate {
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
               useGaos = true,
               insStep,
-              TcsController.LightSource.AO,
+              LightSource.AO,
               observation,
               telescopeConfig
             ),
@@ -577,7 +577,7 @@ object SeqTranslate {
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
               useGaos = true,
               insStep,
-              TcsController.LightSource.AO,
+              LightSource.AO,
               observation,
               telescopeConfig
             ),

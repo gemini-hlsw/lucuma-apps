@@ -11,10 +11,10 @@ import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.Site
 import lucuma.core.enums.parser.EnumParsers
 import lucuma.core.parser.MiscParsers.int
+import lucuma.schemas.model.navigate.LightSource
+import lucuma.schemas.model.navigate.LightSource.*
 import mouse.boolean.given
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
-import navigate.model.enums.LightSource.*
 import navigate.server.acm.Decoder
 import navigate.server.acm.Encoder
 import navigate.server.acm.Encoder.*

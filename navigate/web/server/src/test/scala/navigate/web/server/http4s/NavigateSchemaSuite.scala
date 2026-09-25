@@ -10,8 +10,8 @@ import munit.CatsEffectSuite
 import scala.io.Source
 
 /**
- * Checks that the stitched copy of the Navigate schema used by Observe's Clue queries is in sync
- * with `navigate.graphql`.
+ * Checks that the stitched copy of the Navigate schema used by Navigate's clients is in sync with
+ * `navigate.graphql`.
  */
 class NavigateSchemaSuite extends CatsEffectSuite {
 
@@ -29,8 +29,7 @@ class NavigateSchemaSuite extends CatsEffectSuite {
           obtained,
           expected,
           s"${NavigateSchema.StitchedSchemaResource} is out of date, regenerate it with: " +
-            "sbt \"navigate_web_server/Test/runMain navigate.web.server.http4s.RenderNavigateSchema\" " +
-            "observe_server/clueClean"
+            "sbt navigateSchemaGenerate"
         )
       )
     }

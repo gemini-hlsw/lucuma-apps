@@ -7,7 +7,7 @@ import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.LightSinkName
-import navigate.model.enums.LightSource
+import lucuma.schemas.model.navigate.LightSource
 
 sealed trait ScienceFold extends Product with Serializable
 
