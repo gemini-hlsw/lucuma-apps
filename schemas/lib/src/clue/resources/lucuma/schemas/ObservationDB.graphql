@@ -8194,10 +8194,8 @@ type ObservationTimeEstimate {
   setupCount: NonNegInt!
 
   """
-  Expected number of calibration epochs over the remaining science time, roughly
-  one per 90 minutes.  Each epoch brings a set of flats and arcs and, unless the
-  telluric type is NO_TELLURIC, a telluric.  Zero for calibration observations
-  and for modes that take no telluric.
+  Expected number of calibration over the remaining science time.
+  Zero for calibration observations and for modes that take no callibrations per observation.
   """
   calibrationCount: NonNegInt!
 
@@ -12893,6 +12891,19 @@ type Altair {
   explicitFieldLens: FieldLens
 
   """
+  The AUTO field lens resolution: IN for the LGS modes; for NGS, IN when the
+  selected guide star is more than 1 arcsecond from the base, OUT otherwise.
+  Null when no guide star is selected yet.
+  """
+  defaultFieldLens: FieldLens
+
+  """
+  The field lens that will be used: explicitFieldLens when set, otherwise
+  defaultFieldLens.
+  """
+  fieldLens: FieldLens
+
+  """
   The cassegrain rotator tracking mode used while observing behind Altair.
   """
   cassRotator: CassRotator!
@@ -14133,6 +14144,7 @@ type Configuration {
   conditions: ConfigurationConditions!
   target: ConfigurationTarget
   observingMode: ConfigurationObservingMode
+  altairMode: AltairMode
 }
 
 type ConfigurationConditions {
@@ -15969,34 +15981,37 @@ enum SequenceCommand {
   STOP
 }
 
-"""Summary of the steps of one kind (biases, darks, arcs, flats or observing) in a sequence."""
+"""Summary of the steps of one kind (bias, dark, arc, flat or science) in a sequence."""
 type StepDigest {
   """Number of steps."""
   count: NonNegInt!
 
-  """Time estimate for these steps, including any configuration change that precedes them."""
+  """
+  Time estimate for these steps, including any configuration change that precedes them.
+  """
   time: CategorizedTime!
 }
 
 """
-The steps of a sequence by kind.  The five digests partition the sequence,
-so their times sum to the sequence timeEstimate.
+The steps of a sequence by step type, with GCAL steps split into arcs and
+flats.  The five digests partition the sequence, so their times sum to the
+sequence timeEstimate.
 """
 type StepDigests {
-  """Bias steps."""
-  biases: StepDigest!
+  """Steps of type BIAS."""
+  bias: StepDigest!
 
-  """Dark steps."""
-  darks: StepDigest!
+  """Steps of type DARK."""
+  dark: StepDigest!
 
-  """GCAL arc steps."""
-  arcs: StepDigest!
+  """GCAL and SmartGCAL arc steps."""
+  arc: StepDigest!
 
-  """GCAL flat steps."""
-  flats: StepDigest!
+  """GCAL and SmartGCAL flat steps, including any whose lamp is not an arc."""
+  flat: StepDigest!
 
-  """All other steps: science, acquisition and offsets."""
-  observing: StepDigest!
+  """Steps of type SCIENCE, which includes acquisition exposures."""
+  science: StepDigest!
 }
 
 type SequenceDigest {
@@ -16014,6 +16029,13 @@ type SequenceDigest {
   and any remaining atoms not included in 'possibleFuture'.
   """
   atomCount: NonNegInt!
+
+  """
+  Number of GCAL sets: atoms that contain at least one GCAL step.  A set may
+  hold only a flat or only an arc, so this cannot be derived from the step
+  counts in 'steps'.
+  """
+  gcalSets: NonNegInt!
 
   """Steps in the sequence by kind, with their counts and times."""
   steps: StepDigests!

@@ -44,6 +44,7 @@ object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, Seque
       {
         observeClass
         atomCount
+        gcalSets
         timeEstimate {
           program $TimeSpanSubquery
           nonCharged $TimeSpanSubquery
@@ -54,11 +55,11 @@ object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, Seque
           guiding
         }
         steps {
-          biases $StepDigestSubquery
-          darks $StepDigestSubquery
-          arcs $StepDigestSubquery
-          flats $StepDigestSubquery
-          observing $StepDigestSubquery
+          bias $StepDigestSubquery
+          dark $StepDigestSubquery
+          arc $StepDigestSubquery
+          flat $StepDigestSubquery
+          science $StepDigestSubquery
         }
         executionState
       }

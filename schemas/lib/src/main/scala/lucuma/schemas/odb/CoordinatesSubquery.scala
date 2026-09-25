@@ -15,6 +15,6 @@ object CoordinatesSubquery extends GraphQLSubquery.Typed[ObservationDB, Coordina
     {
       ra $RASubquery
       dec $DecSubquery
-    }     
-  """.stripMargin
+    }
+  """
 }
