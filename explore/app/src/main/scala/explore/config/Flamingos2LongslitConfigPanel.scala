@@ -27,6 +27,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.flamingos2
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -149,7 +150,10 @@ object Flamingos2LongslitConfigPanel
         val excludedAcquistionFilters =
           Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
-        React.Fragment(
+        // Tellurics offer their own presets, science observations the nod patterns.
+        def configFields[P <: SlitOffsetPreset: {Enumerated, Display}](
+          defaultForPreset: P => SlitTelescopeConfigs
+        ): VdomElement =
           Flamingos2ConfigFields(
             fpuControl = CustomizableEnumSelect(
               id = "fpu".refined,
@@ -171,7 +175,7 @@ object Flamingos2LongslitConfigPanel
             exposureTimeMode = exposureTimeMode,
             explicitTelescopeConfigsView = explicitTelescopeConfigsView,
             defaultTelescopeConfigs = props.observingMode.get.defaultTelescopeConfigs,
-            defaultForPreset = flamingos2.defaultSlitTelescopeConfigs,
+            defaultForPreset = defaultForPreset,
             offsetsHelpId = "configuration/f2/slit-spatial-offsets.md".refined,
             instrument = props.observingMode.get.instrument,
             modeData = modeData,
@@ -185,7 +189,15 @@ object Flamingos2LongslitConfigPanel
             allowRevertCustomization = allowRevertCustomization,
             etmReadonly = !props.permissions.isFullEdit,
             presetsReadonly = !props.permissions.isFullEdit
-          ),
+          )
+
+        val fields: VdomElement =
+          if (props.calibrationRole.contains(CalibrationRole.Telluric))
+            configFields(flamingos2.defaultTelluricTelescopeConfigs)
+          else configFields(flamingos2.defaultSlitTelescopeConfigs)
+
+        React.Fragment(
+          fields,
           <.div(
             ExploreStyles.Flamingos2LowerGrid,
             Panel(
