@@ -165,7 +165,8 @@ object TopBar:
              MenuItem.Item(
                label = "Manage Programs",
                icon = Icons.ListCheck,
-               command = openManagePrograms
+               command = openManagePrograms,
+               id = "explore-menu-manage-programs"
              )
            ) ::: recentProgramsItem
          else recentProgramsItem)
