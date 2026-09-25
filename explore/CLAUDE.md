@@ -55,3 +55,16 @@ Rules:
 - Adding a new `TableId` also needs a row in `lucumaTableIds`; the FK on
   `lucumaTablePreferences.tableId` will otherwise reject every save, and saves are
   swallowed by `.attempt`.
+
+## Test ids for the end-to-end suite
+
+The gpp-tests end-to-end suite locates elements through `data-testid` attributes,
+written as `testId := "explore-<area>-<element>"` (`testId` is in
+`explore/utils/package.scala`). Program table rows also carry `data-program-id`,
+"Manage Programs" in the toolbar menu uses a plain menu item `id`, and the guest
+login button in `ui/lib` uses `ui-login-guest`. Find them all with
+`rg '"(explore|ui)-[a-z0-9-]+"' explore/app/src/main/scala ui/lib/src/main/scala`.
+
+Never remove or rename these ids. Nothing in this repo checks them, so dropping one
+only shows up as a red gpp-tests nightly run. When you rewrite an element that
+carries one, move the id to the new element.
