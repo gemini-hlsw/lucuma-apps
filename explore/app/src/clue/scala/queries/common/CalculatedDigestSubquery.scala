@@ -8,6 +8,7 @@ import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.SequenceDigest
+import lucuma.core.model.sequence.StepDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.odb.json.sequence.given
 import lucuma.schemas.ObservationDB
@@ -43,6 +44,7 @@ object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, Seque
       {
         observeClass
         atomCount
+        gcalSets
         timeEstimate {
           program $TimeSpanSubquery
           nonCharged $TimeSpanSubquery
@@ -52,6 +54,27 @@ object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, Seque
           offset $OffsetSubquery
           guiding
         }
+        steps {
+          bias $StepDigestSubquery
+          dark $StepDigestSubquery
+          arc $StepDigestSubquery
+          flat $StepDigestSubquery
+          science $StepDigestSubquery
+        }
         executionState
+      }
+  """
+
+@GraphQL
+@GraphQLType("StepDigest")
+object StepDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, StepDigest]:
+  override val subquery = gql"""
+      {
+        count
+        time {
+          program $TimeSpanSubquery
+          nonCharged $TimeSpanSubquery
+          total $TimeSpanSubquery
+        }
       }
   """

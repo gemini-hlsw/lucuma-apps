@@ -19,10 +19,12 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
+import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
+import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.format.TimeSpanFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -119,6 +121,22 @@ object ObservationDetailsTile
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
             val setupCount: Int = d.setupCount.value
+            val gcalSets: Int   = d.science.gcalSets.value
+
+            val flats                     = d.science.steps.flats
+            val arcs                      = d.science.steps.arcs
+            val gcalTotal                 = flats.time.programTime +| arcs.time.programTime
+            def secs(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
+
+            val gcalSetsRow: Option[VdomNode] =
+              NonZeroInt
+                .from(gcalSets)
+                .toOption
+                .map: n =>
+                  val text =
+                    if gcalSets === 1 then s"1 set, ${secs(gcalTotal)}"
+                    else s"$gcalSets sets, ${secs(gcalTotal)} (${secs(gcalTotal /| n)} each)"
+                  FormInfo(text, "Flats & Arcs")
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
@@ -129,6 +147,7 @@ object ObservationDetailsTile
                 duration(d.science.timeEstimate.programTime, scienceTooltip.some),
                 "Science Sequence"
               ),
+              gcalSetsRow,
               FormInfo(
                 <.span(s"$setupCount × ", duration(d.setup.full)),
                 "Setup"
