@@ -16,6 +16,8 @@ import explore.model.ProgramInfo
 import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbProgramApi
+import explore.utils.dataProgramId
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -126,7 +128,10 @@ object ProgramTable:
                       severity = Button.Severity.Secondary,
                       disabled = meta.currentProgramId.exists(_ === programId),
                       onClick = props.selectProgram(programId)
-                    ).compact.mini.unless(cell.row.original.get.deleted),
+                    ).withMods(testId := "explore-programs-select")
+                      .compact
+                      .mini
+                      .unless(cell.row.original.get.deleted),
                     Button(
                       icon = Icons.Trash,
                       severity = Button.Severity.Secondary,
@@ -295,6 +300,8 @@ object ProgramTable:
           tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
           virtualizerRef = virtualizerRef,
           columnFilterRenderer = if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
+          rowMod = rowTagMod: row =>
+            TagMod(testId := "explore-programs-row", dataProgramId := row.original.get.id.show),
           emptyMessage = "No programs available"
         )
       )

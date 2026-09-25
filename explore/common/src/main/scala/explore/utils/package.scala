@@ -37,6 +37,10 @@ val canvasHeight = VdomAttr("height")
 val dataAbbrv    = VdomAttr("data-abbrv")
 val filter       = VdomAttr("filter")
 
+// Hooks for the end-to-end suite (gpp-tests). Changing a value breaks its locators.
+val testId        = VdomAttr("data-testid")
+val dataProgramId = VdomAttr("data-program-id")
+
 val gitHash = BuildInfo.gitHeadCommit
 
 def version(environment: ExecutionEnvironment): NonEmptyString = {

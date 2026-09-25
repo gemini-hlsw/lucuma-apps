@@ -41,6 +41,7 @@ import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
@@ -701,7 +702,7 @@ object ProposalDetailsBody:
             options = categoryOptions,
             onChange = _.map(v => categoryView.set(Enumerated[TacCategory].fromTag(v))).orEmpty,
             disabled = props.readonly,
-            modifiers = List(^.id := "category"),
+            modifiers = List(^.id := "category", testId := "explore-proposal-category"),
             clazz = ExploreStyles.WarningInput.when_(categoryView.get.isEmpty && !props.readonly)
           ),
           optGeminiView.map(gemini =>
