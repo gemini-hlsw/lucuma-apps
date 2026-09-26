@@ -5034,3 +5034,15 @@ span.explore-offsets-count {
     display: none;
   }
 }
+
+// The table scrolls itself, so the body must not scroll as well when the note above it is shown.
+.explore-archive-duplication-tile-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .explore-archive-duplication-table {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}

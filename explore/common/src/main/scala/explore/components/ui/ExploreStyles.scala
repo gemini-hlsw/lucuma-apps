@@ -674,6 +674,9 @@ object ExploreStyles:
   val ProgramNoteHeader: Css            = Css("program-note-header")
   val ProgramNoteTitle: Css             = Css("program-note-title")
 
+  val ArchiveDuplicationTileBody: Css = Css("explore-archive-duplication-tile-body")
+  val ArchiveDuplicationTable: Css    = Css("explore-archive-duplication-table")
+
   // Markdown Editor
   val MarkdownEditor: Css      = Css("markdown-editor")
   val MarkdownPlaceholder: Css = Css("markdown-placeholder")

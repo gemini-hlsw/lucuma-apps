@@ -73,7 +73,8 @@ final case class ArchiveDuplicationTile(
       title = React.Fragment(
         "Archive Duplication Search",
         HelpIcon("overview/archive-duplication.md".refined)
-      )
+      ),
+      bodyClass = ExploreStyles.ArchiveDuplicationTileBody
     )(ArchiveDuplicationTile)
 
 object ArchiveDuplicationTile
@@ -270,17 +271,19 @@ object ArchiveDuplicationTile
           val body: VdomNode =
             React.Fragment(
               notApplicableNote,
-              PrimeAutoHeightVirtualizedTable(
-                table,
-                _ => 32.toPx,
-                striped = true,
-                compact = Compact.Very,
-                containerRef = resizer.ref,
-                tableMod = ExploreStyles.ExploreTable,
-                columnFilterRenderer =
-                  if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
-                headerCellMod = _ => ExploreStyles.StickyHeader,
-                emptyMessage = <.div("No observations to check against the archive.")
+              <.div(ExploreStyles.ArchiveDuplicationTable)(
+                PrimeAutoHeightVirtualizedTable(
+                  table,
+                  _ => 32.toPx,
+                  striped = true,
+                  compact = Compact.Very,
+                  containerRef = resizer.ref,
+                  tableMod = ExploreStyles.ExploreTable,
+                  columnFilterRenderer =
+                    if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+                  headerCellMod = _ => ExploreStyles.StickyHeader,
+                  emptyMessage = <.div("No observations to check against the archive.")
+                )
               )
             )
 
