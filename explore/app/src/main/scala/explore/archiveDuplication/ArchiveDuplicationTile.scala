@@ -188,6 +188,7 @@ object ArchiveDuplicationTile
                                     cols,
                                     rows,
                                     enableExpanding = true,
+                                    autoResetExpanded = false,
                                     getSubRows = (row, _) => row.subRows,
                                     getRowId = (row, _, _) => RowId(row.value.rowId),
                                     enableSorting = true,
