@@ -70,10 +70,7 @@ final case class ArchiveDuplicationTile(
   readonly:       Boolean
 ) extends Tile[ArchiveDuplicationTile](
       id = OverviewTabTileIds.ArchiveDuplicationId.id,
-      title = React.Fragment(
-        "Archive Duplication Search",
-        HelpIcon("overview/archive-duplication.md".refined)
-      ),
+      title = "Archive Duplication Search",
       bodyClass = ExploreStyles.ArchiveDuplicationTileBody
     )(ArchiveDuplicationTile)
 
@@ -227,10 +224,17 @@ object ArchiveDuplicationTile
             waitingFor.fold(EmptyVdom): content =>
               <.span(Icons.Spinner.withSpin(true)).withTooltip(content = content)
 
+          val helpIcon: VdomNode = HelpIcon("overview/archive-duplication.md".refined)
+
           val title: VdomNode =
-            if tileSize === TileSizeState.Minimized then EmptyVdom
+            if tileSize === TileSizeState.Minimized then
+              React.Fragment(
+                if search.headersLoaded then <.span(s"(${search.withMatchesCount})") else EmptyVdom,
+                helpIcon
+              )
             else
               React.Fragment(
+                helpIcon,
                 <.span(ExploreStyles.TableSelectionToolbar)(
                   <.span(s"${search.withMatchesCount} of ${search.entries.length} with matches"),
                   busyIndicator,
