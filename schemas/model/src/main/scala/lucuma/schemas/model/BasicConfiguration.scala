@@ -234,8 +234,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.SubaruExchange                         =>
       Wavelength.Min
 
-  def guideProbe(trackType: Option[TrackType]): Option[GuideProbe] =
-    trackType.flatMap(probes.defaultGuideProbe(obsModeType, _))
+  def guideProbe(trackType: Option[TrackType], altair: Option[AltairMode]): Option[GuideProbe] =
+    trackType.flatMap(probes.defaultGuideProbe(obsModeType, _, altair))
 
   def targetVisualization(
     scienceTargets: List[TargetWithId],

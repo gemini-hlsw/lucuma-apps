@@ -24,6 +24,19 @@ trait WithPwfsGeometry:
   ): SortedMap[Css, ShapeExpression] =
     SortedMap((baseCss |+| extraCss, pwfs.patrolField.patrolFieldAt(posAngle, Offset.Zero)))
 
+  // The AOWFS has no probe arm drawn: it picks the star off behind a dichroic.
+  protected def altairCandidatesArea(
+    baseCss:  Css,
+    posAngle: Angle,
+    extraCss: Css
+  ): SortedMap[Css, ShapeExpression] =
+    SortedMap(
+      (baseCss |+| extraCss, GuideProbe.AltairAOWFS.candidatesArea),
+      (AltairPatrolField |+| extraCss,
+       lucuma.core.geom.altair.patrolField.patrolFieldAt(posAngle, Offset.Zero)
+      )
+    )
+
   protected def pwfsProbeShapes(
     probe:           GuideProbe,
     guideStarOffset: Offset,

@@ -183,7 +183,7 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             val patrolFieldIntersection =
               conf
                 .flatMap: c =>
-                  c.agsParams(port, guideProbe)
+                  c.agsParams(port, guideProbe, none)
                 .map: params =>
                   val calcs = params.posCalculations(positions.value.toNonEmptyList)
                   PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField

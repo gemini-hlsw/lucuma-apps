@@ -15,6 +15,7 @@ import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
+import explore.model.GuidingConfiguration
 import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
@@ -220,6 +221,17 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       )
     )
 
+  def updateGuiding(obsIds: List[Observation.Id], guiding: GuidingConfiguration): F[Unit] =
+    updateObservations(
+      obsIds,
+      ObservationPropertiesInput(targetEnvironment =
+        TargetEnvironmentInput(
+          explicitGuideProbe = guiding.explicitGuideProbe.orUnassign,
+          altair = guiding.altair.map(_.toInput).orUnassign
+        ).assign
+      )
+    )
+
   def updateNotes(
     obsIds: List[Observation.Id],
     notes:  Option[NonEmptyString]
@@ -396,17 +408,24 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     observingMode:      Input[ObservingModeInput],
     posAngleConstraint: Input[PosAngleConstraintInput] = Input.ignore
   ): F[Option[ObservingMode]] =
+    // No mode assigned means the mode is being removed, so the response's `observingMode` is null
+    // and no mode-view needs selecting.
+    val flags: ModeViewFlags = modeViewFlagsFor(observingMode)
+
+    // The ODB rejects Altair behind any instrument but GNIRS, so leaving GNIRS (or removing the
+    // mode) drops it in the same mutation.
+    val keepsAltair: Boolean = observingMode.fold(true, false, _ => flags.supportsAltair)
+
     val input = UpdateObservationsInput(
       WHERE = obsId.toWhereObservation.assign,
       SET = ObservationPropertiesInput(
         observingMode = observingMode,
-        posAngleConstraint = posAngleConstraint
+        posAngleConstraint = posAngleConstraint,
+        targetEnvironment =
+          if keepsAltair then Input.ignore
+          else TargetEnvironmentInput(altair = Input.unassign).assign
       )
     )
-
-    // No mode assigned means the mode is being removed, so the response's `observingMode` is null
-    // and no mode-view needs selecting.
-    val flags: ModeViewFlags = modeViewFlagsFor(observingMode)
 
     UpdateConfigurationMutation[F]
       .execute(
@@ -499,7 +518,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     ghostIfu:           Boolean = false,
     visitor:            Boolean = false,
     exchange:           Boolean = false
-  )
+  ):
+    def supportsAltair: Boolean = gnirsImaging || gnirsLongSlit || gnirsIfu
 
   // `ObservingModeInput` is a `@oneOf`, so it names exactly the mode-view to turn on.
   private def modeViewFlagsFor(input: Input[ObservingModeInput]): ModeViewFlags =

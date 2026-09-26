@@ -49,9 +49,9 @@ import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.ags.GuideStarCandidate
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -73,6 +73,8 @@ import lucuma.core.model.sequence.ghost.IfuMappingContext
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
+import lucuma.odb.data.AltairConfiguration
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.*
 import lucuma.refined.*
@@ -403,9 +405,10 @@ object ObsTabTiles:
             trackType,
             targetViz,
             props.observation.get.explicitBase,
-            props.observation.get.cassRotator,
+            props.observation.get.effectiveCassRotator,
             maskDesignPot.value.toOption.flatten,
-            props.observation.get.explicitGuideProbe
+            props.observation.get.explicitGuideProbe,
+            props.observation.get.altair
           )
         focusedTargets        = props.asterismAsNel.map: targets =>
                                   props.focusedTarget.fold(targets)(targets.focusOn)
@@ -524,6 +527,24 @@ object ObsTabTiles:
         val isVisitorMode: Boolean =
           props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
 
+        val altairGuideStar: Option[GuideStarCandidate] =
+          guideStarSelection.get.analysis.map(_.target)
+
+        val guideStarSeparation: Option[Angle] =
+          AltairControls.guideStarSeparation(
+            positions.coords.toOption.flatMap(_.toOption).flatMap(_.baseCoords),
+            altairGuideStar,
+            obsTimeOrNow.value
+          )
+
+        val altairItcParameters: Option[AltairParameters] =
+          obsConf.altair.flatMap(
+            AltairControls.itcParameters(_, altairGuideStar, guideStarSeparation)
+          )
+
+        val awaitingAltairGuideStar: Boolean =
+          AltairControls.itcAwaitingGuideStar(obsConf.altair, altairItcParameters)
+
         val itcTile =
           odbOrSelectedConfig match
             case Some(_: BasicConfiguration.GmosNorthImaging) |
@@ -536,6 +557,8 @@ object ObsTabTiles:
                 props.observation.get,
                 props.obsTargets,
                 customSedTimestamps,
+                altairItcParameters,
+                awaitingAltairGuideStar,
                 selectedItcTarget
               ).some
             case Some(_: BasicConfiguration.GmosNorthLongSlit) |
@@ -555,6 +578,8 @@ object ObsTabTiles:
                 selectedConfig.get.configs.headOption.map(_.instrumentConfig),
                 props.obsTargets,
                 customSedTimestamps,
+                altairItcParameters,
+                awaitingAltairGuideStar,
                 globalPreferences
               ).some
             // Visitor & exchange instruments have no ITC, hide the itc tile.
@@ -686,13 +711,17 @@ object ObsTabTiles:
             if bo.isManual then setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
             else Callback.empty
 
-        // The guide probe override. Undoable, like the explicit base
-        val explicitGuideProbeView: View[Option[GuideProbe]] =
+        // The guide probe override and the Altair configuration, edited together so that a guider
+        // change is a single undo step and a single mutation. Undoable, like the explicit base
+        val guidingView: View[GuidingConfiguration] =
           props.observation
-            .zoom(Observation.explicitGuideProbe)
-            .undoableView(Iso.id[Option[GuideProbe]].asLens)
-            .withOnMod: probe =>
-              odbApi.updateExplicitGuideProbe(List(props.obsId), probe).runAsync
+            .undoableView(Observation.guiding)
+            .withOnMod: guiding =>
+              odbApi.updateGuiding(List(props.obsId), guiding).runAsync
+
+        // Edits of the Altair parameters keep the guide probe; still one undo step and mutation.
+        val altairView: View[Option[AltairConfiguration]] =
+          guidingView.zoom(GuidingConfiguration.altair)
 
         // Only ghost has sky positions. this is the only place where we know it is ghost related
         // but it is abstracted away downstream.
@@ -745,7 +774,7 @@ object ObsTabTiles:
             // Any target changes invalidate the sequence
             sequenceChanged = sequenceChanged.set(pending),
             blindOffsetInfo = (props.obsId, blindOffsetView).some,
-            explicitGuideProbe = explicitGuideProbeView.some,
+            guiding = guidingView.some,
             positions = positions.some,
             ags = agsData
           )
@@ -788,6 +817,10 @@ object ObsTabTiles:
               .zoom(
                 (Observation.posAngleConstraint, Observation.observingModeOption).disjointZip
               ),
+            altairView,
+            // Only ever cleared here, mirroring what the ODB does on a mode change; not undoable.
+            props.observation.model.zoom(Observation.altair),
+            guideStarSeparation,
             props.observation.get.scienceTargetIds,
             optAsterismCoords,
             obsConf,

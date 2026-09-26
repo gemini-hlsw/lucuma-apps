@@ -103,7 +103,11 @@ def usePatrolFieldShapes(
 
     for
       conf       <- vizConf.map(_.configuration).filter(_ => isVisible)
-      agsParams  <- conf.agsParams(PortDisposition.Side, vizConf.flatMap(_.guideProbe))
+      agsParams  <- conf.agsParams(
+                      PortDisposition.Side,
+                      vizConf.flatMap(_.guideProbe),
+                      vizConf.flatMap(_.altairMode)
+                    )
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
     yield
@@ -186,7 +190,8 @@ def usePatrolFieldShapes(
             ghost.scienceArea.fov.some
           case ObservingModeType.GnirsImaging | ObservingModeType.GnirsLongSlit |
               ObservingModeType.GnirsIfu =>
-            pwfs.patrolField.patrolField.some
+            // PWFS or, behind Altair, the AOWFS patrol field.
+            agsParams.patrolFieldShape.some
           case _: VisitorObservingModeType                                               =>
             pwfs.patrolField.patrolField.some
           case _: ExchangeObservingModeType                                              =>
@@ -500,6 +505,7 @@ def useVisualizationShapes(
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                vizConf.flatMap(_.guideProbe),
+               vizConf.flatMap(_.altairMode),
                selectedGS,
                candidatesVisibilityCss
              )

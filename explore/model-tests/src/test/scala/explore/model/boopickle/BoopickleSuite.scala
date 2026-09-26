@@ -4,13 +4,20 @@
 package explore.model.boopickle
 
 import boopickle.DefaultBasic.*
+import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.scalacheck.all.given
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.boopickle.PicklerTests
+import explore.boopickle.roundTrip
+import explore.model.arb.ArbAltairConfiguration.given
+import explore.modes.ItcInstrumentConfig
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.arb.ArbGuideStarCandidate.given
+import lucuma.core.enums.FieldLens
+import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsFilter
 import lucuma.core.math.*
 import lucuma.core.math.arb.ArbAngle.given
 import lucuma.core.math.arb.ArbCoordinates.given
@@ -29,6 +36,8 @@ import lucuma.core.model.arb.ArbConstraintSet.given
 import lucuma.core.model.arb.ArbElevationRange.given
 import lucuma.core.model.arb.ArbTracking.given
 import lucuma.core.model.arb.ArbUnnormalizedSED.given
+import lucuma.itc.AltairParameters
+import lucuma.refined.*
 
 class BoopickleSuite
     extends munit.DisciplineSuite
@@ -53,4 +62,18 @@ class BoopickleSuite
   checkAll("Pickler[Wavelengtth]", PicklerTests[Wavelength].pickler)
 
   checkAll("Pickler[UnnormalizedSED]", PicklerTests[UnnormalizedSED].pickler)
+  checkAll("Pickler[AltairParameters]", PicklerTests[AltairParameters].pickler)
+
+  test("a GNIRS configuration keeps its Altair parameters through pickling"):
+    val config: ItcInstrumentConfig =
+      ItcInstrumentConfig.GnirsImaging(
+        GnirsFilter.Order4,
+        GnirsCamera.ShortBlue,
+        ItcInstrumentConfig.PlaceholderEtm,
+        1.refined,
+        AltairParameters
+          .Ngs(Angle.fromDoubleArcseconds(2.0), BrightnessValue.unsafeFrom(12.5), FieldLens.In)
+          .some
+      )
+    assertEquals(roundTrip(config), config)
 }

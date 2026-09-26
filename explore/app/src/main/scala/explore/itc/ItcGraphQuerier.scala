@@ -26,6 +26,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import queries.schemas.itc.syntax.*
 import workers.WorkerClient
 
@@ -34,6 +35,7 @@ case class ItcGraphQuerier(
   configs:             Option[ItcInstrumentConfig], // configs for imaging or single config for spectroscopy
   allTargets:          TargetList,
   customSedTimestamps: List[Timestamp],
+  altair:              Option[AltairParameters],
   // GNIRS spectroscopy has one configuration per central wavelength; this picks which
   // one to graph, by position.  Other modes have a single configuration and ignore it.
   selectedConfigIndex: Option[Int] = none
@@ -67,7 +69,7 @@ case class ItcGraphQuerier(
   // If the observation has an assigned configuration, we use that one.
   // Otherwise, we use the first one from the provided configs (for spectroscopy compatibility).
   private val finalConfig: EitherNec[ItcQueryProblem, ItcInstrumentConfig] =
-    remoteConfig.fold(requirementsConfig)(_.rightNec)
+    remoteConfig.fold(requirementsConfig)(_.rightNec).map(_.withAltair(altair))
 
   // Include both valid and invalid targets, so we can keep track of the problems for the invalid ones and show them in the UI.
   private val validAndInvalidTargets = asterismIds.toAllItcTargets(allTargets)
@@ -79,11 +81,12 @@ case class ItcGraphQuerier(
     for {
       t <- itcTargets
       i <- finalConfig.leftMap(_.map(_.toTargetProblem))
-    } yield ItcGraphQuerier.QueryProps(constraints,
-                                       t,
-                                       i,
-                                       customSedTimestamps,
-                                       validAndInvalidTargets.queryProblems
+    } yield ItcGraphQuerier.QueryProps(
+      constraints,
+      t,
+      i,
+      customSedTimestamps,
+      validAndInvalidTargets.queryProblems
     )
 
   // Returns graphs for each target and the brightest target

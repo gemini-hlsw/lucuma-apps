@@ -12,6 +12,10 @@ import explore.model.boopickle.CatalogPicklers
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.arb.ArbGuideStarCandidate.given
+import lucuma.core.enums.AltairMode
+import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsFpuSlit
+import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.PortDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -21,6 +25,7 @@ import lucuma.core.math.arb.ArbWavelength.given
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import lucuma.core.model.arb.ArbConstraintSet.given
+import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.schemas.model.AGSWavelength
 import munit.ScalaCheckSuite
@@ -37,7 +42,8 @@ class AgsRequestKeySuite extends ScalaCheckSuite, CatalogPicklers:
     cs:         ConstraintSet,
     w:          Wavelength,
     base:       Coordinates,
-    candidates: List[GuideStarCandidate]
+    candidates: List[GuideStarCandidate],
+    params:     AgsParams
   ): AgsMessage.AgsRequest =
     AgsMessage.AgsRequest(
       id,
@@ -50,8 +56,7 @@ class AgsRequestKeySuite extends ScalaCheckSuite, CatalogPicklers:
       NonEmptyList.one(Angle.Angle0),
       none,
       none,
-      // The mode selection is not very important for this test.
-      AgsParams.GmosImaging(PortDisposition.Side),
+      params,
       candidates
     )
 
@@ -65,9 +70,35 @@ class AgsRequestKeySuite extends ScalaCheckSuite, CatalogPicklers:
         base: Coordinates
       ) =>
         // pickle and unpickle a guidestar candidate
-        val gsCopy   = roundTrip(gs)
-        val shared   = agsRequest(id, cs, w, base, List(gs, gs))
-        val distinct = agsRequest(id, cs, w, base, List(gs, gsCopy))
+        val gsCopy            = roundTrip(gs)
+        // The mode selection is not very important for this test.
+        val params: AgsParams = AgsParams.GmosImaging(PortDisposition.Side)
+        val shared            = agsRequest(id, cs, w, base, List(gs, gs), params)
+        val distinct          = agsRequest(id, cs, w, base, List(gs, gsCopy), params)
         assertEquals(shared, distinct) // value-equal requests
         // asBytes does not always produce the same bytes for the same object
         assert(asKeyBytes(shared).sameElements(asKeyBytes(distinct)))
+
+  property("Altair params survive pickling and key the cache by mode"):
+    forAll:
+      (
+        id:   Target.Id,
+        gs:   GuideStarCandidate,
+        cs:   ConstraintSet,
+        w:    Wavelength,
+        base: Coordinates,
+        mode: AltairMode
+      ) =>
+        val gnirs: AgsParams.GnirsLongSlit   =
+          AgsParams.GnirsLongSlit(GnirsFpuSlit.LongSlit_0_30,
+                                  GnirsCamera.ShortBlue,
+                                  GnirsPrism.Mirror
+          )
+        val altair: AgsMessage.AgsRequest    =
+          agsRequest(id, cs, w, base, List(gs), gnirs.withAltair(mode))
+        val unpickled: AgsMessage.AgsRequest = roundTrip(altair)
+        assertEquals(unpickled.params.altair, mode.some)
+        assertEquals(unpickled.params.probe, mode.guideProbe)
+        assert(asKeyBytes(unpickled).sameElements(asKeyBytes(altair)))
+        val plain: AgsMessage.AgsRequest     = agsRequest(id, cs, w, base, List(gs), gnirs)
+        assert(!asKeyBytes(plain).sameElements(asKeyBytes(altair)))

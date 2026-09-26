@@ -77,6 +77,8 @@ trait ObservationDB {
   }
 
   object Enums {
+    type AltairMode                          = enums.AltairMode
+    type AltairNdFilter                      = enums.AltairNdFilter
     type ArchiveDuplicationState             = lucuma.schemas.model.enums.ArchiveDuplicationState
     type ArcType                             = enums.ArcType
     type AtomExecutionState                  = lucuma.schemas.model.enums.AtomExecutionState
@@ -97,6 +99,7 @@ trait ObservationDB {
     type ExchangePartner                     = enums.ExchangePartner
     type KeckInstrument                      = enums.KeckInstrument
     type SubaruInstrument                    = enums.SubaruInstrument
+    type CassRotator                         = enums.CassRotator
     type CatalogName                         = enums.CatalogName
     type ChargeClass                         = enums.ChargeClass
     type CloudExtinctionPreset               = CloudExtinction.Preset
@@ -108,6 +111,7 @@ trait ObservationDB {
     type EducationalStatus                   = enums.EducationalStatus
     type EmailStatus                         = enums.EmailStatus
     type EphemerisKeyType                    = enums.EphemerisKeyType
+    type FieldLens                           = enums.FieldLens
     type FilterType                          = enums.FilterType
     type Flamingos2CustomSlitWidth           = enums.Flamingos2CustomSlitWidth
     type Flamingos2Decker                    = enums.Flamingos2Decker

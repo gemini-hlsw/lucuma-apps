@@ -9,6 +9,7 @@ import clue.data.Input
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
+import explore.model.GuidingConfiguration
 import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
@@ -73,6 +74,10 @@ trait OdbObservationApi[F[_]]:
     obsIds: List[Observation.Id],
     probe:  Option[GuideProbe]
   ): F[Unit]
+
+  // Sets the explicit guide probe and replaces the whole Altair configuration in one mutation, so
+  // the ODB never validates a probe against the Altair setting being replaced. None clears either.
+  def updateGuiding(obsIds: List[Observation.Id], guiding: GuidingConfiguration): F[Unit]
 
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]
   def createObservation(programId:            Program.Id, parentId:        Option[Group.Id]): F[Observation]

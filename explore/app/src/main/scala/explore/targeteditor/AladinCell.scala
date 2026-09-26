@@ -27,7 +27,6 @@ import explore.optics.ModelOptics
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -71,7 +70,7 @@ case class AladinCell(
   resetSky:            Option[SlotId => IO[Unit]],
   isStaffOrAdmin:      Boolean,
   blindOffsetReadonly: Boolean,
-  explicitGuideProbe:  Option[View[Option[GuideProbe]]] = none
+  guiding:             Option[View[GuidingConfiguration]] = none
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -393,12 +392,11 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       // Only meaningful once a mode is chosen, since the allowed probes depend on it.
       val renderGuideProbeControl: VdomNode =
-        (props.obsConf.flatMap(_.obsModeType), props.explicitGuideProbe).mapN: (modeType, view) =>
+        (props.obsConf.flatMap(_.obsModeType), props.guiding).mapN: (modeType, view) =>
           GuideProbeControl(
             modeType,
-            props.obsConf
-              .flatMap(_.configuration)
-              .flatMap(_.guideProbe(props.obsConf.flatMap(_.trackType))),
+            props.obsConf.flatMap: obsConf =>
+              obsConf.configuration.flatMap(_.guideProbe(obsConf.trackType, obsConf.altairMode)),
             view,
             props.blindOffsetReadonly
           )
