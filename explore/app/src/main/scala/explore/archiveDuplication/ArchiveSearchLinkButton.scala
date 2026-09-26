@@ -26,14 +26,20 @@ case class ArchiveSearchLinkButton(links: NonEmptyList[ArchiveSearchLink])
 object ArchiveSearchLinkButton:
   private type Props = ArchiveSearchLinkButton
 
+  private given Reusability[NonEmptyList[ArchiveSearchLink]] = Reusability.byEq
+
   private val Tooltip = "Open this Search in the Gemini Observatory Archive"
 
   private def open(url: String): Callback =
     Callback(dom.window.open(url, "_blank", "noopener,noreferrer")).void
 
   private val component = ScalaFnComponent[Props]: props =>
-    usePopupMenuRef.map: menuRef =>
-      props.links match
+    for
+      menuRef <- usePopupMenuRef
+      items   <- useMemo(props.links):
+                   _.toList.map: link =>
+                     MenuItem.Item(label = link.label, url = link.url, target = "_blank"): MenuItem
+    yield props.links match
         case NonEmptyList(link, Nil) =>
           Button(
             icon = Icons.ArrowUpRightFromSquare,
@@ -41,7 +47,7 @@ object ArchiveSearchLinkButton:
             tooltip = Tooltip,
             onClick = open(link.url)
           ).tiny.compact
-        case links                   =>
+        case _                       =>
           React.Fragment(
             Button(
               icon = Icons.ArrowUpRightFromSquare,
@@ -49,8 +55,5 @@ object ArchiveSearchLinkButton:
               tooltip = Tooltip,
               onClickE = e => e.stopPropagationCB >> menuRef.toggle(e)
             ).tiny.compact,
-            PopupMenu(
-              model = links.toList.map: link =>
-                MenuItem.Item(label = link.label, url = link.url, target = "_blank")
-            ).withRef(menuRef.ref)
+            PopupMenu(model = items).withRef(menuRef.ref)
           )
