@@ -96,7 +96,11 @@ class GuiderChoiceSuite extends FunSuite:
 
   test("changing the Altair mode keeps the rest of the configuration"):
     val lgsP1: AltairConfiguration =
-      AltairConfiguration(AltairMode.LgsP1, FieldLens.In.some, CassRotator.Fixed, AltairNdFilter.Out)
+      AltairConfiguration(AltairMode.LgsP1,
+                          FieldLens.In.some,
+                          CassRotator.Fixed,
+                          AltairNdFilter.Out
+      )
     assertEquals(
       GuiderChoice.select(GuiderChoice.Altair(AltairMode.Ngs).some, lgsP1.some),
       GuidingConfiguration(none, lgsP1.copy(mode = AltairMode.Ngs).some)
