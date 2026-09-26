@@ -24,5 +24,6 @@ object ArchiveDuplicationSubquery extends GraphQLSubquery.Typed[ObservationDB, A
       error
       attemptedAt
       stale
+      queryUrls
     }
   """

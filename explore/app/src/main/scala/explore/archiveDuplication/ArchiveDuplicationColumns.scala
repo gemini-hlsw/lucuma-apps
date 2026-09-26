@@ -5,12 +5,14 @@ package explore.archiveDuplication
 
 import cats.Eq
 import cats.Order.given
+import cats.data.NonEmptyList
 import cats.derived.*
 import cats.effect.IO
 import cats.syntax.all.*
 import explore.Icons
 import explore.model.AppContext
 import explore.model.ArchiveMatch
+import explore.model.ArchiveSearchLink
 import explore.model.MatchCountCell
 import explore.model.Observation
 import explore.model.display
@@ -315,15 +317,20 @@ object ArchiveDuplicationColumns:
         ActionsColumnId,
         cell = cell =>
           cell.row.original.value.optEntry.map: entry =>
-            Button(
-              icon = Icons.ArrowRotateRight,
-              text = true,
-              disabled = !controls.enabled || entry.duplication.isPending,
-              tooltip = controls.disabledReason.getOrElse("refresh"),
-              onClick = onRecheck(entry.id)
-            ).tiny.compact,
+            val searchLinks: Option[NonEmptyList[ArchiveSearchLink]] =
+              entry.duplication.toOption.flatMap(d => NonEmptyList.fromList(d.searchLinks))
+            React.Fragment(
+              searchLinks.fold(EmptyVdom)(ArchiveSearchLinkButton(_)),
+              Button(
+                icon = Icons.ArrowRotateRight,
+                text = true,
+                disabled = !controls.enabled || entry.duplication.isPending,
+                tooltip = controls.disabledReason.getOrElse("refresh"),
+                onClick = onRecheck(entry.id)
+              ).tiny.compact
+            ),
         header = ColumnNames(ActionsColumnId)
-      ).withSize(45.toPx).setEnableSorting(false.some)
+      ).withSize(70.toPx).setEnableSorting(false.some)
     )
   end columns
 end ArchiveDuplicationColumns

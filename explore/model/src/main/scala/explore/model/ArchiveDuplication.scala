@@ -12,6 +12,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
+import lucuma.catalog.goa.syntax.*
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -37,7 +38,8 @@ case class ArchiveDuplication(
   lastCheckedAt: Option[Timestamp],
   error:         Option[NonEmptyString],
   attemptedAt:   Option[Timestamp],
-  stale:         Boolean
+  stale:         Boolean,
+  queryUrls:     List[String]
 ) derives Eq:
   def isNotApplicable: Boolean =
     state === ArchiveDuplicationState.NotApplicable
@@ -49,6 +51,10 @@ case class ArchiveDuplication(
     state === ArchiveDuplicationState.NotChecked || state === ArchiveDuplicationState.Error ||
       stale
 
+  /** The archive search pages for the queries the Search ran, one per fan-out query. */
+  lazy val searchLinks: List[ArchiveSearchLink] =
+    queryUrls.zipWithIndex.map((url, i) => ArchiveSearchLink.fromQueryUrl(url, i))
+
 object ArchiveDuplication:
   given Decoder[ArchiveDuplication] = Decoder.instance: c =>
     for
@@ -59,6 +65,7 @@ object ArchiveDuplication:
       error         <- c.get[Option[NonEmptyString]]("error")
       attemptedAt   <- c.get[Option[Timestamp]]("attemptedAt")
       stale         <- c.get[Boolean]("stale")
+      queryUrls     <- c.get[List[String]]("queryUrls")
     yield ArchiveDuplication(
       state,
       matchCount,
@@ -66,7 +73,32 @@ object ArchiveDuplication:
       lastCheckedAt,
       error,
       attemptedAt,
-      stale
+      stale,
+      queryUrls
+    )
+
+/**
+ * A link to the archive's own search page for one GOA query.
+ *
+ * The ODB stores the JSON API form of each query; the archive serves the same selection as a
+ * browsable page under `searchform`.
+ */
+case class ArchiveSearchLink(label: String, url: String) derives Eq
+
+object ArchiveSearchLink:
+  private val GoaInstrumentNames: Set[String] =
+    Instrument.values.toList.flatMap(_.goaName).toSet
+
+  def humanUrl(queryUrl: String): String =
+    queryUrl.replaceFirst("/jsonsummary/", "/searchform/")
+
+  def instrumentLabel(queryUrl: String): Option[String] =
+    queryUrl.split('/').find(GoaInstrumentNames.contains)
+
+  def fromQueryUrl(queryUrl: String, index: Int): ArchiveSearchLink =
+    ArchiveSearchLink(
+      instrumentLabel(queryUrl).getOrElse(s"Search ${index + 1}"),
+      humanUrl(queryUrl)
     )
 
 /**
