@@ -4,10 +4,11 @@
 package observe.server.tcs
 
 import cats.data.*
-import cats.effect.*
+import cats.effect.Async
 import cats.syntax.all.*
+import clue.FetchClient
 import lucuma.core.enums.Site
-import lucuma.core.model.GemsConfig
+import lucuma.schemas.NavigateDB
 import observe.model.enums.NodAndShuffleStage
 import observe.server.ObserveFailure
 import observe.server.gems.Gems
@@ -15,12 +16,10 @@ import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsSouthController.*
 import org.typelevel.log4cats.Logger
 
-final case class TcsSouthControllerEpics[F[_]: {Async, Logger}](
-  epicsSys:      TcsEpics[F],
-  guideConfigDb: GuideConfigDb[F]
+final case class TcsSouthControllerNavigate[F[_]: {Async, Logger}](epicsSys: TcsEpics[F])(using
+  FetchClient[F, NavigateDB]
 ) extends TcsSouthController[F] {
-  private val commonController = TcsControllerEpicsCommon[F, Site.GS.type](epicsSys)
-  private val aoController     = TcsSouthControllerEpicsAo(epicsSys)
+  private val commonController = TcsControllerNavigate[F, Site.GS.type](epicsSys)
 
   override def applyConfig(
     subsystems: NonEmptySet[Subsystem],
@@ -29,26 +28,10 @@ final case class TcsSouthControllerEpics[F[_]: {Async, Logger}](
   ): F[Unit] =
     tcs match {
       case c: BasicTcsConfig[Site.GS.type] => commonController.applyBasicConfig(subsystems, c)
-      case d: TcsSouthAoConfig             =>
-        for {
-          oc <- guideConfigDb.value
-          gc <- oc.config.gaosGuide
-                  .flatMap(_.toOption)
-                  .map(_.pure[F])
-                  .getOrElse(
-                    ObserveFailure
-                      .Execution("Attemp to run GeMS step before the operator configured GeMS")
-                      .raiseError[F, GemsConfig]
-                  )
-          ob <- gaos
-                  .map(_.pure[F])
-                  .getOrElse(
-                    ObserveFailure
-                      .Execution("No GeMS object defined for GeMS step")
-                      .raiseError[F, Gems[F]]
-                  )
-          r  <- aoController.applyAoConfig(subsystems, ob, gc, d)
-        } yield r
+      case _: TcsSouthAoConfig             =>
+        ObserveFailure
+          .Execution("GeMS steps are not supported when configuring the TCS through Navigate")
+          .raiseError[F, Unit]
     }
 
   override def notifyObserveStart: F[Unit] = commonController.notifyObserveStart

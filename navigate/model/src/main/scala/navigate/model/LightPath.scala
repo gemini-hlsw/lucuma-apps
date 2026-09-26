@@ -3,8 +3,8 @@
 
 package navigate.model
 
+import lucuma.schemas.model.navigate.LightSource
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 
 case class LightPath(
   from: LightSource,

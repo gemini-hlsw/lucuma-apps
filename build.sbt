@@ -104,6 +104,7 @@ lazy val root = tlCrossRootProject.aggregate(
   schemas_testkit,
   schemas_tests,
   schemas_lib,
+  schemas_navigate,
   ui_lib,
   ui_testkit,
   ui_tests,
@@ -189,14 +190,24 @@ lazy val schemas_lib =
       Compile / clueSourceDirectory := (ThisBuild / baseDirectory).value / "schemas" / "lib" / "src" / "clue",
       // Include schema files in jar.
       Compile / unmanagedResourceDirectories += (Compile / clueSourceDirectory).value / "resources",
+      // Publishes the GraphQL schemas of the apps in this repo, for clients outside of it.
       createNpmProject              := {
-        val npmDir = target.value / "npm"
+        val npmDir  = target.value / "npm"
+        val rootDir = (ThisBuild / baseDirectory).value
 
-        val navigateSchemaFile: File     =
-          (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
+        // Export name -> schema file. Add an entry here to publish another schema.
+        val schemaFiles: List[(String, File)] = List(
+          "navigate" -> rootDir / "navigate/web/server/src/main/resources/navigate.graphql"
+        )
+
         val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
           gitDescribedVersion.value.getOrElse("0.0.0").takeWhile(c => c != '+' && c != '-') +
             "-" + version.value
+
+        val schemaExports: String =
+          schemaFiles
+            .map { case (name, file) => s""""./$name": "./${file.getName}",""" }
+            .mkString("\n    ")
 
         IO.write(
           npmDir / "package.json",
@@ -207,7 +218,7 @@ lazy val schemas_lib =
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
              |    "./package.json": "./package.json",
-             |    "./navigate": "./${navigateSchemaFile.getName}",
+             |    $schemaExports
              |    "./*": "./*"
              |  },
              |  "repository": {
@@ -218,19 +229,17 @@ lazy val schemas_lib =
              |""".stripMargin
         )
 
-        // Replace the import path to the schema file to match the NPM package structure
-        val navigateSchemaContent = IO
-          .read(
-            navigateSchemaFile
+        // Imports from the ODB schema point to the ODB schema npm package instead
+        schemaFiles.foreach { case (_, file) =>
+          IO.write(
+            npmDir / file.getName,
+            IO.read(file)
+              .replace(
+                "from \"lucuma/schemas/ObservationDB.graphql\"",
+                "from \"@gemini-hlsw/lucuma-odb-schemas/odb\""
+              )
           )
-          .replace(
-            "from \"lucuma/schemas/ObservationDB.graphql\"",
-            "from \"@gemini-hlsw/lucuma-odb-schemas/odb\""
-          )
-        IO.write(
-          npmDir / navigateSchemaFile.getName,
-          navigateSchemaContent
-        )
+        }
 
         streams.value.log.info(s"Created NPM project in ${npmDir}")
       },
@@ -238,6 +247,20 @@ lazy val schemas_lib =
     )
     .jsSettings(
       Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
+    )
+
+// Navigate's schema and the types shared by Navigate and its clients
+lazy val schemas_navigate =
+  crossProject(JVMPlatform, JSPlatform)
+    .crossType(CrossType.Pure)
+    .in(file("schemas/navigate"))
+    .dependsOn(schemas_lib)
+    .enablePlugins(CluePlugin)
+    .settings(
+      name                          := "lucuma-schemas-navigate",
+      Compile / clueSourceDirectory := (ThisBuild / baseDirectory).value / "schemas" / "navigate" / "src" / "clue",
+      // Include schema files in jar.
+      Compile / unmanagedResourceDirectories += (Compile / clueSourceDirectory).value / "resources"
     )
 
 // BEGIN UI
@@ -665,7 +688,7 @@ lazy val observe_web_client = project
 
 lazy val observe_server = project
   .in(file("observe/server"))
-  .dependsOn(schemas_lib.jvm)
+  .dependsOn(schemas_lib.jvm, schemas_navigate.jvm)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin, CluePlugin)
   .settings(observeCommonSettings: _*)
@@ -932,6 +955,7 @@ lazy val navigate_web_server = project
 
 lazy val navigate_model = project
   .in(file("navigate/model"))
+  .dependsOn(schemas_navigate.jvm)
   .enablePlugins(GitBranchPrompt)
   .settings(
     libraryDependencies ++=
@@ -1374,3 +1398,12 @@ ThisBuild / mergifyLabelPaths :=
     "navigate" -> baseDirectory.value / "navigate",
     "observe"  -> baseDirectory.value / "observe"
   )
+
+// Regenerates the stitched Navigate schema used by Navigate's clients, and the Clue code from it.
+// Clue only regenerates code when the queries change, hence the `clueClean`.
+addCommandAlias(
+  "navigateSchemaGenerate",
+  "navigate_web_server/Test/runMain navigate.web.server.http4s.RenderNavigateSchema; schemas_navigateJVM/clueClean; schemas_navigateJS/clueClean"
+)
+// Checks that the stitched Navigate schema is up to date with navigate.graphql
+addCommandAlias("navigateSchemaCheck", "navigate_web_server/testOnly *NavigateSchemaSuite")

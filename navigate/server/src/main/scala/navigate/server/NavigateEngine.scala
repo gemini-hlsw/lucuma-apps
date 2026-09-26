@@ -32,12 +32,14 @@ import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.DateInterval
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import monocle.Lens
 import monocle.syntax.all.focus
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
 import navigate.model.CommandResult
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -68,7 +70,6 @@ import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
 import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode
@@ -177,6 +178,7 @@ trait NavigateEngine[F[_]] {
     offset:     Option[Offset],
     wavelength: Option[Wavelength],
     lightPath:  Option[LightPath],
+    defocus:    Option[Distance],
     guiding:    Boolean
   ): F[CommandResult]
   def originOffsetAbsorb: F[CommandResult]
@@ -716,13 +718,14 @@ object NavigateEngine {
       offset:     Option[Offset],
       wavelength: Option[Wavelength],
       lightPath:  Option[LightPath],
+      defocus:    Option[Distance],
       guiding:    Boolean
     ): F[CommandResult] =
       simpleCommand(
         engine,
-        ConfigureStep(offset, wavelength, lightPath, guiding),
+        ConfigureStep(offset, wavelength, lightPath, defocus, guiding),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.configureStep(offset, wavelength, lightPath, guiding)(
+          systems.tcsCommon.configureStep(offset, wavelength, lightPath, defocus, guiding)(
             s.guideConfig,
             s.wfsTrackingConfig
           )

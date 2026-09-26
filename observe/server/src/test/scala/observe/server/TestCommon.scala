@@ -163,6 +163,7 @@ object TestCommon {
   val defaultSettings: ObserveEngineConfiguration = ObserveEngineConfiguration(
     odbHttp = uri"localhost",
     odbWs = uri"localhost",
+    navigateHttp = uri"localhost",
     dhsServer = uri"http://localhost/",
     systemControl = SystemsControlConfiguration(
       altair = ControlStrategy.Simulated,

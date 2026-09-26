@@ -6,7 +6,9 @@ package observe.server.tcs
 import cats.data.*
 import cats.effect.Async
 import cats.syntax.all.*
+import clue.FetchClient
 import lucuma.core.enums.Site
+import lucuma.schemas.NavigateDB
 import observe.model.enums.NodAndShuffleStage
 import observe.server.ObserveFailure
 import observe.server.altair.Altair
@@ -14,10 +16,10 @@ import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsNorthController.*
 import org.typelevel.log4cats.Logger
 
-final case class TcsNorthControllerEpics[F[_]: {Async, Logger}](epicsSys: TcsEpics[F])
-    extends TcsNorthController[F] {
-  private val commonController = TcsControllerEpicsCommon[F, Site.GN.type](epicsSys)
-  private val aoController     = TcsNorthControllerEpicsAo(epicsSys)
+final case class TcsNorthControllerNavigate[F[_]: {Async, Logger}](epicsSys: TcsEpics[F])(using
+  FetchClient[F, NavigateDB]
+) extends TcsNorthController[F] {
+  private val commonController = TcsControllerNavigate[F, Site.GN.type](epicsSys)
 
   override def applyConfig(
     subsystems: NonEmptySet[Subsystem],
@@ -26,12 +28,10 @@ final case class TcsNorthControllerEpics[F[_]: {Async, Logger}](epicsSys: TcsEpi
   ): F[Unit] =
     tcs match {
       case c: BasicTcsConfig[Site.GN.type] => commonController.applyBasicConfig(subsystems, c)
-      case d: TcsNorthAoConfig             =>
-        gaos
-          .map(aoController.applyAoConfig(subsystems, _, d))
-          .getOrElse(
-            ObserveFailure.Execution("No Altair object defined for Altair step").raiseError[F, Unit]
-          )
+      case _: TcsNorthAoConfig             =>
+        ObserveFailure
+          .Execution("Altair steps are not yet supported when configuring the TCS through Navigate")
+          .raiseError[F, Unit]
     }
 
   override def notifyObserveStart: F[Unit] = commonController.notifyObserveStart

@@ -26,6 +26,7 @@ import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import monocle.Focus
 import monocle.Focus.focus
 import monocle.Lens
@@ -34,6 +35,7 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -62,7 +64,6 @@ import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.FollowStatus.*
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -293,6 +294,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     offset:      Option[Offset],
     wavelength:  Option[Wavelength],
     lightPath:   Option[LightPath],
+    defocus:     Option[Distance],
     guiding:     Boolean
   )(
     guide:       GuideConfig,

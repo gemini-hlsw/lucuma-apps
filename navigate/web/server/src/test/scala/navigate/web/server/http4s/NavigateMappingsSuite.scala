@@ -15,6 +15,7 @@ import ch.qos.logback.classic.spi.LoggerContextVO
 import fs2.Stream
 import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
+import grackle.Value
 import io.circe.Decoder
 import io.circe.Decoder.Result
 import io.circe.DecodingFailure
@@ -41,6 +42,8 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.horizons.HorizonsClient
+import lucuma.schemas.model.navigate.LightSource
+import lucuma.schemas.model.navigate.OperationResult
 import monocle.Focus.focus
 import mouse.boolean.given
 import munit.CatsEffectSuite
@@ -86,7 +89,6 @@ import navigate.model.enums.DomeMode
 import navigate.model.enums.FollowStatus
 import navigate.model.enums.FollowStatus.*
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop
@@ -2116,6 +2118,82 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Parse the defocus of a step configuration") {
+    assertEquals(
+      NavigateMappings.parseConfigureStepInput(
+        List(
+          "defocus" -> Value.ObjectValue(List("millimeters" -> Value.FloatValue(0.25))),
+          "guiding" -> Value.BooleanValue(true)
+        )
+      ),
+      (none, none, none, Distance.fromLongMicrometers(250).some, true).some
+    )
+    assertEquals(
+      NavigateMappings.parseConfigureStepInput(List("guiding" -> Value.BooleanValue(false))),
+      (none, none, none, none, false).some
+    )
+    // An unparseable defocus fails the whole input instead of being ignored
+    assertEquals(
+      NavigateMappings.parseConfigureStepInput(
+        List(
+          "defocus" -> Value.ObjectValue(List("parsecs" -> Value.FloatValue(1.0))),
+          "guiding" -> Value.BooleanValue(true)
+        )
+      ),
+      none
+    )
+  }
+
+  test("Configure a step with an offset sent as unsigned microarcseconds in variables") {
+    for {
+      mp <- buildMapping()
+      p  <- mp.compileAndRun(
+              """
+          |mutation($config: ConfigureStepInput!) {
+          |  configureStep(config: $config) {
+          |    result
+          |  }
+          |}
+          |""".stripMargin,
+              untypedVars = Json
+                .obj(
+                  "config" -> Json.obj(
+                    "offset"  -> Json.obj(
+                      "p" -> Json.obj("microarcseconds" -> Json.fromLong(1500000L)),
+                      "q" -> Json.obj("microarcseconds" -> Json.fromLong(1295997750000L))
+                    ),
+                    "guiding" -> Json.True
+                  )
+                )
+                .some
+            )
+    } yield assert(
+      extractResult[OperationOutcome](p, "configureStep").exists(_ === OperationOutcome.success)
+    )
+  }
+
+  test("Parse an offset sent as unsigned microarcseconds") {
+    // Values larger than an Int reach the parser as FloatValue
+    val parsed = NavigateMappings.parseConfigureStepInput(
+      List(
+        "offset"  -> Value.ObjectValue(
+          List(
+            "p" -> Value.ObjectValue(List("microarcseconds" -> Value.IntValue(1500000))),
+            "q" -> Value.ObjectValue(List("microarcseconds" -> Value.FloatValue(1295997750000.0)))
+          )
+        ),
+        "guiding" -> Value.BooleanValue(true)
+      )
+    )
+    assertEquals(
+      parsed.flatMap(_._1),
+      Offset(
+        Offset.P(Angle.fromMicroarcseconds(1500000L)),
+        Offset.Q(Angle.fromMicroarcseconds(-2250000L))
+      ).some
+    )
+  }
+
   test("Configure a step with only the mandatory guiding parameter") {
     for {
       mp <- buildMapping()
@@ -3134,6 +3212,7 @@ object NavigateMappingsTest {
       offset:     Option[Offset],
       wavelength: Option[Wavelength],
       lightPath:  Option[LightPath],
+      defocus:    Option[Distance],
       guiding:    Boolean
     ): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 

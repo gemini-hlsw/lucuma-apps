@@ -316,6 +316,8 @@ input ConfigureStepInput {
     wavelength: WavelengthInput
     """ Light path to configure. Kept unchanged if not present. """
     lightPath: LightPathInput
+    """ Instrument defocus, applied as the TCS focus offset B. Kept unchanged if not present. """
+    defocus: DistanceInput
     """ Guiding state to leave the telescope in once the step is configured. """
     guiding: Boolean!
 }

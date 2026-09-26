@@ -20,6 +20,7 @@ import lucuma.core.model.AltairConfig
 import lucuma.core.model.GemsConfig
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.NewType
+import lucuma.schemas.model.navigate.LightSource
 import monocle.Focus
 import monocle.Lens
 import observe.server.InstrumentGuide
@@ -201,19 +202,6 @@ object TcsController {
       case (a @ Manual(_), b @ Manual(_)) => a === b
       case _                              => false
     }
-  }
-
-  /** Enumerated type for light source. */
-  sealed trait LightSource
-
-  object LightSource {
-    case object Sky extends LightSource
-
-    case object AO extends LightSource
-
-    case object GCAL extends LightSource
-
-    given Eq[LightSource] = Eq.fromUniversalEquals
   }
 
   /* Data type for science fold position. */

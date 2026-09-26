@@ -34,6 +34,7 @@ import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import monocle.Focus
 import monocle.Getter
 import monocle.Lens
@@ -94,7 +95,6 @@ import navigate.model.enums.DomeMode
 import navigate.model.enums.FollowStatus.Following
 import navigate.model.enums.FollowStatus.NotFollowing
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.model.enums.OiwfsWavelength
 import navigate.model.enums.ParkStatus.NotParked
 import navigate.model.enums.ParkStatus.Parked
@@ -2345,6 +2345,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                      Offset(Offset.P(offsetP), Offset.Q(offsetQ)).some,
                      wavelength.some,
                      LightPath(LightSource.Sky, LightSink.GmosNorth).some,
+                     none,
                      guiding = false
                    )(
                      GuideConfig(guideCfg, none),
@@ -2388,7 +2389,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        )
                      )
                    )
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(rememberedCfg, TrackingConfig.noTracking, TrackingConfig.noTracking)
                    )
@@ -2397,6 +2398,47 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       checkTracking(r1.pwfs1Tracking, rememberedCfg)
       checkPauseResumeGuide(r1, guideCfg)
     }
+  }
+
+  test(
+    "ConfigureStep command applies the instrument defocus as focus offset B, leaving focus offset A unchanged"
+  ) {
+    val defocus = Distance.fromLongMicrometers(250)
+
+    for {
+      (st, ctr) <- createController()
+      _         <- ctr.configureStep(none, none, none, defocus.some, guiding = false)(
+                     GuideConfig(guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1), none),
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking
+                     )
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      r1.focusOffsetB.value
+        .flatMap(_.toDoubleOption)
+        .fold(fail("No focus offset B set"))(v =>
+          assertEqualsDouble(v, defocus.toMillimeters.value.toDouble, 1e-9)
+        )
+      assertEquals(r1.focusOffset.value, none)
+    }
+  }
+
+  test(
+    "ConfigureStep command leaves focus offset B unchanged when no defocus is requested"
+  ) {
+    for {
+      (st, ctr) <- createController()
+      _         <- ctr.configureStep(none, none, none, none, guiding = false)(
+                     GuideConfig(guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1), none),
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking
+                     )
+                   )
+      r1        <- st.tcs.get
+    } yield assertEquals(r1.focusOffsetB.value, none)
   }
 
   test(
@@ -2415,6 +2457,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                      none,
                      none,
                      LightPath(LightSource.Sky, LightSink.Flamingos2).some,
+                     none,
                      guiding = true
                    )(
                      GuideConfig(guideCfg, none),
@@ -2438,6 +2481,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                      none,
                      none,
                      LightPath(LightSource.Sky, LightSink.GmosSouth).some,
+                     none,
                      guiding = true
                    )(
                      GuideConfig(guideCfg, none),
@@ -2465,7 +2509,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       // Guiding is currently on.
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
                    )
@@ -2489,7 +2533,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        .focus(_.sfName.value)
                        .replace("gmos3".some)
                    )
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
                    )
@@ -2516,7 +2560,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        .focus(_.aoName.value)
                        .replace("IN".some)
                    )
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
                    )
@@ -2536,7 +2580,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       // so starlight is reaching GmosSouth straight from the sky.
       _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
       _         <- st.ags.update(_.focus(_.port1Label.value).replace("GMOS".some))
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
                    )
@@ -2556,7 +2600,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.ags.update(_.focus(_.oiName.value).replace("GMOS".some))
       _         <- st.ags.update(_.focus(_.port1Label.value).replace("F2".some))
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
                    )
@@ -2583,7 +2627,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        .replace("IN".some)
                    )
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
-      _         <- ctr.configureStep(none, none, none, guiding = true)(
+      _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
                    )
