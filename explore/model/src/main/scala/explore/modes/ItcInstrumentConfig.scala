@@ -19,6 +19,7 @@ import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
+import lucuma.itc.AltairParameters
 import lucuma.refined.*
 import lucuma.schemas.model.CentralWavelength
 import monocle.Focus
@@ -66,6 +67,9 @@ sealed trait ItcInstrumentConfig derives Eq:
   def acceptsEtm(etm: Option[ExposureTimeMode]): Boolean = true
 
   def canBeAccepted: Boolean = true
+
+  // Only the ITC tiles set Altair, from the observation's guide star; modes table rows never do.
+  def withAltair(altair: Option[AltairParameters]): ItcInstrumentConfig = this
 
 object ItcInstrumentConfig:
   // GMOS suporta a total wavelength range of 360-1030 nm
@@ -394,7 +398,8 @@ object ItcInstrumentConfig:
     prism:                      GnirsPrism,
     camera:                     GnirsCamera,
     exposureTimeMode:           ExposureTimeMode,
-    override val modeOverrides: Option[InstrumentOverrides.GnirsSpectroscopy]
+    override val modeOverrides: Option[InstrumentOverrides.GnirsSpectroscopy],
+    altair:                     Option[AltairParameters]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GnirsGrating
     type Filter   = GnirsFilter
@@ -423,6 +428,9 @@ object ItcInstrumentConfig:
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
 
+    override def withAltair(altair: Option[AltairParameters]): ItcInstrumentConfig =
+      copy(altair = altair)
+
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
@@ -430,7 +438,8 @@ object ItcInstrumentConfig:
     filter:           GnirsFilter,
     camera:           GnirsCamera,
     exposureTimeMode: ExposureTimeMode,
-    coadds:           PosInt
+    coadds:           PosInt,
+    altair:           Option[AltairParameters]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
     type Filter   = GnirsFilter
@@ -451,6 +460,9 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    override def withAltair(altair: Option[AltairParameters]): ItcInstrumentConfig =
+      copy(altair = altair)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }

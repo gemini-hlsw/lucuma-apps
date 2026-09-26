@@ -110,7 +110,8 @@ object UseAgs:
                              obsConf.guidedAcqOffsets,
                              obsConf.guidedSciOffsets,
                              candidates.value.toOption.flatten,
-                             obsConf.guideProbe
+                             obsConf.guideProbe,
+                             obsConf.altairMode
                             )
                           ):
                             case (Some(focusedId),
@@ -122,7 +123,8 @@ object UseAgs:
                                   acqOffsets,
                                   sciOffsets,
                                   Some(cands),
-                                  guideProbe
+                                  guideProbe,
+                                  altairMode
                                 ) =>
                               AgsCalcProps(
                                 focusedId,
@@ -134,7 +136,8 @@ object UseAgs:
                                 acqOffsets,
                                 sciOffsets,
                                 cands,
-                                guideProbe
+                                guideProbe,
+                                altairMode
                               ).some
                             case _ => none
       anglesToTest      = obsConf.anglesToTest

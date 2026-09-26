@@ -368,6 +368,10 @@ trait DisplayImplicits:
       val filterStr = filters.map(_.shortName).toList.mkString(", ")
       s"Flamingos2 Imaging $filterStr"
     case BasicConfiguration.GnirsImaging(filters, camera)                          =>
+      // GNIRS <CAM> <FILTER LIST>-band imaging <IF Altair AO:mode>
+      // For example:
+      // GNIRS SB J/H/K-band imaging
+      // GNIRS LB K-band imaging AO:LGS+P1
       val filterStr = filters.map(_.shortName).toList.mkString(", ")
       s"GNIRS Imaging ${camera.shortName} $filterStr"
     case BasicConfiguration.Igrins2LongSlit                                        =>
@@ -375,8 +379,7 @@ trait DisplayImplicits:
     case BasicConfiguration.GhostIfu(resolutionMode = rm)                          =>
       s"GHOST IFU ${rm.shortName}"
     case BasicConfiguration.GnirsSpectroscopy(_, fpu, prism, grating, camera, cwl) =>
-      // For Gnirs Spectroscopy we should return this pattern:
-      // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU><IF Altair AO:mode>
+      // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU> <IF Altair AO:mode>
       // For example:
       // GNIRS SB 32 l/mm @ 2.23um 1" slit
       // GNIRS SB 32 l/mm @ 2.23um SXD 0.30" slit
@@ -390,19 +393,27 @@ trait DisplayImplicits:
         case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
         case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
       s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
-      // For Gnirs Imaging we should return this pattern:
-      // s"${filter.shortName} ${fpu.shortName} ${acqMirror.shortName} ${camera.shortName}".some
-      // GNIRS Imaging:
-      // GNIRS <CAM> <FILTER LIST>-band imaging <IF Altair AO: mode>
-      // For example:
-      // GNIRS SB J/H/K-band imaging
-      // GNIRS LB K-band imaging AO:LGS+P1
     case BasicConfiguration.Visitor(mode, _, _, _)                                 =>
       mode.shortName
     case BasicConfiguration.KeckExchange(keckInstrument, _)                        =>
       s"Keck Exchange: ${keckInstrument.longName}"
     case BasicConfiguration.SubaruExchange(subaruInstrument, _)                    =>
       s"Subaru Exchange: ${subaruInstrument.longName}"
+
+  // The guider selector entry; summaries use the shorter `altairSummaryLabel` instead.
+  def altairModeLabel(mode: AltairMode): String = s"Altair ${mode.shortName}"
+
+  def altairSummaryLabel(mode: AltairMode): String = s"AO:${mode.shortName}"
+
+  // Altair is not part of the observing mode, so it is appended to the mode's summary.
+  def withAltairSuffix(summary: String, altairMode: Option[AltairMode]): String =
+    (summary :: altairMode.map(altairSummaryLabel).toList).mkString(" ")
+
+  def configurationSummary(
+    configuration: BasicConfiguration,
+    altairMode:    Option[AltairMode]
+  ): String =
+    withAltairSuffix(configuration.shortName, altairMode)
 
   given Display[WavelengthOrder] = Display.byShortName:
     case WavelengthOrder.Increasing => "Increasing"

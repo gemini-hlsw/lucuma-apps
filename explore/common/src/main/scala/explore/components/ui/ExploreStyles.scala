@@ -412,6 +412,8 @@ object ExploreStyles:
   val PAConfigurationForm: Css             = Css("explore-pa-configuration-form")
   val PAConfigurationAngle: Css            = Css("explore-pa-configuration-angle")
   val PAConfigurationCassRotatorFixed: Css = Css("explore-pa-configuration-cass-rotator-fixed")
+  val AltairConfigurationForm: Css         = Css("explore-altair-configuration-form")
+  val AltairConfigurationMode: Css         = Css("explore-altair-configuration-mode")
   val AngleSpinnerButtons: Css             = Css("angle-spinner-buttons")
   val AveragePA: Css                       = Css("explore-average-pa")
   val ObsInstantTileTitle: Css             = Css("explore-obs-instant-tile-title")

@@ -31,6 +31,10 @@ given Display[GuideProbe] = Display.byShortName:
   case GuideProbe.Flamingos2OIWFS => "F2 OIWFS"
   case GuideProbe.AltairAOWFS     => "Altair AOWFS"
 
+given Display[FieldLens] = Display.byShortName:
+  case FieldLens.In  => "In"
+  case FieldLens.Out => "Out"
+
 given Display[GmosXBinning] = Display.by(_.shortName, _.longName)
 
 given Display[GmosYBinning] = Display.by(_.shortName, _.longName)

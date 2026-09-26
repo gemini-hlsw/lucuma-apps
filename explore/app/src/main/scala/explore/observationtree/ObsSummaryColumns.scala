@@ -279,7 +279,7 @@ object ObsSummaryColumns:
             ).withTooltip(content = constraintsSummary, position = Tooltip.Position.Top)
         .sortable,
       // TODO: FindingChartColumnId
-      obsColumn(ConfigurationColumnId, _.obs.basicConfiguration.foldMap(_.shortName))
+      obsColumn(ConfigurationColumnId, _.obs.configurationSummary.orEmpty)
         .withFilterMethod(FilterMethod.Select(_.orEmpty))
         .withCell(cell =>
           val tt: Option[VdomNode] = cell.value.map(identity)

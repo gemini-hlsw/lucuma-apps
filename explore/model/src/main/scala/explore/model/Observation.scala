@@ -51,9 +51,11 @@ import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.odb.data.AltairConfiguration
 import lucuma.odb.json.configurationrequest.query.given
 import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.time.decoder.given
@@ -100,8 +102,13 @@ final case class Observation(
   explicitBase:            Option[Coordinates],
   blindOffset:             BlindOffset,
   cassRotator:             CassRotator,
-  explicitGuideProbe:      Option[GuideProbe]
+  explicitGuideProbe:      Option[GuideProbe],
+  altair:                  Option[AltairConfiguration]
 ) derives Eq:
+  // Altair carries its own rotator setting, which wins over the observation's.
+  def effectiveCassRotator: CassRotator =
+    altair.fold(cassRotator)(_.cassRotator)
+
   /**
    * The lightweight view of the observing mode. Derived from the full mode whenever the detail
    * query has hydrated it, so that an edit in the configuration panel is reflected immediately;
@@ -114,6 +121,9 @@ final case class Observation(
       .map(_.toBasicConfiguration)
       .orElse(basicConfigSummary)
 
+  lazy val configurationSummary: Option[String] =
+    basicConfiguration.map(display.configurationSummary(_, altair.map(_.mode)))
+
   // The observation reference when it has one, the id otherwise.
   lazy val displayLabel: String = reference.fold(id.show)(_.label)
 
@@ -123,6 +133,11 @@ final case class Observation(
 
   lazy val observingModeSummary: Option[ObservingModeSummary] =
     observingMode.toOption.flatten.map(ObservingModeSummary.fromObservingMode)
+
+  lazy val observingModeSummaryLabel: Option[String] =
+    observingModeSummary.map(summary =>
+      display.withAltairSuffix(Display[ObservingModeSummary].shortName(summary), altair.map(_.mode))
+    )
 
   lazy val hasBlindOffset: Boolean =
     blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
@@ -374,11 +389,12 @@ final case class Observation(
         case f: ObservingMode.Flamingos2LongSlit =>
           List(
             ItcInstrumentConfig
-              .Flamingos2Spectroscopy(f.disperser,
-                                      f.filter,
-                                      f.fpu.some,
-                                      f.readMode,
-                                      f.exposureTimeMode
+              .Flamingos2Spectroscopy(
+                f.disperser,
+                f.filter,
+                f.fpu.some,
+                f.readMode,
+                f.exposureTimeMode
               )
           )
         case f: ObservingMode.Flamingos2Mos      =>
@@ -398,7 +414,13 @@ final case class Observation(
         case g: ObservingMode.GnirsImaging       =>
           g.filters.toList
             .map(f =>
-              ItcInstrumentConfig.GnirsImaging(f.filter, g.camera, f.exposureTimeMode, f.coadds)
+              ItcInstrumentConfig.GnirsImaging(
+                f.filter,
+                g.camera,
+                f.exposureTimeMode,
+                f.coadds,
+                none
+              )
             )
         case i: ObservingMode.Igrins2LongSlit    =>
           List(
@@ -417,7 +439,8 @@ final case class Observation(
                   g.prism,
                   g.camera,
                   w.exposureTimeMode,
-                  InstrumentOverrides.GnirsSpectroscopy(w.centralWavelength, w.coadds).some
+                  InstrumentOverrides.GnirsSpectroscopy(w.centralWavelength, w.coadds).some,
+                  none
                 )
         case g: ObservingMode.GnirsIfu           =>
           // Each central wavelength is a separate configuration with its own ITC
@@ -432,7 +455,8 @@ final case class Observation(
                   g.prism,
                   g.camera,
                   w.exposureTimeMode,
-                  InstrumentOverrides.GnirsSpectroscopy(w.centralWavelength, w.coadds).some
+                  InstrumentOverrides.GnirsSpectroscopy(w.centralWavelength, w.coadds).some,
+                  none
                 )
         case g: ObservingMode.GhostIfu           =>
           val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(
@@ -616,6 +640,13 @@ object Observation:
   // The user-selected guide probe. None means the default for the mode applies.
   val explicitGuideProbe: Lens[Observation, Option[GuideProbe]] =
     Focus[Observation](_.explicitGuideProbe)
+  // None when the observation does not observe behind Altair.
+  val altair: Lens[Observation, Option[AltairConfiguration]]    = Focus[Observation](_.altair)
+
+  val guiding: Lens[Observation, GuidingConfiguration] =
+    Lens[Observation, GuidingConfiguration](o =>
+      GuidingConfiguration(o.explicitGuideProbe, o.altair)
+    )(g => _.copy(explicitGuideProbe = g.explicitGuideProbe, altair = g.altair))
 
   val calculatedValues
     : Lens[Observation,
@@ -680,6 +711,7 @@ object Observation:
       blindOffset           <- targetEnv.as[BlindOffset]
       cassRotator           <- targetEnv.get[CassRotator]("cassRotator")
       explicitGuideProbe    <- targetEnv.get[Option[GuideProbe]]("explicitGuideProbe")
+      altair                <- targetEnv.get[Option[AltairConfiguration]]("altair")
     } yield Observation(
       id,
       reference.flatten,
@@ -713,6 +745,7 @@ object Observation:
       explicitBase,
       blindOffset,
       cassRotator,
-      explicitGuideProbe
+      explicitGuideProbe,
+      altair
     )
   )

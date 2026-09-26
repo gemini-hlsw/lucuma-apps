@@ -11,6 +11,7 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
@@ -30,6 +31,7 @@ case class ConfigurationForVisualization private (
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
   guideProbe:                 Option[GuideProbe],
+  altairMode:                 Option[AltairMode],
   targetVisualization:        TargetVisualization,
   maskDesign:                 Option[MaskDesign]
 ) derives Eq:
@@ -71,6 +73,7 @@ object ConfigurationForVisualization:
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
           obsConfig.guideProbe,
+          obsConfig.altairMode,
           obsConfig.targetViz,
           obsConfig.maskDesign
         )
@@ -90,6 +93,7 @@ object ConfigurationForVisualization:
       None,
       None,
       selectedPosAngle,
+      None,
       None,
       None,
       TargetVisualization.Empty,

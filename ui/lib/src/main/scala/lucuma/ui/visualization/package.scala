@@ -12,7 +12,9 @@ import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.PwfsSupport
 import lucuma.ags.SingleProbeAgsParams
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GuideProbe
@@ -202,6 +204,20 @@ def hatchDefs(hatchLine: Css, hatchLineSel: Css): VdomNode =
     hatchPattern("ghost-ifu2-hatch-selected", Css("ghost-ifu2-hatch-color"), -45, hatchLineSel)
   )
 
+extension [A <: PwfsSupport[A] & AgsParams.AltairSupport[A]](params: A)
+  /**
+   * Params for the selected guide probe. The Altair mode applies only when its own probe is the one
+   * selected; any other PWFS guides without Altair.
+   */
+  def guidedBy(guideProbe: Option[GuideProbe], altair: Option[AltairMode]): A =
+    altair.filter(mode => guideProbe.contains_(mode.guideProbe)) match
+      case Some(mode) => params.withAltair(mode)
+      case None       =>
+        guideProbe match
+          case Some(GuideProbe.PWFS1) => params.withPWFS1
+          case Some(GuideProbe.PWFS2) => params.withPWFS2
+          case _                      => params
+
 extension (conf: BasicConfiguration)
   /**
    * Labels drawn next to a geometry, keyed by the css the geometry is registered under. Only for
@@ -217,7 +233,8 @@ extension (conf: BasicConfiguration)
 
   def agsParams(
     port:       PortDisposition,
-    guideProbe: Option[GuideProbe]
+    guideProbe: Option[GuideProbe],
+    altair:     Option[AltairMode]
   ): Option[AgsParams & SingleProbeAgsParams] =
     val base =
       conf match
@@ -250,13 +267,14 @@ extension (conf: BasicConfiguration)
         case BasicConfiguration.GnirsImaging(filters = filters, camera = camera)             =>
           AgsParams
             .GnirsImaging(camera, AgsParams.GnirsImaging.representativeFilter(filters), port)
+            .guidedBy(guideProbe, altair)
             .some
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(ifu))      =>
-          AgsParams.GnirsIfu(ifu, port).some
+          AgsParams.GnirsIfu(ifu, port).guidedBy(guideProbe, altair).some
         case BasicConfiguration.GnirsSpectroscopy(fpu = fpu, prism = prism, camera = camera) =>
           // Slit (or, defensively, any non-IFU fpu) → long-slit probe params.
           val slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).getOrElse(GnirsFpuSlit.LongSlit_1_00)
-          AgsParams.GnirsLongSlit(slit, camera, prism, port).some
+          AgsParams.GnirsLongSlit(slit, camera, prism, port).guidedBy(guideProbe, altair).some
         case BasicConfiguration.GhostIfu(_, _, _, _, _)                                      =>
           AgsParams.GhostIfu().some
         case BasicConfiguration.Visitor(agsDiameter = ags, scienceFovDiameter = fov)         =>
@@ -264,7 +282,10 @@ extension (conf: BasicConfiguration)
         case BasicConfiguration.KeckExchange(_, _) | BasicConfiguration.SubaruExchange(_, _) =>
           none
 
-    guideProbe match
-      case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
-      case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
-      case _                      => base
+    // Re-selecting a PWFS would drop the Altair mode `guidedBy` already applied.
+    if base.exists(_.altair.isDefined) then base
+    else
+      guideProbe match
+        case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
+        case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
+        case _                      => base

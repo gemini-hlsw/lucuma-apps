@@ -8,6 +8,7 @@ import cats.Order
 import cats.Order.given
 import cats.data.EitherNec
 import cats.derived.*
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.*
 import crystal.Pot
@@ -18,6 +19,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ModesTableCommon
+import explore.model.AltairControls
 import explore.model.AppContext
 import explore.model.ObsTabTileIds
 import explore.model.Observation
@@ -39,6 +41,7 @@ import lucuma.core.math.TotalSN
 import lucuma.core.model.User
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.itc.ItcCcd
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.SizePx
@@ -52,12 +55,14 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 
 final case class ItcImagingTile(
-  uid:                 Option[User.Id],
-  selectedConfigs:     ConfigSelection,
-  observation:         Observation,
-  obsTargets:          TargetList,
-  customSedTimestamps: List[Timestamp],
-  selectedTarget:      View[Option[ItcTarget]]
+  uid:                     Option[User.Id],
+  selectedConfigs:         ConfigSelection,
+  observation:             Observation,
+  obsTargets:              TargetList,
+  customSedTimestamps:     List[Timestamp],
+  altairItcParameters:     Option[AltairParameters],
+  awaitingAltairGuideStar: Boolean,
+  selectedTarget:          View[Option[ItcTarget]]
 ) extends Tile[ItcImagingTile](
       ObsTabTileIds.ItcId.id,
       "ITC",
@@ -252,22 +257,29 @@ object ItcImagingTile
             props.observation,
             props.selectedConfigs.configs.map(_.instrumentConfig),
             props.obsTargets,
-            props.customSedTimestamps
+            props.customSedTimestamps,
+            props.altairItcParameters
           )
         // Update calculationResults for the selected configs
-        _             <- useEffectWithDeps(imagingQuerier): querier =>
-                           import ctx.given
+        _             <- useEffectWithDeps((imagingQuerier, props.awaitingAltairGuideStar)):
+                           (querier, awaiting) =>
+                             import ctx.given
 
-                           tileState
-                             .zoom(ItcTileState.calculationResults)
-                             .set(Pot.pending)
-                             .toAsync >>
-                             querier.requestCalculations
-                               .flatMap: result =>
-                                 tileState
-                                   .zoom(ItcTileState.calculationResults)
-                                   .set(result.ready)
-                                   .toAsync
+                             val pending: IO[Unit] =
+                               tileState
+                                 .zoom(ItcTileState.calculationResults)
+                                 .set(Pot.pending)
+                                 .toAsync
+
+                             if awaiting then pending
+                             else
+                               pending >>
+                                 querier.requestCalculations
+                                   .flatMap: result =>
+                                     tileState
+                                       .zoom(ItcTileState.calculationResults)
+                                       .set(result.ready)
+                                       .toAsync
         // Initialize selected target if none is set, and update if no longer in list
         _             <-
           useEffectWithDeps((props.selectedTarget.get, tileState.get.imagingTargets)):
@@ -280,11 +292,17 @@ object ItcImagingTile
                 case _               =>
                   props.selectedTarget.set(tileState.get.imagingDefaultTarget)
         rowsOrMsg     <- useMemo(
-                           (tileState.get.calculationResults, props.selectedTarget.get)
-                         ): (results, oTarget) =>
+                           (tileState.get.calculationResults,
+                            props.selectedTarget.get,
+                            props.awaitingAltairGuideStar
+                           )
+                         ): (results, oTarget, awaitingGuideStar) =>
                            results match
                              case Pot.Pending      =>
-                               toMessage("Waiting for ITC...", Message.Severity.Info)
+                               val pendingMessage: String =
+                                 if awaitingGuideStar then AltairControls.ItcAwaitingGuideStarMessage
+                                 else "Waiting for ITC..."
+                               toMessage(pendingMessage, Message.Severity.Info)
                                  .asLeft[List[ImagingFilterRow]]
                              case Pot.Error(t)     =>
                                toMessage(s"Error calling ITC: ${t.getMessage}",

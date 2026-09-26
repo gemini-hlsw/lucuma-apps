@@ -91,5 +91,6 @@ object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Config
           radius $AngleSubquery
         }
       }
+      altairMode
     }
   """

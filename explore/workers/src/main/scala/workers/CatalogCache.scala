@@ -12,11 +12,20 @@ import japgolly.webapputil.indexeddb.*
 import lucuma.ags
 import lucuma.ags.DefaultAreaBuffer
 import lucuma.ags.GuideStarCandidate
+import lucuma.catalog.BrightnessConstraints
 import lucuma.catalog.clients.GaiaClient
 import lucuma.catalog.votable.*
+import lucuma.core.enums.AltairMode
+import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.GuideSpeed
+import lucuma.core.enums.SkyBackground
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
+import lucuma.core.math.Wavelength
+import lucuma.core.model.CloudExtinction
+import lucuma.core.model.ImageQuality
 import lucuma.core.model.Target
+import lucuma.core.util.Enumerated
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.syntax.*
@@ -28,13 +37,46 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 1000
-  private val CacheVersion: Int = 13
+  private val CacheVersion: Int = 14
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
 
   protected def cacheQueryHash: Hash[ADQLQuery] =
     Hash.by(q => (MaxTargets, CacheVersion, q.toString))
+
+  // The shortest wavelength puts each image quality in its best percentile bucket, which has the
+  // faintest limits.
+  private val wavelengthForWidestAltairConstraints: Wavelength =
+    Wavelength.fromIntNanometers(300).get
+
+  /**
+   * Union of every Altair AOWFS limit, in R. `widestConstraints` covers the Gaia G limits only, and
+   * the AOWFS LGS limits reach fainter than any of them.
+   */
+  protected val widestAltairConstraints: BrightnessConstraints =
+    val constraints: NonEmptyList[BrightnessConstraints] =
+      for
+        mode  <- NonEmptyList.fromListUnsafe(Enumerated[AltairMode].all)
+        speed <- NonEmptyList.fromListUnsafe(Enumerated[GuideSpeed].all)
+        sb    <- NonEmptyList.fromListUnsafe(Enumerated[SkyBackground].all)
+        iq    <- NonEmptyList.fromListUnsafe(Enumerated[ImageQuality.Preset].all)
+        ce    <- NonEmptyList.fromListUnsafe(Enumerated[CloudExtinction.Preset].all)
+      yield ags.altairBrightnessConstraints(
+        mode,
+        speed,
+        wavelengthForWidestAltairConstraints,
+        sb,
+        iq.toImageQuality,
+        ce.toCloudExtinction
+      )
+    constraints.reduceLeft(_ ∪ _)
+
+  // Candidates for the AOWFS are only analysed against its R limits.
+  protected def brightnessConstraintsFor(probe: GuideProbe): BrightnessConstraints =
+    probe match
+      case GuideProbe.AltairAOWFS => widestAltairConstraints
+      case _                      => ags.widestConstraints
 }
 
 /**
@@ -57,7 +99,7 @@ trait CatalogCache extends CatalogIDB:
 
     val CatalogMessage.GSRequest(tracking, obsTime, probe) = request
 
-    val brightnessConstraints = ags.widestConstraints
+    val brightnessConstraints: BrightnessConstraints = brightnessConstraintsFor(probe)
 
     val ldt   = LocalDateTime.ofInstant(obsTime, ZoneOffset.UTC)
     // We consider the query valid from the fist moment of the year to the end
