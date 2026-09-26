@@ -12,6 +12,7 @@ import crystal.react.hooks.*
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ColumnSelectorInTitle
+import explore.components.HelpIcon
 import explore.components.Tile
 import explore.components.TileComponent
 import explore.components.TileContents
@@ -39,6 +40,7 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -68,7 +70,10 @@ final case class ArchiveDuplicationTile(
   readonly:       Boolean
 ) extends Tile[ArchiveDuplicationTile](
       id = OverviewTabTileIds.ArchiveDuplicationId.id,
-      title = "Archive Duplication Search"
+      title = React.Fragment(
+        "Archive Duplication Search",
+        HelpIcon("overview/archive-duplication.md".refined)
+      )
     )(ArchiveDuplicationTile)
 
 object ArchiveDuplicationTile
