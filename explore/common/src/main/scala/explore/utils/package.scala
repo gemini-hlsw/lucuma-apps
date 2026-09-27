@@ -13,6 +13,7 @@ import clue.data.syntax.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.BuildInfo
 import explore.components.ui.ExploreStyles
+import explore.model.ObservationTargets
 import fs2.Pipe
 import fs2.Pull
 import fs2.Stream
@@ -20,6 +21,10 @@ import fs2.concurrent.Channel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ExecutionEnvironment
+import lucuma.core.enums.Site
+import lucuma.core.math.Coordinates
+import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
@@ -58,6 +63,33 @@ def version(environment: ExecutionEnvironment): NonEmptyString = {
 // current UTC day when it has none.
 def obsTimeOrDefault(obsTime: Option[Instant]): Instant =
   obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS))
+
+// The time to display an observation at: its own time, or the next transit of its base at the
+// site after now. Falls back to the start of the current UTC day without a site or base tracking.
+def obsTimeOrDefault(
+  obsTime:      Option[Instant],
+  site:         Option[Site],
+  baseTracking: Option[Tracking]
+): Instant =
+  (site, baseTracking)
+    .flatMapN((observingSite, tracking) =>
+      tracking.timeOrNextTransit(observingSite, obsTime, Instant.now())
+    )
+    .getOrElse(obsTimeOrDefault(obsTime))
+
+// The base tracking used to pick the default observation time. Nonsidereal trackings come from
+// ephemerides fetched around the observation time, which is what we are trying to compute, so
+// only sidereal asterisms (or an explicit base) get one.
+def siderealBaseTracking(
+  targets:      Option[ObservationTargets],
+  explicitBase: Option[Coordinates]
+): Option[Tracking] =
+  explicitBase
+    .map(Tracking.constant)
+    .orElse:
+      targets
+        .flatMap(_.science.traverse(target => Target.siderealTracking.getOption(target.target)))
+        .flatMap(Tracking.fromList)
 
 inline def showCount(count: Int, unit: String, plural: String): String =
   if (count == 1) s"$count $unit"

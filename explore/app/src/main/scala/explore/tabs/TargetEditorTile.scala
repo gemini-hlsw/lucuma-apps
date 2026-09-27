@@ -85,7 +85,7 @@ object SingleTargetEditorTile
                 props.target,
                 props.obsAndTargets,
                 ObservationTargets.one(props.target.get),
-                obsTime = obsTime.value.some,
+                obsTime = obsTime.value,
                 obsConf = none,
                 positions = positions,
                 ags = AgsData.Empty,

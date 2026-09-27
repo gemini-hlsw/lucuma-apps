@@ -30,10 +30,12 @@ case class AgsOverlay(
   agsState:            AgsState,
   modeAvailable:       Boolean,
   durationAvailable:   Boolean, // Duration implies sequence
-  candidatesAvailable: Boolean
+  candidatesAvailable: Boolean,
+  anglesAvailable:     Boolean,
+  targetNotObservable: Boolean
 ) extends ReactFnProps[AgsOverlay](AgsOverlay.component) {
   val canCalculate: Boolean =
-    candidatesAvailable && durationAvailable && modeAvailable
+    candidatesAvailable && durationAvailable && modeAvailable && anglesAvailable
   val noGuideStar: Boolean  = canCalculate && selectedGS.get.idx.isEmpty && !agsState.isCalculating
   val loadingStars          = agsState.isLoading
 }
@@ -132,16 +134,23 @@ object AgsOverlay:
             (props.modeAvailable,
              props.durationAvailable,
              props.candidatesAvailable,
+             props.anglesAvailable,
              props.loadingStars
             ) match {
-              case (_, _, _, true)                   =>
+              case (_, _, _, _, true)                =>
                 <.span(errorIcon, Constants.LoadingStars)
-              case (false, _, _, _)                  =>
+              case (false, _, _, _, _)               =>
                 <.span(errorIcon, Constants.AcceptConfigPrompt)
-              case (_, false, _, _)                  =>
+              case (_, false, _, _, _)               =>
                 <.span(errorIcon, Constants.NoDuration)
-              case (_, _, false, _)                  =>
+              case (_, _, false, _, _)               =>
                 <.span(errorIcon, Constants.MissingCandidates)
+              case (_, _, _, false, _)               =>
+                <.span(
+                  errorIcon,
+                  if (props.targetNotObservable) Constants.NotObservable
+                  else Constants.NoPositionAngle
+                )
               case _ if props.agsState.isCalculating =>
                 <.span(Icons.CircleSmall.withBeat().withClass(ExploreStyles.WarningIcon),
                        Constants.Calculating

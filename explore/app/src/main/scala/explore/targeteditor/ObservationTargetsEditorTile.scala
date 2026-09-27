@@ -37,6 +37,7 @@ import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.shortcuts.*
 import explore.shortcuts.given
+import explore.targeteditor.UseDefaultObsTime.useDefaultObsTime
 import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.targets.TargetColumns
 import explore.utils.obsTimeOrDefault
@@ -140,9 +141,6 @@ object ObservationTargetsEditorTile
       { (props, tileSize) =>
         for
           ctx                 <- useContext(AppContext.ctx)
-          // Memoize the effective observation time (from odb or now)
-          // so we don't feed react-datepicker a fresh Instant.now on every render
-          obsTimeOrNow        <- useMemo(props.obsTime.get)(obsTimeOrDefault)
           columnVisibility    <- useStateView(TargetColumns.DefaultVisibility)
           // obsEditInfo <- useStateView[Option[ObsIdSetEditInfo]](none)
           adding              <- useStateView(AreAdding(false))
@@ -167,10 +165,18 @@ object ObservationTargetsEditorTile
                                    scienceIds.value ++ oBlindId.toList
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
+          // The effective observation time (from odb or the next transit), memoized so we don't
+          // feed react-datepicker a fresh Instant.now on every render
+          defaultObsTime      <- useDefaultObsTime(
+                                   obsTargets.value,
+                                   distinctSite.value,
+                                   props.obsTime.get,
+                                   props.obsConf.explicitBase
+                                 )(ctx)
           ownPositions        <- useObsPositions(
                                    obsTargets.value.filter(_ => props.positions.isEmpty),
                                    distinctSite.value,
-                                   obsTimeOrNow.value.some,
+                                   defaultObsTime.toOption,
                                    props.obsConf.targetViz.some,
                                    props.obsConf.explicitBase
                                  )(ctx)
@@ -225,8 +231,8 @@ object ObservationTargetsEditorTile
         yield
           import ctx.given
 
-          // The effective instant to display. Memoized in the hook above
-          val obsTime: Instant = obsTimeOrNow.value
+          // The effective instant to display; start of day while the default time loads
+          val obsTime: Instant = defaultObsTime.toOption.getOrElse(obsTimeOrDefault(none))
 
           val positions: ObsPositions = props.positions.getOrElse(ownPositions)
 
@@ -421,7 +427,7 @@ object ObservationTargetsEditorTile
                     targetWithId,
                     props.obsAndTargets,
                     targets.focusOn(focusedTargetId),
-                    props.obsTime.get,
+                    obsTime,
                     props.obsConf.some,
                     positions,
                     props.ags,
@@ -455,7 +461,7 @@ object ObservationTargetsEditorTile
                 props.obsAndTargets,
                 selectedAsterismSelection,
                 props.onAsterismUpdate,
-                props.obsTime.get,
+                obsTime,
                 distinctSite,
                 fullScreen.get,
                 editorReadonly,

@@ -119,6 +119,14 @@ object tracking:
       )
       .map(_.sequence.map(RegionOrTrackingMap.from(_)))
 
+  // The semester at the site containing `when`, clamped to the supported semester range.
+  def semesterAt(site: Site, when: Instant): Semester =
+    Semester
+      .fromSiteAndInstant(site, when)
+      .getOrElse:
+        if (when < Semester.MinValue.start.atSite(site).toInstant) Semester.MinValue
+        else Semester.MaxValue
+
   // Get low resolution tracking for the semester.
   def getRegionOrTrackingForSemester(
     target:   Target,
@@ -146,11 +154,7 @@ object tracking:
       case (Target.Nonsidereal(_, _, _), None)         =>
         "No site is known. This is likely a missing observing mode.".asLeft.pure[IO]
       case (Target.Nonsidereal(_, key, _), Some(site)) =>
-        val semester = Semester
-          .fromSiteAndInstant(site, when)
-          .getOrElse:
-            if (when < Semester.MinValue.start.atSite(site).toInstant) Semester.MinValue
-            else Semester.MaxValue
+        val semester = semesterAt(site, when)
         val night    = ObservingNight.fromSiteAndInstant(site, when)
         val lowRes   = getEphemerisTrackingForSemester(key, site, semester, lowResCadence)
         val highRes  = getEphemerisTrackingForObservingNight(key, site, night)

@@ -30,6 +30,8 @@ trait Constants:
   val LoadingStars           = "Loading candidate stars..."
   val NoGuideStarMessage     = "No guidestar available"
   val NoDuration             = "No duration available"
+  val NotObservable          = "Target not observable at the specified time"
+  val NoPositionAngle        = "Position angle unavailable without a sequence"
   val NoExposureTimeMode     = "No exposure time mode defined"
   val MissingMode            = "Observation is missing observing mode" // Matches odb error message
   val AcceptConfigPrompt     = "Accept an instrument configuration below."

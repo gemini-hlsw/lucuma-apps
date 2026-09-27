@@ -27,16 +27,25 @@ import lucuma.schemas.model.TargetWithId
 import lucuma.ui.visualization.GhostGeometry
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 /**
  * Derivations from an observation that need a time or the asterism tracking, so they cannot be
  * plain members of `Observation`.
  */
 object observation:
+  // The ODB assumes the same visit length for an Altair observation that has no sequence yet.
+  private val NominalAltairVisitDuration: TimeSpan =
+    TimeSpan.unsafeFromDuration(1, ChronoUnit.HOURS)
+
   extension (o: Observation)
-    // The explicit duration if set, else the remaining time from the digest.
+    // The explicit duration if set, else the remaining time from the digest. An Altair sequence
+    // cannot be generated before a guide star is picked, so until then Altair observations get a
+    // nominal duration, or AGS would never run.
     def obsDuration: Option[TimeSpan] =
-      o.observationDuration.orElse(o.execution.digest.remainingObsTime.value)
+      o.observationDuration
+        .orElse(o.execution.digest.remainingObsTime.value)
+        .orElse(Option.when(o.altair.isDefined)(NominalAltairVisitDuration))
 
     def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
       NonEmptySet.fromSet(Execution.acqConfigs.getOption(o.execution).orEmpty)
