@@ -344,7 +344,8 @@ object ArchiveDuplicationColumns:
                 tooltip = controls.disabledReason.getOrElse("refresh"),
                 onClick = onRecheck(entry.id)
               ).tiny.compact
-            ),
+            )
+        ,
         header = ColumnNames(ActionsColumnId)
       ).withSize(70.toPx).setEnableSorting(false.some)
     )

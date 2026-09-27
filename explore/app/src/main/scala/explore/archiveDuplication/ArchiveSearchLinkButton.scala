@@ -7,7 +7,6 @@ import cats.data.NonEmptyList
 import explore.Icons
 import explore.model.ArchiveSearchLink
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.MenuItem
@@ -40,20 +39,20 @@ object ArchiveSearchLinkButton:
                    _.toList.map: link =>
                      MenuItem.Item(label = link.label, url = link.url, target = "_blank"): MenuItem
     yield props.links match
-        case NonEmptyList(link, Nil) =>
+      case NonEmptyList(link, Nil) =>
+        Button(
+          icon = Icons.ArrowUpRightFromSquare,
+          text = true,
+          tooltip = Tooltip,
+          onClick = open(link.url)
+        ).tiny.compact
+      case _                       =>
+        React.Fragment(
           Button(
             icon = Icons.ArrowUpRightFromSquare,
             text = true,
             tooltip = Tooltip,
-            onClick = open(link.url)
-          ).tiny.compact
-        case _                       =>
-          React.Fragment(
-            Button(
-              icon = Icons.ArrowUpRightFromSquare,
-              text = true,
-              tooltip = Tooltip,
-              onClickE = e => e.stopPropagationCB >> menuRef.toggle(e)
-            ).tiny.compact,
-            PopupMenu(model = items).withRef(menuRef.ref)
-          )
+            onClickE = e => e.stopPropagationCB >> menuRef.toggle(e)
+          ).tiny.compact,
+          PopupMenu(model = items).withRef(menuRef.ref)
+        )
