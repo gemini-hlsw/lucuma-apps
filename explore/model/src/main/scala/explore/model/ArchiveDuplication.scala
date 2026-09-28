@@ -12,6 +12,8 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
+import lucuma.catalog.goa.GoaEndpoint
+import lucuma.catalog.goa.GoaParams
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -23,6 +25,7 @@ import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.model.enums.ArchiveDuplicationState
+import org.http4s.Uri
 import org.typelevel.cats.time.given
 
 import java.time.LocalDate
@@ -37,7 +40,8 @@ case class ArchiveDuplication(
   lastCheckedAt: Option[Timestamp],
   error:         Option[NonEmptyString],
   attemptedAt:   Option[Timestamp],
-  stale:         Boolean
+  stale:         Boolean,
+  queryUrls:     List[String]
 ) derives Eq:
   def isNotApplicable: Boolean =
     state === ArchiveDuplicationState.NotApplicable
@@ -49,6 +53,10 @@ case class ArchiveDuplication(
     state === ArchiveDuplicationState.NotChecked || state === ArchiveDuplicationState.Error ||
       stale
 
+  /** The archive search pages for the queries the Search ran, one per fan-out query. */
+  lazy val searchLinks: List[ArchiveSearchLink] =
+    queryUrls.zipWithIndex.map((url, i) => ArchiveSearchLink.fromQueryUrl(url, i))
+
 object ArchiveDuplication:
   given Decoder[ArchiveDuplication] = Decoder.instance: c =>
     for
@@ -59,6 +67,7 @@ object ArchiveDuplication:
       error         <- c.get[Option[NonEmptyString]]("error")
       attemptedAt   <- c.get[Option[Timestamp]]("attemptedAt")
       stale         <- c.get[Boolean]("stale")
+      queryUrls     <- c.get[List[String]]("queryUrls")
     yield ArchiveDuplication(
       state,
       matchCount,
@@ -66,7 +75,21 @@ object ArchiveDuplication:
       lastCheckedAt,
       error,
       attemptedAt,
-      stale
+      stale,
+      queryUrls
+    )
+
+/**
+ * A link to the archive's own search page for one GOA query.
+ */
+case class ArchiveSearchLink(label: String, url: String) derives Eq
+
+object ArchiveSearchLink:
+  def fromQueryUrl(queryUrl: String, index: Int): ArchiveSearchLink =
+    val uri: Option[Uri] = Uri.fromString(queryUrl).toOption
+    ArchiveSearchLink(
+      uri.flatMap(GoaParams.instrumentOf).fold(s"Search ${index + 1}")(_.shortName),
+      uri.fold(queryUrl)(GoaEndpoint.fromUri.replace(GoaEndpoint.SearchForm)(_).renderString)
     )
 
 /**

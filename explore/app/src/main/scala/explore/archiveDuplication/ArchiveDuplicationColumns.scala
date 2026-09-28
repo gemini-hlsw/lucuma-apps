@@ -5,12 +5,14 @@ package explore.archiveDuplication
 
 import cats.Eq
 import cats.Order.given
+import cats.data.NonEmptyList
 import cats.derived.*
 import cats.effect.IO
 import cats.syntax.all.*
 import explore.Icons
 import explore.model.AppContext
 import explore.model.ArchiveMatch
+import explore.model.ArchiveSearchLink
 import explore.model.MatchCountCell
 import explore.model.Observation
 import explore.model.display
@@ -130,6 +132,11 @@ object ArchiveDuplicationColumns:
   private val StaleTooltip =
     "The observation has changed since this search ran. Re-check the row to bring it up to date."
 
+  private def dateCell(ts: Option[Timestamp]): VdomNode =
+    ts.fold(EmptyVdom): t =>
+      <.span(GppDateFormatter.format(t.toLocalDateTime.toLocalDate))
+        .withTooltip(content = t.formatUtc)
+
   private def matchCountText(count: Int, saturated: Boolean): String =
     if saturated then s"$count+" else count.toString
 
@@ -208,11 +215,17 @@ object ArchiveDuplicationColumns:
           // blank for it. This is where it gets to say what it is waiting for, or what went wrong.
           cell.row.original.value.fold[VdomNode](
             r =>
-              ctx.obsIdRoutingLink(
-                programId,
-                r.entry.id,
-                contents = r.entry.observation.reference.map(r => <.span(r.label): VdomNode)
-              ),
+              val searchLinks: Option[NonEmptyList[ArchiveSearchLink]] =
+                r.entry.duplication.toOption.flatMap(d => NonEmptyList.fromList(d.searchLinks))
+              React.Fragment(
+                ctx.obsIdRoutingLink(
+                  programId,
+                  r.entry.id,
+                  contents = r.entry.observation.reference.map(r => <.span(r.label): VdomNode)
+                ),
+                searchLinks.fold(EmptyVdom)(ArchiveSearchLinkButton(_))
+              )
+            ,
             _ => EmptyVdom,
             status =>
               <.span(
@@ -220,35 +233,39 @@ object ArchiveDuplicationColumns:
                 status.message
               )
           )
-        .sortableBy(_.map(_.id)),
+        .sortableBy(_.map(_.id))
+        .withSize(165.toPx),
       col(MatchCountColumnId, _.optEntry.map(_.matchCount))
         .withCell: cell =>
           cell.row.original.value.optEntry.map(e => matchCountCell(e.matchCountCell))
         .sortable
         .withSize(70.toPx),
-      textCol(TargetColumnId, r => r.entry.observation.title.some, _.objectName),
+      textCol(TargetColumnId, r => r.entry.observation.title.some, _.objectName)
+        .withSize(140.toPx),
       col(
         RAColumnId,
         _.fold(_.entry.basePosition.map(_.ra), _.archiveMatch.coordinates.map(_.ra), _ => none)
       ).withFilterMethod(FilterMethod.Text(_.foldMap(MathValidators.truncatedRA.reverseGet)))
         .withCell(_.value.map(MathValidators.truncatedRA.reverseGet).orEmpty)
-        .sortable,
+        .sortable
+        .withSize(95.toPx),
       col(
         DecColumnId,
         _.fold(_.entry.basePosition.map(_.dec), _.archiveMatch.coordinates.map(_.dec), _ => none)
       ).withFilterMethod(FilterMethod.Text(_.foldMap(MathValidators.truncatedDec.reverseGet)))
         .withCell(_.value.map(MathValidators.truncatedDec.reverseGet).orEmpty)
-        .sortable,
+        .sortable
+        .withSize(95.toPx),
       textCol(
         InstrumentColumnId,
         _.entry.observation.basicConfiguration.flatMap(_.instrument).map(_.shortName),
         m => m.instrument.map(_.shortName).orElse(m.instrumentString.some)
-      ),
+      ).withSize(90.toPx),
       textCol(
         DisperserColumnId,
         _.entry.observation.basicConfiguration.flatMap(_.disperserShortName),
         _.disperser
-      ),
+      ).withSize(100.toPx),
       col(
         WavelengthColumnId,
         _.fold(
@@ -258,12 +275,13 @@ object ArchiveDuplicationColumns:
         )
       ).withFilterMethod(FilterMethod.Text(_.foldMap(formatWv)))
         .withCell(_.value.map(formatWv).orEmpty)
-        .sortable,
+        .sortable
+        .withSize(85.toPx),
       textCol(
         FilterColumnId,
         _.entry.observation.basicConfiguration.flatMap(_.filterShortName),
         _.filter
-      ),
+      ).withSize(80.toPx),
       col(
         ObservationDateColumnId,
         _.fold(
@@ -272,15 +290,18 @@ object ArchiveDuplicationColumns:
           _ => none
         )
       ).withFilterMethod(FilterMethod.Text(_.foldMap(_.formatUtc)))
-        .withCell(_.value.map(_.formatUtc).orEmpty)
-        .sortable,
+        .withCell(c => dateCell(c.value))
+        .sortable
+        .withSize(90.toPx),
       col(ReleaseDateColumnId, _.optMatch.flatMap(_.releaseDate))
         .withCell(_.value.map(GppDateFormatter.format).orEmpty)
-        .sortable,
+        .sortable
+        .withSize(90.toPx),
       col(LastCheckedColumnId, _.optEntry.flatMap(_.duplication.toOption).flatMap(_.lastCheckedAt))
         .withFilterMethod(FilterMethod.Text(_.foldMap(_.formatUtc)))
-        .withCell(_.value.map(_.formatUtc).orEmpty)
-        .sortable,
+        .withCell(c => dateCell(c.value))
+        .sortable
+        .withSize(90.toPx),
       col(
         ExposureColumnId,
         // The observation's own per-exposure time, not its whole program time estimate: the
@@ -294,22 +315,24 @@ object ArchiveDuplicationColumns:
         )
       ).withFilterMethod(FilterMethod.Text(_.foldMap(_.formatSeconds)))
         .withCell(_.value.map(_.formatSeconds).orEmpty)
-        .sortable,
-      matchOnlyTextCol(DataLabelColumnId, _.dataLabel),
+        .sortable
+        .withSize(80.toPx),
+      matchOnlyTextCol(DataLabelColumnId, _.dataLabel).withSize(170.toPx),
       col(DistanceColumnId, _.optMatch.flatMap(_.distance))
         .withCell(_.value.map(formatDistance).orEmpty)
-        .sortableBy(_.map(_.toMicroarcseconds)),
+        .sortableBy(_.map(_.toMicroarcseconds))
+        .withSize(75.toPx),
       textCol(
         ProgramReferenceColumnId,
         _.entry.observation.reference.map(_.programReference.label),
         _.programReference
-      ),
+      ).withSize(130.toPx),
       textCol(
         ObservationReferenceColumnId,
         _.entry.observation.reference.map(_.label),
         _.observationReference
-      ),
-      matchOnlyTextCol(QaStateColumnId, _.qaStateString),
+      ).withSize(150.toPx),
+      matchOnlyTextCol(QaStateColumnId, _.qaStateString).withSize(60.toPx),
       matchOnlyTextCol(FileNameColumnId, _.name.some),
       ColDef(
         ActionsColumnId,

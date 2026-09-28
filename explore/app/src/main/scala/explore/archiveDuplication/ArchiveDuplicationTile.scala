@@ -12,6 +12,7 @@ import crystal.react.hooks.*
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ColumnSelectorInTitle
+import explore.components.HelpIcon
 import explore.components.Tile
 import explore.components.TileComponent
 import explore.components.TileContents
@@ -39,6 +40,7 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -68,7 +70,8 @@ final case class ArchiveDuplicationTile(
   readonly:       Boolean
 ) extends Tile[ArchiveDuplicationTile](
       id = OverviewTabTileIds.ArchiveDuplicationId.id,
-      title = "Archive Duplication Search"
+      title = "Archive Duplication Search",
+      bodyClass = ExploreStyles.ArchiveDuplicationTileBody
     )(ArchiveDuplicationTile)
 
 object ArchiveDuplicationTile
@@ -188,6 +191,7 @@ object ArchiveDuplicationTile
                                     cols,
                                     rows,
                                     enableExpanding = true,
+                                    autoResetExpanded = false,
                                     getSubRows = (row, _) => row.subRows,
                                     getRowId = (row, _, _) => RowId(row.value.rowId),
                                     enableSorting = true,
@@ -220,10 +224,17 @@ object ArchiveDuplicationTile
             waitingFor.fold(EmptyVdom): content =>
               <.span(Icons.Spinner.withSpin(true)).withTooltip(content = content)
 
+          val helpIcon: VdomNode = HelpIcon("overview/archive-duplication.md".refined)
+
           val title: VdomNode =
-            if tileSize === TileSizeState.Minimized then EmptyVdom
+            if tileSize === TileSizeState.Minimized then
+              React.Fragment(
+                if search.headersLoaded then <.span(s"(${search.withMatchesCount})") else EmptyVdom,
+                helpIcon
+              )
             else
               React.Fragment(
+                helpIcon,
                 <.span(ExploreStyles.TableSelectionToolbar)(
                   <.span(s"${search.withMatchesCount} of ${search.entries.length} with matches"),
                   busyIndicator,
@@ -264,17 +275,19 @@ object ArchiveDuplicationTile
           val body: VdomNode =
             React.Fragment(
               notApplicableNote,
-              PrimeAutoHeightVirtualizedTable(
-                table,
-                _ => 32.toPx,
-                striped = true,
-                compact = Compact.Very,
-                containerRef = resizer.ref,
-                tableMod = ExploreStyles.ExploreTable,
-                columnFilterRenderer =
-                  if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
-                headerCellMod = _ => ExploreStyles.StickyHeader,
-                emptyMessage = <.div("No observations to check against the archive.")
+              <.div(ExploreStyles.ArchiveDuplicationTable)(
+                PrimeAutoHeightVirtualizedTable(
+                  table,
+                  _ => 32.toPx,
+                  striped = true,
+                  compact = Compact.Very,
+                  containerRef = resizer.ref,
+                  tableMod = ExploreStyles.ExploreTable,
+                  columnFilterRenderer =
+                    if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+                  headerCellMod = _ => ExploreStyles.StickyHeader,
+                  emptyMessage = <.div("No observations to check against the archive.")
+                )
               )
             )
 
