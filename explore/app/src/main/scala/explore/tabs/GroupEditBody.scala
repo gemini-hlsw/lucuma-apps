@@ -13,6 +13,7 @@ import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Group
@@ -387,7 +388,14 @@ object GroupEditTitle
           else
             s"Choose ${group.minimumRequired.getOrElse(1.refined[NonNegative])} of ${elementsLength}"
 
-        <.span("(", andOrStr, timeStr, ")")
+        <.span(
+          ExploreStyles.GroupEditHelpIcon,
+          HelpIcon("scheduling/groups.md".refined).unless(group.system),
+          "(",
+          andOrStr,
+          timeStr,
+          ")"
+        )
 
       for ctx <- useContext(AppContext.ctx)
       yield makeTitle(props.group.get, props.timeEstimateRange, props.elementsLength)
