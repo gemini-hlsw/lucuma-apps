@@ -141,6 +141,7 @@ object ExploreStyles:
   val GroupEditTile: Css       = Css("group-edit-tile")
   val GroupEditTitle: Css      = Css("group-edit-title")
   val GroupEditTitleTimes: Css = Css("group-edit-title-times")
+  val GroupEditHelpIcon: Css   = Css("group-edit-help-icon")
   val GroupTypeSelect: Css     = Css("group-type-select")
   val GroupChangeButtons: Css  = Css("group-change-buttons")
   val GroupEditNote: Css       = Css("group-edit-note")
