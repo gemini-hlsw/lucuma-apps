@@ -163,6 +163,21 @@ object NavigateCommand {
     def name: String = self.getClass.getSimpleName.takeWhile(_ =!= '$')
   }
 
+  // Signed arcseconds, e.g. -2.25 instead of the angle's unsigned microarcseconds
+  private def signedArcseconds(a: Angle): String =
+    Angle.signedDecimalArcseconds.get(a).bigDecimal.stripTrailingZeros.toPlainString
+
+  // Degrees in [0º, 360º), as IPA and IAA are given in other tools, rounded to 6 decimals (~3.6 mas)
+  private[model] def degrees(a: Angle): String =
+    a.toBigDecimalDegrees
+      .setScale(6, BigDecimal.RoundingMode.HALF_UP)
+      .bigDecimal
+      .stripTrailingZeros
+      .toPlainString + "º"
+
+  private[model] def showOffset(o: Offset): String =
+    s"Offset(p = ${signedArcseconds(o.p.toAngle)}\", q = ${signedArcseconds(o.q.toAngle)}\")"
+
   given Show[NavigateCommand] = Show.show { self =>
     self match {
       case AcObserve(period)                                              => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
@@ -171,12 +186,12 @@ object NavigateCommand {
       case AcSetNdFilter(nd)                                              => s"${self.name}(ndFilter = $nd)"
       case AcSetWindowSize(wnd)                                           => s"${self.name}(window = ${wnd.tag})"
       case AcquisitionAdjust(offset, ipa, iaa)                            =>
-        s"${self.name}(offset = $offset, ipa = $ipa, iaa = $iaa)"
+        s"${self.name}(offset = ${showOffset(offset)}, ipa = ${ipa.map(degrees)}, iaa = ${iaa.map(degrees)})"
       case AowfsFollow(enable)                                            => s"${self.name}(enable = $enable)"
       case CentralWavelength(wavelength)                                  =>
         s"${self.name}(wavelength = ${wavelength.toNanometers.value.value.toDouble} nm)"
       case ConfigureStep(offset, wavelength, lightPath, defocus, guiding) =>
-        s"${self.name}(offset = $offset, wavelength = $wavelength, lightPath = $lightPath, defocus = $defocus, guiding = $guiding)"
+        s"${self.name}(offset = ${offset.map(showOffset)}, wavelength = $wavelength, lightPath = $lightPath, defocus = $defocus, guiding = $guiding)"
       case CrcsFollow(enable)                                             => s"${self.name}(enable = $enable)"
       case CrcsMove(angle)                                                => f"${self.name}(angle = ${angle.toDoubleDegrees}%.2fº)"
       case CrcsStop(brakes)                                               => s"${self.name}(brakes = $brakes)"
@@ -237,7 +252,7 @@ object NavigateCommand {
         s"${self.name}(target = $target, openLoops = $openLoops)"
       case TcsConfigure(config)                                           => s"${self.name}(config = ${config.show})"
       case TelescopeOffset(offset, guiding)                               =>
-        s"${self.name}(offset = $offset, guiding = $guiding)"
+        s"${self.name}(offset = ${showOffset(offset)}, guiding = $guiding)"
       case WfsSky(wfs, period)                                            =>
         f"${self.name}(wfs = $wfs, period = ${period.toSeconds.toDouble}%.3f)"
       case _                                                              => self.name
