@@ -132,7 +132,6 @@ object ArchiveDuplicationColumns:
   private val StaleTooltip =
     "The observation has changed since this search ran. Re-check the row to bring it up to date."
 
-  // The day is what a duplication check compares; the time of day is kept for the tooltip.
   private def dateCell(ts: Option[Timestamp]): VdomNode =
     ts.fold(EmptyVdom): t =>
       <.span(GppDateFormatter.format(t.toLocalDateTime.toLocalDate))
@@ -216,10 +215,15 @@ object ArchiveDuplicationColumns:
           // blank for it. This is where it gets to say what it is waiting for, or what went wrong.
           cell.row.original.value.fold[VdomNode](
             r =>
-              ctx.obsIdRoutingLink(
-                programId,
-                r.entry.id,
-                contents = r.entry.observation.reference.map(r => <.span(r.label): VdomNode)
+              val searchLinks: Option[NonEmptyList[ArchiveSearchLink]] =
+                r.entry.duplication.toOption.flatMap(d => NonEmptyList.fromList(d.searchLinks))
+              React.Fragment(
+                ctx.obsIdRoutingLink(
+                  programId,
+                  r.entry.id,
+                  contents = r.entry.observation.reference.map(r => <.span(r.label): VdomNode)
+                ),
+                searchLinks.fold(EmptyVdom)(ArchiveSearchLinkButton(_))
               ),
             _ => EmptyVdom,
             status =>
@@ -229,7 +233,7 @@ object ArchiveDuplicationColumns:
               )
           )
         .sortableBy(_.map(_.id))
-        .withSize(140.toPx),
+        .withSize(165.toPx),
       col(MatchCountColumnId, _.optEntry.map(_.matchCount))
         .withCell: cell =>
           cell.row.original.value.optEntry.map(e => matchCountCell(e.matchCountCell))
@@ -333,21 +337,15 @@ object ArchiveDuplicationColumns:
         ActionsColumnId,
         cell = cell =>
           cell.row.original.value.optEntry.map: entry =>
-            val searchLinks: Option[NonEmptyList[ArchiveSearchLink]] =
-              entry.duplication.toOption.flatMap(d => NonEmptyList.fromList(d.searchLinks))
-            React.Fragment(
-              searchLinks.fold(EmptyVdom)(ArchiveSearchLinkButton(_)),
-              Button(
-                icon = Icons.ArrowRotateRight,
-                text = true,
-                disabled = !controls.enabled || entry.duplication.isPending,
-                tooltip = controls.disabledReason.getOrElse("refresh"),
-                onClick = onRecheck(entry.id)
-              ).tiny.compact
-            )
-        ,
+            Button(
+              icon = Icons.ArrowRotateRight,
+              text = true,
+              disabled = !controls.enabled || entry.duplication.isPending,
+              tooltip = controls.disabledReason.getOrElse("refresh"),
+              onClick = onRecheck(entry.id)
+            ).tiny.compact,
         header = ColumnNames(ActionsColumnId)
-      ).withSize(70.toPx).setEnableSorting(false.some)
+      ).withSize(45.toPx).setEnableSorting(false.some)
     )
   end columns
 end ArchiveDuplicationColumns

@@ -12,7 +12,8 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
-import lucuma.catalog.goa.syntax.*
+import lucuma.catalog.goa.GoaEndpoint
+import lucuma.catalog.goa.GoaParams
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -24,6 +25,7 @@ import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.model.enums.ArchiveDuplicationState
+import org.http4s.Uri
 import org.typelevel.cats.time.given
 
 import java.time.LocalDate
@@ -79,26 +81,15 @@ object ArchiveDuplication:
 
 /**
  * A link to the archive's own search page for one GOA query.
- *
- * The ODB stores the JSON API form of each query; the archive serves the same selection as a
- * browsable page under `searchform`.
  */
 case class ArchiveSearchLink(label: String, url: String) derives Eq
 
 object ArchiveSearchLink:
-  private val GoaInstrumentNames: Set[String] =
-    Instrument.values.toList.flatMap(_.goaName).toSet
-
-  def humanUrl(queryUrl: String): String =
-    queryUrl.replaceFirst("/jsonsummary/", "/searchform/")
-
-  def instrumentLabel(queryUrl: String): Option[String] =
-    queryUrl.split('/').find(GoaInstrumentNames.contains)
-
   def fromQueryUrl(queryUrl: String, index: Int): ArchiveSearchLink =
+    val uri: Option[Uri] = Uri.fromString(queryUrl).toOption
     ArchiveSearchLink(
-      instrumentLabel(queryUrl).getOrElse(s"Search ${index + 1}"),
-      humanUrl(queryUrl)
+      uri.flatMap(GoaParams.instrumentOf).fold(s"Search ${index + 1}")(_.shortName),
+      uri.fold(queryUrl)(GoaEndpoint.fromUri.replace(GoaEndpoint.SearchForm)(_).renderString)
     )
 
 /**
