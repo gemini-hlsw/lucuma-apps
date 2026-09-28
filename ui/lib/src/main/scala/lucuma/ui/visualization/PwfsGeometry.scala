@@ -54,6 +54,8 @@ trait PwfsGeometry extends WithPwfsGeometry:
           guideProbe match
             case Some(GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
               pwfsCandidatesArea(candidatesAreaCss, posAngle, candidatesVisibilityCss)
+            case Some(GuideProbe.AltairAOWFS)              =>
+              altairCandidatesArea(candidatesAreaCss, posAngle, candidatesVisibilityCss)
             case _                                         =>
               SortedMap.empty
 

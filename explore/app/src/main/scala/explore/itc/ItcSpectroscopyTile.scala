@@ -17,6 +17,7 @@ import explore.common.UserPreferencesQueries.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.model.AltairControls
 import explore.model.AppContext
 import explore.model.Constants
 import explore.model.GlobalPreferences
@@ -35,6 +36,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.User
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.itc.GraphType
 import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.Message
@@ -50,12 +52,14 @@ extension (tuple: (ItcTarget, Either[ItcQueryProblem, ItcGraphResult]))
     TargetAndResults(tuple._1, tuple._2)
 
 final case class ItcSpectroscopyTile(
-  userIdOpt:           Option[User.Id],
-  observation:         Observation,
-  selectedConfig:      Option[ItcInstrumentConfig],
-  obsTargets:          TargetList,
-  customSedTimestamps: List[Timestamp],
-  globalPreferences:   View[GlobalPreferences]
+  userIdOpt:               Option[User.Id],
+  observation:             Observation,
+  selectedConfig:          Option[ItcInstrumentConfig],
+  obsTargets:              TargetList,
+  customSedTimestamps:     List[Timestamp],
+  altairItcParameters:     Option[AltairParameters],
+  awaitingAltairGuideStar: Boolean,
+  globalPreferences:       View[GlobalPreferences]
 ) extends Tile[ItcSpectroscopyTile](
       ObsTabTileIds.ItcId.id,
       "ITC",
@@ -90,23 +94,29 @@ object ItcSpectroscopyTile
             props.selectedConfig,
             props.obsTargets,
             props.customSedTimestamps,
+            props.altairItcParameters,
             tileState.get.selectedConfigIndex
           )
         _           <-
-          useEffectWithDeps(graphQuerier): querier =>
+          useEffectWithDeps((graphQuerier, props.awaitingAltairGuideStar)): (querier, awaiting) =>
             import ctx.given
 
-            tileState
-              .zoom(ItcTileState.asterismResults)
-              .set(Pot.pending)
-              .toAsync >>
-              querier.requestGraphs
-                .flatMap { t =>
-                  tileState
-                    .zoom(ItcTileState.asterismResults)
-                    .set(t.ready)
-                    .toAsync
-                }
+            val pending: IO[Unit] =
+              tileState
+                .zoom(ItcTileState.asterismResults)
+                .set(Pot.pending)
+                .toAsync
+
+            if awaiting then pending
+            else
+              pending >>
+                querier.requestGraphs
+                  .flatMap { t =>
+                    tileState
+                      .zoom(ItcTileState.asterismResults)
+                      .set(t.ready)
+                      .toAsync
+                  }
         _           <- // Reset the selected target if the brightest target changes
           useEffectWithDeps(
             tileState.get.graphsBrightestOrFirst
@@ -311,17 +321,23 @@ object ItcSpectroscopyTile
         val body: VdomNode =
           props.userIdOpt
             .map: userId =>
-              resultPot.renderPot(
-                valueRender = _.fold(
-                  es =>
-                    Message(
-                      text = es.format("Could not generate a graph:"),
-                      severity = Message.Severity.Warning
-                    ),
-                  (graphResult, instrumentConfig) =>
-                    buildBody(userId, graphResult, instrumentConfig)
+              if props.awaitingAltairGuideStar then
+                Message(
+                  text = AltairControls.ItcAwaitingGuideStarMessage,
+                  severity = Message.Severity.Info
+                ): VdomNode
+              else
+                resultPot.renderPot(
+                  valueRender = _.fold(
+                    es =>
+                      Message(
+                        text = es.format("Could not generate a graph:"),
+                        severity = Message.Severity.Warning
+                      ),
+                    (graphResult, instrumentConfig) =>
+                      buildBody(userId, graphResult, instrumentConfig)
+                  )
                 )
-              )
 
         TileContents(title, body)
     })

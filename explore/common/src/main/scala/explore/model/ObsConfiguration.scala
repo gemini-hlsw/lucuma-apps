@@ -15,6 +15,7 @@ import explore.model.enums.AgsState
 import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
 import lucuma.ags.syntax.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CassRotator
 import lucuma.core.enums.GuideProbe
@@ -27,6 +28,7 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
@@ -56,7 +58,8 @@ final case class ObsConfiguration(
   explicitBase:       Option[Coordinates],
   cassRotator:        CassRotator,
   maskDesign:         Option[MaskDesign],
-  explicitGuideProbe: Option[GuideProbe]
+  explicitGuideProbe: Option[GuideProbe],
+  altair:             Option[AltairConfiguration]
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -102,10 +105,13 @@ final case class ObsConfiguration(
   def cassRotatorFixed: Boolean =
     cassRotator === CassRotator.Fixed
 
+  def altairMode: Option[AltairMode] =
+    altair.map(_.mode)
+
   def guideProbe: Option[GuideProbe] =
-    val default = configuration.flatMap(_.guideProbe(trackType))
+    val default: Option[GuideProbe] = configuration.flatMap(_.guideProbe(trackType, altairMode))
     explicitGuideProbe
-      .filter(p => obsModeType.exists(probes.isProbeAllowed(_, p)))
+      .filter(p => obsModeType.exists(probes.isProbeAllowed(_, p, altairMode)))
       .orElse(default)
 
   def guidedAcqOffsets =
@@ -137,6 +143,7 @@ object ObsConfiguration:
       TargetVisualization.Empty,
       none,
       CassRotator.Following,
+      none,
       none,
       none
     )

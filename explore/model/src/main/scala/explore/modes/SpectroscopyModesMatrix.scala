@@ -375,6 +375,7 @@ object SpectroscopyModeRow {
       prism,
       camera,
       placeholderEtm,
+      none,
       none
     )
 

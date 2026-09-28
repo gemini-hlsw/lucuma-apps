@@ -85,7 +85,8 @@ object ImagingModeRow {
       filter,
       camera,
       ItcInstrumentConfig.PlaceholderEtm,
-      ItcInstrumentConfig.PlaceholderCoadds
+      ItcInstrumentConfig.PlaceholderCoadds,
+      none
     )
 
   given Decoder[ImagingModeRow] = c =>

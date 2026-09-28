@@ -44,6 +44,7 @@ import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Gid
 import lucuma.core.util.Of
+import lucuma.itc.AltairParameters
 import lucuma.itc.Error
 import lucuma.itc.IntegrationTime
 import lucuma.itc.ItcCcd
@@ -102,6 +103,15 @@ trait ItcPicklers extends CommonPicklers {
       .addConcreteType[GnirsFpu.Spectroscopy.Slit]
       .addConcreteType[GnirsFpu.Spectroscopy.Ifu]
       .addConcreteType[GnirsFpu.Other]
+
+  given Pickler[AltairParameters.Ngs]        = generatePickler
+  given Pickler[AltairParameters.Lgs]        = generatePickler
+  given Pickler[AltairParameters.LgsP1.type] = generatePickler
+  given Pickler[AltairParameters]            =
+    compositePickler[AltairParameters]
+      .addConcreteType[AltairParameters.Ngs]
+      .addConcreteType[AltairParameters.Lgs]
+      .addConcreteType[AltairParameters.LgsP1.type]
 
   given Pickler[ItcInstrumentConfig.GnirsSpectroscopy] = generatePickler
 

@@ -223,7 +223,7 @@ object ObsBadge:
         <.div(ExploreStyles.ObsBadgeHeader)(
           <.div(ExploreStyles.ObsBadgeTargetAndId)(
             <.div(badgeTitle(obs)).when(layout.showTitle),
-            <.div(obs.basicConfiguration.map(c => configLabel(obs, c.shortName)).getOrElse("-"))
+            <.div(obs.configurationSummary.map(configLabel(obs, _)).getOrElse("-"))
               .when(layout.showConfiguration === Section.Header),
             <.div(
               ExploreStyles.ObsBadgeId,
@@ -352,8 +352,8 @@ object ObsBadge:
             meta,
             <.div(ExploreStyles.ObsBadgeDescription)(
               <.span(ExploreStyles.ObsBadgeDescriptionTitles)(
-                obs.observingModeSummary
-                  .map(s => <.div(configLabel(obs, s.shortName)))
+                obs.observingModeSummaryLabel
+                  .map(label => <.div(configLabel(obs, label)))
                   .whenDefined
                   .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary).when(layout.showConstraints)

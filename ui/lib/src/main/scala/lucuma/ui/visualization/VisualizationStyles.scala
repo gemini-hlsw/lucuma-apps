@@ -102,6 +102,8 @@ object VisualizationStyles:
   val DebugScienceVignetting: Css       = Css("science-vignetting-debug")
   val PatrolFieldNoZones: Css           = Css("patrol-field-no-zones")
 
+  val AltairPatrolField: Css = Css("altair-patrol-field")
+
   val PwfsArm             = Css("pwfs-probe-arm")
   val PwfsProbeArmVisible = Css("pwfs-probe-arm-visible")
   val PwfsArmVignetted    = Css("pwfs-probe-arm-vignetting")

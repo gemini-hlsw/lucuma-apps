@@ -110,6 +110,19 @@
     stroke-dasharray: 10;
   }
 
+  // Shown with the guide star candidates, like the candidates area.
+  .altair-patrol-field {
+    display: none;
+    fill: none;
+    stroke: hsl(280deg 100% 75%);
+    stroke-width: 1px;
+    stroke-dasharray: 4;
+
+    &.guide-star-candidate-target-visible {
+      display: inline;
+    }
+  }
+
   .patrol-field-intersection {
     stroke: var(--reachable-patrol-stroke-color);
     stroke-width: var(--reachable-patrol-stroke-width);

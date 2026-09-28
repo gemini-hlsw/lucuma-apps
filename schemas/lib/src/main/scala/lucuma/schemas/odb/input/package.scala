@@ -47,6 +47,7 @@ import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.*
 import lucuma.itc.ItcGhostDetector
+import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
 import lucuma.schemas.ObservationDB.Enums.TelluricTag
@@ -325,6 +326,15 @@ extension (p: PosAngleConstraint)
         )
       case PosAngleConstraint.Unbounded                  =>
         PosAngleConstraintInput(mode = PosAngleConstraintMode.Unbounded.assign)
+
+extension (a: AltairConfiguration)
+  def toInput: AltairInput =
+    AltairInput(
+      mode = a.mode,
+      fieldLens = a.explicitFieldLens.orUnassign,
+      cassRotator = a.cassRotator.assign,
+      ndFilter = a.ndFilter.assign
+    )
 
 extension (ts: TimeSpan) def toInput: TimeSpanInput = TimeSpanInput.Microseconds(ts.toMicroseconds)
 

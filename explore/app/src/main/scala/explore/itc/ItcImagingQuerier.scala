@@ -26,6 +26,7 @@ import lucuma.core.data.Zipper
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import queries.schemas.itc.syntax.*
 import workers.WorkerClient
 
@@ -33,7 +34,8 @@ case class ItcImagingQuerier(
   observation:         Observation,
   selectedConfigs:     List[ItcInstrumentConfig],
   allTargets:          TargetList,
-  customSedTimestamps: List[Timestamp]
+  customSedTimestamps: List[Timestamp],
+  altair:              Option[AltairParameters]
 ) derives Eq:
 
   private val constraints = observation.constraints
@@ -65,16 +67,18 @@ case class ItcImagingQuerier(
     obsModeConfigs
       .map(_.rightNec)
       .getOrElse(requirementsConfigs)
+      .map(_.map(_.withAltair(altair)))
 
   private val queryProps: EitherNec[ItcQueryProblem, ItcImagingQuerier.QueryProps] =
     for {
       t       <- itcTargets.leftMap(_.map(_.problem))
       configs <- finalConfigs
-    } yield ItcImagingQuerier.QueryProps(constraints,
-                                         t,
-                                         configs.toList,
-                                         customSedTimestamps,
-                                         validAndInvalidTargets.invalid
+    } yield ItcImagingQuerier.QueryProps(
+      constraints,
+      t,
+      configs.toList,
+      customSedTimestamps,
+      validAndInvalidTargets.invalid
     )
 
   def requestCalculations(using

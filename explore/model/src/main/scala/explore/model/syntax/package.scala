@@ -11,9 +11,13 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.NonNegShort
 import explore.model.*
 import explore.model.enums.PosAngleOptions
+import lucuma.core.enums.AltairMode
+import lucuma.core.enums.AltairNdFilter
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.CassRotator
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -31,6 +35,7 @@ import lucuma.core.util.CalculationState
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.odb.data.AltairConfiguration
 
 import java.time.Instant
 import java.time.ZoneOffset
@@ -201,6 +206,10 @@ object all:
         case PosAngleConstraint.ParallacticOverride(_) => PosAngleOptions.ParallacticOverride
         case PosAngleConstraint.AverageParallactic     => PosAngleOptions.AverageParallactic
 
+    // Mirrors the ODB, which only accepts Altair behind GNIRS.
+    def supportsAltair: Boolean =
+      ObservingModeType.toFacility.getOption(bc).exists(_.instrument === Instrument.Gnirs)
+
   extension (pac: PosAngleConstraint)
     def fallbackPosAngle(averagePA: Option[Angle]): Angle =
       pac match
@@ -238,3 +247,8 @@ object all:
         case Commissioning(semester, _, _) => semester.some
         case Keck(proposal)                => proposal.semester.some
         case Subaru(proposal, _)           => proposal.semester.some
+
+  extension (companion: AltairConfiguration.type)
+    // Mirrors the ODB's `AltairInput` defaults, with the field lens left on AUTO.
+    def default(mode: AltairMode): AltairConfiguration =
+      AltairConfiguration(mode, none, CassRotator.Following, AltairNdFilter.Out)

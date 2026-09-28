@@ -1,0 +1,8 @@
+{
+  "mode": "NGS",
+  "explicitFieldLens": "OUT",
+  "defaultFieldLens": "IN",
+  "fieldLens": "OUT",
+  "cassRotator": "FIXED",
+  "ndFilter": "IN"
+}

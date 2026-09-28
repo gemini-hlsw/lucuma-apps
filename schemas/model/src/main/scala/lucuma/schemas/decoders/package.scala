@@ -15,3 +15,4 @@ package object decoders
     with ModeSignalToNoiseDecoders
     with SlitTelescopeConfigsDecoders
     with GmosIfuAnalysisDecoders
+    with AltairDecoders

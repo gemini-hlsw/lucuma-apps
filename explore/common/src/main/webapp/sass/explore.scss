@@ -4233,6 +4233,24 @@ $help-title-height: 40px;
   }
 }
 
+// -----------------
+// Altair form
+// -----------------
+.explore-altair-configuration-form {
+  flex-shrink: 1;
+  flex-wrap: wrap;
+  align-self: stretch;
+  align-items: baseline;
+  gap: 0.3em;
+  display: flex;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--site-border-color);
+
+  .explore-altair-configuration-mode {
+    margin-right: 1em;
+  }
+}
+
 // Move to lucuma-ui?
 .explore-table:has(.p-datatable-emptymessage) {
   tr > td.p-datatable-emptymessage {

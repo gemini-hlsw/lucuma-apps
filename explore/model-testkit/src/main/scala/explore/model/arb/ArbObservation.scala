@@ -5,7 +5,9 @@ package explore.model.arb
 
 import cats.Order.given
 import crystal.Pot
+import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
+import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.BlindOffset
 import explore.model.Execution
@@ -14,6 +16,7 @@ import explore.model.SchedulingConstraints
 import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
 import lucuma.core.arb.ArbTime
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CassRotator
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationPriority
@@ -26,6 +29,7 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.Group
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
@@ -43,6 +47,7 @@ import lucuma.core.util.arb.ArbCalculatedValue.given
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbTimeSpan.given
+import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.arb.ArbObservingMode
@@ -52,10 +57,6 @@ import org.scalacheck.Cogen
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
-import lucuma.core.enums.CalibrationRole
-import lucuma.core.model.Group
-import eu.timepit.refined.types.numeric.NonNegShort
-import eu.timepit.refined.scalacheck.numeric.given
 
 trait ArbObservation:
   import ArbBlindOffset.given
@@ -64,6 +65,7 @@ trait ArbObservation:
   import ArbSchedulingConstraints.given
   import ArbScienceRequirements.given
   import ArbObservingMode.given
+  import ArbAltairConfiguration.given
 
   given Arbitrary[Observation] =
     Arbitrary(
@@ -98,6 +100,7 @@ trait ArbObservation:
         blindOffset           <- arbitrary[BlindOffset]
         cassRotator           <- arbitrary[CassRotator]
         explicitGuideProbe    <- arbitrary[Option[GuideProbe]]
+        altair                <- arbitrary[Option[AltairConfiguration]]
       yield Observation(
         id,
         reference,
@@ -128,7 +131,8 @@ trait ArbObservation:
         explicitBase,
         blindOffset,
         cassRotator,
-        explicitGuideProbe
+        explicitGuideProbe,
+        altair
       )
     )
 
@@ -161,7 +165,8 @@ trait ArbObservation:
         Execution,
         Option[Coordinates],
         BlindOffset,
-        Option[GuideProbe]
+        Option[GuideProbe],
+        Option[AltairConfiguration]
        )
       )
     ]
@@ -193,7 +198,8 @@ trait ArbObservation:
           o.execution,
           o.explicitBase,
           o.blindOffset,
-          o.explicitGuideProbe
+          o.explicitGuideProbe,
+          o.altair
          )
         )
       )

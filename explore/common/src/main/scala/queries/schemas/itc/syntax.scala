@@ -182,13 +182,13 @@ trait syntax:
             .map: mask =>
               InstrumentMode.Flamingos2Spectroscopy(etm, disperser, filter, rm, mask).rightNec
             .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
-        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)             =>
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                     =>
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)             =>
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                     =>
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)            =>
+        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                    =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds) =>
+        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds, altair) =>
           InstrumentMode
             .GnirsImaging(
               etm,
@@ -196,11 +196,12 @@ trait syntax:
               camera,
               gnirsReadModeFor(etm),
               GnirsWellDepth.forCamera(camera),
-              coadds = coadds
+              coadds = coadds,
+              altair = altair
             )
             .rightNec
         case ItcInstrumentConfig
-              .GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm, modeOverrides) =>
+              .GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm, modeOverrides, altair) =>
           // ITC supports the spectroscopy FPUs (long slit and IFU); the other FPUs
           // (acquisition mirror, pupil viewer, pinholes) are not calculable.
           modeOverrides
@@ -219,16 +220,17 @@ trait syntax:
                       camera,
                       gnirsReadModeFor(etm),
                       GnirsWellDepth.forCamera(camera),
-                      overrides.coadds
+                      overrides.coadds,
+                      altair = altair
                     )
                     .rightNec
                 .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                  =>
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                          =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
-        case g: ItcInstrumentConfig.GhostIfu                               =>
+        case g: ItcInstrumentConfig.GhostIfu                                       =>
           validateGhostMode(g, targetCount)
-        case _                                                             =>
+        case _                                                                     =>
           ItcQueryProblem.UnsupportedMode.leftNec
 
   // We may consider adjusting this to consider small variations of RV identical for the

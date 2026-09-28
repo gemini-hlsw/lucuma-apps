@@ -51,6 +51,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Timestamp
+import lucuma.odb.data.AltairConfiguration
 import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.SelectItem
 import lucuma.schemas.ObservationDB.Types.*
@@ -74,6 +75,9 @@ final case class ConfigurationTile(
   obsId:                    Observation.Id,
   requirements:             UndoSetter[ScienceRequirements],
   pacAndMode:               UndoSetter[PosAngleConstraintAndObsMode],
+  altair:                   View[Option[AltairConfiguration]],
+  altairModel:              View[Option[AltairConfiguration]],
+  guideStarSeparation:      Option[Angle],
   scienceTargetIds:         SortedSet[Target.Id],
   baseCoordinates:          Option[Coordinates],
   obsConf:                  ObsConfiguration,
@@ -120,8 +124,24 @@ object ConfigurationTile
         case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth => true
         case _                                                                             => false
 
+      def supportsAltair(oMode: Option[ObservingMode]): Boolean =
+        oMode.exists(_.obsModeType.supportsAltair)
+
+      // The ODB rejects Altair behind any instrument but GNIRS, so a mode without it drops Altair.
+      def altairInput(oMode: Option[ObservingMode]): Input[TargetEnvironmentInput] =
+        if supportsAltair(oMode) then Input.ignore
+        else TargetEnvironmentInput(altair = Input.unassign).assign
+
+      // The ODB already dropped Altair if the new mode cannot use it; mirror that locally.
+      def clearAltairIfUnsupported(
+        oMode:  Option[ObservingMode],
+        altair: View[Option[AltairConfiguration]]
+      ): Callback =
+        altair.set(none).unless_(supportsAltair(oMode))
+
       def pacAndModeAction(
-        obsId:  Observation.Id
+        obsId:  Observation.Id,
+        altair: View[Option[AltairConfiguration]]
       )(using
         odbApi: OdbObservationApi[IO]
       ): Action[PosAngleConstraintAndObsMode, PosAngleConstraintAndObsMode] =
@@ -137,13 +157,15 @@ object ConfigurationTile
               List(obsId),
               ObservationPropertiesInput(
                 observingMode = oMode.map(_.toInput).orUnassign,
-                posAngleConstraint = pac.toInput.assign
+                posAngleConstraint = pac.toInput.assign,
+                targetEnvironment = altairInput(oMode)
               )
-            )
+            ) >> clearAltairIfUnsupported(oMode, altair).toAsync
         )
 
       def modeAction(
-        obsId:  Observation.Id
+        obsId:  Observation.Id,
+        altair: View[Option[AltairConfiguration]]
       )(using
         odbApi: OdbObservationApi[IO]
       ): Action[Option[ObservingMode], Option[ObservingMode]] =
@@ -155,8 +177,11 @@ object ConfigurationTile
           onRestore = (_, oMode) =>
             odbApi.updateObservations(
               List(obsId),
-              ObservationPropertiesInput(observingMode = oMode.map(_.toInput).orUnassign)
-            )
+              ObservationPropertiesInput(
+                observingMode = oMode.map(_.toInput).orUnassign,
+                targetEnvironment = altairInput(oMode)
+              )
+            ) >> clearAltairIfUnsupported(oMode, altair).toAsync
         )
 
       def checkAndDeleteSequenceIfNeeded(
@@ -185,6 +210,7 @@ object ConfigurationTile
         obsId:                    Observation.Id,
         hasMaterializedSequence:  Boolean,
         pacAndMode:               UndoSetter[PosAngleConstraintAndObsMode],
+        altair:                   View[Option[AltairConfiguration]],
         input:                    ObservingModeInput,
         defaultPosAngleConstrait: PosAngleOptions,
         isChanging:               View[IsActive]
@@ -201,27 +227,29 @@ object ConfigurationTile
           obsApi
             .updateConfiguration(obsId, input.assign, newPac.toInput.assign)
             .flatMap: om =>
-              pacAndModeAction(obsId)
-                .set(pacAndMode)((newPac, om))
-                .toAsync
+              (pacAndModeAction(obsId, altair).set(pacAndMode)((newPac, om)) >>
+                clearAltairIfUnsupported(om, altair)).toAsync
         else
           obsApi
             .updateConfiguration(obsId, input.assign)
             .flatMap: om =>
-              modeAction(obsId)
-                .set(pacAndMode.zoom(PosAngleConstraintAndObsMode.observingMode))(om)
-                .toAsync
-        checkAndDeleteSequenceIfNeeded(obsId,
-                                       hasMaterializedSequence,
-                                       update,
-                                       isChanging,
-                                       "Select Configuration"
+              (modeAction(obsId, altair)
+                .set(pacAndMode.zoom(PosAngleConstraintAndObsMode.observingMode))(om) >>
+                clearAltairIfUnsupported(om, altair)).toAsync
+
+        checkAndDeleteSequenceIfNeeded(
+          obsId,
+          hasMaterializedSequence,
+          update,
+          isChanging,
+          "Select Configuration"
         )
 
       def revertConfiguration(
         obsId:                    Observation.Id,
         hasMaterializedSequence:  Boolean,
         mode:                     UndoSetter[Option[ObservingMode]],
+        altair:                   View[Option[AltairConfiguration]],
         revertedInstrumentConfig: List[ItcInstrumentConfig],
         selectedConfig:           View[ConfigSelection],
         isChanging:               View[IsActive]
@@ -232,7 +260,8 @@ object ConfigurationTile
       ): IO[Unit] =
         val revert = odbApi
           .updateConfiguration(obsId, Input.unassign) >>
-          (modeAction(obsId).set(mode)(none) >>
+          (modeAction(obsId, altair).set(mode)(none) >>
+            altair.set(none) >>
             selectedConfig.set(
               ConfigSelection.fromInstrumentConfigs(revertedInstrumentConfig)
             )).toAsync
@@ -298,6 +327,7 @@ object ConfigurationTile
             props.obsId,
             props.hasMaterializedSequence,
             props.mode,
+            props.altairModel,
             props.revertedInstrumentConfig,
             props.selectedConfig,
             isChanging
@@ -319,6 +349,7 @@ object ConfigurationTile
                     props.obsId,
                     props.hasMaterializedSequence,
                     props.pacAndMode,
+                    props.altairModel,
                     m.toInput,
                     m.obsModeType.defaultPosAngleOptions,
                     isChanging
@@ -593,6 +624,8 @@ object ConfigurationTile
                     props.obsConf.cassRotator
                   )
                 ),
+              props.altair.toOptionView.map: altair =>
+                AltairConfigurationPanel(altair, props.guideStarSeparation, props.permissions),
               if (props.mode.get.isEmpty)
                 props.obsConf.constraints
                   .map(constraints =>
@@ -610,6 +643,7 @@ object ConfigurationTile
                           props.obsId,
                           props.hasMaterializedSequence,
                           props.pacAndMode,
+                          props.altairModel,
                           input,
                           posAngleOptions,
                           isChanging
