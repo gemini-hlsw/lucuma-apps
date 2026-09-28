@@ -224,7 +224,8 @@ object ArchiveDuplicationColumns:
                   contents = r.entry.observation.reference.map(r => <.span(r.label): VdomNode)
                 ),
                 searchLinks.fold(EmptyVdom)(ArchiveSearchLinkButton(_))
-              ),
+              )
+            ,
             _ => EmptyVdom,
             status =>
               <.span(
