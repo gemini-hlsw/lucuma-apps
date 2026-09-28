@@ -27,7 +27,7 @@ object ArchiveSearchLinkButton:
 
   private given Reusability[NonEmptyList[ArchiveSearchLink]] = Reusability.byEq
 
-  private val Tooltip = "Open this Search in the Gemini Observatory Archive"
+  private val Tooltip = "Open in archive"
 
   private def open(url: String): Callback =
     Callback(dom.window.open(url, "_blank", "noopener,noreferrer")).void
