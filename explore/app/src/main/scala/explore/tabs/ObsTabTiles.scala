@@ -44,6 +44,7 @@ import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targeteditor.UseAgs.useAgs
+import explore.targeteditor.UseAltairModesAgs.useAltairModesAgs
 import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
@@ -420,6 +421,15 @@ object ObsTabTiles:
                                   positions,
                                   obsConf,
                                   guideStarSelection
+                                )(ctx)
+        // Without a mode yet, the modes table offers Altair rows backed by a guide star of their own.
+        altairParams         <- useAltairModesAgs(
+                                  focusedTargets,
+                                  obsTimeOrNow.value.some,
+                                  positions,
+                                  obsConf,
+                                  props.observation.get.scienceRequirements.scienceMode.left.toOption
+                                    .flatMap(_.wavelength)
                                 )(ctx)
       yield
         import ctx.given
@@ -846,7 +856,8 @@ object ObsTabTiles:
               props.attachments,
               attachmentsView,
               pastProposalReview
-            )
+            ),
+            altairParams
           )
 
         val alltiles: List[Tile[?]] =

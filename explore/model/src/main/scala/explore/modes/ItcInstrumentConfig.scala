@@ -68,10 +68,19 @@ sealed trait ItcInstrumentConfig derives Eq:
 
   def canBeAccepted: Boolean = true
 
-  // Only the ITC tiles set Altair, from the observation's guide star; modes table rows never do.
+  // Altair parameters come from a guide star: the observation's in the ITC tiles, or the one AGS
+  // finds for the Altair rows of the modes tables.
   def withAltair(altair: Option[AltairParameters]): ItcInstrumentConfig = this
 
+  def altairMode: Option[AltairMode] = None
+
 object ItcInstrumentConfig:
+  def altairModeOf(parameters: AltairParameters): AltairMode =
+    parameters match
+      case AltairParameters.Ngs(_, _, _) => AltairMode.Ngs
+      case AltairParameters.Lgs(_, _)    => AltairMode.Lgs
+      case AltairParameters.LgsP1        => AltairMode.LgsP1
+
   // GMOS suporta a total wavelength range of 360-1030 nm
   // https://www.gemini.edu/instrumentation/gmos
   // the center is 360 + (1030 - 360) / 2 = 695
@@ -431,6 +440,8 @@ object ItcInstrumentConfig:
     override def withAltair(altair: Option[AltairParameters]): ItcInstrumentConfig =
       copy(altair = altair)
 
+    override def altairMode: Option[AltairMode] = altair.map(ItcInstrumentConfig.altairModeOf)
+
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
@@ -463,6 +474,8 @@ object ItcInstrumentConfig:
 
     override def withAltair(altair: Option[AltairParameters]): ItcInstrumentConfig =
       copy(altair = altair)
+
+    override def altairMode: Option[AltairMode] = altair.map(ItcInstrumentConfig.altairModeOf)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }

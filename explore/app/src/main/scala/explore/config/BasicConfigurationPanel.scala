@@ -33,6 +33,7 @@ import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
@@ -46,6 +47,7 @@ import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
@@ -73,7 +75,7 @@ case class BasicConfigurationPanel(
   itcTargets:          EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
-  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[
+  createConfig:        (ObservingModeInput, PosAngleOptions, Option[AltairMode]) => IO[
     Unit
   ], // Creation of alien visitors is done modally
   confMatrix:          ScienceModes,
@@ -81,7 +83,8 @@ case class BasicConfigurationPanel(
   readonly:            Boolean,
   units:               WavelengthUnits,
   globalPreferences:   View[GlobalPreferences],
-  targetView:          View[Option[ItcTarget]]
+  targetView:          View[Option[ItcTarget]],
+  altairParams:        Map[AltairMode, AltairParameters]
 ) extends ReactFnProps(BasicConfigurationPanel.component):
   private def tableFilters(
     lens:  Lens[GlobalPreferences, Visible],
@@ -178,21 +181,28 @@ private object BasicConfigurationPanel:
           if isAlienVisitor then
             (alienInput, alienVisitorConfig)
               .mapN: (input, bc) =>
-                props.createConfig(input, bc.obsModeType.defaultPosAngleOptions)
+                props.createConfig(input, bc.obsModeType.defaultPosAngleOptions, none)
               .getOrElse(IO.unit)
           else if isKeck then
             val mode = keckExchange.get
             props.createConfig(ObservingModeInput.Exchange(mode.toInput),
-                               mode.obsModeType.defaultPosAngleOptions
+                               mode.obsModeType.defaultPosAngleOptions,
+                               none
             )
           else if isSubaru then
             val mode = subaruExchange.get
             props.createConfig(ObservingModeInput.Exchange(mode.toInput),
-                               mode.obsModeType.defaultPosAngleOptions
+                               mode.obsModeType.defaultPosAngleOptions,
+                               none
             )
           else
             selectedBasicConfig
-              .map(bc => props.createConfig(bc.toInput, bc.obsModeType.defaultPosAngleOptions))
+              .map: bc =>
+                props.createConfig(
+                  bc.toInput,
+                  bc.obsModeType.defaultPosAngleOptions,
+                  props.selectedConfig.get.altairMode
+                )
               .getOrElse(IO.unit)
 
         val spectroscopyView: ViewOpt[Spectroscopy] = props.requirementsView
@@ -359,7 +369,8 @@ private object BasicConfigurationPanel:
                           uid,
                           spectroscopyModesTableFilters = v.some
                         )
-                    )
+                    ),
+                    props.altairParams
                   )
                 ),
               imagingView.mapValue(s =>
@@ -384,7 +395,8 @@ private object BasicConfigurationPanel:
                         uid,
                         imagingModesTableFilters = v.some
                       )
-                  )
+                  ),
+                  props.altairParams
                 )
               )
             )

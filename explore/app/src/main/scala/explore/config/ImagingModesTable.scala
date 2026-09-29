@@ -47,6 +47,7 @@ import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.SelectItem
@@ -74,7 +75,8 @@ final case class ImagingModesTable(
   targetView:          View[Option[ItcTarget]],
   capability:          Option[ImagingCapability],
   instrument:          Option[Instrument],
-  showFilters:         View[Visible]
+  showFilters:         View[Visible],
+  altairParams:        Map[AltairMode, AltairParameters]
 ) extends ReactFnProps(ImagingModesTable.component)
 
 object ImagingModesTable extends ModesTableCommon:
@@ -177,7 +179,7 @@ object ImagingModesTable extends ModesTableCommon:
     given Order[Angle] = Angle.AngleOrder
 
     List(
-      column(InstrumentColumnId, row => row.entry.instrumentConfig.instrumentLabel)
+      column(InstrumentColumnId, row => row.entry.instrumentLabel)
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable
@@ -249,7 +251,8 @@ object ImagingModesTable extends ModesTableCommon:
                             itcResults.get.cache.size,
                             dec,
                             props.capability,
-                            props.instrument
+                            props.instrument,
+                            props.altairParams
                           ):
                             (
                               matrix,
@@ -263,10 +266,12 @@ object ImagingModesTable extends ModesTableCommon:
                               _,
                               dec,
                               capability,
-                              instrument
+                              instrument,
+                              altairParams
                             ) =>
                               matrix
                                 .filtered(minimumFov, fts, capability, dec, instrument)
+                                .flatMap(_.withAltairParameters(altairParams))
                                 .sortBy(!_.enabled)
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in
@@ -350,7 +355,8 @@ object ImagingModesTable extends ModesTableCommon:
                             props.constraints,
                             effectiveTargets,
                             props.customSedTimestamps,
-                            sortedRows
+                            sortedRows,
+                            props.altairParams
                           )
       // Notify parent of target selection
       _                <- useEffectWithDeps((props.targetView.get, props.targets.toOption)):

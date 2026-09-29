@@ -27,6 +27,7 @@ import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.AngularSize
 import lucuma.catalog.BlindOffsetCandidate
 import lucuma.catalog.CatalogTargetResult
+import lucuma.core.enums.AltairMode
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.math.Arc
@@ -39,6 +40,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.Tracking
+import lucuma.itc.AltairParameters
 import lucuma.itc.ItcCcd
 import lucuma.itc.client.GraphResult
 import lucuma.schemas.ObservationDB.Enums.Existence
@@ -153,6 +155,7 @@ object reusability:
   given Reusability[TimeAndCountModeInfo]               = Reusability.byEq
   given [A: Reusability]: Reusability[NonEmptyChain[A]] = Reusability.by(_.toNonEmptyList)
   given Reusability[WavelengthDither]                   = Reusability.byEq
+  given Reusability[Map[AltairMode, AltairParameters]]  = Reusability.byEq
   given Reusability[ExposureTimeMode]                   = Reusability.byEq
   given [A]: Reusability[Offset.Component[A]]           = Reusability.byEq
   given Reusability[ImagingVariant]                     = Reusability.byEq

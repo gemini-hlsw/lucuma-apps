@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import clue.StreamingClient
 import clue.data.syntax.*
 import explore.model.SupportedInstruments
+import explore.modes.AltairModeRows
 import explore.modes.ImagingModeRow
 import explore.modes.ImagingModesMatrix
 import explore.modes.ScienceModes
@@ -34,12 +35,18 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
       .processErrors
       .map: u =>
         val imgModes: List[ImagingModeRow]       =
-          u.imagingConfigOptions.zipWithIndex.map: (s, i) =>
-            s.copy(id = i.some)
+          AltairModeRows
+            .expandImaging(u.imagingConfigOptions)
+            .zipWithIndex
+            .map: (s, i) =>
+              s.copy(id = i.some)
         val img                                  = ImagingModesMatrix(imgModes)
         val specModes: List[SpectroscopyModeRow] =
-          u.spectroscopyConfigOptions.zipWithIndex.map: (s, i) =>
-            s.copy(id = i.some)
+          AltairModeRows
+            .expandSpectroscopy(u.spectroscopyConfigOptions)
+            .zipWithIndex
+            .map: (s, i) =>
+              s.copy(id = i.some)
         val spec                                 = SpectroscopyModesMatrix(specModes)
         ScienceModes(spec, img)
 

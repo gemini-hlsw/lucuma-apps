@@ -111,7 +111,8 @@ trait OdbObservationApi[F[_]]:
   def updateConfiguration(
     obsId:              Observation.Id,
     observingMode:      Input[ObservingModeInput],
-    posAngleConstraint: Input[PosAngleConstraintInput] = Input.ignore
+    posAngleConstraint: Input[PosAngleConstraintInput] = Input.ignore,
+    altair:             Input[AltairInput] = Input.ignore
   ): F[Option[ObservingMode]]
   def setObservationWorkflowState(obsId: Observation.Id, st: ObservationWorkflowState): F[Unit]
   def resolveObservationReference(

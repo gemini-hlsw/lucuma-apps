@@ -395,7 +395,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   def updateConfiguration(
     obsId:              Observation.Id,
     observingMode:      Input[ObservingModeInput],
-    posAngleConstraint: Input[PosAngleConstraintInput] = Input.ignore
+    posAngleConstraint: Input[PosAngleConstraintInput] = Input.ignore,
+    altair:             Input[AltairInput] = Input.ignore
   ): F[Option[ObservingMode]] =
     // No mode assigned means the mode is being removed, so the response's `observingMode` is null
     // and no mode-view needs selecting.
@@ -412,7 +413,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         observingMode = observingMode,
         posAngleConstraint = posAngleConstraint,
         targetEnvironment =
-          if keepsAltair then Input.ignore
+          if altair.isAssigned then TargetEnvironmentInput(altair = altair).assign
+          else if keepsAltair then Input.ignore
           else TargetEnvironmentInput(altair = Input.unassign).assign
       )
     )

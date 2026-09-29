@@ -42,6 +42,7 @@ import explore.services.OdbObservationApi
 import explore.services.OdbSequenceApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -51,6 +52,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.odb.data.AltairConfiguration
 import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.SelectItem
@@ -96,7 +98,8 @@ final case class ConfigurationTile(
   targetView:               View[Option[ItcTarget]],
   hasMaterializedSequence:  Boolean,
   modePending:              Boolean,                   // observingMode detail still loading
-  maskContext:              MosMaskContext
+  maskContext:              MosMaskContext,
+  altairParams:             Map[AltairMode, AltairParameters]
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
@@ -213,29 +216,37 @@ object ConfigurationTile
         altair:                   View[Option[AltairConfiguration]],
         input:                    ObservingModeInput,
         defaultPosAngleConstrait: PosAngleOptions,
+        altairMode:               Option[AltairMode],
         isChanging:               View[IsActive]
       )(using
         obsApi:                   OdbObservationApi[IO],
         seqApi:                   OdbSequenceApi[IO],
         logger:                   Logger[IO]
       ): IO[Unit] =
+        val newAltair: Option[AltairConfiguration] = altairMode.map(AltairConfiguration.default)
+        val altairInput: Input[AltairInput]        = newAltair.map(_.toInput).orIgnore
+
+        // An Altair row of the modes table sets Altair along with the mode.
+        def syncAltair(om: Option[ObservingMode]): Callback =
+          newAltair.fold(clearAltairIfUnsupported(om, altair))(a => altair.set(a.some))
+
         val currentPac = pacAndMode.get._1
         val update     = if (defaultPosAngleConstrait != currentPac.toPosAngleOptions)
           val angle  =
             PosAngleConstraint.angle.getOption(currentPac).getOrElse(Angle.Angle0)
           val newPac = defaultPosAngleConstrait.toPosAngle(angle)
           obsApi
-            .updateConfiguration(obsId, input.assign, newPac.toInput.assign)
+            .updateConfiguration(obsId, input.assign, newPac.toInput.assign, altairInput)
             .flatMap: om =>
               (pacAndModeAction(obsId, altair).set(pacAndMode)((newPac, om)) >>
-                clearAltairIfUnsupported(om, altair)).toAsync
+                syncAltair(om)).toAsync
         else
           obsApi
-            .updateConfiguration(obsId, input.assign)
+            .updateConfiguration(obsId, input.assign, altair = altairInput)
             .flatMap: om =>
               (modeAction(obsId, altair)
                 .set(pacAndMode.zoom(PosAngleConstraintAndObsMode.observingMode))(om) >>
-                clearAltairIfUnsupported(om, altair)).toAsync
+                syncAltair(om)).toAsync
 
         checkAndDeleteSequenceIfNeeded(
           obsId,
@@ -352,6 +363,7 @@ object ConfigurationTile
                     props.altairModel,
                     m.toInput,
                     m.obsModeType.defaultPosAngleOptions,
+                    none,
                     isChanging
                   ).runAsync
                 ),
@@ -638,7 +650,7 @@ object ConfigurationTile
                       props.itcTargets,
                       props.baseCoordinates,
                       props.obsConf.calibrationRole,
-                      (input, posAngleOptions) =>
+                      (input, posAngleOptions, altairMode) =>
                         updateConfiguration(
                           props.obsId,
                           props.hasMaterializedSequence,
@@ -646,6 +658,7 @@ object ConfigurationTile
                           props.altairModel,
                           input,
                           posAngleOptions,
+                          altairMode,
                           isChanging
                         ),
                       props.modes,
@@ -653,7 +666,8 @@ object ConfigurationTile
                       !props.permissions.isFullEdit,
                       props.units,
                       props.globalPreferences,
-                      props.targetView
+                      props.targetView,
+                      props.altairParams
                     )
                   )
               else

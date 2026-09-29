@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.GmosNorthIfuFpu
 import lucuma.core.enums.GmosSouthIfuFpu
 import lucuma.core.enums.ImagingCapability
@@ -28,6 +29,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   lazy val count: Int                                       = configs.length
   lazy val isEmpty: Boolean                                 = configs.isEmpty
   lazy val nonEmpty: Boolean                                = configs.nonEmpty
+  lazy val altairMode: Option[AltairMode]                   =
+    headOption.flatMap(_.instrumentConfig.altairMode)
 
   lazy val isVisitor: Boolean =
     configs.exists(!_.instrumentConfig.needsItc)
@@ -57,13 +60,14 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 
   def contains(config: ItcInstrumentConfig): Boolean = configs.exists(_.instrumentConfig === config)
 
-  // GNIRS imaging rows exist per camera; only same-camera rows form one configuration.
+  // GNIRS imaging rows exist per camera and Altair mode; only rows sharing both form one
+  // configuration.
   private def compatibleImagingSetup(a: ItcInstrumentConfig, b: ItcInstrumentConfig): Boolean =
     (a, b) match
       case (ItcInstrumentConfig.GnirsImaging(camera = c1),
             ItcInstrumentConfig.GnirsImaging(camera = c2)
           ) =>
-        c1 === c2
+        c1 === c2 && a.altairMode === b.altairMode
       case _ =>
         true
 
@@ -166,12 +170,13 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.Flamingos2Imaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.Flamingos2Imaging.apply)
       case ItcInstrumentConfig.GnirsImaging(camera = camera)                        =>
-        // Only rows sharing the head's camera can be combined into one configuration.
+        // Only rows sharing the head's camera and Altair mode can be combined into one
+        // configuration.
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(
-                ItcInstrumentConfig.GnirsImaging(filter = f, camera = c),
+                i @ ItcInstrumentConfig.GnirsImaging(filter = f, camera = c),
                 _
-              ) if c === camera =>
+              ) if c === camera && i.altairMode === altairMode =>
             f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GnirsImaging(_, camera))
       case ItcInstrumentConfig.GnirsSpectroscopy(grating = grating,

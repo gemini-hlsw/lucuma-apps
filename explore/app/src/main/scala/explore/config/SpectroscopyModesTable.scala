@@ -45,6 +45,7 @@ import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
@@ -74,7 +75,8 @@ case class SpectroscopyModesTable(
   customSedTimestamps:      List[Timestamp],
   units:                    WavelengthUnits,
   instrument:               Option[Instrument],
-  showFilters:              View[Visible]
+  showFilters:              View[Visible],
+  altairParams:             Map[AltairMode, AltairParameters]
 ) extends ReactFnProps(SpectroscopyModesTable.component)
 
 private object SpectroscopyModesTable extends ModesTableCommon:
@@ -284,9 +286,10 @@ private object SpectroscopyModesTable extends ModesTableCommon:
        props.targets,
        props.constraints,
        props.customSedTimestamps,
-       props.instrument
+       props.instrument,
+       props.altairParams
       )
-    ) { (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps, instrument) =>
+    ) { (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps, instrument, altair) =>
       val rows: List[SpectroscopyModeRow] =
         matrix
           .filtered(
@@ -299,6 +302,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             declination = dec,
             instrument = instrument
           )
+          .flatMap(_.withAltairParameters(altair))
 
       val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)
       // Computes the mode overrides for the current parameters
@@ -386,7 +390,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             props.constraints,
                             props.targets.toOption,
                             props.customSedTimestamps,
-                            sortedRows
+                            sortedRows,
+                            props.altairParams
                           )
         // Set the selected config if the rows change because the new rows may no longer contain
         // one or more of the selected rows or the itc results may have changed.

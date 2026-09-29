@@ -9,11 +9,13 @@ import cats.derived.*
 import cats.implicits.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.SupportedInstruments
+import explore.model.display
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
+import lucuma.itc.AltairParameters
 import lucuma.odb.json.angle.decoder.given
 import monocle.Getter
 import monocle.Lens
@@ -24,9 +26,12 @@ case class ImagingModeRow(
   instrumentConfig: ItcInstrumentConfig,
   ao:               ModeAO,
   fov:              Angle,
-  capability:       Option[ImagingCapability]
+  capability:       Option[ImagingCapability],
+  altair:           Option[AltairMode]
 ) extends ModeRow derives Eq:
   val enabled                        = SupportedInstruments.contains_(instrumentConfig.instrument)
+  val instrumentLabel: String        =
+    display.withAltairSuffix(instrumentConfig.instrumentLabel, altair)
   val filterType: Option[FilterType] =
     instrumentConfig match
       case ItcInstrumentConfig.GmosNorthImaging(filter, _)  => filter.filterType.some
@@ -34,6 +39,13 @@ case class ImagingModeRow(
       case ItcInstrumentConfig.GnirsImaging(filter = f)     => f.filterType.some
       case ItcInstrumentConfig.Flamingos2Imaging(filter, _) => filter.filterType.some
       case _                                                => none
+
+  def withAltairParameters(
+    parameters: Map[AltairMode, AltairParameters]
+  ): Option[ImagingModeRow] =
+    AltairModeRows
+      .instrumentConfigWith(instrumentConfig, altair, parameters)
+      .map(i => copy(instrumentConfig = i))
 
 object ImagingModeRow {
 
@@ -51,6 +63,9 @@ object ImagingModeRow {
 
   val capability: Lens[ImagingModeRow, Option[ImagingCapability]] =
     GenLens[ImagingModeRow](_.capability)
+
+  val altair: Lens[ImagingModeRow, Option[AltairMode]] =
+    GenLens[ImagingModeRow](_.altair)
 
   val filter: Getter[ImagingModeRow, ItcInstrumentConfig#Filter] =
     instrumentConfig.andThen(ItcInstrumentConfig.filter)
@@ -108,7 +123,7 @@ object ImagingModeRow {
         .orElse(gnirs)
         // Alopeke and Zorro only have a label field
         .getOrElse(ItcInstrumentConfig.GenericImaging(inst, filterLabel, site, capability))
-      ImagingModeRow(none, cfg, ModeAO(ao), fov, capability)
+      ImagingModeRow(none, cfg, ModeAO(ao), fov, capability, none)
     }
 }
 

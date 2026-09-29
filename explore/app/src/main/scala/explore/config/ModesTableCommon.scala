@@ -32,6 +32,7 @@ import explore.modes.ItcInstrumentConfig
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.TotalSN
 import lucuma.core.model.ConstraintSet
@@ -39,6 +40,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.react.circularprogressbar.CircularProgressbar
 import lucuma.react.common.Css
 import lucuma.react.fa.IconSize
@@ -366,7 +368,8 @@ trait ModesTableCommon:
     constraints:         ConstraintSet,
     targets:             Option[NonEmptyList[ItcTarget]],
     customSedTimestamps: List[Timestamp],
-    sortedRows:          Reusable[List[Row]]
+    sortedRows:          Reusable[List[Row]],
+    altairParams:        Map[AltairMode, AltairParameters]
   ): HookResult[ItcHookData] =
     for {
       ctx    <- useContext(AppContext.ctx)
@@ -384,10 +387,11 @@ trait ModesTableCommon:
                     .flatten
                     .toList
                     .distinct
+      // A new Altair guide star changes the Altair rows' configs but not the row count.
       _      <-
         useEffectStreamResourceWithDeps(
-          (expTimeMode, constraints, targets, customSedTimestamps, sortedRows.length)
-        ): (expTimeMode, constraints, asterism, customSedTimestamps, _) =>
+          (expTimeMode, constraints, targets, customSedTimestamps, sortedRows.length, altairParams)
+        ): (expTimeMode, constraints, asterism, customSedTimestamps, _, _) =>
           import ctx.given
 
           // We need to check exposure time mode because it must be set for the ITC request,
