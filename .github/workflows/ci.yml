@@ -291,7 +291,7 @@ jobs:
           target: dev
           channelId: live
 
-      - name: Record deployment SHA
+      - name: Record Explore deployment SHA
         if: github.ref == 'refs/heads/main'
         run: |
           # Create a deployment record with commit SHA for tracking
@@ -376,6 +376,15 @@ jobs:
           docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web
           docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web
           heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }} -v
+
+      - name: Record Observe deployment SHA
+        run: |
+          # Create a deployment record with commit SHA and docker tag for tracking
+          # The image also carries the Heroku registry tags, so pick the noirlab one that is not 'latest'
+          DOCKER_TAG=$(docker image inspect noirlab/gpp-obs:latest --format '{{join .RepoTags " "}}' | tr ' ' '\n' | grep '^noirlab/gpp-obs:' | grep -v ':latest$' | sed 's|.*:||' | head -1)
+          if [ -z "$DOCKER_TAG" ]; then echo "Could not determine the docker tag of noirlab/gpp-obs"; exit 1; fi
+          echo "Recording deployment: ${{ github.sha }} (image tag $DOCKER_TAG) to observe-dev"
+          curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Observe deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Observe", "payload": { "docker_tag": "'"$DOCKER_TAG"'" } }' 
 
   navigate-deploy:
     name: Build and publish Navigate Docker image
