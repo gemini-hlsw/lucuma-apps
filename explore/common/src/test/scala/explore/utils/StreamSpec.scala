@@ -8,12 +8,11 @@ import cats.effect.IO
 import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import fs2.Stream
-import lucuma.core.util.RetryFlakyTests
 import munit.Location
 
 import scala.concurrent.duration.*
 
-class StreamSpec extends munit.CatsEffectSuite with RetryFlakyTests:
+class StreamSpec extends munit.CatsEffectSuite:
 
   // Stream that emits 1 every 0.5s, sleeps for 1s, and repeats
   val stream =
@@ -51,13 +50,24 @@ class StreamSpec extends munit.CatsEffectSuite with RetryFlakyTests:
     TestControl.executeEmbed(program).assertEquals(4)
   }
 
-  test("different behaviour to groupWithin".flaky) {
-    val a = stream.reduceSemigroupWithin(3.seconds)
-    val b = stream.groupWithin(Int.MaxValue, 3.seconds).map(_.combineAll)
+  test("different behaviour to groupWithin") {
+    // The window must not expire at the same instant an element is emitted (multiples of 0.5s),
+    // otherwise TestControl orders the two events randomly and the result is not deterministic.
+    // With 1.7s:
+    // - reduceWithin starts its timer at the first element of each burst (0.5s, 3.5s, ...), so
+    //   it expires at 2.2s, 5.2s, ... after the whole burst has been collected.
+    // - groupWithin starts its timer at 0s and restarts it on every emission (1.7s, 3.4s, 5.1s,
+    //   6.8s, 8.5s), and after a timeout with nothing collected it emits the next element alone.
+    val a = stream.reduceSemigroupWithin(1.7.seconds)
+    val b = stream.groupWithin(Int.MaxValue, 1.7.seconds).map(_.combineAll)
 
     val program = (a.take(5).compile.toVector, b.take(5).compile.toVector).tupled
 
-    TestControl.executeEmbed(program).map((a, b) => assertNotEquals(a, b))
+    TestControl
+      .executeEmbed(program)
+      .map: (a, b) =>
+        assertEquals(a, Vector(4, 4, 4, 4, 4))
+        assertEquals(b, Vector(3, 1, 4, 1, 3))
   }
 
   test("keyedSwitchEvalMap cancels selectively") {

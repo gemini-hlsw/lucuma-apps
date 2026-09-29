@@ -1093,11 +1093,14 @@ val isMergedCond: String             = "github.event.pull_request.merged == true
 def allConds(conds: String*): String = conds.mkString("(", " && ", ")")
 def anyConds(conds: String*): String = conds.mkString("(", " || ", ")")
 
-val herokuToken = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
+val herokuToken  = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
+// Makes sbt-lucuma skip flaky-tagged MUnit tests on Scala.js, where MUnit can't read env vars.
+val munitFlakyOk = "MUNIT_FLAKY_OK" -> "${{ vars.MUNIT_FLAKY_OK }}"
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
 ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
 ThisBuild / githubWorkflowEnv += herokuToken
+ThisBuild / githubWorkflowEnv += munitFlakyOk
 
 ThisBuild / githubWorkflowPermissions := Some(
   Permissions.Specify.defaultPermissive
