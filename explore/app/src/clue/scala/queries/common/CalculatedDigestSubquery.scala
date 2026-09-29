@@ -32,6 +32,11 @@ object CalculatedDigestSubquery
           setupCount
           reacquisitionCount
           calibrationCount
+          expectedCalibrations {
+            program $TimeSpanSubquery
+            nonCharged $TimeSpanSubquery
+            total $TimeSpanSubquery
+          }
         }
         acquisition $SequenceDigestSubquery
         science $SequenceDigestSubquery

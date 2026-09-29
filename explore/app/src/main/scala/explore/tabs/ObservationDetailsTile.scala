@@ -10,6 +10,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.CalibrationSets
 import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.VisitTimeCharge
@@ -25,10 +26,10 @@ import lucuma.core.model.User
 import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.react.floatingui.syntax.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
-import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.format.TimeSpanFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -74,8 +75,13 @@ object ObservationDetailsTile
         val scienceTooltip: VdomNode =
           "Includes the flats and arcs taken within the science sequence."
 
+        val telluricsTooltip: VdomNode =
+          "Estimated from the group's telluric observations; tellurics already created are " +
+            "counted as observations of their own."
+
         val totalTooltip: VdomNode =
-          "Does not include time for telluric standards or other separately scheduled calibrations."
+          "Includes the expected telluric standards not yet created. Other separately scheduled " +
+            "calibrations are not included."
 
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
@@ -156,22 +162,19 @@ object ObservationDetailsTile
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
             val setupCount: Int = d.setupCount.value
-            val gcalSets: Int   = d.science.gcalSets.value
 
-            val flats                     = d.science.steps.flats
-            val arcs                      = d.science.steps.arcs
-            val gcalTotal                 = flats.time.programTime +| arcs.time.programTime
-            def secs(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
+            val gcalTotal =
+              d.science.steps.flats.time.programTime +| d.science.steps.arcs.time.programTime
 
             val gcalSetsRow: Option[VdomNode] =
-              NonZeroInt
-                .from(gcalSets)
-                .toOption
-                .map: n =>
-                  val text =
-                    if gcalSets === 1 then s"1 set, ${secs(gcalTotal)}"
-                    else s"$gcalSets sets, ${secs(gcalTotal)} (${secs(gcalTotal /| n)} each)"
-                  FormInfo(text, "Flats & Arcs")
+              CalibrationSets
+                .text(d.science.gcalSets, gcalTotal)
+                .map(FormInfo(_, "Flats & Arcs"))
+
+            val telluricsRow: Option[VdomNode] =
+              CalibrationSets
+                .text(d.calibrationCount, d.expectedCalibrations.programTime)
+                .map(t => FormInfo(<.span(t).withTooltip(telluricsTooltip), "Tellurics"))
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
@@ -187,6 +190,7 @@ object ObservationDetailsTile
                 <.span(s"$setupCount × ", duration(d.setup.full)),
                 "Setup"
               ),
+              telluricsRow,
               FormInfo(duration(d.fullTimeEstimate.programTime, totalTooltip.some), "Total")
             )
 
