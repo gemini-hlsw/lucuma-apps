@@ -412,10 +412,10 @@ object ObsBadge:
                       <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
                         <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, badgeTitle(childObs)),
                         telluricDropdown.when(isTelluric),
-                        <.span(
-                          obsIdentifier(childObs),
+                        <.span(ExploreStyles.ObsBadgeAssociatedObsId, obsIdentifier(childObs)),
+                        <.span(ExploreStyles.ObsBadgeAssociatedObsTime)(
                           childObs.execution.digest.programTimeEstimate.value
-                            .map(t => TimeSpanView(t).withMods(^.marginLeft := "0.5em"))
+                            .map(TimeSpanView(_))
                         )
                       )
                     ).compact

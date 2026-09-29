@@ -117,6 +117,8 @@ object ExploreStyles:
   val ObsBadgeAssociatedObsState: Css    = Css("obs-badge-extra-associated-obs-state")
   val ObsBadgeAssociatedObsContent: Css  = Css("obs-badge-extra-associated-obs-content")
   val ObsBadgeAssociatedObsTitle: Css    = Css("obs-badge-extra-associated-obs-title")
+  val ObsBadgeAssociatedObsId: Css       = Css("obs-badge-extra-associated-obs-id")
+  val ObsBadgeAssociatedObsTime: Css     = Css("obs-badge-extra-associated-obs-time")
   val ObsBadgeTelluricSelectWrapper: Css = Css("obs-badge-telluric-select-wrapper")
   val ObsBadgeTelluricSelect: Css        = Css("obs-badge-telluric-select")
   val ObsBadgeTelluricOnlyRow: Css       = Css("obs-badge-telluric-only-row")

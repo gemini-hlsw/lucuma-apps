@@ -1774,13 +1774,18 @@ svg.fa-check.explore-success-icon {
       }
     }
 
+    // Rows share columns via subgrid so selectors, ids and times line up
     .obs-badge-extra-associated {
       margin-top: 10px;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto auto;
       gap: 0.5em;
 
       .obs-badge-extra-associated-obs {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: subgrid;
+        align-items: center;
         text-align: left;
 
         &.obs-badge-extra-selected-associated-obs {
@@ -1788,7 +1793,6 @@ svg.fa-check.explore-success-icon {
         }
 
         .p-tag.obs-badge-extra-associated-obs-state {
-          margin-right: 0.4em;
           padding: 0.15em 0.5em;
           min-width: 2em;
           font-size: 1em;
@@ -1796,25 +1800,32 @@ svg.fa-check.explore-success-icon {
         }
 
         .obs-badge-extra-associated-obs-content {
-          display: flex;
-          justify-content: space-between;
+          grid-column: 2 / -1;
+          display: grid;
+          grid-template-columns: subgrid;
           align-items: center;
-          gap: 0.5em;
-          width: 100%;
           min-width: 0;
-
-          // Only the title shrinks; the selector and id stay visible
-          > * {
-            flex-shrink: 0;
-          }
         }
 
         .obs-badge-extra-associated-obs-title {
-          flex: 1 1 auto;
+          grid-column: 1;
           min-width: 0;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        .obs-badge-telluric-select-wrapper {
+          grid-column: 2;
+        }
+
+        .obs-badge-extra-associated-obs-id {
+          grid-column: 3;
+        }
+
+        .obs-badge-extra-associated-obs-time {
+          grid-column: 4;
+          justify-self: end;
         }
 
         // Sized to its content: compact label padding and a slim chevron
