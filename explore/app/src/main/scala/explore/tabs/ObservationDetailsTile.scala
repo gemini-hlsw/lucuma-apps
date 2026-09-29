@@ -26,7 +26,6 @@ import lucuma.core.model.User
 import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
-import lucuma.react.floatingui.syntax.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
@@ -72,16 +71,16 @@ object ObservationDetailsTile
         def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
           TimeSpanView(time, TimeSpanFormatter.HoursMinutesLetter, tooltip = tooltip)
 
-        val scienceTooltip: VdomNode =
-          "Includes the flats and arcs taken within the science sequence."
-
         val telluricsTooltip: VdomNode =
-          "Estimated from the group's telluric observations; tellurics already created are " +
-            "counted as observations of their own."
+          "Created telluric observations, each at its own estimate."
+
+        val expectedTelluricsTooltip: VdomNode =
+          "Tellurics predicted but not created yet, each at the average of the group's " +
+            "tellurics, or 15m before any exists."
 
         val totalTooltip: VdomNode =
-          "Includes the expected telluric standards not yet created. Other separately scheduled " +
-            "calibrations are not included."
+          "Includes this observation's tellurics. Other separately scheduled calibrations are " +
+            "not included."
 
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
@@ -163,8 +162,14 @@ object ObservationDetailsTile
           digest.value.fold(EmptyVdom): d =>
             val setupCount: Int = d.setupCount.value
 
-            val gcalTotal =
-              d.science.steps.flats.time.programTime +| d.science.steps.arcs.time.programTime
+            val steps     = d.science.steps
+            val gcalTotal = steps.flats.time.programTime +| steps.arcs.time.programTime
+
+            val scienceTime: TimeSpan =
+              (steps.biases.time |+| steps.darks.time |+| steps.observing.time).programTime
+
+            val total: TimeSpan =
+              d.fullTimeEstimate.programTime +| d.existingCalibrationTime.programTime
 
             val gcalSetsRow: Option[VdomNode] =
               CalibrationSets
@@ -173,8 +178,13 @@ object ObservationDetailsTile
 
             val telluricsRow: Option[VdomNode] =
               CalibrationSets
-                .text(d.calibrationCount, d.expectedCalibrations.programTime)
-                .map(t => FormInfo(<.span(t).withTooltip(telluricsTooltip), "Tellurics"))
+                .text(d.existingCalibrationCount, d.existingCalibrationTime.programTime)
+                .map(FormInfo(_, "Tellurics", tooltip = telluricsTooltip))
+
+            val expectedTelluricsRow: Option[VdomNode] =
+              CalibrationSets
+                .text(d.expectedCalibrationCount, d.expectedCalibrationTime.programTime)
+                .map(FormInfo(_, "Expected Tellurics", tooltip = expectedTelluricsTooltip))
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
@@ -182,7 +192,7 @@ object ObservationDetailsTile
               )
                 .withOptionalTooltip(digest.staleTooltip),
               FormInfo(
-                duration(d.science.timeEstimate.programTime, scienceTooltip.some),
+                duration(scienceTime),
                 "Science Sequence"
               ),
               gcalSetsRow,
@@ -191,7 +201,11 @@ object ObservationDetailsTile
                 "Setup"
               ),
               telluricsRow,
-              FormInfo(duration(d.fullTimeEstimate.programTime, totalTooltip.some), "Total")
+              expectedTelluricsRow,
+              FormInfo(
+                <.span(ExploreStyles.ObservationDetailsTotal)(duration(total, totalTooltip.some)),
+                "Total"
+              )
             )
 
         TileContents:
