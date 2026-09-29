@@ -14,10 +14,11 @@ import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
-import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
+import lucuma.ui.sequence.byInstrument.GnirsSpectroscopySequenceTable
 
 final case class GnirsSequenceTable(
   visits:               View[Option[ExecutionVisits]],
@@ -25,7 +26,7 @@ final case class GnirsSequenceTable(
   acquisition:          View[List[Atom[GnirsDynamicConfig]]],
   science:              View[List[Atom[GnirsDynamicConfig]]],
   acquisitionItc:       ItcResultValues,
-  scienceItc:           ItcResultValues,
+  scienceItc:           List[GnirsCentralWavelengthItcResult],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
@@ -35,7 +36,7 @@ final case class GnirsSequenceTable(
   ]
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
-    with SpectroscopySequenceTable[GnirsDynamicConfig](useAcquisitionCoadds = true):
+    with GnirsSpectroscopySequenceTable:
 
   override val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits

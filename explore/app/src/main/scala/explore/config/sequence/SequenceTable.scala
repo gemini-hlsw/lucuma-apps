@@ -24,8 +24,8 @@ private trait SequenceTable[S, D]:
   def staticConfig: S
   def acquisition: View[List[Atom[D]]]
   def science: View[List[Atom[D]]]
-  def signalToNoise: SequenceType => D => Option[SignalToNoise]
-  def peakPixel: SequenceType => D => Option[PeakPixel]
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise]
+  def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel]
   def isEditEnabled: IsEditEnabled
   def isEditingAcquisition: View[IsEditing]
   def isEditingScience: View[IsEditing]

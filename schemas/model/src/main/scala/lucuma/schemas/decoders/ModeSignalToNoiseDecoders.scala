@@ -3,14 +3,22 @@
 
 package lucuma.schemas.decoders
 
+import eu.timepit.refined.types.numeric.PosInt
 import io.circe.ACursor
 import io.circe.Decoder
+import io.circe.DecodingFailure
+import io.circe.refined.given
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GnirsFilter
+import lucuma.core.math.Wavelength
+import lucuma.core.util.TimeSpan
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
+import lucuma.odb.json.time.decoder.given
+import lucuma.odb.json.wavelength.decoder.given
+import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.PeakPixel
@@ -23,16 +31,44 @@ trait ModeSignalToNoiseDecoders:
     yield PeakPixel(flux, adu)
 
   private def itcResultValues(c: ACursor): Decoder.Result[ItcResultValues] =
-    for
-      sn   <- c.downField("signalToNoiseAt").as[Option[SignalToNoiseAt]]
-      peak <- c.downField("peakPixel").as[Option[PeakPixel]]
-    yield ItcResultValues(sn, peak)
+    if c.failed then Left(DecodingFailure("Missing ITC result", c.history))
+    else
+      for
+        sn   <- c.downField("signalToNoiseAt").as[Option[SignalToNoiseAt]]
+        peak <- c.downField("peakPixel").as[Option[PeakPixel]]
+      yield ItcResultValues(sn, peak)
 
   given Decoder[ModeSignalToNoise.Spectroscopy] = Decoder.instance: c =>
     for
       acquisition <- itcResultValues(c.downField("acquisition").downField("selected"))
       science     <- itcResultValues(c.downField("spectroscopyScience").downField("selected"))
     yield ModeSignalToNoise.Spectroscopy(acquisition, science)
+
+  // Science only spectroscopy has no acquisition in the schema.
+  private val scienceOnlySpectroscopyDecoder: Decoder[ModeSignalToNoise.Spectroscopy] =
+    Decoder.instance: c =>
+      itcResultValues(c.downField("spectroscopyScience").downField("selected"))
+        .map(ModeSignalToNoise.Spectroscopy(ItcResultValues.Empty, _))
+
+  private val gnirsCentralWavelengthDecoder: Decoder[GnirsCentralWavelengthItcResult] =
+    Decoder.instance: c =>
+      val selected = c.downField("results").downField("selected")
+      for
+        centralWavelength <- c.downField("centralWavelength").as[Wavelength]
+        exposureTime      <- selected.downField("exposureTime").as[TimeSpan]
+        coadds            <- selected.downField("coadds").as[PosInt]
+        values            <- itcResultValues(selected)
+      yield GnirsCentralWavelengthItcResult(centralWavelength, exposureTime, coadds, values)
+
+  given Decoder[ModeSignalToNoise.GnirsSpectroscopy] = Decoder.instance: c =>
+    for
+      acquisition <- itcResultValues(c.downField("acquisition").downField("selected"))
+      science     <-
+        c.downField("gnirsSpectroscopyScience")
+          .as[List[GnirsCentralWavelengthItcResult]](using
+            Decoder.decodeList(using gnirsCentralWavelengthDecoder)
+          )
+    yield ModeSignalToNoise.GnirsSpectroscopy(acquisition, science)
 
   private def itcTupleDecoder[Filter: Decoder]: Decoder[(Filter, ItcResultValues)] =
     Decoder.instance: c =>
@@ -78,17 +114,21 @@ trait ModeSignalToNoiseDecoders:
       c.downField("itcType")
         .as[String]
         .flatMap:
-          case "SPECTROSCOPY" | "SCIENCE_ONLY_SPECTROSCOPY" | "GNIRS_SPECTROSCOPY" =>
+          case "SPECTROSCOPY"              =>
             c.as[ModeSignalToNoise.Spectroscopy]
-          case "GMOS_NORTH_IMAGING"                                                =>
+          case "SCIENCE_ONLY_SPECTROSCOPY" =>
+            scienceOnlySpectroscopyDecoder(c)
+          case "GNIRS_SPECTROSCOPY"        =>
+            c.as[ModeSignalToNoise.GnirsSpectroscopy]
+          case "GMOS_NORTH_IMAGING"        =>
             c.as[ModeSignalToNoise.GmosNorthImaging]
-          case "GMOS_SOUTH_IMAGING"                                                =>
+          case "GMOS_SOUTH_IMAGING"        =>
             c.as[ModeSignalToNoise.GmosSouthImaging]
-          case "FLAMINGOS_2_IMAGING"                                               =>
+          case "FLAMINGOS_2_IMAGING"       =>
             c.as[ModeSignalToNoise.Flamingos2Imaging]
-          case "GNIRS_IMAGING"                                                     =>
+          case "GNIRS_IMAGING"             =>
             c.as[ModeSignalToNoise.GnirsImaging]
-          case "GHOST_IFU"                                                         =>
+          case "GHOST_IFU"                 =>
             c.as[ModeSignalToNoise.GhostIfu]
-          case other                                                               =>
-            Left(io.circe.DecodingFailure(s"Unknown itcType: $other", c.history))
+          case other                       =>
+            Left(DecodingFailure(s"Unknown itcType: $other", c.history))

@@ -403,7 +403,7 @@ object SequenceTile
                           .toOptionView
                           .map: gnirsExecutionView =>
                             signalToNoise match
-                              case ModeSignalToNoise.GnirsImaging(itcPerFilter)             =>
+                              case ModeSignalToNoise.GnirsImaging(itcPerFilter)                  =>
                                 GnirsImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
@@ -417,7 +417,7 @@ object SequenceTile
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
-                              case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                              case ModeSignalToNoise.GnirsSpectroscopy(acquisitionSn, scienceSn) =>
                                 GnirsSequenceTable(
                                   visitsViewOpt,
                                   config.static,
@@ -433,14 +433,14 @@ object SequenceTile
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
                               // Daytime Pinholes have no signal to noise
-                              case ModeSignalToNoise.Undefined                              =>
+                              case ModeSignalToNoise.Undefined                                   =>
                                 GnirsSequenceTable(
                                   visitsViewOpt,
                                   config.static,
                                   gnirsExecutionView.flatAcquisition,
                                   gnirsExecutionView.flatScience,
                                   ItcResultValues.Empty,
-                                  ItcResultValues.Empty,
+                                  Nil,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
@@ -448,7 +448,7 @@ object SequenceTile
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
-                              case _                                                        => mismatchError
+                              case _                                                             => mismatchError
                       case _                                                                    => mismatchError.some
                   }
                   .getOrElse:
