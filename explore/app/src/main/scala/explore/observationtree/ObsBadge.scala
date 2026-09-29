@@ -301,7 +301,7 @@ object ObsBadge:
           )
           .getOrElse(EmptyVdom)
 
-      // the selector is read only for tellurics with vists
+      // the selector is read only for tellurics with visits
       def telluricSelector(
         rowId:        Observation.Id,
         telluricType: TelluricType,
@@ -350,14 +350,14 @@ object ObsBadge:
 
       // With no telluric the ODB generates no telluric observation, so the selector
       // gets its own row to allow turning tellurics back on. Spent tellurics are read
-      // only, so they don't count. An inactive observation generates no calibrations
-      // either, so the row would be misleading there.
+      // only, so they don't count. Inactive or executed observations get no new
+      // calibrations either, so the row would be misleading there.
       val hasUnobservedTelluricObs: Boolean =
         props.associatedObss.exists(o => isTelluric(o) && !o.isExecuted)
 
       val telluricOnlyRow: Option[VdomNode] =
         scienceTelluricSelector(obs.id)
-          .filterNot(_ => hasUnobservedTelluricObs || obs.isInactive)
+          .filterNot(_ => hasUnobservedTelluricObs || obs.isInactive || obs.isExecuted)
           .map: dropdown =>
             Button(
               clazz = ExploreStyles.ObsBadgeAssociatedObs |+| ExploreStyles.ObsBadgeTelluricOnlyRow,
