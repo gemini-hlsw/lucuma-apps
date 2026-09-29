@@ -127,7 +127,7 @@ object ConfigurationTile
       def supportsAltair(oMode: Option[ObservingMode]): Boolean =
         oMode.exists(_.obsModeType.supportsAltair)
 
-      // The ODB rejects Altair behind any instrument but GNIRS, so a mode without it drops Altair.
+      // The ODB rejects Altair behind a mode that cannot use it, so such a mode drops Altair.
       def altairInput(oMode: Option[ObservingMode]): Input[TargetEnvironmentInput] =
         if supportsAltair(oMode) then Input.ignore
         else TargetEnvironmentInput(altair = Input.unassign).assign

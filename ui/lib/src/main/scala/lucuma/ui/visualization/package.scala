@@ -12,7 +12,6 @@ import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
-import lucuma.ags.PwfsSupport
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.AltairMode
 import lucuma.core.enums.Flamingos2LyotWheel
@@ -203,20 +202,6 @@ def hatchDefs(hatchLine: Css, hatchLineSel: Css): VdomNode =
     hatchPattern("ghost-ifu1-hatch-selected", Css("ghost-ifu1-hatch-color"), 45, hatchLineSel),
     hatchPattern("ghost-ifu2-hatch-selected", Css("ghost-ifu2-hatch-color"), -45, hatchLineSel)
   )
-
-extension [A <: PwfsSupport[A] & AgsParams.AltairSupport[A]](params: A)
-  /**
-   * Params for the selected guide probe. The Altair mode applies only when its own probe is the one
-   * selected; any other PWFS guides without Altair.
-   */
-  def guidedBy(guideProbe: Option[GuideProbe], altair: Option[AltairMode]): A =
-    altair.filter(mode => guideProbe.contains_(mode.guideProbe)) match
-      case Some(mode) => params.withAltair(mode)
-      case None       =>
-        guideProbe match
-          case Some(GuideProbe.PWFS1) => params.withPWFS1
-          case Some(GuideProbe.PWFS2) => params.withPWFS2
-          case _                      => params
 
 extension (conf: BasicConfiguration)
   /**
