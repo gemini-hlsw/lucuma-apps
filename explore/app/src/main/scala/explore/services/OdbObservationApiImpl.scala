@@ -7,7 +7,7 @@ import cats.effect.Async
 import cats.effect.Resource
 import cats.implicits.*
 import clue.StreamingClient
-import clue.data.Input
+import clue.data.*
 import clue.data.syntax.*
 import clue.syntax.*
 import crystal.Pot
@@ -412,10 +412,14 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       SET = ObservationPropertiesInput(
         observingMode = observingMode,
         posAngleConstraint = posAngleConstraint,
-        targetEnvironment =
-          if altair.isAssigned then TargetEnvironmentInput(altair = altair).assign
-          else if keepsAltair then Input.ignore
-          else TargetEnvironmentInput(altair = Input.unassign).assign
+        // An explicit Altair assignment or removal is forwarded as is; otherwise Altair is left
+        // alone unless the new mode can't carry it.
+        targetEnvironment = altair match
+          case Ignore               =>
+            if keepsAltair then Input.ignore
+            else TargetEnvironmentInput(altair = Input.unassign).assign
+          case Assign(_) | Unassign =>
+            TargetEnvironmentInput(altair = altair).assign
       )
     )
 

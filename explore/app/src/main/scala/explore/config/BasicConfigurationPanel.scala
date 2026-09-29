@@ -15,6 +15,7 @@ import explore.Icons
 import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.AltairControls
 import explore.model.AppContext
 import explore.model.GlobalPreferences
 import explore.model.Observation
@@ -172,11 +173,16 @@ private object BasicConfigurationPanel:
         val selectedBasicConfig: Option[BasicConfiguration] =
           props.selectedConfig.get.toBasicConfiguration()
 
+        // An Altair row selection is retained (with its old ITC result) while the table's guide
+        // star search reruns, but it can't be accepted until the search validates the mode.
+        val awaitingAltairGuideStar: Boolean =
+          props.selectedConfig.get.altairMode.isDefined && props.altairParams.isPending
+
         val canAccept: Boolean =
           if isAlienVisitor then alienInput.isDefined
           // Exchange modes are seeded from a Default, so all fields are always present.
           else if isExchange then true
-          else props.selectedConfig.get.canAccept(etm) && visitorEtmOk
+          else props.selectedConfig.get.canAccept(etm) && visitorEtmOk && !awaitingAltairGuideStar
 
         val acceptAction: IO[Unit] =
           if isAlienVisitor then
@@ -234,6 +240,8 @@ private object BasicConfigurationPanel:
             "ITC issues must be fixed.".some
           else if (props.selectedConfig.get.hasPendingItc)
             "Waiting for ITC result...".some
+          else if (awaitingAltairGuideStar)
+            AltairControls.AwaitingAltairGuideStarMessage.some
           else if (props.selectedConfig.get.isVisitor && isNotTimeAndCount)
             "Use Time and Count mode for Visitor instruments.".some
           else none

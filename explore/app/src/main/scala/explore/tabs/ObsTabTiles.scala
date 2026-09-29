@@ -52,6 +52,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.GuideStarCandidate
 import lucuma.core.conditions.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
@@ -456,15 +457,26 @@ object ObsTabTiles:
             AltairControls.itcParameters(_, altairGuideStar, guideStarSeparation)
           )
 
-        // ETM normalized to science requirements so it matches the table rows on ===, and the
-        // observation's Altair carried along so reverting lands on the Altair row.
+        // The reverted config must carry the observation's Altair mode to land on its table row.
+        // NGS/LGS take the table's guide star when it has one, else the observation's; LGS+P1 has
+        // no row of its own (its guider is chosen once the mode exists), so it reverts to the
+        // plain row.
+        val revertedAltairParameters: Option[AltairParameters] =
+          obsConf.altair.flatMap: altair =>
+            altair.mode match
+              case AltairMode.LgsP1                         =>
+                none
+              case mode @ (AltairMode.Ngs | AltairMode.Lgs) =>
+                altairParams.toOption.flatMap(_.get(mode)).orElse(altairItcParameters)
+
+        // ETM normalized to science requirements so it matches the table rows on ===.
         val revertedInstrumentConfig: List[ItcInstrumentConfig] =
           val rowEtm: ExposureTimeMode =
             props.observation.get.scienceRequirements.exposureTimeMode
               .getOrElse(ItcInstrumentConfig.PlaceholderEtm)
           props.observation.get
             .toInstrumentConfig(props.obsTargets)
-            .map(_.setSingleExposureTimeMode(rowEtm).withAltair(altairItcParameters))
+            .map(_.setSingleExposureTimeMode(rowEtm).withAltair(revertedAltairParameters))
 
         val obsTimeView: View[Option[Instant]] =
           props.observation.model.zoom(Observation.observationTime)
