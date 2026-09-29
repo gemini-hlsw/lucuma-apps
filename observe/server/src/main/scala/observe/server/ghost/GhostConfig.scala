@@ -71,10 +71,8 @@ sealed trait GhostConfig extends GhostLUT {
 
   def targetConfig(t: GemTarget, i: Int): Configuration =
     // Note the base coordinates are already PM corrected in the OT
-    // Keyed on how the target tracks, so a resolved Target of Opportunity supplies coordinates
-    // like the sidereal target it resolved to.
-    t.asSidereal match
-      case Some(GemTarget.Sidereal(tracking = SiderealTracking(baseCoordinates = baseCoords))) =>
+    t match
+      case GemTarget.Sidereal(tracking = SiderealTracking(baseCoordinates = baseCoords)) =>
         GhostConfig.UserTargetsApply
           .get(i + 1)
           .map: (name, ra, dec) =>
@@ -82,7 +80,7 @@ sealed trait GhostConfig extends GhostLUT {
               GhostConfig.giapiConfig(ra, baseCoords.ra.toAngle.toDoubleDegrees) |+|
               GhostConfig.giapiConfig(dec, baseCoords.dec.toAngle.toSignedDoubleDegrees)
           .combineAll
-      case None                                                                                =>
+      case _                                                                             =>
         Configuration.Zero
 
   def userTargetsConfig: Configuration =
@@ -739,14 +737,14 @@ object GhostConfig {
     tid: GemTarget.Id
   ): Getter[TargetEnvironment, Option[GemTarget.Sidereal]] =
     Getter[TargetEnvironment, Option[GemTarget.Sidereal]](
-      _.asterism.find(_.id === tid).flatMap(_.target.asSidereal)
+      _.asterism.find(_.id === tid).flatMap(t => GemTarget.sidereal.getOption(t.target))
     )
 
   def NonsiderealOptionalGetter(
     tid: GemTarget.Id
   ): Getter[TargetEnvironment, Option[GemTarget.Nonsidereal]] =
     Getter[TargetEnvironment, Option[GemTarget.Nonsidereal]](
-      _.asterism.find(_.id === tid).flatMap(_.target.asNonsidereal)
+      _.asterism.find(_.id === tid).flatMap(t => GemTarget.nonsidereal.getOption(t.target))
     )
 
 }

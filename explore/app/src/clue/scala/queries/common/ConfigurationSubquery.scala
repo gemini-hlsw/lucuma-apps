@@ -92,5 +92,6 @@ object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Config
         }
       }
       altairMode
+      schedulingMode
     }
   """

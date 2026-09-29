@@ -15,9 +15,9 @@ import lucuma.schemas.decoders.given
 import lucuma.schemas.odb.input.*
 import monocle.Focus
 
-// `schedulingMode` is what the Scheduler is permitted to do with the observation, a single
-// ordered value that is both stored and edited. The observation's ToO activation is derived
-// from it and the asterism by the ODB, so there is no second field to keep in step.
+// The observation's ToO activation also lives under `schedulingConstraints` in the API, but it is
+// kept on the observation instead: it is edited elsewhere, and so must not take part in scheduling
+// groups nor be copied along with them.
 case class SchedulingConstraints(
   schedulingMode: SchedulingMode,
   timingWindows:  List[TimingWindow]

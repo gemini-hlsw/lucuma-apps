@@ -25,6 +25,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.model.TelluricType
 import lucuma.core.syntax.all.*
@@ -56,6 +57,7 @@ final case class ObsBadge(
   setSubtitleCB:         Option[Option[NonEmptyString] => Callback] = none,
   setScienceBandCB:      Option[ScienceBand => Callback] = none,
   setTelluricTypeCB:     Option[TelluricType => Callback] = none,
+  setTooActivationCB:    Option[TooActivation => Callback] = none,
   deleteCB:              Callback,
   cloneCB:               Option[Callback] = none,
   allocatedScienceBands: SortedSet[ScienceBand],
@@ -387,6 +389,29 @@ object ObsBadge:
                     ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
                   ).withOptionalTooltip(obs.workflow.staleTooltip)
                 ),
+                props.setTooActivationCB
+                  .filterNot(_ => obs.isCalibration)
+                  .map(setTooActivation =>
+                    <.span(ExploreStyles.ObsStateSelectWrapper)(
+                      EnumDropdownView(
+                        id = NonEmptyString.unsafeFrom(s"obs-too-activation-${obs.id}"),
+                        value = View[TooActivation](
+                          obs.tooActivation,
+                          (f, cb) =>
+                            val oldValue = obs.tooActivation
+                            val newValue = f(oldValue)
+                            setTooActivation(newValue) >> cb(oldValue, newValue)
+                        ),
+                        size = PlSize.Mini,
+                        clazz = ExploreStyles.ObsStateSelect,
+                        panelClass = ExploreStyles.ObsStateSelectPanel,
+                        disabled = props.readonly
+                      )
+                    )(
+                      // don't select the observation when changing the activation
+                      ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
+                    ).withTooltip(content = "ToO Activation")
+                  ),
                 estimateView,
                 validationIcon
               ),

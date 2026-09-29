@@ -15,6 +15,7 @@ import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ProgramStatus
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.ProgramReference
 import lucuma.core.util.CalculatedValue
@@ -26,54 +27,57 @@ import monocle.Lens
 import monocle.Optional
 
 case class ProgramDetails(
-  name:              Option[NonEmptyString],
-  description:       Option[NonEmptyString],
-  programType:       ProgramType,
-  proposal:          Option[Proposal],
-  proposalStatus:    ProposalStatus,
-  status:            ProgramStatus,
-  explicitStatus:    Option[ProgramStatus],
-  defaultStatus:     ProgramStatus,
-  pi:                Option[ProgramUser],
-  users:             List[ProgramUser],
-  reference:         Option[ProgramReference],
-  allocations:       CategoryAllocationList,
-  notes:             List[ProgramNote],
-  proprietaryMonths: NonNegInt,
-  shouldNotify:      Boolean,
-  active:            DateInterval,
-  programTimes:      ProgramTimes,
-  dismissedWarnings: DismissedWarnings
+  name:                 Option[NonEmptyString],
+  description:          Option[NonEmptyString],
+  programType:          ProgramType,
+  proposal:             Option[Proposal],
+  proposalStatus:       ProposalStatus,
+  status:               ProgramStatus,
+  explicitStatus:       Option[ProgramStatus],
+  defaultStatus:        ProgramStatus,
+  tooActivationCeiling: Option[TooActivation],
+  pi:                   Option[ProgramUser],
+  users:                List[ProgramUser],
+  reference:            Option[ProgramReference],
+  allocations:          CategoryAllocationList,
+  notes:                List[ProgramNote],
+  proprietaryMonths:    NonNegInt,
+  shouldNotify:         Boolean,
+  active:               DateInterval,
+  programTimes:         ProgramTimes,
+  dismissedWarnings:    DismissedWarnings
 ) derives Eq:
   val allUsers: List[ProgramUser] = pi.fold(users)(_ :: users)
 
 object ProgramDetails:
-  val name: Lens[ProgramDetails, Option[NonEmptyString]]            = Focus[ProgramDetails](_.name)
-  val description: Lens[ProgramDetails, Option[NonEmptyString]]     =
+  val name: Lens[ProgramDetails, Option[NonEmptyString]]                = Focus[ProgramDetails](_.name)
+  val description: Lens[ProgramDetails, Option[NonEmptyString]]         =
     Focus[ProgramDetails](_.description)
-  val proposal: Lens[ProgramDetails, Option[Proposal]]              = Focus[ProgramDetails](_.proposal)
-  val proposalStatus: Lens[ProgramDetails, ProposalStatus]          = Focus[ProgramDetails](_.proposalStatus)
-  val status: Lens[ProgramDetails, ProgramStatus]                   = Focus[ProgramDetails](_.status)
-  val explicitStatus: Lens[ProgramDetails, Option[ProgramStatus]]   =
+  val proposal: Lens[ProgramDetails, Option[Proposal]]                  = Focus[ProgramDetails](_.proposal)
+  val proposalStatus: Lens[ProgramDetails, ProposalStatus]              = Focus[ProgramDetails](_.proposalStatus)
+  val status: Lens[ProgramDetails, ProgramStatus]                       = Focus[ProgramDetails](_.status)
+  val explicitStatus: Lens[ProgramDetails, Option[ProgramStatus]]       =
     Focus[ProgramDetails](_.explicitStatus)
   // Reads the effective status but writes the explicit one.
   // Setting None clears the override, which returns the program to its default status.
-  val statusAsExplicit: Lens[ProgramDetails, Option[ProgramStatus]] =
+  val statusAsExplicit: Lens[ProgramDetails, Option[ProgramStatus]]     =
     Lens[ProgramDetails, Option[ProgramStatus]](_.status.some): es =>
       p => p.copy(explicitStatus = es, status = es.getOrElse(p.defaultStatus))
-  val allUsers: Lens[ProgramDetails, List[ProgramUser]]             =
+  val tooActivationCeiling: Lens[ProgramDetails, Option[TooActivation]] =
+    Focus[ProgramDetails](_.tooActivationCeiling)
+  val allUsers: Lens[ProgramDetails, List[ProgramUser]]                 =
     Lens[ProgramDetails, List[ProgramUser]](_.allUsers)(a =>
       b => b.copy(pi = a.headOption, users = a.tail)
     )
-  val reference: Lens[ProgramDetails, Option[ProgramReference]]     = Focus[ProgramDetails](_.reference)
-  val notes: Lens[ProgramDetails, List[ProgramNote]]                = Focus[ProgramDetails](_.notes)
-  val pi: Lens[ProgramDetails, Option[ProgramUser]]                 = Focus[ProgramDetails](_.pi)
-  val piPartner: Optional[ProgramDetails, PartnerLink]              =
+  val reference: Lens[ProgramDetails, Option[ProgramReference]]         = Focus[ProgramDetails](_.reference)
+  val notes: Lens[ProgramDetails, List[ProgramNote]]                    = Focus[ProgramDetails](_.notes)
+  val pi: Lens[ProgramDetails, Option[ProgramUser]]                     = Focus[ProgramDetails](_.pi)
+  val piPartner: Optional[ProgramDetails, PartnerLink]                  =
     pi.some.andThen(ProgramUser.partnerLink.asOptional)
-  val shouldNotify: Lens[ProgramDetails, Boolean]                   = Focus[ProgramDetails](_.shouldNotify)
-  val active: Lens[ProgramDetails, DateInterval]                    = Focus[ProgramDetails](_.active)
-  val programTimes: Lens[ProgramDetails, ProgramTimes]              = Focus[ProgramDetails](_.programTimes)
-  val dismissedWarnings: Lens[ProgramDetails, DismissedWarnings]    =
+  val shouldNotify: Lens[ProgramDetails, Boolean]                       = Focus[ProgramDetails](_.shouldNotify)
+  val active: Lens[ProgramDetails, DateInterval]                        = Focus[ProgramDetails](_.active)
+  val programTimes: Lens[ProgramDetails, ProgramTimes]                  = Focus[ProgramDetails](_.programTimes)
+  val dismissedWarnings: Lens[ProgramDetails, DismissedWarnings]        =
     Focus[ProgramDetails](_.dismissedWarnings)
 
   given Decoder[ProgramDetails] = Decoder.instance(c =>
@@ -86,6 +90,7 @@ object ProgramDetails:
       st    <- c.get[ProgramStatus]("status")
       est   <- c.get[Option[ProgramStatus]]("explicitStatus")
       dst   <- c.get[ProgramStatus]("defaultStatus")
+      tac   <- c.get[Option[TooActivation]]("tooActivationCeiling")
       pi    <- c.downField("pi").as[Option[ProgramUser]]
       us    <- c.get[List[ProgramUser]]("users")
       r     <-
@@ -108,6 +113,7 @@ object ProgramDetails:
       st,
       est,
       dst,
+      tac,
       pi,
       us,
       r.flatten,

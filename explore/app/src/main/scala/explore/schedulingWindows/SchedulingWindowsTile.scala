@@ -70,14 +70,13 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 sealed abstract class SchedulingWindowsTile(
-  val obsEditInfo:            ObsIdSetEditInfo,
-  val schedulingConstraints:  View[SchedulingConstraints],
-  // `Interrupting` is reserved to Targets of Opportunity, so it is offered only when every
-  // observation being edited has one. The ODB rejects the combination too; this just keeps the
-  // user from reaching for it.
-  val hasTargetOfOpportunity: Boolean,
-  isReadOnly:                 Boolean,
-  fullSize:                   Boolean
+  val obsEditInfo:           ObsIdSetEditInfo,
+  val schedulingConstraints: View[SchedulingConstraints],
+  // A `Rapid` or `Interrupting` ToO is always `Uninterruptible`, so the mode is fixed while any
+  // observation being edited is one.
+  val schedulingModeFixed:   Boolean,
+  isReadOnly:                Boolean,
+  fullSize:                  Boolean
 ) extends Tile[SchedulingWindowsTile](
       ObsTabTileIds.TimingWindowsId.id,
       "Scheduling",
@@ -240,11 +239,8 @@ object SchedulingWindowsTile
                                        HelpIcon("scheduling/scheduling-mode.md".refined)
                 ),
                 value = props.schedulingMode,
-                disabledItems =
-                  if props.hasTargetOfOpportunity then Set.empty
-                  else Set(SchedulingMode.Interrupting),
                 clazz = ExploreStyles.SchedulingModeDropdown,
-                disabled = props.readonly
+                disabled = props.readonly || props.schedulingModeFixed
               )
             ),
             Divider(),
@@ -485,10 +481,9 @@ object SchedulingWindowsTile
 final case class ObservationSchedulingWindowsTile[F[
   _
 ]: {OdbObservationApi, MonadThrow, Dispatch, Logger, ToastCtx}](
-  observation:                         UndoSetter[Observation],
-  override val hasTargetOfOpportunity: Boolean,
-  isReadonly:                          Boolean,
-  fullSize:                            Boolean
+  observation: UndoSetter[Observation],
+  isReadonly:  Boolean,
+  fullSize:    Boolean
 ) extends SchedulingWindowsTile(
       ObsIdSetEditInfo.of(observation.get),
       TimingWindowsQueries.viewWithRemoteMod(
@@ -497,7 +492,7 @@ final case class ObservationSchedulingWindowsTile[F[
           Observation.schedulingConstraints
         )
       ),
-      hasTargetOfOpportunity,
+      observation.get.tooActivation.requiresUninterruptible,
       isReadonly,
       fullSize
     )
@@ -505,11 +500,10 @@ final case class ObservationSchedulingWindowsTile[F[
 final case class ObsIdSetSchedulingWindowsTile[F[
   _
 ]: {OdbObservationApi, MonadThrow, Dispatch, Logger, ToastCtx}](
-  override val obsEditInfo:            ObsIdSetEditInfo,
-  observations:                        UndoSetter[ObservationList],
-  override val hasTargetOfOpportunity: Boolean,
-  isReadonly:                          Boolean,
-  fullSize:                            Boolean
+  override val obsEditInfo: ObsIdSetEditInfo,
+  observations:             UndoSetter[ObservationList],
+  isReadonly:               Boolean,
+  fullSize:                 Boolean
 ) extends SchedulingWindowsTile(
       obsEditInfo, {
         // We will only edit the incomplete observations, but we noed something to pass
@@ -532,7 +526,9 @@ final case class ObsIdSetSchedulingWindowsTile[F[
             )
         )
       },
-      hasTargetOfOpportunity,
+      obsEditInfo.editing.idSet.toList
+        .flatMap(observations.get.get)
+        .exists(_.tooActivation.requiresUninterruptible),
       isReadonly,
       fullSize
     )

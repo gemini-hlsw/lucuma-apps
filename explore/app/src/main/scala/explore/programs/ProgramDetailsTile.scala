@@ -6,24 +6,37 @@ package explore.programs
 import cats.syntax.all.*
 import crystal.react.View
 import crystal.react.syntax.effect.*
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ProgramDetails
 import explore.model.ProgramTimes
 import explore.model.ProgramUser
+import explore.model.display.given
+import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramStatus
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.syntax.display.*
+import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
 import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.ui.primereact.CheckboxView
 import lucuma.ui.primereact.EnumDropdownOptionalView
+import lucuma.ui.primereact.EnumDropdownView
 import lucuma.ui.primereact.FormInfo
 import lucuma.ui.primereact.given
+
+// A program without a ceiling may have observations at any ToO activation.
+private given Enumerated[Option[TooActivation]] =
+  deriveOptionalEnumerated[TooActivation]("no-restrictions")
+private given Display[Option[TooActivation]]    =
+  deriveOptionalDisplay[TooActivation]("No Restrictions")
 
 case class ProgramDetailsTile(
   programId:          Program.Id,
@@ -61,6 +74,23 @@ object ProgramDetailsTile
             )
           else details.status.shortName
 
+        val tooActivationCeilingView: View[Option[TooActivation]] =
+          props.programDetails
+            .zoom(ProgramDetails.tooActivationCeiling)
+            .withOnMod(c =>
+              ctx.odbApi.updateProgramTooActivationCeiling(props.programId, c).runAsync
+            )
+
+        // Only staff may set or clear the ceiling
+        val tooActivationCeilingInfo: VdomNode =
+          if props.userIsStaffOrAdmin then
+            EnumDropdownView(
+              id = "programTooActivationCeiling".refined,
+              value = tooActivationCeilingView,
+              clazz = ExploreStyles.ProgramStatusSelect
+            )
+          else details.tooActivationCeiling.shortName
+
         <.div(ExploreStyles.ProgramDetailsTile)(
           <.div(ExploreStyles.ProgramDetailsInfoArea, ExploreStyles.ProgramDetailsLeft)(
             FormInfo(details.reference.map(_.label).getOrElse("---"), "Reference"),
@@ -69,7 +99,14 @@ object ProgramDetailsTile
             // Thesis should be set True if any of the investigators will use the proposal as part of their thesis (3390)
             FormInfo(if (thesis) "Yes" else "No", "Thesis"),
             FormInfo(s"${details.proprietaryMonths} months", "Proprietary"),
-            FormInfo(statusInfo, "Status")
+            FormInfo(statusInfo, "Status"),
+            FormInfo(
+              tooActivationCeilingInfo,
+              React.Fragment(
+                "ToO Activation Ceiling",
+                HelpIcon("program/too-activation-ceiling.md".refined)
+              )
+            )
           ),
           <.div(
             TimeAwardTable(details.allocations),

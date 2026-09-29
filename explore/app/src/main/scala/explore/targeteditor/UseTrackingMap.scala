@@ -67,16 +67,16 @@ object UseTrackingMap:
 
     useEffectKeepResultWithDeps((targets, site, obsTime)): (targets, site, obsTime) =>
       obsTime.traverse: at =>
-        // An unresolved ToO has nothing to track.
+        // A ToO has nothing to track.
         targets
-          .filterNot(_.hasUnresolvedTargetOfOpportunity)
+          .filterNot(_.hasTargetOfOpportunity)
           .fold(RegionOrTrackingMap.Empty.asRight.pure[IO]): ts =>
             getMixedResolutionRegionOrTrackingMap(ts.allTargets.toList, site, at)
     .map(_.value.value.flatMap(_.fold(Pot.pending)(_.ready)))
 
   /**
    * Tracking of the asterism as a whole, i.e. the base position over time. `None` while the
-   * tracking map is unavailable or when the asterism has an unresolved ToO.
+   * tracking map is unavailable or when the asterism has a ToO.
    */
   private def useAsterismTracking(
     targets:     Option[ObservationTargets],
@@ -101,7 +101,7 @@ object UseTrackingMap:
       (targets, obsTime, trPot, targetViz, explicitBase) =>
         (targets, obsTime).tupled.fold(Pot.pending): (ts, at) =>
           trPot.map: tr =>
-            if (ts.hasUnresolvedTargetOfOpportunity)
+            if (ts.hasTargetOfOpportunity)
               ObservationTargetsCoordinatesAt.emptyAt(at)
             else
               // Generic instrument slot layout, resolved to obs-time coords inside

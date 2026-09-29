@@ -63,7 +63,6 @@ trait DisplayImplicits:
     case SchedulingMode.Unconstrained   => "Unconstrained"
     case SchedulingMode.NoSplitting     => "No Splitting"
     case SchedulingMode.Uninterruptible => "Uninterruptible"
-    case SchedulingMode.Interrupting    => "Interrupting"
 
   given Display[ConsiderForBand3] = Display.byShortName:
     case ConsiderForBand3.Unset         => "Not Selected"

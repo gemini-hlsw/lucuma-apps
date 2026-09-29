@@ -33,6 +33,7 @@ import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.syntax.display.*
@@ -467,6 +468,10 @@ object ObsTree:
                   setScienceBandCB = (
                     (b: ScienceBand) =>
                       ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
+                  ).some,
+                  setTooActivationCB = (
+                    (a: TooActivation) =>
+                      ObsActions.obsTooActivation(obs.id).set(props.observations)(a.some)
                   ).some,
                   setTelluricTypeCB = obs.observingMode.toOption.flatten
                     .filter(ObservingMode.telluricType.getOption(_).isDefined)

@@ -512,10 +512,8 @@ object NightPlot:
               Logger[IO].error(s"Error getting ephemeris for elevation plot: $err") >>
                 showToast("Error getting ephemeris for elevation plot"),
             _.sequence
-              // unresolved ToOs should already be filtered out, but just in case...
-              .fold(_ => showToast("Cannot show plots for unresolved Targets of Opportunity"),
-                    _.pure[IO]
-              )
+              // ToOs should already be filtered out, but just in case...
+              .fold(_ => showToast("Cannot show plots for Targets of Opportunity"), _.pure[IO])
           )
           .map: l =>
             l.map: (id, obj, tr) =>

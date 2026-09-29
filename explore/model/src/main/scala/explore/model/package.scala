@@ -74,7 +74,6 @@ val EmptyOpportunityTarget =
   Target.Opportunity(
     NewTargetName,
     Region.Full,
-    none, // a new Target of Opportunity starts unresolved
     EmptySourceProfile
   )
 

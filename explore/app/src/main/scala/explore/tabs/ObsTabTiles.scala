@@ -185,8 +185,9 @@ case class ObsTabTiles(
         // Whether `sky` is within the minimum IFU-arm separation of any science target.
         def tooCloseToScience(sky: Coordinates): Boolean =
           scienceTargets.exists: t =>
-            t.target.asSidereal
-              .flatMap(_.tracking.at(obsTimeOrNow))
+            Target.siderealTracking
+              .getOption(t.target)
+              .flatMap(_.at(obsTimeOrNow))
               .exists(GhostGeometry.tooClose(_, sky))
 
         GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
@@ -620,8 +621,7 @@ object ObsTabTiles:
             .flatMap: siblings =>
               val targets = siblings.scienceTargetIds.toList
                 .flatMap(tid => props.programSummaries.targets.get(tid).map(_.target))
-                // only an unresolved ToO has nothing to plot
-                .filter(_.resolution.isDefined)
+                .filterNot(t => Target.opportunity.getOption(t).isDefined)
 
               NonEmptyList
                 .fromList(targets)
@@ -802,7 +802,6 @@ object ObsTabTiles:
         val schedulingWindowsTile =
           ObservationSchedulingWindowsTile(
             props.observation,
-            props.observation.get.hasTargetOfOpportunity(props.programSummaries.targets),
             props.obsIsReadonly,
             false
           )

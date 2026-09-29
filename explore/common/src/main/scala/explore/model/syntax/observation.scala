@@ -12,6 +12,7 @@ import explore.model.syntax.all.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.ghost.GhostIfuMapping
@@ -60,8 +61,9 @@ object observation:
           // Whether `sky` is within the minimum IFU-arm separation of any science target.
           def tooCloseToScience(sky: Coordinates): Boolean =
             scienceTargets.exists: t =>
-              t.target.asSidereal
-                .flatMap(_.tracking.at(obsTime))
+              Target.siderealTracking
+                .getOption(t.target)
+                .flatMap(_.at(obsTime))
                 .exists(GhostGeometry.tooClose(_, sky))
 
           GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match

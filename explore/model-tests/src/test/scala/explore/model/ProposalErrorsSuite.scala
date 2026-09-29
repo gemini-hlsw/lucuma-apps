@@ -131,7 +131,6 @@ class ProposalErrorsSuite extends FunSuite:
   private val queueType: ProposalType =
     GeminiProposalType.Queue(
       scienceSubtype = ScienceSubtype.Queue,
-      tooActivationCeiling = TooActivationCeiling(TooActivation.None, TooActivation.None, none),
       minPercentTime = IntPercent.unsafeFrom(100),
       partnerSplits = List(PartnerSplit(Partner.US, IntPercent.unsafeFrom(100))),
       exchangePartner = none,
@@ -356,7 +355,6 @@ class ProposalErrorsSuite extends FunSuite:
   test("fast turnaround without a mentor for a non-PhD reviewer"):
     val t: ProposalType = GeminiProposalType.FastTurnaround(
       scienceSubtype = ScienceSubtype.FastTurnaround,
-      tooActivationCeiling = TooActivationCeiling(TooActivation.None, TooActivation.None, none),
       minPercentTime = IntPercent.unsafeFrom(100),
       reviewerId = none,
       mentorId = none

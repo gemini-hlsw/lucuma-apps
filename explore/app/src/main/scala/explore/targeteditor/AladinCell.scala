@@ -341,7 +341,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           InteractiveRegion.forViz(
             props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
             mergedForMarker,
-            props.allTargets.get.get(_).exists(_.isUnresolvedTargetOfOpportunity),
+            props.allTargets.get.get(_).exists(_.isTargetOfOpportunity),
             guideStar,
             assignSkyOptimistic
           )

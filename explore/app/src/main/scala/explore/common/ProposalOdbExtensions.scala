@@ -56,29 +56,21 @@ trait ProposalOdbExtensions:
   extension (proposalType: GeminiProposalType)
     def toInput: GeminiProposalTypeInput =
       proposalType match
-        case GeminiProposalType.DemoScience(_, tooActivationCeiling, minPercentTime)        =>
+        case GeminiProposalType.DemoScience(_, minPercentTime)                      =>
           GeminiProposalTypeInput.DemoScience(
             DemoScienceInput(
-              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign
             )
           )
-        case GeminiProposalType.DirectorsTime(_, tooActivationCeiling, minPercentTime)      =>
+        case GeminiProposalType.DirectorsTime(_, minPercentTime)                    =>
           GeminiProposalTypeInput.DirectorsTime(
             DirectorsTimeInput(
-              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign
             )
           )
-        case GeminiProposalType.FastTurnaround(_,
-                                               tooActivationCeiling,
-                                               minPercentTime,
-                                               reviewer,
-                                               mentor
-            ) =>
+        case GeminiProposalType.FastTurnaround(_, minPercentTime, reviewer, mentor) =>
           GeminiProposalTypeInput.FastTurnaround(
             FastTurnaroundInput(
-              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign,
               reviewerId = reviewer.orUnassign,
               mentorId = mentor.orUnassign
@@ -86,7 +78,6 @@ trait ProposalOdbExtensions:
           )
         case GeminiProposalType.LargeProgram(
               _,
-              tooActivationCeiling,
               minPercentTime,
               minPercentTotalTime,
               totalTime,
@@ -95,7 +86,6 @@ trait ProposalOdbExtensions:
             ) =>
           GeminiProposalTypeInput.LargeProgram(
             LargeProgramInput(
-              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign,
               minPercentTotalTime = minPercentTotalTime.assign,
               totalTime = totalTime.toInput.assign,
@@ -124,7 +114,6 @@ trait ProposalOdbExtensions:
           )
         case GeminiProposalType.Queue(
               _,
-              tooActivationCeiling,
               minPercentTime,
               partnerSplits,
               exchangePartner,
@@ -135,7 +124,6 @@ trait ProposalOdbExtensions:
             ) =>
           GeminiProposalTypeInput.Queue(
             QueueInput(
-              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign,
               partnerSplits = splitsInput(partnerSplits, exchangePartner),
               exchangePartner = exchangePartner.orUnassign,
@@ -145,14 +133,13 @@ trait ProposalOdbExtensions:
               considerForBand3 = considerForBand3.assign
             )
           )
-        case GeminiProposalType.SystemVerification(_, tooActivationCeiling, minPercentTime) =>
+        case GeminiProposalType.SystemVerification(_, minPercentTime)               =>
           GeminiProposalTypeInput.SystemVerification(
             SystemVerificationInput(
-              explicitTooActivationCeiling = tooActivationCeiling.explicit.orUnassign,
               minPercentTime = minPercentTime.assign
             )
           )
-        case GeminiProposalType.PoorWeather(scienceSubtype)                                 =>
+        case GeminiProposalType.PoorWeather(scienceSubtype)                         =>
           GeminiProposalTypeInput.PoorWeather(PoorWeatherInput())
 
   extension (proposalType: KeckProposalType)
