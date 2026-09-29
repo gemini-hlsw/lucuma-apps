@@ -107,7 +107,9 @@ class AltairModeRowsSuite extends FunSuite:
 
   test("the Altair mode is appended to the instrument label"):
     val labels =
-      AltairModeRows.expandSpectroscopy(List(spectroscopyRow(gnirsSpectroscopy))).map(_.instrumentLabel)
+      AltairModeRows
+        .expandSpectroscopy(List(spectroscopyRow(gnirsSpectroscopy)))
+        .map(_.instrumentLabel)
     assertEquals(labels, List("GNIRS SC", "GNIRS SC AO:NGS", "GNIRS SC AO:LGS"))
 
   test("an Altair row without parameters for its mode is hidden"):
@@ -150,7 +152,9 @@ class AltairModeRowsSuite extends FunSuite:
     assertEquals(
       selection.toBasicConfiguration(),
       BasicConfiguration
-        .GnirsImaging(cats.data.NonEmptyList.of(GnirsFilter.Order4, GnirsFilter.K), GnirsCamera.ShortBlue)
+        .GnirsImaging(cats.data.NonEmptyList.of(GnirsFilter.Order4, GnirsFilter.K),
+                      GnirsCamera.ShortBlue
+        )
         .some
     )
 

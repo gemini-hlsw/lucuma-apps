@@ -74,6 +74,11 @@ sealed trait ItcInstrumentConfig derives Eq:
 
   def altairMode: Option[AltairMode] = None
 
+  // Equal up to the Altair guide star: the observation's star and the one the modes table finds
+  // for its rows may differ slightly, but they describe the same mode.
+  def sameModeAs(other: ItcInstrumentConfig): Boolean =
+    withAltair(none) === other.withAltair(none) && altairMode === other.altairMode
+
 object ItcInstrumentConfig:
   def altairModeOf(parameters: AltairParameters): AltairMode =
     parameters match

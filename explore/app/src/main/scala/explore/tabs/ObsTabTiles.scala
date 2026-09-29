@@ -441,14 +441,30 @@ object ObsTabTiles:
         val asterismIds: View[SortedSet[Target.Id]] =
           props.observation.model.zoom(Observation.scienceTargetIds)
 
-        // ETM normalized to science requirements so it matches the table rows on ===.
+        val altairGuideStar: Option[GuideStarCandidate] =
+          guideStarSelection.get.analysis.map(_.target)
+
+        val guideStarSeparation: Option[Angle] =
+          AltairControls.guideStarSeparation(
+            positions.coords.toOption.flatMap(_.toOption).flatMap(_.baseCoords),
+            altairGuideStar,
+            obsTimeOrNow.value
+          )
+
+        val altairItcParameters: Option[AltairParameters] =
+          obsConf.altair.flatMap(
+            AltairControls.itcParameters(_, altairGuideStar, guideStarSeparation)
+          )
+
+        // ETM normalized to science requirements so it matches the table rows on ===, and the
+        // observation's Altair carried along so reverting lands on the Altair row.
         val revertedInstrumentConfig: List[ItcInstrumentConfig] =
           val rowEtm: ExposureTimeMode =
             props.observation.get.scienceRequirements.exposureTimeMode
               .getOrElse(ItcInstrumentConfig.PlaceholderEtm)
           props.observation.get
             .toInstrumentConfig(props.obsTargets)
-            .map(_.setSingleExposureTimeMode(rowEtm))
+            .map(_.setSingleExposureTimeMode(rowEtm).withAltair(altairItcParameters))
 
         val obsTimeView: View[Option[Instant]] =
           props.observation.model.zoom(Observation.observationTime)
@@ -536,21 +552,6 @@ object ObsTabTiles:
 
         val isVisitorMode: Boolean =
           props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
-
-        val altairGuideStar: Option[GuideStarCandidate] =
-          guideStarSelection.get.analysis.map(_.target)
-
-        val guideStarSeparation: Option[Angle] =
-          AltairControls.guideStarSeparation(
-            positions.coords.toOption.flatMap(_.toOption).flatMap(_.baseCoords),
-            altairGuideStar,
-            obsTimeOrNow.value
-          )
-
-        val altairItcParameters: Option[AltairParameters] =
-          obsConf.altair.flatMap(
-            AltairControls.itcParameters(_, altairGuideStar, guideStarSeparation)
-          )
 
         val awaitingAltairGuideStar: Boolean =
           AltairControls.itcAwaitingGuideStar(obsConf.altair, altairItcParameters)

@@ -11,11 +11,13 @@ import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
+import crystal.react.syntax.pot.given
+import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.AltairControls
 import explore.model.AppContext
-import explore.model.InstrumentConfigAndItcResult
 import explore.model.Progress
 import explore.model.ScienceRequirements
 import explore.model.display.*
@@ -76,7 +78,7 @@ final case class ImagingModesTable(
   capability:          Option[ImagingCapability],
   instrument:          Option[Instrument],
   showFilters:         View[Visible],
-  altairParams:        Map[AltairMode, AltairParameters]
+  altairParams:        Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(ImagingModesTable.component)
 
 object ImagingModesTable extends ModesTableCommon:
@@ -271,7 +273,7 @@ object ImagingModesTable extends ModesTableCommon:
                             ) =>
                               matrix
                                 .filtered(minimumFov, fts, capability, dec, instrument)
-                                .flatMap(_.withAltairParameters(altairParams))
+                                .flatMap(_.withAltairParameters(altairParams.toOption.getOrElse(Map.empty)))
                                 .sortBy(!_.enabled)
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in
@@ -356,7 +358,7 @@ object ImagingModesTable extends ModesTableCommon:
                             effectiveTargets,
                             props.customSedTimestamps,
                             sortedRows,
-                            props.altairParams
+                            props.altairParams.toOption.getOrElse(Map.empty)
                           )
       // Notify parent of target selection
       _                <- useEffectWithDeps((props.targetView.get, props.targets.toOption)):
@@ -368,15 +370,7 @@ object ImagingModesTable extends ModesTableCommon:
       // one or more of the selected rows or the itc results may have changed.
       // Note, we use rows for the dependency, not sorted rows, because sorted rows also changes with sort.
       _                <- useEffectWithDeps(rows): rs =>
-                            val oldCfgs = props.selectedConfigs.get.configs
-                            val newCfgs =
-                              oldCfgs
-                                .map(cfg => rs.find(_.entry.instrumentConfig === cfg.instrumentConfig))
-                                .flattenOption
-                                .map(_.configAndResult)
-                            if (oldCfgs =!= newCfgs)
-                              props.selectedConfigs.set(ConfigSelection.fromList(newCfgs))
-                            else Callback.empty
+                            resyncSelection(rs.value, props.selectedConfigs, props.altairParams.isPending)
       selectedIndices  <-
         useMemo((sortedRows, props.selectedConfigs.get)): (sortRows, selectedConfigs) =>
           selectedConfigs.configs
@@ -450,36 +444,44 @@ object ImagingModesTable extends ModesTableCommon:
           ExploreStyles.ExploreBorderTable,
           ExploreStyles.ModesTable
         )(
-          PrimeAutoHeightVirtualizedTable(
-            table,
-            estimateSize = _ => 32.toPx,
-            striped = true,
-            compact = Compact.Very,
-            containerMod = ^.overflow.auto,
-            rowMod = rowTagMod: row =>
-              TagMod(
-                ^.disabled := !row.original.entry.enabled,
-                ExploreStyles.TableRowSelected.when:
-                  props.selectedConfigs.get.contains(row.original.entry.instrumentConfig)
-                ,
-                (^.onClick            ==> clickHandler(row.original)).when(row.original.entry.enabled)
-              ),
-            onChange = tableOnChangeHandler(visibleRows, atTop),
-            virtualizerRef = virtualizerRef,
-            columnFilterRenderer =
-              if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
-            emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
-          ),
-          scrollUpButton(
-            upIndex,
-            virtualizerRef,
-            visibleRows.get,
-            atTop.get
-          ),
-          scrollDownButton(
-            downIndex,
-            virtualizerRef,
-            visibleRows.get
-          )
+          // Hide the rows while Altair guide stars are searched; the table model and ITC keep running.
+          TagMod(
+            PrimeAutoHeightVirtualizedTable(
+              table,
+              estimateSize = _ => 32.toPx,
+              striped = true,
+              compact = Compact.Very,
+              containerMod = ^.overflow.auto,
+              rowMod = rowTagMod: row =>
+                TagMod(
+                  ^.disabled := !row.original.entry.enabled,
+                  ExploreStyles.TableRowSelected.when:
+                    props.selectedConfigs.get.contains(row.original.entry.instrumentConfig)
+                  ,
+                  (^.onClick            ==> clickHandler(row.original)).when(row.original.entry.enabled)
+                ),
+              onChange = tableOnChangeHandler(visibleRows, atTop),
+              virtualizerRef = virtualizerRef,
+              columnFilterRenderer =
+                if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+              emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
+            ),
+            scrollUpButton(
+              upIndex,
+              virtualizerRef,
+              visibleRows.get,
+              atTop.get
+            ),
+            scrollDownButton(
+              downIndex,
+              virtualizerRef,
+              visibleRows.get
+            )
+          ).unless(props.altairParams.isPending),
+          <.div(ExploreStyles.SpectroscopyTableEmpty)(
+            Icons.Spinner.withSpin(true),
+            " ",
+            AltairControls.AwaitingAltairGuideStarMessage
+          ).when(props.altairParams.isPending)
         )
       )

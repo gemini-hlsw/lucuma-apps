@@ -8,6 +8,7 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
+import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
@@ -84,7 +85,7 @@ case class BasicConfigurationPanel(
   units:               WavelengthUnits,
   globalPreferences:   View[GlobalPreferences],
   targetView:          View[Option[ItcTarget]],
-  altairParams:        Map[AltairMode, AltairParameters]
+  altairParams:        Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(BasicConfigurationPanel.component):
   private def tableFilters(
     lens:  Lens[GlobalPreferences, Visible],

@@ -7,6 +7,7 @@ import boopickle.DefaultBasic.*
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
+import crystal.Pot
 import crystal.react.hooks.*
 import explore.events.*
 import explore.model.*
@@ -67,14 +68,14 @@ object UseAltairModesAgs:
   private val FallbackWavelength: Wavelength = GnirsFilter.Order4.centralWavelength
 
   private def altairParameters(
-    targetId:      Target.Id,
-    obsTime:       Instant,
-    constraints:   ConstraintSet,
-    baseCoords:    Coordinates,
-    obsCoords:     ObservationTargetsCoordinatesAt,
-    wavelength:    Option[Wavelength],
-    angles:        NonEmptyList[Angle],
-    candidates:    List[GuideStarCandidate]
+    targetId:    Target.Id,
+    obsTime:     Instant,
+    constraints: ConstraintSet,
+    baseCoords:  Coordinates,
+    obsCoords:   ObservationTargetsCoordinatesAt,
+    wavelength:  Option[Wavelength],
+    angles:      NonEmptyList[Angle],
+    candidates:  List[GuideStarCandidate]
   )(ctx: AppContext[IO]): IO[Map[AltairMode, AltairParameters]] =
     val configuration = representativeGnirs(wavelength.getOrElse(FallbackWavelength))
 
@@ -114,10 +115,10 @@ object UseAltairModesAgs:
           .as(Map.empty)
 
   /**
-   * The Altair parameters of the guide star AGS finds for each Altair mode of the modes table, for
-   * an observation without an observing mode. A mode is missing while AGS runs or when no usable
-   * star is found, so that its rows are not offered. Unlike `useAgs`, this is silent: it does not
-   * touch the AGS state or the guide star selection.
+   * The Altair parameters of the guide star AGS finds for each Altair mode of the modes table,
+   * pending while the search runs. A mode is missing while AGS runs or when no usable star is
+   * found, so that its rows are not offered. Unlike `useAgs`, this is silent: it does not touch the
+   * AGS state or the guide star selection.
    */
   def useAltairModesAgs(
     obsTargets:             Option[ObservationTargets],
@@ -125,14 +126,14 @@ object UseAltairModesAgs:
     positions:              ObsPositions,
     obsConf:                ObsConfiguration,
     requirementsWavelength: Option[Wavelength]
-  )(ctx: AppContext[IO]): HookResult[Map[AltairMode, AltairParameters]] =
+  )(ctx: AppContext[IO]): HookResult[Pot[Map[AltairMode, AltairParameters]]] =
     val obsCoords: Option[ObservationTargetsCoordinatesAt] =
       positions.coords.toOption.flatMap(_.toOption)
 
-    // GNIRS rows are only offered where GN is preferred, so only there are Altair rows needed.
+    // GNIRS rows are only offered where GN is preferred, so only there are Altair rows needed. The
+    // search also runs while a mode exists, so its rows are already there when the mode is reverted.
     val enabled: Boolean =
-      obsConf.configuration.isEmpty &&
-        obsConf.needGuideStar &&
+      obsConf.needGuideStar &&
         obsConf.constraints.isDefined &&
         obsCoords.flatMap(_.baseCoords).exists(c => Site.GN.inPreferredDeclination(c.dec))
 
@@ -199,4 +200,6 @@ object UseAltairModesAgs:
               )(ctx)
           case _ =>
             Map.empty.pure[IO]
-    yield parameters.value.toOption.getOrElse(Map.empty)
+    // Pending while either search runs: the parameters keep their last value until the candidates
+    // arrive, so they cannot tell on their own.
+    yield if enabled then candidates.value.value >> parameters.value.value else Pot(Map.empty)

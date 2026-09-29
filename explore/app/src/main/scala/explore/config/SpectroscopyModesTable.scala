@@ -13,12 +13,14 @@ import coulomb.units.accepted.ArcSecond
 import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
+import crystal.react.syntax.pot.given
 import eu.timepit.refined.cats.*
+import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.AltairControls
 import explore.model.AppContext
-import explore.model.InstrumentConfigAndItcResult
 import explore.model.Progress
 import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.*
@@ -76,7 +78,7 @@ case class SpectroscopyModesTable(
   units:                    WavelengthUnits,
   instrument:               Option[Instrument],
   showFilters:              View[Visible],
-  altairParams:             Map[AltairMode, AltairParameters]
+  altairParams:             Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(SpectroscopyModesTable.component)
 
 private object SpectroscopyModesTable extends ModesTableCommon:
@@ -302,7 +304,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             declination = dec,
             instrument = instrument
           )
-          .flatMap(_.withAltairParameters(altair))
+          .flatMap(_.withAltairParameters(altair.toOption.getOrElse(Map.empty)))
 
       val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)
       // Computes the mode overrides for the current parameters
@@ -391,21 +393,13 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             props.targets.toOption,
                             props.customSedTimestamps,
                             sortedRows,
-                            props.altairParams
+                            props.altairParams.toOption.getOrElse(Map.empty)
                           )
         // Set the selected config if the rows change because the new rows may no longer contain
         // one or more of the selected rows or the itc results may have changed.
         // Note, we use rows for the dependency, not sorted rows, because sorted rows also changes with sort.
-        _              <- useEffectWithDeps(rows): _ =>
-                            val oldCfgs = props.selectedConfig.get.configs
-                            val newCfgs =
-                              oldCfgs
-                                .map(cfg => rows.find(_.entry.instrumentConfig === cfg.instrumentConfig))
-                                .flattenOption
-                                .map(_.configAndResult)
-                            if (oldCfgs =!= newCfgs)
-                              props.selectedConfig.set(ConfigSelection.fromList(newCfgs))
-                            else Callback.empty
+        _              <- useEffectWithDeps(rows): rs =>
+                            resyncSelection(rs.value, props.selectedConfig, props.altairParams.isPending)
         // The selected index needs to be the index into the sorted data, because that is what
         // the virtualizer uses for scrollTo.
         selectedIndex  <-
@@ -447,43 +441,51 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             ExploreStyles.ExploreBorderTable,
             ExploreStyles.ModesTable
           )(
-            PrimeAutoHeightVirtualizedTable(
-              table,
-              estimateSize = _ => 32.toPx,
-              striped = true,
-              compact = Compact.Very,
-              containerMod = ^.overflow.auto,
-              rowMod = rowTagMod: row =>
-                TagMod(
-                  ^.disabled := !row.original.entry.enabled,
-                  ExploreStyles.TableRowSelected
-                    .when:
-                      props.selectedConfig.get.headOption
-                        .exists(_.instrumentConfig === row.original.entry.instrumentConfig)
-                  ,
-                  (
-                    ^.onClick --> props.selectedConfig.mod(
-                      _.toggleOrSet(row.original.configAndResult)
+            // Hide the rows while Altair guide stars are searched; the table model and ITC keep running.
+            TagMod(
+              PrimeAutoHeightVirtualizedTable(
+                table,
+                estimateSize = _ => 32.toPx,
+                striped = true,
+                compact = Compact.Very,
+                containerMod = ^.overflow.auto,
+                rowMod = rowTagMod: row =>
+                  TagMod(
+                    ^.disabled := !row.original.entry.enabled,
+                    ExploreStyles.TableRowSelected
+                      .when:
+                        props.selectedConfig.get.headOption
+                          .exists(_.instrumentConfig === row.original.entry.instrumentConfig)
+                    ,
+                    (
+                      ^.onClick --> props.selectedConfig.mod(
+                        _.toggleOrSet(row.original.configAndResult)
+                      )
                     )
-                  )
-                    .when(row.original.entry.enabled)
-                ),
-              onChange = tableOnChangeHandler(visibleRows, atTop),
-              virtualizerRef = virtualizerRef,
-              columnFilterRenderer =
-                if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
-              emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
-            ),
-            scrollUpButton(
-              selectedIndex,
-              virtualizerRef,
-              visibleRows.get,
-              atTop.get
-            ),
-            scrollDownButton(
-              selectedIndex,
-              virtualizerRef,
-              visibleRows.get
-            )
+                      .when(row.original.entry.enabled)
+                  ),
+                onChange = tableOnChangeHandler(visibleRows, atTop),
+                virtualizerRef = virtualizerRef,
+                columnFilterRenderer =
+                  if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
+                emptyMessage = <.div(ExploreStyles.SpectroscopyTableEmpty, "No matching modes")
+              ),
+              scrollUpButton(
+                selectedIndex,
+                virtualizerRef,
+                visibleRows.get,
+                atTop.get
+              ),
+              scrollDownButton(
+                selectedIndex,
+                virtualizerRef,
+                visibleRows.get
+              )
+            ).unless(props.altairParams.isPending),
+            <.div(ExploreStyles.SpectroscopyTableEmpty)(
+              Icons.Spinner.withSpin(true),
+              " ",
+              AltairControls.AwaitingAltairGuideStarMessage
+            ).when(props.altairParams.isPending)
           )
         )

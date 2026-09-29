@@ -28,6 +28,7 @@ import explore.model.boopickle.ItcPicklers.given
 import explore.model.enums.Visible
 import explore.model.itc.*
 import explore.model.reusability.given
+import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
@@ -92,6 +93,25 @@ trait ModesTableCommon:
       result.toOption.collect { case Right(r @ ItcResult.Result(_, _)) =>
         r.snAt.map(_.total)
       }.flatten
+
+  /**
+   * Re-points the selection at the current rows, dropping selections whose row is gone. Rows are
+   * matched by mode, since a reverted configuration carries the observation's Altair guide star,
+   * not the table's. Altair selections are kept while the table's guide star search runs, as their
+   * rows only appear once it is done.
+   */
+  def resyncSelection[Row <: TableRowWithResult](
+    rows:       List[Row],
+    selection:  View[ConfigSelection],
+    agsRunning: Boolean
+  ): Callback =
+    val oldCfgs = selection.get.configs
+    val newCfgs = oldCfgs.flatMap: cfg =>
+      rows
+        .find(_.config.sameModeAs(cfg.instrumentConfig))
+        .map(_.configAndResult)
+        .orElse(Option.when(agsRunning && cfg.instrumentConfig.altairMode.isDefined)(cfg))
+    Callback.when(oldCfgs =!= newCfgs)(selection.set(ConfigSelection.fromList(newCfgs)))
 
   object ScrollTo extends NewBoolean:
     inline def Scroll = True; inline def NoScroll = False

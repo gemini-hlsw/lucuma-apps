@@ -10,6 +10,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
+import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.*
@@ -99,7 +100,7 @@ final case class ConfigurationTile(
   hasMaterializedSequence:  Boolean,
   modePending:              Boolean,                   // observingMode detail still loading
   maskContext:              MosMaskContext,
-  altairParams:             Map[AltairMode, AltairParameters]
+  altairParams:             Pot[Map[AltairMode, AltairParameters]]
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",

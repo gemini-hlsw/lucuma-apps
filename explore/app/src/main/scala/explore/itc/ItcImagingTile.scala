@@ -300,7 +300,7 @@ object ItcImagingTile
                            results match
                              case Pot.Pending      =>
                                val pendingMessage: String =
-                                 if awaitingGuideStar then AltairControls.ItcAwaitingGuideStarMessage
+                                 if awaitingGuideStar then AltairControls.AwaitingAltairGuideStarMessage
                                  else "Waiting for ITC..."
                                toMessage(pendingMessage, Message.Severity.Info)
                                  .asLeft[List[ImagingFilterRow]]
