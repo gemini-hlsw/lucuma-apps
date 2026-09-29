@@ -3,26 +3,16 @@
 
 package observe.server.tcs
 
-import cats.Show
 import cats.data.NonEmptySet
-import cats.implicits.*
 import lucuma.core.enums.Site
-import lucuma.core.enums.Site.GN
-import lucuma.core.model.M1GuideConfig
-import lucuma.core.model.M2GuideConfig
-import monocle.Focus
-import monocle.Lens
 import observe.model.enums.NodAndShuffleStage
-import observe.server.altair.Altair
 import observe.server.tcs.TcsController.*
-import observe.server.tcs.TcsController.GuiderConfig.given
 
 trait TcsNorthController[F[_]] {
   import TcsNorthController.*
 
   def applyConfig(
     subsystems: NonEmptySet[TcsController.Subsystem],
-    gaos:       Option[Altair[F]],
     tc:         TcsNorthConfig
   ): F[Unit]
 
@@ -39,22 +29,6 @@ trait TcsNorthController[F[_]] {
 
 object TcsNorthController {
 
-  type TcsNorthConfig   = TcsConfig[Site.GN.type]
-  type TcsNorthAoConfig = AoTcsConfig[Site.GN.type]
-
-  object TcsNorthAoConfig {
-    val m1Guide: Lens[AoTcsConfig[GN.type], M1GuideConfig] =
-      Focus[TcsNorthAoConfig](_.gc.m1Guide)
-    val m2Guide: Lens[AoTcsConfig[GN.type], M2GuideConfig] =
-      Focus[TcsNorthAoConfig](_.gc.m2Guide)
-  }
-
-  given Show[AoGuide] =
-    Show.show(_.value.show)
-
-  given Show[TcsNorthConfig] = Show.show {
-    case x: BasicTcsConfig[Site.GN.type] => x.show
-    case x: TcsNorthAoConfig             => x.toString
-  }
+  type TcsNorthConfig = TcsConfig[Site.GN.type]
 
 }

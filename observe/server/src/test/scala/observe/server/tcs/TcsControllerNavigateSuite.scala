@@ -7,10 +7,8 @@ import cats.data.NonEmptySet
 import cats.syntax.all.*
 import clue.data.Ignore
 import clue.data.syntax.*
-import coulomb.Quantity
 import coulomb.syntax.*
 import coulomb.units.accepted.ArcSecond
-import coulomb.units.accepted.Millimeter
 import io.circe.Json
 import io.circe.syntax.*
 import lucuma.core.enums.Instrument
@@ -28,17 +26,11 @@ import lucuma.schemas.ObservationDB.Types.WavelengthInput
 import lucuma.schemas.model.navigate.LightSinkVariant
 import lucuma.schemas.model.navigate.LightSource
 import observe.common.NavigateQueriesGQL.ConfigureStepMutation
-import observe.server.InstrumentGuide
 import observe.server.Length
 import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsController.Subsystem.*
 
 class TcsControllerNavigateSuite extends munit.FunSuite {
-
-  private val gmosNorth: InstrumentGuide = new InstrumentGuide {
-    override def instrument: Instrument                                       = Instrument.GmosNorth
-    override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
-  }
 
   private val guidingOn: StepGuideState  = StepGuideState.Enabled
   private val guidingOff: StepGuideState = StepGuideState.Disabled
@@ -53,11 +45,11 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
   private def tcsConfig(
     guiding:   StepGuideState,
     lightPath: LightPath = LightPath(LightSource.Sky, LightSinkName.Gmos)
-  ): BasicTcsConfig[Site.GN.type] =
-    BasicTcsConfig[Site.GN.type](
+  ): TcsConfig[Site.GN.type] =
+    TcsConfig[Site.GN.type](
       TelescopeConfig(offset.some, wavelength.some, defocus.some),
-      AGConfig(lightPath, HrwfsConfig.Auto.some),
-      gmosNorth,
+      lightPath,
+      Instrument.GmosNorth,
       guiding
     )
 

@@ -4,8 +4,7 @@
 package observe.server
 
 import cats.syntax.all.*
-import coulomb.Quantity
-import coulomb.units.accepted.Millimeter
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.math.Wavelength
 import lucuma.core.util.TimeSpan
@@ -15,11 +14,11 @@ import observe.server.keywords.KeywordsClient
 
 import java.time.temporal.ChronoUnit
 
-trait InstrumentStep[F[_]] extends InstrumentGuide {
+trait InstrumentStep[F[_]] {
+  def instrument: Instrument
+
   def stepType: StepKind
   // SeqTranslate.calcStepType(instrument, stepConfig, obsClass)
-
-  override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = None
 
   // The name used for this instrument in the science fold configuration
   def sfName: LightSinkName

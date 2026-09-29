@@ -7,11 +7,9 @@ import cats.Applicative
 import cats.data.NonEmptySet
 import cats.implicits.*
 import observe.model.enums.NodAndShuffleStage
-import observe.server.altair.Altair
 import observe.server.tcs.TcsController.InstrumentOffset
 import observe.server.tcs.TcsController.Subsystem
 import observe.server.tcs.TcsNorthController.TcsNorthConfig
-import observe.server.tcs.TcsNorthController.given
 import org.typelevel.log4cats.Logger
 
 class TcsNorthControllerSim[F[_]: {Applicative, Logger}] private extends TcsNorthController[F] {
@@ -20,7 +18,6 @@ class TcsNorthControllerSim[F[_]: {Applicative, Logger}] private extends TcsNort
 
   override def applyConfig(
     subsystems: NonEmptySet[Subsystem],
-    gaos:       Option[Altair[F]],
     tc:         TcsNorthConfig
   ): F[Unit] =
     L.debug("Start TCS configuration") *>

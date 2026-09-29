@@ -10,7 +10,5 @@ import observe.server.tcs.TcsController.*
  * Tests TcsController typeclasses
  */
 class TcsControllerSuite extends munit.DisciplineSuite with TcsArbitraries {
-  checkAll("Eq[Beam]", EqTests[Beam].eqv)
-  checkAll("Eq[NodAndChop]", EqTests[NodChop].eqv)
   checkAll("Eq[InstrumentOffset]", EqTests[InstrumentOffset].eqv)
 }

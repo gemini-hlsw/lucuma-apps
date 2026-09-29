@@ -1,15 +1,10 @@
 package observe.server.tcs
 
 import algebra.instances.all.*
-import cats.Eq
 import coulomb.*
 import coulomb.syntax.*
 import coulomb.units.accepted.ArcSecond
 import coulomb.units.accepted.Millimeter
-import edu.gemini.observe.server.tcs.BinaryEnabledDisabled
-import edu.gemini.observe.server.tcs.BinaryOnOff
-import edu.gemini.observe.server.tcs.BinaryYesNo
-import edu.gemini.observe.server.tcs.ParkState
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import observe.server.tcs.TcsController.InstrumentOffset
@@ -72,18 +67,3 @@ extension (o: InstrumentOffset) {
 // Focal plane scale, expressed with coulomb quantities.
 val FOCAL_PLANE_SCALE =
   new FocalPlaneScale(1.61144.withUnit[ArcSecond], 1.0.withUnit[Millimeter])
-import FocalPlaneScale.*
-
-val pwfs1OffsetThreshold: Quantity[Double, Millimeter] =
-  0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE
-
-val pwfs2OffsetThreshold: Quantity[Double, Millimeter] =
-  0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE
-
-val AoOffsetThreshold: Quantity[Double, Millimeter] =
-  0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE
-
-given Eq[BinaryOnOff]           = Eq.by[BinaryOnOff, Int](_.ordinal())
-given Eq[BinaryYesNo]           = Eq.by[BinaryYesNo, Int](_.ordinal())
-given Eq[BinaryEnabledDisabled] = Eq.by[BinaryEnabledDisabled, Int](_.ordinal())
-given Eq[ParkState]             = Eq.by[ParkState, Int](_.ordinal())

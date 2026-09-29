@@ -35,9 +35,9 @@ import java.time.temporal.ChronoUnit
  * commanding the TCS directly.
  */
 trait TcsControllerNavigate[F[_], S <: Site] {
-  def applyBasicConfig(
+  def applyConfig(
     subsystems: NonEmptySet[Subsystem],
-    tcs:        BasicTcsConfig[S]
+    tcs:        TcsConfig[S]
   ): F[Unit]
 
   def notifyObserveStart: F[Unit]
@@ -48,7 +48,7 @@ trait TcsControllerNavigate[F[_], S <: Site] {
     subsystems: NonEmptySet[Subsystem],
     offset:     InstrumentOffset,
     guided:     Boolean,
-    tcs:        BasicTcsConfig[S]
+    tcs:        TcsConfig[S]
   ): F[Unit]
 }
 
@@ -77,9 +77,9 @@ object TcsControllerNavigate {
         _       <- L.debug("Navigate completed configureStep")
       } yield ()
 
-    override def applyBasicConfig(
+    override def applyConfig(
       subsystems: NonEmptySet[Subsystem],
-      tcs:        BasicTcsConfig[S]
+      tcs:        TcsConfig[S]
     ): F[Unit] =
       L.debug(s"TCS configuration for subsystems $subsystems: ${tcs.show}") *>
         configureStep(configureStepInput(subsystems, tcs))
@@ -101,7 +101,7 @@ object TcsControllerNavigate {
       subsystems: NonEmptySet[Subsystem],
       offset:     InstrumentOffset,
       guided:     Boolean,
-      tcs:        BasicTcsConfig[S]
+      tcs:        TcsConfig[S]
     ): F[Unit] =
       L.debug(s"Nod to offset $offset, guided = $guided") *>
         configureStep(nodInput(subsystems, offset, guided))
@@ -120,7 +120,7 @@ object TcsControllerNavigate {
    */
   def configureStepInput[S <: Site](
     subsystems: NonEmptySet[Subsystem],
-    tcs:        BasicTcsConfig[S]
+    tcs:        TcsConfig[S]
   ): ConfigureStepInput =
     ConfigureStepInput(
       offset = tcs.tc.offsetA
@@ -134,7 +134,7 @@ object TcsControllerNavigate {
       lightPath = subsystems
         .contains(Subsystem.AGUnit)
         .guard[Option]
-        .as(lightPathInput(tcs.agc.sfPos, tcs.inst.instrument))
+        .as(lightPathInput(tcs.lightPath, tcs.instrument))
         .orIgnore,
       defocus = tcs.tc.defocusB
         .filter(_ => subsystems.contains(Subsystem.M2))

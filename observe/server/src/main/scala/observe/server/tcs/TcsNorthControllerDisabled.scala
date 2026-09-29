@@ -5,7 +5,6 @@ package observe.server.tcs
 
 import cats.data.NonEmptySet
 import observe.model.enums.NodAndShuffleStage
-import observe.server.altair.Altair
 import observe.server.overrideLogMessage
 import observe.server.tcs.TcsNorthController.TcsNorthConfig
 import org.typelevel.log4cats.Logger
@@ -13,7 +12,6 @@ import org.typelevel.log4cats.Logger
 class TcsNorthControllerDisabled[F[_]: Logger] extends TcsNorthController[F] {
   override def applyConfig(
     subsystems: NonEmptySet[TcsController.Subsystem],
-    gaos:       Option[Altair[F]],
     tc:         TcsNorthConfig
   ): F[Unit] =
     overrideLogMessage("TCS", "applyConfig")

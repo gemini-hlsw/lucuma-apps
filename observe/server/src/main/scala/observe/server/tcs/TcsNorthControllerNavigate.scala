@@ -5,13 +5,10 @@ package observe.server.tcs
 
 import cats.data.*
 import cats.effect.Async
-import cats.syntax.all.*
 import clue.FetchClient
 import lucuma.core.enums.Site
 import lucuma.schemas.NavigateDB
 import observe.model.enums.NodAndShuffleStage
-import observe.server.ObserveFailure
-import observe.server.altair.Altair
 import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsNorthController.*
 import org.typelevel.log4cats.Logger
@@ -23,16 +20,8 @@ final case class TcsNorthControllerNavigate[F[_]: {Async, Logger}](epicsSys: Tcs
 
   override def applyConfig(
     subsystems: NonEmptySet[Subsystem],
-    gaos:       Option[Altair[F]],
     tcs:        TcsNorthConfig
-  ): F[Unit] =
-    tcs match {
-      case c: BasicTcsConfig[Site.GN.type] => commonController.applyBasicConfig(subsystems, c)
-      case _: TcsNorthAoConfig             =>
-        ObserveFailure
-          .Execution("Altair steps are not yet supported when configuring the TCS through Navigate")
-          .raiseError[F, Unit]
-    }
+  ): F[Unit] = commonController.applyConfig(subsystems, tcs)
 
   override def notifyObserveStart: F[Unit] = commonController.notifyObserveStart
 
@@ -42,9 +31,5 @@ final case class TcsNorthControllerNavigate[F[_]: {Async, Logger}](epicsSys: Tcs
     subsystems: NonEmptySet[Subsystem],
     tcsConfig:  TcsNorthConfig
   )(stage: NodAndShuffleStage, offset: InstrumentOffset, guided: Boolean): F[Unit] =
-    tcsConfig match {
-      case c: BasicTcsConfig[Site.GN.type] => commonController.nod(subsystems, offset, guided, c)
-      case _: TcsNorthAoConfig             =>
-        ObserveFailure.Execution("N&S not supported when using Altair").raiseError[F, Unit]
-    }
+    commonController.nod(subsystems, offset, guided, tcsConfig)
 }

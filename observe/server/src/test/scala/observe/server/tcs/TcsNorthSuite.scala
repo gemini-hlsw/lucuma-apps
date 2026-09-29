@@ -4,92 +4,22 @@
 package observe.server.tcs
 
 import cats.syntax.all.*
-import coulomb.Quantity
-import coulomb.units.accepted.Millimeter
-import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.navigate.LightSource
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment.GuideTargets
-import observe.server.InstrumentGuide
-import observe.server.TestCommon.defaultTargetEnvironment
 import observe.server.tcs.TcsController.LightPath
 
 class TcsNorthSuite extends munit.FunSuite {
 
-  test("SeqTranslate extracts guide state") {
-    // OIWFS target and guide enabled
-    assertEquals(
-      TcsNorth
-        .config(
-          new InstrumentGuide {
-            override def instrument: Instrument                                       = Instrument.GmosNorth
-            override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
-          },
-          defaultTargetEnvironment
-            .copy(guideEnvironment = GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))),
-          TelescopeConfig.Default,
-          LightPath(LightSource.Sky, LightSinkName.Gmos),
-          none,
-          none
-        )
-        .guideWithOI,
-      StepGuideState.Enabled.some
-    )
-    // No OIWFS target
-    assertEquals(
-      TcsNorth
-        .config(
-          new InstrumentGuide {
-            override def instrument: Instrument = Instrument.GmosNorth
-
-            override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
-          },
-          defaultTargetEnvironment,
-          TelescopeConfig.Default,
-          LightPath(LightSource.Sky, LightSinkName.Gmos),
-          none,
-          none
-        )
-        .guideWithOI,
-      none
-    )
-    // OIWFS target but guide disabled
-    assertEquals(
-      TcsNorth
-        .config(
-          new InstrumentGuide {
-            override def instrument: Instrument                                       = Instrument.GmosNorth
-            override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
-          },
-          defaultTargetEnvironment
-            .copy(guideEnvironment = GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))),
-          TelescopeConfig(Offset.Zero, StepGuideState.Disabled),
-          LightPath(LightSource.Sky, LightSinkName.Gmos),
-          none,
-          none
-        )
-        .guideWithOI,
-      StepGuideState.Disabled.some
-    )
-
-  }
-
-  test("Step guiding comes from the step alone, whether or not there are guide targets") {
-    val gmos = new InstrumentGuide {
-      override def instrument: Instrument                                       = Instrument.GmosNorth
-      override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
-    }
+  test("Step guiding comes from the step's telescope configuration") {
     List(StepGuideState.Enabled, StepGuideState.Disabled).foreach { guiding =>
       assertEquals(
         TcsNorth
           .config(
-            gmos,
-            defaultTargetEnvironment,
+            Instrument.GmosNorth,
             TelescopeConfig(Offset.Zero, guiding),
             LightPath(LightSource.Sky, LightSinkName.Gmos),
             none,
@@ -100,4 +30,5 @@ class TcsNorthSuite extends munit.FunSuite {
       )
     }
   }
+
 }

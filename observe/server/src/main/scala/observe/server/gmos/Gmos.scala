@@ -9,10 +9,6 @@ import cats.effect.Async
 import cats.effect.Ref
 import cats.effect.Temporal
 import cats.syntax.all.*
-import coulomb.Quantity
-import coulomb.syntax.*
-import coulomb.units.accepted.ArcSecond
-import coulomb.units.accepted.Millimeter
 import eu.timepit.refined.api.Refined.*
 import lucuma.core.enums.GmosAdc
 import lucuma.core.enums.GmosEOffsetting
@@ -48,8 +44,6 @@ import observe.server.keywords.DhsClientProvider
 import observe.server.keywords.DhsInstrument
 import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
-import observe.server.tcs.FOCAL_PLANE_SCALE
-import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
@@ -351,9 +345,6 @@ object Gmos {
                         )
               config <- Gmos.buildConfig[F, T](kind, staticConf, step.instrumentConfig, customMasks)
             yield new InstrumentStep[F]:
-              override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-                (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
-
               override def stepType: StepKind = kind
 
               override def sfName: LightSinkName = LightSinkName.Gmos
