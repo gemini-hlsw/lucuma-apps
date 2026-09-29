@@ -61,23 +61,53 @@ trait ArbNotification {
   given subsCogen: Cogen[SubsystemBusy] =
     Cogen[(Observation.Id, Step.Id, Subsystem)].contramap(x => (x.obsId, x.stepId, x.resource))
 
+  given scfArb: Arbitrary[SequenceCheckFailed] = Arbitrary[SequenceCheckFailed] {
+    for
+      oid  <- arbitrary[Observation.Id]
+      strs <- arbitrary[List[String]]
+    yield SequenceCheckFailed(oid, strs)
+  }
+
+  given scfCogen: Cogen[SequenceCheckFailed] =
+    Cogen[(Observation.Id, List[String])].contramap(x => (x.obsId, x.msgs))
+
+  given seArb: Arbitrary[StepEdited] = Arbitrary[StepEdited] {
+    for
+      oid <- arbitrary[Observation.Id]
+      sid <- arbitrary[Step.Id]
+    yield StepEdited(oid, sid)
+  }
+
+  given seCogen: Cogen[StepEdited] =
+    Cogen[(Observation.Id, Step.Id)].contramap(x => (x.obsId, x.stepId))
+
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {
       r <- arbitrary[ResourceConflict]
       a <- arbitrary[InstrumentInUse]
       f <- arbitrary[LoadingFailed]
       b <- arbitrary[SubsystemBusy]
-      s <- Gen.oneOf(r, a, f, b)
+      c <- arbitrary[SequenceCheckFailed]
+      t <- arbitrary[StepEdited]
+      s <- Gen.oneOf(r, a, f, b, c, t)
     } yield s
   }
 
   given notCogen: Cogen[Notification] =
-    Cogen[Either[ResourceConflict, Either[InstrumentInUse, Either[LoadingFailed, SubsystemBusy]]]]
+    Cogen[Either[
+      ResourceConflict,
+      Either[InstrumentInUse, Either[LoadingFailed, Either[SubsystemBusy, Either[
+        SequenceCheckFailed,
+        StepEdited
+      ]]]]
+    ]]
       .contramap {
-        case r: ResourceConflict => Left(r)
-        case i: InstrumentInUse  => Right(Left(i))
-        case f: LoadingFailed    => Right(Right(Left(f)))
-        case b: SubsystemBusy    => Right(Right(Right(b)))
+        case r: ResourceConflict    => Left(r)
+        case i: InstrumentInUse     => Right(Left(i))
+        case f: LoadingFailed       => Right(Right(Left(f)))
+        case b: SubsystemBusy       => Right(Right(Right(Left(b))))
+        case c: SequenceCheckFailed => Right(Right(Right(Right(Left(c)))))
+        case t: StepEdited          => Right(Right(Right(Right(Right(t)))))
       }
 
 }

@@ -3,6 +3,7 @@
 
 package observe.server
 
+import cats.Endo
 import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.effect.IO
@@ -12,6 +13,7 @@ import coulomb.integrations.cats.all.given
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosLong
 import eu.timepit.refined.types.string.NonEmptyString
+import fs2.Stream
 import lucuma.core.enums.*
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ConstraintSet
@@ -29,6 +31,7 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.refined.given
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.FirstScienceTarget
@@ -36,14 +39,18 @@ import observe.common.test.*
 import observe.model
 import observe.model.ClientId
 import observe.model.CurrentConditions
+import observe.model.Notification
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.SequenceStatus
 import observe.model.UserPrompt
+import observe.model.dhs.ImageFileId
 import observe.model.enums.Resource.Gcal
 import observe.model.enums.Resource.TCS
 import observe.model.enums.RunOverride
 import observe.server.SeqEvent.RequestConfirmation
+import observe.server.engine.Action
+import observe.server.engine.Action.ActionState
 import observe.server.engine.DummyExecutionZipper
 import observe.server.engine.DummyStepGen
 import observe.server.engine.EngineHandle
@@ -51,10 +58,15 @@ import observe.server.engine.Event
 import observe.server.engine.EventResult
 import observe.server.engine.EventResult.Outcome
 import observe.server.engine.EventResult.SystemUpdate
+import observe.server.engine.Execution
+import observe.server.engine.Handle.stateT
 import observe.server.engine.LoadedStep
+import observe.server.engine.Response
+import observe.server.engine.Result
 import observe.server.engine.SequenceState
 import observe.server.engine.SystemEvent
 import observe.server.engine.SystemEvent.SequenceComplete
+import observe.server.engine.UserEvent
 import observe.server.engine.user
 import observe.server.odb.OdbObservationData
 import observe.server.odb.TestOdbProxy
@@ -1482,6 +1494,197 @@ class ObserveEngineSuite extends TestCommon {
         assertAtom(b, 2)
       }
       assertEquals(rest.length, 0)
+    }
+  }
+
+  // --- resumeObserve / resumeOrReloadStep: re-check against the ODB before resuming a paused step ---
+
+  private val testFileId: ImageFileId = ImageFileId("test-file-id")
+
+  private def testObserveContext(abortedRef: Ref[IO, Boolean]): ObserveContext[IO] =
+    ObserveContext[IO](
+      resumePaused = _ => Stream.eval(IO(Result.OK(Response.Observed(testFileId)))),
+      progress = _ => Stream.empty,
+      stopPaused = Stream.empty,
+      abortPaused = Stream.eval(
+        abortedRef.set(true).as(Result.OKAborted(Response.Aborted(testFileId)): Result)
+      ),
+      expTime = TimeSpan.Zero
+    )
+
+  private def pausedObserveAction(obsCtx: ObserveContext[IO]): Action[IO] =
+    Action
+      .state[IO]
+      .replace(Action.State(ActionState.Paused(obsCtx), Nil))(TestCommon.observing[IO])
+
+  // A GmosNorth sequence for seqObsId1, with stepGen (id = stepId(1)) loaded and an Observe
+  // action paused mid-exposure in its current execution, as `pauseObserve` would leave it.
+  private def pausedSequenceState(obsCtx: ObserveContext[IO]): EngineState[IO] = {
+    val setLoadedStep: Endo[EngineState[IO]] =
+      EngineState
+        .atSequence[IO](seqObsId1)
+        .andThen(SequenceData.seq[IO])
+        .andThen(SequenceState.loadedStep[IO])
+        .modify:
+          _.map: ls =>
+            ls.copy(executionZipper =
+              ls.executionZipper.copy(focus = Execution(List(pausedObserveAction(obsCtx))))
+            )
+
+    val setRunning: Endo[EngineState[IO]] =
+      EngineState
+        .atSequence[IO](seqObsId1)
+        .andThen(SequenceData.seq[IO])
+        .andThen(SequenceState.status[IO])
+        .replace(SequenceStatus.Running.Init)
+
+    setLoadedStep.andThen(setRunning)(loadDefaultSequence(seqObsId1).apply(EngineState.default[IO]))
+  }
+
+  private def scienceAtomWithStep(sid: Step.Id): Atom[DynamicConfig.GmosNorth] =
+    Atom[DynamicConfig.GmosNorth](
+      atomId1,
+      none,
+      NonEmptyList.one:
+        Step[DynamicConfig.GmosNorth](
+          sid,
+          dynamicCfg1,
+          stepCfg1,
+          telescopeCfg1,
+          StepEstimate.Zero,
+          ObserveClass.Science,
+          Breakpoint.Disabled
+        )
+    )
+
+  private def buildTestTranslator(odb: TestOdbProxy[IO]): IO[SeqTranslate[IO]] =
+    for
+      systems <- defaultSystems.map(_.copy(odb = odb))
+      rc      <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
+      tr      <- ObserveEngine.createTranslator(Site.GS, systems, rc, ExecutionEnvironment.Development)
+    yield tr
+
+  test(
+    "ObserveEngine.resumeOrReloadStep resumes the paused action when the ODB's next step id is unchanged"
+  ) {
+    for
+      abortedRef               <- Ref.of[IO, Boolean](false)
+      odb                      <-
+        TestOdbProxy
+          .buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(scienceAtomWithStep(stepId(1))))
+      tr                       <- buildTestTranslator(odb)
+      s0                        = pausedSequenceState(testObserveContext(abortedRef))
+      result                   <- ObserveEngine.resumeOrReloadStep[IO](odb, tr, seqObsId1, clientId).stateT.run(s0)
+      (s1, (seqEvent, emitted)) = result
+      // The handle emits a GetState event whose function builds the actual resume event from the
+      // engine state. Expand it to check the paused action is the one being resumed.
+      resumeEvents             <- emitted.compile.toList.flatMap(_.flatTraverse {
+                                    case Event.EventUser(UserEvent.GetState(f)) => f(s1).compile.toList
+                                    case _                                      => IO.pure(List.empty)
+                                  })
+      aborted                  <- abortedRef.get
+    yield {
+      assertEquals(seqEvent, SeqEvent.NullSeqEvent: SeqEvent)
+      assert(!aborted, "the paused exposure should not have been aborted")
+      assert(
+        resumeEvents.exists {
+          case Event.EventUser(UserEvent.ActionResume(oid, _, _)) => oid === seqObsId1
+          case _                                                  => false
+        },
+        s"Expected an ActionResume event for the paused action, got $resumeEvents"
+      )
+      assertEquals(
+        s1.selected.gmosNorth.flatMap(_.seq.loadedStep.map(_.stepGen.id)),
+        stepId(1).some
+      )
+    }
+  }
+
+  test(
+    "ObserveEngine.resumeObserve aborts the paused exposure and loads, without starting, the edited step when the ODB's next step id changed"
+  ) {
+    for
+      abortedRef <- Ref.of[IO, Boolean](false)
+      events     <- Ref.of[IO, List[SeqEvent]](List.empty)
+      odb        <-
+        TestOdbProxy
+          .buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(scienceAtomWithStep(stepId(2))))
+      (_, oe)    <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      s0          = pausedSequenceState(testObserveContext(abortedRef))
+      eo          = EngineObserver(oe, s0)
+      finalState <- eo.executeAndWaitResult(
+                      _.resumeObserve(seqObsId1, observer, user, clientId),
+                      {
+                        case EventResult.UserCommandResponse(
+                              _,
+                              _,
+                              Some(SeqEvent.NotifyUser(Notification.StepEdited(oid, sid), cid))
+                            ) =>
+                          oid === seqObsId1 && sid === stepId(1) && cid === clientId
+                      },
+                      {
+                        case (EventResult.UserCommandResponse(_, _, Some(ev)), _) =>
+                          events.update(_ :+ ev)
+                        case _                                                    => IO.unit
+                      }
+                    )
+      aborted    <- abortedRef.get
+      seenEvents <- events.get
+    yield {
+      assert(aborted, "the stale paused exposure should have been aborted")
+      assertEquals(
+        finalState.selected.gmosNorth.flatMap(_.seq.loadedStep.map(_.stepGen.id)),
+        stepId(2).some
+      )
+      assertEquals(
+        finalState.selected.gmosNorth.map(_.seq.status),
+        (SequenceStatus.Idle: SequenceStatus).some
+      )
+      assert(
+        seenEvents.exists {
+          case SeqEvent.NotifyUser(Notification.StepEdited(oid, sid), cid) =>
+            oid === seqObsId1 && sid === stepId(1) && cid === clientId
+          case _                                                           => false
+        },
+        s"Expected a StepEdited notification among $seenEvents"
+      )
+      assert(
+        !seenEvents.exists {
+          case _: SeqEvent.NewStepLoaded => true
+          case _                         => false
+        },
+        s"The engine should not have started the edited step, but got $seenEvents"
+      )
+    }
+  }
+
+  test(
+    "ObserveEngine.resumeOrReloadStep notifies the user and leaves the step paused when the ODB can't be read"
+  ) {
+    for
+      abortedRef         <- Ref.of[IO, Boolean](false)
+      odb0               <-
+        TestOdbProxy
+          .buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(scienceAtomWithStep(stepId(1))))
+      odb                 = TestOdbProxy.withFailingReadExecutionConfig[IO](odb0)
+      tr                 <- buildTestTranslator(odb)
+      s0                  = pausedSequenceState(testObserveContext(abortedRef))
+      result             <- ObserveEngine.resumeOrReloadStep[IO](odb, tr, seqObsId1, clientId).stateT.run(s0)
+      (s1, (seqEvent, _)) = result
+      aborted            <- abortedRef.get
+    yield {
+      assert(!aborted, "the paused exposure should not have been aborted")
+      assertEquals(
+        s1.selected.gmosNorth.flatMap(_.seq.loadedStep.map(_.stepGen.id)),
+        stepId(1).some
+      )
+      seqEvent match {
+        case SeqEvent.NotifyUser(Notification.SequenceCheckFailed(oid, _), cid) =>
+          assertEquals(oid, seqObsId1)
+          assertEquals(cid, clientId)
+        case other                                                              =>
+          fail(s"Expected a SequenceCheckFailed notification, got $other")
+      }
     }
   }
 }

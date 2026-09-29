@@ -155,7 +155,7 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
         "resumeObs" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.resumeObserve(obsId, obs, user) *> NoContent()
+        oe.resumeObserve(obsId, obs, user, clientId) *> NoContent()
 
     case req @ POST -> Root / ClientIDVar(clientId) / "operator" / OperatorVar(op) =>
       ssoClient.require(req): user =>
