@@ -651,12 +651,13 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
       aoScore + wavelengthScore + filterScore + resolutionScore + slitWidthScore
     }
 
+    // Best score first. Sorting descending directly (rather than reversing an ascending sort)
+    // keeps equally scored rows in matrix order, so a row's Altair copies follow it.
     matrix
       .filter(filter)
-      .fproduct(score) // Give it a score
-      .sortBy(_._2)    // Sort by score
+      .fproduct(score)
+      .sortBy(-_._2)
       .map(_._1)
-      .reverse
   }
 }
 
