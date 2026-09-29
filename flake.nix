@@ -32,7 +32,7 @@
             pkgs.typescript
             pkgs.graphqurl
             pkgs.hasura-cli
-            pkgs.pnpm
+            pkgs.pnpm_12
             pkgs.sops
             pkgs.age
             pkgs.yq
