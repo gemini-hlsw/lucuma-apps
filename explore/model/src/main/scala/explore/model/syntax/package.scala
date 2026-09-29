@@ -17,7 +17,6 @@ import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CassRotator
-import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -205,10 +204,6 @@ object all:
         case PosAngleConstraint.AllowFlip(_)           => PosAngleOptions.AllowFlip
         case PosAngleConstraint.ParallacticOverride(_) => PosAngleOptions.ParallacticOverride
         case PosAngleConstraint.AverageParallactic     => PosAngleOptions.AverageParallactic
-
-    // Mirrors the ODB, which only accepts Altair behind GNIRS.
-    def supportsAltair: Boolean =
-      ObservingModeType.toFacility.getOption(bc).exists(_.instrument === Instrument.Gnirs)
 
   extension (pac: PosAngleConstraint)
     def fallbackPosAngle(averagePA: Option[Angle]): Angle =

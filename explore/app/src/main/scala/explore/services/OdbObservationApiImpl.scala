@@ -20,7 +20,7 @@ import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
-import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.FacilityObservingModeType
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
@@ -209,17 +209,6 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
 
     updateObservations(obsIds, editInput)
   }
-
-  def updateExplicitGuideProbe(
-    obsIds: List[Observation.Id],
-    probe:  Option[GuideProbe]
-  ): F[Unit] =
-    updateObservations(
-      obsIds,
-      ObservationPropertiesInput(targetEnvironment =
-        TargetEnvironmentInput(explicitGuideProbe = probe.orUnassign).assign
-      )
-    )
 
   def updateGuiding(obsIds: List[Observation.Id], guiding: GuidingConfiguration): F[Unit] =
     updateObservations(
@@ -412,9 +401,10 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     // and no mode-view needs selecting.
     val flags: ModeViewFlags = modeViewFlagsFor(observingMode)
 
-    // The ODB rejects Altair behind any instrument but GNIRS, so leaving GNIRS (or removing the
-    // mode) drops it in the same mutation.
-    val keepsAltair: Boolean = observingMode.fold(true, false, _ => flags.supportsAltair)
+    // The ODB rejects Altair behind modes that don't support it, so switching to one (or removing
+    // the mode) drops it in the same mutation.
+    val keepsAltair: Boolean =
+      observingMode.fold(true, false, modeTypeFor(_).exists(_.supportsAltair))
 
     val input = UpdateObservationsInput(
       WHERE = obsId.toWhereObservation.assign,
@@ -518,33 +508,40 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     ghostIfu:           Boolean = false,
     visitor:            Boolean = false,
     exchange:           Boolean = false
-  ):
-    def supportsAltair: Boolean = gnirsImaging || gnirsLongSlit || gnirsIfu
+  )
 
   // `ObservingModeInput` is a `@oneOf`, so it names exactly the mode-view to turn on.
   private def modeViewFlagsFor(input: Input[ObservingModeInput]): ModeViewFlags =
     input.toOption.fold(ModeViewFlags()):
-      case _: ObservingModeInput.GmosNorthLongSlit  => ModeViewFlags(gmosNorthLongSlit = true)
-      case _: ObservingModeInput.GmosSouthLongSlit  => ModeViewFlags(gmosSouthLongSlit = true)
-      case _: ObservingModeInput.GmosNorthImaging   => ModeViewFlags(gmosNorthImaging = true)
-      case _: ObservingModeInput.GmosSouthImaging   => ModeViewFlags(gmosSouthImaging = true)
-      case _: ObservingModeInput.GmosNorthMos       => ModeViewFlags(gmosNorthMos = true)
-      case _: ObservingModeInput.GmosSouthMos       => ModeViewFlags(gmosSouthMos = true)
-      case _: ObservingModeInput.GmosNorthIfu       => ModeViewFlags(gmosNorthIfu = true)
-      case _: ObservingModeInput.GmosSouthIfu       => ModeViewFlags(gmosSouthIfu = true)
-      case _: ObservingModeInput.Flamingos2Imaging  => ModeViewFlags(flamingos2Imaging = true)
-      case _: ObservingModeInput.Flamingos2LongSlit => ModeViewFlags(flamingos2LongSlit = true)
-      case _: ObservingModeInput.Flamingos2Mos      => ModeViewFlags(flamingos2Mos = true)
-      case _: ObservingModeInput.Igrins2LongSlit    => ModeViewFlags(igrins2LongSlit = true)
-      case _: ObservingModeInput.GnirsImaging       => ModeViewFlags(gnirsImaging = true)
-      case _: ObservingModeInput.GnirsLongSlit      => ModeViewFlags(gnirsLongSlit = true)
-      case _: ObservingModeInput.GnirsIfu           => ModeViewFlags(gnirsIfu = true)
+      case ObservingModeInput.Visitor(_)  => ModeViewFlags(visitor = true)
+      case ObservingModeInput.Exchange(_) => ModeViewFlags(exchange = true)
+      case facilityInput                  =>
+        modeTypeFor(facilityInput).fold(ModeViewFlags())(modeViewFlagsFor)
+
+  // Visitor and exchange inputs don't pin down a single mode type, and neither can carry Altair.
+  private def modeTypeFor(input: ObservingModeInput): Option[FacilityObservingModeType] =
+    input match
+      case ObservingModeInput.GmosNorthLongSlit(_)  => ObservingModeType.GmosNorthLongSlit.some
+      case ObservingModeInput.GmosSouthLongSlit(_)  => ObservingModeType.GmosSouthLongSlit.some
+      case ObservingModeInput.GmosNorthImaging(_)   => ObservingModeType.GmosNorthImaging.some
+      case ObservingModeInput.GmosSouthImaging(_)   => ObservingModeType.GmosSouthImaging.some
+      case ObservingModeInput.GmosNorthMos(_)       => ObservingModeType.GmosNorthMos.some
+      case ObservingModeInput.GmosSouthMos(_)       => ObservingModeType.GmosSouthMos.some
+      case ObservingModeInput.GmosNorthIfu(_)       => ObservingModeType.GmosNorthIfu.some
+      case ObservingModeInput.GmosSouthIfu(_)       => ObservingModeType.GmosSouthIfu.some
+      case ObservingModeInput.Flamingos2Imaging(_)  => ObservingModeType.Flamingos2Imaging.some
+      case ObservingModeInput.Flamingos2LongSlit(_) => ObservingModeType.Flamingos2LongSlit.some
+      case ObservingModeInput.Flamingos2Mos(_)      => ObservingModeType.Flamingos2Mos.some
+      case ObservingModeInput.Igrins2LongSlit(_)    => ObservingModeType.Igrins2LongSlit.some
+      case ObservingModeInput.GnirsImaging(_)       => ObservingModeType.GnirsImaging.some
+      case ObservingModeInput.GnirsLongSlit(_)      => ObservingModeType.GnirsLongSlit.some
+      case ObservingModeInput.GnirsIfu(_)           => ObservingModeType.GnirsIfu.some
       // Deprecated in favor of gnirsLongSlit / gnirsIfu, and never built here.
-      case _: ObservingModeInput.GnirsSpectroscopy  =>
+      case ObservingModeInput.GnirsSpectroscopy(_)  =>
         sys.error("Deprecated gnirsSpectroscopy input; use gnirsLongSlit or gnirsIfu")
-      case _: ObservingModeInput.GhostIfu           => ModeViewFlags(ghostIfu = true)
-      case _: ObservingModeInput.Visitor            => ModeViewFlags(visitor = true)
-      case _: ObservingModeInput.Exchange           => ModeViewFlags(exchange = true)
+      case ObservingModeInput.GhostIfu(_)           => ObservingModeType.GhostIfu.some
+      case ObservingModeInput.Visitor(_)            => none
+      case ObservingModeInput.Exchange(_)           => none
 
   // Every ObservingModeType maps to exactly one `ObservingMode` union view.
   // We turn on only that view's `@include` flag so the server resolves a single mode-view.
