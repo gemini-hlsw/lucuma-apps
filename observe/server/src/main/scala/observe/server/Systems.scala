@@ -97,7 +97,10 @@ case class Systems[F[_]] private[server] (
 object Systems {
 
   // Navigate's configureStep only returns once the telescope has settled.
-  private val NavigateTimeout: FiniteDuration = 3.minutes
+  private val NavigateTimeout: FiniteDuration     = 3.minutes
+  // Navigate sends nothing until configureStep completes, so the socket idle timeout (60s by
+  // default) must be longer than the request timeout, or it would end the request first.
+  private val NavigateIdleTimeout: FiniteDuration = NavigateTimeout + 10.seconds
 
   case class Builder(
     settings:     ObserveEngineConfiguration,
@@ -180,7 +183,11 @@ object Systems {
     def navigateClient: Resource[IO, Option[FetchClient[IO, NavigateDB]]] =
       if (settings.systemControl.tcs.command)
         for {
-          httpClient                 <- EmberClientBuilder.default[IO].withTimeout(NavigateTimeout).build
+          httpClient                 <- EmberClientBuilder
+                                          .default[IO]
+                                          .withTimeout(NavigateTimeout)
+                                          .withIdleConnectionTime(NavigateIdleTimeout)
+                                          .build
           given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
           client                     <- Resource.eval:
                                           Http4sHttpClient.of[IO, NavigateDB](settings.navigateHttp, "Navigate")
