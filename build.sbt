@@ -1227,14 +1227,26 @@ lazy val firebaseDeployDev = firebaseDeploy(
   live = true
 )
 
-lazy val recordDeploymentMetadata = WorkflowStep.Run(
+lazy val recordExploreDeploymentMetadata = WorkflowStep.Run(
   List(
     "# Create a deployment record with commit SHA for tracking",
     """echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"""",
     """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' """
   ),
-  name = Some("Record deployment SHA"),
+  name = Some("Record Explore deployment SHA"),
   cond = Some(mainCond)
+)
+
+lazy val recordObserveDeploymentMetadata = WorkflowStep.Run(
+  List(
+    "# Create a deployment record with commit SHA and docker tag for tracking",
+    "# The image also carries the Heroku registry tags, so pick the noirlab one that is not 'latest'",
+    """DOCKER_TAG=$(docker image inspect noirlab/gpp-obs:latest --format '{{join .RepoTags " "}}' | tr ' ' '\n' | grep '^noirlab/gpp-obs:' | grep -v ':latest$' | sed 's|.*:||' | head -1)""",
+    """if [ -z "$DOCKER_TAG" ]; then echo "Could not determine the docker tag of noirlab/gpp-obs"; exit 1; fi""",
+    """echo "Recording deployment: ${{ github.sha }} (image tag $DOCKER_TAG) to observe-dev"""",
+    """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Observe deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Observe", "payload": { "docker_tag": "'"$DOCKER_TAG"'" } }' """
+  ),
+  name = Some("Record Observe deployment SHA")
 )
 
 ThisBuild / githubWorkflowBuildPreamble ++= setupNodePnpmInstall
@@ -1253,7 +1265,7 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
       exploreBundlemon ::
       // firebaseDeployReview ::
       firebaseDeployDev ::
-      recordDeploymentMetadata ::
+      recordExploreDeploymentMetadata ::
       Nil,
     // Only 1 scalaVersion, so no need for matrix
     sbtStepPreamble = Nil,
@@ -1276,6 +1288,7 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
       dockerHubLogin ::
       sbtDockerPublishObserve ::
       herokuRelease ::
+      recordObserveDeploymentMetadata ::
       Nil,
     scalas = List(scalaVersion.value),
     javas = githubWorkflowJavaVersions.value.toList.take(1),

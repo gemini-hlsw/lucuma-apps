@@ -4,6 +4,10 @@
 # Example: promote.sh dev staging
 # Example: promote.sh dev staging --dry-run --debug
 # Example: promote.sh dev staging --skip-slack
+#
+# Observe and Navigate run on private servers and are updated by hand with
+# `observe update <tag>` / `navigate update <tag>`. This script does NOT deploy them: it records
+# the GitHub deployment, sends the Slack message and prints the command the operator must run.
 
 set -e
 
@@ -14,8 +18,9 @@ SKIP_SLACK=false
 DEBUG=false
 DEBUG_CURL=()
 
-all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE" "ResourceUI" "AdminUI")
+all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE" "ResourceUI" "AdminUI" "Observe" "Navigate")
 docker_systems=("SSO" "ITC" "ODB" "RESOURCE")
+manual_systems=("Observe" "Navigate")
 
 # Parse optional arguments
 for arg in "$@"; do
@@ -91,11 +96,14 @@ map_firebase_deploy_env() {
 
 # Resolve the GitHub deployment environment for a system. Most systems use the
 # shared map_github_deploy_env mapping, but systems with a github_env_prefix
-# (e.g. ResourceUI -> resource-ui-dev) build the environment from that prefix.
+# (e.g. ResourceUI -> resource-ui-dev) build the environment from that prefix, and systems
+# with an explicit github_env entry (e.g. Navigate-dev) use it verbatim.
 get_github_deploy_env() {
   local system=$1
   local env=$2
-  if [ -n "${github_env_prefix["$system"]}" ]; then
+  if [ -n "${github_env["${system}-${env}"]}" ]; then
+    echo "${github_env["${system}-${env}"]}"
+  elif [ -n "${github_env_prefix["$system"]}" ]; then
     echo "${github_env_prefix["$system"]}-${env}"
   else
     map_github_deploy_env "$env"
@@ -123,9 +131,13 @@ get_github_deployment_shas() {
   local -n git_sha="$3"
 
   local is_docker=$([[ " ${docker_systems[*]} " =~ [[:space:]]${system}[[:space:]] ]] && [[ ${4} ]] && echo true || echo false)
+  local is_manual=$([[ " ${manual_systems[*]} " =~ [[:space:]]${system}[[:space:]] ]] && [[ ${5} ]] && echo true || echo false)
 
   if [ $is_docker = true ]; then
     local -n image_shas_object="$4"
+  fi
+  if [ $is_manual = true ]; then
+    local -n manual_docker_tag="$5"
   fi
 
   local repo_name=${repo["$system"]}
@@ -159,6 +171,10 @@ get_github_deployment_shas() {
   if [ $is_docker = true ]; then
     image_shas_object=$(echo "$curl_output" | jq -r '.[0].payload.docker_image_shas // "none"' ) #2>/dev/null)
   fi
+  if [ $is_manual = true ]; then
+    # Observe records the tag in the payload; Navigate's ref is the git tag, which is the docker tag.
+    manual_docker_tag=$(echo "$curl_output" | jq -r '.[0].payload.docker_tag // .[0].ref // "none"' )
+  fi
 }
 
 record_github_deployment() {
@@ -175,6 +191,7 @@ record_github_deployment() {
 
   local payload_object=""
   if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi
+  if [[ ${docker_tag["$system"]} ]]; then payload_object=", \"payload\": { \"docker_tag\": \"${docker_tag["$system"]}\" }"; fi
 
   echo "  Creating deployment record for $system in $TARGET_ENV environment..."
   if [ "$DEBUG" = true ]; then echo "  ** Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"$task\"$payload_object}\"""; fi
@@ -206,7 +223,7 @@ set_system_vars() {
 
     echo "Checking for $display_name changes..."
 
-    get_github_deployment_shas "$display_name" "$SOURCE_ENV" source_sha["$display_name"] docker_image_shas_object["$display_name"]
+    get_github_deployment_shas "$display_name" "$SOURCE_ENV" source_sha["$display_name"] docker_image_shas_object["$display_name"] docker_tag["$display_name"]
 
     if [[ "${source_sha["$display_name"]}" == "none" ]]; then
       echo "  ! Source SHA for $display_name in $SOURCE_ENV is not set - cannot proceed."
@@ -215,6 +232,11 @@ set_system_vars() {
 
     if [[ " ${docker_systems[*]} " =~ [[:space:]]${display_name}[[:space:]] ]] && [[ "${docker_image_shas_object["$display_name"]}" == "none" ]]; then
       echo "  ! Docker image SHAs for $display_name in $SOURCE_ENV are not set - cannot proceed."
+      exit 1
+    fi
+
+    if [[ " ${manual_systems[*]} " =~ [[:space:]]${display_name}[[:space:]] ]] && { [[ -z "${docker_tag["$display_name"]}" ]] || [[ "${docker_tag["$display_name"]}" == "none" ]]; }; then
+      echo "  ! Docker tag for $display_name in $SOURCE_ENV is not set - cannot proceed."
       exit 1
     fi
 
@@ -245,6 +267,16 @@ get_git_compare_link() {
   fi
 }
 
+is_manual_system() {
+  [[ " ${manual_systems[*]} " =~ [[:space:]]${1}[[:space:]] ]]
+}
+
+# The command the operator must run by hand on the servers of a manual system.
+get_manual_command() {
+  local system=$1
+  echo "${manual_command["$system"]} ${docker_tag["$system"]}"
+}
+
 show_slack_message() {
   local service=$1
   local source_env=$2
@@ -256,10 +288,18 @@ show_slack_message() {
   local timestamp=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
 
   echo "  Slack notification to $channel:"
-  echo "    $service deployed from $source_env → $target_env"
+  if is_manual_system "$service"; then
+    echo "    ⚠️ $service promoted from $source_env → $target_env — manual step required"
+  else
+    echo "    $service deployed from $source_env → $target_env"
+  fi
 
   if [ -n "$compare_link" ]; then
     echo "    Changes: $compare_link"
+  fi
+
+  if is_manual_system "$service"; then
+    echo "    Run on the GN and GS $target_env $service servers: \`$(get_manual_command "$service")\`"
   fi
 
   # Include backup ID for ODB
@@ -312,6 +352,15 @@ send_slack_notification() {
       message="$message\nDatabase backup: $backup_id"
     fi
 
+    message="$message\nTime: $timestamp"
+  fi
+
+  if is_manual_system "$service"; then
+    message="⚠️ $service promoted from $source_env → $target_env — manual step required"
+    if [ -n "$compare_link" ]; then
+      message="$message\nChanges: $compare_link"
+    fi
+    message="$message\nRun on the GN and GS $target_env $service servers: \`$(get_manual_command "$service")\`"
     message="$message\nTime: $timestamp"
   fi
 
@@ -511,6 +560,45 @@ promote_firebase_ui() {
   send_slack_notification "$system" "$SOURCE_ENV" "$TARGET_ENV"
 }
 
+# Promote systems that are updated by hand on private servers: print the command to run,
+# record the deployment on GitHub and announce it on Slack.
+promote_manual_systems() {
+  local -a systems=("${@:1}")
+
+  for display_name in "${systems[@]}"; do
+    if [ "${promote["$display_name"]}" = true ]; then
+      echo "## $display_name → $TARGET_ENV requires a manual step"
+      echo "  Run on the GN and GS $TARGET_ENV $display_name servers:"
+      echo "      $(get_manual_command "$display_name")"
+
+      record_github_deployment "$display_name"
+
+      send_slack_notification "$display_name" "$SOURCE_ENV" "$TARGET_ENV"
+
+      echo
+    else
+      echo "## Skipping $display_name promotion (no changes)"
+      echo
+    fi
+  done
+}
+
+# Print the manual commands of the promoted manual systems, ready to copy.
+show_manual_commands() {
+  local header=$1
+  local printed=false
+  for display_name in "${manual_systems[@]}"; do
+    if [ "${promote["$display_name"]}" = true ]; then
+      if [ "$printed" = false ]; then
+        echo "$header"
+        printed=true
+      fi
+      echo "  $display_name (on the GN and GS $TARGET_ENV servers):"
+      echo "      $(get_manual_command "$display_name")"
+    fi
+  done
+}
+
 # Declare variables
 
 PROMOTE_HASURA=false
@@ -521,6 +609,9 @@ declare -A process_types
 declare -A backup
 declare -A github_task
 declare -A github_env_prefix
+declare -A github_env
+declare -A manual_command
+declare -A docker_tag
 declare -A firebase_site
 declare -A source_sha
 declare -A docker_image_shas_object
@@ -565,6 +656,18 @@ firebase_site["AdminUI-dev"]="admin-679f7-dev"
 firebase_site["AdminUI-staging"]="admin-679f7-staging"
 firebase_site["AdminUI-production"]="admin-679f7"
 
+repo["Observe"]="gemini-hlsw/lucuma-apps"
+backup["Observe"]=false
+manual_command["Observe"]="observe update"
+
+repo["Navigate"]="gemini-hlsw/lucuma-ts"
+github_task["Navigate"]="deploy"
+github_env["Navigate-dev"]="navigate-dev-gn"
+github_env["Navigate-staging"]="navigate-staging"
+github_env["Navigate-production"]="navigate-production"
+backup["Navigate"]=false
+manual_command["Navigate"]="navigate update"
+
 echo "##### Checking for changes between $SOURCE_ENV and $TARGET_ENV"
 echo
 
@@ -602,6 +705,7 @@ if [ "$DRY_RUN" = true ]; then
   for display_name in "${all_systems[@]}"; do
     [ "${promote["$display_name"]}" = true ] && show_slack_message "$display_name" "$SOURCE_ENV" "$TARGET_ENV"
   done
+  show_manual_commands "##### Manual steps that would be required:"
   exit 0
 fi
 
@@ -614,6 +718,8 @@ fi
 echo
 
 promote_heroku_docker_images "${docker_systems[@]}"
+
+promote_manual_systems "${manual_systems[@]}"
 
 # Update user preferences
 if [ "$PROMOTE_HASURA" = true ]; then
@@ -692,3 +798,5 @@ for display_name in "${all_systems[@]}"; do
   [ "${promote["$display_name"]}" = false ] && echo "  ✗ $display_name"
 done
 [ "$PROMOTE_HASURA" = false ] && echo "  ✗ Hasura migrations"
+echo
+show_manual_commands "Manual steps still pending:"
