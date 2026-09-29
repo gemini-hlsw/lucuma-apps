@@ -21,6 +21,7 @@ import lucuma.core.enums.CassRotator
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ScienceBand
+import lucuma.core.enums.TooActivation
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbCoordinates.given
@@ -78,6 +79,7 @@ trait ArbObservation:
         selectedGSName        <- arbitrary[Option[NonEmptyString]]
         constraints           <- arbitrary[ConstraintSet]
         schedulingConstraints <- arbitrary[SchedulingConstraints]
+        tooActivation         <- arbitrary[TooActivation]
         attachmentIds         <- arbitrary[Set[Attachment.Id]]
         scienceRequirements   <- arbitrary[ScienceRequirements]
         observingMode         <- arbitrary[Option[ObservingMode]]
@@ -110,6 +112,7 @@ trait ArbObservation:
         selectedGSName,
         constraints,
         schedulingConstraints,
+        tooActivation,
         SortedSet.from(attachmentIds),
         scienceRequirements,
         observingMode.map(_.toBasicConfiguration),
@@ -160,6 +163,7 @@ trait ArbObservation:
        SortedSet[ConfigurationRequest.Id],
        CalculatedValue[ObservationWorkflow],
        (ObservationPriority,
+        TooActivation,
         Option[Group.Id],
         Short,
         Execution,
@@ -193,6 +197,7 @@ trait ArbObservation:
          o.configurationRequestIds,
          o.workflow,
          (o.priority,
+          o.tooActivation,
           o.groupId,
           o.groupIndex.value,
           o.execution,

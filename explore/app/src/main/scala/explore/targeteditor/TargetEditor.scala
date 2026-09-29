@@ -8,13 +8,11 @@ import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.syntax.all.*
-import clue.data.Input
 import clue.data.syntax.*
 import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.Icons
 import explore.common.*
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
@@ -22,8 +20,6 @@ import explore.model.AladinFullScreen
 import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
-import explore.model.EmptySiderealTarget
-import explore.model.EmptySourceProfile
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
@@ -31,7 +27,6 @@ import explore.model.ObsIdSet
 import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
-import explore.model.PopupState
 import explore.model.TargetEditObsInfo
 import explore.model.UserPreferences
 import explore.model.display.given
@@ -41,7 +36,6 @@ import explore.services.OdbAsterismApi
 import explore.services.OdbTargetApi
 import explore.syntax.ui.*
 import explore.targeteditor.RVInput
-import explore.targets.TargetSelectionPopup
 import explore.targets.TargetSource
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -57,18 +51,15 @@ import lucuma.core.model.Program
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
-import lucuma.core.model.TargetResolution
 import lucuma.core.model.TelluricType
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.react.common.*
-import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
-import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
@@ -81,7 +72,6 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
-import monocle.Optional
 import monocle.Prism
 import org.typelevel.log4cats.Logger
 
@@ -196,7 +186,6 @@ object TargetEditor:
         cloning                     <- useStateView(false)
         internalObsToCloneTo        <- useStateView(none[ObsIdSet])
         internalReadonlyForStatuses <- useStateView(false)
-        resolvePopupState           <- useStateView(PopupState.Closed)
         // If obsTime is not set, change it to now at the start of the day in UTC.
         obsTime                     <- useMemo(props.obsTime)(obsTimeOrDefault)
         // select the aligner to use based on whether a clone will be created or not.
@@ -253,9 +242,8 @@ object TargetEditor:
             cloning.get || props.readonly || readonlyForStatuses.get ||
             props.targetWithId.get.isReadonlyForProgramType(props.programType)
 
-        // Via the resolution, so a Target of Opportunity resolved to a catalog entry keeps it.
         val catalogInfo: Option[CatalogInfo] =
-          props.targetWithId.get.target.asSidereal.flatMap(_.catalogInfo)
+          Target.catalogInfo.getOption(props.targetWithId.get.target).flatten
 
         val nameLens          = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.name)
         val siderealLens      = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.sidereal)
@@ -279,54 +267,11 @@ object TargetEditor:
         val siderealToTargetEndo: Endo[SiderealInput] => Endo[UpdateTargetsInput] =
           forceAssign(siderealLens.modify)(SiderealInput())
 
-        // The nested delta path for the sidereal tracking of a *resolved* Target of Opportunity:
-        // SET.opportunity.resolution.sidereal. Each level is forced into existence so an edit to a
-        // single field still arrives as a well-formed nested input.
-        val opportunityToTargetEndo: Endo[OpportunityInput] => Endo[UpdateTargetsInput] =
-          forceAssign(opportunityLens.modify)(OpportunityInput())
-
-        val resolutionToTargetEndo: Endo[TargetResolutionInput] => Endo[UpdateTargetsInput] =
-          forceAssign((f: Endo[Input[TargetResolutionInput]]) =>
-            opportunityToTargetEndo(OpportunityInput.resolution.modify(f))
-          )(TargetResolutionInput())
-
-        val resolvedSiderealToTargetEndo: Endo[SiderealInput] => Endo[UpdateTargetsInput] =
-          forceAssign((f: Endo[Input[SiderealInput]]) =>
-            resolutionToTargetEndo(TargetResolutionInput.sidereal.modify(f))
-          )(SiderealInput())
-
-        // A Target of Opportunity that has resolved to a sidereal target tracks exactly like one,
-        // so the sidereal editors below are pointed at its resolution rather than at a
-        // `Target.Sidereal` it will never be.
-        val opportunitySiderealTracking: Optional[Target, SiderealTracking] =
-          Optional[Target, SiderealTracking](t =>
-            Target.opportunityResolution
-              .getOption(t)
-              .flatten
-              .collect:
-                case TargetResolution.Sidereal(tracking, _) => tracking
-          )(tracking =>
-            Target.opportunityResolution.modify(
-              _.map:
-                case TargetResolution.Sidereal(_, catalogInfo) =>
-                  TargetResolution.Sidereal(tracking, catalogInfo)
-                case other                                     => other
-            )
-          )
-
-        // Sidereal tracking, however the target comes by it. Empty for a nonsidereal target and
-        // for a Target of Opportunity that is either unresolved or resolved to a nonsidereal one.
         val optSiderealTrackingAligner: Option[Aligner[SiderealTracking, SiderealInput]] =
-          targetAligner.value
-            .zoomOpt(
-              Target.sidereal.andThen(Target.Sidereal.tracking),
-              siderealToTargetEndo
-            )
-            .orElse:
-              targetAligner.value.zoomOpt(
-                opportunitySiderealTracking,
-                resolvedSiderealToTargetEndo
-              )
+          targetAligner.value.zoomOpt(
+            Target.sidereal.andThen(Target.Sidereal.tracking),
+            siderealToTargetEndo
+          )
 
         val optOpportunityAligner: Option[Aligner[Target.Opportunity, TargetPropertiesInput]] =
           targetAligner.value.zoomOpt(
@@ -389,22 +334,12 @@ object TargetEditor:
           val regionView: View[Region] =
             opportunityAligner
               .zoom(Target.Opportunity.region, TargetPropertiesInput.opportunity.modify)
-              // The region alone: omitting `resolution` leaves it alone.
               .view(r => OpportunityInput(region = r.toInput.assign).assign)
           RegionEditor(regionView, disabled)
 
-        // Resolving and unresolving are the same edit seen from either side, so both go through
-        // this one view. `None` is sent as an explicit null, which is how the ODB is told to
-        // return the target to waiting; the region is left untouched either way.
-        def opportunityResolution(
-          opportunityAligner: Aligner[Target.Opportunity, TargetPropertiesInput]
-        ): View[Option[TargetResolution]] =
-          opportunityAligner
-            .zoom(Target.Opportunity.resolution, TargetPropertiesInput.opportunity.modify)
-            .view(r => OpportunityInput(resolution = r.map(_.toInput).orUnassign).assign)
-
         val ephemerisKey: Option[VdomNode] =
-          targetAligner.get.asNonsidereal
+          Target.nonsidereal
+            .getOption(targetAligner.get)
             .map(_.ephemerisKey)
             .map: key =>
               val (label, value) = key match
@@ -527,23 +462,6 @@ object TargetEditor:
               NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
-        // Resolving may point at a target the program already holds, but only one that has
-        // tracking to offer: an unresolved Target of Opportunity has no resolution to copy, and
-        // the target being edited is itself.
-        val resolveTargetSources: NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]] =
-          val programSource: TargetSource[IO]    =
-            TargetSource.FromProgram[IO](
-              props.obsAndTargets.get._2,
-              include = twid =>
-                !twid.isUnresolvedTargetOfOpportunity && twid.id =!= props.targetWithId.get.id
-            )
-          NonEmptyMap.of(
-            TargetType.Sidereal    ->
-              NonEmptyList.of(programSource, TargetSource.FromSimbad[IO](ctx.simbadClient)),
-            TargetType.Nonsidereal ->
-              NonEmptyList.of(programSource, TargetSource.FromHorizons[IO](ctx.horizonsClient))
-          )
-
         // Resets a slot's sky position
         val resetSky: Option[SlotId => IO[Unit]] =
           props.obsInfo.current
@@ -554,92 +472,6 @@ object TargetEditor:
                   case SlotId.GhostIfu2 =>
                     ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, none).toastErrors
                   case _                => IO.unit
-
-        // Resolving a Target of Opportunity means recording what the alert identified, not
-        // replacing the target: it keeps its name, its approved region and its identity as a ToO.
-        val optResolutionView: Option[View[Option[TargetResolution]]] =
-          optOpportunityAligner.map(opportunityResolution)
-
-        // Applying a resolution is a single edit: the Target of Opportunity takes on the resolving
-        // target's name, tracking and source profile, while keeping its id, its approved region
-        // and its identity as a ToO. `region` is omitted from the delta, which is what leaves the
-        // approved region alone.
-        val optResolveView: Option[View[Target]] =
-          optOpportunityAligner.map: _ =>
-            targetAligner.viewMod: t =>
-              nameLens.replace(t.name.assign) >>>
-                Target.opportunity.optReplace(
-                  t,
-                  o =>
-                    opportunityLens.replace(
-                      OpportunityInput(resolution = o.resolution.map(_.toInput).orUnassign).assign
-                    )
-                ) >>>
-                sourceProfileLens.replace(t.sourceProfile.toInput.assign)
-
-        def resolveWith(resolveView: View[Target])(twoid: TargetWithOptId): Callback =
-          resolveView.mod:
-            Target.opportunity.modify: o =>
-              o.copy(
-                name = twoid.target.name,
-                resolution = twoid.target.resolution,
-                // Horizons hits -- and anything else with nothing to say about brightness -- must
-                // not wipe a source profile the ToO already has.
-                sourceProfile =
-                  if twoid.target.sourceProfile === EmptySourceProfile then o.sourceProfile
-                  else twoid.target.sourceProfile
-              )
-
-        // Once resolved, a Target of Opportunity presents itself as an ordinary target, so only
-        // "Unresolve" is offered: replacing a resolution outright means unresolving first.
-        val resolveButtons: Option[VdomNode] =
-          optResolutionView.map: resolutionView =>
-            <.div(ExploreStyles.TargetResolutionControls)(
-              if resolutionView.get.isDefined then
-                Button(
-                  label = "Unresolve",
-                  icon = Icons.HourglassClock,
-                  onClick = resolutionView.set(none),
-                  disabled = disabled
-                ).tiny.compact
-              else
-                Button(
-                  label = "Resolve",
-                  icon = Icons.Search,
-                  onClick = resolvePopupState.set(PopupState.Open),
-                  disabled = disabled
-                ).tiny.compact
-            )
-
-        // The popup is only the picker. It offers the catalogs plus the program's own targets --
-        // whatever it returns, only its name, resolution and source profile are taken.
-        val resolvePopup: Option[VdomNode] =
-          (optResolutionView, optResolveView).mapN: (resolutionView, resolveView) =>
-            TargetSelectionPopup(
-              "Resolve Target of Opportunity",
-              resolvePopupState,
-              resolveTargetSources,
-              // Of the buttons the add-target flow offers, only an empty sidereal target makes
-              // sense here: the rest either create a target or need an observation. It is a blank
-              // slate for typing coordinates into, so it sets only the resolution -- the ToO keeps
-              // its own name and source profile.
-              List(
-                Button(
-                  "Empty Sidereal Target",
-                  icon = Icons.Star,
-                  onClick = resolvePopupState.set(PopupState.Closed) >>
-                    resolutionView.set(
-                      TargetResolution.Sidereal(EmptySiderealTarget.tracking, none).some
-                    )
-                ).tiny.compact
-              ),
-              selectExistingLabel = "Resolve",
-              selectExistingIcon = Icons.ArrowDownLeft,
-              selectNewLabel = "Resolve",
-              selectNewIcon = Icons.ArrowDownLeft,
-              onSelected = resolveWith(resolveView),
-              existingHeader = "Resolve to an existing target"
-            )
 
         val formColumn =
           <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
@@ -665,18 +497,12 @@ object TargetEditor:
               props.searching,
               disabled,
               cloning.get,
-              // A Target of Opportunity must not be replaced wholesale by a catalog entry, even
-              // once it has resolved -- that would discard its region. It resolves instead.
               disableSearch =
                 props.targetWithId.get.disposition === TargetDisposition.BlindOffset ||
                   props.targetWithId.get.isTargetOfOpportunity
             ),
             optSiderealTrackingAligner.map(siderealCoordinates),
-            // The arcs are what a Target of Opportunity has *instead* of a position. Once it has
-            // one they are just noise, so a resolved ToO reads like an ordinary target. The region
-            // is still kept -- unresolving brings the editor back.
-            optOpportunityAligner.filterNot(_.get.isResolved).map(opportunityRegion),
-            resolveButtons,
+            optOpportunityAligner.map(opportunityRegion),
             ephemerisKey
           )
 
@@ -715,7 +541,7 @@ object TargetEditor:
               props.allowEditingOngoing
             ),
             <.div(ExploreStyles.TargetGrid)(
-              // If there is an unresolved ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
+              // If there is a ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
               AladinCell(
                 props.userId,
                 props.obsTargets,
@@ -737,8 +563,7 @@ object TargetEditor:
               formColumn,
               optSiderealTrackingAligner.map(siderealTracking),
               sourceProfileColumn
-            ),
-            resolvePopup
+            )
           )
         else
           // Form columns only — no grid wrapper, no AladinCell, no TargetCloneSelector.
@@ -746,6 +571,5 @@ object TargetEditor:
           React.Fragment(
             formColumn,
             optSiderealTrackingAligner.map(siderealTracking),
-            sourceProfileColumn,
-            resolvePopup
+            sourceProfileColumn
           )

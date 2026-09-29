@@ -19,6 +19,7 @@ import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.ScienceBand
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.model.TelluricType
 import lucuma.schemas.ObservationDB.Types.*
@@ -112,6 +113,24 @@ object ObsActions:
           List(obsId),
           ObservationPropertiesInput(scienceBand = scienceBand.orUnassign)
         )
+    )
+
+  // The ODB raises the scheduling mode itself when the activation requires it, so only the
+  // activation is sent.
+  def obsTooActivation(
+    obsId: Observation.Id
+  )(using odbApi: OdbObservationApi[IO]): Action[ObservationList, Option[TooActivation]] =
+    Action(
+      access = ObservationList.obsWithId(obsId).composeOptionLens(Observation.tooActivationWithMode)
+    )(
+      onSet = (_, tooActivation) =>
+        tooActivation.foldMap: a =>
+          odbApi.updateObservations(
+            List(obsId),
+            ObservationPropertiesInput(
+              schedulingConstraints = SchedulingConstraintsInput(tooActivation = a.assign).assign
+            )
+          )
     )
 
   // The telluric type lives inside the observing mode, thus only modes that generate

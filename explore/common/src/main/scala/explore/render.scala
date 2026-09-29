@@ -67,5 +67,3 @@ object render:
         Some(React.Fragment(Icons.DoNotSplitIcon, " No Splitting"))
       case SchedulingMode.Uninterruptible =>
         Some(React.Fragment(Icons.DoNotSplitIcon, " Uninterruptible"))
-      case SchedulingMode.Interrupting    =>
-        Some(React.Fragment(Icons.DoNotSplitIcon, " Interrupting"))

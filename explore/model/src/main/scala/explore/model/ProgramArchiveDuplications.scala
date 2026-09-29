@@ -13,6 +13,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.math.Coordinates
+import lucuma.core.model.Target
 import lucuma.schemas.model.enums.ArchiveDuplicationState
 
 enum MatchCountCell derives Eq:
@@ -102,7 +103,7 @@ case class ProgramArchiveDuplications(
         .fromList:
           obs.scienceTargetIds.toList
             .flatMap(targets.get)
-            .flatMap(_.target.asSidereal.map(_.tracking.baseCoordinates))
+            .flatMap(t => Target.siderealTracking.getOption(t.target).map(_.baseCoordinates))
         .map(Coordinates.centerOf)
 
   private def headerOf(obsId: Observation.Id): Pot[ArchiveDuplication] =

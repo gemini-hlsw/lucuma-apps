@@ -36,6 +36,8 @@ trait OdbProgramApi[F[_]]:
 
   def updateProgramExplicitStatus(id: Program.Id, status: Option[ProgramStatus]): F[Unit]
 
+  def updateProgramTooActivationCeiling(id: Program.Id, ceiling: Option[TooActivation]): F[Unit]
+
   def updateGoaShouldNotify(id: Program.Id, shouldNotify: Boolean): F[Unit]
 
   def updateAttachmentDescription(oid: Attachment.Id, desc: Option[NonEmptyString]): F[Unit]

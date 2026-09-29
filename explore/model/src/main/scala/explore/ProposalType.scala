@@ -97,15 +97,14 @@ object ProposalType:
     def toScienceSubtype(s: ScienceSubtype): GeminiProposalType => GeminiProposalType =
       s match
         case ScienceSubtype.Classical => {
-          case Queue(_, _, minTime, splits, exchange, aeon, jwst, lt, _) =>
+          case Queue(_, minTime, splits, exchange, aeon, jwst, lt, _) =>
             Classical(ScienceSubtype.Classical, minTime, splits, exchange, aeon, jwst, lt)
-          case i                                                         => i
+          case i                                                      => i
         }
         case ScienceSubtype.Queue     => {
           case Classical(_, minTime, splits, exchange, aeon, jwst, lt) =>
             // Matches the ODB's own classical -> queue conversion default.
             Queue(ScienceSubtype.Queue,
-                  TooActivationCeiling.Default,
                   minTime,
                   splits,
                   exchange,
@@ -117,25 +116,6 @@ object ProposalType:
           case i                                                       => i
         }
         case _                        => identity
-
-    val tooActivationCeiling: Optional[GeminiProposalType, TooActivationCeiling] =
-      Optional[GeminiProposalType, TooActivationCeiling] {
-        case d: DemoScience        => d.tooActivationCeiling.some
-        case d: DirectorsTime      => d.tooActivationCeiling.some
-        case d: FastTurnaround     => d.tooActivationCeiling.some
-        case d: LargeProgram       => d.tooActivationCeiling.some
-        case d: Queue              => d.tooActivationCeiling.some
-        case d: SystemVerification => d.tooActivationCeiling.some
-        case _                     => none
-      }(a => {
-        case d: DemoScience        => d.copy(tooActivationCeiling = a)
-        case d: DirectorsTime      => d.copy(tooActivationCeiling = a)
-        case d: FastTurnaround     => d.copy(tooActivationCeiling = a)
-        case d: LargeProgram       => d.copy(tooActivationCeiling = a)
-        case d: Queue              => d.copy(tooActivationCeiling = a)
-        case d: SystemVerification => d.copy(tooActivationCeiling = a)
-        case i                     => i
-      })
 
     val partnerSplits: Optional[GeminiProposalType, List[PartnerSplit]] =
       Optional[GeminiProposalType, List[PartnerSplit]] {
@@ -281,60 +261,46 @@ object ProposalType:
 
     // Define the DemoScience case class implementing GeminiProposalType
     case class DemoScience(
-      scienceSubtype:       ScienceSubtype,
-      tooActivationCeiling: TooActivationCeiling,
-      minPercentTime:       IntPercent
+      scienceSubtype: ScienceSubtype,
+      minPercentTime: IntPercent
     ) extends GeminiProposalType derives Eq
 
     object DemoScience {
-      val minPercentTime: Lens[DemoScience, IntPercent]                 = Focus[DemoScience](_.minPercentTime)
-      val tooActivationCeiling: Lens[DemoScience, TooActivationCeiling] =
-        Focus[DemoScience](_.tooActivationCeiling)
+      val minPercentTime: Lens[DemoScience, IntPercent] = Focus[DemoScience](_.minPercentTime)
 
       val Default: DemoScience =
-        DemoScience(ScienceSubtype.DemoScience, TooActivationCeiling.Default, 100.refined)
+        DemoScience(ScienceSubtype.DemoScience, 100.refined)
     }
 
     // Define the DirectorsTime case class implementing GeminiProposalType
     case class DirectorsTime(
-      scienceSubtype:       ScienceSubtype,
-      tooActivationCeiling: TooActivationCeiling,
-      minPercentTime:       IntPercent
+      scienceSubtype: ScienceSubtype,
+      minPercentTime: IntPercent
     ) extends GeminiProposalType derives Eq
 
     object DirectorsTime {
-      val minPercentTime: Lens[DirectorsTime, IntPercent]                 = Focus[DirectorsTime](_.minPercentTime)
-      val tooActivationCeiling: Lens[DirectorsTime, TooActivationCeiling] =
-        Focus[DirectorsTime](_.tooActivationCeiling)
+      val minPercentTime: Lens[DirectorsTime, IntPercent] = Focus[DirectorsTime](_.minPercentTime)
 
       val Default: DirectorsTime =
-        DirectorsTime(ScienceSubtype.DirectorsTime, TooActivationCeiling.Default, 100.refined)
+        DirectorsTime(ScienceSubtype.DirectorsTime, 100.refined)
     }
 
     // Define the FastTurnaround case class implementing GeminiProposalType
     case class FastTurnaround(
-      scienceSubtype:       ScienceSubtype,
-      tooActivationCeiling: TooActivationCeiling,
-      minPercentTime:       IntPercent,
-      reviewerId:           Option[ProgramUser.Id],
-      mentorId:             Option[ProgramUser.Id]
+      scienceSubtype: ScienceSubtype,
+      minPercentTime: IntPercent,
+      reviewerId:     Option[ProgramUser.Id],
+      mentorId:       Option[ProgramUser.Id]
     ) extends GeminiProposalType derives Eq
 
     object FastTurnaround {
-      val minPercentTime: Lens[FastTurnaround, IntPercent]                 = Focus[FastTurnaround](_.minPercentTime)
-      val tooActivationCeiling: Lens[FastTurnaround, TooActivationCeiling] =
-        Focus[FastTurnaround](_.tooActivationCeiling)
-      val reviewerId: Lens[FastTurnaround, Option[ProgramUser.Id]]         =
+      val minPercentTime: Lens[FastTurnaround, IntPercent]         = Focus[FastTurnaround](_.minPercentTime)
+      val reviewerId: Lens[FastTurnaround, Option[ProgramUser.Id]] =
         Focus[FastTurnaround](_.reviewerId)
-      val mentorId: Lens[FastTurnaround, Option[ProgramUser.Id]]           = Focus[FastTurnaround](_.mentorId)
+      val mentorId: Lens[FastTurnaround, Option[ProgramUser.Id]]   = Focus[FastTurnaround](_.mentorId)
 
       val Default: FastTurnaround =
-        FastTurnaround(ScienceSubtype.FastTurnaround,
-                       TooActivationCeiling.Default,
-                       100.refined,
-                       None,
-                       None
-        )
+        FastTurnaround(ScienceSubtype.FastTurnaround, 100.refined, None, None)
 
       def defaultWithReviewer(id: Option[ProgramUser.Id]): FastTurnaround =
         reviewerId.replace(id)(Default)
@@ -342,21 +308,18 @@ object ProposalType:
 
     // Define the LargeProgram case class implementing GeminiProposalType
     case class LargeProgram(
-      scienceSubtype:       ScienceSubtype,
-      tooActivationCeiling: TooActivationCeiling,
-      minPercentTime:       IntPercent,
-      minPercentTotalTime:  IntPercent,
-      totalTime:            TimeSpan,
-      aeonMultiFacility:    Option[AeonMultiFacility],
-      jwstSynergy:          Boolean
+      scienceSubtype:      ScienceSubtype,
+      minPercentTime:      IntPercent,
+      minPercentTotalTime: IntPercent,
+      totalTime:           TimeSpan,
+      aeonMultiFacility:   Option[AeonMultiFacility],
+      jwstSynergy:         Boolean
     ) extends GeminiProposalType derives Eq
 
     object LargeProgram {
       val minPercentTime: Lens[LargeProgram, IntPercent]                   = Focus[LargeProgram](_.minPercentTime)
       val minPercentTotalTime: Lens[LargeProgram, IntPercent]              =
         Focus[LargeProgram](_.minPercentTotalTime)
-      val tooActivationCeiling: Lens[LargeProgram, TooActivationCeiling]   =
-        Focus[LargeProgram](_.tooActivationCeiling)
       val totalTime: Lens[LargeProgram, TimeSpan]                          = Focus[LargeProgram](_.totalTime)
       val aeonMultiFacility: Lens[LargeProgram, Option[AeonMultiFacility]] =
         Focus[LargeProgram](_.aeonMultiFacility)
@@ -364,7 +327,6 @@ object ProposalType:
 
       val Default: LargeProgram =
         LargeProgram(ScienceSubtype.LargeProgram,
-                     TooActivationCeiling.Default,
                      100.refined,
                      100.refined,
                      TimeSpan.Zero,
@@ -384,21 +346,18 @@ object ProposalType:
 
     // Define the Queue case class implementing GeminiProposalType
     case class Queue(
-      scienceSubtype:       ScienceSubtype,
-      tooActivationCeiling: TooActivationCeiling,
-      minPercentTime:       IntPercent,
-      partnerSplits:        List[PartnerSplit],
-      exchangePartner:      Option[ExchangePartner],
-      aeonMultiFacility:    Option[AeonMultiFacility],
-      jwstSynergy:          Boolean,
-      usLongTerm:           Boolean,
-      considerForBand3:     ConsiderForBand3
+      scienceSubtype:    ScienceSubtype,
+      minPercentTime:    IntPercent,
+      partnerSplits:     List[PartnerSplit],
+      exchangePartner:   Option[ExchangePartner],
+      aeonMultiFacility: Option[AeonMultiFacility],
+      jwstSynergy:       Boolean,
+      usLongTerm:        Boolean,
+      considerForBand3:  ConsiderForBand3
     ) extends GeminiProposalType derives Eq
 
     object Queue {
       val minPercentTime: Lens[Queue, IntPercent]                   = Focus[Queue](_.minPercentTime)
-      val tooActivationCeiling: Lens[Queue, TooActivationCeiling]   =
-        Focus[Queue](_.tooActivationCeiling)
       val exchangePartner: Lens[Queue, Option[ExchangePartner]]     = Focus[Queue](_.exchangePartner)
       val aeonMultiFacility: Lens[Queue, Option[AeonMultiFacility]] =
         Focus[Queue](_.aeonMultiFacility)
@@ -408,7 +367,6 @@ object ProposalType:
 
       val Default: Queue =
         Queue(ScienceSubtype.Queue,
-              TooActivationCeiling.Default,
               100.refined,
               List.empty,
               none,
@@ -421,22 +379,16 @@ object ProposalType:
 
     // Define the SystemVerification case class implementing GeminiProposalType
     case class SystemVerification(
-      scienceSubtype:       ScienceSubtype,
-      tooActivationCeiling: TooActivationCeiling,
-      minPercentTime:       IntPercent
+      scienceSubtype: ScienceSubtype,
+      minPercentTime: IntPercent
     ) extends GeminiProposalType
 
     object SystemVerification {
-      val minPercentTime: Lens[SystemVerification, IntPercent]                 =
+      val minPercentTime: Lens[SystemVerification, IntPercent] =
         Focus[SystemVerification](_.minPercentTime)
-      val tooActivationCeiling: Lens[SystemVerification, TooActivationCeiling] =
-        Focus[SystemVerification](_.tooActivationCeiling)
 
       val Default: SystemVerification =
-        SystemVerification(ScienceSubtype.SystemVerification,
-                           TooActivationCeiling.Default,
-                           100.refined
-        )
+        SystemVerification(ScienceSubtype.SystemVerification, 100.refined)
     }
 
     val classical: Prism[GeminiProposalType, Classical]                   =
@@ -478,17 +430,14 @@ object ProposalType:
             )
           case ScienceSubtype.DemoScience        =>
             for {
-              ceiling        <- c.as[TooActivationCeiling]
               minPercentTime <- c.downField("minPercentTime").as[IntPercent]
-            } yield DemoScience(tpe, ceiling, minPercentTime)
+            } yield DemoScience(tpe, minPercentTime)
           case ScienceSubtype.DirectorsTime      =>
             for {
-              ceiling        <- c.as[TooActivationCeiling]
               minPercentTime <- c.downField("minPercentTime").as[IntPercent]
-            } yield DirectorsTime(tpe, ceiling, minPercentTime)
+            } yield DirectorsTime(tpe, minPercentTime)
           case ScienceSubtype.FastTurnaround     =>
             for {
-              ceiling        <- c.as[TooActivationCeiling]
               minPercentTime <- c.downField("minPercentTime").as[IntPercent]
               reviewerId     <-
                 c.downField("reviewer")
@@ -497,22 +446,15 @@ object ProposalType:
                   .traverse(_.as[Option[ProgramUser.Id]])
               mentorId       <-
                 c.downField("mentor").downField("id").success.traverse(_.as[Option[ProgramUser.Id]])
-            } yield FastTurnaround(tpe,
-                                   ceiling,
-                                   minPercentTime,
-                                   reviewerId.flatten,
-                                   mentorId.flatten
-            )
+            } yield FastTurnaround(tpe, minPercentTime, reviewerId.flatten, mentorId.flatten)
           case ScienceSubtype.LargeProgram       =>
             for {
-              ceiling             <- c.as[TooActivationCeiling]
               minPercentTime      <- c.downField("minPercentTime").as[IntPercent]
               minPercentTotalTime <- c.downField("minPercentTotalTime").as[IntPercent]
               totalTime           <- c.downField("totalTime").as[TimeSpan]
               aeonMultiFacility   <- c.downField("aeonMultiFacility").as[Option[AeonMultiFacility]]
               jwstSynergy         <- c.downField("jwstSynergy").as[Boolean]
             } yield LargeProgram(tpe,
-                                 ceiling,
                                  minPercentTime,
                                  minPercentTotalTime,
                                  totalTime,
@@ -523,7 +465,6 @@ object ProposalType:
             Right(PoorWeather(tpe))
           case ScienceSubtype.Queue              =>
             for {
-              ceiling           <- c.as[TooActivationCeiling]
               minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
               partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
               exchangePartner   <- c.downField("exchangePartner").as[Option[ExchangePartner]]
@@ -532,7 +473,6 @@ object ProposalType:
               usLongTerm        <- c.downField("usLongTerm").as[Boolean]
               considerForBand3  <- c.downField("considerForBand3").as[ConsiderForBand3]
             } yield Queue(tpe,
-                          ceiling,
                           minPercentTime,
                           partnerSplits,
                           exchangePartner,
@@ -543,9 +483,8 @@ object ProposalType:
             )
           case ScienceSubtype.SystemVerification =>
             for {
-              ceiling        <- c.as[TooActivationCeiling]
               minPercentTime <- c.downField("minPercentTime").as[IntPercent]
-            } yield SystemVerification(tpe, ceiling, minPercentTime)
+            } yield SystemVerification(tpe, minPercentTime)
 
       Decoder.instance { c =>
         for {

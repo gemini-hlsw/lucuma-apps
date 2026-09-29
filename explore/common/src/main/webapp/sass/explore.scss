@@ -1108,14 +1108,6 @@ thead tr th.sticky-header {
   }
 }
 
-// Spans the label/field columns of the target form, so the resolve/unresolve button sits under
-// the fields above it rather than in the label gutter.
-.target-form .target-resolution-controls {
-  grid-column: 1 / -1;
-  justify-self: start;
-  margin-top: 0.25em;
-}
-
 .target-rv-controls {
   justify-self: stretch;
 
@@ -1767,10 +1759,14 @@ svg.fa-check.explore-success-icon {
       margin-top: 5px;
       display: flex;
       justify-content: space-between;
-      gap: 2em;
+      align-items: center;
+      gap: 1em;
 
+      // The workflow state and ToO activation dropdowns share the row equally, and truncate
+      // their labels rather than push the estimate off the badge.
       .obs-state-select-wrapper {
-        flex-grow: 2;
+        flex: 1 1 0;
+        min-width: 0;
       }
     }
 

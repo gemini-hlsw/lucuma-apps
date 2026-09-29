@@ -86,6 +86,13 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
         SET = ProgramPropertiesInput(explicitStatus = status.orUnassign)
       )
 
+  def updateProgramTooActivationCeiling(id: Program.Id, ceiling: Option[TooActivation]): F[Unit] =
+    updateProgram:
+      UpdateProgramsInput(
+        WHERE = id.toWhereProgram.assign,
+        SET = ProgramPropertiesInput(tooActivationCeiling = ceiling.orUnassign)
+      )
+
   def updateGoaShouldNotify(id: Program.Id, shouldNotify: Boolean): F[Unit] =
     updateProgram:
       UpdateProgramsInput(

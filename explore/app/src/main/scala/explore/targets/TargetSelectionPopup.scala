@@ -57,8 +57,7 @@ case class TargetSelectionPopup(
   selectNewIcon:       FontAwesomeIcon,
   onSelected:          TargetWithOptId => Callback,
   onCancel:            Callback = Callback.empty,
-  initialSearch:       Option[NonEmptyString] = None,
-  existingHeader:      String = "Link an existing target"
+  initialSearch:       Option[NonEmptyString] = None
 ) extends ReactFnProps(TargetSelectionPopup.component):
   val initialTargetType: TargetType                        = targetSources.keys.head
   val defaultTargetSources: NonEmptyList[TargetSource[IO]] = targetSources.head._2
@@ -169,8 +168,9 @@ object TargetSelectionPopup:
                           aladinRef.value
                             .map: a =>
                               sel
-                                .flatMap: st =>
-                                  st.target.asSidereal.map(_.tracking.baseCoordinates)
+                                .collect:
+                                  case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
+                                    tracking.baseCoordinates
                                 .map(a.gotoRaDecCB)
                                 .orEmpty
                             .orEmpty
@@ -261,8 +261,9 @@ object TargetSelectionPopup:
             <.div(ExploreStyles.TargetSearchPreview)(
               aladinRef.value.map(AladinZoomControl(_, factor = 1.5)),
               selectedTarget.get
-                .flatMap: st =>
-                  st.target.asSidereal.map(_.tracking.baseCoordinates)
+                .collect:
+                  case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
+                    tracking.baseCoordinates
                 .map[VdomNode] { case coordinates =>
                   ReactAladin(
                     ExploreStyles.TargetSearchAladin, // required placeholder
@@ -294,7 +295,7 @@ object TargetSelectionPopup:
 
             val header =
               if (source.existing)
-                s"${props.existingHeader} $fmtdCount"
+                s"Link an existing target $fmtdCount"
               else
                 s"Add a new target from ${source.name} (${showCount(sourceResults.length, "result")})"
 

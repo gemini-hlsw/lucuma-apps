@@ -137,6 +137,34 @@ included, which forces a program active outside its Active Period. The only writ
 Program Status. Clearing it returns the program to its Default Status.
 _Avoid_: status override, manual status
 
+### Targets of Opportunity
+
+**ToO Activation**:
+What an observation may do to others: None, Rapid or Interrupting. Declared on the observation
+(edited on its Details tile and its badge), never derived from its asterism, and not part of the
+scheduling group. An observation is a Target of Opportunity exactly when its activation is above
+None. Rapid and Interrupting fix the Scheduling Mode at Uninterruptible; lowering the activation
+back to None leaves the mode alone.
+_Avoid_: ToO type, Standard (removed; such an observation is simply None)
+
+**Scheduling Mode**:
+What the Scheduler may do to an observation: Unconstrained, No Splitting or Uninterruptible,
+each keeping the restrictions below it. Part of the observation's configuration, and so approved
+with it.
+_Avoid_: execution requirement, splittable (both replaced by this)
+
+**ToO Activation Ceiling**:
+The most disruptive ToO Activation a program's observations may declare. A program property,
+set or cleared only by staff on the Program tab; none means No Restrictions. Acceptance sets one
+if the program has none.
+_Avoid_: proposal ceiling (it no longer lives on the proposal)
+
+**Opportunity Target**:
+A placeholder target carrying the region of sky an awaited object may appear in, and no
+coordinates. When the alert arrives it is swapped out of the asterism for a real sidereal or
+nonsidereal target; it is never resolved in place.
+_Avoid_: resolved ToO, unresolved ToO
+
 ### Tile layout
 
 **Row Span**:

@@ -34,29 +34,17 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
           usLongTerm
         }
         ... on DemoScience {
-          tooActivationCeiling
-          defaultTooActivationCeiling
-          explicitTooActivationCeiling
           minPercentTime
         }
         ... on DirectorsTime {
-          tooActivationCeiling
-          defaultTooActivationCeiling
-          explicitTooActivationCeiling
           minPercentTime
         }
         ... on FastTurnaround {
-          tooActivationCeiling
-          defaultTooActivationCeiling
-          explicitTooActivationCeiling
           minPercentTime
           reviewer { id }
           mentor { id }
         }
         ... on LargeProgram {
-          tooActivationCeiling
-          defaultTooActivationCeiling
-          explicitTooActivationCeiling
           minPercentTime
           minPercentTotalTime
           totalTime {
@@ -69,9 +57,6 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
           jwstSynergy
         }
         ... on Queue {
-          tooActivationCeiling
-          defaultTooActivationCeiling
-          explicitTooActivationCeiling
           minPercentTime
           partnerSplits $PartnerSplitSubquery
           exchangePartner
@@ -83,9 +68,6 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
           considerForBand3
         }
         ... on SystemVerification {
-          tooActivationCeiling
-          defaultTooActivationCeiling
-          explicitTooActivationCeiling
           minPercentTime
         }
       }

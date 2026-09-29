@@ -17,7 +17,6 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Region
 import lucuma.core.model.Target
-import lucuma.core.model.TargetResolution
 import lucuma.schemas.model.CoordinatesAt
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.syntax.*
@@ -114,9 +113,11 @@ object ObservationRegionsOrCoordinatesAt:
   // we don't have an obstime or site, so we can't handle non-sidereals, but we can pick a time
   // from one of the sidereals (if any) and correct all other sidereals to that.
   private def atTargetEpoch(obsTargets: ObservationTargets): ObservationRegionsOrCoordinatesAt =
-    // try to get the epoch from the first sidereal, which includes a ToO resolved to one
+    // try to get the epoch from the first sidereal
     val at: Option[Instant] = obsTargets.allTargets
-      .collectFirstSome(_.target.asSidereal.map(_.tracking.epoch.toInstant))
+      .map(_.target)
+      .collectFirst:
+        case Target.Sidereal(tracking = tracking) => tracking.epoch.toInstant
     atInstant(obsTargets, at)
 
   private def atInstant(
@@ -124,10 +125,8 @@ object ObservationRegionsOrCoordinatesAt:
     at:         Option[Instant]
   ): ObservationRegionsOrCoordinatesAt =
     def forTarget(twid: TargetWithId): (TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]]) =
-      // Keyed on how the target tracks, so a resolved Target of Opportunity is handled as the
-      // kind of target it resolved to. Only an unresolved one falls back to its region.
-      twid.target.resolution match
-        case Some(TargetResolution.Sidereal(tracking, _)) =>
+      twid.target match
+        case Target.Sidereal(tracking = tracking) =>
           // If there is no 'at', there are no sidereals
           val coords = at
             .flatMap(a =>
@@ -136,9 +135,9 @@ object ObservationRegionsOrCoordinatesAt:
             )
             .getOrElse(CoordinatesAt(Epoch.MinValue.toInstant, Coordinates.Zero))
           (twid, coords.asRight.asRight.some)
-        case Some(TargetResolution.Nonsidereal(_))        => (twid, none)
-        case None                                         =>
-          (twid, Target.region.getOption(twid.target).map(_.asLeft.asRight))
+        case Target.Nonsidereal(_, _, _)          => (twid, none)
+        case Target.Opportunity(region = region)  =>
+          (twid, region.asLeft.asRight.some)
     val science                                                                                  = obsTargets.mapScience(forTarget)
     val blind                                                                                    = obsTargets.blindOffset.map(forTarget)
     val asterism                                                                                 = getAsterism(science.map(_._2))

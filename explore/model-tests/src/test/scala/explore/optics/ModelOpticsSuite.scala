@@ -8,7 +8,6 @@ import eu.timepit.refined.scalacheck.all.given
 import explore.model.ProposalType.GeminiProposalType
 import explore.model.arb.ArbPartnerSplit.given
 import explore.model.arb.ArbProposalType.given
-import explore.model.arb.ArbTooActivationCeiling.given
 import explore.optics.ModelOptics.*
 import lucuma.core.math.arb.ArbRadialVelocity
 import lucuma.core.model.arb.ArbTarget
@@ -23,7 +22,6 @@ class ModelOpticsSuite extends DisciplineSuite:
   import ArbTarget.given
 
   checkAll("targetRV", OptionalTests(TargetRV))
-  checkAll("tooActivationCeiling", OptionalTests(GeminiProposalType.tooActivationCeiling))
   checkAll("partnerSplits", OptionalTests(GeminiProposalType.partnerSplits))
   checkAll("exchangePartner", OptionalTests(GeminiProposalType.exchangePartner))
   checkAll("minPercentTime", OptionalTests(GeminiProposalType.minPercentTime))

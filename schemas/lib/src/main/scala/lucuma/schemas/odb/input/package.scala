@@ -391,37 +391,16 @@ extension (region: Region)
     declinationArc = region.decArc.toInput.assign
   )
 
-extension (tracking: SiderealTracking)
-  // Tracking is all a `TargetResolution.Sidereal` has, and all a `SiderealInput` carries
-  // besides the catalog info, so both the plain sidereal target and the resolution of a
-  // Target of Opportunity build their input here.
-  def toSiderealInput(catalogInfo: Option[CatalogInfo]): SiderealInput = SiderealInput(
-    ra = tracking.baseCoordinates.ra.toInput.assign,
-    dec = tracking.baseCoordinates.dec.toInput.assign,
-    epoch = Epoch.fromString.reverseGet(tracking.epoch).assign,
-    properMotion = tracking.properMotion.map(_.toInput).orIgnore,
-    radialVelocity = tracking.radialVelocity.map(_.toInput).orIgnore,
-    parallax = tracking.parallax.map(_.toInput).orIgnore,
-    catalogInfo = catalogInfo.map(_.toInput).orIgnore
-  )
-
-extension (key: Ephemeris.Key)
-  def toNonsiderealInput: NonsiderealInput = NonsiderealInput(
-    keyType = key.keyType.assign,
-    // will trigger an API error if des is empty (which it shouldn't be), but better than crashing here
-    des = NonEmptyString.from(key.des).toOption.orIgnore
-  )
-
-extension (resolution: TargetResolution)
-  def toInput: TargetResolutionInput = resolution match
-    case TargetResolution.Sidereal(tracking, catalogInfo) =>
-      TargetResolutionInput(sidereal = tracking.toSiderealInput(catalogInfo).assign)
-    case TargetResolution.Nonsidereal(key)                =>
-      TargetResolutionInput(nonsidereal = key.toNonsiderealInput.assign)
-
 extension (sidereal: Target.Sidereal)
-  def toInput: SiderealInput =
-    sidereal.tracking.toSiderealInput(sidereal.catalogInfo)
+  def toInput: SiderealInput = SiderealInput(
+    ra = sidereal.tracking.baseCoordinates.ra.toInput.assign,
+    dec = sidereal.tracking.baseCoordinates.dec.toInput.assign,
+    epoch = Epoch.fromString.reverseGet(sidereal.tracking.epoch).assign,
+    properMotion = sidereal.tracking.properMotion.map(_.toInput).orIgnore,
+    radialVelocity = sidereal.tracking.radialVelocity.map(_.toInput).orIgnore,
+    parallax = sidereal.tracking.parallax.map(_.toInput).orIgnore,
+    catalogInfo = sidereal.catalogInfo.map(_.toInput).orIgnore
+  )
 
   def toTargetPropertiesInput: TargetPropertiesInput =
     TargetPropertiesInput(
@@ -437,8 +416,11 @@ extension (sidereal: Target.Sidereal)
     )
 
 extension (nonsidereal: Target.Nonsidereal)
-  def toInput: NonsiderealInput =
-    nonsidereal.ephemerisKey.toNonsiderealInput
+  def toInput: NonsiderealInput = NonsiderealInput(
+    keyType = nonsidereal.ephemerisKey.keyType.assign,
+    // will trigger an API error if des is empty (which it shouldn't be), but better than crashing here
+    des = NonEmptyString.from(nonsidereal.ephemerisKey.des).toOption.orIgnore
+  )
 
   def toTargetPropertiesInput: TargetPropertiesInput =
     TargetPropertiesInput(
@@ -454,13 +436,9 @@ extension (nonsidereal: Target.Nonsidereal)
     )
 
 extension (too: Target.Opportunity)
-  // The full state of the target, so `resolution` is unassigned rather than ignored when
-  // there is none: this input is used where the target is being stated in its entirety,
-  // and there an absent resolution means unresolved rather than "leave it alone".
   def toInput: OpportunityInput =
     OpportunityInput(
-      region = too.region.toInput.assign,
-      resolution = too.resolution.map(_.toInput).orUnassign
+      region = too.region.toInput.assign
     )
 
   def toTargetPropertiesInput: TargetPropertiesInput =

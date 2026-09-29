@@ -23,6 +23,7 @@ object ProgramDetailsSubquery extends GraphQLSubquery.Typed[ObservationDB, Progr
       status
       explicitStatus
       defaultStatus
+      tooActivationCeiling
       users $ProgramUserSubquery
       reference $ProgramReferenceSubquery
       allocations $AllocationSubquery

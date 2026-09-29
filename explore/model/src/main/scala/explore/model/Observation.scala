@@ -29,8 +29,10 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.SchedulingMode
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.Site
+import lucuma.core.enums.TooActivation
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
@@ -81,6 +83,7 @@ final case class Observation(
   selectedGSName:          Option[NonEmptyString],
   constraints:             ConstraintSet,
   schedulingConstraints:   SchedulingConstraints,
+  tooActivation:           TooActivation,
   attachmentIds:           SortedSet[Attachment.Id],
   scienceRequirements:     ScienceRequirements,
   basicConfigSummary:      Option[BasicConfiguration],
@@ -555,27 +558,24 @@ final case class Observation(
   private def scienceTargets(allTargets: TargetList): List[Target] =
     scienceTargetIds.toList.map(id => allTargets.get(id).map(_.target)).flattenOption
 
-  // The targets needed to find a tracking for the asterism. If any target is an unresolved ToO,
-  // a None is returned because the asterism can't be tracked. A resolved ToO tracks like whatever
-  // it resolved to, so it is kept.
+  // The targets needed to find a tracking for the asterism. If there are any
+  // ToOs, a None is returned because the asterism can't be tracked.
   def scienceTargetsForTracking(allTargets: TargetList): Option[NonEmptyList[Target]] =
     scienceTargets(allTargets)
-      .traverse(t => Option.when(t.resolution.isDefined)(t))
+      .traverse:
+        case Target.Opportunity(_, _, _) => none
+        case t                           => t.some
       .flatMap(NonEmptyList.fromList)
 
-  // Is this observation a Target of Opportunity? True once the asterism holds an opportunity
-  // target, resolved or not -- that is exactly what makes an observation a ToO.
+  // Does the asterism hold an opportunity target? This is about the asterism only; whether the
+  // observation is a Target of Opportunity is its declared `tooActivation`.
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =
     scienceTargets(allTargets).exists(Target.opportunity.getOption(_).isDefined)
-
-  // Is the asterism still waiting on an alert? Only then is there no position to work from.
-  def hasUnresolvedTargetOfOpportunity(allTargets: TargetList): Boolean =
-    scienceTargets(allTargets).exists(_.resolution.isEmpty)
 
   def needsAGS(allTargets: TargetList): Boolean =
     // revert logic, question should we run ags for asterisms with a combination
     // of sidereal and ToOs?
-    calibrationRole.forall(_.needsAGS) && !hasUnresolvedTargetOfOpportunity(allTargets)
+    calibrationRole.forall(_.needsAGS) && !hasTargetOfOpportunity(allTargets)
 
 object Observation:
   type Id = lucuma.core.model.Observation.Id
@@ -590,6 +590,18 @@ object Observation:
   val constraints              = Focus[Observation](_.constraints)
   val centralWavelength        = Focus[Observation](_.centralWavelength)
   val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
+  val tooActivation            = Focus[Observation](_.tooActivation)
+  // Setting an activation that requires it also makes the observation `Uninterruptible`, as the
+  // ODB does. Lowering the activation leaves the scheduling mode alone.
+  val tooActivationWithMode    =
+    Lens[Observation, TooActivation](_.tooActivation): a =>
+      o =>
+        val withActivation = o.copy(tooActivation = a)
+        if a.requiresUninterruptible then
+          schedulingConstraints
+            .andThen(SchedulingConstraints.schedulingMode)
+            .replace(SchedulingMode.Uninterruptible)(withActivation)
+        else withActivation
   val attachmentIds            = Focus[Observation](_.attachmentIds)
   val scienceRequirements      = Focus[Observation](_.scienceRequirements)
   val basicConfigSummary       = Focus[Observation](_.basicConfigSummary)
@@ -684,6 +696,7 @@ object Observation:
       selectedGSName        <- targetEnv.downField("guideTargetName").as[Option[NonEmptyString]]
       constraints           <- c.get[ConstraintSet]("constraintSet")
       schedulingConstraints <- c.get[SchedulingConstraints]("schedulingConstraints")
+      tooActivation         <- c.downField("schedulingConstraints").get[TooActivation]("tooActivation")
       attachmentIds         <- c.get[List[AttachmentIdWrapper]]("attachments")
       scienceRequirements   <- c.get[ScienceRequirements]("scienceRequirements")
       // The bulk-summary query returns only BasicConfiguration fields for `observingMode`
@@ -721,6 +734,7 @@ object Observation:
       selectedGSName,
       constraints,
       schedulingConstraints,
+      tooActivation,
       SortedSet.from(attachmentIds.map(_.id)),
       scienceRequirements,
       basicConfigSummary,

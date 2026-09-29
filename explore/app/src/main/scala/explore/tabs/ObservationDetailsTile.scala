@@ -19,9 +19,11 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
+import lucuma.core.enums.TooActivation
 import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.format.DurationSpacedFormatter
@@ -118,6 +120,33 @@ object ObservationDetailsTile
             groupClass = ExploreStyles.ObservationDetailsPriority
           )
 
+        // The ODB raises the scheduling mode itself when the activation requires it, so only the
+        // activation is sent.
+        val tooActivationView: View[TooActivation] =
+          props.observation
+            .zoom(Observation.tooActivationWithMode)
+            .undoableView(Iso.id[TooActivation].asLens)
+            .withOnMod: activation =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(
+                    schedulingConstraints =
+                      SchedulingConstraintsInput(tooActivation = activation.assign).assign
+                  )
+                )
+                .runAsync
+
+        val tooActivationSelector: VdomNode =
+          FormEnumDropdownView(
+            id = NonEmptyString.unsafeFrom(s"too-activation-${props.observation.get.id}"),
+            value = tooActivationView,
+            label =
+              React.Fragment("ToO Activation", HelpIcon("observation/too-activation.md".refined)),
+            disabled = props.readonly,
+            clazz = ExploreStyles.ObservationDetailsSelect
+          )
+
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
             val setupCount: Int = d.setupCount.value
@@ -160,7 +189,8 @@ object ObservationDetailsTile
             <.div(ExploreStyles.ObservationDetailsColumn)(
               FormInfo(props.observation.get.referenceWithId, "Observation"),
               scienceBandSelector.when(props.showScienceBand),
-              prioritySelector
+              prioritySelector,
+              tooActivationSelector.unless(props.observation.get.isCalibration)
             ),
             estimatedDuration
           )

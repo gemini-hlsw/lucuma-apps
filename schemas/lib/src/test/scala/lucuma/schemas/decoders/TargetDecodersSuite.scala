@@ -34,12 +34,10 @@ import lucuma.core.math.dimensional.syntax.*
 import lucuma.core.math.units.*
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.EmissionLine
-import lucuma.core.model.Ephemeris
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.Target
-import lucuma.core.model.TargetResolution
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.refined.auto.*
 import lucuma.schemas.model.TargetWithId
@@ -238,9 +236,6 @@ class TargetDecodersSuite extends InputStreamSuite {
     )
   }
 
-  // A Target of Opportunity keeps its identity through resolution: it stays an `Opportunity`,
-  // keeps its region, and gains (or loses) a resolution. These pin the three states, because
-  // a resolution dropped from the subquery would silently look exactly like "not yet resolved".
   private val burstRegion: Region =
     Region(
       Arc.Partial(
@@ -258,64 +253,12 @@ class TargetDecodersSuite extends InputStreamSuite {
       )
     )
 
-  test("Target decoder - Opportunity - unresolved") {
+  test("Target decoder - Opportunity") {
     assertParsedStreamEquals(
       "/t5.json",
       TargetWithId(
         Target.Id(5L.refined),
-        Target.Opportunity("Burst".refined, burstRegion, none, burstSourceProfile),
-        TargetDisposition.Science,
-        none
-      )
-    )
-  }
-
-  test("Target decoder - Opportunity - resolved to sidereal") {
-    assertParsedStreamEquals(
-      "/t6.json",
-      TargetWithId(
-        Target.Id(6L.refined),
-        Target.Opportunity(
-          "Burst".refined,
-          burstRegion,
-          TargetResolution
-            .Sidereal(
-              SiderealTracking(
-                Coordinates(
-                  RightAscension.fromStringHMS.getOption("15:28:00.668").get,
-                  Declination.fromStringSignedDMS.getOption("+64:45:47.4").get
-                ),
-                Epoch.J2000,
-                none,
-                none,
-                none
-              ),
-              CatalogInfo(
-                CatalogName.Simbad,
-                "M   1".refined[NonEmpty],
-                Option("SNR".refined[NonEmpty])
-              ).some
-            )
-            .some,
-          burstSourceProfile
-        ),
-        TargetDisposition.Science,
-        none
-      )
-    )
-  }
-
-  test("Target decoder - Opportunity - resolved to nonsidereal") {
-    assertParsedStreamEquals(
-      "/t7.json",
-      TargetWithId(
-        Target.Id(7L.refined),
-        Target.Opportunity(
-          "Burst".refined,
-          Region(Arc.Full(), Arc.Full()),
-          TargetResolution.Nonsidereal(Ephemeris.Key.AsteroidNew("Ceres")).some,
-          burstSourceProfile
-        ),
+        Target.Opportunity("Burst".refined, burstRegion, burstSourceProfile),
         TargetDisposition.Science,
         none
       )
