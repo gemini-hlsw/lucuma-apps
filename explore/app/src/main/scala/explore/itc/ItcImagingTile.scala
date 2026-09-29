@@ -105,7 +105,7 @@ object ItcImagingTile
           f: (TimeSpan, PosInt, Option[SignalToNoiseAt]) => A
         ): Option[A] =
           result.toOption.collect { case Right(r @ ItcResult.Result(_, _)) =>
-            f(r.exposureTime, r.exposures, r.snAt)
+            f(r.exposureTime, r.frames, r.snAt)
           }
 
         val singleSN: Option[SingleSN] =
@@ -117,7 +117,7 @@ object ItcImagingTile
         val exposureTime: Option[TimeSpan] =
           withResult((e, _, _) => e)
 
-        val exposureCount: Option[PosInt] =
+        val frameCount: Option[PosInt] =
           withResult((_, t, _) => t)
       }
 
@@ -127,7 +127,7 @@ object ItcImagingTile
       val InstrumentColId = ColumnId("instrument")
       val TotalSNColId    = ColumnId("totalsn")
       val ExpTimeColId    = ColumnId("exptime")
-      val ExposuresColId  = ColumnId("exposures")
+      val FramesColId     = ColumnId("frames")
 
       val columnNames: Map[ColumnId, String] =
         Map(
@@ -135,7 +135,7 @@ object ItcImagingTile
           ExpTimeColId    -> "Time",
           TotalSNColId    -> "S/N",
           FilterColId     -> "Filter",
-          ExposuresColId  -> "Exposures"
+          FramesColId     -> "Frames"
         )
 
       def column[V](
@@ -222,10 +222,10 @@ object ItcImagingTile
             .withCell(_.value: String)
             .withSize(69.toPx)
             .sortable,
-          column(ExposuresColId, _.result)
-            .withHeader(progressingCellHeader("Exposures"))
+          column(FramesColId, _.result)
+            .withHeader(progressingCellHeader("Frames"))
             .withCell: cell =>
-              itcCell(cell.value, ItcColumns.Exposures)
+              itcCell(cell.value, ItcColumns.Frames)
             .withSize(80.toPx),
           column(ExpTimeColId, _.result)
             .withHeader(progressingCellHeader("Time"))

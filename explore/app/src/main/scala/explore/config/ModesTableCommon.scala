@@ -187,7 +187,7 @@ trait ModesTableCommon:
       ) >> atTop.set(virtualizer.scrollElement.scrollTop < 32)
 
   enum ItcColumns:
-    case Time, SN, Exposures
+    case Time, SN, Frames
 
   def progressingCellHeader(txt: String)(
     header: HeaderContext[?, ?, TableMeta, ?, ?, ?, ?]
@@ -275,26 +275,26 @@ trait ModesTableCommon:
                 case a @ (_, v) if v.nonEmpty => a
 
             val content = col.match
-              case ItcColumns.Exposures =>
-                r.exposures.toString
-              case ItcColumns.Time      =>
+              case ItcColumns.Frames =>
+                r.frames.toString
+              case ItcColumns.Time   =>
                 if (showTotalTime) formatDurationHours(r.duration)
-                else s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
-              case ItcColumns.SN        =>
+                else s"${r.frames} × ${formatDurationSeconds(r.exposureTime)}"
+              case ItcColumns.SN     =>
                 // The ITC doesn't always report a S/N at the requested wavelength. Render a
                 // placeholder rather than an empty cell so it reads as "no value" and not
                 // as a cell that failed to render.
                 r.snAt.fold("-")(_.total.value.format)
 
             val (tooltip, placement) = col match
-              case ItcColumns.Exposures =>
+              case ItcColumns.Frames =>
                 (none, Placement.RightStart)
-              case ItcColumns.Time      =>
+              case ItcColumns.Time   =>
                 val baseText =
-                  if (showTotalTime) s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
+                  if (showTotalTime) s"${r.frames} × ${formatDurationSeconds(r.exposureTime)}"
                   else formatDurationHours(r.duration)
                 tooltipContent(baseText, ccdWarnings)
-              case ItcColumns.SN        =>
+              case ItcColumns.SN     =>
                 val baseText = r.snAt.fold("No S/N available at the requested wavelength")(snAt =>
                   s"${snAt.single.value.format} / exposure"
                 )
@@ -455,7 +455,7 @@ trait ModesTableCommon:
         case Some(Right(result @ ItcResult.Result(_, _))) =>
           result
       // Very short exposure times may have ambiguity WRT the brightest target.
-      .maxByOption(result => (result.exposureTime, result.exposures))
+      .maxByOption(result => (result.exposureTime, result.frames))
       .flatMap(_.brightestIndex)
       .flatMap(brightestIndex => validTargets.flatMap(_.get(brightestIndex)))
       .map(t => <.label(ExploreStyles.ModesTableTarget)(s"on ${t.name.value}"))

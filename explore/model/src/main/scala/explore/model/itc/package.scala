@@ -77,13 +77,13 @@ object ItcResult {
     times:          Zipper[TargetIntegrationTime],
     brightestIndex: Option[Int]
   ) extends ItcResult:
-    override def toString: String = s"${exposures.value} x ${exposureTime.toMinutes}"
+    override def toString: String = s"${frames.value} x ${exposureTime.toMinutes}"
 
     // The following apply to the focused TargetIntegrationTime
     val exposureTime: TimeSpan        = times.focus.times.focus.exposureTime
-    val exposures: PosInt             = times.focus.times.focus.exposureCount
+    val frames: PosInt                = times.focus.times.focus.frameCount
     val snAt: Option[SignalToNoiseAt] = times.focus.signalToNoiseAt
-    val duration: TimeSpan            = exposureTime *| exposures.value
+    val duration: TimeSpan            = exposureTime *| frames.value
 
     val ccds: SortedMap[Int, ItcCcd] =
       SortedMap.from(times.focus.ccds.zipWithIndex.map(_.swap))
@@ -135,7 +135,7 @@ case class ItcGraphResult(target: ItcTarget, timeAndGraphs: TargetTimeAndGraphsR
   private lazy val time: IntegrationTime = timeAndGraphs.integrationTime.times.focus
 
   lazy val itcExposureTime: ItcExposureTime =
-    ItcExposureTime(time.exposureTime, time.exposureCount)
+    ItcExposureTime(time.exposureTime, time.frameCount)
 
   lazy val finalSNRatio: TotalSN =
     timeAndGraphs.atWavelengthFinalSNRatio.getOrElse(timeAndGraphs.peakFinalSNRatio)
