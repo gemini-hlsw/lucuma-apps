@@ -506,9 +506,7 @@ final case class ObsIdSetSchedulingWindowsTile[F[
   fullSize:                 Boolean
 ) extends SchedulingWindowsTile(
       obsEditInfo, {
-        // We will only edit the incomplete observations, but we noed something to pass
-        // to the timing windows panel. However, if all are complete, it will be readonly
-        val idsToEdit: ObsIdSet = obsEditInfo.unCompleted.getOrElse(obsEditInfo.editing)
+        val idsToEdit: ObsIdSet = ObsIdSetSchedulingWindowsTile.idsToEdit(obsEditInfo)
 
         val obsTraversal: Traversal[ObservationList, Observation] =
           Iso
@@ -526,9 +524,19 @@ final case class ObsIdSetSchedulingWindowsTile[F[
             )
         )
       },
-      obsEditInfo.editing.idSet.toList
+      // Only the observations actually edited can have their mode fixed by their activation.
+      ObsIdSetSchedulingWindowsTile
+        .idsToEdit(obsEditInfo)
+        .idSet
+        .toList
         .flatMap(observations.get.get)
         .exists(_.tooActivation.requiresUninterruptible),
       isReadonly,
       fullSize
     )
+
+object ObsIdSetSchedulingWindowsTile:
+  // We will only edit the incomplete observations, but we need something to pass
+  // to the timing windows panel. However, if all are complete, it will be readonly
+  private def idsToEdit(obsEditInfo: ObsIdSetEditInfo): ObsIdSet =
+    obsEditInfo.unCompleted.getOrElse(obsEditInfo.editing)
