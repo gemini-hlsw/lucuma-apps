@@ -19,6 +19,7 @@ import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
+import observe.model.ObserveStep.*
 import observe.model.SequenceStatus
 import observe.model.StepProgress
 import observe.model.SubsystemOrServer
@@ -83,6 +84,7 @@ object ObservationExecutionDisplay
           executionStateAndConfig.map(_.map(_._1)),
           loadedObsViewPot.map(_.zoom(LoadedObservation.isRefreshing)),
           executionStateOpt.get.map(_.sequenceStatus).getOrElse(SequenceStatus.Idle),
+          executionStateOpt.get.exists(_.loadedStep.exists(_.isObserveStarted)),
           rootModelData.obsRequests.getOrElse(
             selectedObsId,
             ObservationRequests.Idle

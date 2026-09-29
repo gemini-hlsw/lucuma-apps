@@ -25,6 +25,7 @@ trait ArbObservationRequests:
       cancelPause       <- arbitrary[OperationRequest]
       resume            <- arbitrary[OperationRequest]
       startFrom         <- arbitrary[OperationRequest]
+      restart           <- arbitrary[OperationRequest]
       subsystemRun      <- arbitrary[Map[Step.Id, Map[Subsystem, OperationRequest]]]
       acquisitionPrompt <- arbitrary[OperationRequest]
     yield ObservationRequests(
@@ -35,12 +36,14 @@ trait ArbObservationRequests:
       cancelPause,
       resume,
       startFrom,
+      restart,
       subsystemRun,
       acquisitionPrompt
     )
 
   given Cogen[ObservationRequests] = Cogen[
     (OperationRequest,
+     OperationRequest,
      OperationRequest,
      OperationRequest,
      OperationRequest,
@@ -58,6 +61,7 @@ trait ArbObservationRequests:
      x.cancelPause,
      x.resume,
      x.startFrom,
+     x.restart,
      x.subsystemRun.view.mapValues(_.toList).toList,
      x.acquisitionPrompt
     )

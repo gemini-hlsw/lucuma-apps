@@ -22,6 +22,10 @@ object Icons:
   private val faArrowUpFromLine: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faBackwardStep")
+  private val faBackwardStep: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faBan")
   private val faBan: FAIcon = js.native
 
@@ -166,6 +170,7 @@ object Icons:
     faArrowsRotate,
     faArrowsRetweet,
     faArrowUpFromLine,
+    faBackwardStep,
     faBan,
     faBars,
     faCalendar,
@@ -206,6 +211,7 @@ object Icons:
   inline def ArrowsRotate      = FontAwesomeIcon(faArrowsRotate)
   inline def ArrowsRetweet     = FontAwesomeIcon(faArrowsRetweet)
   inline def ArrowUpFromLine   = FontAwesomeIcon(faArrowUpFromLine)
+  inline def BackwardStep      = FontAwesomeIcon(faBackwardStep)
   inline def Ban               = FontAwesomeIcon(faBan)
   inline def Bars              = FontAwesomeIcon(faBars)
   inline def Calendar          = FontAwesomeIcon(faCalendar)

@@ -121,6 +121,12 @@ case class SequenceApiImpl(
         Uri.Path.empty / obsId.toString / client.clientId.value / "pauseObs" / observer.toString
       )
 
+  override def restartStep(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.restart) >>
+      client.postNoData(
+        Uri.Path.empty / obsId.toString / client.clientId.value / "restartStep" / observer.toString
+      )
+
   override def pauseObsGracefully(obsId: Observation.Id): IO[Unit] =
     setInFlight(obsId, ObservationRequests.pause) >>
       client.postNoData(

@@ -70,6 +70,9 @@ trait SequenceApi[F[_]: MonadThrow]:
   /** Pause the sequence immediately, even mid-exposure */
   def pauseObs(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
+  /** Stop before the exposure starts and go idle */
+  def restartStep(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+
   /** N&S: Pause the sequence after the current nod(?) */
   def pauseObsGracefully(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 

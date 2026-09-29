@@ -832,6 +832,16 @@ body {
     }
   }
 
+  &.observe-restart-button {
+    @include control-button;
+
+    background-color: var(--purple-500);
+
+    &:enabled:hover {
+      background-color: var(--purple-600);
+    }
+  }
+
   &.observe-cancel-pause-button {
     @include control-button;
 

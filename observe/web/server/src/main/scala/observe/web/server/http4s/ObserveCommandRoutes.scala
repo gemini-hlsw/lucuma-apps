@@ -148,6 +148,11 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.pauseObserve(obsId, obs, user, graceful = false) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
+        "restartStep" / ObserverVar(obs) =>
+      ssoClient.require(req): user =>
+        oe.restartStep(obsId, obs, user) *> NoContent()
+
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
         "pauseObsGracefully" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
         oe.pauseObserve(obsId, obs, user, graceful = true) *> NoContent()

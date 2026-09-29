@@ -24,6 +24,7 @@ case class ObsHeader(
   loadedObsId:                Option[Pot[Observation.Id]],
   refreshing:                 Pot[View[Boolean]],
   sequenceStatus:             SequenceStatus,
+  isObserveStarted:           Boolean,
   requests:                   ObservationRequests,
   overrides:                  Option[View[SystemOverrides]],
   observer:                   View[Option[Observer]],
@@ -42,6 +43,7 @@ object ObsHeader
               props.observation.obsId,
               props.refreshing,
               props.sequenceStatus,
+              props.isObserveStarted,
               props.requests
             ),
             s"${props.observation.title} [${props.observation.refAndId}]",
