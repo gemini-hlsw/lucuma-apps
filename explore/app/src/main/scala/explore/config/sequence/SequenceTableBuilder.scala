@@ -13,6 +13,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.reusability.given
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -256,6 +257,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                   stepRow =>
                     val step: SequenceRow[D] = stepRow.step
                     TagMod(
+                      testId := "explore-sequence-step",
                       step match
                         case SequenceRow.Executed.ExecutedStep(_, step, _, _)                    =>
                           SequenceStyles.RowHasExtra |+|

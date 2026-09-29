@@ -13,6 +13,7 @@ import explore.config.ConfigurationFormats.*
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats.durationHM
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
@@ -86,7 +87,8 @@ object AlienVisitorConfigEditor
           value = site,
           showClear = true,
           clazz = ExploreStyles.WarningInput.when_(site.get.isEmpty),
-          disabled = props.readonly
+          disabled = props.readonly,
+          modifiers = List(testId := "explore-visitor-site")
         ),
         FormInputTextView(
           id = "visitor-basic-name".refined,
@@ -94,7 +96,8 @@ object AlienVisitorConfigEditor
           label = "Name",
           groupClass = ExploreStyles.WarningInput.when_(name.get.isEmpty),
           validFormat = InputValidSplitEpi.nonEmptyString.optional,
-          disabled = props.readonly
+          disabled = props.readonly,
+          modifiers = List(testId := "explore-visitor-name")
         ).clearable(^.autoComplete.off),
         FormInputTextView(
           id = "visitor-basic-central-wavelength".refined,
@@ -104,7 +107,8 @@ object AlienVisitorConfigEditor
           validFormat = props.units.toInputWedge,
           changeAuditor = props.units.toAuditor.optional,
           units = props.units.symbol,
-          disabled = props.readonly
+          disabled = props.readonly,
+          modifiers = List(testId := "explore-visitor-central-wavelength")
         ).clearable(^.autoComplete.off),
         FormInputTextView(
           id = "visitor-basic-ags-diameter".refined,
@@ -116,7 +120,8 @@ object AlienVisitorConfigEditor
           validFormat = angleArcsecsFormat,
           changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
           units = "arcsec",
-          disabled = props.readonly
+          disabled = props.readonly,
+          modifiers = List(testId := "explore-visitor-ags-diameter")
         ).clearable(^.autoComplete.off),
         FormInputTextView(
           id = "visitor-basic-science-fov-diameter".refined,
@@ -128,7 +133,8 @@ object AlienVisitorConfigEditor
           validFormat = angleArcsecsFormat,
           changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
           units = "arcsec",
-          disabled = props.readonly
+          disabled = props.readonly,
+          modifiers = List(testId := "explore-visitor-science-fov-diameter")
         ).clearable(^.autoComplete.off),
         FormInputTextView(
           id = "visitor-basic-total-time".refined,
@@ -140,7 +146,8 @@ object AlienVisitorConfigEditor
           groupClass = ExploreStyles.WarningInput.when_(totalRequestTime.get.isEmpty),
           validFormat = durationHM.optional,
           units = "h:mm",
-          disabled = props.readonly
+          disabled = props.readonly,
+          modifiers = List(testId := "explore-visitor-total-time")
         ).clearable(^.autoComplete.off)
       )
     )

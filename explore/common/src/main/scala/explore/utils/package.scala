@@ -43,8 +43,10 @@ val dataAbbrv    = VdomAttr("data-abbrv")
 val filter       = VdomAttr("filter")
 
 // Hooks for the end-to-end suite (gpp-tests). Changing a value breaks its locators.
-val testId        = VdomAttr("data-testid")
-val dataProgramId = VdomAttr("data-program-id")
+val testId         = VdomAttr("data-testid")
+val dataProgramId  = VdomAttr("data-program-id")
+val dataInstrument = VdomAttr("data-instrument")
+val dataFocalPlane = VdomAttr("data-focal-plane")
 
 val gitHash = BuildInfo.gitHeadCommit
 

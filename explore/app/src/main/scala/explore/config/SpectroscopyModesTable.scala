@@ -33,6 +33,9 @@ import explore.model.enums.WavelengthUnits
 import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.*
+import explore.utils.dataFocalPlane
+import explore.utils.dataInstrument
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.OptionLike.optionInstance
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -451,7 +454,10 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                 containerMod = ^.overflow.auto,
                 rowMod = rowTagMod: row =>
                   TagMod(
-                    ^.disabled := !row.original.entry.enabled,
+                    testId         := "explore-config-row",
+                    dataInstrument := row.original.entry.instrumentConfig.instrument.tag,
+                    dataFocalPlane := row.original.entry.focalPlane.tag,
+                    ^.disabled     := !row.original.entry.enabled,
                     ExploreStyles.TableRowSelected
                       .when:
                         props.selectedConfig.get.headOption

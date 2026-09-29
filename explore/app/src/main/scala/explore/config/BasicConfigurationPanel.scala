@@ -33,6 +33,7 @@ import explore.model.itc.ItcTargetProblem
 import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.AltairMode
@@ -283,7 +284,8 @@ private object BasicConfigurationPanel:
             id = "configuration-mode".refined,
             label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
             value = configModeType.withOnMod(switchMode),
-            disabled = props.readonly
+            disabled = props.readonly,
+            modifiers = List(testId := "explore-config-mode")
           )
 
         def instrumentFilterDropdown(
@@ -296,7 +298,8 @@ private object BasicConfigurationPanel:
             placeholder = "All",
             value = filter,
             exclude = Enumerated[Instrument].all.toSet -- available,
-            disabled = props.readonly
+            disabled = props.readonly,
+            modifiers = List(testId := "explore-config-instrument")
           )
 
         <.div(
@@ -418,6 +421,6 @@ private object BasicConfigurationPanel:
               disabled = creating.get.value || !canAccept,
               severity = Button.Severity.Primary,
               onClick = acceptAction.switching(creating.async, Creating(_)).runAsync
-            ).compact.small
+            ).compact.small.withMods(testId := "explore-config-accept")
           ).unless(props.readonly)
         )

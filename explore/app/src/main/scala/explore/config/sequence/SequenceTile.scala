@@ -114,7 +114,9 @@ object SequenceTile
                     timeTooltip = staleTooltip
                   )
                 val planned: TagOf[HTMLElement] =
-                  timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
+                  timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)(
+                    testId := "explore-sequence-planned"
+                  )
 
                 <.span(ExploreStyles.SequenceTileTitle)(
                   <.span(ExploreStyles.SequenceTileTitleSummary)(
