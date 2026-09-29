@@ -15,15 +15,10 @@ import io.circe.Json
 import io.circe.syntax.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
-import lucuma.core.enums.M1Source
-import lucuma.core.enums.MountGuideOption
 import lucuma.core.enums.Site
-import lucuma.core.enums.TipTiltSource
+import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
-import lucuma.core.model.M1GuideConfig
-import lucuma.core.model.M2GuideConfig
-import lucuma.core.model.TelescopeGuideConfig
 import lucuma.schemas.NavigateDB.Types.ConfigureStepInput
 import lucuma.schemas.NavigateDB.Types.DistanceInput
 import lucuma.schemas.NavigateDB.Types.LightPathInput
@@ -45,17 +40,8 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
     override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
   }
 
-  private val guidingOn: GuiderConfig  =
-    GuiderConfig(ProbeTrackingConfig.On(NodChopTrackingConfig.Normal), GuiderSensorOn)
-  private val guidingOff: GuiderConfig = Tcs.defaultGuiderConf
-
-  private val telescopeGuide: TelescopeGuideConfig = TelescopeGuideConfig(
-    MountGuideOption.MountGuideOn,
-    M1GuideConfig.M1GuideOn(M1Source.OIWFS),
-    M2GuideConfig.M2GuideOn(lucuma.core.enums.ComaOption.ComaOff, Set(TipTiltSource.OIWFS)),
-    None,
-    None
-  )
+  private val guidingOn: StepGuideState  = StepGuideState.Enabled
+  private val guidingOff: StepGuideState = StepGuideState.Disabled
 
   private val offset: InstrumentOffset =
     InstrumentOffset(OffsetP(1.5.withUnit[ArcSecond]), OffsetQ((-2.25).withUnit[ArcSecond]))
@@ -65,15 +51,14 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
   private val defocus: Length = Length.fromLongMicrometers(-120)
 
   private def tcsConfig(
-    oiwfs:     GuiderConfig,
+    guiding:   StepGuideState,
     lightPath: LightPath = LightPath(LightSource.Sky, LightSinkName.Gmos)
   ): BasicTcsConfig[Site.GN.type] =
     BasicTcsConfig[Site.GN.type](
-      telescopeGuide,
       TelescopeConfig(offset.some, wavelength.some, defocus.some),
-      BasicGuidersConfig(P1Config(guidingOff), P2Config(guidingOff), OIConfig(oiwfs)),
       AGConfig(lightPath, HrwfsConfig.Auto.some),
-      gmosNorth
+      gmosNorth,
+      guiding
     )
 
   // Offset components are sent as unsigned microarcseconds, as the ODB input helpers encode them:
@@ -92,7 +77,7 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
     assertEqualsDouble(converted.q.value.value, offset.q.value.value, 1e-6)
   }
 
-  test("Science step sets offset, wavelength and light path, and guides with an active guider") {
+  test("Science step sets offset, wavelength, light path and defocus, and guides if the step does") {
     assertEquals(
       TcsControllerNavigate.configureStepInput(Subsystem.allButGaos, tcsConfig(guidingOn)),
       ConfigureStepInput(
@@ -105,16 +90,16 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
     )
   }
 
-  test("Step does not guide if no guider is active") {
+  test("Step does not guide if its guiding is disabled") {
     assert(
       !TcsControllerNavigate.configureStepInput(Subsystem.allButGaos, tcsConfig(guidingOff)).guiding
     )
   }
 
-  test("Guiders that are not configured by the step are not used to decide guiding") {
+  test("Guiding follows the step's guide state whichever subsystems are configured") {
     assert(
-      !TcsControllerNavigate
-        .configureStepInput(Subsystem.allButGaosNorOi, tcsConfig(guidingOn))
+      TcsControllerNavigate
+        .configureStepInput(NonEmptySet.of(AGUnit), tcsConfig(guidingOn))
         .guiding
     )
   }
@@ -169,7 +154,7 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
     val nodOffset =
       InstrumentOffset(OffsetP(0.0.withUnit[ArcSecond]), OffsetQ(10.0.withUnit[ArcSecond]))
     val input     =
-      TcsControllerNavigate.nodInput(Subsystem.allButGaos, nodOffset, true, tcsConfig(guidingOn))
+      TcsControllerNavigate.nodInput(Subsystem.allButGaos, nodOffset, true)
     assertEquals(
       input,
       ConfigureStepInput(
@@ -185,7 +170,7 @@ class TcsControllerNavigateSuite extends munit.FunSuite {
   test("Nod to an unguided position does not guide") {
     assert(
       !TcsControllerNavigate
-        .nodInput(Subsystem.allButGaos, offset, false, tcsConfig(guidingOn))
+        .nodInput(Subsystem.allButGaos, offset, false)
         .guiding
     )
   }

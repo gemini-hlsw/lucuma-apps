@@ -77,35 +77,14 @@ case class TcsSouth[F[_]: {Sync, Logger}] private (
       .flatMap(v => inUse.option(GuiderConfig(v.toProbeTracking, v.toGuideSensorOption)))
       .getOrElse(defaultGuiderConf)
 
-  /*
-   * Build TCS configuration for the step, merging the guide configuration from the sequence with the guide
-   * configuration set from TCC. The TCC configuration has precedence: if a guider is not used in the TCC configuration,
-   * it will not be used for the step, regardless of the sequence values.
-   */
-  def buildBasicTcsConfig(gc: GuideConfig): F[TcsSouthConfig] =
-    (BasicTcsConfig(
-      gc.tcsGuide,
+  // The step's own guide state is sent to Navigate. The guide configuration set from Navigate is not used.
+  def buildBasicTcsConfig: TcsSouthConfig =
+    BasicTcsConfig(
       TelescopeConfig(config.offsetA, config.wavelA, config.instrumentDefocus),
-      BasicGuidersConfig(
-        P1Config(
-          calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.PWFS1, M1Source.PWFS1),
-                           config.guideWithP1
-          )
-        ),
-        P2Config(
-          calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.PWFS2, M1Source.PWFS2),
-                           config.guideWithP2
-          )
-        ),
-        OIConfig(
-          calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.OIWFS, M1Source.OIWFS),
-                           config.guideWithOI
-          )
-        )
-      ),
       AGConfig(config.lightPath, HrwfsConfig.Auto.some),
-      config.instrument
-    ): TcsSouthConfig).pure[F]
+      config.instrument,
+      config.guiding
+    )
 
   private def anyGeMSGuiderActive(gc: TcsSouth.TcsSeqConfig): Boolean =
     gc.guideWithCWFS1.exists(_ === StepGuideState.Enabled) ||
@@ -190,10 +169,8 @@ case class TcsSouth[F[_]: {Sync, Logger}] private (
       }
 
   def buildTcsConfig: F[TcsSouthConfig] =
-    guideDb.value.flatMap { c =>
-      if (gaos.isDefined) buildTcsAoConfig(c.config)
-      else buildBasicTcsConfig(c.config)
-    }
+    if (gaos.isDefined) guideDb.value.flatMap(c => buildTcsAoConfig(c.config))
+    else buildBasicTcsConfig.pure[F]
 
 }
 
@@ -213,7 +190,8 @@ object TcsSouth {
     wavelA:            Option[Wavelength],
     instrumentDefocus: Option[Length],
     lightPath:         LightPath,
-    instrument:        InstrumentGuide
+    instrument:        InstrumentGuide,
+    guiding:           StepGuideState
   )
 
   private[tcs] def config(
@@ -267,7 +245,8 @@ object TcsSouth {
       observingWavelength,
       instrumentDefocus,
       lightPath,
-      instrument
+      instrument,
+      guiding
     )
   }
 

@@ -95,7 +95,7 @@ object TcsController {
     }
 
     // Beam C is never used on normal configuration, and setting it to On would cause problems because no other tool
-    // (TCC, Tcs engineering screens) can change it.
+    // (Navigate, Tcs engineering screens) can change it.
     object Normal extends ActiveNodChopTracking {
       def get(nodchop: NodChop): NodChopTrackingOption =
         NodChopTrackingOption.fromBoolean(nodchop.nod =!= Beam.C && nodchop.nod === nodchop.chop)
@@ -357,18 +357,6 @@ object TcsController {
     val oiwfs: OIConfig
   }
 
-  case class BasicGuidersConfig(
-    pwfs1: P1Config,
-    pwfs2: P2Config,
-    oiwfs: OIConfig
-  ) extends GuidersConfig
-
-  object BasicGuidersConfig {
-    val pwfs1: Lens[BasicGuidersConfig, P1Config] = Focus[BasicGuidersConfig](_.pwfs1)
-    val pwfs2: Lens[BasicGuidersConfig, P2Config] = Focus[BasicGuidersConfig](_.pwfs2)
-    val oiwfs: Lens[BasicGuidersConfig, OIConfig] = Focus[BasicGuidersConfig](_.oiwfs)
-  }
-
   case class AoGuidersConfig[C](
     pwfs1:   P1Config,
     aoguide: C,
@@ -395,43 +383,27 @@ object TcsController {
       _.asInstanceOf[GuiderConfig].show
     }
 
-    given Show[BasicGuidersConfig] = Show.show { x =>
-      s"(pwfs1 = ${x.pwfs1.show}, pwfs2 = ${x.pwfs2.show}, oiwfs = ${x.oiwfs.show})"
-    }
-
     given [C: Show]: Show[AoGuidersConfig[C]] = Show.show { x =>
       s"(pwfs1 = ${x.pwfs1.show}, aoguide = ${x.aoguide.show}, oiwfs = ${x.oiwfs.show})"
     }
   }
 
   sealed trait TcsConfig[S <: Site] {
-    val gc: TelescopeGuideConfig
     val tc: TelescopeConfig
-    val gds: GuidersConfig
     val agc: AGConfig
     val inst: InstrumentGuide
   }
 
+  /**
+   * Configuration of a non AO step. Guiding is the step's own guide state. The guide configuration
+   * received from Navigate is only shown to the user, and plays no part in configuring the step.
+   */
   case class BasicTcsConfig[S <: Site](
-    gc:   TelescopeGuideConfig,
-    tc:   TelescopeConfig,
-    gds:  BasicGuidersConfig,
-    agc:  AGConfig,
-    inst: InstrumentGuide
+    tc:      TelescopeConfig,
+    agc:     AGConfig,
+    inst:    InstrumentGuide,
+    guiding: StepGuideState
   ) extends TcsConfig[S]
-
-  object BasicTcsConfig {
-    def gds[S <: Site] = Focus[BasicTcsConfig[S]](_.gds)
-    def gc[S <: Site]  = Focus[BasicTcsConfig[S]](_.gc)
-
-    val offsetALensGS = Focus[BasicTcsConfig[Site.GS.type]](_.tc.offsetA)
-    val m2GuideLensGS = Focus[BasicTcsConfig[Site.GS.type]](_.gc.m2Guide)
-    val m1GuideLensGS = Focus[BasicTcsConfig[Site.GS.type]](_.gc.m1Guide)
-    val pwfs1LensGS   = Focus[BasicTcsConfig[Site.GS.type]](_.gds.pwfs1)
-    val pwfs2LensGS   = Focus[BasicTcsConfig[Site.GS.type]](_.gds.pwfs2)
-    val oiwfsLensGS   = Focus[BasicTcsConfig[Site.GS.type]](_.gds.oiwfs)
-    val instLensGS    = Focus[BasicTcsConfig[Site.GS.type]](_.inst)
-  }
 
   case class AoTcsConfig[S <: Site](
     gc:   TelescopeGuideConfig,
@@ -469,7 +441,7 @@ object TcsController {
   object TcsConfig {
 
     given [S <: Site]: Show[BasicTcsConfig[S]] = Show.show { x =>
-      s"(guideConfig = ${x.gc}, telConfig = ${x.tc.show}, guidersConfig = ${x.gds.show}, A&G = ${x.agc.show})"
+      s"(telConfig = ${x.tc.show}, A&G = ${x.agc.show}, guiding = ${x.guiding})"
     }
 
     given [S <: Site]: Show[AoTcsConfig[S]] = Show.show { x =>

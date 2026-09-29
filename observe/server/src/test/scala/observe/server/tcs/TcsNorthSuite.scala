@@ -79,4 +79,25 @@ class TcsNorthSuite extends munit.FunSuite {
 
   }
 
+  test("Step guiding comes from the step alone, whether or not there are guide targets") {
+    val gmos = new InstrumentGuide {
+      override def instrument: Instrument                                       = Instrument.GmosNorth
+      override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
+    }
+    List(StepGuideState.Enabled, StepGuideState.Disabled).foreach { guiding =>
+      assertEquals(
+        TcsNorth
+          .config(
+            gmos,
+            defaultTargetEnvironment,
+            TelescopeConfig(Offset.Zero, guiding),
+            LightPath(LightSource.Sky, LightSinkName.Gmos),
+            none,
+            none
+          )
+          .guiding,
+        guiding
+      )
+    }
+  }
 }

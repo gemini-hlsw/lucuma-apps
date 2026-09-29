@@ -47,19 +47,16 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
 
   // Helper function to output the part of the TCS configuration that is actually applied.
   private def subsystemConfig(tcs: TcsNorthConfig, subsystem: Subsystem): String =
-    (subsystem match {
-      case Subsystem.M1     => pprint.apply(tcs.gc.m1Guide)
-      case Subsystem.M2     => pprint.apply(tcs.gc.m2Guide)
-      case Subsystem.OIWFS  => pprint.apply(tcs.gds.oiwfs.value)
-      case Subsystem.PWFS1  => pprint.apply(tcs.gds.pwfs1.value)
-      case Subsystem.PWFS2  => pprint.apply(tcs.gds.pwfs2.value)
-      case Subsystem.Mount  => pprint.apply(tcs.tc)
-      case Subsystem.AGUnit => pprint.apply(List(tcs.agc.sfPos, tcs.agc.hrwfs))
-      case Subsystem.Gaos   =>
-        tcs match {
-          case x: TcsNorthAoConfig => pprint.apply(x.gds.aoguide)
-          case _                   => pprint.apply("")
-        }
+    ((tcs, subsystem) match {
+      case (_, Subsystem.Mount)                   => pprint.apply(tcs.tc)
+      case (_, Subsystem.AGUnit)                  => pprint.apply(List(tcs.agc.sfPos, tcs.agc.hrwfs))
+      case (x: BasicTcsConfig[Site.GN.type], _)   => pprint.apply(x.guiding)
+      case (x: TcsNorthAoConfig, Subsystem.M1)    => pprint.apply(x.gc.m1Guide)
+      case (x: TcsNorthAoConfig, Subsystem.M2)    => pprint.apply(x.gc.m2Guide)
+      case (x: TcsNorthAoConfig, Subsystem.OIWFS) => pprint.apply(x.gds.oiwfs.value)
+      case (x: TcsNorthAoConfig, Subsystem.PWFS1) => pprint.apply(x.gds.pwfs1.value)
+      case (x: TcsNorthAoConfig, Subsystem.PWFS2) => pprint.apply(x.gds.pwfs2.value)
+      case (x: TcsNorthAoConfig, Subsystem.Gaos)  => pprint.apply(x.gds.aoguide)
     }).plainText
 
   override def configure: F[ConfigResult[F]] =
@@ -83,35 +80,14 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
       .flatMap(v => inUse.option(GuiderConfig(v.toProbeTracking, v.toGuideSensorOption)))
       .getOrElse(defaultGuiderConf)
 
-  /*
-   * Build TCS configuration for the step, merging the guide configuration from the sequence with the guide
-   * configuration set from TCC. The TCC configuration has precedence: if a guider is not used in the TCC configuration,
-   * it will not be used for the step, regardless of the sequence values.
-   */
-  private def buildBasicTcsConfig(gc: GuideConfig): F[TcsNorthConfig] =
-    (BasicTcsConfig(
-      gc.tcsGuide,
+  // The step's own guide state is sent to Navigate.
+  private def buildBasicTcsConfig: TcsNorthConfig =
+    BasicTcsConfig(
       TelescopeConfig(config.offsetA, config.wavelA, config.instrumentDefocus),
-      BasicGuidersConfig(
-        P1Config(
-          calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.PWFS1, M1Source.PWFS1),
-                           config.guideWithP1
-          )
-        ),
-        P2Config(
-          calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.PWFS2, M1Source.PWFS2),
-                           config.guideWithP2
-          )
-        ),
-        OIConfig(
-          calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.OIWFS, M1Source.OIWFS),
-                           config.guideWithOI
-          )
-        )
-      ),
       AGConfig(config.lightPath, HrwfsConfig.Auto.some),
-      config.instrument
-    ): TcsNorthConfig).pure[F]
+      config.instrument,
+      config.guiding
+    )
 
   private def buildTcsAoConfig(gc: GuideConfig, ao: Altair[F]): F[TcsNorthConfig] =
     gc.gaosGuide
@@ -158,11 +134,9 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
       )
 
   def buildTcsConfig: F[TcsNorthConfig] =
-    guideDb.value.flatMap { c =>
-      gaos
-        .map(buildTcsAoConfig(c.config, _))
-        .getOrElse(buildBasicTcsConfig(c.config))
-    }
+    gaos
+      .map(ao => guideDb.value.flatMap(c => buildTcsAoConfig(c.config, ao)))
+      .getOrElse(buildBasicTcsConfig.pure[F])
 
   override def nod(
     stage:  NodAndShuffleStage,
@@ -187,7 +161,8 @@ object TcsNorth {
     wavelA:            Option[Wavelength],
     instrumentDefocus: Option[Length],
     lightPath:         LightPath,
-    instrument:        InstrumentGuide
+    instrument:        InstrumentGuide,
+    guiding:           StepGuideState
   )
 
   private[tcs] def config(
@@ -228,7 +203,8 @@ object TcsNorth {
       observingWavelength,
       instrumentDefocus,
       lightPath,
-      instrument
+      instrument,
+      guiding
     )
   }
 

@@ -84,10 +84,10 @@ object Gems {
                 )
               )
           case _                    =>
-            // If there is no configuration coming from TCC we just ignore it. This is the case when taking dome flats
+            // If there is no configuration coming from Navigate we just ignore it. This is the case when taking dome flats
             // We check in TcsSouth.scala that it is not an error
             L.info(
-              "No GeMS guide configuration from TCC. GeMS control skipped for unguided step."
+              "No GeMS guide configuration from Navigate. GeMS control skipped for unguided step."
             ) *>
               PauseResume[F](none, none).pure[F]
         }

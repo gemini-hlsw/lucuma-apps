@@ -12,6 +12,7 @@ import clue.syntax.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.Site
+import lucuma.core.enums.StepGuideState
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.NavigateDB
 import lucuma.schemas.NavigateDB.Types.ConfigureStepInput
@@ -103,7 +104,7 @@ object TcsControllerNavigate {
       tcs:        BasicTcsConfig[S]
     ): F[Unit] =
       L.debug(s"Nod to offset $offset, guided = $guided") *>
-        configureStep(nodInput(subsystems, offset, guided, tcs))
+        configureStep(nodInput(subsystems, offset, guided))
   }
 
   def apply[F[_]: {Async, Logger}, S <: Site](epicsSys: TcsEpics[F])(using
@@ -114,7 +115,8 @@ object TcsControllerNavigate {
   /**
    * Builds the `configureStep` input for a step. As when commanding the TCS directly, the offset
    * and wavelength are only set if the mount is part of the configured subsystems, the light path
-   * only if the A&G unit is, and the instrument defocus only if M2 is.
+   * only if the A&G unit is, and the instrument defocus only if M2 is. Guiding is the step's own
+   * guide state.
    */
   def configureStepInput[S <: Site](
     subsystems: NonEmptySet[Subsystem],
@@ -138,34 +140,22 @@ object TcsControllerNavigate {
         .filter(_ => subsystems.contains(Subsystem.M2))
         .map(distanceInput)
         .orIgnore,
-      guiding = isGuiding(subsystems, tcs.gds)
+      guiding = tcs.guiding === StepGuideState.Enabled
     )
 
   /**
    * Builds the `configureStep` input for a nod. A nod only moves the telescope to the new offset,
-   * leaving guiding off if the nod position is not guided.
+   * guiding as the nod position specifies.
    */
-  def nodInput[S <: Site](
+  def nodInput(
     subsystems: NonEmptySet[Subsystem],
     offset:     InstrumentOffset,
-    guided:     Boolean,
-    tcs:        BasicTcsConfig[S]
+    guided:     Boolean
   ): ConfigureStepInput =
     ConfigureStepInput(
       offset = subsystems.contains(Subsystem.Mount).guard[Option].as(offsetInput(offset)).orIgnore,
-      guiding = guided && isGuiding(subsystems, tcs.gds)
+      guiding = guided
     )
-
-  /**
-   * The step is guided if any of the guiders being configured is active. Which guiders are active
-   * already combines the step's guide state with the guide configuration set by the operator.
-   */
-  def isGuiding(subsystems: NonEmptySet[Subsystem], gds: GuidersConfig): Boolean =
-    List(
-      Subsystem.PWFS1 -> gds.pwfs1.value,
-      Subsystem.PWFS2 -> gds.pwfs2.value,
-      Subsystem.OIWFS -> gds.oiwfs.value
-    ).exists { case (s, g) => subsystems.contains(s) && g.isActive }
 
   def offsetInput(o: InstrumentOffset): OffsetInput = o.toOffset.toInput
 
