@@ -251,6 +251,9 @@ importers:
       '@fortawesome/sharp-solid-svg-icons':
         specifier: 7.3.1
         version: 7.3.1
+      '@gemini-hlsw/lucuma-wasm':
+        specifier: 0.1.0
+        version: 0.1.0
       '@react-hook/resize-observer':
         specifier: 2.0.2
         version: 2.0.2(react@19.3.0)
@@ -1245,6 +1248,9 @@ packages:
   '@fortawesome/sharp-solid-svg-icons@7.3.1':
     resolution: {integrity: sha512-+kj3qYLwg7jY0B4AJ2HIa8WKWGEDdtPT6yjxbi71GetiXtTlEwi5xJgaN/j231C4xisiIgpweaPIx+Zw5dJ+sQ==}
     engines: {node: '>=6'}
+
+  '@gemini-hlsw/lucuma-wasm@0.1.0':
+    resolution: {integrity: sha512-x+af7fvhFyOswaPeDFwcJIfdgb29v8JZ3Ihra9kryaxtioi7akRJxyajYD8E05yHByxKWgAt/KseOoHjeAwJXA==}
 
   '@isaacs/balanced-match@4.0.1':
     resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
@@ -4828,6 +4834,8 @@ snapshots:
   '@fortawesome/sharp-solid-svg-icons@7.3.1':
     dependencies:
       '@fortawesome/fontawesome-common-types': 7.3.1
+
+  '@gemini-hlsw/lucuma-wasm@0.1.0': {}
 
   '@isaacs/balanced-match@4.0.1': {}
 
