@@ -9,6 +9,7 @@ import explore.model.AveragePABasis
 import explore.model.Execution
 import explore.model.Observation
 import explore.model.syntax.all.*
+import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.PosAngleConstraint
