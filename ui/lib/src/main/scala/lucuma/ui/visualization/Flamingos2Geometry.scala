@@ -17,8 +17,8 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
-import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.flamingos2.scienceArea
+import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates

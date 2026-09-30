@@ -17,8 +17,8 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.Site
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gmos
-import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.gmos.oiwfs
+import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.syntax.shapeexpression.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
