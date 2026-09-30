@@ -245,6 +245,24 @@ calibrations scheduled as separate observations, Tellurics above all, so it is n
 whole cost of getting the data.
 _Avoid_: full duration, total programme time
 
+### Telluric calibrations
+
+**Telluric Type**:
+The kind of standard star a science observation asks its tellurics to use: Hot, A0V, G2V
+or None. None means the ODB generates no tellurics at all.
+_Avoid_: Solar (the ODB's name for G2V), telluric star
+
+**Unobserved Telluric**:
+A telluric that has no visit yet. It follows its science observation's Telluric Type, and
+the ODB may replace it whenever the tellurics the next visit needs change.
+_Avoid_: pending telluric
+
+**Spent Telluric**:
+A telluric that has a visit. It stays in its group and keeps the Telluric Type it was
+observed with, which can differ from its science observation's, and it no longer counts
+toward what the next visit needs.
+_Avoid_: executed telluric, completed telluric
+
 # Telescope Offset Configuration
 
 How Gemini instruments specify where the telescope points at each step of a
