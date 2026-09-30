@@ -65,7 +65,7 @@ object SvgVisualizationOverlay {
       )
     else
       // A polygon with holes cannot be a single <polygon>: its coordinates would run the hole
-      // rings onto the shell, drawing spurious connecting lines. 
+      // rings onto the shell, drawing spurious connecting lines.
       // Each ring becomes a subpath instead.
       def subpath(ring: NonEmptyList[Offset]): String =
         ring.toList.map(point).mkString("M", " L", " Z")
@@ -94,8 +94,11 @@ object SvgVisualizationOverlay {
     ScalaFnComponent[Props] { p =>
       import p.interpreter
 
+      // Only plain polygon data escapes the arena, so a native engine frees the shapes here
+      // instead of waiting for the GC, which matters on every pan and zoom re-render.
       val evald: NonEmptyList[(Css, List[ShapePolygon])] =
-        p.shapes.map((css, shape) => (css, shape.eval.polygons))
+        p.interpreter.withArena:
+          p.shapes.map((css, shape) => (css, shape.eval.polygons))
 
       // The viewBox covers the whole geometry, in microarcseconds.
       val envelope =
