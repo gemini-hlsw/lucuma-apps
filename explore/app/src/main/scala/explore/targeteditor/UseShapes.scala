@@ -29,11 +29,11 @@ import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.geom.ShapeExpression
+import lucuma.core.geom.ShapeInterpreter
 import lucuma.core.geom.ShapePolygon
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
-import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.mos.MosMaskGeometry
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPosition
@@ -62,7 +62,7 @@ def usePatrolFieldShapes(
   pfVisibility:           AGSVisibility,
   anglesToTest:           Option[NonEmptyList[Angle]],
   agsState:               Option[AgsState]
-): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
+)(using ShapeInterpreter): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
   extension (geometryType: GeometryType)
     def css: Css = geometryType match

@@ -6,6 +6,7 @@ package explore.model
 import cats.*
 import cats.effect.*
 import cats.effect.std.SecureRandom
+import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
 import clue.js.*
 import clue.websocket.*
@@ -28,6 +29,9 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.catalog.clients.SimbadClient
 import lucuma.catalog.simbad.SEDDataLoader
 import lucuma.core.enums.ExecutionEnvironment
+import lucuma.core.geom.ShapeInterpreter
+import lucuma.core.geom.jts.JtsShapeInterpreter
+import lucuma.core.geom.wasm.WasmGeometry
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.horizons.HorizonsClient
@@ -70,7 +74,8 @@ case class AppContext[F[_]](
   toastRef:               ToastRef,
   resetProgramCacheTopic: Topic[F, Option[ProgramError]], // Error message (if any)
   loadProgress:           LoadProgressRef[F],
-  simbadClient:           SimbadClient[F]
+  simbadClient:           SimbadClient[F],
+  shapeInterpreter:       ShapeInterpreter
 )(using
   val F:                  Async[F],
   val logger:             Logger[F],
@@ -123,6 +128,8 @@ case class AppContext[F[_]](
 
   given toastCtx: ToastCtx[F] = new ToastCtx(toastRef)
 
+  given ShapeInterpreter = shapeInterpreter
+
   given odbApi: OdbApi[F] =
     OdbApiImpl[F](
       resetCache = errorMsg => resetProgramCache(errorMsg.some),
@@ -162,6 +169,18 @@ object AppContext:
       sedMatcher             <- SEDDataLoader.loadMatcher[F](otelHttpClient, uri"")
       simbadClient            =
         SimbadClient.build(httpClient, sedMatcher, _.copy(scheme = Scheme.https.some))
+      shapeInterpreter       <- Async[F]
+                                  .fromFuture(Sync[F].delay(WasmGeometry.load.unsafeToFuture()))
+                                  .attempt
+                                  .flatMap(
+                                    _.fold(
+                                      e =>
+                                        Logger[F]
+                                          .warn(e)("wasm geometry kernel unavailable, using lucuma-jts")
+                                          .as(JtsShapeInterpreter),
+                                      si => Logger[F].info("Page geometry: lucuma-wasm kernel").as(si)
+                                    )
+                                  )
       version                 = utils.version(config.environment)
     } yield AppContext[F](
       version,
@@ -179,7 +198,8 @@ object AppContext:
       null, // toastRef will be completed later in RootComponent
       resetProgramCacheTopic,
       loadProgress,
-      simbadClient
+      simbadClient,
+      shapeInterpreter
     )
 
   given [F[_]]: Reusability[AppContext[F]] = Reusability.always

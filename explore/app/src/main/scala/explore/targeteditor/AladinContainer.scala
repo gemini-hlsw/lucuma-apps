@@ -39,8 +39,8 @@ import lucuma.core.enums.MosSlitPriority
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.geom.ShapeInterpreter
 import lucuma.core.geom.ShapePolygon
-import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.math.Angle
@@ -434,6 +434,7 @@ object AladinContainer extends AladinCommon {
                                       clickSignal.value.value.toOption.isDefined
                                      )
                                    ): (baseCoords, regions, _, _) =>
+                                     import ctx.given
                                      val clickAnywhere = props.clickAnywhere
                                      (baseCoords, clickSignal.value.value.toOption).tupled
                                        .fold(
@@ -469,7 +470,7 @@ object AladinContainer extends AladinCommon {
                                      props.agsVisibility,
                                      props.anglesToTest,
                                      props.agsState
-                                   )
+                                   )(using ctx.shapeInterpreter)
         offsetPositions         <- useMemo(
                                      (props.vizConf,
                                       props.selectedGuideStar,
@@ -550,6 +551,8 @@ object AladinContainer extends AladinCommon {
         // Use fov from aladin
         fov                     <- useState(none[Fov])
       } yield {
+        given ShapeInterpreter = ctx.shapeInterpreter
+
         val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseOrBlindCoords
 
         // Shade the sky keep-out zone while adding a sky position, or in regular mode when an
