@@ -162,8 +162,12 @@ object UseAgsCalculation:
                                       )
                                     process.guarantee(state.async.set(AgsState.Idle))
 
+                                  // A manual pick skips the query; drop the intersections it would
+                                  // have refreshed so the overlay falls back to the unconstrained ones.
                                   guideStarSelection.mod(_.resetKeepingName).toAsync *>
-                                    query.orEmpty.unlessA(guideStarSelection.get.isOverride)
+                                    (if guideStarSelection.get.isOverride
+                                     then constrainedPF.setState(Map.empty).to[IO]
+                                     else query.orEmpty)
 
                                 case _ =>
                                   // When reverting config we should reset the results
