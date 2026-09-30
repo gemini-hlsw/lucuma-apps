@@ -102,7 +102,7 @@ object UseAltairModesAgs:
                   candidates
                 )
               .map:
-                _.flatMap(_.headOption).flatMap: usable =>
+                _.flatMap(_.usable.headOption).flatMap: usable =>
                   AltairControls
                     .guideStarSeparation(baseCoords.some, usable.target.some, obsTime)
                     .flatMap:

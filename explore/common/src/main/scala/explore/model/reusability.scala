@@ -115,7 +115,7 @@ object reusability:
   given Reusability[InstrumentConfigAndItcResult]       = Reusability.byEq
   given Reusability[GuideStarCandidate]                 = Reusability.by(_.name.value)
   given Reusability[ShapePolygon]                       = Reusability.byEq
-  given Reusability[Map[Angle, List[ShapePolygon]]]     = Reusability.byEq
+  given patrolFieldsReuse: Reusability[Map[Angle, List[ShapePolygon]]] = Reusability.byEq
   given Reusability[OffsetPosition]                     = Reusability.byEq
   given Reusability[AgsParams]                          = Reusability.byEq
   given Reusability[AgsState]                           = Reusability.byEq
