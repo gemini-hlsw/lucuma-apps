@@ -4,7 +4,7 @@
 package explore.itc
 
 import cats.data.NonEmptyChain
-import eu.timepit.refined.types.numeric.PosInt
+import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
 import explore.model.itc.ItcExposureTime
 import explore.model.itc.math.*
@@ -21,7 +21,7 @@ import lucuma.ui.syntax.all.given
 case class ItcSpectroscopyPlotDescription(
   brightness:   Option[BrightnessValues],
   exposureTime: ItcExposureTime,
-  coadds:       Option[PosInt],
+  showCoadds:   Boolean,
   ccds:         NonEmptyChain[ItcCcd],
   finalSN:      TotalSN,
   singleSN:     SingleSN
@@ -35,7 +35,11 @@ object ItcSpectroscopyPlotDescription
 
       val exposureTime: String =
         // Not ideal, it needs a fix on lucuma-ui
-        formatTC(props.exposureTime.time, props.exposureTime.count, props.coadds)
+        formatTC(
+          props.exposureTime.time,
+          props.exposureTime.count,
+          props.exposureTime.coadds.some.filter(_ => props.showCoadds)
+        )
 
       val ccds: String = s"${props.ccds.maxPeakPixelFlux} 𝐞⁻ (${props.ccds.maxADU} ADU)"
 
