@@ -78,7 +78,7 @@ trait ObserveEngine[F[_]] {
     user:     User
   ): F[Unit]
 
-  def restartStep(
+  def rewindStep(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User

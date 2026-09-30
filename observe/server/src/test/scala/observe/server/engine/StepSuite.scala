@@ -178,7 +178,7 @@ class StepSuite extends CatsEffectSuite {
     } yield Result.OK(DummyResult)
   )
 
-  // Simulates a Restart request (UI "Restart" button) arriving while a config action is running:
+  // Simulates a Rewind request (UI "Rewind" button) arriving while a config action is running:
   // same trick as `triggerPause`, an action that offers the event as a side effect of its `gen`.
   def triggerStopBeforeObserve(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Undefined,
@@ -188,7 +188,7 @@ class StepSuite extends CatsEffectSuite {
   )
 
   // Simulates `internalStop` being set while the exposure itself is already running (e.g. a
-  // stop/abort/pause of the exposure), as opposed to a Restart request made while configuring.
+  // stop/abort/pause of the exposure), as opposed to a Rewind request made while configuring.
   def observeSettingInternalStop(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Observe,
     for {
@@ -271,7 +271,7 @@ class StepSuite extends CatsEffectSuite {
   }
 
   test(
-    "restartStep (stop before observe) requested during configuration lets the config group " +
+    "rewindStep (stop before observe) requested during configuration lets the config group " +
       "finish, then skips the exposure and goes idle without starting it"
   ) {
     def qs0(eng: Engine[IO]): EngineState[IO] =

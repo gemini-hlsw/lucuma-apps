@@ -162,7 +162,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                   case Some(nextState)                                 =>
                     EngineHandle.replaceSequenceState(obsId)(nextState) *>
                       (if (internalStop && nextState.loadedStep.exists(_.hasObserveAhead)) {
-                         // A restart requested while configuring stops at the first group boundary,
+                         // A rewind requested while configuring stops at the first group boundary,
                          // before any further configuration or ODB observe events. `internalStop` is
                          // also set while an exposure is being stopped, aborted or paused; then the
                          // observe action is already behind us and the post-observe groups must still

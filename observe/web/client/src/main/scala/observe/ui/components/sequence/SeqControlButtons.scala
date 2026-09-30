@@ -32,8 +32,8 @@ case class SeqControlButtons(
 ) extends ReactFnProps(SeqControlButtons):
   val isUserStopRequested: Boolean   = sequenceStatus.isUserStopRequested
   val isPauseInFlight: Boolean       = requests.pause === OperationRequest.InFlight
-  val isRestartInFlight: Boolean     = requests.restart === OperationRequest.InFlight
-  val isRestartRequested: Boolean    = sequenceStatus.isInternalStopRequested
+  val isRewindInFlight: Boolean      = requests.rewind === OperationRequest.InFlight
+  val isRewindRequested: Boolean     = sequenceStatus.isInternalStopRequested
   val isCancelPauseInFlight: Boolean = requests.cancelPause === OperationRequest.InFlight
   val isRunning: Boolean             = sequenceStatus.isRunning
   val isWaitingUserPrompt: Boolean   = sequenceStatus.isWaitingUserPrompt
@@ -73,13 +73,13 @@ object SeqControlButtons
             disabled = props.isRefreshing || props.isCompleted
           ).when(!props.isRunning),
           Button(
-            clazz = ObserveStyles.RestartButton |+| ObserveStyles.ObsSummaryButton,
+            clazz = ObserveStyles.RewindButton |+| ObserveStyles.ObsSummaryButton,
             icon = Icons.BackwardStep.withFixedWidth().withSize(IconSize.LG),
-            tooltip = "Restart step: stop before the exposure and go idle. Run configures again.",
+            tooltip = "Rewind step: stop before the exposure and go idle. Run configures again.",
             tooltipOptions = tooltipOptions,
-            onClick = sequenceApi.restartStep(props.obsId).runAsync,
+            onClick = sequenceApi.rewindStep(props.obsId).runAsync,
             disabled =
-              props.isRestartInFlight || props.isRestartRequested || props.isWaitingUserPrompt
+              props.isRewindInFlight || props.isRewindRequested || props.isWaitingUserPrompt
           ).when(props.isRunning && !props.isObserveStarted),
           Button(
             clazz = ObserveStyles.PauseButton |+| ObserveStyles.ObsSummaryButton,
