@@ -12,6 +12,7 @@ import eu.timepit.refined.numeric.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.refined.*
+import lucuma.ui.aladin.Fov
 import monocle.Focus
 import monocle.Lens
 
@@ -45,8 +46,5 @@ object AsterismVisualOptions:
       100.refined
     )
 
-  // Aladin cannot zoom back out from its own floor, so a stored fov at or below this is unusable.
-  val MinFov: Angle = Angle.fromDoubleArcseconds(1.0)
-
   def isUsableFov(fov: Angle): Boolean =
-    fov.toMicroarcseconds >= MinFov.toMicroarcseconds
+    fov.toMicroarcseconds >= Fov.Min.toMicroarcseconds
