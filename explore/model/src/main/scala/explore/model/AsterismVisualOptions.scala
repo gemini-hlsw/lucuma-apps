@@ -46,5 +46,6 @@ object AsterismVisualOptions:
       100.refined
     )
 
-  def isUsableFov(fov: Angle): Boolean =
-    fov.toMicroarcseconds >= Fov.Min.toMicroarcseconds
+  // Aladin sets the view from the larger axis, so only that one has to clear the floor
+  def isUsableFov(fov: Fov): Boolean =
+    fov.x.toMicroarcseconds.max(fov.y.toMicroarcseconds) >= Fov.Min.toMicroarcseconds

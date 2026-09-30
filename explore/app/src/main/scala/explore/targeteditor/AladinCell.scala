@@ -19,7 +19,6 @@ import explore.common.UserPreferencesQueries.AsterismPreferences
 import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
 import explore.model.*
-import explore.model.AsterismVisualOptions.isUsableFov
 import explore.model.InteractiveRegion
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
@@ -281,7 +280,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             // Don't save if the change is less than 10 arcsec on both axes
             o.fov.isCloseTo(newFov)
         )
-        (fovView.set(newFov) *>
+        fovView.set(newFov) *>
           AsterismPreferences
             .updateAladinPreferences[IO](
               options.get.toOption.flatMap(_.id),
@@ -294,8 +293,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             .unlessA(ignore)
             .runAsync
             .rateLimit(1.seconds, 1)
-            .void).when_(isUsableFov(newFov.x) && isUsableFov(newFov.y))
-
+            .void
       }
 
       val (offsetChangeInAladin, offsetOnCenter) =

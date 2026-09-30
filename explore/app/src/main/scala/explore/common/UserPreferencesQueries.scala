@@ -47,6 +47,7 @@ import lucuma.itc.GraphType
 import lucuma.react.gridlayout.*
 import lucuma.react.table.*
 import lucuma.react.table.facade.compat as raw
+import lucuma.ui.aladin.Fov
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.extras.LogLevel
@@ -304,16 +305,13 @@ object UserPreferencesQueries:
         .map: tids =>
           val key = AsterismKey.fromTargetIds(tids)
 
-          val fovRAAngle  =
-            fovRA
-              .map(Angle.fromMicroarcseconds)
+          val Fov(fovRAAngle, fovDecAngle) =
+            (fovRA.map(Angle.fromMicroarcseconds), fovDec.map(Angle.fromMicroarcseconds))
+              .mapN(Fov.apply)
               .filter(AsterismVisualOptions.isUsableFov)
-              .getOrElse(AsterismVisualOptions.Default.fovRA)
-          val fovDecAngle =
-            fovDec
-              .map(Angle.fromMicroarcseconds)
-              .filter(AsterismVisualOptions.isUsableFov)
-              .getOrElse(AsterismVisualOptions.Default.fovDec)
+              .getOrElse(
+                Fov(AsterismVisualOptions.Default.fovRA, AsterismVisualOptions.Default.fovDec)
+              )
 
           val offset =
             (viewOffsetP.map(Angle.fromMicroarcseconds(_).p),
