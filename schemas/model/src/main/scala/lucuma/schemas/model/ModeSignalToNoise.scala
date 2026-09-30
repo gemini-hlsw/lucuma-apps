@@ -13,6 +13,10 @@ import lucuma.core.enums.GnirsFilter
 enum ModeSignalToNoise derives Eq:
   case Undefined
   case Spectroscopy(acquisition: ItcResultValues, science: ItcResultValues)
+  case GnirsSpectroscopy(
+    acquisition: ItcResultValues,
+    science:     List[GnirsCentralWavelengthItcResult]
+  )
   case GmosNorthImaging(science: Map[GmosNorthFilter, ItcResultValues])
   case GmosSouthImaging(science: Map[GmosSouthFilter, ItcResultValues])
   case Flamingos2Imaging(science: Map[Flamingos2Filter, ItcResultValues])

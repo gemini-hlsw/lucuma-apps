@@ -47,8 +47,8 @@ private trait SequenceTable[S, D](
   // tables have a custom mask FPU, so other instruments keep the default.
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
 
-  def signalToNoise: SequenceType => D => Option[SignalToNoise]
-  def peakPixel: SequenceType => D => Option[PeakPixel]
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise]
+  def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel]
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
 
   protected[sequence] lazy val instrumentVisits: List[Visit[D]] =

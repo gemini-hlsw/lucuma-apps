@@ -3,14 +3,19 @@
 
 package lucuma.schemas.model.arb
 
+import eu.timepit.refined.scalacheck.all.given
+import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbSignalToNoise.given
 import lucuma.core.math.arb.ArbWavelength.given
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.core.util.arb.ArbTimeSpan.given
 import lucuma.itc.SignalToNoiseAt
+import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.PeakPixel
@@ -64,6 +69,28 @@ trait ArbModeSignalToNoise:
     Cogen[(ItcResultValues, ItcResultValues)].contramap: sn =>
       (sn.acquisition, sn.science)
 
+  given Arbitrary[GnirsCentralWavelengthItcResult] = Arbitrary:
+    for
+      wavelength   <- arbitrary[Wavelength]
+      exposureTime <- arbitrary[TimeSpan]
+      coadds       <- arbitrary[PosInt]
+      values       <- arbitrary[ItcResultValues]
+    yield GnirsCentralWavelengthItcResult(wavelength, exposureTime, coadds, values)
+
+  given Cogen[GnirsCentralWavelengthItcResult] =
+    Cogen[(Wavelength, TimeSpan, PosInt, ItcResultValues)].contramap: r =>
+      (r.centralWavelength, r.exposureTime, r.coadds, r.values)
+
+  given Arbitrary[ModeSignalToNoise.GnirsSpectroscopy] = Arbitrary:
+    for
+      acquisitionSN <- arbitrary[ItcResultValues]
+      scienceSN     <- arbitrary[List[GnirsCentralWavelengthItcResult]]
+    yield ModeSignalToNoise.GnirsSpectroscopy(acquisitionSN, scienceSN)
+
+  given Cogen[ModeSignalToNoise.GnirsSpectroscopy] =
+    Cogen[(ItcResultValues, List[GnirsCentralWavelengthItcResult])].contramap: sn =>
+      (sn.acquisition, sn.science)
+
   given Arbitrary[ModeSignalToNoise.GmosNorthImaging] = Arbitrary:
     for scienceSN <- arbitrary[Map[lucuma.core.enums.GmosNorthFilter, ItcResultValues]]
     yield ModeSignalToNoise.GmosNorthImaging(scienceSN)
@@ -110,6 +137,7 @@ trait ArbModeSignalToNoise:
     Gen.oneOf(
       Gen.const(ModeSignalToNoise.Undefined),
       arbitrary[ModeSignalToNoise.Spectroscopy],
+      arbitrary[ModeSignalToNoise.GnirsSpectroscopy],
       arbitrary[ModeSignalToNoise.GmosNorthImaging],
       arbitrary[ModeSignalToNoise.GmosSouthImaging],
       arbitrary[ModeSignalToNoise.Flamingos2Imaging],
@@ -123,14 +151,17 @@ trait ArbModeSignalToNoise:
       Either[
         ModeSignalToNoise.Spectroscopy,
         Either[
-          ModeSignalToNoise.GmosNorthImaging,
+          ModeSignalToNoise.GnirsSpectroscopy,
           Either[
-            ModeSignalToNoise.GmosSouthImaging,
+            ModeSignalToNoise.GmosNorthImaging,
             Either[
-              ModeSignalToNoise.Flamingos2Imaging,
+              ModeSignalToNoise.GmosSouthImaging,
               Either[
-                ModeSignalToNoise.GnirsImaging,
-                ModeSignalToNoise.GhostIfu
+                ModeSignalToNoise.Flamingos2Imaging,
+                Either[
+                  ModeSignalToNoise.GnirsImaging,
+                  ModeSignalToNoise.GhostIfu
+                ]
               ]
             ]
           ]
@@ -140,10 +171,14 @@ trait ArbModeSignalToNoise:
       isn match
         case ModeSignalToNoise.Undefined              => Left(())
         case s: ModeSignalToNoise.Spectroscopy        => Right(Left(s))
-        case gnm: ModeSignalToNoise.GmosNorthImaging  => Right(Right(Left(gnm)))
-        case gsm: ModeSignalToNoise.GmosSouthImaging  => Right(Right(Right(Left(gsm))))
-        case f2i: ModeSignalToNoise.Flamingos2Imaging => Right(Right(Right(Right(Left(f2i)))))
-        case gnm: ModeSignalToNoise.GnirsImaging      => Right(Right(Right(Right(Right(Left(gnm))))))
-        case gst: ModeSignalToNoise.GhostIfu          => Right(Right(Right(Right(Right(Right(gst))))))
+        case g: ModeSignalToNoise.GnirsSpectroscopy   => Right(Right(Left(g)))
+        case gnm: ModeSignalToNoise.GmosNorthImaging  => Right(Right(Right(Left(gnm))))
+        case gsm: ModeSignalToNoise.GmosSouthImaging  => Right(Right(Right(Right(Left(gsm)))))
+        case f2i: ModeSignalToNoise.Flamingos2Imaging =>
+          Right(Right(Right(Right(Right(Left(f2i))))))
+        case gnm: ModeSignalToNoise.GnirsImaging      =>
+          Right(Right(Right(Right(Right(Right(Left(gnm)))))))
+        case gst: ModeSignalToNoise.GhostIfu          =>
+          Right(Right(Right(Right(Right(Right(Right(gst)))))))
 
 object ArbModeSignalToNoise extends ArbModeSignalToNoise

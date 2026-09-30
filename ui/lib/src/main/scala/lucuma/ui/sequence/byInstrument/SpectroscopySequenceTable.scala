@@ -3,13 +3,13 @@
 
 package lucuma.ui.sequence.byInstrument
 
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
-import lucuma.itc.SignalToNoiseAt
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.PeakPixel
 
-trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
+trait SpectroscopySequenceTable[D]:
   def acquisitionItc: ItcResultValues
   def scienceItc: ItcResultValues
 
@@ -18,13 +18,8 @@ trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
       case SequenceType.Acquisition => acquisitionItc
       case SequenceType.Science     => scienceItc
 
-  private def selectSNValue(seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
-    seqType match // For instruments that use coadds in acquisition, we have to report the total S/N.
-      case SequenceType.Acquisition if useAcquisitionCoadds => snAt.total.value
-      case _                                                => snAt.single.value
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise] =
+    seqType => _ => _ => itcForSequenceType(seqType).signalToNoise.map(_.single.value)
 
-  def signalToNoise: SequenceType => D => Option[SignalToNoise] =
-    seqType => _ => itcForSequenceType(seqType).signalToNoise.map(selectSNValue(seqType))
-
-  def peakPixel: SequenceType => D => Option[PeakPixel] =
-    seqType => _ => itcForSequenceType(seqType).peakPixel
+  def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel] =
+    seqType => _ => _ => itcForSequenceType(seqType).peakPixel

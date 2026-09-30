@@ -93,6 +93,31 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             }
           }
         }
+        ... on ItcGnirsSpectroscopy {
+          acquisition {
+            selected {
+              signalToNoiseAt $SignalToNoiseAtSubquery
+              peakPixel {
+                flux
+                adu
+              }
+            }
+          }
+          gnirsSpectroscopyScience {
+            centralWavelength $WavelengthSubquery
+            results {
+              selected {
+                exposureTime $TimeSpanSubquery
+                coadds
+                signalToNoiseAt $SignalToNoiseAtSubquery
+                peakPixel {
+                  flux
+                  adu
+                }
+              }
+            }
+          }
+        }
         ... on ItcScienceOnlySpectroscopy {
           spectroscopyScience {
             selected {

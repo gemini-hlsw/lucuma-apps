@@ -265,7 +265,7 @@ object ObservationSequence
             )
           case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise)      =>
             signalToNoise match
-              case ModeSignalToNoise.Spectroscopy(acquisitionItc, scienceItc) =>
+              case ModeSignalToNoise.GnirsSpectroscopy(acquisitionItc, scienceItc) =>
                 GnirsSequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -282,7 +282,7 @@ object ObservationSequence
                   isPreview = false,
                   onBreakpointFlip
                 )
-              case ModeSignalToNoise.GnirsImaging(snByFilter)                 =>
+              case ModeSignalToNoise.GnirsImaging(snByFilter)                      =>
                 GnirsImagingSequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -299,13 +299,13 @@ object ObservationSequence
                   onBreakpointFlip
                 )
               // Twilight calibrations have no signal to noise
-              case ModeSignalToNoise.Undefined                                =>
+              case ModeSignalToNoise.Undefined                                     =>
                 GnirsSequenceTable(
                   props.clientMode,
                   props.obsId,
                   config,
                   ItcResultValues.Empty,
-                  ItcResultValues.Empty,
+                  Nil,
                   props.visits,
                   props.executionState.get,
                   props.currentRecordedVisit,
@@ -316,6 +316,6 @@ object ObservationSequence
                   isPreview = false,
                   onBreakpointFlip
                 )
-              case _                                                          => mismatchError
+              case _                                                               => mismatchError
           case _                                                                         => mismatchError
     )

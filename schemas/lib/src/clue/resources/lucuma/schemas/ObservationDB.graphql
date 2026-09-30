@@ -13179,8 +13179,23 @@ scalar IntPercent
 """An ITC result for a single target."""
 type ItcResult {
   targetId: TargetId!
+  """
+  Exposure time of a single exposure (per coadd, for instruments with coadds).
+  """
   exposureTime: TimeSpan!
-  exposureCount: NonNegInt!
+
+  """
+  Number of frames to take. A frame is what the detector delivers: `coadds`
+  exposures summed on chip. Without coadds a frame is one exposure.
+  """
+  frameCount: NonNegInt!
+
+  """
+  Coadds per frame.  Chosen by the ITC in signal-to-noise mode, the requested
+  value in time-and-count mode, and 1 for instruments without coadds.
+  """
+  coadds: PosInt!
+  exposureCount: NonNegInt! @deprecated(reason: "Use `frameCount`.")
   signalToNoiseAt: SignalToNoiseAt
 
   """

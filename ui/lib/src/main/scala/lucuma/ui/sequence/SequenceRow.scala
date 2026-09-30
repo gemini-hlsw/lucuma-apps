@@ -229,31 +229,33 @@ object SequenceRow:
   object FutureStep:
     def fromAtom[D](
       atom:          Atom[D],
-      signalToNoise: D => Option[SignalToNoise],
-      peakPixel:     D => Option[PeakPixel],
+      signalToNoise: Option[NonEmptyString] => D => Option[SignalToNoise],
+      peakPixel:     Option[NonEmptyString] => D => Option[PeakPixel],
       seqType:       SequenceType
     ): List[FutureStep[D]] =
+      val atomSignalToNoise = signalToNoise(atom.description)
+      val atomPeakPixel     = peakPixel(atom.description)
       FutureStep(
         atom.steps.head,
         atom.id,
         atom.steps.length.some.filter(_ > 1),
-        atom.steps.head.getSignalToNoise(signalToNoise),
-        atom.steps.head.getPeakPixel(peakPixel),
+        atom.steps.head.getSignalToNoise(atomSignalToNoise),
+        atom.steps.head.getPeakPixel(atomPeakPixel),
         seqType
       ) +: atom.steps.tail.map: step =>
         SequenceRow.FutureStep(
           step,
           atom.id,
           none,
-          step.getSignalToNoise(signalToNoise),
-          step.getPeakPixel(peakPixel),
+          step.getSignalToNoise(atomSignalToNoise),
+          step.getPeakPixel(atomPeakPixel),
           seqType
         )
 
     def fromAtoms[D](
       atoms:         List[Atom[D]],
-      signalToNoise: D => Option[SignalToNoise],
-      peakPixel:     D => Option[PeakPixel],
+      signalToNoise: Option[NonEmptyString] => D => Option[SignalToNoise],
+      peakPixel:     Option[NonEmptyString] => D => Option[PeakPixel],
       seqType:       SequenceType
     ): List[FutureStep[D]] =
       atoms.flatMap(fromAtom(_, signalToNoise, peakPixel, seqType))

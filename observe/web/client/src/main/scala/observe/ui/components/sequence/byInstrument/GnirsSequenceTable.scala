@@ -13,9 +13,10 @@ import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.SelectedRowId
-import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
+import lucuma.ui.sequence.byInstrument.GnirsSpectroscopySequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
@@ -29,7 +30,7 @@ case class GnirsSequenceTable(
   obsId:                Observation.Id,
   config:               ExecutionConfig[GnirsStaticConfig, GnirsDynamicConfig],
   acquisitionItc:       ItcResultValues,
-  scienceItc:           ItcResultValues,
+  scienceItc:           List[GnirsCentralWavelengthItcResult],
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
@@ -41,7 +42,7 @@ case class GnirsSequenceTable(
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)
-    with SpectroscopySequenceTable[GnirsDynamicConfig](useAcquisitionCoadds = true):
+    with GnirsSpectroscopySequenceTable:
   lazy val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
 
