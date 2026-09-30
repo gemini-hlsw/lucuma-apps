@@ -27,9 +27,9 @@ import java.time.Instant
 object UseDefaultObsTime:
 
   /**
-   * The time to display an observation at: its explicit time, or else the next transit of its
-   * base at the site. Sidereal asterisms (or an explicit base) resolve synchronously. Nonsidereal
-   * ones are pending while the semester ephemeris loads, so that the observing night ephemeris is
+   * The time to display an observation at: its explicit time, or else the next transit of its base
+   * at the site. Sidereal asterisms (or an explicit base) resolve synchronously. Nonsidereal ones
+   * are pending while the semester ephemeris loads, so that the observing night ephemeris is
    * fetched only once, around the transit. Falls back to the start of the current UTC day.
    */
   def useDefaultObsTime(
@@ -49,10 +49,10 @@ object UseDefaultObsTime:
       transitTime <-
         useEffectKeepResultWithDeps((syncTime.value.isEmpty, targets, site)):
           (needsTransit, targets, site) =>
-            // An unresolved ToO has nothing to transit.
+            // A ToO has no coordinates, so nothing to transit.
             targets
               .filter(_ => needsTransit)
-              .filterNot(_.hasUnresolvedTargetOfOpportunity)
+              .filterNot(_.hasTargetOfOpportunity)
               .product(site)
               .flatTraverse(nextTransit)
               .handleError(_ => none)

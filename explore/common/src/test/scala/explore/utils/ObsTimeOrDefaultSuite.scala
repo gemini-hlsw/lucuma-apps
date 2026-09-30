@@ -36,7 +36,7 @@ class ObsTimeOrDefaultSuite extends FunSuite:
     )
 
   test("without a usable tracking or a site the default is the start of the day"):
-    val startOfDay: Instant                     = Instant.now().truncatedTo(ChronoUnit.DAYS)
+    val startOfDay: Instant                               = Instant.now().truncatedTo(ChronoUnit.DAYS)
     val fallbacks: List[(Option[Site], Option[Tracking])] =
       List(
         (Site.GN.some, none),
@@ -48,7 +48,9 @@ class ObsTimeOrDefaultSuite extends FunSuite:
 
   test("an explicit base overrides the asterism"):
     val explicitBase: Coordinates = Coordinates.Zero
-    assertEquals(siderealBaseTracking(none, explicitBase.some), Tracking.constant(explicitBase).some)
+    assertEquals(siderealBaseTracking(none, explicitBase.some),
+                 Tracking.constant(explicitBase).some
+    )
 
   test("no targets and no explicit base yield no tracking"):
     assertEquals(siderealBaseTracking(none, none), none)
