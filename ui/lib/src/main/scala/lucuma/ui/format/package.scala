@@ -53,11 +53,13 @@ val versionDateTimeFormatter: DateTimeFormatter =
 
 def formatDurationSeconds(ts: TimeSpan): String =
   val seconds = ts.toSeconds
-  f"$seconds%.0f sec"
+  if (seconds < 10) f"$seconds%.1f sec" else f"$seconds%.0f sec"
 
 def formatDurationHours(ts: TimeSpan): String =
   val seconds = ts.toSeconds
-  if (seconds < 60)
+  if (seconds < 10)
+    f"$seconds%.1f sec"
+  else if (seconds < 60)
     f"$seconds%.0f sec"
   else if (seconds < 3600)
     f"${seconds / 60.0}%.2f min"

@@ -12,7 +12,6 @@ import crystal.react.hooks.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.types.numeric.NonNegInt
-import eu.timepit.refined.types.numeric.PosInt
 import explore.common.UserPreferencesQueries.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -271,11 +270,11 @@ object ItcSpectroscopyTile
             graphResult.integrationTime.bandOrLine
               .fold(bandValues(sourceProfile), emissionLineValues(sourceProfile))
 
-          // Only GNIRS spectroscopy carries coadds (as a mode override).
-          val coadds: Option[PosInt] = instrumentConfig match
-            case ItcInstrumentConfig.GnirsSpectroscopy(modeOverrides = overrides) =>
-              overrides.map(_.coadds)
-            case _                                                                => none
+          // Of the spectroscopy modes only GNIRS supports coadds. The ITC result carries the
+          // coadds it actually used, which in signal-to-noise mode differ from the requested ones.
+          val showCoadds: Boolean = instrumentConfig match
+            case ItcInstrumentConfig.GnirsSpectroscopy(modeOverrides = _) => true
+            case _                                                        => false
 
           // IGRINS2 and GHOST have multiple ccd labels
           val ccdLabels: Map[NonNegInt, String] = instrumentConfig match
@@ -292,7 +291,7 @@ object ItcSpectroscopyTile
             ItcSpectroscopyPlotDescription(
               selectedTargetBrightness,
               graphResult.itcExposureTime,
-              coadds,
+              showCoadds,
               graphResult.graphCcds,
               graphResult.finalSNRatio,
               graphResult.singleSNRatio

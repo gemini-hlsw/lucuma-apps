@@ -82,8 +82,9 @@ object ItcResult {
     // The following apply to the focused TargetIntegrationTime
     val exposureTime: TimeSpan        = times.focus.times.focus.exposureTime
     val frames: PosInt                = times.focus.times.focus.frameCount
+    val coadds: PosInt                = times.focus.times.focus.coadds
     val snAt: Option[SignalToNoiseAt] = times.focus.signalToNoiseAt
-    val duration: TimeSpan            = exposureTime *| frames.value
+    val duration: TimeSpan            = exposureTime *| frames.value *| coadds.value
 
     val ccds: SortedMap[Int, ItcCcd] =
       SortedMap.from(times.focus.ccds.zipWithIndex.map(_.swap))
@@ -125,8 +126,9 @@ extension (a: SeriesResult)
     a.dataY.toList.zipWithIndex.map((y, i) => (roundToSignificantFigures(a.xAxis.at(i), 6), y))
 
 case class ItcExposureTime(
-  time:  TimeSpan,
-  count: PosInt
+  time:   TimeSpan,
+  count:  PosInt,
+  coadds: PosInt
 ) derives Eq
 
 case class ItcGraphResult(target: ItcTarget, timeAndGraphs: TargetTimeAndGraphsResult) {
@@ -135,7 +137,7 @@ case class ItcGraphResult(target: ItcTarget, timeAndGraphs: TargetTimeAndGraphsR
   private lazy val time: IntegrationTime = timeAndGraphs.integrationTime.times.focus
 
   lazy val itcExposureTime: ItcExposureTime =
-    ItcExposureTime(time.exposureTime, time.frameCount)
+    ItcExposureTime(time.exposureTime, time.frameCount, time.coadds)
 
   lazy val finalSNRatio: TotalSN =
     timeAndGraphs.atWavelengthFinalSNRatio.getOrElse(timeAndGraphs.peakFinalSNRatio)
