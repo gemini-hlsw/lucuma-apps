@@ -31,12 +31,10 @@ trait ModeSignalToNoiseDecoders:
     yield PeakPixel(flux, adu)
 
   private def itcResultValues(c: ACursor): Decoder.Result[ItcResultValues] =
-    if c.failed then Left(DecodingFailure("Missing ITC result", c.history))
-    else
-      for
-        sn   <- c.downField("signalToNoiseAt").as[Option[SignalToNoiseAt]]
-        peak <- c.downField("peakPixel").as[Option[PeakPixel]]
-      yield ItcResultValues(sn, peak)
+    for
+      sn   <- c.downField("signalToNoiseAt").as[Option[SignalToNoiseAt]]
+      peak <- c.downField("peakPixel").as[Option[PeakPixel]]
+    yield ItcResultValues(sn, peak)
 
   given Decoder[ModeSignalToNoise.Spectroscopy] = Decoder.instance: c =>
     for

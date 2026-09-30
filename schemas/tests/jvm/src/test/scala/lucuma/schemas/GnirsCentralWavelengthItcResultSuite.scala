@@ -53,7 +53,8 @@ class GnirsCentralWavelengthItcResultSuite extends FunSuite:
   ): GnirsCentralWavelengthItcResult =
     GnirsCentralWavelengthItcResult(nm(centralNm), exposure, coadds1, snAt(snAtNm))
 
-  private def desc(s: String): Option[NonEmptyString] = NonEmptyString.from(s).toOption
+  private def occ(s: String): Option[Int] =
+    GnirsCentralWavelengthItcResult.occurrence(NonEmptyString.from(s).toOption)
 
   private val other  = entry(2100, 30.secondTimeSpan, 2100)
   private val first  = entry(2200, 30.secondTimeSpan, 2190)
@@ -62,7 +63,7 @@ class GnirsCentralWavelengthItcResultSuite extends FunSuite:
   test("single triple match ignores the ordinal"):
     assertEquals(
       GnirsCentralWavelengthItcResult
-        .forScienceStep(List(other, first), desc("Science Cycle (2200 nm #2)"), step),
+        .forScienceStep(List(other, first), occ("Science Cycle (2200 nm #2)"), step),
       List(first)
     )
 
@@ -70,12 +71,12 @@ class GnirsCentralWavelengthItcResultSuite extends FunSuite:
     val results = List(other, first, second)
     assertEquals(
       GnirsCentralWavelengthItcResult
-        .forScienceStep(results, desc("Science Cycle (2200 nm #2)"), step),
+        .forScienceStep(results, occ("Science Cycle (2200 nm #2)"), step),
       List(second)
     )
     assertEquals(
       GnirsCentralWavelengthItcResult
-        .forScienceStep(results, desc("Science Cycle (2200 nm #1)"), step),
+        .forScienceStep(results, occ("Science Cycle (2200 nm #1)"), step),
       List(first)
     )
 
@@ -85,7 +86,7 @@ class GnirsCentralWavelengthItcResultSuite extends FunSuite:
                  List(first, second)
     )
     assertEquals(
-      GnirsCentralWavelengthItcResult.forScienceStep(results, desc("Science Cycle"), step),
+      GnirsCentralWavelengthItcResult.forScienceStep(results, occ("Science Cycle"), step),
       List(first, second)
     )
 
@@ -93,7 +94,7 @@ class GnirsCentralWavelengthItcResultSuite extends FunSuite:
     val results = List(first, entry(2200, 60.secondTimeSpan, 2200), second)
     assertEquals(
       GnirsCentralWavelengthItcResult
-        .forScienceStep(results, desc("Science Cycle (2200 nm #2)"), step),
+        .forScienceStep(results, occ("Science Cycle (2200 nm #2)"), step),
       List(first, second)
     )
 

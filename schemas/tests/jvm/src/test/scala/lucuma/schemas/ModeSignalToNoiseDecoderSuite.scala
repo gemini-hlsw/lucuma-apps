@@ -4,7 +4,7 @@
 package lucuma.schemas
 
 import io.circe.Json
-import io.circe.parser.parse
+import io.circe.syntax.*
 import lucuma.core.math.Wavelength
 import lucuma.core.syntax.timespan.*
 import lucuma.schemas.decoders.given
@@ -13,20 +13,14 @@ import munit.FunSuite
 
 class ModeSignalToNoiseDecoderSuite extends FunSuite:
 
-  private def sn(single: Double, total: Double): String =
-    s"""{ "wavelength": { "picometers": 1650000 }, "single": $single, "total": $total }"""
+  private def picometers(pm: Int): Json = Json.obj("picometers" -> pm.asJson)
 
-  private def selected(exposureMicros: Long, coadds: Int, single: Double, total: Double): String =
-    s"""{
-      "results": {
-        "selected": {
-          "exposureTime": { "microseconds": $exposureMicros },
-          "coadds": $coadds,
-          "signalToNoiseAt": ${sn(single, total)},
-          "peakPixel": { "flux": 1000.5, "adu": 200 }
-        }
-      }
-    }"""
+  private def sn(single: Double, total: Double): Json =
+    Json.obj(
+      "wavelength" -> picometers(1650000),
+      "single"     -> single.asJson,
+      "total"      -> total.asJson
+    )
 
   private def entry(
     wavelengthPm:   Int,
@@ -34,24 +28,33 @@ class ModeSignalToNoiseDecoderSuite extends FunSuite:
     coadds:         Int,
     single:         Double,
     total:          Double
-  ): String =
-    val sel = selected(exposureMicros, coadds, single, total)
-    s"""{ "centralWavelength": { "picometers": $wavelengthPm }, ${sel.trim.drop(1)}"""
+  ): Json =
+    Json.obj(
+      "centralWavelength" -> picometers(wavelengthPm),
+      "results"           -> Json.obj(
+        "selected" -> Json.obj(
+          "exposureTime"    -> Json.obj("microseconds" -> exposureMicros.asJson),
+          "coadds"          -> coadds.asJson,
+          "signalToNoiseAt" -> sn(single, total),
+          "peakPixel"       -> Json.obj("flux" -> 1000.5.asJson, "adu" -> 200.asJson)
+        )
+      )
+    )
 
-  private val acquisition: String =
-    s"""{
-      "selected": {
-        "signalToNoiseAt": ${sn(5.0, 20.0)},
-        "peakPixel": { "flux": 10.0, "adu": 20 }
-      }
-    }"""
+  private val acquisition: Json =
+    Json.obj(
+      "selected" -> Json.obj(
+        "signalToNoiseAt" -> sn(5.0, 20.0),
+        "peakPixel"       -> Json.obj("flux" -> 10.0.asJson, "adu" -> 20.asJson)
+      )
+    )
 
-  private def payload(scienceEntries: String*): Json =
-    parse(s"""{
-      "itcType": "GNIRS_SPECTROSCOPY",
-      "acquisition": $acquisition,
-      "gnirsSpectroscopyScience": [${scienceEntries.mkString(",")}]
-    }""").fold(throw _, identity)
+  private def payload(scienceEntries: Json*): Json =
+    Json.obj(
+      "itcType"                  -> "GNIRS_SPECTROSCOPY".asJson,
+      "acquisition"              -> acquisition,
+      "gnirsSpectroscopyScience" -> Json.arr(scienceEntries*)
+    )
 
   test("decode GNIRS spectroscopy with repeated central wavelengths"):
     val json = payload(
@@ -79,6 +82,6 @@ class ModeSignalToNoiseDecoderSuite extends FunSuite:
 
   test("GNIRS spectroscopy missing results.selected fails to decode"):
     val json = payload(
-      """{ "centralWavelength": { "picometers": 1650000 }, "results": {} }"""
+      Json.obj("centralWavelength" -> picometers(1650000), "results" -> Json.obj())
     )
     assert(json.as[ModeSignalToNoise].isLeft)

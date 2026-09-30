@@ -21,11 +21,11 @@ trait GnirsSpectroscopySequenceTable:
   // description's occurrence ordinal picks among them when possible (see `forScienceStep`); entries
   // differing only in the "S/N at" wavelength are otherwise indistinguishable from the step alone.
   // A value is shown only when every remaining candidate carries it and they all agree.
-  private def agreed[A: Eq](atomDescription: Option[NonEmptyString], d: GnirsDynamicConfig)(
+  private def agreed[A: Eq](occurrence: Option[Int], d: GnirsDynamicConfig)(
     f: ItcResultValues => Option[A]
   ): Option[A] =
     GnirsCentralWavelengthItcResult
-      .forScienceStep(scienceItc, atomDescription, d)
+      .forScienceStep(scienceItc, occurrence, d)
       .map(_.values)
       .traverse(f)
       .flatMap:
@@ -38,8 +38,14 @@ trait GnirsSpectroscopySequenceTable:
     case SequenceType.Acquisition => _ => _ => acquisitionItc.signalToNoise.map(_.total.value)
     case SequenceType.Science     =>
       desc =>
-        d => agreed(desc, d)(_.signalToNoise.map(sn => (sn.wavelength, sn.single.value))).map(_._2)
+        val occurrence = GnirsCentralWavelengthItcResult.occurrence(desc)
+        d =>
+          agreed(occurrence, d)(_.signalToNoise.map(sn => (sn.wavelength, sn.single.value)))
+            .map(_._2)
 
   def peakPixel: SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[PeakPixel] =
     case SequenceType.Acquisition => _ => _ => acquisitionItc.peakPixel
-    case SequenceType.Science     => desc => d => agreed(desc, d)(_.peakPixel)
+    case SequenceType.Science     =>
+      desc =>
+        val occurrence = GnirsCentralWavelengthItcResult.occurrence(desc)
+        d => agreed(occurrence, d)(_.peakPixel)

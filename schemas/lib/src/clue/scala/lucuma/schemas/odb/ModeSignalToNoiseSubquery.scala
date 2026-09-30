@@ -118,26 +118,6 @@ object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, Mo
             }
           }
         }
-        ... on ItcGhostIfu {
-          red {
-            selected {
-              signalToNoiseAt $SignalToNoiseAtSubquery
-              peakPixel {
-                flux
-                adu
-              }
-            }
-          }
-          blue {
-            selected {
-              signalToNoiseAt $SignalToNoiseAtSubquery
-              peakPixel {
-                flux
-                adu
-              }
-            }
-          }
-        }
         ... on ItcScienceOnlySpectroscopy {
           spectroscopyScience {
             selected {
