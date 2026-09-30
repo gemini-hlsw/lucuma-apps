@@ -29,7 +29,9 @@ import lucuma.catalog.BlindOffsetCandidate
 import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.AltairMode
 import lucuma.core.geom.OffsetGenerator
+import lucuma.core.geom.ShapePolygon
 import lucuma.core.geom.offsets.OffsetPosition
+import lucuma.core.math.Angle
 import lucuma.core.math.Arc
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
@@ -112,6 +114,8 @@ object reusability:
   given Reusability[TargetVisualization]                = Reusability.byEq
   given Reusability[InstrumentConfigAndItcResult]       = Reusability.byEq
   given Reusability[GuideStarCandidate]                 = Reusability.by(_.name.value)
+  given Reusability[ShapePolygon]                       = Reusability.byEq
+  given Reusability[Map[Angle, List[ShapePolygon]]]     = Reusability.byEq
   given Reusability[OffsetPosition]                     = Reusability.byEq
   given Reusability[AgsParams]                          = Reusability.byEq
   given Reusability[AgsState]                           = Reusability.byEq

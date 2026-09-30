@@ -3,12 +3,10 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
-import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.ShapeExpression
@@ -71,11 +69,10 @@ object GhostGeometry extends PwfsGeometry:
   // GHOST-specific: draws IFU1 / IFU2 patrol fields at each target's offset rather than the base
   def ghostGeometry(
     referenceCoordinates:    Coordinates,
-    blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
+    patrolFieldIntersection: Option[ShapeExpression],
     candidatesVisibilityCss: Css,
     ifu1Coords:              Option[Coordinates],
     ifu2Coords:              Option[Coordinates],
@@ -85,11 +82,10 @@ object GhostGeometry extends PwfsGeometry:
   ): Option[SortedMap[Css, ShapeExpression]] =
     instrumentGeometry(
       referenceCoordinates,
-      blindOffset,
-      scienceOffsets,
       fallbackPosAngle,
       guideProbe,
       gs,
+      patrolFieldIntersection,
       candidatesVisibilityCss
     ).flatMap: baseGeometries =>
       posAngle(gs, fallbackPosAngle).map: posAngle =>

@@ -39,6 +39,7 @@ import lucuma.core.enums.MosSlitPriority
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.geom.ShapePolygon
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
@@ -103,6 +104,10 @@ case class AladinContainer(
   val site = vizConf.map(_.configuration.siteFor).getOrElse(Site.GN)
 
   val agsVisibility = GlobalPreferences.agsVisibility.get(globalPreferences)
+
+  // Evaluated in the worker for the selected star's angle; drawn as-is.
+  val patrolField: Option[List[ShapePolygon]] =
+    selectedGuideStar.flatMap(gs => agsResults.patrolFields.get(gs.posAngle))
 
   val guideStarCandidates: List[AgsAnalysis.Usable] =
     agsResults.constrained.toOption.orEmpty
@@ -392,11 +397,11 @@ object AladinContainer extends AladinCommon {
         shapes                  <- useVisualizationShapes(
                                      props.vizConf,
                                      props.obsTimeCoords.baseOrBlindCoords,
-                                     props.obsTimeCoords.blindOffsetCoords,
                                      props.obsTimeCoords.slotCoords,
                                      props.obsTimeCoords.slotForTarget(props.obsTargets.focus.id),
                                      props.globalPreferences.agsOverlay,
-                                     props.selectedGuideStar
+                                     props.selectedGuideStar,
+                                     props.patrolField
                                    )
         // Track which interactive region (if any) the mouse is over, off the React render path.
         _                       <- useEffectStreamResourceWithDeps(

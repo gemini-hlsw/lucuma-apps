@@ -6,10 +6,10 @@ package explore.events
 import boopickle.DefaultBasic.*
 import boopickle.Pickler
 import cats.data.NonEmptyList
+import explore.model.AgsResult
 import explore.model.boopickle.CatalogPicklers.given
 import explore.model.boopickle.CommonPicklers.picklerNewType
 import lucuma.ags.AcquisitionOffsets
-import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.ScienceOffsets
@@ -43,7 +43,7 @@ object AgsMessage {
     params:             AgsParams,
     candidates:         List[GuideStarCandidate]
   ) extends Request {
-    type ResponseType = List[AgsAnalysis.Usable]
+    type ResponseType = AgsResult
   }
 
   private given Pickler[CleanCache.type] = generatePickler

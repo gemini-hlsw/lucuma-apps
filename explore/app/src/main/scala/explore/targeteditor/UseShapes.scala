@@ -29,6 +29,7 @@ import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.geom.ShapeExpression
+import lucuma.core.geom.ShapePolygon
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
@@ -250,26 +251,29 @@ private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpres
 def useVisualizationShapes(
   vizConf:         Option[ConfigurationForVisualization],
   baseCoordinates: Option[Coordinates],
-  blindOffset:     Option[Coordinates],
   slotCoords:      Map[SlotId, Coordinates],
   selectedSlot:    Option[SlotId],
   agsOverlay:      Boolean,
-  selectedGS:      Option[AgsAnalysis.Usable]
+  selectedGS:      Option[AgsAnalysis.Usable],
+  patrolField:     Option[List[ShapePolygon]]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
   useMemo(
-    (vizConf, baseCoordinates, blindOffset, slotCoords, selectedSlot, agsOverlay, selectedGS)
+    (vizConf, baseCoordinates, slotCoords, selectedSlot, agsOverlay, selectedGS, patrolField)
   ) {
     (
       vizConf,
       baseCoordinates,
-      blindOffset,
       slotCoords,
       selectedSlot,
       agsOverlay,
-      selectedGS
+      selectedGS,
+      patrolField
     ) =>
       val candidatesVisibilityCss: Css =
         ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
+
+      val patrolFieldIntersection: Option[ShapeExpression] =
+        patrolField.map(ShapePolygon.toShapeExpression)
 
       (vizConf.map(_.configuration.obsModeType), baseCoordinates).flatMapN: (conf, baseCoords) =>
         val maskShapes: Option[SortedMap[Css, ShapeExpression]] =
@@ -298,14 +302,12 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              Flamingos2Geometry.f2Geometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
-               vizConf.flatMap(_.guidedAcqOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some
@@ -319,14 +321,12 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              Flamingos2Geometry.f2Geometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
-               vizConf.flatMap(_.guidedAcqOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some
@@ -341,14 +341,12 @@ def useVisualizationShapes(
              Flamingos2Geometry
                .f2Geometry(
                  baseCoords,
-                 blindOffset,
-                 vizConf.flatMap(_.guidedSciOffsets),
-                 vizConf.flatMap(_.guidedAcqOffsets),
                  vizConf.map(_.posAngle),
                  vizConf.map(_.configuration),
                  PortDisposition.Side,
                  vizConf.flatMap(_.guideProbe),
                  selectedGS,
+                 patrolFieldIntersection,
                  candidatesVisibilityCss
                )
                .withMaskShapes
@@ -363,14 +361,12 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              GmosGeometry.gmosGeometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
-               vizConf.flatMap(_.guidedAcqOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some
@@ -384,14 +380,12 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              GmosGeometry.gmosGeometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
-               vizConf.flatMap(_.guidedAcqOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                PortDisposition.Side,
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some
@@ -406,14 +400,12 @@ def useVisualizationShapes(
              GmosGeometry
                .gmosGeometry(
                  baseCoords,
-                 blindOffset,
-                 vizConf.flatMap(_.guidedSciOffsets),
-                 vizConf.flatMap(_.guidedAcqOffsets),
                  vizConf.map(_.posAngle),
                  vizConf.map(_.configuration),
                  PortDisposition.Side,
                  vizConf.flatMap(_.guideProbe),
                  selectedGS,
+                 patrolFieldIntersection,
                  candidatesVisibilityCss
                )
                .withMaskShapes
@@ -429,14 +421,12 @@ def useVisualizationShapes(
              GmosGeometry
                .gmosGeometry(
                  baseCoords,
-                 blindOffset,
-                 vizConf.flatMap(_.guidedSciOffsets),
-                 vizConf.flatMap(_.guidedAcqOffsets),
                  vizConf.map(_.posAngle),
                  vizConf.map(_.configuration),
                  PortDisposition.Side,
                  vizConf.flatMap(_.guideProbe),
                  selectedGS,
+                 patrolFieldIntersection,
                  candidatesVisibilityCss
                )
             ).some
@@ -450,11 +440,10 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              Igrins2Geometry.igrins2Geometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some
@@ -477,11 +466,10 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss,
                ifu1Coords,
                ifu2Coords,
@@ -501,13 +489,12 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              GnirsGeometry.gnirsGeometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                vizConf.flatMap(_.guideProbe),
                vizConf.flatMap(_.altairMode),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some
@@ -521,12 +508,11 @@ def useVisualizationShapes(
             (probeVisibilityCss,
              VisitorGeometry.visitorGeometry(
                baseCoords,
-               blindOffset,
-               vizConf.flatMap(_.guidedSciOffsets),
                vizConf.map(_.posAngle),
                vizConf.map(_.configuration),
                vizConf.flatMap(_.guideProbe),
                selectedGS,
+               patrolFieldIntersection,
                candidatesVisibilityCss
              )
             ).some

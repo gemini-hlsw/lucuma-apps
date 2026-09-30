@@ -3,21 +3,14 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptyList
-import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
-import lucuma.ags.AcquisitionOffsets
-import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.GuidedOffset
-import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
-import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.flamingos2.scienceArea
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.pwfs
@@ -146,14 +139,12 @@ object Flamingos2Geometry extends WithPwfsGeometry:
   // Full geometry for flamingos2
   def f2Geometry(
     referenceCoordinates:    Coordinates,
-    blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
-    acquisitionOffsets:      Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,
     guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
+    patrolFieldIntersection: Option[ShapeExpression],
     candidatesVisibilityCss: Css,
     lyotWheel:               Flamingos2LyotWheel = Flamingos2LyotWheel.F16 // in practice this is always F16
   ): Option[SortedMap[Css, ShapeExpression]] =
@@ -174,22 +165,8 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             val probeShape =
               probeShapes(posAngle, gsOffset, Offset.Zero, conf, guideProbe, port, lyotWheel)
 
-            val positions = Ags.generatePositions(
-              referenceCoordinates.some,
-              blindOffset,
-              NonEmptyList.one(posAngle),
-              acquisitionOffsets.map(AcquisitionOffsets.apply),
-              scienceOffsets.map(ScienceOffsets.apply)
-            )
-
-            val patrolFieldIntersection =
-              conf
-                .flatMap: c =>
-                  c.agsParams(port, guideProbe, none)
-                .map: params =>
-                  val calcs = params.posCalculations(positions.value.toNonEmptyList)
-                  PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
-
-            patrolFieldIntersection.fold(probeShape)(probeShape + _)
+            // The intersection over all offsets is evaluated by the AGS worker, not here.
+            patrolFieldIntersection
+              .fold(probeShape)(pf => probeShape + (PatrolFieldIntersection -> pf))
 
         baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])
