@@ -1795,7 +1795,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         case _ if port === 1                                           => takeHrOut(s)
         case _                                                         => s
       }
-    val reqPos      = ScienceFold.Position(from, to.toLightSinkName, port)
+    val reqPos      = ScienceFold.Position(from, to.scienceFoldSinkName(from), port)
     val scienceFold = (s: TcsCommands[F]) =>
       (port, from, sfPos) match {
         case (1, LightSource.Sky, ScienceFold.Parked)        => s
