@@ -51,6 +51,12 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     user:     User
   ): F[Unit] = Applicative[F].unit
 
+  override def rewindStep(
+    id:       Id,
+    observer: Observer,
+    user:     User
+  ): F[Unit] = Applicative[F].unit
+
   override def setBreakpoints(
     seqId:    Id,
     user:     User,

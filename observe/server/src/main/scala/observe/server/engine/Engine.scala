@@ -158,10 +158,19 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                                )
                              )
                            ))
-                  // Execution group completed. Check requested stop and breakpoint.
+                  // Execution group completed. Check requested stop-before-observe, breakpoint.
                   case Some(nextState)                                 =>
                     EngineHandle.replaceSequenceState(obsId)(nextState) *>
-                      (if (
+                      (if (internalStop && nextState.loadedStep.exists(_.hasObserveAhead)) {
+                         // A rewind requested while configuring stops at the first group boundary,
+                         // before any further configuration or ODB observe events. `internalStop` is
+                         // also set while an exposure is being stopped, aborted or paused; then the
+                         // observe action is already behind us and the post-observe groups must still
+                         // run (see SeqTranslate stepEndObserve/stepEndStep).
+                         setObsStatus(obsId)(SequenceStatus.Idle) *>
+                           cleanLoadedStep(obsId) *>
+                           send(Event.sequencePaused(obsId))
+                       } else if (
                          nextState.getCurrentBreakpoint &&
                          !nextState.currentExecution.execution.exists(_.uninterruptible)
                        ) {

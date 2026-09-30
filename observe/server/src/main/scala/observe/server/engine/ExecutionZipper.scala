@@ -8,6 +8,7 @@ import lucuma.core.model.sequence.Step
 import monocle.Iso
 import monocle.Lens
 import monocle.macros.GenLens
+import observe.model.ActionType
 
 /**
  * Step Zipper. This structure is optimized for the actual `Step` execution.
@@ -38,6 +39,9 @@ case class ExecutionZipper[F[_]](
 
   def rollback: ExecutionZipper[F] =
     self.copy(pending = rolledback._2, focus = rolledback._1, done = Nil)
+
+  lazy val hasObserveAhead: Boolean =
+    (focus.execution ++ pending.flatMap(_.toList)).exists(_.kind === ActionType.Observe)
 
   /**
    * Obtain the resulting `Step` only if all `Execution`s have been completed. This is a special way

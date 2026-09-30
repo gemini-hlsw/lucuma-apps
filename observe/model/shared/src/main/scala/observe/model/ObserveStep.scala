@@ -187,6 +187,11 @@ object ObserveStep:
         case x: Standard      => x.observeStatus === ActionStatus.Paused
         case x: NodAndShuffle => x.nsStatus.observing === ActionStatus.Paused
 
+    def isObserveStarted: Boolean =
+      s match
+        case x: Standard      => x.observeStatus =!= ActionStatus.Pending
+        case x: NodAndShuffle => x.nsStatus.observing =!= ActionStatus.Pending
+
     def isConfiguring: Boolean =
       s match
         case x: Standard      => x.configStatus.count(_._2 === ActionStatus.Running) > 0

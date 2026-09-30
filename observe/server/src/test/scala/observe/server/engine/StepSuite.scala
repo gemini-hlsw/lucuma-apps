@@ -178,6 +178,24 @@ class StepSuite extends CatsEffectSuite {
     } yield Result.OK(DummyResult)
   )
 
+  // Simulates a Rewind request (UI "Rewind" button) arriving while a config action is running:
+  // same trick as `triggerPause`, an action that offers the event as a side effect of its `gen`.
+  def triggerStopBeforeObserve(eng: Engine[IO]): Action[IO] = fromF[IO](
+    ActionType.Undefined,
+    for {
+      _ <- eng.offer(Event.actionStop(obsId, _ => Stream.empty))
+    } yield Result.OK(DummyResult)
+  )
+
+  // Simulates `internalStop` being set while the exposure itself is already running (e.g. a
+  // stop/abort/pause of the exposure), as opposed to a Rewind request made while configuring.
+  def observeSettingInternalStop(eng: Engine[IO]): Action[IO] = fromF[IO](
+    ActionType.Observe,
+    for {
+      _ <- eng.offer(Event.actionStop(obsId, _ => Stream.empty))
+    } yield Result.OK(DummyResult)
+  )
+
   def isFinished(status: SequenceStatus): Boolean = status match {
     case SequenceStatus.Idle      => true
     case SequenceStatus.Completed => true
@@ -250,6 +268,141 @@ class StepSuite extends CatsEffectSuite {
             s.loadedStep.isEmpty && s.status === SequenceStatus.Idle
       .assert
 
+  }
+
+  test(
+    "rewindStep (stop before observe) requested during configuration lets the config group " +
+      "finish, then skips the exposure and goes idle without starting it"
+  ) {
+    def qs0(eng: Engine[IO]): EngineState[IO] =
+      TestUtil.initStateWithSequence(
+        obsId,
+        initSeqState(
+          obsId = obsId,
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.of(configureTcs,
+                              configureInst,
+                              triggerStopBeforeObserve(eng)
+              ),                        // config group
+              NonEmptyList.one(action), // post-config group, must not run
+              NonEmptyList.one(observe) // observe group
+            )
+          ),
+          sequenceType = SequenceType.Science,
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
+        )
+      )
+
+    // The sequence's status already flips to Idle as part of the same state update that later
+    // *sends* the `SequencePaused` event (see `Engine.nextExecution`), so stopping as soon as the
+    // status is Idle would cut the stream one pull short of observing that event. Instead, keep
+    // pulling through the `SequencePaused`/`SequenceComplete` pair itself.
+    def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
+      case EventResult.SystemUpdate(SystemEvent.SequencePaused(_), _)   => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case _                                                            => true
+
+    val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
+      for {
+        eng <- Stream.eval(executionEngine)
+        _   <- Stream.eval(eng.offer(startEvent(eng)))
+        u   <- eng
+                 .process(PartialFunction.empty)(qs0(eng))
+                 .drop(1)
+                 .takeThrough(notDone)
+      } yield u
+
+    m.compile.toList
+      .map: events =>
+        val results = events.map(_._1)
+        val lastSeq = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
+
+        val sequencePausedEmitted = results.exists {
+          case EventResult.SystemUpdate(SystemEvent.SequencePaused(o), _) => o == obsId
+          case _                                                          => false
+        }
+        // Only the initial `Executing` (config group start) should have happened; neither the
+        // post-config group nor the observe group must have been kicked off.
+        val executingCount        = results.count {
+          case EventResult.SystemUpdate(SystemEvent.Executing(o), _) => o == obsId
+          case _                                                     => false
+        }
+        // Only the 3 config-group actions should have completed (the observe action never ran).
+        val completedCount        = results.count {
+          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case _                                                              => false
+        }
+
+        lastSeq.exists(s => s.loadedStep.isEmpty && s.status === SequenceStatus.Idle) &&
+        sequencePausedEmitted &&
+        executingCount === 1 &&
+        completedCount === 3
+      .assert
+  }
+
+  test(
+    "internalStop set while the observe group is running has no early effect: the step runs " +
+      "through its remaining groups and the sequence pauses at the step end, as before"
+  ) {
+    def qs0(eng: Engine[IO]): EngineState[IO] =
+      TestUtil.initStateWithSequence(
+        obsId,
+        initSeqState(
+          obsId = obsId,
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.of(configureTcs, configureInst),      // config group
+              NonEmptyList.one(observeSettingInternalStop(eng)), // observe group: sets internalStop
+              NonEmptyList.one(action)                           // post-observe group (no Observe action)
+            )
+          ),
+          sequenceType = SequenceType.Science,
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
+        )
+      )
+
+    // See the comment in the previous test: keep pulling through the pair that carries the
+    // `SequencePaused` event itself, since the status already reads Idle one pull earlier.
+    def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
+      case EventResult.SystemUpdate(SystemEvent.SequencePaused(_), _)   => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case _                                                            => true
+
+    val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
+      for {
+        eng <- Stream.eval(executionEngine)
+        _   <- Stream.eval(eng.offer(startEvent(eng)))
+        u   <- eng
+                 .process(PartialFunction.empty)(qs0(eng))
+                 .drop(1)
+                 .takeThrough(notDone)
+      } yield u
+
+    m.compile.toList
+      .map: events =>
+        val results = events.map(_._1)
+        val lastSeq = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
+
+        val sequencePausedCount = results.count {
+          case EventResult.SystemUpdate(SystemEvent.SequencePaused(o), _) => o == obsId
+          case _                                                          => false
+        }
+        // All 4 actions (2 config + 1 observe + 1 post-observe marker) must have completed: the
+        // post-observe group was not skipped despite internalStop being set mid-observe.
+        val completedCount      = results.count {
+          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case _                                                              => false
+        }
+
+        lastSeq.exists(s => s.loadedStep.isEmpty && s.status === SequenceStatus.Idle) &&
+        sequencePausedCount === 1 &&
+        completedCount === 4
+      .assert
   }
 
   test(

@@ -24,13 +24,16 @@ import observe.ui.model.enums.OperationRequest
 import observe.ui.services.SequenceApi
 
 case class SeqControlButtons(
-  obsId:          Observation.Id,
-  refreshing:     Pot[View[Boolean]],
-  sequenceStatus: SequenceStatus,
-  requests:       ObservationRequests
+  obsId:            Observation.Id,
+  refreshing:       Pot[View[Boolean]],
+  sequenceStatus:   SequenceStatus,
+  isObserveStarted: Boolean,
+  requests:         ObservationRequests
 ) extends ReactFnProps(SeqControlButtons):
   val isUserStopRequested: Boolean   = sequenceStatus.isUserStopRequested
   val isPauseInFlight: Boolean       = requests.pause === OperationRequest.InFlight
+  val isRewindInFlight: Boolean      = requests.rewind === OperationRequest.InFlight
+  val isRewindRequested: Boolean     = sequenceStatus.isInternalStopRequested
   val isCancelPauseInFlight: Boolean = requests.cancelPause === OperationRequest.InFlight
   val isRunning: Boolean             = sequenceStatus.isRunning
   val isWaitingUserPrompt: Boolean   = sequenceStatus.isWaitingUserPrompt
@@ -70,13 +73,22 @@ object SeqControlButtons
             disabled = props.isRefreshing || props.isCompleted
           ).when(!props.isRunning),
           Button(
+            clazz = ObserveStyles.RewindButton |+| ObserveStyles.ObsSummaryButton,
+            icon = Icons.BackwardStep.withFixedWidth().withSize(IconSize.LG),
+            tooltip = "Rewind step: stop before the exposure and go idle. Run configures again.",
+            tooltipOptions = tooltipOptions,
+            onClick = sequenceApi.rewindStep(props.obsId).runAsync,
+            disabled =
+              props.isRewindInFlight || props.isRewindRequested || props.isWaitingUserPrompt
+          ).when(props.isRunning && !props.isObserveStarted),
+          Button(
             clazz = ObserveStyles.PauseButton |+| ObserveStyles.ObsSummaryButton,
             icon = Icons.Pause.withFixedWidth().withSize(IconSize.LG),
             tooltip = "Pause sequence after current exposure",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.pause(props.obsId).runAsync,
             disabled = props.isPauseInFlight || props.isWaitingUserPrompt
-          ).when(props.isRunning && !props.isUserStopRequested),
+          ).when(props.isRunning && props.isObserveStarted && !props.isUserStopRequested),
           Button(
             clazz = ObserveStyles.CancelPauseButton |+| ObserveStyles.ObsSummaryButton,
             icon = Icons.CancelPause.withFixedWidth().withSize(IconSize.LG),
@@ -84,7 +96,7 @@ object SeqControlButtons
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.cancelPause(props.obsId).runAsync,
             disabled = props.isCancelPauseInFlight || props.isWaitingUserPrompt
-          ).when(props.isRunning && props.isUserStopRequested)
+          ).when(props.isRunning && props.isObserveStarted && props.isUserStopRequested)
           // Button(
           //   clazz = ObserveStyles.ReloadButton |+| ObserveStyles.ObsSummaryButton,
           //   loading = props.isRefreshing,
