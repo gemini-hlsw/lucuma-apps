@@ -81,7 +81,9 @@ private[server] trait ScienceFoldPositionCodex:
       case LightSink.Flamingos2                            => LightSinkName.Flamingos2
       case LightSink.Ghost                                 => LightSinkName.Ghost
       case LightSink.GmosNorth | LightSink.GmosSouth       => LightSinkName.Gmos
-      case LightSink.GmosNorthIfu | LightSink.GmosSouthIfu => LightSinkName.Gmos_Ifu
+      // Only at GN, when using Altair (AO), the IFU has its own science fold position name, see
+      // scienceFoldSinkName. Otherwise it is selected by port only.
+      case LightSink.GmosNorthIfu | LightSink.GmosSouthIfu => LightSinkName.Gmos
       case LightSink.Gnirs                                 => LightSinkName.Gnirs
       case LightSink.Gpi                                   => LightSinkName.Gpi
       case LightSink.Gsaoi                                 => LightSinkName.Gsaoi
@@ -94,6 +96,15 @@ private[server] trait ScienceFoldPositionCodex:
       case LightSink.VisitorNorth                          => LightSinkName.Visitor
       case LightSink.VisitorSouth                          => LightSinkName.Visitor
       case LightSink.Zorro                                 => LightSinkName.Visitor
+    }
+  }
+
+  extension (x: LightSink) {
+    // The name used to build the science fold position. GMOS North IFU with Altair is the only
+    // case with its own name ("gmosifu"), in every other case the IFU is "gmos" + port.
+    def scienceFoldSinkName(from: LightSource): LightSinkName = x match {
+      case LightSink.GmosNorthIfu if from === LightSource.AO => LightSinkName.Gmos_Ifu
+      case _                                                 => x.toLightSinkName
     }
   }
 
