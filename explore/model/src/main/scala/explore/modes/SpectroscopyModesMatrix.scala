@@ -16,6 +16,7 @@ import eu.timepit.refined.numeric.*
 import eu.timepit.refined.types.numeric.*
 import eu.timepit.refined.types.string.*
 import explore.model.SupportedInstruments
+import explore.model.display
 import explore.model.syntax.all.*
 import io.circe.Decoder
 import io.circe.DecodingFailure
@@ -37,6 +38,7 @@ import lucuma.core.model.sequence.gmos.longslit.DefaultRoi
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
+import lucuma.itc.AltairParameters
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.refined.*
@@ -91,11 +93,19 @@ case class SpectroscopyModeRow(
   λdelta:           WavelengthDelta,
   resolution:       PosInt,
   slitLength:       SlitLength,
-  slitWidth:        SlitWidth
+  slitWidth:        SlitWidth,
+  altair:           Option[AltairMode]
 ) extends ModeCommonWavelengths
     with ModeRow derives Eq {
   val instrumentLabel: String =
-    instrumentConfig.instrumentLabel
+    display.withAltairSuffix(instrumentConfig.instrumentLabel, altair)
+
+  def withAltairParameters(
+    parameters: Map[AltairMode, AltairParameters]
+  ): Option[SpectroscopyModeRow] =
+    AltairModeRows
+      .instrumentConfigWith(instrumentConfig, altair, parameters)
+      .map(i => copy(instrumentConfig = i))
 
   inline def hasFilter: Boolean = instrumentConfig.hasFilter
 
@@ -282,6 +292,9 @@ object SpectroscopyModeRow {
   val instrumentConfig: Lens[SpectroscopyModeRow, ItcInstrumentConfig] =
     GenLens[SpectroscopyModeRow](_.instrumentConfig)
 
+  val altair: Lens[SpectroscopyModeRow, Option[AltairMode]] =
+    GenLens[SpectroscopyModeRow](_.altair)
+
   val instrument: Getter[SpectroscopyModeRow, Instrument] =
     instrumentConfig.andThen(ItcInstrumentConfig.instrument)
 
@@ -437,7 +450,8 @@ object SpectroscopyModeRow {
           WavelengthDelta(λcoverage.pm),
           resolution,
           SlitLength(ModeSlitSize(effectiveSlitLength)),
-          SlitWidth(ModeSlitSize(slitWidth))
+          SlitWidth(ModeSlitSize(slitWidth)),
+          none
         )
       .getOrElse:
         sys.error:
@@ -637,12 +651,13 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
       aoScore + wavelengthScore + filterScore + resolutionScore + slitWidthScore
     }
 
+    // Best score first. Sorting descending directly (rather than reversing an ascending sort)
+    // keeps equally scored rows in matrix order, so a row's Altair copies follow it.
     matrix
       .filter(filter)
-      .fproduct(score) // Give it a score
-      .sortBy(_._2)    // Sort by score
+      .fproduct(score)
+      .sortBy(-_._2)
       .map(_._1)
-      .reverse
   }
 }
 

@@ -44,6 +44,7 @@ import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targeteditor.UseAgs.useAgs
+import explore.targeteditor.UseAltairModesAgs.useAltairModesAgs
 import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
@@ -51,6 +52,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.GuideStarCandidate
 import lucuma.core.conditions.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
@@ -422,6 +424,15 @@ object ObsTabTiles:
                                   obsConf,
                                   guideStarSelection
                                 )(ctx)
+        // Without a mode yet, the modes table offers Altair rows backed by a guide star of their own.
+        altairParams         <- useAltairModesAgs(
+                                  focusedTargets,
+                                  obsTimeOrNow.value.some,
+                                  positions,
+                                  obsConf,
+                                  props.observation.get.scienceRequirements.scienceMode.left.toOption
+                                    .flatMap(_.wavelength)
+                                )(ctx)
       yield
         import ctx.given
 
@@ -432,6 +443,33 @@ object ObsTabTiles:
         val asterismIds: View[SortedSet[Target.Id]] =
           props.observation.model.zoom(Observation.scienceTargetIds)
 
+        val altairGuideStar: Option[GuideStarCandidate] =
+          guideStarSelection.get.analysis.map(_.target)
+
+        val guideStarSeparation: Option[Angle] =
+          AltairControls.guideStarSeparation(
+            positions.coords.toOption.flatMap(_.toOption).flatMap(_.baseCoords),
+            altairGuideStar,
+            obsTimeOrNow.value
+          )
+
+        val altairItcParameters: Option[AltairParameters] =
+          obsConf.altair.flatMap(
+            AltairControls.itcParameters(_, altairGuideStar, guideStarSeparation)
+          )
+
+        // The reverted config must carry the observation's Altair mode to land on its table row.
+        // NGS/LGS take the table's guide star when it has one, else the observation's; LGS+P1 has
+        // no row of its own (its guider is chosen once the mode exists), so it reverts to the
+        // plain row.
+        val revertedAltairParameters: Option[AltairParameters] =
+          obsConf.altair.flatMap: altair =>
+            altair.mode match
+              case AltairMode.LgsP1                         =>
+                none
+              case mode @ (AltairMode.Ngs | AltairMode.Lgs) =>
+                altairParams.toOption.flatMap(_.get(mode)).orElse(altairItcParameters)
+
         // ETM normalized to science requirements so it matches the table rows on ===.
         val revertedInstrumentConfig: List[ItcInstrumentConfig] =
           val rowEtm: ExposureTimeMode =
@@ -439,7 +477,7 @@ object ObsTabTiles:
               .getOrElse(ItcInstrumentConfig.PlaceholderEtm)
           props.observation.get
             .toInstrumentConfig(props.obsTargets)
-            .map(_.setSingleExposureTimeMode(rowEtm))
+            .map(_.setSingleExposureTimeMode(rowEtm).withAltair(revertedAltairParameters))
 
         val obsTimeView: View[Option[Instant]] =
           props.observation.model.zoom(Observation.observationTime)
@@ -527,21 +565,6 @@ object ObsTabTiles:
 
         val isVisitorMode: Boolean =
           props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
-
-        val altairGuideStar: Option[GuideStarCandidate] =
-          guideStarSelection.get.analysis.map(_.target)
-
-        val guideStarSeparation: Option[Angle] =
-          AltairControls.guideStarSeparation(
-            positions.coords.toOption.flatMap(_.toOption).flatMap(_.baseCoords),
-            altairGuideStar,
-            obsTimeOrNow.value
-          )
-
-        val altairItcParameters: Option[AltairParameters] =
-          obsConf.altair.flatMap(
-            AltairControls.itcParameters(_, altairGuideStar, guideStarSeparation)
-          )
 
         val awaitingAltairGuideStar: Boolean =
           AltairControls.itcAwaitingGuideStar(obsConf.altair, altairItcParameters)
@@ -845,7 +868,8 @@ object ObsTabTiles:
               props.attachments,
               attachmentsView,
               pastProposalReview
-            )
+            ),
+            altairParams
           )
 
         val alltiles: List[Tile[?]] =

@@ -323,7 +323,7 @@ object ItcSpectroscopyTile
             .map: userId =>
               if props.awaitingAltairGuideStar then
                 Message(
-                  text = AltairControls.ItcAwaitingGuideStarMessage,
+                  text = AltairControls.AwaitingAltairGuideStarMessage,
                   severity = Message.Severity.Info
                 ): VdomNode
               else

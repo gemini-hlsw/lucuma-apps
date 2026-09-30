@@ -52,7 +52,7 @@ object AltairControls:
   ): Boolean =
     altair.isDefined && parameters.isEmpty
 
-  val ItcAwaitingGuideStarMessage: String = "Waiting for the Altair guide star"
+  val AwaitingAltairGuideStarMessage: String = "Waiting for the Altair guide star"
 
   // The laser modes always use the field lens, so there is nothing to choose.
   def fieldLensSelectable(mode: AltairMode): Boolean =

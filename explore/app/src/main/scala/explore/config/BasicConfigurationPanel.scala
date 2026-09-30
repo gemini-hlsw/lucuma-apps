@@ -8,12 +8,14 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
+import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
 import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.AltairControls
 import explore.model.AppContext
 import explore.model.GlobalPreferences
 import explore.model.Observation
@@ -33,6 +35,7 @@ import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
@@ -46,6 +49,7 @@ import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
+import lucuma.itc.AltairParameters
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
@@ -73,7 +77,7 @@ case class BasicConfigurationPanel(
   itcTargets:          EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
-  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[
+  createConfig:        (ObservingModeInput, PosAngleOptions, Option[AltairMode]) => IO[
     Unit
   ], // Creation of alien visitors is done modally
   confMatrix:          ScienceModes,
@@ -81,7 +85,8 @@ case class BasicConfigurationPanel(
   readonly:            Boolean,
   units:               WavelengthUnits,
   globalPreferences:   View[GlobalPreferences],
-  targetView:          View[Option[ItcTarget]]
+  targetView:          View[Option[ItcTarget]],
+  altairParams:        Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(BasicConfigurationPanel.component):
   private def tableFilters(
     lens:  Lens[GlobalPreferences, Visible],
@@ -168,31 +173,43 @@ private object BasicConfigurationPanel:
         val selectedBasicConfig: Option[BasicConfiguration] =
           props.selectedConfig.get.toBasicConfiguration()
 
+        // An Altair row selection is retained (with its old ITC result) while the table's guide
+        // star search reruns, but it can't be accepted until the search validates the mode.
+        val awaitingAltairGuideStar: Boolean =
+          props.selectedConfig.get.altairMode.isDefined && props.altairParams.isPending
+
         val canAccept: Boolean =
           if isAlienVisitor then alienInput.isDefined
           // Exchange modes are seeded from a Default, so all fields are always present.
           else if isExchange then true
-          else props.selectedConfig.get.canAccept(etm) && visitorEtmOk
+          else props.selectedConfig.get.canAccept(etm) && visitorEtmOk && !awaitingAltairGuideStar
 
         val acceptAction: IO[Unit] =
           if isAlienVisitor then
             (alienInput, alienVisitorConfig)
               .mapN: (input, bc) =>
-                props.createConfig(input, bc.obsModeType.defaultPosAngleOptions)
+                props.createConfig(input, bc.obsModeType.defaultPosAngleOptions, none)
               .getOrElse(IO.unit)
           else if isKeck then
             val mode = keckExchange.get
             props.createConfig(ObservingModeInput.Exchange(mode.toInput),
-                               mode.obsModeType.defaultPosAngleOptions
+                               mode.obsModeType.defaultPosAngleOptions,
+                               none
             )
           else if isSubaru then
             val mode = subaruExchange.get
             props.createConfig(ObservingModeInput.Exchange(mode.toInput),
-                               mode.obsModeType.defaultPosAngleOptions
+                               mode.obsModeType.defaultPosAngleOptions,
+                               none
             )
           else
             selectedBasicConfig
-              .map(bc => props.createConfig(bc.toInput, bc.obsModeType.defaultPosAngleOptions))
+              .map: bc =>
+                props.createConfig(
+                  bc.toInput,
+                  bc.obsModeType.defaultPosAngleOptions,
+                  props.selectedConfig.get.altairMode
+                )
               .getOrElse(IO.unit)
 
         val spectroscopyView: ViewOpt[Spectroscopy] = props.requirementsView
@@ -223,6 +240,8 @@ private object BasicConfigurationPanel:
             "ITC issues must be fixed.".some
           else if (props.selectedConfig.get.hasPendingItc)
             "Waiting for ITC result...".some
+          else if (awaitingAltairGuideStar)
+            AltairControls.AwaitingAltairGuideStarMessage.some
           else if (props.selectedConfig.get.isVisitor && isNotTimeAndCount)
             "Use Time and Count mode for Visitor instruments.".some
           else none
@@ -359,7 +378,8 @@ private object BasicConfigurationPanel:
                           uid,
                           spectroscopyModesTableFilters = v.some
                         )
-                    )
+                    ),
+                    props.altairParams
                   )
                 ),
               imagingView.mapValue(s =>
@@ -384,7 +404,8 @@ private object BasicConfigurationPanel:
                         uid,
                         imagingModesTableFilters = v.some
                       )
-                  )
+                  ),
+                  props.altairParams
                 )
               )
             )
