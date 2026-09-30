@@ -44,3 +44,9 @@ object AsterismVisualOptions:
       100.refined,
       100.refined
     )
+
+  // Aladin cannot zoom back out from its own floor, so a stored fov at or below this is unusable.
+  val MinFov: Angle = Angle.fromDoubleArcseconds(1.0)
+
+  def isUsableFov(fov: Angle): Boolean =
+    fov.toMicroarcseconds >= MinFov.toMicroarcseconds

@@ -305,9 +305,15 @@ object UserPreferencesQueries:
           val key = AsterismKey.fromTargetIds(tids)
 
           val fovRAAngle  =
-            fovRA.map(Angle.fromMicroarcseconds).getOrElse(AsterismVisualOptions.Default.fovRA)
+            fovRA
+              .map(Angle.fromMicroarcseconds)
+              .filter(AsterismVisualOptions.isUsableFov)
+              .getOrElse(AsterismVisualOptions.Default.fovRA)
           val fovDecAngle =
-            fovDec.map(Angle.fromMicroarcseconds).getOrElse(AsterismVisualOptions.Default.fovDec)
+            fovDec
+              .map(Angle.fromMicroarcseconds)
+              .filter(AsterismVisualOptions.isUsableFov)
+              .getOrElse(AsterismVisualOptions.Default.fovDec)
 
           val offset =
             (viewOffsetP.map(Angle.fromMicroarcseconds(_).p),

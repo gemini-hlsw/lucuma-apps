@@ -280,7 +280,11 @@ object AladinCell extends ModelOptics with AladinCommon:
             // Don't save if the change is less than 10 arcsec on both axes
             o.fov.isCloseTo(newFov)
         )
-        if (newFov.x.toMicroarcseconds === 0L) Callback.empty
+        if (
+          !AsterismVisualOptions
+            .isUsableFov(newFov.x) || !AsterismVisualOptions.isUsableFov(newFov.y)
+        )
+          Callback.empty
         else
           fovView.set(newFov) *>
             AsterismPreferences
