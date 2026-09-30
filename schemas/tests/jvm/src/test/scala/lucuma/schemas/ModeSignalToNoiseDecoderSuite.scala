@@ -65,10 +65,14 @@ class ModeSignalToNoiseDecoderSuite extends FunSuite:
         assertEquals(acq.peakPixel.map(_.adu), Some(20))
         assertEquals(science.length, 2)
         assertEquals(science.map(_.centralWavelength).distinct.length, 1)
-        assertEquals(science.map(_.centralWavelength), List.fill(2)(Wavelength.intPicometers.getOption(1650000).get))
+        assertEquals(science.map(_.centralWavelength),
+                     List.fill(2)(Wavelength.intPicometers.getOption(1650000).get)
+        )
         assertEquals(science.map(_.exposureTime), List(60.secondTimeSpan, 30.secondTimeSpan))
         assertEquals(science.map(_.coadds.value), List(1, 2))
-        assertEquals(science.map(_.values.signalToNoise.map(_.single.value.toBigDecimal.toDouble)), List(Some(10.0), Some(12.0)))
+        assertEquals(science.map(_.values.signalToNoise.map(_.single.value.toBigDecimal.toDouble)),
+                     List(Some(10.0), Some(12.0))
+        )
         assertEquals(science.map(_.values.peakPixel.map(_.flux)), List(Some(1000.5), Some(1000.5)))
       case other                                                    =>
         fail(s"Unexpected decoding result: $other")

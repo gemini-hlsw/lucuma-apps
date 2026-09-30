@@ -32,11 +32,13 @@ trait GnirsSpectroscopySequenceTable:
         case Nil          => none
         case head :: tail => Option.when(tail.forall(_ === head))(head)
 
-  def signalToNoise: SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[SignalToNoise] =
+  def signalToNoise
+    : SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[SignalToNoise] =
     // GNIRS acquisition repeats are coadds, so the total S/N is what one acquisition step delivers.
     case SequenceType.Acquisition => _ => _ => acquisitionItc.signalToNoise.map(_.total.value)
     case SequenceType.Science     =>
-      desc => d => agreed(desc, d)(_.signalToNoise.map(sn => (sn.wavelength, sn.single.value))).map(_._2)
+      desc =>
+        d => agreed(desc, d)(_.signalToNoise.map(sn => (sn.wavelength, sn.single.value))).map(_._2)
 
   def peakPixel: SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[PeakPixel] =
     case SequenceType.Acquisition => _ => _ => acquisitionItc.peakPixel

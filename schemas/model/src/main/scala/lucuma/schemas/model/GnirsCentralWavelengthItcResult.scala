@@ -16,8 +16,8 @@ import lucuma.core.util.TimeSpan
 /**
  * The ITC result for one entry of a GNIRS spectroscopy observation's central wavelength list.
  * Entries are matched to science steps by central wavelength, exposure time and coadds; a
- * wavelength may appear more than once in the list. Corresponds to
- * `ItcGnirsSpectroscopyResultSet` in the ODB schema.
+ * wavelength may appear more than once in the list. Corresponds to `ItcGnirsSpectroscopyResultSet`
+ * in the ODB schema.
  */
 case class GnirsCentralWavelengthItcResult(
   centralWavelength: Wavelength,
@@ -38,8 +38,8 @@ object GnirsCentralWavelengthItcResult:
 
   /**
    * The ITC results that may have produced a science step, in list order. A step is matched by
-   * central wavelength, exposure time and coadds. Since a wavelength may repeat in the list with
-   * an otherwise identical configuration, several entries can match; then the atom description's
+   * central wavelength, exposure time and coadds. Since a wavelength may repeat in the list with an
+   * otherwise identical configuration, several entries can match; then the atom description's
    * occurrence ordinal picks the n-th entry at that wavelength, provided it is one of the matches.
    * If no ordinal is present, or it points elsewhere, all matches are returned.
    */
