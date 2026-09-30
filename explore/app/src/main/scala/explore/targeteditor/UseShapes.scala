@@ -32,6 +32,7 @@ import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
+import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.mos.MosMaskGeometry
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPosition

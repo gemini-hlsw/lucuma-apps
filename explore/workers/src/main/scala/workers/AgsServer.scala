@@ -13,6 +13,9 @@ import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsAnalysis.*
+import lucuma.core.geom.ShapeInterpreter
+import lucuma.core.geom.jts.JtsShapeInterpreter
+import lucuma.core.geom.wasm.WasmGeometry
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
@@ -30,13 +33,13 @@ object AgsServer extends WorkerServer[AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
-  private val AgsCacheVersion: Int = 46
+  private val AgsCacheVersion: Int = 47
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
   def agsCalculation(
     r: AgsMessage.AgsRequest
-  )(using Logger[IO], Tracer[IO]): IO[List[AgsAnalysis.Usable]] =
+  )(using Logger[IO], Tracer[IO], ShapeInterpreter): IO[List[AgsAnalysis.Usable]] =
     IO.blocking:
       val correctedCandidates = r.candidates.map(_.at(r.vizTime))
       Ags
@@ -62,10 +65,19 @@ object AgsServer extends WorkerServer[AgsMessage.Request] {
     config: Option[AppConfig]
   ): (LoggerFactory[IO], Tracer[IO], TracerProvider[IO]) ?=> IO[Invocation => IO[Unit]] =
     for
-      self             <- IO(dom.DedicatedWorkerGlobalScope.self)
-      cache            <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")
-      _                <- cache.evict(CacheRetention).start
-      given Logger[IO] <- LoggerFactory[IO].fromName("ags-worker")
+      self                   <- IO(dom.DedicatedWorkerGlobalScope.self)
+      cache                  <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")
+      _                      <- cache.evict(CacheRetention).start
+      given Logger[IO]       <- LoggerFactory[IO].fromName("ags-worker")
+      engine                 <- WasmGeometry.load.attempt
+      given ShapeInterpreter <-
+        engine.fold(
+          e =>
+            Logger[IO]
+              .warn(e)("wasm geometry kernel unavailable, using lucuma-jts")
+              .as(JtsShapeInterpreter),
+          si => Logger[IO].info("AGS geometry: lucuma-wasm kernel").as(si)
+        )
     yield invocation =>
       invocation.data match {
         case AgsMessage.CleanCache               =>

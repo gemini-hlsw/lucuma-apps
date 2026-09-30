@@ -8,6 +8,9 @@ packages:
 # https://pnpm.io/settings#minimumreleaseage
 # 2 days, in minutes
 minimumReleaseAge: 2880
+# Our own packages ship straight from CI.
+minimumReleaseAgeExclude:
+  - '@gemini-hlsw/*'
 
 # https://pnpm.io/settings#trustpolicy
 trustPolicy: no-downgrade
