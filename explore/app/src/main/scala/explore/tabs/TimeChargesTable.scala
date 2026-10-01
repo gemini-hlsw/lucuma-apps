@@ -20,6 +20,7 @@ import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.core.util.time.format.GppTimeTZFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.syntax.*
+import lucuma.react.primereact.Divider
 import lucuma.react.table.*
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.format.TimeSpanFormatter
@@ -152,6 +153,7 @@ object TimeChargesTable:
             PrimeTable(table, tableMod = ExploreStyles.TimeChargesTable)
 
       <.div(ExploreStyles.TimeChargesSection)(
+        Divider(),
         <.div(ExploreStyles.ObservationDetailsSection)("Time Charges"),
         body
       )

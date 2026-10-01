@@ -232,3 +232,44 @@ class TimeChargesSuite extends FunSuite:
       CategorizedTime(ChargeClass.Program -> minutes(100), ChargeClass.NonCharged -> minutes(20))
     )
     assertEquals(decode[VisitTimeCharge](json), expected.asRight)
+
+  test("visits wholly in daylight from the ODB have no rows"):
+    val json =
+      """
+      [
+        {
+          "id": "v-13e2",
+          "site": "GN",
+          "interval": {
+            "start": "2026-07-05T02:28:18.110493Z",
+            "end": "2026-07-05T02:33:50.47894Z"
+          },
+          "timeChargeInvoice": {
+            "executionTime": {
+              "program": { "microseconds": 332368447 },
+              "nonCharged": { "microseconds": 0 }
+            },
+            "discounts": [
+              {
+                "__typename": "TimeChargeDaylightDiscount",
+                "interval": {
+                  "start": "2026-07-05T02:28:18.110493Z",
+                  "end": "2026-07-05T02:33:50.47894Z"
+                },
+                "amount": { "microseconds": 332368447 },
+                "comment": "Time spent observing pre-dusk (nautical twilight)."
+              }
+            ],
+            "corrections": [],
+            "finalCharge": {
+              "program": { "microseconds": 0 },
+              "nonCharged": { "microseconds": 0 }
+            }
+          }
+        }
+      ]
+      """
+    assertEquals(
+      decode[List[VisitTimeCharge]](json).map(TimeCharges.fromVisits),
+      TimeCharges.NoNightVisits.asRight
+    )
