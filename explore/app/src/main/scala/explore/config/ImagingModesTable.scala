@@ -31,6 +31,8 @@ import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.*
 import explore.syntax.ui.*
+import explore.utils.dataInstrument
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
@@ -454,11 +456,13 @@ object ImagingModesTable extends ModesTableCommon:
               containerMod = ^.overflow.auto,
               rowMod = rowTagMod: row =>
                 TagMod(
-                  ^.disabled := !row.original.entry.enabled,
+                  testId         := "explore-config-row",
+                  dataInstrument := row.original.entry.instrumentConfig.instrument.tag,
+                  ^.disabled     := !row.original.entry.enabled,
                   ExploreStyles.TableRowSelected.when:
                     props.selectedConfigs.get.contains(row.original.entry.instrumentConfig)
                   ,
-                  (^.onClick            ==> clickHandler(row.original)).when(row.original.entry.enabled)
+                  (^.onClick                ==> clickHandler(row.original)).when(row.original.entry.enabled)
                 ),
               onChange = tableOnChangeHandler(visibleRows, atTop),
               virtualizerRef = virtualizerRef,
