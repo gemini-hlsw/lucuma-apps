@@ -4,32 +4,31 @@
 package explore.model
 
 import cats.Eq
+import cats.Order.catsKernelOrderingForOrder
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.model.Visit
-import lucuma.core.model.sequence.TimeChargeCorrection
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.TimestampInterval
-import org.typelevel.cats.time.given
-
-import java.time.LocalDate
 
 /**
- * One visit's charges between nautical twilights, in program time.
+ * One visit's charges between nautical twilights, in program time. The duration is what is charged
+ * before staff corrections.
  */
 final case class TimeChargeRow(
   visitId:     Visit.Id,
-  night:       Option[LocalDate],
   interval:    Option[TimestampInterval],
-  nightTime:   TimeSpan,
-  discounts:   List[VisitTimeCharge.Discount],
+  duration:    TimeSpan,
   corrections: List[VisitTimeCharge.Correction],
   charged:     TimeSpan
-) derives Eq:
-  lazy val discountTime: TimeSpan = discounts.foldMap(_.amount)
+) derives Eq
 
-  lazy val correction: Option[TimeCharges.Signed] = TimeCharges.Signed.net(corrections)
+enum TimeChargeLine derives Eq:
+  def visitId: Visit.Id
+
+  case ForVisit(visitId: Visit.Id, interval: Option[TimestampInterval], duration: TimeSpan)
+  case ForCorrection(visitId: Visit.Id, index: Int, correction: VisitTimeCharge.Correction)
 
 enum TimeCharges derives Eq:
   case NoVisits
@@ -41,37 +40,14 @@ object TimeCharges:
     if visits.isEmpty then NoVisits
     else visits.reverse.flatMap(_.nightRow).toNel.fold(NoNightVisits)(Rows(_))
 
-  final case class Signed(op: TimeChargeCorrection.Op, amount: TimeSpan) derives Eq
+  extension (rows: NonEmptyList[TimeChargeRow])
+    /** Each visit followed by its corrections, oldest correction first. */
+    def lines: List[TimeChargeLine] =
+      rows.toList.flatMap: r =>
+        TimeChargeLine.ForVisit(r.visitId, r.interval, r.duration) ::
+          r.corrections
+            .sortBy(_.created)
+            .zipWithIndex
+            .map((c, i) => TimeChargeLine.ForCorrection(r.visitId, i, c))
 
-  object Signed:
-    private def combine(all: List[Signed]): Option[Signed] =
-      val micros = all.foldMap: s =>
-        s.op match
-          case TimeChargeCorrection.Op.Add      => s.amount.toMicroseconds
-          case TimeChargeCorrection.Op.Subtract => -s.amount.toMicroseconds
-      Option.when(micros =!= 0L):
-        val op =
-          if micros > 0 then TimeChargeCorrection.Op.Add else TimeChargeCorrection.Op.Subtract
-        Signed(op, TimeSpan.unsafeFromMicroseconds(micros.abs))
-
-    def net(corrections: List[VisitTimeCharge.Correction]): Option[Signed] =
-      combine(corrections.map(c => Signed(c.op, c.amount)))
-
-    def sum(all: List[Option[Signed]]): Option[Signed] =
-      combine(all.flattenOption)
-
-  final case class Total(
-    nightTime:    TimeSpan,
-    discountTime: TimeSpan,
-    correction:   Option[Signed],
-    charged:      TimeSpan
-  ) derives Eq
-
-  object Total:
-    def of(rows: NonEmptyList[TimeChargeRow]): Total =
-      Total(
-        rows.foldMap(_.nightTime),
-        rows.foldMap(_.discountTime),
-        Signed.sum(rows.toList.map(_.correction)),
-        rows.foldMap(_.charged)
-      )
+    def total: TimeSpan = rows.foldMap(_.charged)

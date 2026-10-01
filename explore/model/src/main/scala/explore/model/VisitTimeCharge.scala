@@ -9,23 +9,21 @@ import cats.syntax.all.*
 import io.circe.Decoder
 import io.circe.DecodingFailure
 import lucuma.core.enums.ChargeClass
-import lucuma.core.enums.Site
-import lucuma.core.model.ObservingNight
+import lucuma.core.model.User
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.CategorizedTime
 import lucuma.core.model.sequence.TimeChargeCorrection
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.timeaccounting.given
 
 /**
- * A visit's time charge invoice as computed by the ODB, along with what is needed to place it on
- * the observing night.
+ * A visit's time charge invoice as computed by the ODB.
  */
 final case class VisitTimeCharge(
   visitId:       Visit.Id,
-  site:          Site,
   interval:      Option[TimestampInterval],
   executionTime: CategorizedTime,
   discounts:     List[VisitTimeCharge.Discount],
@@ -50,22 +48,18 @@ final case class VisitTimeCharge(
             case rest => TimestampInterval.between(rest.head.start, rest.last.end).some
       TimeChargeRow(
         visitId,
-        nightInterval.map(i =>
-          ObservingNight.fromSiteAndInstant(site, i.start.toInstant).toLocalDate
-        ),
         nightInterval,
-        nightTime,
-        otherDiscounts,
+        nightTime -| otherDiscounts.foldMap(_.amount),
         corrections.filter(_.chargeClass === ChargeClass.Program),
         finalCharge(ChargeClass.Program)
       )
 
 object VisitTimeCharge:
-  enum DiscountKind(val typename: String, val label: String) derives Eq:
-    case Daylight extends DiscountKind("TimeChargeDaylightDiscount", "Daylight")
-    case NoData   extends DiscountKind("TimeChargeNoDataDiscount", "No data")
-    case Overlap  extends DiscountKind("TimeChargeOverlapDiscount", "Overlap")
-    case Qa       extends DiscountKind("TimeChargeQaDiscount", "QA")
+  enum DiscountKind(val typename: String) derives Eq:
+    case Daylight extends DiscountKind("TimeChargeDaylightDiscount")
+    case NoData   extends DiscountKind("TimeChargeNoDataDiscount")
+    case Overlap  extends DiscountKind("TimeChargeOverlapDiscount")
+    case Qa       extends DiscountKind("TimeChargeQaDiscount")
 
   object DiscountKind:
     def fromTypename(typename: String): Option[DiscountKind] =
@@ -74,11 +68,12 @@ object VisitTimeCharge:
   final case class Discount(
     kind:     DiscountKind,
     interval: TimestampInterval,
-    amount:   TimeSpan,
-    comment:  Option[String]
+    amount:   TimeSpan
   ) derives Eq
 
   final case class Correction(
+    created:     Timestamp,
+    user:        Option[User.Id],
     chargeClass: ChargeClass,
     op:          TimeChargeCorrection.Op,
     amount:      TimeSpan,
@@ -87,31 +82,33 @@ object VisitTimeCharge:
 
   given Decoder[Discount] = Decoder.instance: c =>
     for
-      t <- c.get[String]("__typename")
-      k <- DiscountKind
-             .fromTypename(t)
-             .toRight(DecodingFailure(s"Unknown time charge discount type $t", c.history))
-      i <- c.get[TimestampInterval]("interval")
-      a <- c.get[TimeSpan]("amount")
-      m <- c.get[String]("comment")
-    yield Discount(k, i, a, Option.when(m.nonEmpty)(m))
+      typename <- c.get[String]("__typename")
+      kind     <- DiscountKind
+                    .fromTypename(typename)
+                    .toRight(DecodingFailure(s"Unknown time charge discount type $typename", c.history))
+      interval <- c.get[TimestampInterval]("interval")
+      amount   <- c.get[TimeSpan]("amount")
+    yield Discount(kind, interval, amount)
 
   given Decoder[Correction] = Decoder.instance: c =>
     for
-      z <- c.get[ChargeClass]("chargeClass")
-      o <- c.get[TimeChargeCorrection.Op]("op")
-      a <- c.get[TimeSpan]("amount")
-      m <- c.get[Option[String]]("comment")
-    yield Correction(z, o, a, m)
+      created     <- c.get[Timestamp]("created")
+      user        <- c.get[Option[User.Id]]("user")(using
+                       Decoder.decodeOption(using Decoder.instance(_.get[User.Id]("id")))
+                     )
+      chargeClass <- c.get[ChargeClass]("chargeClass")
+      op          <- c.get[TimeChargeCorrection.Op]("op")
+      amount      <- c.get[TimeSpan]("amount")
+      comment     <- c.get[Option[String]]("comment")
+    yield Correction(created, user, chargeClass, op, amount, comment)
 
   given Decoder[VisitTimeCharge] = Decoder.instance: c =>
     val invoice = c.downField("timeChargeInvoice")
     for
-      id <- c.get[Visit.Id]("id")
-      s  <- c.get[Site]("site")
-      i  <- c.get[Option[TimestampInterval]]("interval")
-      e  <- invoice.get[CategorizedTime]("executionTime")
-      d  <- invoice.get[List[Discount]]("discounts")
-      r  <- invoice.get[List[Correction]]("corrections")
-      f  <- invoice.get[CategorizedTime]("finalCharge")
-    yield VisitTimeCharge(id, s, i, e, d, r, f)
+      id          <- c.get[Visit.Id]("id")
+      interval    <- c.get[Option[TimestampInterval]]("interval")
+      execution   <- invoice.get[CategorizedTime]("executionTime")
+      discounts   <- invoice.get[List[Discount]]("discounts")
+      corrections <- invoice.get[List[Correction]]("corrections")
+      charge      <- invoice.get[CategorizedTime]("finalCharge")
+    yield VisitTimeCharge(id, interval, execution, discounts, corrections, charge)

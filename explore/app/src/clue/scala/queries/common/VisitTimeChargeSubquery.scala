@@ -16,7 +16,6 @@ object VisitTimeChargeSubquery extends GraphQLSubquery.Typed[ObservationDB, Visi
   override val subquery = gql"""
     {
       id
-      site
       interval $TimestampIntervalSubquery
       timeChargeInvoice {
         executionTime {
@@ -27,9 +26,10 @@ object VisitTimeChargeSubquery extends GraphQLSubquery.Typed[ObservationDB, Visi
           __typename
           interval $TimestampIntervalSubquery
           amount $TimeSpanSubquery
-          comment
         }
         corrections {
+          created
+          user { id }
           chargeClass
           op
           amount $TimeSpanSubquery

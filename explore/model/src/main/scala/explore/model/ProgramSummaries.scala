@@ -34,6 +34,7 @@ import lucuma.schemas.model.TargetWithId
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional
+import monocle.function.At
 
 import java.time.LocalDate
 import scala.collection.immutable.SortedMap
@@ -48,7 +49,8 @@ case class ProgramSummaries(
   summaryGeneration:      ProposalSummaryGeneration,
   programs:               ProgramInfoList,
   configurationRequests:  ConfigurationRequestList,
-  calculatedValueOrphans: CalculatedValueOrphanMap = Map.empty
+  calculatedValueOrphans: CalculatedValueOrphanMap = Map.empty,
+  timeCharges:            Map[Observation.Id, List[VisitTimeCharge]] = Map.empty
 ) derives Eq:
   lazy val proposalStatus: Option[ProposalStatus] = optProgramDetails.map(_.proposalStatus)
   lazy val proposalIsSubmitted: Boolean           = proposalStatus.exists(_ === ProposalStatus.Submitted)
@@ -365,22 +367,27 @@ object ProgramSummaries:
   private val nonSchedulableStates: Set[ObservationWorkflowState] =
     Set(ObservationWorkflowState.Inactive, ObservationWorkflowState.Undefined)
 
-  val optProgramDetails: Lens[ProgramSummaries, Option[ProgramDetails]]        =
+  val optProgramDetails: Lens[ProgramSummaries, Option[ProgramDetails]]               =
     Focus[ProgramSummaries](_.optProgramDetails)
-  val proposal: Optional[ProgramSummaries, Option[Proposal]]                   =
+  val proposal: Optional[ProgramSummaries, Option[Proposal]]                          =
     optProgramDetails.some.andThen(ProgramDetails.proposal)
-  val targets: Lens[ProgramSummaries, TargetList]                              = Focus[ProgramSummaries](_.targets)
-  val observations: Lens[ProgramSummaries, ObservationList]                    =
+  val targets: Lens[ProgramSummaries, TargetList]                                     = Focus[ProgramSummaries](_.targets)
+  val observations: Lens[ProgramSummaries, ObservationList]                           =
     Focus[ProgramSummaries](_.observations)
-  val groups: Lens[ProgramSummaries, GroupList]                                = Focus[ProgramSummaries](_.groups)
-  val attachments: Lens[ProgramSummaries, AttachmentList]                      = Focus[ProgramSummaries](_.attachments)
-  val summaryGeneration: Lens[ProgramSummaries, ProposalSummaryGeneration]     =
+  val groups: Lens[ProgramSummaries, GroupList]                                       = Focus[ProgramSummaries](_.groups)
+  val attachments: Lens[ProgramSummaries, AttachmentList]                             = Focus[ProgramSummaries](_.attachments)
+  val summaryGeneration: Lens[ProgramSummaries, ProposalSummaryGeneration]            =
     Focus[ProgramSummaries](_.summaryGeneration)
-  val programs: Lens[ProgramSummaries, ProgramInfoList]                        = Focus[ProgramSummaries](_.programs)
-  val configurationRequests: Lens[ProgramSummaries, ConfigurationRequestList]  =
+  val programs: Lens[ProgramSummaries, ProgramInfoList]                               = Focus[ProgramSummaries](_.programs)
+  val configurationRequests: Lens[ProgramSummaries, ConfigurationRequestList]         =
     Focus[ProgramSummaries](_.configurationRequests)
-  val calculatedValueOrphans: Lens[ProgramSummaries, CalculatedValueOrphanMap] =
+  val calculatedValueOrphans: Lens[ProgramSummaries, CalculatedValueOrphanMap]        =
     Focus[ProgramSummaries](_.calculatedValueOrphans)
+  val timeCharges: Lens[ProgramSummaries, Map[Observation.Id, List[VisitTimeCharge]]] =
+    Focus[ProgramSummaries](_.timeCharges)
+
+  def obsTimeCharges(obsId: Observation.Id): Lens[ProgramSummaries, Option[List[VisitTimeCharge]]] =
+    timeCharges.andThen(At.atMap[Observation.Id, List[VisitTimeCharge]].at(obsId))
 
   val observationsAndGroups: Lens[ProgramSummaries, ObservationsAndGroups] =
     (observations, groups).disjointZip.andThen(ObservationsAndGroups.tupled.reverse)

@@ -3,11 +3,11 @@
 
 package explore.model
 
-import cats.data.NonEmptyList
 import cats.syntax.all.*
+import explore.model.TimeCharges.*
 import io.circe.parser.decode
 import lucuma.core.enums.ChargeClass
-import lucuma.core.enums.Site
+import lucuma.core.model.User
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.CategorizedTime
 import lucuma.core.model.sequence.TimeChargeCorrection
@@ -15,8 +15,6 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import munit.FunSuite
-
-import java.time.LocalDate
 
 class TimeChargesSuite extends FunSuite:
   private def ts(s: String): Timestamp = Timestamp.parse(s).toOption.get
@@ -32,24 +30,23 @@ class TimeChargesSuite extends FunSuite:
   private def daylight(start: String, end: String, m: Int): VisitTimeCharge.Discount =
     VisitTimeCharge.Discount(VisitTimeCharge.DiscountKind.Daylight,
                              interval(start, end),
-                             minutes(m),
-                             none
+                             minutes(m)
     )
 
   private def qa(m: Int): VisitTimeCharge.Discount =
     VisitTimeCharge.Discount(
       VisitTimeCharge.DiscountKind.Qa,
       interval("2026-03-02T01:00:00Z", "2026-03-02T01:10:00Z"),
-      minutes(m),
-      "bad seeing".some
+      minutes(m)
     )
 
   private def correction(
     op:          TimeChargeCorrection.Op,
     m:           Int,
+    created:     String = "2026-03-05T12:00:00Z",
     chargeClass: ChargeClass = ChargeClass.Program
   ): VisitTimeCharge.Correction =
-    VisitTimeCharge.Correction(chargeClass, op, minutes(m), none)
+    VisitTimeCharge.Correction(ts(created), none, chargeClass, op, minutes(m), none)
 
   private def visit(
     id:          Long,
@@ -61,7 +58,6 @@ class TimeChargesSuite extends FunSuite:
   ): VisitTimeCharge =
     VisitTimeCharge(
       Visit.Id.fromLong(id).get,
-      Site.GS,
       span,
       program(execution),
       discounts,
@@ -79,10 +75,9 @@ class TimeChargesSuite extends FunSuite:
                   charged = 120
     )
     val row = v.nightRow.get
-    assertEquals(row.nightTime, minutes(120))
+    assertEquals(row.duration, minutes(120))
     assertEquals(row.interval, v.interval)
     assertEquals(row.charged, minutes(120))
-    assertEquals(row.night, LocalDate.of(2026, 3, 2).some)
 
   test("a visit starting before twilight is clipped and loses the daylight time"):
     val v   = visit(
@@ -93,9 +88,8 @@ class TimeChargesSuite extends FunSuite:
       charged = 105
     )
     val row = v.nightRow.get
-    assertEquals(row.nightTime, minutes(105))
+    assertEquals(row.duration, minutes(105))
     assertEquals(row.interval, interval("2026-03-01T23:50:00Z", "2026-03-02T01:35:00Z").some)
-    assertEquals(row.discounts, Nil)
 
   test("a visit crossing both twilights is clipped at both ends"):
     val v   = visit(
@@ -109,7 +103,7 @@ class TimeChargesSuite extends FunSuite:
       charged = 560
     )
     val row = v.nightRow.get
-    assertEquals(row.nightTime, minutes(560))
+    assertEquals(row.duration, minutes(560))
     assertEquals(row.interval, interval("2026-03-01T23:50:00Z", "2026-03-02T09:10:00Z").some)
 
   test("a visit wholly in daylight has no row"):
@@ -128,7 +122,7 @@ class TimeChargesSuite extends FunSuite:
                   execution = 0,
                   charged = 0
     )
-    assertEquals(v.nightRow.map(_.nightTime), TimeSpan.Zero.some)
+    assertEquals(v.nightRow.map(_.duration), TimeSpan.Zero.some)
 
   test("only daylight visits are reported as having no night-time visits"):
     val v = visit(
@@ -140,47 +134,50 @@ class TimeChargesSuite extends FunSuite:
     )
     assertEquals(TimeCharges.fromVisits(List(v)), TimeCharges.NoNightVisits)
 
-  test("other discounts are kept and program corrections are netted"):
-    val v   = visit(
+  test("other discounts come off the duration and only program corrections are kept"):
+    val forProgram = correction(TimeChargeCorrection.Op.Add, 15)
+    val v          = visit(
       1,
       interval("2026-03-02T01:00:00Z", "2026-03-02T03:00:00Z").some,
       execution = 120,
       discounts = List(qa(10)),
       corrections = List(
-        correction(TimeChargeCorrection.Op.Add, 15),
-        correction(TimeChargeCorrection.Op.Subtract, 5),
-        correction(TimeChargeCorrection.Op.Add, 30, ChargeClass.NonCharged)
+        forProgram,
+        correction(TimeChargeCorrection.Op.Add, 30, chargeClass = ChargeClass.NonCharged)
       ),
-      charged = 120
+      charged = 125
     )
-    val row = v.nightRow.get
-    assertEquals(row.discountTime, minutes(10))
-    assertEquals(row.correction, TimeCharges.Signed(TimeChargeCorrection.Op.Add, minutes(10)).some)
+    val row        = v.nightRow.get
+    assertEquals(row.duration, minutes(110))
+    assertEquals(row.corrections, List(forProgram))
 
-  test("rows are newest first with totals"):
-    val older = visit(1,
+  test("lines are newest visit first, each followed by its corrections, with the charged total"):
+    val older  = visit(1,
                       interval("2026-03-02T01:00:00Z", "2026-03-02T02:00:00Z").some,
                       execution = 60,
                       charged = 60
     )
-    val newer = visit(
+    val later  = correction(TimeChargeCorrection.Op.Subtract, 20, "2026-03-06T12:00:00Z")
+    val sooner = correction(TimeChargeCorrection.Op.Add, 5, "2026-03-05T12:00:00Z")
+    val newer  = visit(
       2,
       interval("2026-03-03T01:00:00Z", "2026-03-03T03:00:00Z").some,
       execution = 120,
-      discounts = List(qa(10)),
-      corrections = List(correction(TimeChargeCorrection.Op.Subtract, 20)),
-      charged = 90
+      corrections = List(later, sooner),
+      charged = 105
     )
     TimeCharges.fromVisits(List(older, newer)) match
       case TimeCharges.Rows(rows) =>
-        assertEquals(rows.map(_.visitId), NonEmptyList.of(newer.visitId, older.visitId))
-        val total = TimeCharges.Total.of(rows)
-        assertEquals(total.nightTime, minutes(180))
-        assertEquals(total.discountTime, minutes(10))
-        assertEquals(total.correction,
-                     TimeCharges.Signed(TimeChargeCorrection.Op.Subtract, minutes(20)).some
+        assertEquals(
+          rows.lines,
+          List(
+            TimeChargeLine.ForVisit(newer.visitId, newer.interval, minutes(120)),
+            TimeChargeLine.ForCorrection(newer.visitId, 0, sooner),
+            TimeChargeLine.ForCorrection(newer.visitId, 1, later),
+            TimeChargeLine.ForVisit(older.visitId, older.interval, minutes(60))
+          )
         )
-        assertEquals(total.charged, minutes(150))
+        assertEquals(rows.total, minutes(165))
       case other                  => fail(s"Expected rows, got $other")
 
   test("decodes a visit with its invoice"):
@@ -188,7 +185,6 @@ class TimeChargesSuite extends FunSuite:
       """
       {
         "id": "v-1",
-        "site": "GS",
         "interval": { "start": "2026-03-01 23:35:00", "end": "2026-03-02 01:35:00" },
         "timeChargeInvoice": {
           "executionTime": {
@@ -199,21 +195,30 @@ class TimeChargesSuite extends FunSuite:
             {
               "__typename": "TimeChargeDaylightDiscount",
               "interval": { "start": "2026-03-01 23:35:00", "end": "2026-03-01 23:50:00" },
-              "amount": { "microseconds": 900000000 },
-              "comment": "Observation executed during the day."
+              "amount": { "microseconds": 900000000 }
             }
           ],
           "corrections": [
             {
+              "created": "2026-03-05 12:00:00",
+              "user": { "id": "u-771" },
               "chargeClass": "PROGRAM",
               "op": "SUBTRACT",
+              "amount": { "microseconds": 300000000 },
+              "comment": "Weather"
+            },
+            {
+              "created": "2026-03-05 12:00:00",
+              "user": null,
+              "chargeClass": "PROGRAM",
+              "op": "ADD",
               "amount": { "microseconds": 300000000 },
               "comment": null
             }
           ],
           "finalCharge": {
-            "program": { "microseconds": 6000000000 },
-            "nonCharged": { "microseconds": 1200000000 }
+            "program": { "microseconds": 6300000000 },
+            "nonCharged": { "microseconds": 900000000 }
           }
         }
       }
@@ -222,14 +227,15 @@ class TimeChargesSuite extends FunSuite:
       1,
       interval("2026-03-01T23:35:00Z", "2026-03-02T01:35:00Z").some,
       execution = 120,
-      discounts = List(
-        daylight("2026-03-01T23:35:00Z", "2026-03-01T23:50:00Z", 15)
-          .copy(comment = "Observation executed during the day.".some)
+      discounts = List(daylight("2026-03-01T23:35:00Z", "2026-03-01T23:50:00Z", 15)),
+      corrections = List(
+        correction(TimeChargeCorrection.Op.Subtract, 5)
+          .copy(user = User.Id.fromLong(0x771).get.some, comment = "Weather".some),
+        correction(TimeChargeCorrection.Op.Add, 5)
       ),
-      corrections = List(correction(TimeChargeCorrection.Op.Subtract, 5)),
-      charged = 100
+      charged = 105
     ).copy(finalCharge =
-      CategorizedTime(ChargeClass.Program -> minutes(100), ChargeClass.NonCharged -> minutes(20))
+      CategorizedTime(ChargeClass.Program -> minutes(105), ChargeClass.NonCharged -> minutes(15))
     )
     assertEquals(decode[VisitTimeCharge](json), expected.asRight)
 
@@ -239,7 +245,6 @@ class TimeChargesSuite extends FunSuite:
       [
         {
           "id": "v-13e2",
-          "site": "GN",
           "interval": {
             "start": "2026-07-05T02:28:18.110493Z",
             "end": "2026-07-05T02:33:50.47894Z"
@@ -256,8 +261,7 @@ class TimeChargesSuite extends FunSuite:
                   "start": "2026-07-05T02:28:18.110493Z",
                   "end": "2026-07-05T02:33:50.47894Z"
                 },
-                "amount": { "microseconds": 332368447 },
-                "comment": "Time spent observing pre-dusk (nautical twilight)."
+                "amount": { "microseconds": 332368447 }
               }
             ],
             "corrections": [],

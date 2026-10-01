@@ -12,6 +12,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ObsTabTileIds
 import explore.model.Observation
+import explore.model.VisitTimeCharge
 import explore.model.display.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
@@ -40,6 +41,7 @@ final case class ObservationDetailsTile(
   observation:           UndoSetter[Observation],
   programType:           ProgramType,
   allocatedScienceBands: SortedSet[ScienceBand],
+  timeCharges:           Option[List[VisitTimeCharge]],
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
       ObsTabTileIds.DetailsId.id,
@@ -193,6 +195,6 @@ object ObservationDetailsTile
               tooActivationSelector.unless(props.observation.get.isCalibration)
             ),
             estimatedDuration,
-            TimeChargesTable(props.observation.get.id)
+            TimeChargesTable(props.timeCharges)
           )
     )

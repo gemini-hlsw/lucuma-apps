@@ -102,6 +102,7 @@ import queries.schemas.itc.syntax.itcTarget
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
+import scala.concurrent.duration.*
 
 case class ObsTabTiles(
   vault:            Option[UserVault],
@@ -116,6 +117,7 @@ case class ObsTabTiles(
   focusedTarget:    Option[Target.Id],
   searching:        View[Set[Target.Id]],
   selectedGSName:   View[Option[NonEmptyString]],
+  timeCharges:      View[Option[List[VisitTimeCharge]]],
   resize:           UseResizeDetectorReturn,
   userPreferences:  View[UserPreferences],
   readonly:         Boolean
@@ -369,6 +371,26 @@ object ObsTabTiles:
                                         guideStarSelection.set(
                                           name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
                                         )).toAsync
+        // Time charges are cached per observation, so reopening one shows them at once while they
+        // are refreshed, and they are kept current as the observation executes.
+        refreshTimeCharges   <- useThrottledCallback(5.seconds):
+                                  import ctx.given
+                                  odbApi
+                                    .observationTimeCharges(props.obsId)
+                                    .flatMap(charges => props.timeCharges.set(charges.some).toAsync)
+        _                    <- useEffectWithDeps(props.obsId)(_ => refreshTimeCharges.value)
+        _                    <-
+          useEffectStreamResourceOnMount:
+            import ctx.given
+            odbApi
+              .stepEventSubscription(props.obsId)
+              .map(_.evalMap(_ => refreshTimeCharges.to[IO]))
+        _                    <-
+          useEffectStreamResourceOnMount:
+            import ctx.given
+            odbApi
+              .datasetEventSubscription(props.obsId)
+              .map(_.evalMap(_ => refreshTimeCharges.to[IO]))
         // The mask design is only stored on the attachment, fetched on demand for MOS obs.
         maskDesignPot        <-
           useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
@@ -535,6 +557,7 @@ object ObsTabTiles:
           ObservationDetailsTile(props.observation,
                                  props.programType,
                                  props.programSummaries.allocatedScienceBands,
+                                 props.timeCharges.get,
                                  props.obsIsReadonly
           )
 

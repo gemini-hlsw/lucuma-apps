@@ -3,140 +3,115 @@
 
 package explore.tabs
 
-import cats.effect.IO
 import cats.syntax.all.*
-import crystal.react.*
-import crystal.react.hooks.*
 import explore.components.ui.ExploreStyles
-import explore.model.AppContext
-import explore.model.Observation
-import explore.model.TimeChargeRow
+import explore.model.TimeChargeLine
 import explore.model.TimeCharges
+import explore.model.TimeCharges.*
+import explore.model.VisitTimeCharge
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.sequence.TimeChargeCorrection
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.time.format.GppDateFormatter
-import lucuma.core.util.time.format.GppTimeTZFormatter
+import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
-import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Divider
 import lucuma.react.table.*
-import lucuma.ui.components.TimeSpanView
-import lucuma.ui.format.TimeSpanFormatter
 import lucuma.ui.table.*
 
-import scala.concurrent.duration.*
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
-case class TimeChargesTable(obsId: Observation.Id) extends ReactFnProps(TimeChargesTable.component)
+case class TimeChargesTable(visits: Option[List[VisitTimeCharge]])
+    extends ReactFnProps(TimeChargesTable.component)
 
 object TimeChargesTable:
-  private given Reusability[TimeCharges] = Reusability.byEq
+  private given Reusability[List[VisitTimeCharge]] = Reusability.byEq
+  private given Reusability[TimeCharges]           = Reusability.byEq
 
-  private val ColDef = ColumnDef[TimeChargeRow].WithTableMeta[Option[TimeCharges.Total]]
+  private val ColDef = ColumnDef[TimeChargeLine].WithTableMeta[Option[TimeSpan]]
 
-  private def footerTotal(f: TimeCharges.Total => VdomNode)(
-    c: HeaderContext[TimeChargeRow, ?, Option[TimeCharges.Total], ?, ?, ?, ?]
-  ): VdomNode =
-    c.table.options.meta.flatten.fold(EmptyVdom)(f)
+  private val VisitColId: ColumnId    = ColumnId("visit")
+  private val StartColId: ColumnId    = ColumnId("start")
+  private val EndColId: ColumnId      = ColumnId("end")
+  private val DurationColId: ColumnId = ColumnId("duration")
 
-  private def duration(t: TimeSpan): VdomNode =
-    TimeSpanView(t, TimeSpanFormatter.HoursMinutesLetter)
+  private val TimestampFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC)
 
-  private def signed(s: Option[TimeCharges.Signed]): VdomNode =
-    s.fold[VdomNode]("-"): s =>
-      val sign = s.op match
-        case TimeChargeCorrection.Op.Add      => "+"
-        case TimeChargeCorrection.Op.Subtract => "−"
-      <.span(sign, duration(s.amount))
+  private val DateFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("yyyy-MMM-dd").withZone(ZoneOffset.UTC)
 
-  private def details(lines: List[String]): Option[VdomNode] =
-    lines.toNel.map(ls => <.div(ls.toList.toTagMod(using l => <.div(l))))
+  private def timestamp(t: Timestamp): String = TimestampFormatter.format(t.toInstant)
 
-  private def withDetails(node: VdomNode, lines: List[String]): VdomNode =
-    details(lines).fold(node)(d => <.span(node).withTooltip(d))
+  private def duration(t: TimeSpan): String =
+    val secs = t.toSeconds.toLong
+    f"${secs / 3600}h ${secs % 3600 / 60}%02dm ${secs % 60}%02ds"
+
+  private def correctionText(c: VisitTimeCharge.Correction): String =
+    val source = (DateFormatter.format(c.created.toInstant) :: c.user.map(_.show).toList)
+      .mkString(", ")
+    s"${c.comment.getOrElse("Time correction")} ($source)"
+
+  private def correctionAmount(c: VisitTimeCharge.Correction): String =
+    c.op match
+      case TimeChargeCorrection.Op.Add      => duration(c.amount)
+      case TimeChargeCorrection.Op.Subtract => s"-${duration(c.amount)}"
 
   private val Columns: Reusable[List[ColDef.Type]] =
     Reusable.always:
       List(
+        ColDef(VisitColId, _.visitId, "Visit", _.value.show),
         ColDef(
-          ColumnId("night"),
-          _.night,
-          "Night",
-          _.value.fold("-")(GppDateFormatter.format),
+          StartColId,
+          identity,
+          "Start",
+          _.value match
+            case TimeChargeLine.ForVisit(_, interval, _) =>
+              interval.fold("-")(i => timestamp(i.start))
+            case TimeChargeLine.ForCorrection(_, _, c)   => correctionText(c)
+        ),
+        ColDef(
+          EndColId,
+          identity,
+          "End",
+          _.value match
+            case TimeChargeLine.ForVisit(_, interval, _) =>
+              interval.fold("-")(i => timestamp(i.end))
+            case TimeChargeLine.ForCorrection(_, _, _)   => EmptyVdom
+          ,
           footer = _ => "Total"
         ),
         ColDef(
-          ColumnId("start"),
-          _.interval,
-          "Start (UTC)",
-          _.value.fold("-")(i => GppTimeTZFormatter.format(i.start.toInstant))
-        ),
-        ColDef(
-          ColumnId("end"),
-          _.interval,
-          "End (UTC)",
-          _.value.fold("-")(i => GppTimeTZFormatter.format(i.end.toInstant))
-        ),
-        ColDef(
-          ColumnId("night-time"),
-          _.nightTime,
-          "Night Time",
-          c => duration(c.value),
-          footer = footerTotal(t => duration(t.nightTime))
-        ),
-        ColDef(
-          ColumnId("discounts"),
+          DurationColId,
           identity,
-          "Discounts",
-          c =>
-            withDetails(
-              duration(c.value.discountTime),
-              c.value.discounts.map: d =>
-                s"${d.kind.label}: ${TimeSpanFormatter.HoursMinutesLetter.format(d.amount)}" +
-                  d.comment.foldMap(m => s" ($m)")
-            ),
-          footer = footerTotal(t => duration(t.discountTime))
-        ),
-        ColDef(
-          ColumnId("corrections"),
-          identity,
-          "Corrections",
-          c => withDetails(signed(c.value.correction), c.value.corrections.flatMap(_.comment)),
-          footer = footerTotal(t => signed(t.correction))
-        ),
-        ColDef(
-          ColumnId("charged"),
-          _.charged,
-          "Charged",
-          c => duration(c.value),
-          footer = footerTotal(t => duration(t.charged))
+          "Duration",
+          _.value match
+            case TimeChargeLine.ForVisit(_, _, d)      => duration(d)
+            case TimeChargeLine.ForCorrection(_, _, c) => correctionAmount(c)
+          ,
+          footer = _.table.options.meta.flatten.fold(EmptyVdom)(t => duration(t))
         )
       )
 
+  private def lineId(line: TimeChargeLine): RowId =
+    line match
+      case TimeChargeLine.ForVisit(v, _, _)      => RowId(v.show)
+      case TimeChargeLine.ForCorrection(v, i, _) => RowId(s"${v.show}-correction-$i")
+
   private val component = ScalaFnComponent[TimeChargesTable]: props =>
     for
-      ctx     <- useContext(AppContext.ctx)
-      visits  <- useEffectKeepResultOnMount(ctx.odbApi.observationTimeCharges(props.obsId))
-      refresh <- useThrottledCallback(5.seconds)(visits.refresh.value.to[IO])
-      _       <-
-        useEffectStreamResourceOnMount:
-          ctx.odbApi.stepEventSubscription(props.obsId).map(_.evalMap(_ => refresh.to[IO]))
-      _       <-
-        useEffectStreamResourceOnMount:
-          ctx.odbApi.datasetEventSubscription(props.obsId).map(_.evalMap(_ => refresh.to[IO]))
-      charges <-
-        useMemo(visits.state.value.toOption.map(v => TimeCharges.fromVisits(v.get)))(identity)
-      rows    <- useMemo(charges.value):
-                   case Some(TimeCharges.Rows(rows)) => rows.toList
+      charges <- useMemo(props.visits)(_.map(TimeCharges.fromVisits))
+      lines   <- useMemo(charges.value):
+                   case Some(TimeCharges.Rows(rows)) => rows.lines
                    case _                            => Nil
       table   <- useReactTable:
                    TableOptions(
                      Columns,
-                     rows,
-                     getRowId = (row, _, _) => RowId(row.visitId.toString),
+                     lines,
+                     getRowId = (line, _, _) => lineId(line),
                      meta = charges.value.collect:
-                       case TimeCharges.Rows(rows) => TimeCharges.Total.of(rows)
+                       case TimeCharges.Rows(rows) => rows.total
                      ,
                      enableSorting = false,
                      enableColumnResizing = false
@@ -144,13 +119,25 @@ object TimeChargesTable:
     yield
       val body: VdomNode =
         charges.value match
-          case None if visits.state.value.isError =>
-            <.div("Could not load time charges")
-          case None                               => EmptyVdom
-          case Some(TimeCharges.NoVisits)         => <.div("No visits yet")
-          case Some(TimeCharges.NoNightVisits)    => <.div("No night-time visits")
-          case Some(TimeCharges.Rows(_))          =>
-            PrimeTable(table, tableMod = ExploreStyles.TimeChargesTable)
+          case None                            => EmptyVdom
+          case Some(TimeCharges.NoVisits)      => <.div("No visits yet")
+          case Some(TimeCharges.NoNightVisits) => <.div("No night-time visits")
+          case Some(TimeCharges.Rows(_))       =>
+            PrimeTable(
+              table,
+              tableMod = ExploreStyles.TimeChargesTable,
+              // A correction's description runs across the start and end columns.
+              cellMod = (cell, _, render) =>
+                cell.row.original match
+                  case TimeChargeLine.ForCorrection(_, _, _)
+                      if cell.column.id.value === StartColId.value =>
+                    render(^.colSpan := 2)
+                  case TimeChargeLine.ForCorrection(_, _, _)
+                      if cell.column.id.value === EndColId.value =>
+                    EmptyVdom
+                  case _ =>
+                    render
+            )
 
       <.div(ExploreStyles.TimeChargesSection)(
         Divider(),
