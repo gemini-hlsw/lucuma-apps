@@ -85,7 +85,7 @@ case class TargetEditor(
   obsAndTargets:               UndoSetter[ObservationsAndTargets],
   // TODO, we may derive obsTargets from obsAndTargets
   obsTargets:                  ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
-  obsTime:                     Option[Instant],
+  obsTime:                     Instant,
   obsConf:                     Option[ObsConfiguration],
   positions:                   ObsPositions,
   ags:                         AgsData,
@@ -186,8 +186,6 @@ object TargetEditor:
         cloning                     <- useStateView(false)
         internalObsToCloneTo        <- useStateView(none[ObsIdSet])
         internalReadonlyForStatuses <- useStateView(false)
-        // If obsTime is not set, change it to now at the start of the day in UTC.
-        obsTime                     <- useMemo(props.obsTime)(obsTimeOrDefault)
         // select the aligner to use based on whether a clone will be created or not.
         targetAligner               <-
           val obsToCloneTo = props.externalObsToCloneTo.getOrElse(internalObsToCloneTo)
@@ -545,7 +543,7 @@ object TargetEditor:
               AladinCell(
                 props.userId,
                 props.obsTargets,
-                obsTime.value,
+                props.obsTime,
                 props.obsConf,
                 props.positions,
                 props.ags,

@@ -33,6 +33,7 @@ import explore.model.itc.ItcTarget
 import explore.model.layout.*
 import explore.model.reusability.given
 import explore.model.syntax.all.*
+import explore.model.syntax.observation.*
 import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import explore.modes.ScienceModes
@@ -45,6 +46,7 @@ import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targeteditor.UseAgs.useAgs
 import explore.targeteditor.UseAltairModesAgs.useAltairModesAgs
+import explore.targeteditor.UseDefaultObsTime.useDefaultObsTime
 import explore.targeteditor.UseTrackingMap.useObsPositions
 import explore.utils.obsTimeOrDefault
 import japgolly.scalajs.react.*
@@ -60,7 +62,6 @@ import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
-import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.IntCentiPercent
@@ -211,24 +212,7 @@ case class ObsTabTiles(
       .map(_.targetVisualization(scienceTargets, ghostIfuMapping(obsTimeOrNow)))
       .getOrElse(TargetVisualization.Empty)
 
-  // The explicit duration if set, else the remaining time from the digest.
-  def obsDuration: Option[TimeSpan] =
-    observation.get.observationDuration
-      .orElse(observation.get.execution.digest.remainingObsTime.value)
-
-  // Average PA over the science part of the observation, i.e. after setup.
-  def averagePA(obsTimeOrNow: Instant, optTracking: Option[Tracking]): Option[AveragePABasis] =
-    if posAngleConstraint =!= PosAngleConstraint.AverageParallactic then none
-    else
-      (site, optTracking, obsDuration, observation.get.execution.digest.fullSetupTime.value)
-        .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
-          fullDuration
-            .subtract(setupDuration)
-            .filter(_ > TimeSpan.Zero)
-            .flatMap: scienceDuration =>
-              val scienceStartTime = obsTimeOrNow.plusNanos(setupDuration.toMicroseconds * 1000)
-              averageParallacticAngle(site.place, baseTracking, scienceStartTime, scienceDuration)
-                .map(AveragePABasis(scienceStartTime, scienceDuration, _))
+  def obsDuration: Option[TimeSpan] = observation.get.obsDuration
 
   def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
     NonEmptySet.fromSet:
@@ -321,12 +305,19 @@ object ObsTabTiles:
         // catch the latter case.
         _                    <- useEffectWithDeps(customSedTimestamps): _ =>
                                   sequenceChanged.set(pending)
-        obsTimeOrNow         <- useMemo(props.observation.model.get.observationTime)(obsTimeOrDefault)
-        targetViz             = props.targetVisualization(obsTimeOrNow.value)
+        defaultObsTime       <- useDefaultObsTime(
+                                  props.asterismAsNel,
+                                  props.site,
+                                  props.observation.model.get.observationTime,
+                                  props.observation.get.explicitBase
+                                )(ctx)
+        // Fetches wait for the default time; pure computations use start of day meanwhile.
+        obsTimeOrNow: Instant = defaultObsTime.toOption.getOrElse(obsTimeOrDefault(none))
+        targetViz             = props.targetVisualization(obsTimeOrNow)
         positions            <- useObsPositions(
                                   props.asterismWithBlindOffset,
                                   props.site,
-                                  obsTimeOrNow.value.some,
+                                  defaultObsTime.toOption,
                                   targetViz.some,
                                   props.observation.get.explicitBase
                                 )(ctx)
@@ -389,7 +380,7 @@ object ObsTabTiles:
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))
         isEditingAcquisition <- useStateView(IsEditing.False)
         isEditingScience     <- useStateView(IsEditing.False)
-        averagePA             = props.averagePA(obsTimeOrNow.value, positions.baseTracking)
+        averagePA             = props.observation.get.averagePA(positions.baseTracking, obsTimeOrNow)
         trackType             = positions.baseTracking.map(_.trackType)
         paProps               =
           PAProperties(props.obsId, guideStarSelection, agsState, props.posAngleConstraint)
@@ -402,7 +393,7 @@ object ObsTabTiles:
             props.sciConfigs,
             props.acqConfigs,
             averagePA,
-            props.obsDuration.map(_.toDuration),
+            props.observation.get.agsObsDuration.map(_.toDuration),
             props.observation.get.needsAGS(props.obsTargets),
             props.observation.get.selectedGSName,
             props.observation.get.calibrationRole,
@@ -412,7 +403,8 @@ object ObsTabTiles:
             props.observation.get.effectiveCassRotator,
             maskDesignPot.value.toOption.flatten,
             props.observation.get.explicitGuideProbe,
-            props.observation.get.altair
+            props.observation.get.altair,
+            props.observation.get.targetNotObservable(positions.baseTracking, obsTimeOrNow)
           )
         focusedTargets        = props.asterismAsNel.map: targets =>
                                   props.focusedTarget.fold(targets)(targets.focusOn)
@@ -420,7 +412,7 @@ object ObsTabTiles:
         // and configuration changes while the tile is minimized.
         agsData              <- useAgs(
                                   focusedTargets,
-                                  obsTimeOrNow.value.some,
+                                  defaultObsTime.toOption,
                                   positions,
                                   obsConf,
                                   guideStarSelection
@@ -428,7 +420,7 @@ object ObsTabTiles:
         // Without a mode yet, the modes table offers Altair rows backed by a guide star of their own.
         altairParams         <- useAltairModesAgs(
                                   focusedTargets,
-                                  obsTimeOrNow.value.some,
+                                  defaultObsTime.toOption,
                                   positions,
                                   obsConf,
                                   props.observation.get.scienceRequirements.scienceMode.left.toOption
@@ -451,7 +443,7 @@ object ObsTabTiles:
           AltairControls.guideStarSeparation(
             positions.coords.toOption.flatMap(_.toOption).flatMap(_.baseCoords),
             altairGuideStar,
-            obsTimeOrNow.value
+            obsTimeOrNow
           )
 
         val altairItcParameters: Option[AltairParameters] =
@@ -800,6 +792,7 @@ object ObsTabTiles:
             blindOffsetInfo = (props.obsId, blindOffsetView).some,
             guiding = guidingView.some,
             positions = positions.some,
+            defaultObsTime = defaultObsTime.some,
             ags = agsData
           )
 

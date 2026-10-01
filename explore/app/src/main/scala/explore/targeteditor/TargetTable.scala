@@ -25,7 +25,6 @@ import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.targets.MotionCorrectedTarget
 import explore.targets.TargetColumns
-import explore.utils.obsTimeOrDefault
 import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -68,7 +67,7 @@ case class TargetTable(
   obsAndTargets:    UndoSetter[ObservationsAndTargets],
   selectedTarget:   View[Option[AsterismSelection]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
-  vizTime:          Option[Instant],
+  vizTime:          Instant,
   site:             Option[Site],
   fullScreen:       AladinFullScreen,
   readOnly:         Boolean,
@@ -217,10 +216,9 @@ object TargetTable:
                                 case _                                => none
                             )
                             .AllColumns
-        vizTime    <- useMemo(props.vizTime)(obsTimeOrDefault)
         rowsPot    <-
           useEffectKeepResultWithDeps(
-            (vizTime.value, props.obsTargets, props.site, props.positions)
+            (props.vizTime, props.obsTargets, props.site, props.positions)
           ): (vizInstant, optObsTargets, site, skyPositions) =>
             import ctx.given
 

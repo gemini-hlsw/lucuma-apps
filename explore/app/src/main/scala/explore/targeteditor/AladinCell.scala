@@ -78,6 +78,9 @@ case class AladinCell(
   val anglesToTest: Option[NonEmptyList[Angle]] =
     obsConf.flatMap(_.anglesToTest)
 
+  val targetNotObservable: Boolean =
+    obsConf.exists(_.targetNotObservable)
+
   def durationAvailable: Boolean =
     obsConf.flatMap(_.obsDuration).isDefined
 
@@ -413,7 +416,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                     agsState.get,
                     props.modeSelected,
                     props.durationAvailable,
-                    props.ags.candidates.isReady
+                    props.ags.candidates.isReady,
+                    props.anglesToTest.isDefined,
+                    props.targetNotObservable
                   )
                 )
           else EmptyVdom

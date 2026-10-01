@@ -42,24 +42,26 @@ import java.time.Duration
  * instrument and telescope config, which includes offsets, duration, etc.
  */
 final case class ObsConfiguration(
-  configuration:      Option[BasicConfiguration],
-  selectedConfig:     ConfigSelection, // selected row(s) in the modes table
-  posAngleProperties: Option[PAProperties],
-  constraints:        Option[ConstraintSet],
-  scienceOffsets:     Option[NonEmptySet[TelescopeConfig]],
-  acquisitionOffsets: Option[NonEmptySet[TelescopeConfig]],
-  averagePA:          Option[AveragePABasis],
-  obsDuration:        Option[Duration],
-  needGuideStar:      Boolean,
-  remoteGSName:       Option[NonEmptyString],
-  calibrationRole:    Option[CalibrationRole],
-  trackType:          Option[TrackType],
-  targetViz:          TargetVisualization,
-  explicitBase:       Option[Coordinates],
-  cassRotator:        CassRotator,
-  maskDesign:         Option[MaskDesign],
-  explicitGuideProbe: Option[GuideProbe],
-  altair:             Option[AltairConfiguration]
+  configuration:       Option[BasicConfiguration],
+  selectedConfig:      ConfigSelection, // selected row(s) in the modes table
+  posAngleProperties:  Option[PAProperties],
+  constraints:         Option[ConstraintSet],
+  scienceOffsets:      Option[NonEmptySet[TelescopeConfig]],
+  acquisitionOffsets:  Option[NonEmptySet[TelescopeConfig]],
+  averagePA:           Option[AveragePABasis],
+  obsDuration:         Option[Duration],
+  needGuideStar:       Boolean,
+  remoteGSName:        Option[NonEmptyString],
+  calibrationRole:     Option[CalibrationRole],
+  trackType:           Option[TrackType],
+  targetViz:           TargetVisualization,
+  explicitBase:        Option[Coordinates],
+  cassRotator:         CassRotator,
+  maskDesign:          Option[MaskDesign],
+  explicitGuideProbe:  Option[GuideProbe],
+  altair:              Option[AltairConfiguration],
+  // The average parallactic angle is required but the target is down over the science window.
+  targetNotObservable: Boolean
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -89,14 +91,14 @@ final case class ObsConfiguration(
   def fallbackPA: Option[Angle] =
     posAngleProperties.map(_.constraint.fallbackPosAngle(averagePA.map(_.averagePA)))
 
-  // Angles AGS tests. Visual mode defaults to PA 0 when e.g. the average PA is not available.
-  // Sorted, or two equivalent guide stars could make the angles flip back and forth forever.
+  // Angles AGS tests. None when the average parallactic angle is required but cannot be computed,
+  // i.e. the target is not observable at the observation time. The ODB refuses to pick a star
+  // then, so no fallback here either. Sorted, or two equivalent guide stars could make the angles
+  // flip back and forth forever.
   def anglesToTest: Option[NonEmptyList[Angle]] =
-    posAngleConstraint.map: paConstraint =>
-      paConstraint
-        .anglesToTestAt(averagePA.map(_.averagePA))
-        .getOrElse(NonEmptyList.one(Angle.Angle0))
-        .sorted(using Angle.AngleOrder)
+    posAngleConstraint
+      .flatMap(_.anglesToTestAt(averagePA.map(_.averagePA)))
+      .map(_.sorted(using Angle.AngleOrder))
 
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)
@@ -145,5 +147,6 @@ object ObsConfiguration:
       CassRotator.Following,
       none,
       none,
-      none
+      none,
+      false
     )
