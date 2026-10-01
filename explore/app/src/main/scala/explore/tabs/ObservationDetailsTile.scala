@@ -192,6 +192,7 @@ object ObservationDetailsTile
               prioritySelector,
               tooActivationSelector.unless(props.observation.get.isCalibration)
             ),
-            estimatedDuration
+            estimatedDuration,
+            TimeChargesTable(props.observation.get.id)
           )
     )

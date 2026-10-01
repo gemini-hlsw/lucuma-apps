@@ -4,12 +4,14 @@
 package explore.services
 
 import cats.effect.Resource
+import explore.model.VisitTimeCharge
 import lucuma.core.model.Observation
 import lucuma.schemas.model.ExecutionVisits
 import queries.common.ObsQueriesGQL.*
 
 trait OdbVisitApi[F[_]]:
-  def observationVisits(obsId: Observation.Id): F[Option[ExecutionVisits]]
+  def observationVisits(obsId:      Observation.Id): F[Option[ExecutionVisits]]
+  def observationTimeCharges(obsId: Observation.Id): F[List[VisitTimeCharge]]
   def stepEventSubscription(
     obsId: Observation.Id
   ): Resource[F, fs2.Stream[F, StepEventSubscription.Data]]

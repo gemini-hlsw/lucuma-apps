@@ -193,6 +193,22 @@ object ObsQueriesGQL:
       }
     """
 
+  // Kept apart from the visits query used by the sequence tile, which also fetches every atom,
+  // step and dataset.
+  @GraphQL
+  trait ObservationTimeChargesQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          execution {
+            visits {
+              matches $VisitTimeChargeSubquery
+            }
+          }
+        }
+      }
+    """
+
   @GraphQL
   trait SetBlindOffsetMutation extends GraphQLOperation[ObservationDB]:
     val document = gql"""
