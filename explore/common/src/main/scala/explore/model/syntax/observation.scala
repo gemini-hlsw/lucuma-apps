@@ -10,6 +10,7 @@ import explore.model.Execution
 import explore.model.Observation
 import explore.model.syntax.all.*
 import lucuma.core.geom.jts.interpreter.given
+import lucuma.core.enums.Site
 import lucuma.core.math.Coordinates
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.PosAngleConstraint
@@ -39,13 +40,15 @@ object observation:
     TimeSpan.unsafeFromDuration(1, ChronoUnit.HOURS)
 
   extension (o: Observation)
-    // The explicit duration if set, else the remaining time from the digest. An Altair sequence
-    // cannot be generated before a guide star is picked, so until then Altair observations get a
-    // nominal duration, or AGS would never run.
+    // The explicit duration if set, else the remaining time from the digest.
     def obsDuration: Option[TimeSpan] =
-      o.observationDuration
-        .orElse(o.execution.digest.remainingObsTime.value)
-        .orElse(Option.when(o.altair.isDefined)(NominalAltairVisitDuration))
+      o.observationDuration.orElse(o.execution.digest.remainingObsTime.value)
+
+    // The duration AGS and the average parallactic angle work with. An Altair sequence cannot be
+    // generated before a guide star is picked, so until then Altair observations get a nominal
+    // duration, or AGS would never run. Display keeps `obsDuration`, which has no such fiction.
+    def agsObsDuration: Option[TimeSpan] =
+      o.obsDuration.orElse(Option.when(o.altair.isDefined)(NominalAltairVisitDuration))
 
     def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
       NonEmptySet.fromSet(Execution.acqConfigs.getOption(o.execution).orEmpty)
@@ -97,16 +100,36 @@ object observation:
         .map(_.targetVisualization(scienceTargets, o.ghostIfuMapping(scienceTargets, obsTime)))
         .getOrElse(TargetVisualization.Empty)
 
+    // The science part of the observation, i.e. after setup: site, base tracking, start and
+    // duration. None without a sequence, since the setup time comes from the digest.
+    def scienceWindow(
+      baseTracking: Option[Tracking],
+      obsTime:      Instant
+    ): Option[(Site, Tracking, Instant, TimeSpan)] =
+      (o.site, baseTracking, o.agsObsDuration, o.execution.digest.fullSetupTime.value)
+        .flatMapN: (site, tracking, fullDuration, setupDuration) =>
+          fullDuration
+            .subtract(setupDuration)
+            .filter(_ > TimeSpan.Zero)
+            .map: scienceDuration =>
+              (site,
+               tracking,
+               obsTime.plusNanos(setupDuration.toMicroseconds * 1000),
+               scienceDuration
+              )
+
     // Average PA over the science part of the observation, i.e. after setup.
     def averagePA(baseTracking: Option[Tracking], obsTime: Instant): Option[AveragePABasis] =
       if o.posAngleConstraint =!= PosAngleConstraint.AverageParallactic then none
       else
-        (o.site, baseTracking, o.obsDuration, o.execution.digest.fullSetupTime.value)
-          .flatMapN: (site, tracking, fullDuration, setupDuration) =>
-            fullDuration
-              .subtract(setupDuration)
-              .filter(_ > TimeSpan.Zero)
-              .flatMap: scienceDuration =>
-                val scienceStartTime = obsTime.plusNanos(setupDuration.toMicroseconds * 1000)
-                averageParallacticAngle(site.place, tracking, scienceStartTime, scienceDuration)
-                  .map(AveragePABasis(scienceStartTime, scienceDuration, _))
+        o.scienceWindow(baseTracking, obsTime)
+          .flatMap: (site, tracking, scienceStart, scienceDuration) =>
+            averageParallacticAngle(site.place, tracking, scienceStart, scienceDuration)
+              .map(AveragePABasis(scienceStart, scienceDuration, _))
+
+    // The average parallactic angle is required and its inputs are known, yet it cannot be
+    // computed: the target is below the horizon over the science window.
+    def targetNotObservable(baseTracking: Option[Tracking], obsTime: Instant): Boolean =
+      o.posAngleConstraint === PosAngleConstraint.AverageParallactic &&
+        o.scienceWindow(baseTracking, obsTime).isDefined &&
+        o.averagePA(baseTracking, obsTime).isEmpty

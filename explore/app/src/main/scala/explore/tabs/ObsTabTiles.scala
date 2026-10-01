@@ -62,7 +62,6 @@ import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
-import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.IntCentiPercent
@@ -214,39 +213,6 @@ case class ObsTabTiles(
       .getOrElse(TargetVisualization.Empty)
 
   def obsDuration: Option[TimeSpan] = observation.get.obsDuration
-
-  // The science part of the observation, i.e. after setup: site, base tracking, start and
-  // duration. None without a sequence, since the setup time comes from the digest.
-  def scienceWindow(
-    obsTimeOrNow: Instant,
-    optTracking:  Option[Tracking]
-  ): Option[(Site, Tracking, Instant, TimeSpan)] =
-    (site, optTracking, obsDuration, observation.get.execution.digest.fullSetupTime.value)
-      .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
-        fullDuration
-          .subtract(setupDuration)
-          .filter(_ > TimeSpan.Zero)
-          .map: scienceDuration =>
-            (site,
-             baseTracking,
-             obsTimeOrNow.plusNanos(setupDuration.toMicroseconds * 1000),
-             scienceDuration
-            )
-
-  def averagePA(obsTimeOrNow: Instant, optTracking: Option[Tracking]): Option[AveragePABasis] =
-    if posAngleConstraint =!= PosAngleConstraint.AverageParallactic then none
-    else
-      scienceWindow(obsTimeOrNow, optTracking).flatMap:
-        (site, baseTracking, scienceStart, scienceDuration) =>
-          averageParallacticAngle(site.place, baseTracking, scienceStart, scienceDuration)
-            .map(AveragePABasis(scienceStart, scienceDuration, _))
-
-  // The average parallactic angle is required and its inputs are known, yet it cannot be
-  // computed: the target is below the horizon over the science window.
-  def targetNotObservable(obsTimeOrNow: Instant, optTracking: Option[Tracking]): Boolean =
-    posAngleConstraint === PosAngleConstraint.AverageParallactic &&
-      scienceWindow(obsTimeOrNow, optTracking).isDefined &&
-      averagePA(obsTimeOrNow, optTracking).isEmpty
 
   def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
     NonEmptySet.fromSet:
@@ -414,7 +380,7 @@ object ObsTabTiles:
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))
         isEditingAcquisition <- useStateView(IsEditing.False)
         isEditingScience     <- useStateView(IsEditing.False)
-        averagePA             = props.averagePA(obsTimeOrNow, positions.baseTracking)
+        averagePA             = props.observation.get.averagePA(positions.baseTracking, obsTimeOrNow)
         trackType             = positions.baseTracking.map(_.trackType)
         paProps               =
           PAProperties(props.obsId, guideStarSelection, agsState, props.posAngleConstraint)
@@ -427,7 +393,7 @@ object ObsTabTiles:
             props.sciConfigs,
             props.acqConfigs,
             averagePA,
-            props.obsDuration.map(_.toDuration),
+            props.observation.get.agsObsDuration.map(_.toDuration),
             props.observation.get.needsAGS(props.obsTargets),
             props.observation.get.selectedGSName,
             props.observation.get.calibrationRole,
@@ -438,7 +404,7 @@ object ObsTabTiles:
             maskDesignPot.value.toOption.flatten,
             props.observation.get.explicitGuideProbe,
             props.observation.get.altair,
-            props.targetNotObservable(obsTimeOrNow, positions.baseTracking)
+            props.observation.get.targetNotObservable(positions.baseTracking, obsTimeOrNow)
           )
         focusedTargets        = props.asterismAsNel.map: targets =>
                                   props.focusedTarget.fold(targets)(targets.focusOn)
@@ -826,6 +792,7 @@ object ObsTabTiles:
             blindOffsetInfo = (props.obsId, blindOffsetView).some,
             guiding = guidingView.some,
             positions = positions.some,
+            defaultObsTime = defaultObsTime.some,
             ags = agsData
           )
 

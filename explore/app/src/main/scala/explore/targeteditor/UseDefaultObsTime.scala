@@ -55,7 +55,8 @@ object UseDefaultObsTime:
               .filterNot(_.hasTargetOfOpportunity)
               .product(site)
               .flatTraverse(nextTransit)
-              .handleError(_ => none)
+              .handleErrorWith: t =>
+                ctx.logger.error(t)(s"Error computing the next transit: ${t.getMessage}").as(none)
     yield syncTime.value match
       case Some(time) => time.ready
       case None       => transitTime.value.value.map(_.getOrElse(obsTimeOrDefault(none)))

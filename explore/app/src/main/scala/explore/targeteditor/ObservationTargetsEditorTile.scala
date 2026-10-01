@@ -99,6 +99,7 @@ final case class ObservationTargetsEditorTile(
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None,
   positions:           Option[ObsPositions] = None,
+  defaultObsTime:      Option[Pot[Instant]] = None,
   ags:                 AgsData = AgsData.Empty,
   guiding:             Option[View[GuidingConfiguration]] = None
 )(using val odbApi: OdbObservationApi[IO])
@@ -166,13 +167,15 @@ object ObservationTargetsEditorTile
           obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
                                    ObservationTargets.fromIdsAndTargets(ids.value, targets)
           // The effective observation time (from odb or the next transit), memoized so we don't
-          // feed react-datepicker a fresh Instant.now on every render
-          defaultObsTime      <- useDefaultObsTime(
-                                   obsTargets.value,
+          // feed react-datepicker a fresh Instant.now on every render. The obs tab passes its own,
+          // so that AGS and the date picker agree on the time.
+          ownDefaultObsTime   <- useDefaultObsTime(
+                                   obsTargets.value.filter(_ => props.defaultObsTime.isEmpty),
                                    distinctSite.value,
                                    props.obsTime.get,
                                    props.obsConf.explicitBase
                                  )(ctx)
+          defaultObsTime       = props.defaultObsTime.getOrElse(ownDefaultObsTime)
           ownPositions        <- useObsPositions(
                                    obsTargets.value.filter(_ => props.positions.isEmpty),
                                    distinctSite.value,
