@@ -12,6 +12,7 @@ import eu.timepit.refined.numeric.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.refined.*
+import lucuma.ui.aladin.Fov
 import monocle.Focus
 import monocle.Lens
 
@@ -44,3 +45,7 @@ object AsterismVisualOptions:
       100.refined,
       100.refined
     )
+
+  // Aladin sets the view from the larger axis, so only that one has to clear the floor
+  def isUsableFov(fov: Fov): Boolean =
+    fov.x.toMicroarcseconds.max(fov.y.toMicroarcseconds) >= Fov.Min.toMicroarcseconds

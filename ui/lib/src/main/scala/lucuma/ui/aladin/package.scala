@@ -29,6 +29,9 @@ case class Fov(x: Angle, y: Angle) {
 object Fov:
   def square(a: Angle): Fov = Fov(a, a)
 
+  // Aladin's own floor is 0.1 arcsec and it cannot zoom back out from there.
+  val Min: Angle = Angle.fromDoubleArcseconds(1.0)
+
 case class PositionChanged(ra: RightAscension, dec: Declination, dragging: Boolean)
 
 object PositionChanged:

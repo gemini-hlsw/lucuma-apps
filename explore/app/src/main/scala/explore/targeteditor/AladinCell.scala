@@ -280,23 +280,20 @@ object AladinCell extends ModelOptics with AladinCommon:
             // Don't save if the change is less than 10 arcsec on both axes
             o.fov.isCloseTo(newFov)
         )
-        if (newFov.x.toMicroarcseconds === 0L) Callback.empty
-        else
-          fovView.set(newFov) *>
-            AsterismPreferences
-              .updateAladinPreferences[IO](
-                options.get.toOption.flatMap(_.id),
-                props.uid,
-                props.obsTargets.ids,
-                newFov.x.some,
-                newFov.y.some
-              )
-              .flatMap(id => storePrefsId(id).to[IO])
-              .unlessA(ignore)
-              .runAsync
-              .rateLimit(1.seconds, 1)
-              .void
-
+        fovView.set(newFov) *>
+          AsterismPreferences
+            .updateAladinPreferences[IO](
+              options.get.toOption.flatMap(_.id),
+              props.uid,
+              props.obsTargets.ids,
+              newFov.x.some,
+              newFov.y.some
+            )
+            .flatMap(id => storePrefsId(id).to[IO])
+            .unlessA(ignore)
+            .runAsync
+            .rateLimit(1.seconds, 1)
+            .void
       }
 
       val (offsetChangeInAladin, offsetOnCenter) =

@@ -73,14 +73,12 @@ extension (a: Aladin)
   def applyZoom(zoomFactor: Double, duration: Int = 200): Callback =
     Callback(a.view.zoom.applyZoom(ZoomTo(zoomFactor, duration)))
 
-  def increaseZoomCB: Callback =
-    Callback(a.increaseZoom())
-
-  def increaseZoomCB(f: Double): Callback =
-    applyZoom(a.getZoomFactor() / f)
-
   def increaseZoomCB(f: Double, duration: Int): Callback =
     applyZoom(a.getZoomFactor() / f, duration)
+
+  def increaseZoomCB(f: Double, duration: Int, minFov: Angle): Callback =
+    if (fov.x.toMicroarcseconds / f < minFov.toMicroarcseconds) setFovCB(Fov.square(minFov))
+    else increaseZoomCB(f, duration)
 
   def decreaseZoomCB: Callback =
     Callback(a.decreaseZoom())

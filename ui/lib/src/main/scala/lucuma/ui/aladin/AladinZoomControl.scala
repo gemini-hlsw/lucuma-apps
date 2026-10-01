@@ -6,6 +6,7 @@ package lucuma.ui.aladin
 import cats.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.math.Angle
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
@@ -19,7 +20,8 @@ case class AladinZoomControl(
   aladinRef: Aladin,
   clazz:     Css = Css.Empty,
   factor:    Double = 1.3,
-  duration:  Int = 200
+  duration:  Int = 200,
+  minFov:    Angle = Fov.Min
 ) extends ReactFnProps(AladinZoomControl)
 
 object AladinZoomControl
@@ -29,7 +31,7 @@ object AladinZoomControl
         Button(
           clazz = AladinStyles.ButtonOnAladin,
           icon = LucumaIcons.ThinPlus,
-          onClick = p.aladinRef.increaseZoomCB(p.factor, p.duration)
+          onClick = p.aladinRef.increaseZoomCB(p.factor, p.duration, p.minFov)
         ).small,
         Button(
           clazz = AladinStyles.ButtonOnAladin,

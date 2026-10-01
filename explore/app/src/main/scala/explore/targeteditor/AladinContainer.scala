@@ -579,13 +579,17 @@ object AladinContainer extends AladinCommon {
             props.updateViewOffset(viewOffset.getOrElse(Offset.Zero))
         }
 
-        def onZoom: Fov => Callback =
+        def onZoom(aladin: Aladin): Fov => Callback =
           (v: Fov) => {
             // Sometimes get 0 fov, ignore those
             val ignore = v.x === Angle.Angle0 && v.y === Angle.Angle0
-            // The local fov must track aladin exactly or the overlays get out of scale,
-            // e.g. on a resize that only changes one axis
-            (fov.setState(v.some) *> props.updateFov(v)).unless_(ignore)
+            // Wheel and pinch zoom bypass the zoom buttons, so clamp here as well
+            if (!ignore && !AsterismVisualOptions.isUsableFov(v))
+              aladin.setFovCB(Fov.square(Fov.Min))
+            else
+              // The local fov must track aladin exactly or the overlays get out of scale,
+              // e.g. on a resize that only changes one axis
+              (fov.setState(v.some) *> props.updateFov(v)).unless_(ignore)
           }
 
         // Record the last non-drag click
@@ -597,8 +601,8 @@ object AladinContainer extends AladinCommon {
 
         val includeSvg: Aladin => Callback = (v: Aladin) =>
           aladinRef.setState(v.some) *>
-            v.onZoomCB(onZoom) *>          // re render on zoom
-            v.onResizeChangedCB(onZoom) *> // Force a resize change event
+            v.onZoomCB(onZoom(v)) *>          // re render on zoom
+            v.onResizeChangedCB(onZoom(v)) *> // Force a resize change event
             v.onPositionChangedCB(onPositionChanged) *>
             v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec))) *>
             v.onClickCB(onAladinClick)
