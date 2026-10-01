@@ -1481,10 +1481,14 @@ input ExposureTimeModeInput @oneOf {
 
 """Time And Count exposure time mode parameters"""
 input TimeAndCountExposureTimeModeInput {
-  """Exposure time, which must be greater than zero."""
+  """
+  Exposure time of a single exposure (per coadd, for instruments with coadds), which must be greater than zero.
+  """
   time: TimeSpanInput!
 
-  """Exposure count, which must be greater than zero."""
+  """
+  Number of frames, which must be greater than zero.  A frame is what the detector delivers: `coadds` exposures summed on chip.
+  """
   count: PosInt!
 
   """S/N at wavelength."""
@@ -7935,7 +7939,9 @@ type ExecutionDigest {
   """Science sequence summary."""
   science: SequenceDigest
 
-  """Full time estimate: science time plus full setup time for every setup."""
+  """
+  Full time estimate: science time plus setup time for every setup and reacquisition.
+  """
   fullTimeEstimate: CategorizedTime! @deprecated(reason: "Use `estimate.total` instead.")
 }
 
@@ -7954,6 +7960,12 @@ type ObservationTimeEstimate {
   setupCount: NonNegInt!
 
   """
+  Expected number of reacquisitions: recentering on the target between full
+  setups.  Only spectroscopy guided by a PWFS is expected to need them.
+  """
+  reacquisitionCount: NonNegInt!
+
+  """
   Expected number of calibration over the remaining science time.
   Zero for calibration observations and for modes that take no callibrations per observation.
   """
@@ -7963,7 +7975,8 @@ type ObservationTimeEstimate {
   science: CategorizedTime!
 
   """
-  Total time estimate: science time plus full setup time for every setup.
+  Total time estimate: science time plus full setup time for every setup and
+  reacquisition time for every reacquisition.
   """
   total: CategorizedTime!
 }
@@ -9627,8 +9640,8 @@ type GnirsImagingFilter {
   exposureTimeMode: ExposureTimeMode!
 
   """
-  Coadds per exposure for this filter.  Always 1 when the exposure time mode is
-  signal-to-noise, which does not support coadds.
+  Coadds per frame for this filter in time-and-count mode.  Always 1 in
+  signal-to-noise mode, where the ITC chooses the coadds instead.
   """
   coadds: PosInt!
 }
@@ -9647,9 +9660,9 @@ input GnirsImagingFilterInput {
   exposureTimeMode: ExposureTimeModeInput
 
   """
-  Coadds per exposure for this filter.  If not specified, defaults to 1.
-  Forced to 1 when the exposure time mode is signal-to-noise, which does not
-  support coadds.
+  Coadds per frame for this filter in time-and-count mode.  If not specified,
+  defaults to 1.  Forced to 1 in signal-to-noise mode, where the ITC chooses the
+  coadds instead.
   """
   coadds: PosInt
 }
@@ -9813,6 +9826,11 @@ type GnirsCentralWavelengthConfig {
   If not specified, it is taken from the observation's requirements.
   """
   exposureTimeMode: ExposureTimeMode!
+
+  """
+  Coadds per frame in time-and-count mode.  Always 1 in signal-to-noise mode,
+  where the ITC chooses the coadds instead.
+  """
   coadds: PosInt!
 }
 
@@ -9829,7 +9847,11 @@ input GnirsCentralWavelengthConfigInput {
   """
   exposureTimeMode: ExposureTimeModeInput
 
-  """Coadds for this central wavelength.  Defaults to 1 when not specified."""
+  """
+  Coadds per frame for this central wavelength in time-and-count mode.  Defaults
+  to 1 when not specified.  Forced to 1 in signal-to-noise mode, where the ITC
+  chooses the coadds instead.
+  """
   coadds: PosInt
 }
 
@@ -10206,10 +10228,14 @@ input GnirsIfuInput {
 
 """Time and Count exposure time mode."""
 type TimeAndCountExposureTimeMode {
-  """Exposure time."""
+  """
+  Exposure time of a single exposure (per coadd, for instruments with coadds).
+  """
   time: TimeSpan!
 
-  """Exposure count."""
+  """
+  Number of frames.  A frame is what the detector delivers: `coadds` exposures summed on chip.
+  """
   count: PosInt!
 
   """S/N at Wavelength."""
@@ -13179,6 +13205,7 @@ scalar IntPercent
 """An ITC result for a single target."""
 type ItcResult {
   targetId: TargetId!
+
   """
   Exposure time of a single exposure (per coadd, for instruments with coadds).
   """
@@ -14555,6 +14582,12 @@ enum ObservationValidationCode {
   set.  Acceptance will limit it to `NONE` unless staff grant more.
   """
   TOO_ACTIVATION_UNEXPECTED
+
+  """
+  The observation is outside the recommendations of the Call for Proposals
+  (e.g., its base coordinates are outside the Call's RA/Dec limits).
+  """
+  CFP_WARNING
 }
 
 """
@@ -15099,6 +15132,21 @@ type Proposal {
   exchange proposals; null otherwise.
   """
   subaru: SubaruProposalType
+
+  """
+  Every submission (SUBMITTED) and retraction (NOT_SUBMITTED) of the proposal,
+  oldest first.  Empty if it was never submitted.
+  """
+  submissionHistory: [ProposalStatusChange!]!
+}
+
+"""A single submission or retraction of a proposal."""
+type ProposalStatusChange {
+  """When the status changed."""
+  timestamp: Timestamp!
+
+  """SUBMITTED for a submission, NOT_SUBMITTED for a retraction."""
+  status: ProposalStatus!
 }
 
 type ProposalReference {
@@ -15796,7 +15844,9 @@ enum SequenceCommand {
   STOP
 }
 
-"""Summary of the steps of one kind (bias, dark, arc, flat or science) in a sequence."""
+"""
+Summary of the steps of one kind (bias, dark, arc, flat or science) in a sequence.
+"""
 type StepDigest {
   """Number of steps."""
   count: NonNegInt!
