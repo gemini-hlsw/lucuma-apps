@@ -3,12 +3,10 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
-import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.AltairMode
 import lucuma.core.enums.GnirsCamera
@@ -78,13 +76,12 @@ object GnirsGeometry:
 
   def gnirsGeometry(
     referenceCoordinates:    Coordinates,
-    blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     guideProbe:              Option[GuideProbe],
     altair:                  Option[AltairMode],
     gs:                      Option[AgsAnalysis.Usable],
+    patrolFieldIntersection: Option[ShapeExpression],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
     conf
@@ -102,10 +99,9 @@ object GnirsGeometry:
       .flatMap:
         _.instrumentGeometry(
           referenceCoordinates,
-          blindOffset,
-          scienceOffsets,
           fallbackPosAngle,
           guideProbe,
           gs,
+          patrolFieldIntersection,
           candidatesVisibilityCss
         )

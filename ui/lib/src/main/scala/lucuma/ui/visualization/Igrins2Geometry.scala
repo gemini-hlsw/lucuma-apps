@@ -3,11 +3,9 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
-import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.ShapeExpression
@@ -38,17 +36,15 @@ object Igrins2Geometry extends PwfsGeometry:
 
   def igrins2Geometry(
     referenceCoordinates:    Coordinates,
-    blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
+    patrolFieldIntersection: Option[ShapeExpression],
     candidatesVisibilityCss: Css
   ) = instrumentGeometry(referenceCoordinates,
-                         blindOffset,
-                         scienceOffsets,
                          fallbackPosAngle,
                          guideProbe,
                          gs,
+                         patrolFieldIntersection,
                          candidatesVisibilityCss
   )

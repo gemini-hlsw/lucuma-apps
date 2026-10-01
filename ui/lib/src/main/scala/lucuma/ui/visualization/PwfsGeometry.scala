@@ -3,18 +3,11 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptyList
-import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
-import cats.syntax.all.*
-import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.GuidedOffset
-import lucuma.ags.ScienceOffsets
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.ShapeExpression
-import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -42,11 +35,10 @@ trait PwfsGeometry extends WithPwfsGeometry:
 
   def instrumentGeometry(
     referenceCoordinates:    Coordinates,
-    blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     guideProbe:              Option[GuideProbe],
     gs:                      Option[AgsAnalysis.Usable],
+    patrolFieldIntersection: Option[ShapeExpression],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
     posAngle(gs, fallbackPosAngle)
@@ -70,21 +62,9 @@ trait PwfsGeometry extends WithPwfsGeometry:
             case _                                               =>
               SortedMap.empty[Css, ShapeExpression]
 
-          val positions = Ags.generatePositions(
-            referenceCoordinates.some,
-            blindOffset,
-            NonEmptyList.one(posAngle),
-            none,
-            scienceOffsets.map(ScienceOffsets.apply)
+          // The intersection over all offsets is evaluated by the AGS worker, not here.
+          patrolFieldIntersection.fold(probeShape)(pf =>
+            probeShape + (PatrolFieldIntersection -> pf)
           )
-
-          val patrolFieldIntersection =
-            guideProbe
-              .map(agsParamsFor)
-              .map: params =>
-                val calcs = params.posCalculations(positions.value.toNonEmptyList)
-                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
-
-          patrolFieldIntersection.fold(probeShape)(probeShape + _)
 
         baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])

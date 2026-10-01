@@ -3,7 +3,6 @@
 
 package explore.targeteditor
 
-import boopickle.DefaultBasic.*
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
@@ -22,6 +21,7 @@ import lucuma.core.enums.AltairMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
+import lucuma.core.geom.ShapePolygon
 import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
@@ -64,13 +64,16 @@ object AgsCalcProps:
 
 case class AgsCalculationResults(
   constrained:   Pot[List[AgsAnalysis.Usable]],
-  unconstrained: Pot[List[AgsAnalysis.Usable]]
+  unconstrained: Pot[List[AgsAnalysis.Usable]],
+  patrolFields:  Map[Angle, List[ShapePolygon]]
 )
 
 object AgsCalculationResults:
+  val Empty: AgsCalculationResults = AgsCalculationResults(Pot.pending, Pot.pending, Map.empty)
+
   given Reusability[AgsCalculationResults] = Reusability.by: r =>
     // Should we reuse just by length too?
-    (r.constrained.toOption, r.unconstrained.toOption)
+    (r.constrained.toOption, r.unconstrained.toOption, r.patrolFields)
 
 object UseAgsCalculation:
 
@@ -78,7 +81,7 @@ object UseAgsCalculation:
     props:          AgsCalcProps,
     obsCoords:      ObservationTargetsCoordinatesAt,
     angles:         NonEmptyList[Angle],
-    processResults: Option[List[AgsAnalysis.Usable]] => IO[Unit],
+    processResults: Option[AgsResult] => IO[Unit],
     agsClient:      WorkerClient[IO, AgsMessage.Request]
   )(ctx: AppContext[IO]): IO[Unit] =
     obsCoords.baseCoords.map { baseCoords =>
@@ -130,21 +133,24 @@ object UseAgsCalculation:
     for {
       constrainedResults   <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
       unconstrainedResults <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
+      constrainedPF        <- useSerialState(Map.empty[Angle, List[ShapePolygon]])
+      unconstrainedPF      <- useSerialState(Map.empty[Angle, List[ShapePolygon]])
       // AGS calculation for the obs pa constraint
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, anglesToTest, needsAGS)
                               ):
                                 case (Some(obsCoords), Some(props), Some(angles), true) if props.candidates.nonEmpty =>
-                                  def processResults(r: Option[List[AgsAnalysis.Usable]]): IO[Unit] =
+                                  def processResults(r: Option[AgsResult]): IO[Unit] =
                                     (for
-                                      _ <- r.map(l => constrainedResults.setState(Pot.Ready(l))).getOrEmpty
+                                      _ <- r.map(l => constrainedResults.setState(Pot.Ready(l.usable))).getOrEmpty
+                                      _ <- r.map(l => constrainedPF.setState(l.patrolFields)).getOrEmpty
                                       _ <-
                                         guideStarSelection
                                           .mod:
                                             case _: AgsSelection               =>
-                                              r.fold(Default)(_.select(none))
+                                              r.fold(Default)(_.usable.select(none))
                                             case rem @ RemoteGSSelection(name) =>
-                                              r.fold(rem)(_.select(name.some))
+                                              r.fold(rem)(_.usable.select(name.some))
                                             case a: AgsOverride                =>
                                               a
                                     yield ()).toAsync
@@ -156,14 +162,19 @@ object UseAgsCalculation:
                                       )
                                     process.guarantee(state.async.set(AgsState.Idle))
 
+                                  // A manual pick skips the query; drop the intersections it would
+                                  // have refreshed so the overlay falls back to the unconstrained ones.
                                   guideStarSelection.mod(_.resetKeepingName).toAsync *>
-                                    query.orEmpty.unlessA(guideStarSelection.get.isOverride)
+                                    (if guideStarSelection.get.isOverride
+                                     then constrainedPF.setState(Map.empty).to[IO]
+                                     else query.orEmpty)
 
                                 case _ =>
                                   // When reverting config we should reset the results
                                   constrainedResults
                                     .setState(Pot.pending[List[AgsAnalysis.Usable]])
                                     .to[IO] *>
+                                    constrainedPF.setState(Map.empty).to[IO] *>
                                     guideStarSelection.mod(_.resetKeepingName).toAsync
       // AGS for uconstrained angles
       _                    <- useEffectWithDeps(
@@ -174,12 +185,22 @@ object UseAgsCalculation:
                                     props,
                                     obsCoords,
                                     UnconstrainedAngles,
-                                    r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync,
+                                    r =>
+                                      r.map: l =>
+                                        unconstrainedResults.setState(Pot.Ready(l.usable)) *>
+                                          unconstrainedPF.setState(l.patrolFields)
+                                      .getOrEmpty
+                                        .toAsync,
                                     ctx.workerClients.agsUnconstrained
                                   )(ctx)
 
                                 case _ =>
                                   unconstrainedResults
                                     .setState(Pot.pending[List[AgsAnalysis.Usable]])
-                                    .to[IO]
-    } yield AgsCalculationResults(constrainedResults.value, unconstrainedResults.value)
+                                    .to[IO] *>
+                                    unconstrainedPF.setState(Map.empty).to[IO]
+    } yield AgsCalculationResults(
+      constrainedResults.value,
+      unconstrainedResults.value,
+      unconstrainedPF.value ++ constrainedPF.value
+    )

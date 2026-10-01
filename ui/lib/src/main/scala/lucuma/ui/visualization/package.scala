@@ -3,7 +3,6 @@
 
 package lucuma.ui.visualization
 
-import cats.Semigroup
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.numeric.NonNegative
@@ -29,7 +28,6 @@ import lucuma.core.util.NewBoolean
 import lucuma.react.common.Css
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.aladin.Fov
-import org.locationtech.jts.geom.Geometry
 
 import scala.math.*
 
@@ -46,9 +44,6 @@ val patternTransform = VdomAttr("patternTransform")
 inline def scale: Double => Double = (v: Double) => rint(v / 1000)
 
 inline def reverseScale: Double => Double = (v: Double) => rint(v * 1000)
-
-val geometryUnionSemigroup: Semigroup[Geometry] =
-  Semigroup.instance(_.union(_))
 
 extension (offset: Offset)
   def micros: (Double, Double) = {

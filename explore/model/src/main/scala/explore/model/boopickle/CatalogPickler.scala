@@ -5,6 +5,7 @@ package explore.model.boopickle
 
 import boopickle.DefaultBasic.*
 import eu.timepit.refined.*
+import explore.model.AgsResult
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
@@ -17,6 +18,7 @@ import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.Area
+import lucuma.core.geom.ShapePolygon
 import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.Target
@@ -87,6 +89,10 @@ trait CatalogPicklers extends ItcPicklers:
     )
 
   given Pickler[AgsAnalysis.Usable] = generatePickler
+
+  given Pickler[ShapePolygon] = generatePickler
+
+  given Pickler[AgsResult] = generatePickler
 
   given Pickler[GuidedOffset] = picklerNewType(GuidedOffset)
 

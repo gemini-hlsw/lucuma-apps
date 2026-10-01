@@ -42,7 +42,7 @@ case class AgsData(
 
 object AgsData:
   val Empty: AgsData =
-    AgsData(Pot.pending, AgsCalculationResults(Pot.pending, Pot.pending))
+    AgsData(Pot.pending, AgsCalculationResults.Empty)
 
   given Reusability[AgsData] =
     // We don't want to check every candidate, the length is enough to know if the catalog changed.

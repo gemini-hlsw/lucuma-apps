@@ -8,20 +8,14 @@ import cats.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.svg_<^.*
 import lucuma.core.geom.ShapeExpression
-import lucuma.core.geom.jts.JtsShape
-import lucuma.core.geom.jts.interpreter.given
+import lucuma.core.geom.ShapeInterpreter
+import lucuma.core.geom.ShapePolygon
+import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.ui.aladin.Fov
 import lucuma.ui.syntax.all.given
-import org.locationtech.jts.geom.Coordinate
-import org.locationtech.jts.geom.Geometry
-import org.locationtech.jts.geom.GeometryCollection
-import org.locationtech.jts.geom.Polygon
-import org.locationtech.jts.geom.util.PolygonExtracter
-
-import scala.jdk.CollectionConverters.*
 
 case class SvgVisualizationOverlay(
   width:        Int,
@@ -31,76 +25,63 @@ case class SvgVisualizationOverlay(
   shapes:       NonEmptyList[(Css, ShapeExpression)],
   clazz:        Css = Css.Empty,
   labels:       List[(Css, String)] = List.empty
-) extends ReactFnProps(SvgVisualizationOverlay.component)
+)(using val interpreter: ShapeInterpreter)
+    extends ReactFnProps(SvgVisualizationOverlay.component)
 
 object SvgVisualizationOverlay {
   private type Props = SvgVisualizationOverlay
 
-  extension (g: Geometry)
-    // This deserves an explanation.
-    // In the visualization we have included several geometries includig the patrol field which
-    // can be the intersection between all the patrol fields geometries at each pos angle position.
-    //
-    // Normally the intersection would be a polygon but in some edge cases the intersection becomes
-    // disjoint and turns into a geometry collection.
-    //
-    // In this component (SVGVisualizationOverlay) we are going to make a union of all the
-    // geometries in the visualization (including the patrol field) to calculate the envelope
-    // and thus get the overall size.
-    //
-    // However the union is not defined for disjoint sets in the geometry library and we get an
-    // exception.
-    //
-    // In the method below, as a workaround we detect geometry collections and convert them to
-    // multi-polygons which are supported in a union even if they are disjoint
-    //
-    // It is debatable whether we should always do this for unions
-    //
-    // Some references:
-    // https://app.shortcut.com/lucuma/story/5685/explore-java-lang-illegalargumentexception-operation-does-not-support-geometrycollection-arguments
-    // https://github.com/locationtech/jts/issues/476#issuecomment-533451819
-    //
-    def resolveGeometryCollections =
-      if (g.isGeometryCollection)
-        // it is possible to have a geometry collection with something else than polygons but
-        // not in our use case
-        val pgs = PolygonExtracter
-          .getPolygons(g)
-          .asScala
-          .collect:
-            case p: Polygon => p
-        g.getFactory.createMultiPolygon(pgs.toArray)
-      else g
+  // Axis-aligned bounds of a set of vertices, in microarcseconds.
+  private case class Envelope(minX: Double, minY: Double, maxX: Double, maxY: Double):
+    def width: Double                   = maxX - minX
+    def height: Double                  = maxY - minY
+    def union(that: Envelope): Envelope =
+      Envelope(minX.min(that.minX), minY.min(that.minY), maxX.max(that.maxX), maxY.max(that.maxY))
 
-  private def forGeometry(css: Css, g: Geometry): VdomNode =
-    g match {
-      case p: Polygon if p.getNumInteriorRing === 0 =>
-        val points = p.getCoordinates
-          .map(c => s"${scale(c.x)},${scale(c.y)}")
-          .mkString(" ")
-        <.polygon(css |+| VisualizationStyles.JtsPolygon, ^.points := points)
-      case p: Polygon                               =>
-        // A polygon with holes cannot be a single <polygon>: its coordinates would run the
-        // hole rings onto the shell, drawing spurious connecting lines. Each ring becomes a
-        // subpath instead, and evenodd leaves the holes unfilled.
-        def subpath(cs: Array[Coordinate]): String =
-          cs.map(c => s"${scale(c.x)},${scale(c.y)}").mkString("M", " L", " Z")
+  private object Envelope:
+    val Empty: Envelope = Envelope(0, 0, 0, 0)
 
-        val rings =
-          p.getExteriorRing +: (0 until p.getNumInteriorRing).map(p.getInteriorRingN)
+    def of(polygons: List[ShapePolygon]): Option[Envelope] =
+      polygons
+        .flatMap(_.exterior.toList)
+        .map(xy)
+        .map((x, y) => Envelope(x, y, x, y))
+        .reduceOption(_.union(_))
 
-        <.path(
-          css |+| VisualizationStyles.JtsPolygon,
-          ^.d        := rings.map(r => subpath(r.getCoordinates)).mkString(" "),
-          ^.fillRule := "evenodd"
-        )
-      case p: GeometryCollection                    =>
-        <.g(
-          css |+| VisualizationStyles.JtsCollection,
-          p.geometries.map(forGeometry(css, _)).toTagMod
-        )
-      case _                                        => EmptyVdom
-    }
+  // Offset p is flipped so it increases to the left, as the geometry engines do.
+  private def xy(o: Offset): (Double, Double) =
+    (-Angle.signedMicroarcseconds.get(o.p.toAngle).toDouble,
+     Angle.signedMicroarcseconds.get(o.q.toAngle).toDouble
+    )
+
+  private def point(o: Offset): String =
+    val (x, y) = xy(o)
+    s"${scale(x)},${scale(y)}"
+
+  private def forPolygon(css: Css, p: ShapePolygon): VdomNode =
+    if (p.holes.isEmpty)
+      <.polygon(css |+| VisualizationStyles.JtsPolygon,
+                ^.points := p.exterior.toList.map(point).mkString(" ")
+      )
+    else
+      // A polygon with holes cannot be a single <polygon>: its coordinates would run the hole
+      // rings onto the shell, drawing spurious connecting lines.
+      // Each ring becomes a subpath instead.
+      def subpath(ring: NonEmptyList[Offset]): String =
+        ring.toList.map(point).mkString("M", " L", " Z")
+
+      <.path(
+        css |+| VisualizationStyles.JtsPolygon,
+        ^.d        := (p.exterior :: p.holes).map(subpath).mkString(" "),
+        ^.fillRule := "evenodd"
+      )
+
+  private def forPolygons(css: Css, polygons: List[ShapePolygon]): VdomNode =
+    polygons match
+      case Nil      => EmptyVdom
+      case p :: Nil => forPolygon(css, p)
+      case ps       =>
+        <.g(css |+| VisualizationStyles.JtsCollection, ps.map(forPolygon(css, _)).toTagMod)
 
   // Screen-space sizes for shape labels, converted to user units at render time.
   private val labelFontSizePx = 11.0
@@ -111,23 +92,20 @@ object SvgVisualizationOverlay {
 
   private val component =
     ScalaFnComponent[Props] { p =>
-      // Render the svg
-      val evald: NonEmptyList[(Css, JtsShape)] = p.shapes
-        .map: (css, shape) =>
-          shape.eval match
-            case jts: JtsShape => (css, jts)
-            case x             => sys.error(s"Whoa unexpected shape type: $x")
+      import p.interpreter
 
-      val composite = evald
-        .map((_, shape) => shape.g.resolveGeometryCollections)
-        .reduce(using geometryUnionSemigroup)
+      // Only plain polygon data escapes the arena, so a native engine frees the shapes here
+      // instead of waiting for the GC, which matters on every pan and zoom re-render.
+      val evald: NonEmptyList[(Css, List[ShapePolygon])] =
+        p.interpreter.withArena:
+          p.shapes.map((css, shape) => (css, shape.eval.polygons))
 
-      val envelope = composite.getBoundary.getEnvelopeInternal
+      // The viewBox covers the whole geometry, in microarcseconds.
+      val envelope =
+        evald.toList.flatMap((_, polygons) => Envelope.of(polygons)).reduceOption(_.union(_))
 
-      // We should calculate the viewbox of the whole geometry
-      // dimension in micro arcseconds
       val (x, y, w, h) =
-        (envelope.getMinX, envelope.getMinY, envelope.getWidth, envelope.getHeight)
+        envelope.fold((0.0, 0.0, 0.0, 0.0))(e => (e.minX, e.minY, e.width, e.height))
 
       val (viewBoxX, viewBoxY, viewBoxW, viewBoxH) =
         calculateViewBox(x, y, w, h, p.fov, p.screenOffset)
@@ -137,26 +115,26 @@ object SvgVisualizationOverlay {
       val userUnitsPerPixel: Double = viewBoxW / p.width
 
       // Drawn outside the y-flipped group, or the glyphs would come out mirrored. A label whose
-      // shape isn't in this overlay is simply skipped.
+      // shape isn't in this overlay, or whose shape is empty, is simply skipped.
       val labels: List[VdomNode] =
         p.labels.flatMap: (css, text) =>
           evald
             .find(_._1 === css)
-            .map: (_, shape) =>
-              val env = shape.g.getEnvelopeInternal
+            .flatMap((_, polygons) => Envelope.of(polygons))
+            .map: env =>
               <.g(
                 css |+| VisualizationStyles.VizShapeLabel,
                 <.text(
-                  ^.x         := (scale(env.getMinX) + scale(env.getMaxX)) / 2,
+                  ^.x         := (scale(env.minX) + scale(env.maxX)) / 2,
                   // maxY is the top of the shape once the y flip is undone
-                  ^.y         := -scale(env.getMaxY) - labelPaddingPx * userUnitsPerPixel,
+                  ^.y         := -scale(env.maxY) - labelPaddingPx * userUnitsPerPixel,
                   textAnchor  := "middle",
                   svgFontSize := labelFontSizePx * userUnitsPerPixel,
                   text
                 )
               )
 
-      val svg = <.svg(
+      <.svg(
         VisualizationStyles.VisualizationSvg |+| p.clazz,
         ^.viewBox    := s"$viewBoxX $viewBoxY $viewBoxW $viewBoxH",
         canvasWidth  := s"${p.width}px",
@@ -165,12 +143,9 @@ object SvgVisualizationOverlay {
         hatchDefs(hatchLine, hatchLineSel),
         <.g(
           ^.transform := s"scale(1, -1)",
-          evald.toList.map { case (css, shape) =>
-            forGeometry(css, shape.g)
-          }.toTagMod
+          evald.toList.map((css, polygons) => forPolygons(css, polygons)).toTagMod
         ),
         labels.toTagMod
       )
-      svg
     }
 }
