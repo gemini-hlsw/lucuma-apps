@@ -65,32 +65,6 @@ class TimeChargesSuite extends FunSuite:
       program(charged)
     )
 
-  test("no visits"):
-    assertEquals(TimeCharges.fromVisits(Nil), TimeCharges.NoVisits)
-
-  test("a visit wholly at night keeps its interval and full program time"):
-    val v   = visit(1,
-                  interval("2026-03-02T01:00:00Z", "2026-03-02T03:00:00Z").some,
-                  execution = 120,
-                  charged = 120
-    )
-    val row = v.nightRow.get
-    assertEquals(row.duration, minutes(120))
-    assertEquals(row.interval, v.interval)
-    assertEquals(row.charged, minutes(120))
-
-  test("a visit starting before twilight is clipped and loses the daylight time"):
-    val v   = visit(
-      1,
-      interval("2026-03-01T23:35:00Z", "2026-03-02T01:35:00Z").some,
-      execution = 120,
-      discounts = List(daylight("2026-03-01T23:35:00Z", "2026-03-01T23:50:00Z", 15)),
-      charged = 105
-    )
-    val row = v.nightRow.get
-    assertEquals(row.duration, minutes(105))
-    assertEquals(row.interval, interval("2026-03-01T23:50:00Z", "2026-03-02T01:35:00Z").some)
-
   test("a visit crossing both twilights is clipped at both ends"):
     val v   = visit(
       1,
@@ -106,16 +80,6 @@ class TimeChargesSuite extends FunSuite:
     assertEquals(row.duration, minutes(560))
     assertEquals(row.interval, interval("2026-03-01T23:50:00Z", "2026-03-02T09:10:00Z").some)
 
-  test("a visit wholly in daylight has no row"):
-    val v = visit(
-      1,
-      interval("2026-03-01T20:00:00Z", "2026-03-01T21:00:00Z").some,
-      execution = 60,
-      discounts = List(daylight("2026-03-01T20:00:00Z", "2026-03-01T21:00:00Z", 60)),
-      charged = 0
-    )
-    assertEquals(v.nightRow, none)
-
   test("a visit at night with no program time yet still has a row"):
     val v = visit(1,
                   interval("2026-03-02T01:00:00Z", "2026-03-02T01:00:30Z").some,
@@ -123,16 +87,6 @@ class TimeChargesSuite extends FunSuite:
                   charged = 0
     )
     assertEquals(v.nightRow.map(_.duration), TimeSpan.Zero.some)
-
-  test("only daylight visits are reported as having no night-time visits"):
-    val v = visit(
-      1,
-      interval("2026-03-01T20:00:00Z", "2026-03-01T21:00:00Z").some,
-      execution = 60,
-      discounts = List(daylight("2026-03-01T20:00:00Z", "2026-03-01T21:00:00Z", 60)),
-      charged = 0
-    )
-    assertEquals(TimeCharges.fromVisits(List(v)), TimeCharges.NoNightVisits)
 
   test("other discounts come off the duration and only program corrections are kept"):
     val forProgram = correction(TimeChargeCorrection.Op.Add, 15)

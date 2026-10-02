@@ -22,17 +22,19 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.TimeChargeCorrection
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.core.util.time.format.GppDateFormatter
+import lucuma.core.util.time.format.UtcFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Divider
 import lucuma.react.table.*
+import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
 
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
 case class TimeChargesTable(
   userId:  Option[User.Id],
@@ -51,20 +53,13 @@ object TimeChargesTable:
   private val EndColId: ColumnId      = ColumnId("end")
   private val DurationColId: ColumnId = ColumnId("duration")
 
-  private val TimestampFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC)
+  private def timestamp(t: Timestamp): String = UtcFormatter.format(t.toInstant)
 
-  private val DateFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyy-MMM-dd").withZone(ZoneOffset.UTC)
-
-  private def timestamp(t: Timestamp): String = TimestampFormatter.format(t.toInstant)
-
-  private def duration(t: TimeSpan): String =
-    val secs = t.toSeconds.toLong
-    f"${secs / 3600}h ${secs % 3600 / 60}%02dm ${secs % 60}%02ds"
+  private def duration(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
 
   private def correctionText(c: VisitTimeCharge.Correction): String =
-    val source = (DateFormatter.format(c.created.toInstant) :: c.user.map(_.show).toList)
+    val date   = GppDateFormatter.format(c.created.toInstant.atZone(ZoneOffset.UTC).toLocalDate)
+    val source = (date :: c.user.map(_.show).toList)
       .mkString(", ")
     s"${c.comment.getOrElse("Time correction")} ($source)"
 
@@ -80,7 +75,7 @@ object TimeChargesTable:
         ColDef(
           StartColId,
           identity,
-          "Start",
+          "Start (UTC)",
           _.value match
             case TimeChargeLine.ForVisit(_, interval, _) =>
               interval.fold("-")(i => timestamp(i.start))
@@ -91,7 +86,7 @@ object TimeChargesTable:
         ColDef(
           EndColId,
           identity,
-          "End",
+          "End (UTC)",
           _.value match
             case TimeChargeLine.ForVisit(_, interval, _) =>
               interval.fold("-")(i => timestamp(i.end))

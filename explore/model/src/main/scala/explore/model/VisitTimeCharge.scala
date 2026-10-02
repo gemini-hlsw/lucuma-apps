@@ -80,7 +80,7 @@ object VisitTimeCharge:
     comment:     Option[String]
   ) derives Eq
 
-  given Decoder[Discount] = Decoder.instance: c =>
+  given Decoder[Discount] = c =>
     for
       typename <- c.get[String]("__typename")
       kind     <- DiscountKind
@@ -90,7 +90,7 @@ object VisitTimeCharge:
       amount   <- c.get[TimeSpan]("amount")
     yield Discount(kind, interval, amount)
 
-  given Decoder[Correction] = Decoder.instance: c =>
+  given Decoder[Correction] = c =>
     for
       created     <- c.get[Timestamp]("created")
       user        <- c.get[Option[User.Id]]("user")(using
@@ -102,7 +102,7 @@ object VisitTimeCharge:
       comment     <- c.get[Option[String]]("comment")
     yield Correction(created, user, chargeClass, op, amount, comment)
 
-  given Decoder[VisitTimeCharge] = Decoder.instance: c =>
+  given Decoder[VisitTimeCharge] = c =>
     val invoice = c.downField("timeChargeInvoice")
     for
       id          <- c.get[Visit.Id]("id")
