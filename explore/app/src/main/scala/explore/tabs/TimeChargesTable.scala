@@ -5,6 +5,7 @@ package explore.tabs
 
 import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
+import explore.model.TimeChargeColumn
 import explore.model.TimeChargeLine
 import explore.model.TimeCharges
 import explore.model.TimeCharges.*
@@ -17,6 +18,7 @@ import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Divider
 import lucuma.react.table.*
+import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 
 import java.time.ZoneOffset
@@ -61,7 +63,7 @@ object TimeChargesTable:
   private val Columns: Reusable[List[ColDef.Type]] =
     Reusable.always:
       List(
-        ColDef(VisitColId, _.visitId, "Visit", _.value.show),
+        ColDef(VisitColId, _.visitId, "Visit", _.value.show, enableSorting = true),
         ColDef(
           StartColId,
           identity,
@@ -70,6 +72,8 @@ object TimeChargesTable:
             case TimeChargeLine.ForVisit(_, interval, _) =>
               interval.fold("-")(i => timestamp(i.start))
             case TimeChargeLine.ForCorrection(_, _, c)   => correctionText(c)
+          ,
+          enableSorting = true
         ),
         ColDef(
           EndColId,
@@ -80,7 +84,8 @@ object TimeChargesTable:
               interval.fold("-")(i => timestamp(i.end))
             case TimeChargeLine.ForCorrection(_, _, _)   => EmptyVdom
           ,
-          footer = _ => "Total"
+          footer = _ => "Total",
+          enableSorting = true
         ),
         ColDef(
           DurationColId,
@@ -90,9 +95,27 @@ object TimeChargesTable:
             case TimeChargeLine.ForVisit(_, _, d)      => duration(d)
             case TimeChargeLine.ForCorrection(_, _, c) => correctionAmount(c)
           ,
-          footer = _.table.options.meta.flatten.fold(EmptyVdom)(t => duration(t))
+          footer = _.table.options.meta.flatten.fold(EmptyVdom)(t => duration(t)),
+          enableSorting = true
         )
       )
+
+  private val SortColumns: Map[String, TimeChargeColumn] =
+    Map(
+      VisitColId.value    -> TimeChargeColumn.Visit,
+      StartColId.value    -> TimeChargeColumn.Start,
+      EndColId.value      -> TimeChargeColumn.End,
+      DurationColId.value -> TimeChargeColumn.Duration
+    )
+
+  private val DefaultSorting: Sorting = Sorting(StartColId -> SortDirection.Descending)
+
+  // The visits are ordered here rather than by the table, so a visit's corrections stay with it.
+  // Clearing the sort falls back to newest first.
+  private def sortOf(sorting: Sorting): (TimeChargeColumn, Boolean) =
+    sorting.value.headOption
+      .flatMap(s => SortColumns.get(s.columnId.value).map(_ -> s.direction.toDescending))
+      .getOrElse((TimeChargeColumn.Start, true))
 
   private def lineId(line: TimeChargeLine): RowId =
     line match
@@ -101,21 +124,33 @@ object TimeChargesTable:
 
   private val component = ScalaFnComponent[TimeChargesTable]: props =>
     for
-      charges <- useMemo(props.visits)(_.map(TimeCharges.fromVisits))
-      lines   <- useMemo(charges.value):
-                   case Some(TimeCharges.Rows(rows)) => rows.lines
-                   case _                            => Nil
-      table   <- useReactTable:
-                   TableOptions(
-                     Columns,
-                     lines,
-                     getRowId = (line, _, _) => lineId(line),
-                     meta = charges.value.collect:
-                       case TimeCharges.Rows(rows) => rows.total
-                     ,
-                     enableSorting = false,
-                     enableColumnResizing = false
-                   )
+      charges    <- useMemo(props.visits)(_.map(TimeCharges.fromVisits))
+      sorting    <- useState(DefaultSorting)
+      lines      <- useMemo((charges.value, sorting.value)):
+                      case (Some(TimeCharges.Rows(rows)), s) =>
+                        val (column, descending) = sortOf(s)
+                        rows.lines(column, descending)
+                      case _                                 => Nil
+      tableState <- useMemo(sorting.value)(s => PartialTableState(sorting = s))
+      table      <- useReactTable:
+                      TableOptions(
+                        Columns,
+                        lines,
+                        getRowId = (line, _, _) => lineId(line),
+                        meta = charges.value.collect:
+                          case TimeCharges.Rows(rows) => rows.total
+                        ,
+                        enableSorting = true,
+                        manualSorting = true,
+                        state = tableState,
+                        onSortingChange = (updater: Updater[Sorting]) =>
+                          sorting.modState: current =>
+                            updater match
+                              case Updater.Set(value) => value
+                              case Updater.Mod(fn)    => fn(current)
+                        ,
+                        enableColumnResizing = false
+                      )
     yield
       val body: VdomNode =
         charges.value match

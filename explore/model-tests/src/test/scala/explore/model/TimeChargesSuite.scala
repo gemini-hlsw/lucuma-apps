@@ -151,7 +151,7 @@ class TimeChargesSuite extends FunSuite:
     assertEquals(row.duration, minutes(110))
     assertEquals(row.corrections, List(forProgram))
 
-  test("lines are newest visit first, each followed by its corrections, with the charged total"):
+  test("lines sorted by start newest first keep each visit's corrections under it, with the total"):
     val older  = visit(1,
                       interval("2026-03-02T01:00:00Z", "2026-03-02T02:00:00Z").some,
                       execution = 60,
@@ -169,7 +169,7 @@ class TimeChargesSuite extends FunSuite:
     TimeCharges.fromVisits(List(older, newer)) match
       case TimeCharges.Rows(rows) =>
         assertEquals(
-          rows.lines,
+          rows.lines(TimeChargeColumn.Start, descending = true),
           List(
             TimeChargeLine.ForVisit(newer.visitId, newer.interval, minutes(120)),
             TimeChargeLine.ForCorrection(newer.visitId, 0, sooner),
@@ -178,6 +178,18 @@ class TimeChargesSuite extends FunSuite:
           )
         )
         assertEquals(rows.total, minutes(165))
+        assertEquals(
+          rows.lines(TimeChargeColumn.Duration, descending = false).map(_.visitId),
+          List(older.visitId, newer.visitId, newer.visitId, newer.visitId)
+        )
+        assertEquals(
+          rows
+            .lines(TimeChargeColumn.Duration, descending = true)
+            .collect:
+              case TimeChargeLine.ForCorrection(_, _, c) => c
+          ,
+          List(sooner, later)
+        )
       case other                  => fail(s"Expected rows, got $other")
 
   test("decodes a visit with its invoice"):
