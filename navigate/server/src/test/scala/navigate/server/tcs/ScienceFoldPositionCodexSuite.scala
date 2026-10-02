@@ -3,8 +3,8 @@
 
 package navigate.server.tcs
 
+import lucuma.schemas.model.navigate.LightSource
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSource
 import navigate.server.acm.Encoder.*
 import navigate.server.tcs.ScienceFoldPositionCodex.given
 import navigate.server.tcs.ScienceFoldPositionCodex.scienceFoldSinkName
