@@ -13,7 +13,10 @@ import navigate.epics.given
 case class EcsChannels[F[_]](
   telltale:             TelltaleChannel[F],
   eastVentGateAperture: Channel[F, Double],
-  westVentGateAperture: Channel[F, Double]
+  westVentGateAperture: Channel[F, Double],
+  closeShutters:        Channel[F, Int],
+  closeEastVentGate:    Channel[F, Int],
+  closeWestVentGate:    Channel[F, Int]
 )
 
 object EcsChannels {
@@ -26,6 +29,9 @@ object EcsChannels {
     tt  <- service.getChannel[String](top, "health.VAL").map(TelltaleChannel(sysName, _))
     evg <- service.getChannel[Double](top, "sad:eastVentGatePos.VAL")
     wvg <- service.getChannel[Double](top, "sad:westVentGatePos.VAL")
-  } yield EcsChannels(tt, evg, wvg)
+    csh <- service.getChannel[Int](top, "closeSH.PROC")
+    cev <- service.getChannel[Int](top, "closeEVG.PROC")
+    cwv <- service.getChannel[Int](top, "closeWVG.PROC")
+  } yield EcsChannels(tt, evg, wvg, csh, cev, cwv)
 
 }

@@ -93,7 +93,8 @@ object TestTcsEpicsSystem {
     ecsShutterTop:    TestChannel.State[String],
     ecsShutterBottom: TestChannel.State[String],
     ecsVentGateEast:  TestChannel.State[String],
-    ecsVentGateWest:  TestChannel.State[String]
+    ecsVentGateWest:  TestChannel.State[String],
+    ecsVentGatesDir:  TestChannel.State[CadDirective]
   )
 
   case class EnclosureStateChannelsState(
@@ -476,7 +477,8 @@ object TestTcsEpicsSystem {
       ecsShutterTop = TestChannel.State.default,
       ecsShutterBottom = TestChannel.State.default,
       ecsVentGateEast = TestChannel.State.default,
-      ecsVentGateWest = TestChannel.State.default
+      ecsVentGateWest = TestChannel.State.default,
+      ecsVentGatesDir = TestChannel.State.default
     ),
     enclosureState = EnclosureStateChannelsState(
       ecsDomeMode = TestChannel.State.default,
@@ -641,7 +643,9 @@ object TestTcsEpicsSystem {
       ecsVentGateEast =
         new TestChannel[F, State, String](s, Focus[State](_.enclosure.ecsVentGateEast)),
       ecsVentGateWest =
-        new TestChannel[F, State, String](s, Focus[State](_.enclosure.ecsVentGateWest))
+        new TestChannel[F, State, String](s, Focus[State](_.enclosure.ecsVentGateWest)),
+      ecsVentGatesDir =
+        new TestChannel[F, State, CadDirective](s, Focus[State](_.enclosure.ecsVentGatesDir))
     )
 
   def buildTargetChannels[F[_]: Temporal](

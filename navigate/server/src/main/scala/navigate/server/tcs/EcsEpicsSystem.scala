@@ -11,16 +11,28 @@ import lucuma.core.model.IntPercent
 import navigate.epics.EpicsService
 import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.VerifiedEpics
+import navigate.server.tcs.EcsEpicsSystem.EcsCommands
 import navigate.server.tcs.EcsEpicsSystem.EcsStatus
 
 trait EcsEpicsSystem[F[_]] {
   val status: EcsStatus[F]
+  val commands: EcsCommands[F]
 }
 
 object EcsEpicsSystem {
   trait EcsStatus[F[_]] {
     def eastVentGatePos: VerifiedEpics[F, F, IntPercent]
     def westVentGatePos: VerifiedEpics[F, F, IntPercent]
+  }
+
+  /**
+   * The close commands are triggered by writing a 1 to a PROC channel. There is no CAR to monitor,
+   * so they are fire and forget.
+   */
+  trait EcsCommands[F[_]] {
+    def closeShutters: VerifiedEpics[F, F, Unit]
+    def closeEastVentGate: VerifiedEpics[F, F, Unit]
+    def closeWestVentGate: VerifiedEpics[F, F, Unit]
   }
 
   private[tcs] def buildSystem[F[_]: MonadThrow](
@@ -34,6 +46,17 @@ object EcsEpicsSystem {
       override def westVentGatePos: VerifiedEpics[F, F, IntPercent] = VerifiedEpics
         .readChannel(ch.telltale, ch.westVentGateAperture)
         .map(_.map(v => IntPercent.from(v.toInt).getOrElse(ventGateClosePos)))
+    }
+
+    override val commands: EcsCommands[F] = new {
+      override def closeShutters: VerifiedEpics[F, F, Unit] =
+        VerifiedEpics.writeChannel(ch.telltale, ch.closeShutters)(1.pure[F])
+
+      override def closeEastVentGate: VerifiedEpics[F, F, Unit] =
+        VerifiedEpics.writeChannel(ch.telltale, ch.closeEastVentGate)(1.pure[F])
+
+      override def closeWestVentGate: VerifiedEpics[F, F, Unit] =
+        VerifiedEpics.writeChannel(ch.telltale, ch.closeWestVentGate)(1.pure[F])
     }
   }
 
