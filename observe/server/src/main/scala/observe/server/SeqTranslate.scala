@@ -34,6 +34,7 @@ import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.navigate.LightSource
 import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
@@ -43,12 +44,10 @@ import observe.model.extensions.*
 import observe.server.InstrumentSystem.*
 import observe.server.ObserveFailure.Unexpected
 import observe.server.Systems.OverriddenSystems
-import observe.server.altair.Altair
 import observe.server.engine.*
 import observe.server.engine.Action.ActionState
 import observe.server.flamingos2.Flamingos2
 import observe.server.gcal.*
-import observe.server.gems.Gems
 import observe.server.ghost.Ghost
 import observe.server.gmos.GmosNorth
 import observe.server.gmos.GmosSouth
@@ -59,7 +58,6 @@ import observe.server.keywords.*
 import observe.server.odb.OdbObservationData
 import observe.server.tcs.*
 import observe.server.tcs.TcsController.LightPath
-import observe.server.tcs.TcsController.LightSource
 import org.typelevel.log4cats.Logger
 
 trait SeqTranslate[F[_]] {
@@ -190,7 +188,7 @@ object SeqTranslate {
 
       buildStep(
         DataId(s"${observation.title}-$dataIdx"),
-        calcSystems(observation, step.telescopeConfig, insStep),
+        calcSystems(step.telescopeConfig, insStep),
         (ov: SystemOverrides) =>
           calcHeaders(observation, step, insStep.stepType, insStep.instrumentHeader)(
             insStep.instrumentSystem(ov).keywordsClient
@@ -426,67 +424,30 @@ object SeqTranslate {
 
     private def getTcs(
       subs:            NonEmptySet[TcsController.Subsystem],
-      useGaos:         Boolean,
       inst:            InstrumentStep[F],
       lsource:         LightSource,
-      observation:     OdbObservation,
       telescopeConfig: TelescopeConfig
     ): SystemOverrides => System[F] = site match {
       case Site.GS =>
-        if (useGaos) { (ov: SystemOverrides) =>
-          TcsSouth.fromConfig[F](
-            overriddenSystems.tcsSouth(ov),
-            subs,
-            Gems.fromConfig[F](overriddenSystems.gems(ov), systemss.guideDb).some,
-            inst,
-            systemss.guideDb
-          )(
-            observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
+        (ov: SystemOverrides) =>
+          TcsSouth.fromConfig[F](overriddenSystems.tcsSouth(ov), subs, inst.instrument)(
             telescopeConfig,
             LightPath(lsource, inst.sfName),
             inst.centralWavelength,
             inst.defocusB
           ): System[F]
-        } else { (ov: SystemOverrides) =>
-          TcsSouth
-            .fromConfig[F](overriddenSystems.tcsSouth(ov), subs, None, inst, systemss.guideDb)(
-              observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
-              telescopeConfig,
-              LightPath(lsource, inst.sfName),
-              inst.centralWavelength,
-              inst.defocusB
-            ): System[F]
-        }
 
       case Site.GN =>
-        if (useGaos) { (ov: SystemOverrides) =>
-          TcsNorth.fromConfig[F](
-            overriddenSystems.tcsNorth(ov),
-            subs,
-            Altair(overriddenSystems.altair(ov)).some,
-            inst,
-            systemss.guideDb
-          )(
-            observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
+        (ov: SystemOverrides) =>
+          TcsNorth.fromConfig[F](overriddenSystems.tcsNorth(ov), subs, inst.instrument)(
             telescopeConfig,
             LightPath(lsource, inst.sfName),
             inst.centralWavelength,
             inst.defocusB
           ): System[F]
-        } else { (ov: SystemOverrides) =>
-          TcsNorth
-            .fromConfig[F](overriddenSystems.tcsNorth(ov), subs, none, inst, systemss.guideDb)(
-              observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
-              telescopeConfig,
-              LightPath(lsource, inst.sfName),
-              inst.centralWavelength,
-              inst.defocusB
-            ): System[F]
-        }
     }
 
     private def calcSystems[S](
-      observation:     OdbObservation,
       telescopeConfig: TelescopeConfig,
       insStep:         InstrumentStep[F]
     ): Map[Resource, SystemOverrides => System[F]] = {
@@ -501,10 +462,8 @@ object SeqTranslate {
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
-              useGaos = false,
               insStep,
-              TcsController.LightSource.Sky,
-              observation,
+              LightSource.Sky,
               telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
@@ -514,10 +473,8 @@ object SeqTranslate {
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
-              useGaos = false,
               insStep,
-              TcsController.LightSource.Sky,
-              observation,
+              LightSource.Sky,
               telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
@@ -527,10 +484,8 @@ object SeqTranslate {
           Map(
             Resource.TCS  -> getTcs(
               flatOrArcTcsSubsystems(inst),
-              useGaos = false,
               insStep,
-              TcsController.LightSource.GCAL,
-              observation,
+              LightSource.GCAL,
               telescopeConfig
             ),
             Resource.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
@@ -540,10 +495,8 @@ object SeqTranslate {
           Map(
             Resource.TCS  -> getTcs(
               NonEmptySet.of(AGUnit, OIWFS, M2, M1, Mount),
-              useGaos = false,
               insStep,
-              TcsController.LightSource.GCAL,
-              observation,
+              LightSource.GCAL,
               telescopeConfig
             ),
             Resource.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
@@ -556,14 +509,14 @@ object SeqTranslate {
             Resource.Gcal -> defaultGcal
           )
 
+        // Only the telescope is configured for AO steps, with the light coming from the AO system.
+        // The AO systems themselves are not configured, until they are supported through Navigate.
         case StepKind.AltairObs(inst) =>
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
-              useGaos = true,
               insStep,
-              TcsController.LightSource.AO,
-              observation,
+              LightSource.AO,
               telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
@@ -575,10 +528,8 @@ object SeqTranslate {
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
-              useGaos = true,
               insStep,
-              TcsController.LightSource.AO,
-              observation,
+              LightSource.AO,
               telescopeConfig
             ),
             Resource.Gcal -> defaultGcal

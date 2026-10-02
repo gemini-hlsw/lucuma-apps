@@ -12,6 +12,7 @@ import cats.effect.kernel.Ref
 import cats.effect.std.SecureRandom
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
+import clue.FetchClient
 import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import clue.http4s.Http4sWebSocketBackend
@@ -24,6 +25,7 @@ import giapi.client.ghost.GhostClient
 import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
+import lucuma.schemas.NavigateDB
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
 import observe.model.CurrentConditions
@@ -59,6 +61,7 @@ import org.http4s.Headers
 import org.http4s.client.Client
 import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.JdkWSClient
 import org.typelevel.log4cats.Logger
@@ -80,8 +83,6 @@ case class Systems[F[_]] private[server] (
   ghost:               GhostController[F],
   igrins2:             Igrins2Controller[F],
   gnirs:               GnirsController[F],
-  altair:              AltairController[F],
-  gems:                GemsController[F],
   guideDb:             GuideConfigDb[F],
   tcsKeywordReader:    TcsKeywordsReader[F],
   conditionSetReader:  CurrentConditions => ConditionSetReader[F],
@@ -94,6 +95,12 @@ case class Systems[F[_]] private[server] (
 )
 
 object Systems {
+
+  // Navigate's configureStep only returns once the telescope has settled.
+  private val NavigateTimeout: FiniteDuration     = 3.minutes
+  // Navigate sends nothing until configureStep completes, so the socket idle timeout (60s by
+  // default) must be longer than the request timeout, or it would end the request first.
+  private val NavigateIdleTimeout: FiniteDuration = NavigateTimeout + 10.seconds
 
   case class Builder(
     settings:     ObserveEngineConfiguration,
@@ -169,6 +176,24 @@ object Systems {
             DummyOdbCommands[F]
       yield OdbProxy[F](odbCommands, stepSpans)(using tracingWS)
 
+    /**
+     * Client for Navigate, only built when Observe commands the TCS. It has its own http client
+     * because `configureStep` only returns once the telescope has settled.
+     */
+    def navigateClient: Resource[IO, Option[FetchClient[IO, NavigateDB]]] =
+      if (settings.systemControl.tcs.command)
+        for {
+          httpClient                 <- EmberClientBuilder
+                                          .default[IO]
+                                          .withTimeout(NavigateTimeout)
+                                          .withIdleConnectionTime(NavigateIdleTimeout)
+                                          .build
+          given Http4sHttpBackend[IO] = Http4sHttpBackend(httpClient)
+          client                     <- Resource.eval:
+                                          Http4sHttpClient.of[IO, NavigateDB](settings.navigateHttp, "Navigate")
+        } yield Otel4sMiddleware(client).some
+      else Resource.pure(none)
+
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
         new DhsClientProvider[F] {
@@ -203,98 +228,78 @@ object Systems {
           )
       else (GcalControllerSim[IO], DummyGcalKeywordsReader[IO]).pure[IO]
 
+    // The step configuration goes to Navigate only when the TCS is fully controlled. The client is
+    // only built in that case, otherwise the TCS configuration is simulated.
     def tcsSouth(
       tcsEpicsO: => Option[TcsEpics[IO]],
-      site:      Site,
-      gcdb:      GuideConfigDb[IO]
+      navigateO: Option[FetchClient[IO, NavigateDB]],
+      site:      Site
     ): TcsSouthController[IO] =
-      tcsEpicsO
-        .map { tcsEpics =>
-          if (settings.systemControl.tcs.command && site === Site.GS)
-            TcsSouthControllerEpics(tcsEpics, gcdb)
+      (tcsEpicsO, navigateO)
+        .mapN { (tcsEpics, navigate) =>
+          given FetchClient[IO, NavigateDB] = navigate
+          if (site === Site.GS) TcsSouthControllerNavigate(tcsEpics)
           else TcsSouthControllerSim[IO]
         }
         .getOrElse(TcsSouthControllerSim[IO])
 
-    def tcsNorth(tcsEpicsO: => Option[TcsEpics[IO]], site: Site): TcsNorthController[IO] =
-      tcsEpicsO
-        .map { tcsEpics =>
-          if (settings.systemControl.tcs.command && site === Site.GN)
-            TcsNorthControllerEpics(tcsEpics)
+    def tcsNorth(
+      tcsEpicsO: => Option[TcsEpics[IO]],
+      navigateO: Option[FetchClient[IO, NavigateDB]],
+      site:      Site
+    ): TcsNorthController[IO] =
+      (tcsEpicsO, navigateO)
+        .mapN { (tcsEpics, navigate) =>
+          given FetchClient[IO, NavigateDB] = navigate
+          if (site === Site.GN) TcsNorthControllerNavigate(tcsEpics)
           else TcsNorthControllerSim[IO]
         }
         .getOrElse(TcsNorthControllerSim[IO])
 
-    def altair(
-      tcsEpicsO: => Option[TcsEpics[IO]]
-    ): IO[(AltairController[IO], AltairKeywordReader[IO])] =
+    // Altair is not configured by Observe, but its status is read for the FITS keywords
+    def altairKeywordReader: IO[AltairKeywordReader[IO]] =
       if (settings.systemControl.altair.realKeywords)
-        AltairEpics.instance[IO](service, tops).map { altairEpics =>
-          tcsEpicsO
-            .map { tcsEpics =>
-              if (settings.systemControl.altair.command && settings.systemControl.tcs.command)
-                AltairControllerEpics.apply(altairEpics, tcsEpics)
-              else
-                AltairControllerSim[IO]
-            }
-            .map((_, AltairKeywordReaderEpics(altairEpics)))
-            .getOrElse((AltairControllerSim[IO], AltairKeywordReaderEpics(altairEpics)))
-        }
+        AltairEpics.instance[IO](service, tops).map(AltairKeywordReaderEpics(_))
       else
-        (AltairControllerSim[IO], AltairKeywordReaderDummy[IO]).pure[IO]
+        AltairKeywordReaderDummy[IO].pure[IO]
 
-    def tcsObjects(gcdb: GuideConfigDb[IO], site: Site): IO[
+    def tcsObjects(navigateO: Option[FetchClient[IO, NavigateDB]], site: Site): IO[
       (
         TcsNorthController[IO],
         TcsSouthController[IO],
         TcsKeywordsReader[IO],
-        AltairController[IO],
         AltairKeywordReader[IO],
         CurrentConditions => ConditionSetReader[IO]
       )
     ] =
       for {
-        tcsEpicsO            <- settings.systemControl.tcs.realKeywords
-                                  .option(TcsEpics.instance[IO](service, tops))
-                                  .sequence
-        a                    <- altair(tcsEpicsO)
-        (altairCtr, altairKR) = a
-        tcsNCtr               = tcsNorth(tcsEpicsO, site)
-        tcsSCtr               = tcsSouth(tcsEpicsO, site, gcdb)
-        tcsKR                 = tcsEpicsO.map(TcsKeywordsReaderEpics[IO]).getOrElse(DummyTcsKeywordsReader[IO])
-        condsR                = tcsEpicsO
-                                  .map(ConditionSetReaderEpics.apply(site, _))
-                                  .getOrElse(DummyConditionSetReader(site))
+        tcsEpicsO <- settings.systemControl.tcs.realKeywords
+                       .option(TcsEpics.instance[IO](service, tops))
+                       .sequence
+        altairKR  <- altairKeywordReader
+        tcsNCtr    = tcsNorth(tcsEpicsO, navigateO, site)
+        tcsSCtr    = tcsSouth(tcsEpicsO, navigateO, site)
+        tcsKR      = tcsEpicsO.map(TcsKeywordsReaderEpics[IO]).getOrElse(DummyTcsKeywordsReader[IO])
+        condsR     = tcsEpicsO
+                       .map(ConditionSetReaderEpics.apply(site, _))
+                       .getOrElse(DummyConditionSetReader(site))
       } yield (
         tcsNCtr,
         tcsSCtr,
         tcsKR,
-        altairCtr,
         altairKR,
         condsR
       )
 
-    def gems(
-      gsaoiController: GsaoiGuider[IO],
-      gsaoiEpicsO:     => Option[GsaoiEpics[IO]]
-    ): IO[(GemsController[IO], GemsKeywordReader[IO])] =
+    // GeMS is not configured by Observe, but its status is read for the FITS keywords
+    def gemsKeywordReader(gsaoiEpicsO: => Option[GsaoiEpics[IO]]): IO[GemsKeywordReader[IO]] =
       if (settings.systemControl.gems.realKeywords)
         GemsEpics.instance[IO](service, tops).map { gemsEpics =>
           gsaoiEpicsO
-            .map { gsaoiEpics =>
-              (
-                if (settings.systemControl.gems.command && settings.systemControl.tcs.command)
-                  GemsControllerEpics(gemsEpics, gsaoiController)
-                else
-                  GemsControllerSim[IO],
-                GemsKeywordReaderEpics[IO](gemsEpics, gsaoiEpics)
-              )
-            }
-            .getOrElse(
-              (GemsControllerEpics(gemsEpics, gsaoiController), GemsKeywordReaderDummy[IO])
-            )
+            .map(GemsKeywordReaderEpics[IO](gemsEpics, _))
+            .getOrElse(GemsKeywordReaderDummy[IO])
         }
-      else (GemsControllerSim[IO], GemsKeywordReaderDummy[IO]).pure[IO]
+      else GemsKeywordReaderDummy[IO].pure[IO]
 
     def gsaoi(
       gsaoiEpicsO: => Option[GsaoiEpics[IO]]
@@ -309,7 +314,7 @@ object Systems {
         .getOrElse(GsaoiControllerSim[IO].map((_, GsaoiKeywordReaderDummy[IO])))
 
     def gemsObjects: IO[
-      (GemsController[IO], GemsKeywordReader[IO], GsaoiController[IO], GsaoiKeywordReader[IO])
+      (GemsKeywordReader[IO], GsaoiController[IO], GsaoiKeywordReader[IO])
     ] =
       for {
         gsaoiEpicsO        <- settings.systemControl.gsaoi.realKeywords
@@ -317,9 +322,8 @@ object Systems {
                                 .sequence
         a                  <- gsaoi(gsaoiEpicsO)
         (gsaoiCtr, gsaoiKR) = a
-        b                  <- gems(gsaoiCtr, gsaoiEpicsO)
-        (gemsCtr, gemsKR)   = b
-      } yield (gemsCtr, gemsKR, gsaoiCtr, gsaoiKR)
+        gemsKR             <- gemsKeywordReader(gsaoiEpicsO)
+      } yield (gemsKR, gsaoiCtr, gsaoiKR)
 
     /*
      * Type parameters are
@@ -455,26 +459,27 @@ object Systems {
 
     def build(site: Site, httpClient: Client[IO]): Resource[IO, Systems[IO]] =
       for {
-        odbProxy                                          <- odbProxy[IO](httpClient)
-        dhsClient                                         <- Resource.eval(dhs[IO](site, httpClient))
-        gcdb                                              <- Resource.eval(GuideConfigDb.newDb[IO])
-        gcals                                             <- Resource.eval(gcal)
-        (gcalCtr, gcalKR)                                  = gcals
-        v                                                 <- Resource.eval(tcsObjects(gcdb, site))
-        (tcsGN, tcsGS, tcsKR, altairCtr, altairKR, condsR) = v
-        w                                                 <- Resource.eval(gemsObjects)
-        (gemsCtr, gemsKR, gsaoiCtr, gsaoiKR)               = w
-        gnirsObjs                                         <- Resource.eval(gnirs)
-        (gnirsCtr, gnirsKR)                                = gnirsObjs
-        f2Controller                                      <- Resource.eval(flamingos2)
-        igrins2Ctr                                        <- igrins2(httpClient, instanceName)
+        odbProxy                               <- odbProxy[IO](httpClient)
+        dhsClient                              <- Resource.eval(dhs[IO](site, httpClient))
+        gcdb                                   <- Resource.eval(GuideConfigDb.newDb[IO])
+        gcals                                  <- Resource.eval(gcal)
+        (gcalCtr, gcalKR)                       = gcals
+        navigateO                              <- navigateClient
+        v                                      <- Resource.eval(tcsObjects(navigateO, site))
+        (tcsGN, tcsGS, tcsKR, altairKR, condsR) = v
+        w                                      <- Resource.eval(gemsObjects)
+        (gemsKR, gsaoiCtr, gsaoiKR)             = w
+        gnirsObjs                              <- Resource.eval(gnirs)
+        (gnirsCtr, gnirsKR)                     = gnirsObjs
+        f2Controller                           <- Resource.eval(flamingos2)
+        igrins2Ctr                             <- igrins2(httpClient, instanceName)
         //        (niriCtr, niriKR)                          <- Resource.eval(niri)
         //        (nifsCtr, nifsKR)                          <- Resource.eval(nifs)
-        gms                                               <- Resource.eval(gmosObjects(site))
-        (gmosSouthCtr, gmosNorthCtr, gmosKR)               = gms
+        gms                                    <- Resource.eval(gmosObjects(site))
+        (gmosSouthCtr, gmosNorthCtr, gmosKR)    = gms
         //        gpiController                              <- gpi[IO](httpClient, instanceName)
-        ghostController                                   <- ghost[IO](httpClient, instanceName)
-        gwsKR                                             <- Resource.eval(gws)
+        ghostController                        <- ghost[IO](httpClient, instanceName)
+        gwsKR                                  <- Resource.eval(gws)
       } yield Systems[IO](
         odbProxy,
         dhsClient,
@@ -491,8 +496,6 @@ object Systems {
         //        nifsCtr,
         igrins2Ctr,
         gnirsCtr,
-        altairCtr,
-        gemsCtr,
         gcdb,
         tcsKR,
         condsR,
@@ -542,8 +545,6 @@ object Systems {
           GhostControllerDisabled[F],
           Igrins2ControllerDisabled[F],
           GnirsControllerDisabled[F],
-          AltairControllerSim[F],
-          GemsControllerSim[F],
           guideDb,
           DummyTcsKeywordsReader[F],
           DummyConditionSetReader.apply[F](Site.GN),
@@ -560,8 +561,6 @@ object Systems {
 
     private val tcsSouthDisabled: TcsSouthController[F]     = new TcsSouthControllerDisabled[F]
     private val tcsNorthDisabled: TcsNorthController[F]     = new TcsNorthControllerDisabled[F]
-    private val gemsDisabled: GemsController[F]             = new GemsControllerDisabled[F]
-    private val altairDisabled: AltairController[F]         = new AltairControllerDisabled[F]
     private val dhsDisabled: DhsClientProvider[F]           = (_: String) => new DhsClientDisabled[F]
     private val gcalDisabled: GcalController[F]             = new GcalControllerDisabled[F]
     private val flamingos2Disabled: Flamingos2Controller[F] = new Flamingos2ControllerDisabled[F]
@@ -580,14 +579,6 @@ object Systems {
     def tcsNorth(overrides: SystemOverrides): TcsNorthController[F] =
       if (overrides.isTcsEnabled.value) systems.tcsNorth
       else tcsNorthDisabled
-
-    def gems(overrides: SystemOverrides): GemsController[F] =
-      if (overrides.isTcsEnabled.value) systems.gems
-      else gemsDisabled
-
-    def altair(overrides: SystemOverrides): AltairController[F] =
-      if (overrides.isTcsEnabled.value) systems.altair
-      else altairDisabled
 
     def dhs(overrides: SystemOverrides): DhsClientProvider[F] =
       if (overrides.isDhsEnabled.value) systems.dhs

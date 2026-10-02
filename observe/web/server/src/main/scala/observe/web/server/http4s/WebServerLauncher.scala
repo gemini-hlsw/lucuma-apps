@@ -327,6 +327,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       s"""
       | Start web server for site ${conf.site} on ${conf.environment} environment, version ${OcsBuildInfo.version}
       | Connected to odb by HTTP at ${conf.observeEngine.odbHttp} and by WS at ${conf.observeEngine.odbWs}
+      | Navigate at ${conf.observeEngine.navigateHttp} (TCS control: ${conf.observeEngine.systemControl.tcs})
       |
       | cores              : ${runtime.availableProcessors()}
       | current JVM memory : ${runtime.totalMemory() / 1024 / 1024} MB

@@ -26,6 +26,8 @@ type Igrins2UriSettings = Igrins2UriSettings.Type
  *   HTTP endpoint of the odb server
  * @param odbWs
  *   WebSocket endpoint of the odb server
+ * @param navigateHttp
+ *   HTTP GraphQL endpoint of the navigate server, used to configure the telescope for each step
  * @param dhsServer
  *   Location of the dhs server proxy
  * @param systemControl
@@ -64,6 +66,7 @@ type Igrins2UriSettings = Igrins2UriSettings.Type
 case class ObserveEngineConfiguration(
   odbHttp:                 Uri,
   odbWs:                   Uri,
+  navigateHttp:            Uri,
   dhsServer:               Uri,
   systemControl:           SystemsControlConfiguration,
   odbNotifications:        Boolean,

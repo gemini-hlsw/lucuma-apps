@@ -7,10 +7,6 @@ import cats.data.Kleisli
 import cats.effect.Async
 import cats.effect.Sync
 import cats.syntax.all.*
-import coulomb.Quantity
-import coulomb.syntax.*
-import coulomb.units.accepted.ArcSecond
-import coulomb.units.accepted.Millimeter
 import fs2.Stream
 import lucuma.core.enums.Flamingos2Disperser
 import lucuma.core.enums.Flamingos2Fpu
@@ -33,8 +29,6 @@ import observe.server.keywords.DhsClientProvider
 import observe.server.keywords.DhsInstrument
 import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
-import observe.server.tcs.FOCAL_PLANE_SCALE
-import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
 final case class Flamingos2[F[_]: {Async, Logger}](
@@ -198,10 +192,6 @@ object Flamingos2 {
 
           override def centralWavelength: Option[Wavelength] =
             step.instrumentConfig.centralWavelength.some
-
-          // TODO Use different value if using electronic offsets
-          override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-            (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
 
     }
   ).pure

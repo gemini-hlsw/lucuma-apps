@@ -9,28 +9,12 @@ import coulomb.conversion.implicits.given
 import coulomb.syntax.*
 import coulomb.units.accepted.ArcSecond
 import coulomb.units.accepted.Degree
-import edu.gemini.observe.server.tcs.BinaryOnOff
-import edu.gemini.observe.server.tcs.BinaryYesNo
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
 trait TcsArbitraries {
-  given Arbitrary[TcsController.Beam]    = Arbitrary(
-    Gen.oneOf(TcsController.Beam.A, TcsController.Beam.B, TcsController.Beam.C)
-  )
-  given Cogen[TcsController.Beam]        =
-    Cogen[String].contramap(_.productPrefix)
-  given Arbitrary[TcsController.NodChop] = Arbitrary {
-    for {
-      n <- arbitrary[TcsController.Beam]
-      c <- arbitrary[TcsController.Beam]
-    } yield TcsController.NodChop(n, c)
-  }
-  given Cogen[TcsController.NodChop]     =
-    Cogen[(TcsController.Beam, TcsController.Beam)].contramap(x => (x.nod, x.chop))
-
   private def rangedAngleGen(
     minVal: Quantity[Double, ArcSecond],
     maxVal: Quantity[Double, ArcSecond]
@@ -72,16 +56,5 @@ trait TcsArbitraries {
   }
   given Cogen[CRFollow]     =
     Cogen[String].contramap(_.productPrefix)
-
-  given Arbitrary[BinaryYesNo] = Arbitrary(
-    Gen.oneOf(BinaryYesNo.Yes, BinaryYesNo.No)
-  )
-  given Cogen[BinaryYesNo]     =
-    Cogen[String].contramap(_.name)
-  given Arbitrary[BinaryOnOff] = Arbitrary(
-    Gen.oneOf(BinaryOnOff.Off, BinaryOnOff.On)
-  )
-  given Cogen[BinaryOnOff]     =
-    Cogen[String].contramap(_.name)
 
 }

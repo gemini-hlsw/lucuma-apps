@@ -1,0 +1,960 @@
+"Timestamp of time in ISO-8601 representation in format '2011-12-03T10:15:30Z'"
+scalar Timestamp
+"Absolute coordinates relative base epoch"
+input CoordinatesInput {
+  ra: RightAscensionInput
+  dec: DeclinationInput
+}
+"The `Long` scalar type represents non-fractional signed whole numeric values. Long can represent values between -(2^63) and 2^63 - 1."
+scalar Long
+"The `BigDecimal` scalar type represents signed fractional values with arbitrary precision."
+scalar BigDecimal
+"Input for an element in a user-supplied ephemeris. All values must be specified."
+input UserSuppliedEphemerisElement {
+  when: Timestamp
+  coordinates: CoordinatesInput
+  velocity: OffsetInput
+}
+"Target right ascension coordinate in format 'HH:MM:SS.sss'"
+scalar HmsString
+"Target declination coordinate in format '[+/-]DD:MM:SS.sss'"
+scalar DmsString
+type ProperMotionRA {
+  "Proper motion in properMotion μas/year"
+  microarcsecondsPerYear: Long!
+  "Proper motion in properMotion mas/year"
+  milliarcsecondsPerYear: BigDecimal!
+}
+type ProperMotionDeclination {
+  "Proper motion in properMotion μas/year"
+  microarcsecondsPerYear: Long!
+  "Proper motion in properMotion mas/year"
+  milliarcsecondsPerYear: BigDecimal!
+}
+"Catalog name values"
+enum CatalogName {
+  "CatalogName Simbad"
+  SIMBAD
+  "CatalogName Import"
+  IMPORT
+  "CatalogName Gaia"
+  GAIA
+  "CatalogName Telluric"
+  TELLURIC
+}
+"Proper motion component, choose one of the available units"
+input ProperMotionComponentInput @oneOf {
+  microarcsecondsPerYear: Long
+  milliarcsecondsPerYear: BigDecimal
+}
+"A String value that cannot be empty"
+scalar NonEmptyString
+"Ephemeris key type options"
+enum EphemerisKeyType {
+  "EphemerisKeyType Comet"
+  COMET
+  "EphemerisKeyType AsteroidNew"
+  ASTEROID_NEW
+  "EphemerisKeyType AsteroidOld"
+  ASTEROID_OLD
+  "EphemerisKeyType MajorBody"
+  MAJOR_BODY
+  "EphemerisKeyType UserSupplied"
+  USER_SUPPLIED
+}
+"Input for a user-supplied ephemeris. Both sites must be specified (but may be empty)."
+input UserSuppliedEphemeris {
+  gn: [UserSuppliedEphemerisElement!]!
+  gs: [UserSuppliedEphemerisElement!]!
+}
+type OffsetP {
+  "p offset in µas"
+  microarcseconds: Long!
+  "p offset in mas"
+  milliarcseconds: BigDecimal!
+  "p offset in arcsec"
+  arcseconds: BigDecimal!
+}
+type OffsetQ {
+  "q offset in µas"
+  microarcseconds: Long!
+  "q offset in mas"
+  milliarcseconds: BigDecimal!
+  "q offset in arcsec"
+  arcseconds: BigDecimal!
+}
+"Offset component (p or q) input parameters. Choose one angle units definition."
+input OffsetComponentInput @oneOf {
+  "Angle in µas"
+  microarcseconds: Long
+  "Angle in mas"
+  milliarcseconds: BigDecimal
+  "Angle in arcsec"
+  arcseconds: BigDecimal
+}
+type RightAscension {
+  "Right Ascension (RA) in HH:MM:SS.SSS format"
+  hms: HmsString!
+  "Right Ascension (RA) in hours"
+  hours: BigDecimal!
+  "Right Ascension (RA) in degrees"
+  degrees: BigDecimal!
+  "Right Ascension (RA) in µs"
+  microseconds: Long!
+}
+type Declination {
+  "Declination in DD:MM:SS.SS format"
+  dms: DmsString!
+  "Declination in signed degrees"
+  degrees: BigDecimal!
+  "Declination in signed µas"
+  microarcseconds: Long!
+}
+"Reference observation epoch in format '[JB]YYYY.YYY'"
+scalar EpochString
+type ProperMotion {
+  "Proper motion in RA"
+  ra: ProperMotionRA!
+  "Proper motion in declination"
+  dec: ProperMotionDeclination!
+}
+type RadialVelocity {
+  "Radial velocity in cm/s"
+  centimetersPerSecond: Long!
+  "Radial velocity in m/s"
+  metersPerSecond: BigDecimal!
+  "Radial velocity in km/s"
+  kilometersPerSecond: BigDecimal!
+}
+type Parallax {
+  "Parallax in microarcseconds"
+  microarcseconds: Long!
+  "Parallax in milliarcseconds"
+  milliarcseconds: BigDecimal!
+}
+type CatalogInfo {
+  "Catalog name option"
+  name: CatalogName!
+  "Catalog id string"
+  id: String!
+  "Catalog description of object morphology"
+  objectType: String
+}
+"Right Ascension, choose one of the available units"
+input RightAscensionInput @oneOf {
+  microseconds: Long
+  degrees: BigDecimal
+  hours: BigDecimal
+  hms: HmsString
+}
+"Declination, choose one of the available units"
+input DeclinationInput @oneOf {
+  microarcseconds: Long
+  degrees: BigDecimal
+  dms: DmsString
+}
+"Proper motion, choose one of the available units"
+input ProperMotionInput {
+  ra: ProperMotionComponentInput!
+  dec: ProperMotionComponentInput!
+}
+"Radial velocity, choose one of the available units"
+input RadialVelocityInput @oneOf {
+  centimetersPerSecond: Long
+  metersPerSecond: BigDecimal
+  kilometersPerSecond: BigDecimal
+}
+"Parallax, choose one of the available units"
+input ParallaxInput @oneOf {
+  microarcseconds: Long
+  milliarcseconds: BigDecimal
+}
+"Catalog id consisting of catalog name, string identifier and an optional object type"
+input CatalogInfoInput {
+  "The name field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  name: CatalogName
+  "The id field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  id: NonEmptyString
+  "The objectType field may be unset by assigning a null value, or ignored by skipping it altogether"
+  objectType: NonEmptyString
+}
+"An `Int` in the range from 1 to 2147483647"
+scalar PosInt
+"A `BigDecimal` greater than 0"
+scalar PosBigDecimal
+"""
+An angle in a variety of units.  Values are normalized to [0, 360°) unless
+the field documents a signed quantity, in which case negative values are
+rendered negative (as with `Declination`) rather than wrapped.
+"""
+type Angle {
+  "Angle in µas"
+  microarcseconds: Long!
+  "Angle in µs"
+  microseconds: BigDecimal!
+  "Angle in mas"
+  milliarcseconds: BigDecimal!
+  "Angle in ms"
+  milliseconds: BigDecimal!
+  "Angle in asec"
+  arcseconds: BigDecimal!
+  "Angle in sec"
+  seconds: BigDecimal!
+  "Angle in amin"
+  arcminutes: BigDecimal!
+  "Angle in min"
+  minutes: BigDecimal!
+  "Angle in deg"
+  degrees: BigDecimal!
+  "Angle in hrs"
+  hours: BigDecimal!
+  "Angle in HH:MM:SS"
+  hms: String!
+  "Angle in DD:MM:SS"
+  dms: String!
+}
+"Create an angle from a signed value.  Choose exactly one of the available units."
+input AngleInput @oneOf {
+  microarcseconds: Long
+  microseconds: BigDecimal
+  milliarcseconds: BigDecimal
+  milliseconds: BigDecimal
+  arcseconds: BigDecimal
+  seconds: BigDecimal
+  arcminutes: BigDecimal
+  minutes: BigDecimal
+  degrees: BigDecimal
+  hours: BigDecimal
+  dms: String
+  hms: String
+}
+"Date in ISO-8601 representation in format YYYY-MM-DD (e.g., '2024-07-31')."
+scalar Date
+"Enumeration for Guide Probes"
+enum GuideProbe {
+  PWFS1
+  PWFS2
+  GMOS_OIWFS
+  FLAMINGOS2_OIWFS
+  ALTAIR_AOWFS
+}
+"Instrument"
+enum Instrument {
+  "Instrument AcqCam at Gemini North"
+  ACQ_CAM_NORTH
+  "Instrument AcqCam at Gemini South"
+  ACQ_CAM_SOUTH
+  "Instrument Flamingos2"
+  FLAMINGOS2
+  "Instrument Ghost"
+  GHOST
+  "Instrument GmosNorth"
+  GMOS_NORTH
+  "Instrument GmosSouth"
+  GMOS_SOUTH
+  "Instrument Gnirs"
+  GNIRS
+  "Instrument Gpi"
+  GPI
+  "Instrument Gsaoi"
+  GSAOI
+  "Instrument Igrins2"
+  IGRINS2
+  "Instrument Niri"
+  NIRI
+  "Visitor Instrument at Gemini North"
+  VISITOR_NORTH
+  "Visitor Instrument at Gemini North"
+  VISITOR_SOUTH
+  "Instrument Scorpio"
+  SCORPIO
+  "Instrument Alopeke"
+  ALOPEKE
+  "Instrument Zorro"
+  ZORRO
+  "Instrument MAROON-X"
+  MAROON_X
+}
+"An 'Int` in the range 0 to 100"
+scalar IntPercent
+type Nonsidereal {
+  "Human readable designation that discriminates among ephemeris keys of the same type."
+  des: String!
+  "Nonsidereal target lookup type."
+  keyType: EphemerisKeyType!
+  "Synthesis of `keyType` and `des`"
+  key: String!
+}
+"""
+Nonsidereal target parameters.
+For the key, if specified, provide either (`keyType` and `des`) or `key`.
+"""
+input NonsiderealInput {
+  "The keyType field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  keyType: EphemerisKeyType
+  "The des field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  des: NonEmptyString
+  "The key field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  key: NonEmptyString
+  "Ephemeris must be specified if (and only if) the key type is USER_SUPPLIED."
+  ephemeris: UserSuppliedEphemeris
+}
+"ObservationId id formatted as `o-[1-9a-f][0-9a-f]*`"
+scalar ObservationId
+type Offset {
+  "Offset in p"
+  p: OffsetP!
+  "Offset in q"
+  q: OffsetQ!
+}
+"Offset input.  Define offset in p and q."
+input OffsetInput {
+  "Offset in p"
+  p: OffsetComponentInput!
+  "Offset in q"
+  q: OffsetComponentInput!
+}
+type Sidereal {
+  "Right ascension at epoch"
+  ra: RightAscension!
+  "Declination at epoch"
+  dec: Declination!
+  "Epoch, time of base observation"
+  epoch: EpochString!
+  "Proper motion per year in right ascension and declination"
+  properMotion: ProperMotion
+  "Radial velocity"
+  radialVelocity: RadialVelocity
+  "Parallax"
+  parallax: Parallax
+  "Catalog info, if any, describing from where the information in this target was obtained"
+  catalogInfo: CatalogInfo
+}
+"Sidereal target edit parameters"
+input SiderealInput {
+  "The ra field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  ra: RightAscensionInput
+  "The dec field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  dec: DeclinationInput
+  "The epoch field must be either specified or skipped altogether.  It cannot be unset with a null value."
+  epoch: EpochString
+  "The properMotion field may be unset by assigning a null value, or ignored by skipping it altogether"
+  properMotion: ProperMotionInput
+  "The radialVelocity field may be unset by assigning a null value, or ignored by skipping it altogether"
+  radialVelocity: RadialVelocityInput
+  "The parallax field may be unset by assigning a null value, or ignored by skipping it altogether"
+  parallax: ParallaxInput
+  "The catalogInfo field may be unset by assigning a null value, or ignored by skipping it altogether"
+  catalogInfo: CatalogInfoInput
+}
+"Telescope Sites"
+enum Site {
+  "Gemini North"
+  GN
+  "Gemini South"
+  GS
+}
+"TargetId id formatted as `t-[1-9a-f][0-9a-f]*`"
+scalar TargetId
+"Equivalent time amount in several unit options (e.g., 120 seconds or 2 minutes)"
+type TimeSpan {
+  "TimeSpan in µs"
+  microseconds: Long!
+  "TimeSpan in ms"
+  milliseconds: BigDecimal!
+  "TimeSpan in seconds"
+  seconds: BigDecimal!
+  "TimeSpan in minutes"
+  minutes: BigDecimal!
+  "TimeSpan in hours"
+  hours: BigDecimal!
+  "TimeSpan as an ISO-8601 string"
+  iso: String!
+}
+"Equivalent time amount in several unit options (exactly one must be specified)"
+input TimeSpanInput @oneOf {
+  "TimeSpan in µs"
+  microseconds: Long
+  "TimeSpan in ms"
+  milliseconds: BigDecimal
+  "TimeSpan in seconds"
+  seconds: BigDecimal
+  "TimeSpan in minutes"
+  minutes: BigDecimal
+  "TimeSpan in hours"
+  hours: BigDecimal
+  "TimeSpan as an ISO-8601 string"
+  iso: String
+}
+"Wavelength, choose one of the available units"
+input WavelengthInput @oneOf {
+  picometers: PosInt
+  angstroms: PosBigDecimal
+  nanometers: PosBigDecimal
+  micrometers: PosBigDecimal
+}
+"Target properties input"
+input TargetPropertiesInput {
+  id: TargetId!
+  name: NonEmptyString!
+  sidereal: SiderealInput
+  nonsidereal: NonsiderealInput
+  azel: AzElTargetInput
+  wavelength: WavelengthInput
+}
+input GuideTargetPropertiesInput {
+  name: NonEmptyString!
+  sidereal: SiderealInput
+  nonsidereal: NonsiderealInput
+}
+type Distance {
+  micrometers: Long!
+  millimeters: BigDecimal!
+  meters: BigDecimal!
+}
+input DistanceInput @oneOf {
+  micrometers: Long
+  millimeters: BigDecimal
+  meters: BigDecimal
+}
+input AzElTargetInput {
+  azimuth: AngleInput!
+  elevation: AngleInput!
+}
+type PointOrigin {
+  x: Angle!
+  y: Angle!
+}
+input PointOriginInput {
+  x: AngleInput!
+  y: AngleInput!
+}
+input InstrumentSpecificsInput {
+  iaa: AngleInput!
+  focusOffset: DistanceInput!
+  agName: String!
+  origin: PointOriginInput!
+}
+"Slew Options input"
+input SlewOptionsInput {
+  zeroChopThrow: Boolean!
+  zeroSourceOffset: Boolean!
+  zeroSourceDiffTrack: Boolean!
+  zeroMountOffset: Boolean!
+  zeroMountDiffTrack: Boolean!
+  shortcircuitTargetFilter: Boolean!
+  shortcircuitMountFilter: Boolean!
+  resetPointing: Boolean!
+  stopGuide: Boolean!
+  zeroGuideOffset: Boolean!
+  zeroInstrumentOffset: Boolean!
+  autoparkPwfs1: Boolean!
+  autoparkPwfs2: Boolean!
+  autoparkOiwfs: Boolean!
+  autoparkGems: Boolean!
+  autoparkAowfs: Boolean!
+}
+enum ParkStatus {
+  NOT_PARKED
+  PARKED
+}
+enum FollowStatus {
+  NOT_FOLLOWING
+  FOLLOWING
+}
+enum QlMode {
+  OFF
+  ON
+  AUTO
+}
+enum DomeMode {
+  BASIC
+  MIN_SCATTER
+  MIN_VIBRATION
+}
+enum ShutterControlMode {
+  FULLY_OPEN
+  TRACKING
+}
+type ShutterMode {
+  mode: ShutterControlMode!
+  aperture: Distance
+}
+input ShutterModeInput {
+  mode: ShutterControlMode!
+  aperture: DistanceInput
+}
+type MechSystemState {
+  parked: ParkStatus!
+  follow: FollowStatus!
+}
+type EnclosureState {
+  domeEnabled: Boolean!
+  "domeMode is not null if domeEnabled is true"
+  domeMode: DomeMode
+  shuttersEnabled: Boolean!
+  "shuttersMode is not null if shuttersEnabled is true"
+  shuttersMode: ShutterMode
+  eastVentGateAperture: IntPercent!
+  westVentGateAperture: IntPercent!
+}
+type TelescopeState {
+  mount: MechSystemState!
+  scs: MechSystemState!
+  crcs: MechSystemState!
+  pwfs1: MechSystemState!
+  pwfs2: MechSystemState!
+  oiwfs: MechSystemState!
+  enclosure: EnclosureState!
+}
+type NavigateState {
+  onSwappedTarget: Boolean!
+}
+input GuiderConfig {
+  target: GuideTargetPropertiesInput!
+  tracking: ProbeTrackingInput!
+}
+input TcsConfigInput {
+  sourceATarget: TargetPropertiesInput!
+  instParams: InstrumentSpecificsInput!
+  pwfs1: GuiderConfig
+  pwfs2: GuiderConfig
+  oiwfs: GuiderConfig
+  rotator: RotatorTrackingInput!
+  instrument: Instrument!
+  lightSinkVariant: LightSinkVariant
+  baffles: BaffleConfigInput
+}
+input SwapConfigInput {
+  guideTarget: TargetPropertiesInput!
+  acParams: InstrumentSpecificsInput!
+  rotator: RotatorTrackingInput!
+}
+enum RotatorTrackingMode {
+  TRACKING
+  FIXED
+}
+input RotatorTrackingInput {
+  ipa: AngleInput!
+  mode: RotatorTrackingMode!
+}
+input ProbeTrackingInput {
+  nodAchopA: Boolean!
+  nodAchopB: Boolean!
+  nodBchopA: Boolean!
+  nodBchopB: Boolean!
+}
+enum TipTiltSource {
+  PWFS1
+  PWFS2
+  OIWFS
+}
+enum M1CorrectionSource {
+  PWFS1
+  PWFS2
+  OIWFS
+}
+type GuideConfigurationState {
+  "M2 Tip-Tilt correction sources. An empty array means no corrections"
+  m2Inputs: [TipTiltSource!]
+  "M2 coma correction enabled. Only valid if m2Inputs and m1Input are defined"
+  m2Coma: Boolean
+  "M1 correction source. If it is not defined it means no M1 correction"
+  m1Input: M1CorrectionSource
+  "Tip-tilt offload to the mount enabled"
+  mountOffload: Boolean!
+  "Probe guide. If none is used, the attribute will not be present"
+  probeGuide: ProbeGuide
+  "Is PWFS1 integrating?"
+  p1Integrating: Boolean!
+  "Is PWFS2 integrating?"
+  p2Integrating: Boolean!
+  "Is OIWFS integrating?"
+  oiIntegrating: Boolean!
+  "Is the AC/HRWFS integrating?"
+  acIntegrating: Boolean!
+}
+input GuideConfigurationInput {
+  "M2 Tip-Tilt correction sources. An empty array means no corrections"
+  m2Inputs: [TipTiltSource!]
+  "M2 coma correction enabled. Only valid if m2Inputs and m1Input are defined"
+  m2Coma: Boolean
+  "M1 correction source. If it is not defined it means no M1 correction"
+  m1Input: M1CorrectionSource
+  "Tip-tilt offload to the mount enabled"
+  mountOffload: Boolean!
+  "Flag for day time tests. It sets all gains to 0"
+  daytimeMode: Boolean!
+  "Probe names to be used for guiding"
+  probeGuide: ProbeGuideInput
+}
+input ProbeGuideInput {
+  from: GuideProbe
+  to: GuideProbe
+}
+type ProbeGuide {
+  from: GuideProbe
+  to: GuideProbe
+}
+enum LogLevel {
+  ERROR
+  WARN
+  INFO
+  DEBUG
+  TRACE
+}
+type LogMessage {
+  timestamp: Timestamp!
+  level: LogLevel!
+  thread: String!
+  message: String!
+}
+enum OperationResult {
+  SUCCESS
+  FAILURE
+}
+type OperationOutcome {
+  result: OperationResult!
+  msg: String
+}
+type GuideQuality {
+  flux: Int!
+  centroidDetected: Boolean!
+}
+type GuidersQualityValues {
+  pwfs1: GuideQuality!
+  pwfs2: GuideQuality!
+  oiwfs: GuideQuality!
+}
+enum LightSource {
+  SKY
+  AO
+  GCAL
+}
+enum LightSinkVariant {
+  NIRI_F6
+  NIRI_F14
+  NIRI_F32
+  GMOS_IFU
+}
+enum AcquistionAdjustmentCommand {
+  " Request the user to confirm the adjustment "
+  ASK_USER
+  " User confirms to apply the adjustment "
+  USER_CONFIRMS
+  " User cancels the adjustment "
+  USER_CANCELS
+}
+input AcquisitionAdjustmentInput {
+  offset: OffsetInput!
+  ipa: AngleInput
+  iaa: AngleInput
+  command: AcquistionAdjustmentCommand! = ASK_USER
+}
+input LightPathInput {
+  from: LightSource!
+  instrument: Instrument!
+  lightSinkVariant: LightSinkVariant
+}
+input ConfigureStepInput {
+  " Offset to apply. Kept unchanged if not present. "
+  offset: OffsetInput
+  " Central wavelength to set. Kept unchanged if not present. "
+  wavelength: WavelengthInput
+  " Light path to configure. Kept unchanged if not present. "
+  lightPath: LightPathInput
+  " Instrument defocus, applied as the TCS focus offset B. Kept unchanged if not present. "
+  defocus: DistanceInput
+  " Guiding state to leave the telescope in once the step is configured. "
+  guiding: Boolean!
+}
+type AcquisitionAdjustmentState {
+  offset: Offset!
+  ipa: Angle
+  iaa: Angle
+  command: AcquistionAdjustmentCommand!
+}
+type HorizontalOffset {
+  azimuth: Angle!
+  elevation: Angle!
+}
+input HorizontalOffsetInput {
+  azimuth: AngleInput!
+  elevation: AngleInput!
+}
+input FocalPlaneOffsetInput {
+  deltaX: AngleInput!
+  deltaY: AngleInput!
+}
+type FocalPlaneOffset {
+  deltaX: Angle!
+  deltaY: Angle!
+}
+input EquatorialOffsetInput {
+  deltaRA: AngleInput!
+  deltaDec: AngleInput!
+}
+input ProbeFrameOffsetInput {
+  probeFrame: GuideProbe!
+  deltaU: AngleInput!
+  deltaV: AngleInput!
+  alignAngle: AngleInput
+}
+input HandsetAdjustmentInput @oneOf {
+  " Azimuth/Elevation coordinate system "
+  horizontalAdjustment: HorizontalOffsetInput
+  " Telescope focal plane coordinate system (X, Y)"
+  focalPlaneAdjustment: FocalPlaneOffsetInput
+  " Instrument coordinate system (P, Q) "
+  instrumentAdjustment: OffsetInput
+  " Right Ascension/Declination coordinate system "
+  equatorialAdjustment: EquatorialOffsetInput
+  " Offset applied in one of the probe's reference frame "
+  probeFrameAdjustment: ProbeFrameOffsetInput
+}
+type PointingCorrections {
+  local: HorizontalOffset!
+  guide: HorizontalOffset!
+}
+enum AdjustTarget {
+  SOURCE_A
+  PWFS1
+  PWFS2
+  OIWFS
+}
+type TargetOffsets {
+  sourceA: FocalPlaneOffset
+  pwfs1: FocalPlaneOffset
+  pwfs2: FocalPlaneOffset
+  oiwfs: FocalPlaneOffset
+}
+type ServerConfiguration {
+  version: String!
+  site: Site!
+  odbUri: String!
+  ssoUri: String!
+}
+enum AcLens {
+  AC
+  HRWFS
+}
+enum AcNdFilter {
+  OPEN
+  ND1
+  ND2
+  ND3
+  ND100
+  ND1000
+  FILT04
+  FILT06
+  FILT08
+}
+enum AcFilter {
+  NEUTRAL
+  U_RED1
+  B_BLUE
+  V_GREEN
+  R_RED2
+  I_RED3
+}
+enum AcWindowSize {
+  FULL
+  WINDOW_200X200
+  WINDOW_100X100
+}
+input AcWindowCenter {
+  x: Int
+  y: Int
+}
+input AcWindowInput {
+  type: AcWindowSize!
+  center: AcWindowCenter
+}
+type AcMechs {
+  lens: AcLens
+  filter: AcFilter
+  ndFilter: AcNdFilter
+}
+enum PwfsFilter {
+  NEUTRAL
+  BLUE
+  GREEN
+  RED
+  RED04
+  RED1
+}
+enum PwfsFieldStop {
+  PRISM
+  FS10
+  FS6_4
+  FS3_2
+  FS1_6
+  OPEN1
+  OPEN2
+  OPEN3
+  OPEN4
+}
+type PwfsMechsState {
+  filter: PwfsFilter
+  fieldStop: PwfsFieldStop
+}
+enum DeployableBaffle {
+  THERMAL_IR
+  NEAR_IR
+  VISIBLE
+  EXTENDED
+}
+enum CentralBaffle {
+  OPEN
+  CLOSED
+}
+input BaffleAutoInput {
+  visibleLimit: WavelengthInput!
+  nearirLimit: WavelengthInput!
+}
+input BaffleManualInput {
+  centralBaffle: CentralBaffle!
+  deployableBaffle: DeployableBaffle!
+}
+"One and only one of the configurations must be provided"
+input BaffleConfigInput @oneOf {
+  autoConfig: BaffleAutoInput
+  manualConfig: BaffleManualInput
+}
+type BafflesState {
+  centralBaffle: CentralBaffle!
+  deployableBaffle: DeployableBaffle!
+}
+type WfsConfigState {
+  exposureTime: TimeSpan!
+  saving: Boolean!
+}
+type Query {
+  telescopeState: TelescopeState!
+  guideState: GuideConfigurationState!
+  guidersQualityValues: GuidersQualityValues!
+  navigateState: NavigateState!
+  instrumentPort(instrument: Instrument!): Int
+  serverVersion: String
+  targetAdjustmentOffsets: TargetOffsets!
+  originAdjustmentOffset: FocalPlaneOffset!
+  pointingAdjustmentOffset: PointingCorrections!
+  serverConfiguration: ServerConfiguration!
+  acMechsState: AcMechs!
+  pwfs1MechsState: PwfsMechsState!
+  pwfs2MechsState: PwfsMechsState!
+  bafflesState: BafflesState
+  pwfs1ConfigState: WfsConfigState!
+  pwfs2ConfigState: WfsConfigState!
+  oiwfsConfigState: WfsConfigState!
+}
+type Mutation {
+  mountPark: OperationOutcome!
+  mountFollow(enable: Boolean!): OperationOutcome!
+  mountUnwrap: OperationOutcome!
+  rotatorPark: OperationOutcome!
+  rotatorFollow(enable: Boolean!): OperationOutcome!
+  scsFollow(enable: Boolean!): OperationOutcome!
+  slew(slewOptions: SlewOptionsInput!, config: TcsConfigInput!, obsId: ObservationId): OperationOutcome!
+  tcsConfig(config: TcsConfigInput!): OperationOutcome!
+  swapTarget(swapConfig: SwapConfigInput!): OperationOutcome!
+  restoreTarget(config: TcsConfigInput!): OperationOutcome!
+  instrumentSpecifics(instrumentSpecificsParams: InstrumentSpecificsInput!): OperationOutcome!
+  rotatorConfig(config: RotatorTrackingInput!): OperationOutcome!
+  rotatorUnwrap: OperationOutcome!
+  pwfs1Filter(filter: PwfsFilter): OperationOutcome!
+  pwfs1FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
+  pwfs1Target(target: TargetPropertiesInput!): OperationOutcome!
+  pwfs1ProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+  pwfs1Park: OperationOutcome!
+  pwfs1Follow(enable: Boolean!): OperationOutcome!
+  pwfs1Unwrap: OperationOutcome!
+  pwfs1Observe(period: TimeSpanInput!): OperationOutcome!
+  pwfs1StopObserve: OperationOutcome!
+  pwfs1CircularBuffer(enable: Boolean): OperationOutcome!
+  pwfs1QlMode(mode: QlMode): OperationOutcome!
+  pwfs2Filter(filter: PwfsFilter): OperationOutcome!
+  pwfs2FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
+  pwfs2Target(target: TargetPropertiesInput!): OperationOutcome!
+  pwfs2ProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+  pwfs2Park: OperationOutcome!
+  pwfs2Follow(enable: Boolean!): OperationOutcome!
+  pwfs2Unwrap: OperationOutcome!
+  pwfs2Observe(period: TimeSpanInput!): OperationOutcome!
+  pwfs2StopObserve: OperationOutcome!
+  pwfs2CircularBuffer(enable: Boolean): OperationOutcome!
+  pwfs2QlMode(mode: QlMode): OperationOutcome!
+  oiwfsTarget(target: TargetPropertiesInput!): OperationOutcome!
+  oiwfsProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+  oiwfsPark: OperationOutcome!
+  oiwfsFollow(enable: Boolean!): OperationOutcome!
+  oiwfsObserve(period: TimeSpanInput!): OperationOutcome!
+  oiwfsStopObserve: OperationOutcome!
+  oiwfsCircularBuffer(enable: Boolean): OperationOutcome!
+  oiwfsQlMode(mode: QlMode): OperationOutcome!
+  acObserve(period: TimeSpanInput!): OperationOutcome!
+  acStopObserve: OperationOutcome!
+  guideEnable(config: GuideConfigurationInput!): OperationOutcome!
+  guideDisable: OperationOutcome!
+  m1Park: OperationOutcome!
+  m1Unpark: OperationOutcome!
+  m1OpenLoopOff: OperationOutcome!
+  m1OpenLoopOn: OperationOutcome!
+  m1ZeroFigure: OperationOutcome!
+  m1LoadAoFigure: OperationOutcome!
+  m1LoadNonAoFigure: OperationOutcome!
+  lightpathConfig(from: LightSource, instrument: Instrument!, lightSinkVariant: LightSinkVariant): OperationOutcome!
+  acquisitionAdjustment(adjustment: AcquisitionAdjustmentInput!): OperationOutcome!
+  wfsSky(wfs: GuideProbe!, period: TimeSpanInput!): OperationOutcome!
+  adjustTarget(target: AdjustTarget!, offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
+  adjustPointing(offset: HandsetAdjustmentInput!): OperationOutcome!
+  adjustOrigin(offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
+  offset(offset: OffsetInput!, guiding: Boolean!): OperationOutcome!
+  centralWavelength(wavelength: WavelengthInput!): OperationOutcome!
+  configureStep(config: ConfigureStepInput!): OperationOutcome!
+  resetTargetAdjustment(target: AdjustTarget!, openLoops: Boolean!): OperationOutcome!
+  absorbTargetAdjustment(target: AdjustTarget!): OperationOutcome!
+  resetLocalPointingAdjustment: OperationOutcome!
+  resetGuidePointingAdjustment: OperationOutcome!
+  absorbGuidePointingAdjustment: OperationOutcome!
+  resetOriginAdjustment(openLoops: Boolean!): OperationOutcome!
+  absorbOriginAdjustment: OperationOutcome!
+  acLens(lens: AcLens!): OperationOutcome!
+  acNdFilter(ndFilter: AcNdFilter!): OperationOutcome!
+  acFilter(filter: AcFilter!): OperationOutcome!
+  acWindowSize(size: AcWindowInput!): OperationOutcome!
+  refreshEphemerisFiles(observingNight: Date): OperationOutcome!
+  " AG Commands "
+  agScienceFoldPark: OperationOutcome!
+  agPickoffMirrorPark: OperationOutcome!
+  agAoFoldPark: OperationOutcome!
+  agAllPark: OperationOutcome!
+  " ECS commands "
+  ecsEnableDome(mode: DomeMode!): OperationOutcome!
+  ecsDisableDome: OperationOutcome!
+  ecsDomePark: OperationOutcome!
+  ecsEnableShutters(mode: ShutterModeInput!): OperationOutcome!
+  ecsDisableShutters: OperationOutcome!
+  ecsShuttersPark: OperationOutcome!
+  ecsMoveEastVentGate(position: IntPercent!): OperationOutcome!
+  ecsCloseEastVentGate: OperationOutcome!
+  ecsMoveWestVentGate(position: IntPercent!): OperationOutcome!
+  ecsCloseWestVentGate: OperationOutcome!
+}
+type Subscription {
+  logMessage: LogMessage!
+  guideState: GuideConfigurationState!
+  guidersQualityValues: GuidersQualityValues!
+  telescopeState: TelescopeState!
+  navigateState: NavigateState!
+  acquisitionAdjustmentState: AcquisitionAdjustmentState!
+  targetAdjustmentOffsets: TargetOffsets!
+  originAdjustmentOffset: FocalPlaneOffset!
+  pointingAdjustmentOffset: PointingCorrections!
+  acMechsState: AcMechs!
+  pwfs1MechsState: PwfsMechsState!
+  pwfs2MechsState: PwfsMechsState!
+  pwfs1ConfigState: WfsConfigState!
+  pwfs2ConfigState: WfsConfigState!
+  oiwfsConfigState: WfsConfigState!
+}

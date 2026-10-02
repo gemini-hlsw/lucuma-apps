@@ -39,6 +39,8 @@ import lucuma.core.util.TimeSpan
 import lucuma.odb.graphql.binding.*
 import lucuma.odb.graphql.schema.SchemaStitcher
 import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
+import lucuma.schemas.model.navigate.LightSinkVariant
+import lucuma.schemas.model.navigate.LightSource
 import mouse.boolean.given
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
@@ -51,6 +53,7 @@ import navigate.model.AutoparkPwfs2
 import navigate.model.BafflesConfig
 import navigate.model.BafflesState
 import navigate.model.CommandResult
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
@@ -95,8 +98,6 @@ import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSink
-import navigate.model.enums.LightSinkVariant
-import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode
@@ -502,9 +503,10 @@ class NavigateMappings[F[_]: Sync](
     offset     <- env.get[Option[Offset]]("offset")
     wavelength <- env.get[Option[Wavelength]]("wavelength")
     lightPath  <- env.get[Option[LightPath]]("lightPath")
+    defocus    <- env.get[Option[Distance]]("defocus")
     guiding    <- env.get[Boolean]("guiding")
   } yield server
-    .configureStep(offset, wavelength, lightPath, guiding)
+    .configureStep(offset, wavelength, lightPath, defocus, guiding)
     .attempt
     .map(convertResult)).getOrElse(
     Result.failure[OperationOutcome]("ConfigureStep parameters could not be parsed.").pure[F]
@@ -1028,16 +1030,17 @@ class NavigateMappings[F[_]: Sync](
       } yield ()
     case (MutationType, "configureStep", List(Binding("config", ObjectValue(config))))            =>
       for {
-        parsed                                  <- Elab.liftR(
-                                                     parseConfigureStepInput(config).toResult(
-                                                       "Could not parse configureStep parameter \"config\""
-                                                     )
-                                                   )
-        (offset, wavelength, lightPath, guiding) = parsed
-        _                                       <- Elab.env("offset", offset)
-        _                                       <- Elab.env("wavelength", wavelength)
-        _                                       <- Elab.env("lightPath", lightPath)
-        _                                       <- Elab.env("guiding", guiding)
+        parsed                                           <- Elab.liftR(
+                                                              parseConfigureStepInput(config).toResult(
+                                                                "Could not parse configureStep parameter \"config\""
+                                                              )
+                                                            )
+        (offset, wavelength, lightPath, defocus, guiding) = parsed
+        _                                                <- Elab.env("offset", offset)
+        _                                                <- Elab.env("wavelength", wavelength)
+        _                                                <- Elab.env("lightPath", lightPath)
+        _                                                <- Elab.env("defocus", defocus)
+        _                                                <- Elab.env("guiding", guiding)
       } yield ()
     case (MutationType,
           "resetOriginAdjustment",
@@ -1550,13 +1553,15 @@ class NavigateMappings[F[_]: Sync](
 
 object NavigateMappings extends GrackleParsers {
 
+  def loadSchema[F[_]: {Sync, Logger}]: F[Schema] =
+    SchemaStitcher.load("navigate.graphql")
+
   def apply[F[_]: {Sync, Logger}](
     config: NavigateConfiguration,
     server: NavigateEngine[F],
     topics: TopicManager[F]
   ): F[NavigateMappings[F]] =
-    SchemaStitcher
-      .load("navigate.graphql")
+    loadSchema[F]
       .map(
         new NavigateMappings[F](
           config,
@@ -1863,7 +1868,7 @@ object NavigateMappings extends GrackleParsers {
 
   def parseConfigureStepInput(
     l: List[(String, Value)]
-  ): Option[(Option[Offset], Option[Wavelength], Option[LightPath], Boolean)] =
+  ): Option[(Option[Offset], Option[Wavelength], Option[LightPath], Option[Distance], Boolean)] =
     for {
       offset     <- l.collectFirst { case ("offset", ObjectValue(v)) => parseOffset(v) } match {
                       case Some(None) => None
@@ -1884,8 +1889,13 @@ object NavigateMappings extends GrackleParsers {
                       case None       => Some(None)
                       case x          => x
                     }
+      defocus    <- l.collectFirst { case ("defocus", ObjectValue(v)) => parseDistance(v) } match {
+                      case Some(None) => None
+                      case None       => Some(None)
+                      case x          => x
+                    }
       guiding    <- l.collectFirst { case ("guiding", BooleanValue(v)) => v }
-    } yield (offset, wavelength, lightPath, guiding)
+    } yield (offset, wavelength, lightPath, defocus, guiding)
 
   def parseHandsetAdjustment(l: List[(String, Value)]): Option[HandsetAdjustment] =
     l.find(_._2 != Value.AbsentValue) match {
