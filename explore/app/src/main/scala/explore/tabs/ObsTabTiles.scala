@@ -554,11 +554,13 @@ object ObsTabTiles:
         val notesTile = NotesTile(notesView, hidden = hideTiles)
 
         val observationDetailsTile =
-          ObservationDetailsTile(props.observation,
-                                 props.programType,
-                                 props.programSummaries.allocatedScienceBands,
-                                 props.timeCharges.get,
-                                 props.obsIsReadonly
+          ObservationDetailsTile(
+            props.observation,
+            props.programType,
+            props.programSummaries.allocatedScienceBands,
+            props.vault.map(_.user.id),
+            props.timeCharges.get,
+            props.obsIsReadonly
           )
 
         val sequenceTile =

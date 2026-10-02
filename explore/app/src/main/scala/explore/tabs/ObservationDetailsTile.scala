@@ -21,6 +21,7 @@ import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
+import lucuma.core.model.User
 import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -41,6 +42,7 @@ final case class ObservationDetailsTile(
   observation:           UndoSetter[Observation],
   programType:           ProgramType,
   allocatedScienceBands: SortedSet[ScienceBand],
+  userId:                Option[User.Id],
   timeCharges:           Option[List[VisitTimeCharge]],
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
@@ -195,6 +197,6 @@ object ObservationDetailsTile
               tooActivationSelector.unless(props.observation.get.isCalibration)
             ),
             estimatedDuration,
-            TimeChargesTable(props.timeCharges)
+            TimeChargesTable(props.userId, props.timeCharges)
           )
     )
