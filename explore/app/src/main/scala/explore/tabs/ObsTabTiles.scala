@@ -42,7 +42,6 @@ import explore.plots.ElevationPlotTile
 import explore.plots.ObjectPlotData
 import explore.plots.PlotData
 import explore.schedulingWindows.*
-import explore.services.OdbVisitApi
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targeteditor.UseAgs.useAgs
@@ -117,7 +116,6 @@ case class ObsTabTiles(
   focusedTarget:    Option[Target.Id],
   searching:        View[Set[Target.Id]],
   selectedGSName:   View[Option[NonEmptyString]],
-  timeCharges:      View[Option[List[VisitTimeCharge]]],
   resize:           UseResizeDetectorReturn,
   userPreferences:  View[UserPreferences],
   readonly:         Boolean
@@ -282,14 +280,6 @@ object ObsTabTiles:
       case _                                        =>
         result(GridLayoutSection.ObservationsLayout)
 
-  private def fetchTimeCharges(
-    obsId:       Observation.Id,
-    timeCharges: View[Option[List[VisitTimeCharge]]]
-  )(using odbApi: OdbVisitApi[IO]): IO[Unit] =
-    odbApi
-      .observationTimeCharges(obsId)
-      .flatMap(charges => timeCharges.set(charges.some).toAsync)
-
   private val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -379,9 +369,9 @@ object ObsTabTiles:
                                         guideStarSelection.set(
                                           name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
                                         )).toAsync
-        _                    <- useEffectWithDeps(props.obsId): obsId =>
+        timeCharges          <- useEffectKeepResultWithDeps(props.obsId): obsId =>
                                   import ctx.given
-                                  fetchTimeCharges(obsId, props.timeCharges)
+                                  odbApi.observationTimeCharges(obsId)
         // The mask design is only stored on the attachment, fetched on demand for MOS obs.
         maskDesignPot        <-
           useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
@@ -550,8 +540,9 @@ object ObsTabTiles:
             props.programType,
             props.programSummaries.allocatedScienceBands,
             props.vault.map(_.user.id),
-            props.timeCharges.get,
-            fetchTimeCharges(props.obsId, props.timeCharges),
+            timeCharges.value.toOption,
+            timeCharges.isRunning,
+            timeCharges.refresh,
             props.obsIsReadonly
           )
 

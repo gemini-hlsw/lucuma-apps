@@ -3,9 +3,7 @@
 
 package explore.tabs
 
-import cats.effect.IO
 import cats.syntax.all.*
-import crystal.react.*
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ui.ExploreStyles
@@ -37,9 +35,10 @@ import lucuma.ui.table.hooks.*
 import java.time.ZoneOffset
 
 case class TimeChargesTable(
-  userId:  Option[User.Id],
-  visits:  Option[List[VisitTimeCharge]],
-  refresh: IO[Unit]
+  userId:     Option[User.Id],
+  visits:     Option[List[VisitTimeCharge]],
+  refreshing: Boolean,
+  refresh:    Callback
 ) extends ReactFnProps(TimeChargesTable.component)
 
 object TimeChargesTable:
@@ -134,7 +133,6 @@ object TimeChargesTable:
   private val component = ScalaFnComponent[TimeChargesTable]: props =>
     for
       ctx        <- useContext(AppContext.ctx)
-      refreshing <- useState(false)
       charges    <- useMemo(props.visits)(_.map(TimeCharges.fromVisits))
       sorting    <- useState(DefaultSorting)
       lines      <- useMemo((charges.value, sorting.value)):
@@ -201,13 +199,10 @@ object TimeChargesTable:
             severity = Button.Severity.Secondary,
             icon = Icons.ArrowsRotate,
             tooltip = "Refresh the time charges",
-            loading = refreshing.value,
-            disabled = refreshing.value,
+            loading = props.refreshing,
+            disabled = props.refreshing,
             rounded = true,
-            onClick =
-              import ctx.given
-              (refreshing.setStateAsync(true) >>
-                props.refresh.guarantee(refreshing.setStateAsync(false))).runAsync
+            onClick = props.refresh
           ).mini.compact
         ),
         body
