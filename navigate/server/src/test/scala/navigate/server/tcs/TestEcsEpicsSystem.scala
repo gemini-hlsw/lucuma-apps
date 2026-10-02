@@ -11,9 +11,12 @@ import navigate.epics.TestChannel
 
 object TestEcsEpicsSystem {
   case class State(
-    telltale:        TestChannel.State[Int],
-    eastVentGatePos: TestChannel.State[Double],
-    westVentGatePos: TestChannel.State[Double]
+    telltale:          TestChannel.State[Int],
+    eastVentGatePos:   TestChannel.State[Double],
+    westVentGatePos:   TestChannel.State[Double],
+    closeShutters:     TestChannel.State[Int] = TestChannel.State.default,
+    closeEastVentGate: TestChannel.State[Int] = TestChannel.State.default,
+    closeWestVentGate: TestChannel.State[Int] = TestChannel.State.default
   )
 
   val defaultState: State = State(
@@ -28,7 +31,10 @@ object TestEcsEpicsSystem {
     telltale =
       TelltaleChannel[F]("ECS", new TestChannel[F, State, Int](s, Focus[State](_.telltale))),
     eastVentGateAperture = new TestChannel[F, State, Double](s, Focus[State](_.eastVentGatePos)),
-    westVentGateAperture = new TestChannel[F, State, Double](s, Focus[State](_.westVentGatePos))
+    westVentGateAperture = new TestChannel[F, State, Double](s, Focus[State](_.westVentGatePos)),
+    closeShutters = new TestChannel[F, State, Int](s, Focus[State](_.closeShutters)),
+    closeEastVentGate = new TestChannel[F, State, Int](s, Focus[State](_.closeEastVentGate)),
+    closeWestVentGate = new TestChannel[F, State, Int](s, Focus[State](_.closeWestVentGate))
   )
 
   def build[F[_]: Temporal](

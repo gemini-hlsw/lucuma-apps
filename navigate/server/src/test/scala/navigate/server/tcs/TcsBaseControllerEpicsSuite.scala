@@ -3135,18 +3135,53 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       r1        <- st.tcs.get
       _         <- ctr.ecsCloseEastVentGate
       r2        <- st.tcs.get
+      e2        <- st.ecs.get
       _         <- ctr.ecsMoveWestVentGate(IntPercent.unsafeFrom((westVentPos * 100.0).toInt))
       r3        <- st.tcs.get
       _         <- ctr.ecsCloseWestVentGate
       r4        <- st.tcs.get
+      e4        <- st.ecs.get
     } yield {
       assert(r1.enclosure.ecsVentGateEast.connected)
       assertEquals(r1.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), eastVentPos.some)
       assertEquals(r1.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), 0.0.some)
       assertEquals(r2.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), 0.0.some)
+      assertEquals(r2.enclosure.ecsVentGatesDir.value, CadDirective.CLEAR.some)
+      assert(e2.closeEastVentGate.connected)
+      assertEquals(e2.closeEastVentGate.value, 1.some)
+      assertEquals(e2.closeWestVentGate.value, none)
       assert(r3.enclosure.ecsVentGateWest.connected)
       assertEquals(r3.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), westVentPos.some)
       assertEquals(r4.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), 0.0.some)
+      assertEquals(r4.enclosure.ecsVentGatesDir.value, CadDirective.CLEAR.some)
+      assert(e4.closeWestVentGate.connected)
+      assertEquals(e4.closeWestVentGate.value, 1.some)
+    }
+  }
+
+  test("Park shutters disables tracking and closes them") {
+    for {
+      (st, ctr) <- createController()
+      _         <- st.tcs.update(
+                     _.focus(_.enclosureState).replace(
+                       EnclosureStateChannelsState(
+                         TestChannel.State.of(""),
+                         TestChannel.State.of(""),
+                         TestChannel.State.of(""),
+                         TestChannel.State.of(1),
+                         TestChannel.State.of(1)
+                       )
+                     )
+                   )
+      _         <- ctr.ecsShuttersPark
+      r1        <- st.tcs.get
+      e1        <- st.ecs.get
+    } yield {
+      assertEquals(r1.enclosure.ecsShutterEnable.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+                   BinaryOnOff.Off.some
+      )
+      assert(e1.closeShutters.connected)
+      assertEquals(e1.closeShutters.value, 1.some)
     }
   }
 

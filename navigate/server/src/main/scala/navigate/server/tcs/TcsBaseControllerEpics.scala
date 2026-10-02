@@ -2833,13 +2833,16 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     partialDomeModeCmd(timeout = domeDisableTimeout, domeEnabled = false.some)
 
   protected val domeParkPosition: Angle
-  private val domeParkTimeout                     = FiniteDuration(60, SECONDS)
-  override def ecsDomePark: F[ApplyCommandResult] = sys.tcsEpics
+  private val domeParkTimeout                       = FiniteDuration(60, SECONDS)
+  private def moveDomeToPark: F[ApplyCommandResult] = sys.tcsEpics
     .startCommand(domeParkTimeout)
     .ecsCarouselMoveCmd
     .setAngle(domeParkPosition)
     .post
     .verifiedRun(ConnectionTimeout)
+
+  // Dome tracking must be disabled before the dome can be parked
+  override def ecsDomePark: F[ApplyCommandResult] = ecsDisableDome *> moveDomeToPark
 
   private val shutterModeTimeout                                           = FiniteDuration(60, SECONDS)
   override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] = partialDomeModeCmd(
@@ -2852,16 +2855,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   override def ecsDisableShutters: F[ApplyCommandResult] =
     partialDomeModeCmd(timeout = shutterDisableTimeout, shutterEnabled = false.some)
 
-  private val shutterParkPosition                     = Distance.fromBigDecimalMeters(11)
-  private val shutterParkTimeout                      = FiniteDuration(60, SECONDS)
-  override def ecsShuttersPark: F[ApplyCommandResult] = sys.tcsEpics
-    .startCommand(shutterParkTimeout)
-    .ecsShuttersMoveCmd
-    .setBottom(shutterParkPosition)
-    .ecsShuttersMoveCmd
-    .setTop(shutterParkPosition)
-    .post
-    .verifiedRun(ConnectionTimeout)
+  private def closeShutters: F[ApplyCommandResult] =
+    sys.ecs.commands.closeShutters.verifiedRun(ConnectionTimeout).as(ApplyCommandResult.Completed)
+
+  // Shutters tracking must be disabled before the shutters can be parked
+  override def ecsShuttersPark: F[ApplyCommandResult] = ecsDisableShutters *> closeShutters
 
   // Both ventilation gates are controlled from the same CAD. Even if only one is changed, it is necesary that all inputs have valid values, otherwise the command fails.
   private def partialVentGateCmd(
@@ -2895,13 +2893,19 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     partialVentGateCmd(ventGateTimeout, eastVentGatePos = position.some)
 
   override def ecsCloseEastVentGate: F[ApplyCommandResult] =
-    partialVentGateCmd(ventGateTimeout, eastVentGatePos = EcsEpicsSystem.ventGateClosePos.some)
+    sys.tcsEpics.resetEastVentGateInput.verifiedRun(ConnectionTimeout) *>
+      sys.ecs.commands.closeEastVentGate
+        .verifiedRun(ConnectionTimeout)
+        .as(ApplyCommandResult.Completed)
 
   override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] =
     partialVentGateCmd(ventGateTimeout, westVentGatePos = position.some)
 
   override def ecsCloseWestVentGate: F[ApplyCommandResult] =
-    partialVentGateCmd(ventGateTimeout, westVentGatePos = EcsEpicsSystem.ventGateClosePos.some)
+    sys.tcsEpics.resetWestVentGateInput.verifiedRun(ConnectionTimeout) *>
+      sys.ecs.commands.closeWestVentGate
+        .verifiedRun(ConnectionTimeout)
+        .as(ApplyCommandResult.Completed)
 
   private val azUnwrapTimeout                       = FiniteDuration(60, SECONDS)
   override def azimuthUnwrap: F[ApplyCommandResult] =
