@@ -4,6 +4,7 @@
 package explore.targets
 
 import cats.syntax.all.*
+import explore.components.StickyColumns
 import explore.components.ui.ExploreStyles
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
@@ -36,11 +37,13 @@ object TargetSelectionTable:
 
   private val SelectColumnId: ColumnId = ColumnId("select")
 
-  private val columnClasses: Map[ColumnId, Css] = Map(
-    SelectColumnId             -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummarySelect),
-    TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
-    TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
-    TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
+  private val stickyColumns: StickyColumns = StickyColumns(
+    Map(
+      SelectColumnId             -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummarySelect),
+      TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
+      TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
+      TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
+    )
   )
 
   private val component = ScalaFnComponent
@@ -49,8 +52,7 @@ object TargetSelectionTable:
     .useMemoBy(_ => ()) { props => _ =>
       List(
         // The width below must stay in step with `.explore-target-summary-select .p-button` in
-        // explore.scss, and with the sticky `left` offsets of the columns that follow it. It has
-        // to fit the longest label any caller uses, which is "Resolve".
+        // explore.scss. It has to fit the longest label any caller uses, which is "Resolve".
         ColDef(
           SelectColumnId,
           target => target,
@@ -100,13 +102,16 @@ object TargetSelectionTable:
         compact = Compact.Very,
         tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable,
         headerCellMod = headerCell =>
-          columnClasses.get(headerCell.column.id).orEmpty |+| ExploreStyles.StickyHeader,
+          TagMod(
+            ExploreStyles.StickyHeader,
+            stickyColumns.mod(headerCell.column)
+          ),
         rowMod = rowTagMod: row =>
           TagMod(
             ExploreStyles.TableRowSelected.when_(props.selectedIndex.contains_(row.index)),
             ^.cursor.pointer,
             ^.onClick --> props.onClick(row.original, row.index)
           ),
-        cellMod = cellTagMod(cell => columnClasses.get(cell.column.id).orEmpty)
+        cellMod = cellTagMod(cell => stickyColumns.mod(cell.column))
       )
     )

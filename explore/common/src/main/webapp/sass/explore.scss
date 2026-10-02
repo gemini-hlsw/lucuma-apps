@@ -4427,31 +4427,9 @@ div.spectroscopy-table-emptymessage {
 // -----
 // Target tables sticky columns
 // ------
+// The sticky offsets are set inline by StickyColumns, from the column sizes.
 .pl-react-table .p-datatable-tbody {
-  .explore-target-summary-delete {
-    left: 0;
-
-    ~ .explore-target-summary-icon {
-      left: 35px;
-
-      ~ .explore-target-summary-type {
-        left: 70px;
-
-        ~ .explore-target-summary-name {
-          left: 170px;
-        }
-      }
-
-      // The type column can be hidden, in which case name follows the icon.
-      ~ .explore-target-summary-name {
-        left: 70px;
-      }
-    }
-  }
-
   .explore-target-summary-select {
-    left: 0;
-
     // Wide enough for the longest label the popup uses ("Resolve") alongside its icon; the
     // matching column width lives in TargetSelectionTable's SelectColumnId.
     .p-button {
@@ -4459,50 +4437,6 @@ div.spectroscopy-table-emptymessage {
       display: flex;
       justify-content: space-evenly;
     }
-
-    ~ .explore-target-summary-icon {
-      left: 105px;
-
-      ~ .explore-target-summary-type {
-        left: 140px;
-
-        ~ .explore-target-summary-name {
-          left: 240px;
-        }
-      }
-
-      ~ .explore-target-summary-name {
-        left: 140px;
-      }
-    }
-  }
-
-  .explore-target-summary-id {
-    left: 0;
-    width: 55px;
-    min-width: 55px;
-
-    ~ .explore-target-summary-icon {
-      left: 55px;
-
-      ~ .explore-target-summary-type {
-        left: 90px;
-
-        ~ .explore-target-summary-name {
-          left: 190px;
-        }
-      }
-
-      ~ .explore-target-summary-name {
-        left: 90px;
-      }
-    }
-  }
-
-  .explore-target-summary-icon,
-  .explore-target-summary-type,
-  .explore-constraints-summary-edit {
-    left: 0;
   }
 }
 
