@@ -369,6 +369,9 @@ object ObsTabTiles:
                                         guideStarSelection.set(
                                           name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
                                         )).toAsync
+        timeCharges          <- useEffectKeepResultWithDeps(props.obsId): obsId =>
+                                  import ctx.given
+                                  odbApi.observationTimeCharges(obsId)
         // The mask design is only stored on the attachment, fetched on demand for MOS obs.
         maskDesignPot        <-
           useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
@@ -532,10 +535,15 @@ object ObsTabTiles:
         val notesTile = NotesTile(notesView, hidden = hideTiles)
 
         val observationDetailsTile =
-          ObservationDetailsTile(props.observation,
-                                 props.programType,
-                                 props.programSummaries.allocatedScienceBands,
-                                 props.obsIsReadonly
+          ObservationDetailsTile(
+            props.observation,
+            props.programType,
+            props.programSummaries.allocatedScienceBands,
+            props.vault.map(_.user.id),
+            timeCharges.value.toOption,
+            timeCharges.isRunning,
+            timeCharges.refresh,
+            props.obsIsReadonly
           )
 
         val sequenceTile =

@@ -8,6 +8,7 @@ import cats.effect.Sync
 import cats.syntax.all.*
 import clue.StreamingClient
 import clue.syntax.*
+import explore.model.VisitTimeCharge
 import lucuma.core.enums.StepStage
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
@@ -22,6 +23,12 @@ trait OdbVisitApiImpl[F[_]: Sync](using StreamingClient[F, ObservationDB]) exten
       .query(obsId)
       .raiseGraphQLErrors
       .map(_.observation.flatMap(_.execution))
+
+  def observationTimeCharges(obsId: Observation.Id): F[List[VisitTimeCharge]] =
+    ObservationTimeChargesQuery[F]
+      .query(obsId)
+      .raiseGraphQLErrors
+      .map(_.observation.foldMap(_.execution.visits.matches))
 
   def stepEventSubscription(
     obsId: Observation.Id

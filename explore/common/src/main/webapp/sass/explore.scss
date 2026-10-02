@@ -4616,12 +4616,45 @@ a.explore-upgrade-link {
     }
   }
 
+  .time-charges-section {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+
+    .observation-details-section {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+  }
+
   @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
     flex-flow: row wrap;
 
     .observation-details-column {
       flex: 1;
     }
+  }
+}
+
+.pl-react-table.time-charges-table {
+  th,
+  td {
+    text-align: left;
+
+    &:last-child {
+      text-align: right;
+    }
+  }
+
+  // Correction descriptions span two columns and may wrap.
+  td:not([colspan]) {
+    white-space: nowrap;
+  }
+
+  tfoot td {
+    font-weight: bold;
   }
 }
 

@@ -12,6 +12,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ObsTabTileIds
 import explore.model.Observation
+import explore.model.VisitTimeCharge
 import explore.model.display.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
@@ -20,6 +21,7 @@ import lucuma.core.enums.ObservationPriority
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
+import lucuma.core.model.User
 import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -40,6 +42,10 @@ final case class ObservationDetailsTile(
   observation:           UndoSetter[Observation],
   programType:           ProgramType,
   allocatedScienceBands: SortedSet[ScienceBand],
+  userId:                Option[User.Id],
+  timeCharges:           Option[List[VisitTimeCharge]],
+  refreshingCharges:     Boolean,
+  refreshTimeCharges:    Callback,
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
       ObsTabTileIds.DetailsId.id,
@@ -192,6 +198,11 @@ object ObservationDetailsTile
               prioritySelector,
               tooActivationSelector.unless(props.observation.get.isCalibration)
             ),
-            estimatedDuration
+            estimatedDuration,
+            TimeChargesTable(props.userId,
+                             props.timeCharges,
+                             props.refreshingCharges,
+                             props.refreshTimeCharges
+            )
           )
     )

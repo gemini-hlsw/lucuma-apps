@@ -194,6 +194,20 @@ object ObsQueriesGQL:
     """
 
   @GraphQL
+  trait ObservationTimeChargesQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          execution {
+            visits {
+              matches $VisitTimeChargeSubquery
+            }
+          }
+        }
+      }
+    """
+
+  @GraphQL
   trait SetBlindOffsetMutation extends GraphQLOperation[ObservationDB]:
     val document = gql"""
       mutation(

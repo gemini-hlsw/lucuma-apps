@@ -245,6 +245,25 @@ calibrations scheduled as separate observations, Tellurics above all, so it is n
 whole cost of getting the data.
 _Avoid_: full duration, total programme time
 
+### Time charges
+
+**Visit**:
+One continuous stint of executing an observation at the telescope. An observation may have
+many, and each is billed on its own.
+
+**Night Time**:
+The part of a Visit that falls between evening and morning nautical twilight. It is the only
+time the program can be billed for.
+
+**Daylight Discount**:
+The part of a Visit outside nautical twilight. It is never charged, so it is left out of
+what a PI is shown about charges rather than listed as a deduction.
+
+**Time Charge**:
+What the program is billed for a Visit: its Night Time less any other discounts, adjusted by
+staff corrections. It counts program time only, not the time the observatory absorbs.
+_Avoid_: time change, used time
+
 ### Telluric calibrations
 
 **Telluric Type**:

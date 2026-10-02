@@ -21,3 +21,4 @@ enum TableId(val tag: String) derives Enumerated:
   case ImagingModes           extends TableId("imaging_modes")
   case ProgramsSelector       extends TableId("programs_selector")
   case ArchiveDuplication     extends TableId("archive_duplication")
+  case TimeCharges            extends TableId("time_charges")
