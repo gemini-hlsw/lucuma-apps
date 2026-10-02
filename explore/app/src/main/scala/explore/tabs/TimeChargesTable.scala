@@ -125,7 +125,10 @@ object TimeChargesTable:
           case Some(TimeCharges.Rows(_))       =>
             PrimeTable(
               table,
-              tableMod = ExploreStyles.TimeChargesTable,
+              striped = true,
+              compact = Compact.Very,
+              hoverableRows = false,
+              tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.TimeChargesTable,
               // A correction's description runs across the start and end columns.
               cellMod = (cell, _, render) =>
                 cell.row.original match

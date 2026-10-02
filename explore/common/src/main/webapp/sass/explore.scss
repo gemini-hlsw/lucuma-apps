@@ -4633,11 +4633,8 @@ a.explore-upgrade-link {
 }
 
 .pl-react-table.time-charges-table {
-  border-collapse: collapse;
-
   th,
   td {
-    padding: 0.25em 0.5em;
     text-align: left;
 
     &:last-child {
