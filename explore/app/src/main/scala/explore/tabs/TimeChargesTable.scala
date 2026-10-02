@@ -3,7 +3,10 @@
 
 package explore.tabs
 
+import cats.effect.IO
 import cats.syntax.all.*
+import crystal.react.*
+import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
@@ -20,8 +23,10 @@ import lucuma.core.model.sequence.TimeChargeCorrection
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Button
 import lucuma.react.primereact.Divider
 import lucuma.react.table.*
+import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
@@ -29,8 +34,11 @@ import lucuma.ui.table.hooks.*
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-case class TimeChargesTable(userId: Option[User.Id], visits: Option[List[VisitTimeCharge]])
-    extends ReactFnProps(TimeChargesTable.component)
+case class TimeChargesTable(
+  userId:  Option[User.Id],
+  visits:  Option[List[VisitTimeCharge]],
+  refresh: IO[Unit]
+) extends ReactFnProps(TimeChargesTable.component)
 
 object TimeChargesTable:
   private given Reusability[List[VisitTimeCharge]] = Reusability.byEq
@@ -131,6 +139,7 @@ object TimeChargesTable:
   private val component = ScalaFnComponent[TimeChargesTable]: props =>
     for
       ctx        <- useContext(AppContext.ctx)
+      refreshing <- useState(false)
       charges    <- useMemo(props.visits)(_.map(TimeCharges.fromVisits))
       sorting    <- useState(DefaultSorting)
       lines      <- useMemo((charges.value, sorting.value)):
@@ -191,6 +200,20 @@ object TimeChargesTable:
 
       <.div(ExploreStyles.TimeChargesSection)(
         Divider(),
-        <.div(ExploreStyles.ObservationDetailsSection)("Time Charges"),
+        <.div(ExploreStyles.ObservationDetailsSection)(
+          "Time Charges",
+          Button(
+            severity = Button.Severity.Secondary,
+            icon = Icons.ArrowsRotate,
+            tooltip = "Refresh the time charges",
+            loading = refreshing.value,
+            disabled = refreshing.value,
+            rounded = true,
+            onClick =
+              import ctx.given
+              (refreshing.setStateAsync(true) >>
+                props.refresh.guarantee(refreshing.setStateAsync(false))).runAsync
+          ).mini.compact
+        ),
         body
       )

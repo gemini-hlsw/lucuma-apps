@@ -3,6 +3,7 @@
 
 package explore.tabs
 
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.*
@@ -44,6 +45,7 @@ final case class ObservationDetailsTile(
   allocatedScienceBands: SortedSet[ScienceBand],
   userId:                Option[User.Id],
   timeCharges:           Option[List[VisitTimeCharge]],
+  refreshTimeCharges:    IO[Unit],
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
       ObsTabTileIds.DetailsId.id,
@@ -197,6 +199,6 @@ object ObservationDetailsTile
               tooActivationSelector.unless(props.observation.get.isCalibration)
             ),
             estimatedDuration,
-            TimeChargesTable(props.userId, props.timeCharges)
+            TimeChargesTable(props.userId, props.timeCharges, props.refreshTimeCharges)
           )
     )

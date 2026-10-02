@@ -4621,6 +4621,12 @@ a.explore-upgrade-link {
     display: flex;
     flex-direction: column;
     gap: 0.25em;
+
+    .observation-details-section {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
   }
 
   @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {

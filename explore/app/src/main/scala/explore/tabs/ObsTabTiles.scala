@@ -42,6 +42,7 @@ import explore.plots.ElevationPlotTile
 import explore.plots.ObjectPlotData
 import explore.plots.PlotData
 import explore.schedulingWindows.*
+import explore.services.OdbVisitApi
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targeteditor.UseAgs.useAgs
@@ -102,7 +103,6 @@ import queries.schemas.itc.syntax.itcTarget
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
-import scala.concurrent.duration.*
 
 case class ObsTabTiles(
   vault:            Option[UserVault],
@@ -282,6 +282,14 @@ object ObsTabTiles:
       case _                                        =>
         result(GridLayoutSection.ObservationsLayout)
 
+  private def fetchTimeCharges(
+    obsId:       Observation.Id,
+    timeCharges: View[Option[List[VisitTimeCharge]]]
+  )(using odbApi: OdbVisitApi[IO]): IO[Unit] =
+    odbApi
+      .observationTimeCharges(obsId)
+      .flatMap(charges => timeCharges.set(charges.some).toAsync)
+
   private val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -371,26 +379,9 @@ object ObsTabTiles:
                                         guideStarSelection.set(
                                           name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
                                         )).toAsync
-        // Time charges are cached per observation, so reopening one shows them at once while they
-        // are refreshed, and they are kept current as the observation executes.
-        refreshTimeCharges   <- useThrottledCallback(5.seconds):
+        _                    <- useEffectWithDeps(props.obsId): obsId =>
                                   import ctx.given
-                                  odbApi
-                                    .observationTimeCharges(props.obsId)
-                                    .flatMap(charges => props.timeCharges.set(charges.some).toAsync)
-        _                    <- useEffectWithDeps(props.obsId)(_ => refreshTimeCharges.value)
-        _                    <-
-          useEffectStreamResourceOnMount:
-            import ctx.given
-            odbApi
-              .stepEventSubscription(props.obsId)
-              .map(_.evalMap(_ => refreshTimeCharges.to[IO]))
-        _                    <-
-          useEffectStreamResourceOnMount:
-            import ctx.given
-            odbApi
-              .datasetEventSubscription(props.obsId)
-              .map(_.evalMap(_ => refreshTimeCharges.to[IO]))
+                                  fetchTimeCharges(obsId, props.timeCharges)
         // The mask design is only stored on the attachment, fetched on demand for MOS obs.
         maskDesignPot        <-
           useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
@@ -560,6 +551,7 @@ object ObsTabTiles:
             props.programSummaries.allocatedScienceBands,
             props.vault.map(_.user.id),
             props.timeCharges.get,
+            fetchTimeCharges(props.obsId, props.timeCharges),
             props.obsIsReadonly
           )
 
