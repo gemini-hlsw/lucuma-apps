@@ -44,6 +44,7 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.syntax.table.*
 import lucuma.ui.table.*
+import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
 import monocle.Iso
 import org.scalajs.dom.File as DOMFile
@@ -101,11 +102,13 @@ object TargetSummaryTile
 
       val ColDef = ColumnDef[TargetWithId]
 
-      val ColumnClasses: Map[ColumnId, Css] = Map(
-        IdColumnId                 -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryId),
-        TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
-        TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
-        TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
+      val StickyCols: StickyColumns = StickyColumns(
+        Map(
+          IdColumnId                 -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryId),
+          TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
+          TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
+          TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
+        )
       )
 
       val ScrollOptions =
@@ -142,6 +145,7 @@ object TargetSummaryTile
                 cell.value.toString
               )
           ).sortable
+            .withColumnSize(FixedSize(55.toPx))
         ) ++
           TargetColumns.Builder
             .ForProgram(
@@ -331,10 +335,8 @@ object TargetSummaryTile
           innerContainerMod = ^.width := "100%",
           containerRef = resizer.ref,
           tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable,
-          headerCellMod = headerCell =>
-            ColumnClasses
-              .get(headerCell.column.id)
-              .orEmpty |+| ExploreStyles.StickyHeader,
+          headerCellMod =
+            headerCell => TagMod(ExploreStyles.StickyHeader, StickyCols.mod(headerCell.column)),
           rowMod = rowTagMod: row =>
             TagMod(
               ExploreStyles.TableRowSelected.when_(
@@ -342,7 +344,7 @@ object TargetSummaryTile
               ),
               ^.onClick ==> table.getMultiRowSelectedHandler(row.id)
             ),
-          cellMod = cellTagMod(cell => ColumnClasses.get(cell.column.id).orEmpty),
+          cellMod = cellTagMod(cell => StickyCols.mod(cell.column)),
           virtualizerRef = virtualizerRef,
           emptyMessage = <.div(Constants.NoTargets)
           // workaround to redraw when files are imported

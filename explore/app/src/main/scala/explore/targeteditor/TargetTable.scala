@@ -9,6 +9,7 @@ import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
+import explore.components.StickyColumns
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
@@ -93,11 +94,13 @@ object TargetTable:
 
   val ColumnNames: Map[ColumnId, String] = Map(DeleteColumnId -> " ") ++ TargetColumns.AllColNames
 
-  private val ColumnClasses: Map[ColumnId, Css] = Map(
-    DeleteColumnId             -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryDelete),
-    TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
-    TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
-    TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
+  private val StickyCols: StickyColumns = StickyColumns(
+    Map(
+      DeleteColumnId             -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryDelete),
+      TargetColumns.IconColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryIcon),
+      TargetColumns.TypeColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryType),
+      TargetColumns.NameColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.TargetSummaryName)
+    )
   )
 
   private def deleteTarget(
@@ -294,16 +297,14 @@ object TargetTable:
               striped = true,
               compact = Compact.Very,
               tableMod = ExploreStyles.ExploreTable,
-              headerCellMod = headerCell =>
-                ColumnClasses
-                  .get(headerCell.column.id)
-                  .orEmpty |+| ExploreStyles.StickyHeader,
+              headerCellMod =
+                headerCell => TagMod(ExploreStyles.StickyHeader, StickyCols.mod(headerCell.column)),
               rowMod = rowTagMod: row =>
                 TagMod(
                   ExploreStyles.TableRowSelected
                     .when_(props.selectedTarget.get.exists(_ === row.original.toSelection)),
                   ^.onClick --> props.selectedTarget.set(row.original.toSelection.some)
                 ),
-              cellMod = cellTagMod(cell => ColumnClasses.get(cell.column.id).orEmpty)
+              cellMod = cellTagMod(cell => StickyCols.mod(cell.column))
             )
           )

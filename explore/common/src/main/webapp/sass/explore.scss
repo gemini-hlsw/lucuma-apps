@@ -1347,14 +1347,16 @@ $search-preview-margin: 5px;
 
 .explore-target-search-content {
   position: relative;
-  display: grid !important;
+
+  // A flex column (rather than a grid) so the results boxes shrink to fit max-height and scroll
+  // themselves, keeping table headers sticky and horizontal scrollbars visible.
+  display: flex !important;
+  flex-direction: column;
   min-height: $search-preview-height-mobile;
   max-height: 80vh; // Don't let the form grow too large
   gap: 0.3em;
   align-items: stretch;
   overflow: auto;
-  grid-template-columns: 1fr;
-  grid-auto-rows: fit-content;
 
   .pl-header {
     padding: 0.2em;
@@ -1365,7 +1367,6 @@ $search-preview-margin: 5px;
   @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
     min-height: calc($search-preview-width + 2 * $search-preview-margin);
     padding-bottom: $search-preview-margin;
-    grid-template-rows: min-content min-content;
 
     &.explore-target-search-has-preview {
       padding-right: calc($search-preview-width + 3 * $search-preview-margin) !important;
@@ -1448,8 +1449,20 @@ $search-preview-margin: 5px;
 }
 
 .explore-target-search-results {
+  // Not a scroll container itself, so its flex minimum size is the smaller of its content and
+  // `height`. A short result list then keeps its rows when sharing the popup with a long one,
+  // which shrinks to take the remaining space.
+  display: flex;
+  flex: 0 1 content;
+  flex-direction: column;
+  height: 30vh;
   border: 1px solid var(--site-border-color);
   border-radius: 0.28rem;
+}
+
+.explore-target-search-results-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -4414,31 +4427,9 @@ div.spectroscopy-table-emptymessage {
 // -----
 // Target tables sticky columns
 // ------
+// The sticky offsets are set inline by StickyColumns, from the column sizes.
 .pl-react-table .p-datatable-tbody {
-  .explore-target-summary-delete {
-    left: 0;
-
-    ~ .explore-target-summary-icon {
-      left: 35px;
-
-      ~ .explore-target-summary-type {
-        left: 70px;
-
-        ~ .explore-target-summary-name {
-          left: 170px;
-        }
-      }
-
-      // The type column can be hidden, in which case name follows the icon.
-      ~ .explore-target-summary-name {
-        left: 70px;
-      }
-    }
-  }
-
   .explore-target-summary-select {
-    left: 0;
-
     // Wide enough for the longest label the popup uses ("Resolve") alongside its icon; the
     // matching column width lives in TargetSelectionTable's SelectColumnId.
     .p-button {
@@ -4446,50 +4437,6 @@ div.spectroscopy-table-emptymessage {
       display: flex;
       justify-content: space-evenly;
     }
-
-    ~ .explore-target-summary-icon {
-      left: 105px;
-
-      ~ .explore-target-summary-type {
-        left: 140px;
-
-        ~ .explore-target-summary-name {
-          left: 240px;
-        }
-      }
-
-      ~ .explore-target-summary-name {
-        left: 140px;
-      }
-    }
-  }
-
-  .explore-target-summary-id {
-    left: 0;
-    width: 55px;
-    min-width: 55px;
-
-    ~ .explore-target-summary-icon {
-      left: 55px;
-
-      ~ .explore-target-summary-type {
-        left: 90px;
-
-        ~ .explore-target-summary-name {
-          left: 190px;
-        }
-      }
-
-      ~ .explore-target-summary-name {
-        left: 90px;
-      }
-    }
-  }
-
-  .explore-target-summary-icon,
-  .explore-target-summary-type,
-  .explore-constraints-summary-edit {
-    left: 0;
   }
 }
 

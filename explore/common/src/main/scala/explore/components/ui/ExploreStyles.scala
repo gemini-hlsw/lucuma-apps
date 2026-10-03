@@ -576,6 +576,7 @@ object ExploreStyles:
   val TargetSearchPreviewPlaceholder: Css = Css("explore-target-search-preview-placeholder")
   val TargetSearchPreviewName: Css        = Css("explore-target-search-preview-name")
   val TargetSearchResults: Css            = Css("explore-target-search-results")
+  val TargetSearchResultsScroll: Css      = Css("explore-target-search-results-scroll")
 
   // Configuration Request Editor Popup
   val ConfigurationRequestEditorPopup: Css = Css("explore-config-request-editor")

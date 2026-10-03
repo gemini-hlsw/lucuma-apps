@@ -31,11 +31,12 @@ import lucuma.core.model.HourAngleBound
 import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
-import lucuma.react.common.Css
+import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
+import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
 
 import scala.collection.immutable.SortedSet
@@ -95,8 +96,10 @@ object ConstraintsSummaryTile
 
       val ColDef = ColumnDef[ConstraintGroup]
 
-      val ColumnClasses: Map[ColumnId, Css] = Map(
-        EditColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.ConstraintsSummaryEdit)
+      val StickyCols: StickyColumns = StickyColumns(
+        Map(
+          EditColumnId -> (ExploreStyles.StickyColumn |+| ExploreStyles.ConstraintsSummaryEdit)
+        )
       )
 
       def columns(props: ConstraintsSummaryTile, ctx: AppContext[IO]): List[ColDef.Type] =
@@ -131,7 +134,8 @@ object ConstraintsSummaryTile
                   Icons.Edit
               )
             )
-            .withEnableSorting(false),
+            .withEnableSorting(false)
+            .withColumnSize(FixedSize(35.toPx)),
           column(
             IQColumnId,
             ConstraintGroup.constraintSet.andThen(ConstraintSet.imageQuality).get
@@ -252,11 +256,9 @@ object ConstraintsSummaryTile
             compact = Compact.Very,
             tableMod = ExploreStyles.ExploreTable,
             emptyMessage = <.div("No constraints present"),
-            headerCellMod = headerCell =>
-              ColumnClasses
-                .get(headerCell.column.id)
-                .orEmpty |+| ExploreStyles.StickyHeader,
-            cellMod = cellTagMod(cell => ColumnClasses.get(cell.column.id).orEmpty)
+            headerCellMod =
+              headerCell => TagMod(ExploreStyles.StickyHeader, StickyCols.mod(headerCell.column)),
+            cellMod = cellTagMod(cell => StickyCols.mod(cell.column))
           )
         )
     )

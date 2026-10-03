@@ -302,34 +302,36 @@ object TargetSelectionPopup:
             React.Fragment.withKey(source.name)(
               <.div(LucumaPrimeStyles.SmallHeader, header),
               <.div(ExploreStyles.TargetSearchResults)(
-                TargetSelectionTable(
-                  source,
-                  sourceResults.toList.map(_.target),
-                  props.selectExistingLabel,
-                  props.selectExistingIcon,
-                  props.selectNewLabel,
-                  props.selectNewIcon,
-                  onSelected = t =>
-                    props.onSelected(t.targetWithOptId) >>
-                      props.popupState.set(PopupState.Closed),
-                  selectedIndex = selectedTarget.get
-                    .filter(_.source === source)
-                    .map(_.resultIndex),
-                  onClick = (result, index) =>
-                    selectedTarget.set(
-                      if (
-                        selectedTarget.get
-                          .exists(st => st.source === source && st.resultIndex === index)
+                <.div(ExploreStyles.TargetSearchResultsScroll)(
+                  TargetSelectionTable(
+                    source,
+                    sourceResults.toList.map(_.target),
+                    props.selectExistingLabel,
+                    props.selectExistingIcon,
+                    props.selectNewLabel,
+                    props.selectNewIcon,
+                    onSelected = t =>
+                      props.onSelected(t.targetWithOptId) >>
+                        props.popupState.set(PopupState.Closed),
+                    selectedIndex = selectedTarget.get
+                      .filter(_.source === source)
+                      .map(_.resultIndex),
+                    onClick = (result, index) =>
+                      selectedTarget.set(
+                        if (
+                          selectedTarget.get
+                            .exists(st => st.source === source && st.resultIndex === index)
+                        )
+                          none
+                        else
+                          SelectedTarget(
+                            result.target,
+                            source,
+                            index,
+                            result.angularSize
+                          ).some
                       )
-                        none
-                      else
-                        SelectedTarget(
-                          result.target,
-                          source,
-                          index,
-                          result.angularSize
-                        ).some
-                    )
+                  )
                 )
               )
             )
