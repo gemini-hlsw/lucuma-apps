@@ -270,8 +270,8 @@ importers:
         specifier: 3.14.13
         version: 3.14.13(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/store':
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 0.11.2
+        version: 0.11.2
       '@tanstack/table-core':
         specifier: 9.2.4
         version: 9.2.4
@@ -412,8 +412,8 @@ importers:
         specifier: 3.14.13
         version: 3.14.13(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/store':
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 0.11.2
+        version: 0.11.2
       '@tanstack/table-core':
         specifier: 9.2.4
         version: 9.2.4
@@ -498,8 +498,8 @@ importers:
         specifier: 3.14.13
         version: 3.14.13(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/store':
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 0.11.2
+        version: 0.11.2
       '@tanstack/table-core':
         specifier: 9.2.4
         version: 9.2.4
