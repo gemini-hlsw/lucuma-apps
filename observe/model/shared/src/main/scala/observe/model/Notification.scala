@@ -12,11 +12,17 @@ import lucuma.core.model.sequence.Step
 
 enum Notification derives Eq, Encoder, Decoder:
   // Notification that user tried to run a sequence that used resource already in use
-  case ResourceConflict(obsId: Observation.Id)                  extends Notification
+  case ResourceConflict(obsId: Observation.Id)                        extends Notification
   // Notification that user tried to select a sequence for an instrument for which a sequence was already running
-  case InstrumentInUse(obsId: Observation.Id, ins: Instrument)  extends Notification
+  case InstrumentInUse(obsId: Observation.Id, ins: Instrument)        extends Notification
   // Notification that a request to load a sequence in the backend failed
-  case LoadingFailed(obsId: Observation.Id, msgs: List[String]) extends Notification
+  case LoadingFailed(obsId: Observation.Id, msgs: List[String])       extends Notification
   // Notification that a resource configuration failed as the resource was busy
   case SubsystemBusy(obsId: Observation.Id, stepId: Step.Id, resource: Subsystem)
       extends Notification
+  // Notification that the ODB could not be reached to verify a paused step before resuming it;
+  // the step is still paused and the user can retry
+  case SequenceCheckFailed(obsId: Observation.Id, msgs: List[String]) extends Notification
+  // Notification that a paused step was edited in the ODB while paused; the stale exposure was
+  // discarded and the edited step was loaded (not started) in its place
+  case StepEdited(obsId: Observation.Id, stepId: Step.Id)             extends Notification
