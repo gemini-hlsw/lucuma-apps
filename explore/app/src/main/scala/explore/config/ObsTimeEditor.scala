@@ -10,12 +10,12 @@ import explore.Icons
 import explore.components.DatePicker24HTime
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.ObservationDigest
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnComponent
@@ -38,7 +38,7 @@ case class ObsTimeEditor(
   obsTimeView:            View[Instant],
   obsDurationView:        View[Option[TimeSpan]],
   obsTimeAndDurationView: View[(Instant, Option[TimeSpan])],
-  calcDigest:             CalculatedValue[Option[ExecutionDigest]],
+  calcDigest:             CalculatedValue[Option[ObservationDigest]],
   forMultipleObs:         Boolean,
   readonly:               Boolean
 ) extends ReactFnProps(ObsTimeEditor):

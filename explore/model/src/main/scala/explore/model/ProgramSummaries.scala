@@ -27,7 +27,6 @@ import lucuma.core.model.ProposalReference
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.schemas.model.TargetWithId
@@ -228,7 +227,7 @@ case class ProgramSummaries(
   def updateCalculatedValues(
     obsId:    Observation.Id,
     workflow: CalculatedValue[ObservationWorkflow],
-    digest:   CalculatedValue[Option[ExecutionDigest]]
+    digest:   CalculatedValue[Option[ObservationDigest]]
   ): ProgramSummaries =
     ProgramSummaries.obsAndOrphans.modify { (obs, orphans) =>
       // if the observation is not present, we may be getting the obsCalc event before we

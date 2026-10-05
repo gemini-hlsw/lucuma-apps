@@ -45,7 +45,6 @@ import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
 import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
@@ -661,7 +660,7 @@ object Observation:
 
   val calculatedValues
     : Lens[Observation,
-           (CalculatedValue[ObservationWorkflow], CalculatedValue[Option[ExecutionDigest]])
+           (CalculatedValue[ObservationWorkflow], CalculatedValue[Option[ObservationDigest]])
     ] =
     (workflow, digest).disjointZip
 

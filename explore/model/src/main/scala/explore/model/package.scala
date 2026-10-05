@@ -28,7 +28,6 @@ import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.Target
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
@@ -97,7 +96,7 @@ type DismissedWarnings = Set[ObservationValidationCode.Warning]
 type ObservationsAndTargets = (ObservationList, TargetList)
 
 type CalculatedWorkflowAndDigest =
-  (CalculatedValue[ObservationWorkflow], CalculatedValue[Option[ExecutionDigest]])
+  (CalculatedValue[ObservationWorkflow], CalculatedValue[Option[ObservationDigest]])
 type CalculatedValueOrphanMap    = Map[Observation.Id, CalculatedWorkflowAndDigest]
 
 object ObservationList:

@@ -6,7 +6,7 @@ package queries.common
 import clue.GraphQLSubquery
 import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
-import lucuma.core.model.sequence.ExecutionDigest
+import explore.model.ObservationDigest
 import lucuma.core.model.sequence.SequenceDigest
 import lucuma.core.model.sequence.StepDigest
 import lucuma.core.util.CalculatedValue
@@ -19,7 +19,7 @@ import lucuma.schemas.odb.TimeSpanSubquery
 @GraphQL
 @GraphQLType("CalculatedExecutionDigest")
 object CalculatedDigestSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ExecutionDigest]]]:
+    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ObservationDigest]]]:
   override val subquery = gql"""
     {
       calculationState
@@ -48,6 +48,9 @@ object CalculatedDigestSubquery
                 total $TimeSpanSubquery
               }
             }
+          }
+          total {
+            program $TimeSpanSubquery
           }
         }
         acquisition $SequenceDigestSubquery

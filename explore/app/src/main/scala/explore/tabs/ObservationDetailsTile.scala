@@ -165,7 +165,7 @@ object ObservationDetailsTile
               (steps.biases.time |+| steps.darks.time |+| steps.observing.time).programTime
 
             val total: TimeSpan =
-              d.fullTimeEstimate.programTime +| d.calibrations.existing.time.programTime
+              d.total.value +| d.calibrations.existing.time.programTime
 
             val gcalSetsRow: Option[VdomNode] =
               CalibrationSets

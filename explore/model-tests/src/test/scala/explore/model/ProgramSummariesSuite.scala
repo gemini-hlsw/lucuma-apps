@@ -6,13 +6,12 @@ package explore.model
 import cats.Order.given
 import cats.syntax.all.*
 import crystal.Pot
+import explore.model.arb.ArbExecution.given
 import explore.model.arb.ArbObservation.given
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.arb.ArbObservationWorkflow.given
-import lucuma.core.model.sequence.ExecutionDigest
-import lucuma.core.model.sequence.arb.ArbExecutionDigest.given
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.arb.ArbCalculatedValue.given
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -58,7 +57,7 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
       (
         obs:      Observation,
         workflow: CalculatedValue[ObservationWorkflow],
-        digest:   CalculatedValue[Option[ExecutionDigest]]
+        digest:   CalculatedValue[Option[ObservationDigest]]
       ) =>
         val ps  = emptyPS.updateCalculatedValues(obs.id, workflow, digest)
         assertEquals(1, ps.calculatedValueOrphans.size)
@@ -86,7 +85,7 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
       (
         obs:      Observation,
         workflow: CalculatedValue[ObservationWorkflow],
-        digest:   CalculatedValue[Option[ExecutionDigest]]
+        digest:   CalculatedValue[Option[ObservationDigest]]
       ) =>
         val ps = emptyPS.upsertObs(obs).updateCalculatedValues(obs.id, workflow, digest)
         assertEquals(psCalcValues(ps, obs.id), (workflow, digest))
