@@ -611,9 +611,9 @@ object AladinContainer extends AladinCommon {
           currentPos.value
             .foldMap(Coordinates.fromHmsDms.reverseGet)
 
-        def basePosition(css: Css, title: Option[String] = None) =
+        def basePosition(title: Option[String]) =
           baseCoordinates.foldMap: c =>
-            List(SvgTarget.CrosshairTarget(c, css, CrosshairSize, title))
+            List(SvgTarget.CrosshairTarget(c, Css.Empty, CrosshairSize, title))
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
@@ -772,30 +772,26 @@ object AladinContainer extends AladinCommon {
               aladinRef.value.map(AladinZoomControl(_)),
               HelpIcon("aladin-cell.md".refined, ExploreStyles.AladinHelpIcon),
               <.div(ExploreStyles.AladinSurvey, s"Survey: ${survey.value.name}"),
-              (resize.width, resize.height, fov.value, baseCoordinates)
+              (resize.width, resize.height, aladinRef.value)
                 .mapN(
                   TargetsOverlay(
                     _,
                     _,
                     _,
-                    screenOffset,
-                    _,
                     // Order matters
                     candidates ++ blindOffsets ++ scienceTargets ++ skyPositionTargets ++
-                      basePosition(Css.Empty, basePositionTitle) ++ configOffsets
+                      basePosition(basePositionTitle) ++ configOffsets
                   )
                 ),
               // Separate overlay for unconstrained guide star candidates (available at other PAs)
               Option.when(unconstrainedCandidates.nonEmpty)(
-                (resize.width, resize.height, fov.value, baseCoordinates)
+                (resize.width, resize.height, aladinRef.value)
                   .mapN(
                     TargetsOverlay(
                       _,
                       _,
                       _,
-                      screenOffset,
-                      _,
-                      basePosition(ExploreStyles.Hidden) ++ unconstrainedCandidates
+                      unconstrainedCandidates
                     )
                   )
               ),

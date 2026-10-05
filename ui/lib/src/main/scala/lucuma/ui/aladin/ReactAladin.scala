@@ -70,6 +70,17 @@ extension (a: Aladin)
   def pixelScale: PixelScale =
     PixelScale(a.getSize()(0) / a.getFov()(0), a.getSize()(1) / a.getFov()(1))
 
+  /**
+   * Canvas pixel position of the coordinates using aladin's current projection and view. None if
+   * the projection can't place them, e.g. on the far hemisphere. Positions outside the canvas are
+   * returned as they are.
+   */
+  def world2pixel(c: Coordinates): Option[(Double, Double)] =
+    a.world2pix(c.ra.toAngle.toDoubleDegrees, Angle.toSignedDoubleDegrees(c.dec.toAngle))
+      .toOption
+      .filter(r => r.length >= 2 && r(0).isFinite && r(1).isFinite)
+      .map(r => (r(0), r(1)))
+
   def applyZoom(zoomFactor: Double, duration: Int = 200): Callback =
     Callback(a.view.zoom.applyZoom(ZoomTo(zoomFactor, duration)))
 

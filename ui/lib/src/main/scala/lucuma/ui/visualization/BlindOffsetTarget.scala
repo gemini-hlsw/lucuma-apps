@@ -13,9 +13,8 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
 
 case class BlindOffsetTarget(
-  offP:        Double,
-  offQ:        Double,
-  maxP:        Long,
+  x:           Double,
+  y:           Double,
   radius:      Double,
   pointCss:    Css,
   selectedCss: Css,
@@ -29,15 +28,15 @@ object BlindOffsetTarget
 
       <.g(VisualizationStyles.VisualizationTooltipTarget)(
         <.circle(
-          ^.cx := scale(p.offP),
-          ^.cy := scale(p.offQ),
-          ^.r  := scale(p.maxP * (p.radius + 3)),
+          ^.cx := p.x,
+          ^.cy := p.y,
+          ^.r  := p.radius + 3,
           p.selectedCss
         ).when(p.selected),
         <.circle(
-          ^.cx := scale(p.offP),
-          ^.cy := scale(p.offQ),
-          ^.r  := scale(p.maxP * p.radius),
+          ^.cx := p.x,
+          ^.cy := p.y,
+          ^.r  := p.radius,
           pointCss
         )
       ).withTooltipOptions(content = p.title)

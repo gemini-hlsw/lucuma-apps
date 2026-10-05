@@ -80,6 +80,41 @@ def calculateViewBox(
   (viewBoxX, viewBoxY, viewBoxW, viewBoxH)
 }
 
+// Pixels around the canvas where overlay elements are still drawn
+val ClipMargin: Double = 100.0
+
+/**
+ * Clip the segment (x1, y1)-(x2, y2) to the rectangle (minX, minY)-(maxX, maxY) (Liang–Barsky).
+ * Returns None if no part of the segment is inside the rectangle.
+ */
+def clipSegment(
+  x1:   Double,
+  y1:   Double,
+  x2:   Double,
+  y2:   Double,
+  minX: Double,
+  minY: Double,
+  maxX: Double,
+  maxY: Double
+): Option[(Double, Double, Double, Double)] =
+  val dx = x2 - x1
+  val dy = y2 - y1
+
+  // Each edge as (p, q): the segment is inside that edge where t * p <= q
+  val edges = List((-dx, x1 - minX), (dx, maxX - x1), (-dy, y1 - minY), (dy, maxY - y1))
+
+  edges
+    .foldLeft(Option((0.0, 1.0))):
+      case (Some((t0, t1)), (p, q)) =>
+        if p == 0 then Option.when(q >= 0)((t0, t1))
+        else
+          val t        = q / p
+          val (n0, n1) = if p < 0 then (t0.max(t), t1) else (t0, t1.min(t))
+          Option.when(n0 <= n1)((n0, n1))
+      case (None, _)                => None
+    .map: (t0, t1) =>
+      (x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy)
+
 object TooltipState extends NewBoolean { inline def Open = True; inline def Closed = False }
 type TooltipState = TooltipState.Type
 

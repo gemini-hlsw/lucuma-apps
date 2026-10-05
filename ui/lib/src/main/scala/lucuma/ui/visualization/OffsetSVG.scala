@@ -15,9 +15,8 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
 
 final case class OffsetSvg(
-  p:        Double,
-  q:        Double,
-  maxP:     Long,
+  x:        Double,
+  y:        Double,
   radius:   Double,
   pointCss: Css,
   oType:    SequenceType,
@@ -27,7 +26,7 @@ final case class OffsetSvg(
 
 object OffsetSvg
     extends ReactFnComponent[OffsetSvg](p =>
-      val areaSize = scale(p.maxP * (2 * p.radius + 3))
+      val areaSize = 2 * p.radius + 3
 
       val (offP, offQ) = Offset.signedDecimalArcseconds.get(p.offset)
       val prefix       = p.oType match
@@ -38,17 +37,17 @@ object OffsetSvg
 
       <.g(VisualizationStyles.VisualizationTooltipTarget)(
         <.rect( // add transparent area for the tooltip, hidden but gets events
-          ^.x      := scale(p.p) - areaSize / 2,
+          ^.x      := p.x - areaSize / 2,
           ^.width  := areaSize,
           ^.height := areaSize,
-          ^.y      := scale(p.q) - areaSize / 2,
+          ^.y      := p.y - areaSize / 2,
           ^.fill   := "transparent"
         ),
         <.rect( // mark the offsset pos with a square
-          ^.x      := scale(p.p) - areaSize / 2,
+          ^.x      := p.x - areaSize / 2,
           ^.width  := areaSize,
           ^.height := areaSize,
-          ^.y      := scale(p.q) - areaSize / 2,
+          ^.y      := p.y - areaSize / 2,
           p.pointCss
         )
       ).withTooltipOptions(content = tooltip)

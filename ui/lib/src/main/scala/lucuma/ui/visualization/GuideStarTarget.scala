@@ -13,9 +13,8 @@ import lucuma.react.common.ReactFnProps
 import lucuma.ui.syntax.all.given
 
 case class GuideStarTarget(
-  offP:     Double,
-  offQ:     Double,
-  maxP:     Long,
+  x:        Double,
+  y:        Double,
   radius:   Double,
   pointCss: Css,
   analysis: AgsAnalysis
@@ -27,9 +26,9 @@ object GuideStarTarget
         VisualizationStyles.GuideStarCandidateTarget |+| p.pointCss
 
       <.circle(VisualizationStyles.VisualizationTooltipTarget |+| p.analysis.target.selector)(
-        ^.cx := scale(p.offP),
-        ^.cy := scale(p.offQ),
-        ^.r  := scale(p.maxP * p.radius),
+        ^.cx := p.x,
+        ^.cy := p.y,
+        ^.r  := p.radius,
         pointCss
       )
     )
