@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.ProgramTime
 import io.circe.Decoder
+import lucuma.core.enums.ExecutionState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.SequenceDigest
@@ -28,8 +29,12 @@ final case class Execution(
   programTimeCharge:                 ProgramTime,
   originalEstimate:                  Option[ProgramTime],
   acquisitionSequenceIsMaterialized: Boolean,
-  scienceSequenceIsMaterialized:     Boolean
+  scienceSequenceIsMaterialized:     Boolean,
+  executionState:                    ExecutionState
 ) derives Eq:
+  val hasMaterializedSequence: Boolean =
+    acquisitionSequenceIsMaterialized || scienceSequenceIsMaterialized
+
   lazy val acqOffset: SortedSet[Offset] =
     digest.value.foldMap(_.acquisition.telescopeConfigs.map(_.offset))
   lazy val sciOffset: SortedSet[Offset] =
@@ -61,4 +66,5 @@ object Execution:
             )
       a  <- c.get[Boolean]("acquisitionSequenceIsMaterialized")
       s  <- c.get[Boolean]("scienceSequenceIsMaterialized")
-    yield Execution(d, pt, oe, a, s)
+      es <- c.get[ExecutionState]("executionState")
+    yield Execution(d, pt, oe, a, s, es)

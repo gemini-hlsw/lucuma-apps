@@ -14,6 +14,7 @@ import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.ObservationsAndGroups
+import explore.model.enums.SequenceCopy
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
@@ -259,16 +260,17 @@ object ObsActions:
     )
 
   def cloneObservations(
-    idsToClone:  List[Observation.Id],
-    newGroupId:  Option[Group.Id],
-    focusObs:    Observation.Id => Callback = _ => Callback.empty,
-    postMessage: String => IO[Unit] = _ => IO.unit
+    idsToClone:   List[Observation.Id],
+    newGroupId:   Option[Group.Id],
+    sequenceCopy: SequenceCopy,
+    focusObs:     Observation.Id => Callback = _ => Callback.empty,
+    postMessage:  String => IO[Unit] = _ => IO.unit
   )(using
-    odbApi:      OdbObservationApi[IO]
+    odbApi:       OdbObservationApi[IO]
   ): AsyncAction[ObservationList, List[Observation.Id], List[Option[Observation]]] =
     AsyncAction(
       asyncGet = idsToClone
-        .traverse(odbApi.cloneObservation(_, newGroupId))
+        .traverse(odbApi.cloneObservation(_, newGroupId, sequenceCopy))
         .map(obsList => (obsList.map(_.id), obsList.map(_.some))),
       getter = obsListGetter,
       setter = obsListSetter,

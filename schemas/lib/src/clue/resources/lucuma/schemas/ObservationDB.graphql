@@ -979,6 +979,36 @@ input CloneObservationInput {
   observationId: ObservationId
   observationReference: ObservationReferenceLabel
   SET: ObservationPropertiesInput
+
+  """
+  Which steps, if any, of the source's materialized sequences to copy into the
+  clone.  Any mode other than NONE cannot be combined with an observing mode or
+  science requirements edit in SET.  When SET edits the asterism, only the
+  science sequence is copied and the acquisition is generated for the new
+  targets; copied science steps keep their exposure times regardless.
+  """
+  sequence: CloneSequenceMode! = NONE
+}
+
+"""
+What a cloned observation takes from its source's materialized (stored)
+acquisition and science sequences.  Each sequence type is handled on its own,
+and one with nothing to copy is generated as usual.
+"""
+enum CloneSequenceMode {
+  """
+  Copy nothing; the clone generates its sequences from its own configuration.
+  """
+  NONE
+
+  """
+  Copy every step, executed or not and whatever state it ended in, as a pending
+  step.  Atoms keep their steps and are ordered by first execution.
+  """
+  ALL_STEPS
+
+  """Copy only the steps that have not started executing."""
+  PENDING_STEPS
 }
 
 """The result of cloning an observation, containing the new observation."""
@@ -7814,6 +7844,20 @@ type Execution {
   This will happen when the sequence is executed or if it is manually edited.
   """
   acquisitionSequenceIsMaterialized: Boolean!
+
+  """
+  Whether the science sequence has been customized via `replace*Sequence`
+  (regardless of whether the replacement differs from what would have been
+  generated).  Cleared by `deleteSequence`.
+  """
+  scienceSequenceIsCustomized: Boolean!
+
+  """
+  Whether the acquisition sequence has been customized via `replace*Sequence`
+  (regardless of whether the replacement differs from what would have been
+  generated).  Cleared by `deleteSequence` or by resetting the acquisition.
+  """
+  acquisitionSequenceIsCustomized: Boolean!
 }
 
 """
@@ -14834,7 +14878,12 @@ type Program {
   """
   resourceCount: NonNegInt!
 
-  """List of validation codes that have been dismissed for this program."""
+  """
+  List of validation codes that have been dismissed for this program.  An
+  observation with a warning that has not been dismissed cannot be made READY,
+  and a READY observation that picks one up reverts to DEFINED until it is
+  dismissed.
+  """
   dismissedWarnings: [ObservationValidationCode!]!
 
   """

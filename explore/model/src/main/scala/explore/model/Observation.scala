@@ -150,8 +150,7 @@ final case class Observation(
       case Some(ObservingMode.GhostIfu(skyPosition = Some(_))) => true
       case _                                                   => false
 
-  val hasMaterializedSequence: Boolean =
-    execution.acquisitionSequenceIsMaterialized || execution.scienceSequenceIsMaterialized
+  val hasMaterializedSequence: Boolean = execution.hasMaterializedSequence
 
   // The MOS mask attachment bound to the observing mode, if any.
   lazy val maskAttachmentId: Option[Attachment.Id] =

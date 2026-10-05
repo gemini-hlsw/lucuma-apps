@@ -97,7 +97,7 @@ check
 **Archive Match**:
 One archived *file* a Search matched, described by the archive's own record of it. A single past
 observation contributes several Archive Matches, and that is not deduplicated.
-_Avoid_: duplicate, hit, result
+_Avoid_: duplicate (that is a copied observation, see Duplicate), hit, result
 
 **Search Area**:
 The centre and radius a Search covered: coordinates for a sidereal pointing, a target name for a
@@ -206,6 +206,24 @@ _Avoid_: observation name (that is the user-supplied free-text title)
 **Display Label**:
 The rule for naming an observation in the interface: its Observation Reference when it has
 one, its Observation Id otherwise. Never both.
+
+### Duplicating observations
+
+**Duplicate**:
+A new observation made from an existing one, in the same program. The ODB calls this a
+clone; that word stays inside the API.
+_Avoid_: clone, copy (in the interface)
+
+**Materialized Sequence**:
+An acquisition or science sequence the ODB has stored for an observation, because it was
+executed or edited, rather than one generated on demand from the observation's configuration.
+_Avoid_: saved sequence, frozen sequence
+
+**Sequence Copy**:
+What a Duplicate takes from its source's Materialized Sequences: nothing (generate new),
+only the steps that have not started, or every step. Only a question when the source has a
+Materialized Sequence.
+_Avoid_: clone mode, sequence mode
 
 ### Estimated duration
 

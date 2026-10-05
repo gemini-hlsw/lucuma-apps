@@ -25,6 +25,7 @@ import explore.model.ObservationList
 import explore.model.ObservationsAndGroups
 import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
+import explore.model.enums.SequenceCopy
 import explore.model.syntax.all.*
 import explore.tabs.DeckShown
 import explore.utils.testId
@@ -307,6 +308,8 @@ object ObsTree:
         // refocus if current focus ceases to exist
         _                 <- refocus(prevGroupInfo, ctx)
         adding            <- useStateView(AddingObservation(false))
+        // The observation, as it was when Duplicate was pressed, waiting for a Sequence Copy choice
+        duplicating       <- useStateView(none[Observation])
         // Request scrolling to the newly created/selected observation or group
         pendingScroll     <- useStateView(none[Either[Observation.Id, Group.Id]])
         _                 <- useEffectWithDeps(props.focusedObsOrGroup)(pendingScroll.set)
@@ -327,6 +330,18 @@ object ObsTree:
                                    pendingScroll.set(none).when_(scrolled)
       yield
         import ctx.given
+
+        def duplicate(obs: Observation, sequenceCopy: SequenceCopy): Callback =
+          cloneObs(
+            props.programId,
+            List(obs.id),
+            props.resolveGroupId(obs.groupId), // Clone to the same group
+            props.observations,
+            ctx,
+            sequenceCopy
+          ).switching(adding.async, AddingObservation(_))
+            .withToastDuring(s"Duplicating obs ${obs.id}")
+            .runAsync
 
         def onDragDrop(
           payload: BaseEventPayload[Either[Observation, Group], Either[Observation, Group]]
@@ -455,16 +470,11 @@ object ObsTree:
                     .compose((_: Option[NonEmptyString]).some)
                     .some,
                   deleteCB = deleteObsList(List(obs.id)),
-                  cloneCB = cloneObs(
-                    props.programId,
-                    List(obs.id),
-                    props.resolveGroupId(obs.groupId), // Clone to the same group
-                    props.observations,
-                    ctx
-                  ).switching(adding.async, AddingObservation(_))
-                    .withToastDuring(s"Duplicating obs ${obs.id}")
-                    .runAsync
-                    .some,
+                  cloneCB = (
+                    if SequenceCopy.choices(obs.execution).isEmpty then
+                      duplicate(obs, SequenceCopy.GenerateNew)
+                    else duplicating.set(obs.some)
+                  ).some,
                   setScienceBandCB = (
                     (b: ScienceBand) =>
                       ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
@@ -563,6 +573,14 @@ object ObsTree:
             case Left(obs)                              => renderObsCard(obs.asLeft, inSystemTree)
 
         val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroupId)
+
+        val sequenceCopyDialog: VdomNode =
+          SequenceCopyDialog(
+            duplicating.get,
+            onChoose =
+              choice => duplicating.set(none) >> duplicating.get.foldMap(duplicate(_, choice)),
+            onCancel = duplicating.set(none)
+          )
 
         val isSystemGroupFocused: Boolean =
           props.resolvedActiveGroupId
@@ -676,4 +694,4 @@ object ObsTree:
             )
           } else EmptyVdom
 
-        dndScope.context(<.div(ExploreStyles.ObsTreeWrapper)(tree))
+        dndScope.context(<.div(ExploreStyles.ObsTreeWrapper)(tree, sequenceCopyDialog))
