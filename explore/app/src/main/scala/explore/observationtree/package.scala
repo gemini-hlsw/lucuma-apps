@@ -15,9 +15,9 @@ import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.enums.AppTab
-import explore.model.enums.SequenceCopy
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.schemas.ObservationDB.Types.*
@@ -48,7 +48,7 @@ def cloneObs(
   newGroupId:   Option[Group.Id],
   observations: UndoSetter[ObservationList],
   ctx:          AppContext[IO],
-  sequenceCopy: SequenceCopy = SequenceCopy.GenerateNew
+  sequenceCopy: CloneSequenceMode = CloneSequenceMode.None
 ): IO[Unit] =
   import ctx.given
 

@@ -14,10 +14,10 @@ import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.ObservationsAndGroups
-import explore.model.enums.SequenceCopy
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
@@ -262,7 +262,7 @@ object ObsActions:
   def cloneObservations(
     idsToClone:   List[Observation.Id],
     newGroupId:   Option[Group.Id],
-    sequenceCopy: SequenceCopy,
+    sequenceCopy: CloneSequenceMode,
     focusObs:     Observation.Id => Callback = _ => Callback.empty,
     postMessage:  String => IO[Unit] = _ => IO.unit
   )(using

@@ -19,8 +19,8 @@ import explore.model.GuidingConfiguration
 import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
-import explore.model.enums.SequenceCopy
 import explore.utils.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.FacilityObservingModeType
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
@@ -36,7 +36,6 @@ import lucuma.core.model.Target
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.ObservationDB.Enums.CloneSequenceMode
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
@@ -279,17 +278,14 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   def cloneObservation(
     obsId:        Observation.Id,
     newGroupId:   Option[Group.Id],
-    sequenceCopy: SequenceCopy
+    sequenceCopy: CloneSequenceMode
   ): F[Observation] =
     CloneObservationMutation[F]
       .execute:
         CloneObservationInput(
           observationId = obsId.assign,
           SET = ObservationPropertiesInput(groupId = newGroupId.orUnassign).assign,
-          sequence = sequenceCopy match
-            case SequenceCopy.GenerateNew  => CloneSequenceMode.None
-            case SequenceCopy.PendingSteps => CloneSequenceMode.PendingSteps
-            case SequenceCopy.AllSteps     => CloneSequenceMode.AllSteps
+          sequence = sequenceCopy
         )
       .processNoDataErrors
       .map(_.cloneObservation.newObservation)

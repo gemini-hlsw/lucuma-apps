@@ -13,7 +13,7 @@ import explore.model.GuidingConfiguration
 import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
-import explore.model.enums.SequenceCopy
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
@@ -79,7 +79,7 @@ trait OdbObservationApi[F[_]]:
   def cloneObservation(
     obsId:        Observation.Id,
     newGroupId:   Option[Group.Id],
-    sequenceCopy: SequenceCopy
+    sequenceCopy: CloneSequenceMode
   ): F[Observation]
   def applyObservation(
     obsId:                   Observation.Id,

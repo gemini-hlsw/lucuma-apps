@@ -1,17 +1,17 @@
 // Copyright (c) 2016-2026 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.model.enums
+package explore.model
 
 import cats.syntax.all.*
-import explore.model.Execution
 import explore.model.arb.ArbExecution.given
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ExecutionState
 import lucuma.core.util.Enumerated
 import munit.ScalaCheckSuite
 import org.scalacheck.Prop.forAll
 
-class SequenceCopySuite extends ScalaCheckSuite:
+class SequenceCopyChoicesSuite extends ScalaCheckSuite:
 
   private def withState(
     e:     Execution,
@@ -30,16 +30,17 @@ class SequenceCopySuite extends ScalaCheckSuite:
   property("no choices without a materialized sequence"):
     forAll: (e: Execution) =>
       allStates.foreach: state =>
-        assertEquals(SequenceCopy.choices(withState(e, false, false, state)), Nil)
+        assertEquals(withState(e, false, false, state).sequenceCopyChoices, Nil)
 
-  private val materialized: List[(Boolean, Boolean)] = List((true, false), (false, true), (true, true))
+  private val materialized: List[(Boolean, Boolean)] =
+    List((true, false), (false, true), (true, true))
 
   property("generate new or copy steps when nothing has started"):
     forAll: (e: Execution) =>
       materialized.foreach: (acq, sci) =>
         assertEquals(
-          SequenceCopy.choices(withState(e, acq, sci, ExecutionState.NotStarted)),
-          List(SequenceCopy.GenerateNew, SequenceCopy.AllSteps)
+          withState(e, acq, sci, ExecutionState.NotStarted).sequenceCopyChoices,
+          List(CloneSequenceMode.None, CloneSequenceMode.AllSteps)
         )
 
   property("all three choices once execution has started"):
@@ -49,6 +50,6 @@ class SequenceCopySuite extends ScalaCheckSuite:
         (acq, sci) <- materialized
       do
         assertEquals(
-          SequenceCopy.choices(withState(e, acq, sci, state)),
-          List(SequenceCopy.GenerateNew, SequenceCopy.PendingSteps, SequenceCopy.AllSteps)
+          withState(e, acq, sci, state).sequenceCopyChoices,
+          List(CloneSequenceMode.None, CloneSequenceMode.PendingSteps, CloneSequenceMode.AllSteps)
         )

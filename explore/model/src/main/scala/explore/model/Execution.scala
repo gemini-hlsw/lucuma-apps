@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.ProgramTime
 import io.circe.Decoder
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ExecutionState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.ExecutionDigest
@@ -34,6 +35,14 @@ final case class Execution(
 ) derives Eq:
   val hasMaterializedSequence: Boolean =
     acquisitionSequenceIsMaterialized || scienceSequenceIsMaterialized
+
+  // The Sequence Copy choices for a Duplicate, empty when there is nothing to ask. Pending and all
+  // steps are the same when nothing has started, so only all steps is offered then.
+  lazy val sequenceCopyChoices: List[CloneSequenceMode] =
+    if !hasMaterializedSequence then Nil
+    else if executionState === ExecutionState.NotStarted then
+      List(CloneSequenceMode.None, CloneSequenceMode.AllSteps)
+    else List(CloneSequenceMode.None, CloneSequenceMode.PendingSteps, CloneSequenceMode.AllSteps)
 
   lazy val acqOffset: SortedSet[Offset] =
     digest.value.foldMap(_.acquisition.telescopeConfigs.map(_.offset))

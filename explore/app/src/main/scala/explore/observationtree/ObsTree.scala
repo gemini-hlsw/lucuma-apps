@@ -25,13 +25,13 @@ import explore.model.ObservationList
 import explore.model.ObservationsAndGroups
 import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
-import explore.model.enums.SequenceCopy
 import explore.model.syntax.all.*
 import explore.tabs.DeckShown
 import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
@@ -331,7 +331,7 @@ object ObsTree:
       yield
         import ctx.given
 
-        def duplicate(obs: Observation, sequenceCopy: SequenceCopy): Callback =
+        def duplicate(obs: Observation, sequenceCopy: CloneSequenceMode): Callback =
           cloneObs(
             props.programId,
             List(obs.id),
@@ -471,8 +471,8 @@ object ObsTree:
                     .some,
                   deleteCB = deleteObsList(List(obs.id)),
                   cloneCB = (
-                    if SequenceCopy.choices(obs.execution).isEmpty then
-                      duplicate(obs, SequenceCopy.GenerateNew)
+                    if obs.execution.sequenceCopyChoices.isEmpty then
+                      duplicate(obs, CloneSequenceMode.None)
                     else duplicating.set(obs.some)
                   ).some,
                   setScienceBandCB = (
