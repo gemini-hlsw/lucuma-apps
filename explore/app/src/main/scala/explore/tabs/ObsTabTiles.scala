@@ -558,6 +558,7 @@ object ObsTabTiles:
             isEditingAcquisition,
             isEditingScience,
             props.isStaffOrAdminUser,
+            props.observation.get.isExecuted,
             props.attachments.get
           )
 
