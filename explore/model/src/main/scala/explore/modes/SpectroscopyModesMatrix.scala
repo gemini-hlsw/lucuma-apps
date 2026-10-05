@@ -392,6 +392,8 @@ object SpectroscopyModeRow {
       none
     )
 
+  private case class ScorpioOption(fpu: ScorpioFpu) derives Decoder
+
   given Decoder[SpectroscopyModeRow] = c =>
     for {
       name           <- c.downField("name").as[NonEmptyString]
@@ -415,11 +417,19 @@ object SpectroscopyModeRow {
       flamingos2     <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Spectroscopy]]
       ghost          <- c.downField("ghost").as[Option[ItcInstrumentConfig.GhostIfu]]
       gnirs          <- c.downField("gnirs").as[Option[ItcInstrumentConfig.GnirsSpectroscopy]]
+      scorpio        <- c.downField("scorpio").as[Option[ScorpioOption]]
     } yield gmosNorth
       .orElse(gmosSouth)
       .orElse(flamingos2)
       .orElse(ghost)
       .orElse(gnirs)
+      .orElse:
+        scorpio.map: s =>
+          ItcInstrumentConfig.ScorpioSpectroscopy(s.fpu,
+                                                  disperserLabel,
+                                                  filterLabel,
+                                                  placeholderEtm
+          )
       .orElse:
         Option.when(instrument === Instrument.Igrins2):
           ItcInstrumentConfig.Igrins2Spectroscopy(placeholderEtm)

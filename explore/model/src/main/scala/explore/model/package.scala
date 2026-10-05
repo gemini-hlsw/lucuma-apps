@@ -139,6 +139,10 @@ val SupportedInstruments: NonEmptyList[Instrument] =
     Instrument.Zorro
   )
 
+// Instruments whose spectroscopy rows are listed; those not in SupportedInstruments show disabled.
+val SpectroscopyModeInstruments: NonEmptyList[Instrument] =
+  SupportedInstruments :+ Instrument.Scorpio
+
 val InstrumentsWithoutItc: NonEmptyList[Instrument] =
   NonEmptyList.of(Instrument.Alopeke, Instrument.Zorro, Instrument.MaroonX)
 
