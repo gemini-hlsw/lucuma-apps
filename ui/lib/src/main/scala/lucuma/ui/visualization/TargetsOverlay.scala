@@ -6,66 +6,43 @@ package lucuma.ui.visualization
 import cats.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.svg_<^.*
-import lucuma.ags.AgsAnalysis
-import lucuma.core.math.Coordinates
-import lucuma.core.math.Offset
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
-import lucuma.ui.aladin.Fov
+import lucuma.ui.aladin.*
 import lucuma.ui.syntax.all.given
 
-import scala.math.*
-
 case class TargetsOverlay(
-  width:           Int,
-  height:          Int,
-  fov:             Fov,
-  screenOffset:    Offset,
-  baseCoordinates: Coordinates,
-  targets:         List[SvgTarget]
+  width:   Int,
+  height:  Int,
+  aladin:  Aladin,
+  targets: List[SvgTarget]
 ) extends ReactFnProps(TargetsOverlay)
 
 object TargetsOverlay
     extends ReactFnComponent[TargetsOverlay](p =>
-      val pixx = p.fov.x.toMicroarcseconds / p.width
-      val pixy = p.fov.y.toMicroarcseconds / p.height
-      val maxP = max(pixx, pixy)
+      // The svg is drawn in canvas pixels and positions come from aladin's own projection.
+      // Anything well outside the canvas is dropped or clipped, as large coordinates are
+      // clamped by some browsers
+      val minX = -ClipMargin
+      val minY = -ClipMargin
+      val maxX = p.width + ClipMargin
+      val maxY = p.height + ClipMargin
 
-      val (x0: Double, y0: Double, maxX: Double, maxY: Double, minSide: Double) =
-        p.targets.foldLeft(
-          (Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue, 0.0)
-        ) { case ((x, y, w, h, s), target) =>
-          val side: Double                 =
-            target match
-              case SvgTarget.CrosshairTarget(_, _, sidePx, _) =>
-                maxP * sidePx
-              case _                                          =>
-                0.0
-          val offset: Offset               = target.coordinates.diff(p.baseCoordinates).offset
-          // Offset amount
-          val (offP: Double, offQ: Double) = offset.micros
+      def inView(x: Double, y: Double): Boolean =
+        x >= minX && x <= maxX && y >= minY && y <= maxY
 
-          (x.min(offP), y.min(offQ), w.max(offP), h.max(offQ), s.max(side))
-        }
-
-      val w0: Double = abs(maxX - x0)
-      val h0: Double = abs(maxY - y0)
-
-      val (x: Double, y: Double, w: Double, h: Double) =
-        if (w0 == 0 || h0 == 0) (x0 - 2 * minSide, y0 - 2 * minSide, minSide * 2, minSide * 2)
-        else (x0, y0, w0, h0)
-
-      val (viewBoxX: Double, viewBoxY: Double, viewBoxW: Double, viewBoxH: Double) =
-        calculateViewBox(x, y, w, h, p.fov, p.screenOffset)
-
-      val targetsWithOffsets: List[(Double, Double, SvgTarget)] = p.targets
-        .fmap: target =>
-          val offset       = target.coordinates.diff(p.baseCoordinates).offset
-          val (offP, offQ) = offset.micros // Offset amount
-          (offP, offQ, target)
+      val targetsWithPixels: List[(Double, Double, SvgTarget)] = p.targets
+        .flatMap: target =>
+          p.aladin
+            .world2pixel(target.coordinates)
+            .filter: (x, y) =>
+              target match
+                case SvgTarget.LineTo(_, _, _, _) => true // Clipped when drawn
+                case _                            => inView(x, y)
+            .map((x, y) => (x, y, target))
 
       // 24 October 2024 - scalafix failing to parse with fewer braces
       val guideStarTooltips: List[VdomNode] =
@@ -83,40 +60,39 @@ object TargetsOverlay
 
       val svg: VdomNode = <.svg(
         VisualizationStyles.TargetsSvg,
-        ^.viewBox    := s"$viewBoxX $viewBoxY $viewBoxW $viewBoxH",
+        ^.viewBox    := s"0 0 ${p.width} ${p.height}",
         canvasWidth  := s"${p.width}px",
         canvasHeight := s"${p.height}px"
       )(
         <.g(VisualizationStyles.JtsTargets)(
-          targetsWithOffsets
+          targetsWithPixels
             .collect[VdomNode] {
-              case (offP, offQ, SvgTarget.CircleTarget(_, css, radius, title))    =>
+              case (x, y, SvgTarget.CircleTarget(_, css, radius, title))    =>
                 val pointCss: Css = VisualizationStyles.CircleTarget |+| css
 
                 <.circle(
-                  ^.cx := scale(offP),
-                  ^.cy := scale(offQ),
-                  ^.r  := scale(maxP * radius),
+                  ^.cx := x,
+                  ^.cy := y,
+                  ^.r  := radius,
                   pointCss,
                   title.map(<.title(_))
                 )
-              case (offP, offQ, SvgTarget.CrosshairTarget(_, css, sidePx, title)) =>
+              case (x, y, SvgTarget.CrosshairTarget(_, css, sidePx, title)) =>
                 val pointCss = VisualizationStyles.CrosshairTarget |+| css
 
-                val side  = scale(maxP * sidePx)
                 val lines = List(
                   <.line(
-                    ^.x1 := scale(offP) - side,
-                    ^.x2 := scale(offP) + side,
-                    ^.y1 := scale(offQ),
-                    ^.y2 := scale(offQ),
+                    ^.x1 := x - sidePx,
+                    ^.x2 := x + sidePx,
+                    ^.y1 := y,
+                    ^.y2 := y,
                     pointCss
                   ),
                   <.line(
-                    ^.x1 := scale(offP),
-                    ^.x2 := scale(offP),
-                    ^.y1 := scale(offQ) - side,
-                    ^.y2 := scale(offQ) + side,
+                    ^.x1 := x,
+                    ^.x2 := x,
+                    ^.y1 := y - sidePx,
+                    ^.y2 := y + sidePx,
                     pointCss
                   )
                 )
@@ -125,25 +101,23 @@ object TargetsOverlay
                 )(t =>
                   <.g(VisualizationStyles.VisualizationTooltipTarget)(
                     (lines :+ <.circle(
-                      ^.cx            := scale(offP),
-                      ^.cy            := scale(offQ),
-                      ^.r             := side,
+                      ^.cx            := x,
+                      ^.cy            := y,
+                      ^.r             := sidePx,
                       ^.fill          := "transparent",
                       ^.pointerEvents := "all"
                     ))*
                   ).withTooltipOptions(content = t)
                 )
 
-              case (offP, offQ, SvgTarget.SkyPositionTarget(_, css, sidePx, title)) =>
+              case (x, y, SvgTarget.SkyPositionTarget(_, css, sidePx, title)) =>
                 val pointCss  = VisualizationStyles.SkyPositionTarget |+| css
-                val side      = scale(maxP * sidePx)
-                val cx        = scale(offP)
-                val cy        = scale(offQ)
+                val side      = sidePx
                 val points    =
-                  s"$cx,${cy - side} ${cx + side},$cy $cx,${cy + side} ${cx - side},$cy"
-                val hitSide   = side + scale(maxP * 5.0)
+                  s"$x,${y - side} ${x + side},$y $x,${y + side} ${x - side},$y"
+                val hitSide   = side + 5.0
                 val hitPoints =
-                  s"$cx,${cy - hitSide} ${cx + hitSide},$cy $cx,${cy + hitSide} ${cx - hitSide},$cy"
+                  s"$x,${y - hitSide} ${x + hitSide},$y $x,${y + hitSide} ${x - hitSide},$y"
                 <.g(VisualizationStyles.VisualizationTooltipTarget)(
                   <.polygon(pointCss, ^.points := points),
                   <.polygon(
@@ -153,34 +127,30 @@ object TargetsOverlay
                   )
                 ).withTooltipOptions(content = title.getOrElse("<>"))
 
-              case (offP,
-                    offQ,
-                    SvgTarget.ScienceTarget(_, css, selectedCss, sidePx, selected, title)
-                  ) =>
+              case (x, y, SvgTarget.ScienceTarget(_, css, selectedCss, sidePx, selected, title)) =>
                 val pointCss = VisualizationStyles.CrosshairTarget |+| css
 
-                CrossTarget(offP, offQ, maxP, sidePx, pointCss, selectedCss, selected, title)
+                CrossTarget(x, y, sidePx, pointCss, selectedCss, selected, title)
 
-              case (offP, offQ, SvgTarget.GuideStarCandidateTarget(_, css, radius, ags, _)) =>
+              case (x, y, SvgTarget.GuideStarCandidateTarget(_, css, radius, ags, _)) =>
                 val pointCss = VisualizationStyles.GuideStarCandidateTarget |+| css
-                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags)
+                GuideStarTarget(x, y, radius, pointCss, ags)
 
-              case (offP, offQ, SvgTarget.GuideStarTarget(_, css, radius, ags, _)) =>
+              case (x, y, SvgTarget.GuideStarTarget(_, css, radius, ags, _)) =>
                 val pointCss = VisualizationStyles.GuideStarTarget |+| css
-                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags)
+                GuideStarTarget(x, y, radius, pointCss, ags)
 
-              case (offP, offQ, SvgTarget.OffsetIndicator(_, idx, o, oType, css, radius, title)) =>
+              case (x, y, SvgTarget.OffsetIndicator(_, idx, o, oType, css, radius, title)) =>
                 val pointCss = VisualizationStyles.OffsetPosition |+| css
-                OffsetSvg(offP, offQ, maxP, radius, pointCss, oType, idx, o)
+                OffsetSvg(x, y, radius, pointCss, oType, idx, o)
 
-              case (offP,
-                    offQ,
+              case (x,
+                    y,
                     SvgTarget.BlindOffsetTarget(_, css, selectedCss, radius, selected, title)
                   ) =>
                 BlindOffsetTarget(
-                  offP,
-                  offQ,
-                  maxP,
+                  x,
+                  y,
                   radius,
                   css,
                   selectedCss,
@@ -188,24 +158,21 @@ object TargetsOverlay
                   s"Blind Offset: ${title.getOrElse("<>")}"
                 )
 
-              case (offP, offQ, SvgTarget.LineTo(_, d, css, title)) =>
-                val destOffset: Offset = d.diff(p.baseCoordinates).offset
-                // Offset amount
-                val destP: Double      =
-                  Offset.P.signedDecimalArcseconds.get(destOffset.p).toDouble * 1e6
-                val destQ: Double      =
-                  Offset.Q.signedDecimalArcseconds.get(destOffset.q).toDouble * 1e6
-
+              case (x, y, SvgTarget.LineTo(_, d, css, title)) =>
                 val pointCss: Css = VisualizationStyles.ArrowBetweenTargets |+| css
 
-                <.line(
-                  ^.x1 := scale(offP),
-                  ^.x2 := scale(destP),
-                  ^.y1 := scale(offQ),
-                  ^.y2 := scale(destQ),
-                  pointCss,
-                  title.map(<.title(_))
-                )
+                p.aladin
+                  .world2pixel(d)
+                  .flatMap(clipSegment(x, y, _, _, minX, minY, maxX, maxY))
+                  .fold(EmptyVdom): (x1, y1, x2, y2) =>
+                    <.line(
+                      ^.x1 := x1,
+                      ^.x2 := x2,
+                      ^.y1 := y1,
+                      ^.y2 := y2,
+                      pointCss,
+                      title.map(<.title(_))
+                    )
             }
             .toTagMod
         )

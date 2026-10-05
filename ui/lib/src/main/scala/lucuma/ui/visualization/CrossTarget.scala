@@ -12,9 +12,8 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
 
 case class CrossTarget(
-  p:           Double,
-  q:           Double,
-  maxP:        Long,
+  x:           Double,
+  y:           Double,
   radius:      Double,
   pointCss:    Css,
   selectedCss: Css,
@@ -26,21 +25,21 @@ object CrossTarget
     extends ReactFnComponent[CrossTarget](p =>
       <.g(VisualizationStyles.VisualizationTooltipTarget)(
         <.circle(
-          ^.cx := scale(p.p),
-          ^.cy := scale(p.q),
-          ^.r  := scale(p.maxP * (p.radius + 3)),
+          ^.cx := p.x,
+          ^.cy := p.y,
+          ^.r  := p.radius + 3,
           p.selectedCss
         ).when(p.selected),
         <.circle(
-          ^.cx            := scale(p.p),
-          ^.cy            := scale(p.q),
-          ^.r             := scale(p.maxP * p.radius),
+          ^.cx            := p.x,
+          ^.cy            := p.y,
+          ^.r             := p.radius,
           p.pointCss
         ),
         <.circle(
-          ^.cx            := scale(p.p),
-          ^.cy            := scale(p.q),
-          ^.r             := scale(p.maxP * (p.radius + 5)),
+          ^.cx            := p.x,
+          ^.cy            := p.y,
+          ^.r             := p.radius + 5,
           ^.fill          := "transparent",
           ^.pointerEvents := "all"
         )

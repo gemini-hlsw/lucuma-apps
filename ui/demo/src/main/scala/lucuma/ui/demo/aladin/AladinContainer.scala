@@ -138,8 +138,6 @@ object AladinContainer {
         AladinStorage.saveOffset(newOffset).when_(relevantChange)
       )
 
-      val vizOffset = viewOffset.get
-
       /**
        * Called when the position changes, i.e. aladin pans. We want to offset the visualization to
        * keep the internal target correct
@@ -303,14 +301,12 @@ object AladinContainer {
             //       clazz = visibilityClasses
             //     )
             //   ),
-            (resize.width, resize.height)
+            (resize.width, resize.height, aladinRef.value)
               .mapN(
                 TargetsOverlay(
                   _,
                   _,
-                  props.fov.get,
-                  vizOffset,
-                  props.coordinates,
+                  _,
                   List(
                     SvgTarget
                       .CrosshairTarget(props.coordinates, Css("science-target"), 10)
