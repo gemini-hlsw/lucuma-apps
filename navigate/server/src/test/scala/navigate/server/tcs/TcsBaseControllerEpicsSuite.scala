@@ -201,6 +201,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- ctr.ecsEnableDome(DomeMode.MinVibration)
       _         <- ctr.ecsEnableShutters(shutterMode)
       _         <- ctr.ecsMoveEastVentGate(IntPercent.unsafeFrom((testVentEast * 100.0).toInt))
+      // The east vent gate reaches its position, so the west gate move must keep it there
+      _         <- st.ecs.update(
+                     _.focus(_.eastVentGatePos).replace(TestChannel.State.of(testVentEast * 100.0))
+                   )
       _         <- ctr.ecsMoveWestVentGate(IntPercent.unsafeFrom((testVentWest * 100.0).toInt))
       rs        <- st.tcs.get
     } yield {
@@ -3164,42 +3168,33 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     val westVentPos = 0.1
     for {
       (st, ctr) <- createController()
-      _         <- st.tcs.update(
-                     _.focus(_.enclosureState).replace(
-                       EnclosureStateChannelsState(
-                         TestChannel.State.of(""),
-                         TestChannel.State.of(""),
-                         TestChannel.State.of(""),
-                         TestChannel.State.of(0),
-                         TestChannel.State.of(0)
-                       )
-                     )
-                   )
       _         <- ctr.ecsMoveEastVentGate(IntPercent.unsafeFrom((eastVentPos * 100.0).toInt))
       r1        <- st.tcs.get
-      _         <- ctr.ecsCloseEastVentGate
-      r2        <- st.tcs.get
-      e2        <- st.ecs.get
+      // The east vent gate reaches its position, so the west gate move must keep it there
+      _         <- st.ecs.update(_.focus(_.eastVentGatePos).replace(TestChannel.State.of(50.0)))
       _         <- ctr.ecsMoveWestVentGate(IntPercent.unsafeFrom((westVentPos * 100.0).toInt))
-      r3        <- st.tcs.get
-      _         <- ctr.ecsCloseWestVentGate
-      r4        <- st.tcs.get
-      e4        <- st.ecs.get
+      r2        <- st.tcs.get
     } yield {
       assert(r1.enclosure.ecsVentGateEast.connected)
       assertEquals(r1.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), eastVentPos.some)
       assertEquals(r1.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), 0.0.some)
-      assertEquals(r2.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), 0.0.some)
-      assertEquals(r2.enclosure.ecsVentGatesDir.value, CadDirective.CLEAR.some)
-      assert(e2.closeEastVentGate.connected)
-      assertEquals(e2.closeEastVentGate.value, 1.some)
-      assertEquals(e2.closeWestVentGate.value, none)
-      assert(r3.enclosure.ecsVentGateWest.connected)
-      assertEquals(r3.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), westVentPos.some)
-      assertEquals(r4.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), 0.0.some)
-      assertEquals(r4.enclosure.ecsVentGatesDir.value, CadDirective.CLEAR.some)
-      assert(e4.closeWestVentGate.connected)
-      assertEquals(e4.closeWestVentGate.value, 1.some)
+      assertEquals(r2.enclosure.ecsVentGateEast.value.flatMap(_.toDoubleOption), eastVentPos.some)
+      assertEquals(r2.enclosure.ecsVentGateWest.value.flatMap(_.toDoubleOption), westVentPos.some)
+    }
+  }
+
+  test("Close ventilation gates") {
+    for {
+      (st, ctr) <- createController()
+      _         <- ctr.ecsCloseEastVentGate
+      e1        <- st.ecs.get
+      _         <- ctr.ecsCloseWestVentGate
+      e2        <- st.ecs.get
+    } yield {
+      assert(e1.closeEastVentGate.connected)
+      assertEquals(e1.closeEastVentGate.value, 1.some)
+      assertEquals(e1.closeWestVentGate.value, none)
+      assertEquals(e2.closeWestVentGate.value, 1.some)
     }
   }
 
@@ -3224,6 +3219,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(r1.enclosure.ecsShutterEnable.value.flatMap(Enumerated[BinaryOnOff].fromTag),
                    BinaryOnOff.Off.some
       )
+      assert(e1.stopShuttersDir.connected)
+      assertEquals(e1.stopShuttersDir.value, CadDirective.START.some)
       assert(e1.closeShutters.connected)
       assertEquals(e1.closeShutters.value, 1.some)
     }

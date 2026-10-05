@@ -9,6 +9,8 @@ import navigate.epics.Channel
 import navigate.epics.EpicsService
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.given
+import navigate.server.acm.CadDirective
+import navigate.server.epicsdata.DirSuffix
 
 case class EcsChannels[F[_]](
   telltale:             TelltaleChannel[F],
@@ -16,7 +18,8 @@ case class EcsChannels[F[_]](
   westVentGateAperture: Channel[F, Double],
   closeShutters:        Channel[F, Int],
   closeEastVentGate:    Channel[F, Int],
-  closeWestVentGate:    Channel[F, Int]
+  closeWestVentGate:    Channel[F, Int],
+  stopShuttersDir:      Channel[F, CadDirective]
 )
 
 object EcsChannels {
@@ -32,6 +35,7 @@ object EcsChannels {
     csh <- service.getChannel[Int](top, "closeSH.PROC")
     cev <- service.getChannel[Int](top, "closeEVG.PROC")
     cwv <- service.getChannel[Int](top, "closeWVG.PROC")
-  } yield EcsChannels(tt, evg, wvg, csh, cev, cwv)
+    ssd <- service.getChannel[CadDirective](top, s"stopShtrs$DirSuffix")
+  } yield EcsChannels(tt, evg, wvg, csh, cev, cwv, ssd)
 
 }

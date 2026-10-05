@@ -91,13 +91,6 @@ trait TcsEpicsSystem[F[_]] {
 
   def clearErrors: VerifiedEpics[F, F, Unit]
 
-  // Both vent gates are driven by the same CAD, which keeps the last value of each input. Before
-  // closing a gate by other means, its input must be reset to 0 or the next move of the other gate
-  // would send it back to the old position. Writing an input marks the CAD, so the directive is
-  // cleared afterwards to avoid triggering the move.
-  def resetEastVentGateInput: VerifiedEpics[F, F, Unit]
-  def resetWestVentGateInput: VerifiedEpics[F, F, Unit]
-
   val status: TcsStatus[F]
 }
 
@@ -1614,17 +1607,6 @@ object TcsEpicsSystem {
       WfsCommandsImpl(channels, channels.oiwfs, oiObsCmd, timeout, List.empty)
 
     override def clearErrors: VerifiedEpics[F, F, Unit] = epics.clear
-
-    private val clearVentGatesDir: VerifiedEpics[F, F, Unit] =
-      writeChannel(channels.telltale, channels.enclosure.ecsVentGatesDir)(
-        CadDirective.CLEAR.pure[F]
-      )
-
-    override def resetEastVentGateInput: VerifiedEpics[F, F, Unit] =
-      epics.ventGatesMoveCmd.setParam1(0.0) *> clearVentGatesDir
-
-    override def resetWestVentGateInput: VerifiedEpics[F, F, Unit] =
-      epics.ventGatesMoveCmd.setParam2(0.0) *> clearVentGatesDir
   }
 
   class TcsEpicsImpl[F[_]: Monad](
