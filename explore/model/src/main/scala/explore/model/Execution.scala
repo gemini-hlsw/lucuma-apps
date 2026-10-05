@@ -43,8 +43,7 @@ final case class Execution(
     if !hasMaterializedSequence then Nil
     else if executionState === ExecutionState.NotStarted ||
       executionState === ExecutionState.NotDefined
-    then
-      List(CloneSequenceMode.None, CloneSequenceMode.AllSteps)
+    then List(CloneSequenceMode.None, CloneSequenceMode.AllSteps)
     else List(CloneSequenceMode.None, CloneSequenceMode.PendingSteps, CloneSequenceMode.AllSteps)
 
   lazy val acqOffset: SortedSet[Offset] =
