@@ -37,10 +37,13 @@ final case class Execution(
     acquisitionSequenceIsMaterialized || scienceSequenceIsMaterialized
 
   // The Sequence Copy choices for a Duplicate, empty when there is nothing to ask. Pending and all
-  // steps are the same when nothing has started, so only all steps is offered then.
+  // steps are the same when nothing has started, so only all steps is offered then. The ODB never
+  // returns to NotDefined once execution starts.
   lazy val sequenceCopyChoices: List[CloneSequenceMode] =
     if !hasMaterializedSequence then Nil
-    else if executionState === ExecutionState.NotStarted then
+    else if executionState === ExecutionState.NotStarted ||
+      executionState === ExecutionState.NotDefined
+    then
       List(CloneSequenceMode.None, CloneSequenceMode.AllSteps)
     else List(CloneSequenceMode.None, CloneSequenceMode.PendingSteps, CloneSequenceMode.AllSteps)
 
