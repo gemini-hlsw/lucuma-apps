@@ -20,6 +20,7 @@ import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.FacilityObservingModeType
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
@@ -275,14 +276,16 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         Observation.observingMode.replace(Pot.Ready(mode))(obs)
 
   def cloneObservation(
-    obsId:      Observation.Id,
-    newGroupId: Option[Group.Id]
+    obsId:        Observation.Id,
+    newGroupId:   Option[Group.Id],
+    sequenceCopy: CloneSequenceMode
   ): F[Observation] =
     CloneObservationMutation[F]
       .execute:
         CloneObservationInput(
           observationId = obsId.assign,
-          SET = ObservationPropertiesInput(groupId = newGroupId.orUnassign).assign
+          SET = ObservationPropertiesInput(groupId = newGroupId.orUnassign).assign,
+          sequence = sequenceCopy
         )
       .processNoDataErrors
       .map(_.cloneObservation.newObservation)
@@ -304,7 +307,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             constraintSet = onConstraintSet.map(_.toInput).orIgnore,
             schedulingConstraints = onSchedulingConstraints.map(_.toInput).orIgnore,
             attachments = List.empty.assign // Always clean observation attachments
-          ).assign
+          ).assign,
+          sequence = CloneSequenceMode.None
         )
       .processErrorsIgnoring(ignorePendingObsCalc)
       .map(_.cloneObservation.newObservation)

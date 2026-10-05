@@ -102,6 +102,7 @@ trait ObservationDB {
     type CassRotator                         = enums.CassRotator
     type CatalogName                         = enums.CatalogName
     type ChargeClass                         = enums.ChargeClass
+    type CloneSequenceMode                   = enums.CloneSequenceMode
     type CloudExtinctionPreset               = CloudExtinction.Preset
     type ConfigurationRequestStatus          = enums.ConfigurationRequestStatus
     type ConsiderForBand3                    = enums.ConsiderForBand3

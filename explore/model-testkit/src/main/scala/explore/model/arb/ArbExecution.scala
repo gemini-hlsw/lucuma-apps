@@ -5,11 +5,13 @@ package explore.model.arb
 
 import explore.model.Execution
 import explore.model.ProgramTime
+import lucuma.core.enums.ExecutionState
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.arb.ArbExecutionDigest.given
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbCalculatedValue.given
+import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbTimeSpan.given
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -24,12 +26,14 @@ trait ArbExecution:
       original        <- arbitrary[Option[TimeSpan]]
       acqMaterialized <- arbitrary[Boolean]
       sciMaterialized <- arbitrary[Boolean]
+      executionState  <- arbitrary[ExecutionState]
     } yield Execution(
       digest,
       ProgramTime(timeCharge),
       original.map(ProgramTime(_)),
       acqMaterialized,
-      sciMaterialized
+      sciMaterialized,
+      executionState
     )
   )
 

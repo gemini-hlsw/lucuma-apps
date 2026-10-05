@@ -21,6 +21,7 @@ object ExecutionSubquery extends GraphQLSubquery.Typed[ObservationDB, Execution]
       }
       acquisitionSequenceIsMaterialized
       scienceSequenceIsMaterialized
+      executionState
     }
   """
 }
