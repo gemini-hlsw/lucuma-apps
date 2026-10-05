@@ -36,7 +36,6 @@ import explore.model.ProposalType.*
 import explore.model.display.given
 import explore.model.enums.TileSizeState
 import explore.model.enums.Visible
-import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.utils.testId
@@ -63,7 +62,6 @@ import lucuma.ui.display.given
 import lucuma.ui.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
-import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
 import lucuma.ui.undo.UndoButtons
@@ -193,6 +191,7 @@ object ProposalDetailsBody:
     timeEstimateRange:   CalculatedValue[Option[ProgramTimeRange]],
     readonly:            Boolean,
     showDialog:          View[Visible],
+    openSplitsEditor:    Callback,
     minTimeLabel:        String = "Min Time",
     maxTimeLabel:        String = "Max Time"
   ): VdomNode = {
@@ -289,7 +288,7 @@ object ProposalDetailsBody:
                   icon = Icons.Edit,
                   severity = Button.Severity.Secondary,
                   tpe = Button.Type.Button,
-                  onClick = showDialog.set(Visible.Shown),
+                  onClick = openSplitsEditor,
                   tooltip = "Edit Partner Splits",
                   disabled = readonly
                 ).mini.compact
@@ -347,6 +346,7 @@ object ProposalDetailsBody:
     exchangePartner:   Option[ExchangePartner],
     readonly:          Boolean,
     showDialog:        View[Visible],
+    openSplitsEditor:  Callback,
     aeonInstruments:   Map[Instrument, Site]
   ): VdomNode =
     val aeonMultiFacilityView: Option[View[Option[AeonMultiFacility]]] =
@@ -477,6 +477,7 @@ object ProposalDetailsBody:
           timeEstimateRange,
           readonly,
           showDialog,
+          openSplitsEditor,
           minTimeLabel,
           maxTimeLabel
         )
@@ -489,7 +490,8 @@ object ProposalDetailsBody:
     timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
     isCfpSelected:     Boolean,
     readonly:          Boolean,
-    showDialog:        View[Visible]
+    showDialog:        View[Visible],
+    openSplitsEditor:  Callback
   ): VdomNode =
     val minimumPctView: View[IntPercent]            = keck.zoom(KeckProposalType.minPercentTime)
     val partnerSplitsView: View[List[PartnerSplit]] = keck.zoom(KeckProposalType.partnerSplits)
@@ -504,7 +506,8 @@ object ProposalDetailsBody:
         None,
         timeEstimateRange,
         readonly,
-        showDialog
+        showDialog,
+        openSplitsEditor
       )
     else EmptyVdom
 
@@ -515,7 +518,8 @@ object ProposalDetailsBody:
     timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
     isCfpSelected:     Boolean,
     readonly:          Boolean,
-    showDialog:        View[Visible]
+    showDialog:        View[Visible],
+    openSplitsEditor:  Callback
   ): VdomNode =
     val minimumPctView: View[IntPercent]            = subaru.zoom(SubaruProposalType.minPercentTime)
     val partnerSplitsView: View[List[PartnerSplit]] = subaru.zoom(SubaruProposalType.partnerSplits)
@@ -531,9 +535,20 @@ object ProposalDetailsBody:
         None,
         timeEstimateRange,
         readonly,
-        showDialog
+        showDialog,
+        openSplitsEditor
       )
     else EmptyVdom
+
+  // The partners of the proposal's own call are used, rather than looking it up in the
+  // open calls, so that a call whose deadline has passed still lists its partners.
+  private def initialSplits(proposal: Proposal): List[PartnerSplit] =
+    val current          = proposal.proposalType.foldMap(ProposalType.anyPartnerSplits.get)
+    val callPartners     = proposal.call.foldMap(_.partners.map(_.partner))
+    val proposalPartners = current.filter(_.percent.value > 0).map(_.partner)
+
+    if proposalPartners.nonEmpty && proposalPartners.forall(callPartners.contains) then current
+    else callPartners.map(p => PartnerSplit(p, 0.refined))
 
   private def renderFn(
     props:      Props,
@@ -621,6 +636,10 @@ object ProposalDetailsBody:
         .view(_.map(_.toInput).orUnassign)
         .toOptionView
 
+    // The editor works on a copy of the splits, seeded from the proposal each time it opens.
+    val openSplitsEditor: Callback =
+      splitsList.set(initialSplits(props.proposal)) >> showDialog.set(Visible.Shown)
+
     val titleAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
       props.detailsAligner.zoom(ProgramDetails.name, ProgramPropertiesInput.name.modify)
 
@@ -677,15 +696,17 @@ object ProposalDetailsBody:
             clazz = ExploreStyles.WarningInput.when_(categoryView.get.isEmpty && !props.readonly)
           ),
           optGeminiView.map(gemini =>
-            geminiFields(gemini,
-                         splitsList,
-                         totalHours,
-                         props.timeEstimateRange,
-                         isCfpSelected,
-                         props.exchangePartner,
-                         props.readonly,
-                         showDialog,
-                         props.aeonInstruments
+            geminiFields(
+              gemini,
+              splitsList,
+              totalHours,
+              props.timeEstimateRange,
+              isCfpSelected,
+              props.exchangePartner,
+              props.readonly,
+              showDialog,
+              openSplitsEditor,
+              props.aeonInstruments
             )
           ),
           optKeckView.map(keck =>
@@ -695,7 +716,8 @@ object ProposalDetailsBody:
                        props.timeEstimateRange,
                        isCfpSelected,
                        props.readonly,
-                       showDialog
+                       showDialog,
+                       openSplitsEditor
             )
           ),
           optSubaruView.map(subaru =>
@@ -705,7 +727,8 @@ object ProposalDetailsBody:
                          props.timeEstimateRange,
                          isCfpSelected,
                          props.readonly,
-                         showDialog
+                         showDialog,
+                         openSplitsEditor
             )
           )
         ),
@@ -854,24 +877,6 @@ object ProposalDetailsBody:
                         .getOrElse(Hours.unsafeFrom(0))
       showDialog <- useStateView(Visible.Hidden)           // show partner splits modal
       splitsList <- useStateView(List.empty[PartnerSplit]) // partner splits modal
-      _          <- useEffectWithDeps((props.proposal.call.map(_.id), props.cfps)):
-                      // Update the partner splits when a new callId is set
-                      (callId, cfps) =>
-                        callId.foldMap(cid =>
-                          val currentSplits    = Proposal.proposalType.some
-                            .andThen(ProposalType.geminiProposalType)
-                            .andThen(GeminiProposalType.partnerSplits)
-                            .getOption(props.proposal)
-                          val cfpPartners      = cfps
-                            .find(_.id === cid)
-                            .foldMap(_.partners.map(_.partner))
-                          val proposalPartners = currentSplits.orEmpty.filter(_._2 > 0).map(_.partner)
-
-                          if (proposalPartners.nonEmpty && proposalPartners.forall(cfpPartners.contains))
-                            splitsList.set(currentSplits.orEmpty)
-                          else
-                            splitsList.set(cfpPartners.map(p => PartnerSplit(p, 0.refined)))
-                        )
     } yield renderFn(
       props,
       totalHours,
