@@ -55,6 +55,7 @@ final case class SequenceTile(
   isEditingScience:        View[IsEditing],
   isUserStaffOrAdmin:      Boolean,
   obsIsExecuted:           Boolean,
+  readonly:                Boolean,
   attachments:             AttachmentList
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
@@ -90,7 +91,7 @@ object SequenceTile
         // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =
           IsEditEnabled(
-            sizeState.isMaximized && liveSequence.isReady &&
+            sizeState.isMaximized && liveSequence.isReady && !props.readonly &&
               (props.isUserStaffOrAdmin || !props.obsIsExecuted)
           )
 
