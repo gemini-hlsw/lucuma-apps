@@ -37,17 +37,14 @@ object SequenceCopyDialog
             ("Generate new", "explore-sequence-copy-generate-new")
           case CloneSequenceMode.PendingSteps =>
             ("Copy pending steps", "explore-sequence-copy-pending-steps")
-          case CloneSequenceMode.AllSteps
-              if props.choices.contains(CloneSequenceMode.PendingSteps) =>
-            ("Copy all steps", "explore-sequence-copy-all-steps")
           case CloneSequenceMode.AllSteps     =>
-            ("Copy steps", "explore-sequence-copy-all-steps")
+            ("Copy all steps", "explore-sequence-copy-all-steps")
         val isDefault   = choice === CloneSequenceMode.None
         Button(
           label = label,
           icon = if isDefault then Icons.New else Icons.Clone,
           onClick = props.onChoose(choice)
-        ).small.withMods(^.key := label, ^.autoFocus := isDefault, testId := id)
+        ).small.compact.withMods(^.key := label, ^.autoFocus := isDefault, testId := id)
 
       val footer: VdomNode =
         <.div(
@@ -57,7 +54,7 @@ object SequenceCopyDialog
             icon = Icons.Close,
             severity = Button.Severity.Secondary,
             onClick = props.onCancel
-          ).small.withMods(testId := "explore-sequence-copy-cancel")
+          ).small.compact.withMods(testId := "explore-sequence-copy-cancel")
         )
 
       Dialog(
@@ -68,12 +65,10 @@ object SequenceCopyDialog
         position = DialogPosition.Top,
         modal = true,
         resizable = false,
-        clazz = LucumaPrimeStyles.Dialog.Small,
         modifiers = List(testId := "explore-sequence-copy-dialog")
       )(
         <.div(
-          s"Observation ${props.obs.foldMap(_.displayLabel)} has a stored sequence. " +
-            "What should the duplicate start with?"
+          s"${props.obs.foldMap(_.displayLabel)} has a stored sequence. Duplicate with:"
         )
       )
     )
