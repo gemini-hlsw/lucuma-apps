@@ -91,7 +91,7 @@ object ImagingFiltersPanel:
         Panel(
           header = <.span(
             "Filters",
-            HelpIcon("configuration/gmos/imaging-filters.md".refined),
+            HelpIcon("configuration/imaging-filters.md".refined),
             CustomizedGroupAddon(
               "original",
               props.filtersView.set(props.initialFilters),
