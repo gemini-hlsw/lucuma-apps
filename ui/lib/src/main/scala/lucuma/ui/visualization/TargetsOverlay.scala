@@ -14,6 +14,22 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.aladin.*
 import lucuma.ui.syntax.all.given
 
+/**
+ * Largest distance in pixels a marker is drawn from its center, including selection and tooltip
+ * areas. None for lines, they are clipped when drawn.
+ */
+private def renderedRadius(target: SvgTarget): Option[Double] =
+  target match
+    case SvgTarget.CircleTarget(radius = r)             => r.some
+    case SvgTarget.CrosshairTarget(side = s)            => s.some
+    case SvgTarget.ScienceTarget(side = s)              => (s + 5).some
+    case SvgTarget.SkyPositionTarget(side = s)          => (s + 5).some
+    case SvgTarget.GuideStarCandidateTarget(radius = r) => r.some
+    case SvgTarget.GuideStarTarget(radius = r)          => r.some
+    case SvgTarget.OffsetIndicator(radius = r)          => (r + 1.5).some
+    case SvgTarget.BlindOffsetTarget(radius = r)        => (r + 3).some
+    case SvgTarget.LineTo(_, _, _, _)                   => none
+
 case class TargetsOverlay(
   width:   Int,
   height:  Int,
@@ -31,17 +47,15 @@ object TargetsOverlay
       val maxX = p.width + ClipMargin
       val maxY = p.height + ClipMargin
 
-      def inView(x: Double, y: Double): Boolean =
-        x >= minX && x <= maxX && y >= minY && y <= maxY
+      // A marker is kept while any part of it can reach the canvas
+      def inView(x: Double, y: Double, radius: Double): Boolean =
+        x >= minX - radius && x <= maxX + radius && y >= minY - radius && y <= maxY + radius
 
       val targetsWithPixels: List[(Double, Double, SvgTarget)] = p.targets
         .flatMap: target =>
           p.aladin
             .world2pixel(target.coordinates)
-            .filter: (x, y) =>
-              target match
-                case SvgTarget.LineTo(_, _, _, _) => true // Clipped when drawn
-                case _                            => inView(x, y)
+            .filter((x, y) => renderedRadius(target).forall(inView(x, y, _)))
             .map((x, y) => (x, y, target))
 
       // 24 October 2024 - scalafix failing to parse with fewer braces
