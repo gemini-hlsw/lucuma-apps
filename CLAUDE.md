@@ -17,7 +17,7 @@ Plus two shared libraries:
 
 ## Build System
 
-Scala 3.8.2 on sbt 1.12.5. Frontend bundled with Vite. JS dependencies managed with pnpm 10.30.3. Java 17 (temurin).
+Scala 3.9.0 on sbt 1.13.0. Frontend bundled with Vite. JS dependencies managed with pnpm 12.8.2. Java 25 (temurin).
 
 ### Essential Commands
 
@@ -65,11 +65,15 @@ sbt -J-Xmx6g 'project rootJVM' '++ 3' headerCheckAll scalafmtCheckAll \
   'project /' scalafmtSbtCheck lucumaScalafmtCheck lucumaScalafixCheck
 sbt -J-Xmx6g 'project rootJVM' '++ 3' 'scalafixAll --check'
 
-# CSS linting
-sbt -J-Xmx6g '++ 3.8.2' ui_css/lucumaCss
+# CSS linting. Stylelint resolves custom properties from vars.css, which has to be
+# extracted from the lucuma-css sources first (as CI does); without it, every var()
+# from the lucuma-ui variables files is reported as unknown.
+sbt -J-Xmx6g '++ 3' ui_css/lucumaCss
+find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$/p' -e '/^[[:space:]]*--[^;]*$/,/;$/p' {} + >vars.css
 pnpm exec stylelint explore/common/src/main/webapp/sass
 pnpm exec stylelint observe/web/client/src/main/webapp/styles
 pnpm exec stylelint ui/lib/src/main/resources/lucuma-css
+rm vars.css
 
 # Prettier
 pnpm exec prettier --check .
