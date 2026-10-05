@@ -41,6 +41,8 @@ import org.http4s.client.Client
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import scala.concurrent.duration.*
+
 class NavigateEngineSpec extends CatsEffectSuite with RetryFlakyTests {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("navigate-engine")
@@ -137,37 +139,45 @@ class NavigateEngineSpec extends CatsEffectSuite with RetryFlakyTests {
     origin = Origin(Angle.fromMicroarcseconds(4567), Angle.fromMicroarcseconds(-8901))
   )
 
+  // The engine updates its state asynchronously with respect to the command results, so instead of
+  // counting events we wait for the guide demand to reach the expected value.
+  private def waitForGuide(eng: NavigateEngine[IO], expected: TelescopeGuideConfig): IO[Unit] =
+    eng.getGuideDemand
+      .flatMap { r =>
+        if (r.tcsGuide === expected) {
+          IO.unit
+        } else {
+          IO.sleep(10.millis) *> waitForGuide(eng, expected)
+        }
+      }
+      .timeout(5.seconds)
+
   test(
-    "NavigateEngine must reset guide configuration after a slew command when slew option in on.".flaky
+    "NavigateEngine must reset guide configuration after a slew command when slew option in on."
   ) {
     for {
       eng <- NavigateEngineSpec.buildEngine[IO]
-      _   <- Stream
-               .evals(
-                 List(
-                   eng.enableGuide(guideOnCfg),
-                   eng.slew(
-                     slewOptions,
-                     TcsConfig(
-                       target,
-                       instrumentSpecifics,
-                       GuiderConfig(pwfs1Target, wfsTracking).some,
-                       GuiderConfig(pwfs2Target, wfsTracking).some,
-                       GuiderConfig(oiwfsTarget, wfsTracking).some,
-                       RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       LightSink.GmosNorth,
-                       BafflesConfig
-                         .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
-                         .some
-                     ),
-                     none
-                   )
-                 ).sequence
-               )
-               .merge(eng.eventStream)
-               .take(4)
-               .compile
-               .drain
+      _   <- eng.eventStream.compile.drain.background.use { _ =>
+               eng.enableGuide(guideOnCfg) *>
+                 waitForGuide(eng, guideOnCfg) *>
+                 eng.slew(
+                   slewOptions,
+                   TcsConfig(
+                     target,
+                     instrumentSpecifics,
+                     GuiderConfig(pwfs1Target, wfsTracking).some,
+                     GuiderConfig(pwfs2Target, wfsTracking).some,
+                     GuiderConfig(oiwfsTarget, wfsTracking).some,
+                     RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
+                     LightSink.GmosNorth,
+                     BafflesConfig
+                       .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
+                       .some
+                   ),
+                   none
+                 ) *>
+                 waitForGuide(eng, NavigateEngine.GuideOff)
+             }
       r   <- eng.getGuideDemand
     } yield assertEquals(r.tcsGuide, NavigateEngine.GuideOff)
   }
