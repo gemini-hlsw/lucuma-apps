@@ -24,3 +24,13 @@ class CalibrationSetsSuite extends FunSuite:
   test("sets without time show only the count"):
     assertEquals(CalibrationSets.text(n(1), TimeSpan.Zero), Some("1 set"))
     assertEquals(CalibrationSets.text(n(3), TimeSpan.Zero), Some("3 sets"))
+
+  test("count times each has no text without calibrations"):
+    assertEquals(CalibrationSets.countTimesEach(n(0), mins(10)), None)
+
+  test("count times each shows the time of each"):
+    assertEquals(CalibrationSets.countTimesEach(n(1), mins(15)), Some("1 × 15m 0s"))
+    assertEquals(CalibrationSets.countTimesEach(n(2), mins(30)), Some("2 × 15m 0s"))
+
+  test("count times each without time shows only the count"):
+    assertEquals(CalibrationSets.countTimesEach(n(2), TimeSpan.Zero), Some("2"))

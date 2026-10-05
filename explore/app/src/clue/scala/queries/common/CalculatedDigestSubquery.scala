@@ -31,11 +31,23 @@ object CalculatedDigestSubquery
           }
           setupCount
           reacquisitionCount
-          calibrationCount
-          expectedCalibrations {
-            program $TimeSpanSubquery
-            nonCharged $TimeSpanSubquery
-            total $TimeSpanSubquery
+          calibrations {
+            existing {
+              count
+              time {
+                program $TimeSpanSubquery
+                nonCharged $TimeSpanSubquery
+                total $TimeSpanSubquery
+              }
+            }
+            expected {
+              count
+              time {
+                program $TimeSpanSubquery
+                nonCharged $TimeSpanSubquery
+                total $TimeSpanSubquery
+              }
+            }
           }
         }
         acquisition $SequenceDigestSubquery

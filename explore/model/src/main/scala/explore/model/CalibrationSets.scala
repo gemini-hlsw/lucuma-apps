@@ -25,3 +25,15 @@ object CalibrationSets:
         if total === TimeSpan.Zero then sets
         else if n.value === 1 then s"$sets, ${format(total)}"
         else s"$sets, ${format(total)} (${format(total /| n)} each)"
+
+  /**
+   * Count and the time of each calibration, as `N × T`, or `None` when there are none. The time is
+   * left out when it is zero.
+   */
+  def countTimesEach(count: NonNegInt, total: TimeSpan): Option[String] =
+    NonZeroInt
+      .from(count.value)
+      .toOption
+      .map: n =>
+        if total === TimeSpan.Zero then s"$n"
+        else s"$n × ${format(total /| n)}"

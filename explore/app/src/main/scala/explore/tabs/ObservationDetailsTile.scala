@@ -23,7 +23,6 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.User
-import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.refined.*
@@ -71,12 +70,9 @@ object ObservationDetailsTile
         def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
           TimeSpanView(time, TimeSpanFormatter.HoursMinutesLetter, tooltip = tooltip)
 
-        val telluricsTooltip: VdomNode =
-          "Created telluric observations, each at its own estimate."
-
-        val expectedTelluricsTooltip: VdomNode =
-          "Tellurics predicted but not created yet, each at the average of the group's " +
-            "tellurics, or 15m before any exists."
+        def telluricsTooltip(created: Int, expected: Int): VdomNode =
+          s"$created created, $expected expected. Created tellurics use their own estimate; " +
+            "expected ones use the average of the group's tellurics, or 15m before any exists."
 
         val totalTooltip: VdomNode =
           "Includes this observation's tellurics. Other separately scheduled calibrations are " +
@@ -169,26 +165,26 @@ object ObservationDetailsTile
               (steps.biases.time |+| steps.darks.time |+| steps.observing.time).programTime
 
             val total: TimeSpan =
-              d.fullTimeEstimate.programTime +| d.existingCalibrationTime.programTime
+              d.fullTimeEstimate.programTime +| d.calibrations.existing.time.programTime
 
             val gcalSetsRow: Option[VdomNode] =
               CalibrationSets
                 .text(d.science.gcalSets, gcalTotal)
                 .map(FormInfo(_, "Flats & Arcs"))
 
+            val cals = d.calibrations
+
             val telluricsRow: Option[VdomNode] =
               CalibrationSets
-                .text(d.existingCalibrationCount, d.existingCalibrationTime.programTime)
-                .map(FormInfo(_, "Tellurics", tooltip = telluricsTooltip))
-
-            val expectedTelluricsRow: Option[VdomNode] =
-              CalibrationSets
-                .text(d.expectedCalibrationCount, d.expectedCalibrationTime.programTime)
-                .map(FormInfo(_, "Expected Tellurics", tooltip = expectedTelluricsTooltip))
+                .countTimesEach(cals.count, (cals.existing.time |+| cals.expected.time).programTime)
+                .map: text =>
+                  val tooltip =
+                    telluricsTooltip(cals.existing.count.value, cals.expected.count.value)
+                  FormInfo(text, "Tellurics", tooltip = tooltip)
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
-                "Estimated Duration"
+                "Remaining Estimate Duration"
               )
                 .withOptionalTooltip(digest.staleTooltip),
               FormInfo(
@@ -201,7 +197,6 @@ object ObservationDetailsTile
                 "Setup"
               ),
               telluricsRow,
-              expectedTelluricsRow,
               FormInfo(
                 <.span(ExploreStyles.ObservationDetailsTotal)(duration(total, totalTooltip.some)),
                 "Total"
