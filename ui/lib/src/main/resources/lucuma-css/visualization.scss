@@ -262,7 +262,7 @@
   }
 
   .visitor-science-fov {
-    stroke: cyan;
+    stroke: var(--science-slit-stroke);
     stroke-width: 0.8px;
     fill: var(--visitor-science-fov-fill-color);
     fill-opacity: var(--visitor-science-fov-fill-opacity);
