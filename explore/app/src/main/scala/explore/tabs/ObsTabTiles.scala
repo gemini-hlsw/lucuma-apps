@@ -104,21 +104,22 @@ import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 
 case class ObsTabTiles(
-  vault:            Option[UserVault],
-  programId:        Program.Id,
-  programType:      ProgramType,
-  modes:            ScienceModes,
-  backButton:       VdomNode,
-  observation:      UndoSetter[Observation],
-  obsAndTargets:    UndoSetter[ObservationsAndTargets],
-  attachments:      View[AttachmentList],
-  programSummaries: ProgramSummaries,
-  focusedTarget:    Option[Target.Id],
-  searching:        View[Set[Target.Id]],
-  selectedGSName:   View[Option[NonEmptyString]],
-  resize:           UseResizeDetectorReturn,
-  userPreferences:  View[UserPreferences],
-  readonly:         Boolean
+  vault:             Option[UserVault],
+  programId:         Program.Id,
+  programType:       ProgramType,
+  modes:             ScienceModes,
+  backButton:        VdomNode,
+  observation:       UndoSetter[Observation],
+  obsAndTargets:     UndoSetter[ObservationsAndTargets],
+  attachments:       View[AttachmentList],
+  programSummaries:  ProgramSummaries,
+  focusedTarget:     Option[Target.Id],
+  searching:         View[Set[Target.Id]],
+  selectedGSName:    View[Option[NonEmptyString]],
+  resize:            UseResizeDetectorReturn,
+  userPreferences:   View[UserPreferences],
+  readonly:          Boolean,
+  programIsReadonly: Boolean
 ) extends ReactFnProps(ObsTabTiles.component):
   val isStaffOrAdminUser: Boolean = vault.isStaffOrAdmin
   val obsIsReadonly: Boolean      =
@@ -558,6 +559,8 @@ object ObsTabTiles:
             isEditingAcquisition,
             isEditingScience,
             props.isStaffOrAdminUser,
+            props.observation.get.isExecuted,
+            props.programIsReadonly,
             props.attachments.get
           )
 

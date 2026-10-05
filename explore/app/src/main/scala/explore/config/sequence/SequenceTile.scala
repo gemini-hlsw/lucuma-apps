@@ -54,6 +54,8 @@ final case class SequenceTile(
   isEditingAcquisition:    View[IsEditing],
   isEditingScience:        View[IsEditing],
   isUserStaffOrAdmin:      Boolean,
+  obsIsExecuted:           Boolean,
+  readonly:                Boolean,
   attachments:             AttachmentList
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
@@ -86,8 +88,12 @@ object SequenceTile
         val programTimeCharge: TimeSpan    = execution.programTimeCharge.value
         val executed: TagOf[HTMLElement]   = timeDisplay("Executed", programTimeCharge)
 
+        // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =
-          IsEditEnabled(sizeState.isMaximized && liveSequence.isReady)
+          IsEditEnabled(
+            sizeState.isMaximized && liveSequence.isReady && !props.readonly &&
+              (props.isUserStaffOrAdmin || !props.obsIsExecuted)
+          )
 
         // A materialized sequence isn't regenerated when the configuration changes, and with no
         // sequence yet the body already shows a spinner, so this only marks an in-place update.

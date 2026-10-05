@@ -354,7 +354,8 @@ object ObsTabContents extends TwoPanels:
                   obsView.zoom(Observation.selectedGSName),
                   resize,
                   props.userPreferences,
-                  obsIsReadonly
+                  obsIsReadonly,
+                  props.readonly
                 ).withKey(s"${obsId.show}")
               )
         }
