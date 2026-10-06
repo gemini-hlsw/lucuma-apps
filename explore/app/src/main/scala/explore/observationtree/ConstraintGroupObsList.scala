@@ -6,6 +6,7 @@ package explore.observationtree
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
+import crystal.react.hooks.*
 import explore.Icons
 import explore.common.ConstraintsQueries
 import explore.components.ActionButtons
@@ -14,6 +15,7 @@ import explore.model.AppContext
 import explore.model.ConstraintGroupList
 import explore.model.DismissedWarnings
 import explore.model.Focused
+import explore.model.GroupList
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
 import explore.model.Observation
@@ -24,6 +26,7 @@ import explore.model.syntax.all.*
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Program
@@ -49,6 +52,7 @@ case class ConstraintGroupObsList(
   observations:          UndoSetter[ObservationList],
   undoer:                Undoer,
   constraintGroups:      ConstraintGroupList,
+  groups:                GroupList,
   focusedObsSet:         Option[ObsIdSet],
   setSummaryPanel:       Callback,
   expandedIds:           View[SortedSet[ObsIdSet]],
@@ -163,34 +167,37 @@ object ConstraintGroupObsList:
 
   private val component = ScalaFnComponent[Props]: props =>
     for
-      ctx      <- useContext(AppContext.ctx)
-      dragging <- useState(false)
-      _        <- useEffectOnMount:
-                    val expandedIds = props.expandedIds
+      ctx         <- useContext(AppContext.ctx)
+      dragging    <- useState(false)
+      // The observation and its constraint group, as they were when Duplicate was pressed,
+      // waiting for a Sequence Copy choice
+      duplicating <- useStateView(none[(Observation, ObsIdSet)])
+      _           <- useEffectOnMount:
+                       val expandedIds = props.expandedIds
 
-                    val selectedGroupObsIds =
-                      props.focusedObsSet
-                        .flatMap(idSet =>
-                          props.constraintGroups.find { case (key, _) => idSet.subsetOf(key) }
-                        )
-                        .map(_._1)
+                       val selectedGroupObsIds =
+                         props.focusedObsSet
+                           .flatMap(idSet =>
+                             props.constraintGroups.find { case (key, _) => idSet.subsetOf(key) }
+                           )
+                           .map(_._1)
 
-                    // Unfocus the group with observations doesn't exist
-                    val unfocus =
-                      if (props.focusedObsSet.nonEmpty && selectedGroupObsIds.isEmpty)
-                        ctx.replacePage((AppTab.Constraints, props.programId, Focused.None).some)
-                      else Callback.empty
+                       // Unfocus the group with observations doesn't exist
+                       val unfocus =
+                         if (props.focusedObsSet.nonEmpty && selectedGroupObsIds.isEmpty)
+                           ctx.replacePage((AppTab.Constraints, props.programId, Focused.None).some)
+                         else Callback.empty
 
-                    val expandSelected = selectedGroupObsIds.foldMap(obsIds => expandedIds.mod(_ + obsIds))
+                       val expandSelected = selectedGroupObsIds.foldMap(obsIds => expandedIds.mod(_ + obsIds))
 
-                    val cleanupExpandedIds =
-                      expandedIds.mod(_.filter(ids => props.constraintGroups.contains(ids)))
+                       val cleanupExpandedIds =
+                         expandedIds.mod(_.filter(ids => props.constraintGroups.contains(ids)))
 
-                    for
-                      _ <- unfocus
-                      _ <- expandSelected
-                      _ <- cleanupExpandedIds
-                    yield ()
+                       for
+                         _ <- unfocus
+                         _ <- expandSelected
+                         _ <- cleanupExpandedIds
+                       yield ()
     yield
       import ctx.given
 
@@ -237,6 +244,30 @@ object ConstraintGroupObsList:
 
       def setObs(obsId: Observation.Id): Callback =
         setObsSet(ObsIdSet.one(obsId).some)
+
+      // The clone shares the constraints, so it joins the group of the original observation.
+      def duplicate(obs: Observation, groupObsIds: ObsIdSet)(
+        sequenceCopy: CloneSequenceMode
+      ): Callback =
+        duplicateObs(
+          obs,
+          sequenceCopy,
+          props.observations,
+          props.groups,
+          focusClone =
+            newObsId => props.expandedIds.mod(_ + groupObsIds.add(newObsId)) >> setObs(newObsId),
+          onRemoved = props.expandedIds.mod(_ + groupObsIds) >> setObs(obs.id),
+          ctx
+        ).runAsync
+
+      val sequenceCopyDialog: VdomNode =
+        SequenceCopyDialog(
+          duplicating.get.map(_._1),
+          onChoose = choice =>
+            duplicating.set(none) >>
+              duplicating.get.foldMap((obs, groupObsIds) => duplicate(obs, groupObsIds)(choice)),
+          onCancel = duplicating.set(none)
+        )
 
       val handleDragEnd = onDragEnd(
         props.observations,
@@ -305,6 +336,9 @@ object ConstraintGroupObsList:
               linkToObsTab = false,
               onSelect = setObs,
               onDelete = deleteObs(ObsIdSet.one(obs.id)),
+              onClone = Option.unless(props.readonly)(
+                requestDuplicate(obs, duplicating, (obs, obsIds))(duplicate(obs, obsIds))
+              ),
               onCtrlClick = id => handleCtrlClick(id, obsIds),
               hasBlindOffset = obs.hasBlindOffset,
               ctx = ctx
@@ -377,6 +411,7 @@ object ConstraintGroupObsList:
             <.div(ExploreStyles.ObsScrollTree)(
               constraintGroups.map((obsIds, c) => renderGroup(obsIds, c)).toTagMod
             )
-          )
+          ),
+          sequenceCopyDialog
         )
       )

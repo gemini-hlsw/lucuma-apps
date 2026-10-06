@@ -264,7 +264,8 @@ object ObsActions:
     newGroupId:   Option[Group.Id],
     sequenceCopy: CloneSequenceMode,
     focusObs:     Observation.Id => Callback = _ => Callback.empty,
-    postMessage:  String => IO[Unit] = _ => IO.unit
+    postMessage:  String => IO[Unit] = _ => IO.unit,
+    onRemoved:    Callback = Callback.empty
   )(using
     odbApi:       OdbObservationApi[IO]
   ): AsyncAction[ObservationList, List[Observation.Id], List[Option[Observation]]] =
@@ -278,13 +279,15 @@ object ObsActions:
         (_, elemListOpt) =>
           elemListOpt.sequence.fold(
             odbApi.deleteObservations(obsIds) >>
-              postMessage(s"Deleted ${obsIds.length} observation(s)")
+              postMessage(s"Deleted ${obsIds.length} observation(s)") >>
+              onRemoved.toAsync
           )(obsList => obsList.headOption.foldMap(obs => focusObs(obs.id).toAsync)),
       onRestore = obsIds =>
         (_, elemListOpt) =>
           elemListOpt.sequence.fold(
             odbApi.deleteObservations(obsIds) >>
-              postMessage(s"Deleted ${obsIds.length} observation(s)")
+              postMessage(s"Deleted ${obsIds.length} observation(s)") >>
+              onRemoved.toAsync
           )(obsList =>
             odbApi.undeleteObservations(obsIds) >>
               postMessage(s"Restored ${obsIds.length} observation(s)") >>
