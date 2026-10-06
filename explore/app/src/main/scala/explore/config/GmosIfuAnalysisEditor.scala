@@ -24,8 +24,9 @@ import monocle.Lens
 
 /**
  * How the ITC samples the IFU field. `GmosIfuAnalysis` is a `@oneOf`, so the shape is picked first
- * and then its single angle edited; switching shape keeps the angle, which is the value the
- * observer was just looking at.
+ * and then its single angle edited. Each shape has its own default angle: switching shape while the
+ * angle is still the old shape's default moves it to the new shape's default, while a customized
+ * angle survives the switch, as it is the value the observer was just looking at.
  */
 enum GmosIfuAnalysisKind(val tag: String, val name: String) derives Enumerated, Display:
   case Sum    extends GmosIfuAnalysisKind("Sum", "Summed")
@@ -37,6 +38,40 @@ object GmosIfuAnalysisKind:
       case GmosIfuAnalysis.Sum(_)    => GmosIfuAnalysisKind.Sum
       case GmosIfuAnalysis.Single(_) => GmosIfuAnalysisKind.Single
 
+  def angleOf(analysis: GmosIfuAnalysis): Angle =
+    analysis match
+      case GmosIfuAnalysis.Sum(radius)    => radius
+      case GmosIfuAnalysis.Single(offset) => offset
+
+  // Zero is a legal offset -- the element on the field centre -- but not a legal radius, so it is
+  // the one angle that cannot cross into a Sum; carry the default across instead.
+  private def asSumRadius(a: Angle): Angle =
+    if Angle.signedMicroarcseconds.get(a) > 0 then a else GmosIfuAnalysis.DefaultSumRadius
+
+  /**
+   * The default analysis for `kind`. The observing mode's default only covers its own shape, so the
+   * other shape falls back to the core defaults.
+   */
+  def defaultFor(default: GmosIfuAnalysis)(kind: GmosIfuAnalysisKind): GmosIfuAnalysis =
+    if kind === fromGmosIfuAnalysis(default) then default
+    else
+      kind match
+        case GmosIfuAnalysisKind.Sum    => GmosIfuAnalysis.Sum(GmosIfuAnalysis.DefaultSumRadius)
+        case GmosIfuAnalysisKind.Single => GmosIfuAnalysis.Single(Angle.Angle0)
+
+  /**
+   * Switches `current` to `kind`. A default angle is replaced by the new shape's default; a
+   * customized one is kept.
+   */
+  def switchKind(
+    default: GmosIfuAnalysis
+  )(kind: GmosIfuAnalysisKind)(current: GmosIfuAnalysis): GmosIfuAnalysis =
+    if current === defaultFor(default)(fromGmosIfuAnalysis(current)) then defaultFor(default)(kind)
+    else
+      kind match
+        case GmosIfuAnalysisKind.Sum    => GmosIfuAnalysis.Sum(asSumRadius(angleOf(current)))
+        case GmosIfuAnalysisKind.Single => GmosIfuAnalysis.Single(angleOf(current))
+
 final case class GmosIfuAnalysisEditor(
   analysis:                 View[GmosIfuAnalysis],
   default:                  GmosIfuAnalysis,
@@ -47,22 +82,10 @@ final case class GmosIfuAnalysisEditor(
 
 object GmosIfuAnalysisEditor
     extends ReactFnComponent[GmosIfuAnalysisEditor](props =>
-      // The angle survives a shape change: it is the number the observer is looking at.
-      val angleOf: GmosIfuAnalysis => Angle =
-        case GmosIfuAnalysis.Sum(radius)    => radius
-        case GmosIfuAnalysis.Single(offset) => offset
-
-      // Zero is a legal offset -- the element on the field centre -- but not a legal radius, so
-      // it is the one angle that cannot cross into a Sum; carry the default across instead.
-      val asSumRadius: Angle => Angle = a =>
-        if Angle.signedMicroarcseconds.get(a) > 0 then a else GmosIfuAnalysis.DefaultSumRadius
+      import GmosIfuAnalysisKind.angleOf
 
       val kindLens: Lens[GmosIfuAnalysis, GmosIfuAnalysisKind] =
-        Lens(GmosIfuAnalysisKind.fromGmosIfuAnalysis): k =>
-          a =>
-            k match
-              case GmosIfuAnalysisKind.Sum    => GmosIfuAnalysis.Sum(asSumRadius(angleOf(a)))
-              case GmosIfuAnalysisKind.Single => GmosIfuAnalysis.Single(angleOf(a))
+        Lens(GmosIfuAnalysisKind.fromGmosIfuAnalysis)(GmosIfuAnalysisKind.switchKind(props.default))
 
       val angleLens: Lens[GmosIfuAnalysis, Angle] =
         Lens(angleOf): angle =>
@@ -107,7 +130,7 @@ object GmosIfuAnalysisEditor
             changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined).denyNeg,
             // Indented to read as a property of the analysis above rather than its own setting.
             label = angleLabel,
-            defaultValue = angleOf(props.default),
+            defaultValue = angleOf(GmosIfuAnalysisKind.defaultFor(props.default)(kind.get)),
             units = "\"".some,
             disabled = props.readonly,
             showCustomization = props.showCustomization,
