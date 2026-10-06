@@ -8,8 +8,8 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import clue.StreamingClient
 import clue.data.syntax.*
-import explore.model.SpectroscopyModeInstruments
-import explore.model.SupportedInstruments
+import explore.model.ImagingInstruments
+import explore.model.SpectroscopyInstruments
 import explore.modes.AltairModeRows
 import explore.modes.ImagingModeRow
 import explore.modes.ImagingModesMatrix
@@ -32,7 +32,7 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
   def scienceModes: F[ScienceModes] =
     ModesQueriesGQL
       .ScienceModes[F]
-      .query(SpectroscopyModeInstruments.toList, SupportedInstruments.toList)
+      .query(SpectroscopyInstruments.toList, ImagingInstruments.toList)
       .processErrors
       .map: u =>
         val imgModes: List[ImagingModeRow]       =

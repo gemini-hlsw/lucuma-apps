@@ -133,7 +133,8 @@ case class SpectroscopyModeRow(
 
   val enabled =
     (isSingleSlit || isSupportedIfu || isGmosMos || isFlamingos2Mos || isMaroonX) &&
-      SupportedInstruments.contains_(instrumentConfig.instrument)
+      SupportedInstruments.contains_(instrumentConfig.instrument) &&
+      instrumentConfig.canBeAccepted
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
   def intervalCenter(cw: Wavelength): Option[CentralWavelength] =
