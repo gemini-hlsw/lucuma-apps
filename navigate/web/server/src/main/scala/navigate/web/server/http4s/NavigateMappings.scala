@@ -3,6 +3,7 @@
 
 package navigate.web.server.http4s
 
+import cats.MonadThrow
 import cats.data.Validated
 import cats.effect.Sync
 import cats.syntax.all.*
@@ -18,7 +19,6 @@ import grackle.Value
 import grackle.Value.*
 import grackle.circe.CirceMapping
 import grackle.syntax.given
-import io.circe.syntax.*
 import lucuma.core.enums.ComaOption
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
@@ -108,7 +108,6 @@ import navigate.web.server.OcsBuildInfo
 import org.typelevel.log4cats.Logger
 
 import java.time.LocalDate
-import scala.reflect.classTag
 
 import encoder.given
 
@@ -122,63 +121,55 @@ class NavigateMappings[F[_]: Sync](
   import NavigateMappings._
 
   def telescopeState: F[Result[TelescopeState]] =
-    server.getTelescopeState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getTelescopeState.attemptResult
 
   def guideState: F[Result[GuideState]] =
-    server.getGuideState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getGuideState.attemptResult
 
   def guidersQualityValues: F[Result[GuidersQualityValues]] =
-    server.getGuidersQuality.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getGuidersQuality.attemptResult
 
   def navigateState: F[Result[NavigateState]] =
-    server.getNavigateState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getNavigateState.attemptResult
 
-  def targetAdjustmentOffsets: F[Result[TargetOffsets]]   =
-    server.getTargetAdjustments.attempt.map(
-      _.fold(e => Result.failure(e.getMessage), Result.success)
-    )
+  def targetAdjustmentOffsets: F[Result[TargetOffsets]] =
+    server.getTargetAdjustments.attemptResult
+
   def originAdjustmentOffset: F[Result[FocalPlaneOffset]] =
-    server.getOriginOffset.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getOriginOffset.attemptResult
 
   def pointingAdjustmentOffset: F[Result[PointingCorrections]] =
-    server.getPointingOffset.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getPointingOffset.attemptResult
 
   def acMechsState: F[Result[AcMechsState]] =
-    server.getAcMechsState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getAcMechsState.attemptResult
 
   def pwfs1MechsState: F[Result[PwfsMechsState]] =
-    server.getPwfs1MechsState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getPwfs1MechsState.attemptResult
 
   def pwfs2MechsState: F[Result[PwfsMechsState]] =
-    server.getPwfs2MechsState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getPwfs2MechsState.attemptResult
 
-  def pwfs1ConfigState: F[Result[WfsConfiguration]] = server.getPwfs1Configuration.attempt.map(
-    _.fold(e => Result.failure(e.getMessage), Result.success)
-  )
+  def pwfs1ConfigState: F[Result[WfsConfiguration]] =
+    server.getPwfs1Configuration.attemptResult
 
-  def pwfs2ConfigState: F[Result[WfsConfiguration]] = server.getPwfs2Configuration.attempt.map(
-    _.fold(e => Result.failure(e.getMessage), Result.success)
-  )
+  def pwfs2ConfigState: F[Result[WfsConfiguration]] =
+    server.getPwfs2Configuration.attemptResult
 
-  def oiwfsConfigState: F[Result[WfsConfiguration]] = server.getOiwfsConfiguration.attempt.map(
-    _.fold(e => Result.failure(e.getMessage), Result.success)
-  )
+  def oiwfsConfigState: F[Result[WfsConfiguration]] =
+    server.getOiwfsConfiguration.attemptResult
 
   def bafflesState: F[Result[BafflesState]] =
-    server.getBafflesState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+    server.getBafflesState.attemptResult
 
   def instrumentPort(env: Env): F[Result[Option[Int]]] =
     env
       .get[Instrument]("instrument")
-      .map(ins =>
+      .toResult("instrumentPort parameter could not be parsed.")
+      .flatTraverse: ins =>
         server
           .getInstrumentPort(ins)
-          .attempt
-          .map(_.fold(e => Result.failure(e.getMessage), Result.success))
-      )
-      .getOrElse(
-        Result.failure[Option[Int]]("instrumentPort parameter could not be parsed.").pure[F]
-      )
+          .attemptResult
 
   def serverVersion: F[Result[String]] = Result.success(OcsBuildInfo.version).pure[F]
 
@@ -196,530 +187,380 @@ class NavigateMappings[F[_]: Sync](
   def mountFollow(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map { en =>
+      .toResult("mountFollow parameter could not be parsed.")
+      .flatTraverse: en =>
         server
           .mcsFollow(en)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome]("mountFollow parameter could not be parsed.").pure[F]
-      )
+          .attemptResultOutcome
 
   def rotatorFollow(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map { en =>
+      .toResult("rotatorFollow parameter could not be parsed.")
+      .flatTraverse: en =>
         server
           .rotFollow(en)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure("rotatorFollow parameter could not be parsed.").pure[F]
-      )
+          .attemptResultOutcome
 
   def rotatorConfig(env: Env): F[Result[OperationOutcome]] =
     env
       .get[RotatorTrackConfig]("config")
-      .map { cfg =>
+      .toResult("rotatorConfig parameter could not be parsed.")
+      .flatTraverse: cfg =>
         server
           .rotTrackingConfig(cfg)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure("rotatorConfig parameter could not be parsed.").pure[F]
-      )
+          .attemptResultOutcome
 
   def scsFollow(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map { en =>
+      .toResult("scsFollow parameter could not be parsed.")
+      .flatTraverse: en =>
         server
           .scsFollow(en)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome]("scsFollow parameter could not be parsed.").pure[F]
-      )
+          .attemptResultOutcome
 
   def instrumentSpecifics(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[InstrumentSpecifics]("instrumentSpecificsParams")(using classTag[InstrumentSpecifics])
-      .map { isp =>
+      .get[InstrumentSpecifics]("instrumentSpecificsParams")
+      .toResult("InstrumentSpecifics parameters could not be parsed.")
+      .flatTraverse: isp =>
         server
           .instrumentSpecifics(isp)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("InstrumentSpecifics parameters could not be parsed.")
-          .pure[F]
-      )
+          .attemptResultOutcome
 
-  def slew(env: Env): F[Result[OperationOutcome]] = (for {
-    oid <- env.get[Option[Observation.Id]]("obsId")
-    so  <- env.get[SlewOptions]("slewOptions")
-    tc  <- env.get[TcsConfig]("config")
-  } yield server
-    .slew(so, tc, oid)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome](s"Slew parameters $env oid could not be parsed.").pure[F]
-  )
+  def slew(env: Env): F[Result[OperationOutcome]] =
+    (
+      env.get[Option[Observation.Id]]("obsId"),
+      env.get[SlewOptions]("slewOptions"),
+      env.get[TcsConfig]("config")
+    ).tupled
+      .toResult(s"Slew parameters $env oid could not be parsed.")
+      .flatTraverse: (oid, so, tc) =>
+        server
+          .slew(so, tc, oid)
+          .attemptResultOutcome
 
   def tcsConfig(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[TcsConfig]("config")(using classTag[TcsConfig])
-      .map { tc =>
+      .get[TcsConfig]("config")
+      .toResult("tcsConfig parameters could not be parsed.")
+      .flatTraverse: tc =>
         server
           .tcsConfig(tc)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("tcsConfig parameters could not be parsed.")
-          .pure[F]
-      )
+          .attemptResultOutcome
 
   def swapTarget(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[SwapConfig]("swapConfig")(using classTag[SwapConfig])
-      .map { t =>
+      .get[SwapConfig]("swapConfig")
+      .toResult("swapTarget parameters could not be parsed.")
+      .flatTraverse: t =>
         server
           .swapTarget(t)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("swapTarget parameters could not be parsed.")
-          .pure[F]
-      )
+          .attemptResultOutcome
 
   def restoreTarget(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[TcsConfig]("config")(using classTag[TcsConfig])
-      .map { tc =>
+      .get[TcsConfig]("config")
+      .toResult("restoreTarget parameters could not be parsed.")
+      .flatTraverse: tc =>
         server
           .restoreTarget(tc)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("restoreTarget parameters could not be parsed.")
-          .pure[F]
-      )
+          .attemptResultOutcome
 
   private def wfsTarget(name: String, cmd: Target => F[CommandResult])(
     env: Env
   ): F[Result[OperationOutcome]] =
     env
-      .get[Target]("target")(using classTag[Target])
-      .map { oi =>
-        cmd(oi).attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome](s"${name}Target parameters could not be parsed.").pure[F]
-      )
+      .get[Target]("target")
+      .toResult(s"${name}Target parameters could not be parsed.")
+      .flatTraverse: oi =>
+        cmd(oi).attemptResultOutcome
 
   private def wfsProbeTracking(name: String, cmd: TrackingConfig => F[CommandResult])(
     env: Env
   ): F[Result[OperationOutcome]] =
     env
-      .get[TrackingConfig]("config")(using classTag[TrackingConfig])
-      .map { tc =>
-        cmd(tc).attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result
-          .failure[OperationOutcome](s"${name}ProbeTracking parameters could not be parsed.")
-          .pure[F]
-      )
+      .get[TrackingConfig]("config")
+      .toResult(s"${name}ProbeTracking parameters could not be parsed.")
+      .flatTraverse: tc =>
+        cmd(tc).attemptResultOutcome
 
   def wfsFollow(name: String, cmd: Boolean => F[CommandResult])(
     env: Env
   ): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map { en =>
-        cmd(en).attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome](s"${name}Follow parameter could not be parsed.").pure[F]
-      )
+      .toResult(s"${name}Follow parameter could not be parsed.")
+      .flatTraverse: en =>
+        cmd(en).attemptResultOutcome
 
   def wfsObserve(name: String, cmd: TimeSpan => F[CommandResult])(
     env: Env
   ): F[Result[OperationOutcome]] =
     env
       .get[TimeSpan]("period")
-      .map { p =>
-        cmd(p).attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome](s"${name}Observe parameter could not be parsed.").pure[F]
-      )
+      .toResult(s"${name}Observe parameter could not be parsed.")
+      .flatTraverse: p =>
+        cmd(p).attemptResultOutcome
 
   def wfsFilter(name: String, cmd: PwfsFilter => F[CommandResult])(
     env: Env
   ): F[Result[OperationOutcome]] =
     env
       .get[PwfsFilter]("filter")
-      .map { p =>
-        cmd(p).attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome](s"${name}Filter parameter could not be parsed.").pure[F]
-      )
+      .toResult(s"${name}Filter parameter could not be parsed.")
+      .flatTraverse: p =>
+        cmd(p).attemptResultOutcome
 
   def wfsFieldStop(name: String, cmd: PwfsFieldStop => F[CommandResult])(
     env: Env
   ): F[Result[OperationOutcome]] =
     env
       .get[PwfsFieldStop]("fieldStop")
-      .map { p =>
-        cmd(p).attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome](s"${name}FieldStop parameter could not be parsed.").pure[F]
-      )
+      .toResult(s"${name}FieldStop parameter could not be parsed.")
+      .flatTraverse: p =>
+        cmd(p).attemptResultOutcome
 
   def acObserve(env: Env): F[Result[OperationOutcome]] =
     env
       .get[TimeSpan]("period")
-      .map { p =>
+      .toResult("acObserve parameter could not be parsed.")
+      .flatTraverse: p =>
         server
           .acObserve(p)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome]("acObserve parameter could not be parsed.").pure[F]
-      )
+          .attemptResultOutcome
 
   def guideEnable(env: Env): F[Result[OperationOutcome]] =
     env
       .get[TelescopeGuideConfig]("config")
-      .map { cfg =>
+      .toResult("guideEnable parameters could not be parsed.")
+      .flatTraverse: cfg =>
         server
           .enableGuide(cfg)
-          .attempt
-          .map(convertResult)
-      }
-      .getOrElse(
-        Result.failure[OperationOutcome]("guideEnable parameters could not be parsed.").pure[F]
-      )
+          .attemptResultOutcome
 
   def acquisitionAdjustment(env: Env): F[Result[OperationOutcome]] =
     env
       .get[AcquisitionAdjustment]("adjustment")
-      .map { adj =>
+      .toResult("acquisitionAdjustment parameters could not be parsed.")
+      .flatTraverse: adj =>
         // First publish the adjustment. if the action fails other clients will be informed anyway
         topics.acquisitionAdjustment.publish1(adj) *>
           // Run the adjustment if the user confirms, preserve the upstream error
           (adj.command === AcquisitionAdjustmentCommand.UserConfirms)
             .valueOrPure[F, Result[OperationOutcome]](
-              parameterlessCommand(server.acquisitionAdj(adj.offset, adj.iaa, adj.ipa))
+              server.acquisitionAdj(adj.offset, adj.iaa, adj.ipa).attemptResultOutcome
             )(Result.success(OperationOutcome.success))
-      }
-      .getOrElse {
-        Result
-          .failure[OperationOutcome]("acquisitionAdjustment parameters could not be parsed.")
-          .pure[F]
-      }
-  def wfsSky(env: Env): F[Result[OperationOutcome]]                = (for {
-    wfs <- env.get[GuideProbe]("wfs")
-    exp <- env.get[TimeSpan]("period")
-  } yield server
-    .wfsSky(wfs, exp)
-    .attempt
-    .map(convertResult))
-    .getOrElse(Result.failure[OperationOutcome]("WFS Sky parameters could not be parsed.").pure[F])
 
-  def lightpathConfig(env: Env): F[Result[OperationOutcome]] = (for {
-    from <- env.get[LightSource]("from")
-    ins  <- env.get[Instrument]("instrument")
-    lsv  <- env.get[Option[LightSinkVariant]]("lightSinkVariant")
-    ls   <- LightSink.fromInstrumentAndVariant(ins, lsv)
-  } yield server
-    .lightPathConfig(from, ls)
-    .attempt
-    .map(convertResult))
-    .getOrElse(Result.failure[OperationOutcome]("Slew parameters could not be parsed.").pure[F])
+  def wfsSky(env: Env): F[Result[OperationOutcome]] =
+    (env.get[GuideProbe]("wfs"), env.get[TimeSpan]("period")).tupled
+      .toResult("WFS Sky parameters could not be parsed.")
+      .flatTraverse: (wfs, exp) =>
+        server
+          .wfsSky(wfs, exp)
+          .attemptResultOutcome
 
-  def adjustTarget(env: Env): F[Result[OperationOutcome]] = (for {
-    target    <- env.get[VirtualTelescope]("target")
-    offset    <- env.get[HandsetAdjustment]("offset")
-    openLoops <- env.get[Boolean]("openLoops")
-  } yield server
-    .targetAdjust(target, offset, openLoops)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Target adjustment parameters could not be parsed.").pure[F]
-  )
+  def lightpathConfig(env: Env): F[Result[OperationOutcome]] =
+    (for {
+      from <- env.get[LightSource]("from")
+      ins  <- env.get[Instrument]("instrument")
+      lsv  <- env.get[Option[LightSinkVariant]]("lightSinkVariant")
+      ls   <- LightSink.fromInstrumentAndVariant(ins, lsv)
+    } yield (from, ls))
+      .toResult("lightpathConfig parameters could not be parsed.")
+      .flatTraverse: (from, ls) =>
+        server
+          .lightPathConfig(from, ls)
+          .attemptResultOutcome
 
-  def adjustOrigin(env: Env): F[Result[OperationOutcome]] = (for {
-    offset    <- env.get[HandsetAdjustment]("offset")
-    openLoops <- env.get[Boolean]("openLoops")
-  } yield server
-    .originAdjust(offset, openLoops)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Origin adjustment parameters could not be parsed.").pure[F]
-  )
+  def adjustTarget(env: Env): F[Result[OperationOutcome]] =
+    (
+      env.get[VirtualTelescope]("target"),
+      env.get[HandsetAdjustment]("offset"),
+      env.get[Boolean]("openLoops")
+    ).tupled
+      .toResult("Target adjustment parameters could not be parsed.")
+      .flatTraverse: (target, offset, openLoops) =>
+        server
+          .targetAdjust(target, offset, openLoops)
+          .attemptResultOutcome
 
-  def offset(env: Env): F[Result[OperationOutcome]] = (for {
-    offset  <- env.get[Offset]("offset")
-    guiding <- env.get[Boolean]("guiding")
-  } yield server
-    .offset(offset, guiding)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Offset parameters could not be parsed.").pure[F]
-  )
+  def adjustOrigin(env: Env): F[Result[OperationOutcome]] =
+    (env.get[HandsetAdjustment]("offset"), env.get[Boolean]("openLoops")).tupled
+      .toResult("Origin adjustment parameters could not be parsed.")
+      .flatTraverse: (offset, openLoops) =>
+        server
+          .originAdjust(offset, openLoops)
+          .attemptResultOutcome
 
-  def centralWavelength(env: Env): F[Result[OperationOutcome]] = (for {
-    wavelength <- env.get[Wavelength]("wavelength")
-  } yield server
-    .centralWavelength(wavelength)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Central wavelength parameter could not be parsed.").pure[F]
-  )
+  def offset(env: Env): F[Result[OperationOutcome]] =
+    (env.get[Offset]("offset"), env.get[Boolean]("guiding")).tupled
+      .toResult("Offset parameters could not be parsed.")
+      .flatTraverse: (offset, guiding) =>
+        server
+          .offset(offset, guiding)
+          .attemptResultOutcome
 
-  def configureStep(env: Env): F[Result[OperationOutcome]] = (for {
-    offset     <- env.get[Option[Offset]]("offset")
-    wavelength <- env.get[Option[Wavelength]]("wavelength")
-    lightPath  <- env.get[Option[LightPath]]("lightPath")
-    defocus    <- env.get[Option[Distance]]("defocus")
-    guiding    <- env.get[Boolean]("guiding")
-  } yield server
-    .configureStep(offset, wavelength, lightPath, defocus, guiding)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("ConfigureStep parameters could not be parsed.").pure[F]
-  )
+  def centralWavelength(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Wavelength]("wavelength")
+      .toResult("Central wavelength parameter could not be parsed.")
+      .flatTraverse: wavelength =>
+        server
+          .centralWavelength(wavelength)
+          .attemptResultOutcome
 
-  def adjustPointing(env: Env): F[Result[OperationOutcome]] = (for {
-    offset <- env.get[HandsetAdjustment]("offset")
-  } yield server
-    .pointingAdjust(offset)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Pointing adjustment parameters could not be parsed.").pure[F]
-  )
+  def configureStep(env: Env): F[Result[OperationOutcome]] =
+    (
+      env.get[Option[Offset]]("offset"),
+      env.get[Option[Wavelength]]("wavelength"),
+      env.get[Option[LightPath]]("lightPath"),
+      env.get[Option[Distance]]("defocus"),
+      env.get[Boolean]("guiding")
+    ).tupled
+      .toResult("ConfigureStep parameters could not be parsed.")
+      .flatTraverse: (offset, wavelength, lightPath, defocus, guiding) =>
+        server
+          .configureStep(offset, wavelength, lightPath, defocus, guiding)
+          .attemptResultOutcome
 
-  def resetTargetAdjustment(env: Env): F[Result[OperationOutcome]] = (for {
-    target    <- env.get[VirtualTelescope]("target")
-    openLoops <- env.get[Boolean]("openLoops")
-  } yield server
-    .targetOffsetClear(target, openLoops)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Clear target offset parameters could not be parsed.").pure[F]
-  )
+  def adjustPointing(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[HandsetAdjustment]("offset")
+      .toResult("Pointing adjustment parameters could not be parsed.")
+      .flatTraverse: offset =>
+        server
+          .pointingAdjust(offset)
+          .attemptResultOutcome
 
-  def absorbTargetAdjustment(env: Env): F[Result[OperationOutcome]] = (for {
-    target <- env.get[VirtualTelescope]("target")
-  } yield server
-    .targetOffsetAbsorb(target)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Absorb target offset parameters could not be parsed.").pure[F]
-  )
+  def resetTargetAdjustment(env: Env): F[Result[OperationOutcome]] =
+    (env.get[VirtualTelescope]("target"), env.get[Boolean]("openLoops")).tupled
+      .toResult("Clear target offset parameters could not be parsed.")
+      .flatTraverse: (target, openLoops) =>
+        server
+          .targetOffsetClear(target, openLoops)
+          .attemptResultOutcome
 
-  def resetOriginAdjustment(env: Env): F[Result[OperationOutcome]] = (for {
-    openLoops <- env.get[Boolean]("openLoops")
-  } yield server
-    .originOffsetClear(openLoops)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("Clear origin offset parameters could not be parsed.").pure[F]
-  )
+  def absorbTargetAdjustment(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[VirtualTelescope]("target")
+      .toResult("Absorb target offset parameters could not be parsed.")
+      .flatTraverse: target =>
+        server
+          .targetOffsetAbsorb(target)
+          .attemptResultOutcome
 
-  def acLens(env: Env): F[Result[OperationOutcome]] = (for {
-    lens <- env.get[AcLens]("lens")
-  } yield server
-    .acLens(lens)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("AC lens parameter could not be parsed.").pure[F]
-  )
+  def resetOriginAdjustment(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Boolean]("openLoops")
+      .toResult("Clear origin offset parameters could not be parsed.")
+      .flatTraverse: openLoops =>
+        server
+          .originOffsetClear(openLoops)
+          .attemptResultOutcome
 
-  def acFilter(env: Env): F[Result[OperationOutcome]] = (for {
-    filter <- env.get[AcFilter]("filter")
-  } yield server
-    .acFilter(filter)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("AC filter parameter could not be parsed.").pure[F]
-  )
+  def acLens(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[AcLens]("lens")
+      .toResult("AC lens parameter could not be parsed.")
+      .flatTraverse: lens =>
+        server
+          .acLens(lens)
+          .attemptResultOutcome
 
-  def acNdFilter(env: Env): F[Result[OperationOutcome]] = (for {
-    ndFilter <- env.get[AcNdFilter]("ndFilter")
-  } yield server
-    .acNdFilter(ndFilter)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("AC ND filter parameter could not be parsed.").pure[F]
-  )
+  def acFilter(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[AcFilter]("filter")
+      .toResult("AC filter parameter could not be parsed.")
+      .flatTraverse: filter =>
+        server
+          .acFilter(filter)
+          .attemptResultOutcome
 
-  def acWindowSize(env: Env): F[Result[OperationOutcome]] = (for {
-    windowSize <- env.get[AcWindow]("size")
-  } yield server
-    .acWindowSize(windowSize)
-    .attempt
-    .map(convertResult)).getOrElse(
-    Result.failure[OperationOutcome]("AC Window parameter could not be parsed.").pure[F]
-  )
+  def acNdFilter(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[AcNdFilter]("ndFilter")
+      .toResult("AC ND filter parameter could not be parsed.")
+      .flatTraverse: ndFilter =>
+        server
+          .acNdFilter(ndFilter)
+          .attemptResultOutcome
+
+  def acWindowSize(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[AcWindow]("size")
+      .toResult("AC Window parameter could not be parsed.")
+      .flatTraverse: windowSize =>
+        server
+          .acWindowSize(windowSize)
+          .attemptResultOutcome
 
   def pwfs1CircularBuffer(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map(
-        server
-          .pwfs1CircularBuffer(_)
-          .attempt
-          .map(convertResult)
-      )
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("PWFS1 circular buffer parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("PWFS1 circular buffer parameter could not be parsed.")
+      .flatTraverse(server.pwfs1CircularBuffer(_).attemptResultOutcome)
 
   def pwfs1QlMode(env: Env): F[Result[OperationOutcome]] =
     env
       .get[QlMode]("mode")
-      .map(server.pwfs1QlMode(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("PWFS1 QL mode parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("PWFS1 QL mode parameter could not be parsed.")
+      .flatTraverse(server.pwfs1QlMode(_).attemptResultOutcome)
 
   def pwfs2CircularBuffer(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map(
-        server
-          .pwfs2CircularBuffer(_)
-          .attempt
-          .map(convertResult)
-      )
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("PWFS2 circular buffer parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("PWFS2 circular buffer parameter could not be parsed.")
+      .flatTraverse(server.pwfs2CircularBuffer(_).attemptResultOutcome)
 
   def pwfs2QlMode(env: Env): F[Result[OperationOutcome]] =
     env
       .get[QlMode]("mode")
-      .map(server.pwfs2QlMode(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("PWFS2 QL mode parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("PWFS2 QL mode parameter could not be parsed.")
+      .flatTraverse(server.pwfs2QlMode(_).attemptResultOutcome)
 
   def oiwfsCircularBuffer(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
-      .map(
-        server
-          .oiwfsCircularBuffer(_)
-          .attempt
-          .map(convertResult)
-      )
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("OIWFS circular buffer parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("OIWFS circular buffer parameter could not be parsed.")
+      .flatTraverse(server.oiwfsCircularBuffer(_).attemptResultOutcome)
 
   def oiwfsQlMode(env: Env): F[Result[OperationOutcome]] =
     env
       .get[QlMode]("mode")
-      .map(server.oiwfsQlMode(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("OIWFS QL mode parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("OIWFS QL mode parameter could not be parsed.")
+      .flatTraverse(server.oiwfsQlMode(_).attemptResultOutcome)
 
   def domeEnable(env: Env): F[Result[OperationOutcome]] =
     env
       .get[DomeMode]("mode")
-      .map(server.ecsEnableDome(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("Dome mode parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("Dome mode parameter could not be parsed.")
+      .flatTraverse(server.ecsEnableDome(_).attemptResultOutcome)
 
   def shuttersEnable(env: Env): F[Result[OperationOutcome]] =
     env
       .get[ShutterMode]("mode")
-      .map(server.ecsEnableShutters(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("Shutter mode parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("Shutter mode parameter could not be parsed.")
+      .flatTraverse(server.ecsEnableShutters(_).attemptResultOutcome)
 
   def eastVentGateEnable(env: Env): F[Result[OperationOutcome]] =
     env
       .get[IntPercent]("position")
-      .map(server.ecsMoveEastVentGate(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("East vent parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("East vent parameter could not be parsed.")
+      .flatTraverse(server.ecsMoveEastVentGate(_).attemptResultOutcome)
 
   def westVentGateEnable(env: Env): F[Result[OperationOutcome]] =
     env
       .get[IntPercent]("position")
-      .map(server.ecsMoveWestVentGate(_).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("West vent parameter could not be parsed.")
-          .pure[F]
-      )
+      .toResult("West vent parameter could not be parsed.")
+      .flatTraverse(server.ecsMoveWestVentGate(_).attemptResultOutcome)
 
   def refreshEphemerisFiles(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Option[LocalDate]]("observingNight")
-      .map(d => server.refreshEphemerides(d).attempt.map(convertResult))
-      .getOrElse(
-        Result
-          .failure[OperationOutcome]("Ephemeris file refresh parameter could not be parsed.")
-          .pure[F]
-      )
-
-  def parameterlessCommand(cmd: F[CommandResult]): F[Result[OperationOutcome]] =
-    cmd.attempt
-      .map(convertResult)
-
-  def convertResult(r: Either[Throwable, CommandResult]): Result[OperationOutcome] = r match {
-    case Right(CommandResult.CommandSuccess)      => Result.success(OperationOutcome.success)
-    case Right(CommandResult.CommandPaused)       => Result.success(OperationOutcome.success)
-    case Right(CommandResult.CommandFailure(msg)) => Result.failure(msg)
-    case Left(e)                                  => Result.internalError(e)
-  }
+      .toResult("Ephemeris file refresh parameter could not be parsed.")
+      .flatTraverse(server.refreshEphemerides(_).attemptResultOutcome)
 
   val QueryType: TypeRef        = schema.ref("Query")
   val MutationType: TypeRef     = schema.ref("Mutation")
@@ -1225,18 +1066,16 @@ class NavigateMappings[F[_]: Sync](
       ObjectMapping(
         tpe = MutationType,
         fieldMappings = List(
-          RootEffect.computeEncodable("mountPark")((_, _) => parameterlessCommand(server.mcsPark)),
+          RootEffect.computeEncodable("mountPark")((_, _) => server.mcsPark.attemptResultOutcome),
           RootEffect.computeEncodable("mountFollow")((_, env) => mountFollow(env)),
           RootEffect.computeEncodable("mountUnwrap")((_, _) =>
-            parameterlessCommand(server.mcsUnwrap)
+            server.mcsUnwrap.attemptResultOutcome
           ),
-          RootEffect.computeEncodable("rotatorPark")((_, _) =>
-            parameterlessCommand(server.rotPark)
-          ),
+          RootEffect.computeEncodable("rotatorPark")((_, _) => server.rotPark.attemptResultOutcome),
           RootEffect.computeEncodable("rotatorFollow")((_, env) => rotatorFollow(env)),
           RootEffect.computeEncodable("rotatorConfig")((_, env) => rotatorConfig(env)),
           RootEffect.computeEncodable("rotatorUnwrap")((_, _) =>
-            parameterlessCommand(server.rotUnwrap)
+            server.rotUnwrap.attemptResultOutcome
           ),
           RootEffect.computeEncodable("scsFollow")((_, env) => scsFollow(env)),
           RootEffect.computeEncodable("tcsConfig")((_, env) => tcsConfig(env)),
@@ -1250,20 +1089,18 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("pwfs1ProbeTracking")((_, env) =>
             wfsProbeTracking("pwfs1", server.pwfs1ProbeTracking)(env)
           ),
-          RootEffect.computeEncodable("pwfs1Park")((_, _) =>
-            parameterlessCommand(server.pwfs1Park)
-          ),
+          RootEffect.computeEncodable("pwfs1Park")((_, _) => server.pwfs1Park.attemptResultOutcome),
           RootEffect.computeEncodable("pwfs1Follow")((_, env) =>
             wfsFollow("pwfs1", server.pwfs1Follow)(env)
           ),
           RootEffect.computeEncodable("pwfs1Unwrap")((_, _) =>
-            parameterlessCommand(server.pwfs1Unwrap)
+            server.pwfs1Unwrap.attemptResultOutcome
           ),
           RootEffect.computeEncodable("pwfs1Observe")((_, env) =>
             wfsObserve("pwfs1", server.pwfs1Observe)(env)
           ),
           RootEffect.computeEncodable("pwfs1StopObserve")((_, _) =>
-            parameterlessCommand(server.pwfs1StopObserve)
+            server.pwfs1StopObserve.attemptResultOutcome
           ),
           RootEffect.computeEncodable("pwfs1Filter")((_, env) =>
             wfsFilter("pwfs1", server.pwfs1Filter)(env)
@@ -1277,20 +1114,18 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("pwfs2ProbeTracking")((_, env) =>
             wfsProbeTracking("pwfs2", server.pwfs2ProbeTracking)(env)
           ),
-          RootEffect.computeEncodable("pwfs2Park")((_, _) =>
-            parameterlessCommand(server.pwfs2Park)
-          ),
+          RootEffect.computeEncodable("pwfs2Park")((_, _) => server.pwfs2Park.attemptResultOutcome),
           RootEffect.computeEncodable("pwfs2Follow")((_, env) =>
             wfsFollow("pwfs2", server.pwfs2Follow)(env)
           ),
           RootEffect.computeEncodable("pwfs2Unwrap")((_, _) =>
-            parameterlessCommand(server.pwfs2Unwrap)
+            server.pwfs2Unwrap.attemptResultOutcome
           ),
           RootEffect.computeEncodable("pwfs2Observe")((_, env) =>
             wfsObserve("pwfs2", server.pwfs2Observe)(env)
           ),
           RootEffect.computeEncodable("pwfs2StopObserve")((_, _) =>
-            parameterlessCommand(server.pwfs2StopObserve)
+            server.pwfs2StopObserve.attemptResultOutcome
           ),
           RootEffect.computeEncodable("pwfs2Filter")((_, env) =>
             wfsFilter("pwfs2", server.pwfs2Filter)(env)
@@ -1304,9 +1139,7 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("oiwfsProbeTracking")((_, env) =>
             wfsProbeTracking("oiwfs", server.oiwfsProbeTracking)(env)
           ),
-          RootEffect.computeEncodable("oiwfsPark")((_, _) =>
-            parameterlessCommand(server.oiwfsPark)
-          ),
+          RootEffect.computeEncodable("oiwfsPark")((_, _) => server.oiwfsPark.attemptResultOutcome),
           RootEffect.computeEncodable("oiwfsFollow")((_, env) =>
             wfsFollow("oiwfs", server.oiwfsFollow)(env)
           ),
@@ -1314,32 +1147,32 @@ class NavigateMappings[F[_]: Sync](
             wfsObserve("oiwfs", server.oiwfsObserve)(env)
           ),
           RootEffect.computeEncodable("oiwfsStopObserve")((_, _) =>
-            parameterlessCommand(server.oiwfsStopObserve)
+            server.oiwfsStopObserve.attemptResultOutcome
           ),
           RootEffect.computeEncodable("acObserve")((_, env) => acObserve(env)),
           RootEffect.computeEncodable("acStopObserve")((_, _) =>
-            parameterlessCommand(server.acStopObserve)
+            server.acStopObserve.attemptResultOutcome
           ),
           RootEffect.computeEncodable("guideEnable")((_, env) => guideEnable(env)),
           RootEffect.computeEncodable("guideDisable")((_, _) =>
-            parameterlessCommand(server.disableGuide)
+            server.disableGuide.attemptResultOutcome
           ),
-          RootEffect.computeEncodable("m1Park")((_, _) => parameterlessCommand(server.m1Park)),
-          RootEffect.computeEncodable("m1Unpark")((_, _) => parameterlessCommand(server.m1Unpark)),
+          RootEffect.computeEncodable("m1Park")((_, _) => server.m1Park.attemptResultOutcome),
+          RootEffect.computeEncodable("m1Unpark")((_, _) => server.m1Unpark.attemptResultOutcome),
           RootEffect.computeEncodable("m1OpenLoopOff")((_, _) =>
-            parameterlessCommand(server.m1OpenLoopOff)
+            server.m1OpenLoopOff.attemptResultOutcome
           ),
           RootEffect.computeEncodable("m1OpenLoopOn")((_, _) =>
-            parameterlessCommand(server.m1OpenLoopOn)
+            server.m1OpenLoopOn.attemptResultOutcome
           ),
           RootEffect.computeEncodable("m1ZeroFigure")((_, _) =>
-            parameterlessCommand(server.m1ZeroFigure)
+            server.m1ZeroFigure.attemptResultOutcome
           ),
           RootEffect.computeEncodable("m1LoadAoFigure")((_, _) =>
-            parameterlessCommand(server.m1LoadAoFigure)
+            server.m1LoadAoFigure.attemptResultOutcome
           ),
           RootEffect.computeEncodable("m1LoadNonAoFigure")((_, _) =>
-            parameterlessCommand(server.m1LoadNonAoFigure)
+            server.m1LoadNonAoFigure.attemptResultOutcome
           ),
           RootEffect.computeEncodable("lightpathConfig")((_, env) => lightpathConfig(env)),
           RootEffect.computeEncodable("acquisitionAdjustment") { (_, env) =>
@@ -1373,19 +1206,19 @@ class NavigateMappings[F[_]: Sync](
             absorbTargetAdjustment(env)
           ),
           RootEffect.computeEncodable("resetLocalPointingAdjustment")((_, _) =>
-            parameterlessCommand(server.pointingOffsetClearLocal)
+            server.pointingOffsetClearLocal.attemptResultOutcome
           ),
           RootEffect.computeEncodable("resetGuidePointingAdjustment")((_, _) =>
-            parameterlessCommand(server.pointingOffsetClearGuide)
+            server.pointingOffsetClearGuide.attemptResultOutcome
           ),
           RootEffect.computeEncodable("absorbGuidePointingAdjustment")((_, _) =>
-            parameterlessCommand(server.pointingOffsetAbsorbGuide)
+            server.pointingOffsetAbsorbGuide.attemptResultOutcome
           ),
           RootEffect.computeEncodable("resetOriginAdjustment")((_, env) =>
             resetOriginAdjustment(env)
           ),
           RootEffect.computeEncodable("absorbOriginAdjustment")((_, _) =>
-            parameterlessCommand(server.originOffsetAbsorb)
+            server.originOffsetAbsorb.attemptResultOutcome
           ),
           RootEffect.computeEncodable("acLens")((_, env) => acLens(env)),
           RootEffect.computeEncodable("acFilter")((_, env) => acFilter(env)),
@@ -1402,148 +1235,116 @@ class NavigateMappings[F[_]: Sync](
           ),
           // AG Commands
           RootEffect.computeEncodable("agScienceFoldPark")((_, _) =>
-            parameterlessCommand(server.agScienceFoldPark)
+            server.agScienceFoldPark.attemptResultOutcome
           ),
           RootEffect.computeEncodable("agPickoffMirrorPark")((_, _) =>
-            parameterlessCommand(server.agPickoffMirrorPark)
+            server.agPickoffMirrorPark.attemptResultOutcome
           ),
           RootEffect.computeEncodable("agAoFoldPark")((_, _) =>
-            parameterlessCommand(server.agAoFoldPark)
+            server.agAoFoldPark.attemptResultOutcome
           ),
-          RootEffect.computeEncodable("agAllPark")((_, _) =>
-            parameterlessCommand(server.agAllPark)
-          ),
+          RootEffect.computeEncodable("agAllPark")((_, _) => server.agAllPark.attemptResultOutcome),
           // ECS commands """
           RootEffect.computeEncodable("ecsEnableDome")((_, env) => domeEnable(env)),
           RootEffect.computeEncodable("ecsDisableDome")((_, _) =>
-            parameterlessCommand(server.ecsDisableDome)
+            server.ecsDisableDome.attemptResultOutcome
           ),
           RootEffect.computeEncodable("ecsDomePark")((_, _) =>
-            parameterlessCommand(server.ecsDomePark)
+            server.ecsDomePark.attemptResultOutcome
           ),
           RootEffect.computeEncodable("ecsEnableShutters")((_, env) => shuttersEnable(env)),
           RootEffect.computeEncodable("ecsDisableShutters")((_, _) =>
-            parameterlessCommand(server.ecsDisableShutters)
+            server.ecsDisableShutters.attemptResultOutcome
           ),
           RootEffect.computeEncodable("ecsShuttersPark")((_, _) =>
-            parameterlessCommand(server.ecsShuttersPark)
+            server.ecsShuttersPark.attemptResultOutcome
           ),
           RootEffect.computeEncodable("ecsMoveEastVentGate")((_, env) => eastVentGateEnable(env)),
           RootEffect.computeEncodable("ecsCloseEastVentGate")((_, _) =>
-            parameterlessCommand(server.ecsCloseEastVentGate)
+            server.ecsCloseEastVentGate.attemptResultOutcome
           ),
           RootEffect.computeEncodable("ecsMoveWestVentGate")((_, env) => westVentGateEnable(env)),
           RootEffect.computeEncodable("ecsCloseWestVentGate")((_, _) =>
-            parameterlessCommand(server.ecsCloseWestVentGate)
+            server.ecsCloseWestVentGate.attemptResultOutcome
           )
         )
       ),
       ObjectMapping(
         tpe = SubscriptionType,
         List(
-          RootStream.computeCursor("logMessage") { (p, env) =>
+          RootStream.computeEncodable("logMessage") { (_, _) =>
             (Stream.evalSeq(topics.logBuffer.get) ++
               topics.loggingEvents.subscribe(1024))
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("guideState") { (p, env) =>
+          RootStream.computeEncodable("guideState") { (_, _) =>
             topics.guideState
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("guidersQualityValues") { (p, env) =>
+          RootStream.computeEncodable("guidersQualityValues") { (_, _) =>
             topics.guidersQuality
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("telescopeState") { (p, env) =>
+          RootStream.computeEncodable("telescopeState") { (_, _) =>
             topics.telescopeState
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("navigateState") { (p, env) =>
+          RootStream.computeEncodable("navigateState") { (_, _) =>
             server.getNavigateStateStream
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("acquisitionAdjustmentState") { (p, env) =>
+          RootStream.computeEncodable("acquisitionAdjustmentState") { (_, _) =>
             topics.acquisitionAdjustment
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("targetAdjustmentOffsets") { (p, env) =>
+          RootStream.computeEncodable("targetAdjustmentOffsets") { (_, _) =>
             topics.targetAdjustment
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("originAdjustmentOffset") { (p, env) =>
+          RootStream.computeEncodable("originAdjustmentOffset") { (_, _) =>
             topics.originAdjustment
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("pointingAdjustmentOffset") { (p, env) =>
+          RootStream.computeEncodable("pointingAdjustmentOffset") { (_, _) =>
             topics.pointingAdjustment
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("acMechsState") { (p, env) =>
+          RootStream.computeEncodable("acMechsState") { (_, _) =>
             topics.acMechsState
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("pwfs1MechsState") { (p, env) =>
+          RootStream.computeEncodable("pwfs1MechsState") { (_, _) =>
             topics.pwfs1MechsTopic
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("pwfs2MechsState") { (p, env) =>
+          RootStream.computeEncodable("pwfs2MechsState") { (_, _) =>
             topics.pwfs2MechsTopic
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("pwfs1ConfigState") { (p, env) =>
+          RootStream.computeEncodable("pwfs1ConfigState") { (_, _) =>
             topics.pwfs1WfsTopic
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("pwfs2ConfigState") { (p, env) =>
+          RootStream.computeEncodable("pwfs2ConfigState") { (_, _) =>
             topics.pwfs2WfsTopic
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           },
-          RootStream.computeCursor("oiwfsConfigState") { (p, env) =>
+          RootStream.computeEncodable("oiwfsConfigState") { (_, _) =>
             topics.oiwfsWfsTopic
               .subscribe(1024)
-              .map(_.asJson)
-              .map(circeCursor(p, env, _))
-              .map(Result.success)
+              .map(_.success)
           }
         )
       )
@@ -1552,7 +1353,6 @@ class NavigateMappings[F[_]: Sync](
 }
 
 object NavigateMappings extends GrackleParsers {
-
   def loadSchema[F[_]: {Sync, Logger}]: F[Schema] =
     SchemaStitcher.load("navigate.graphql")
 
@@ -1964,6 +1764,19 @@ object NavigateMappings extends GrackleParsers {
             d <- parseDistance(v)
           } yield ShutterMode.Tracking(d)
         case _            => none
+      }
+
+  extension [F[_]: MonadThrow, A](fa: F[A])
+    def attemptResult: F[Result[A]] =
+      fa.attempt.map(e => Result.fromEither(e.leftMap(_.getMessage)))
+
+  extension [F[_]: MonadThrow](fa: F[CommandResult])
+    def attemptResultOutcome: F[Result[OperationOutcome]] =
+      fa.attempt.map {
+        case Right(CommandResult.CommandSuccess)      => Result.success(OperationOutcome.success)
+        case Right(CommandResult.CommandPaused)       => Result.success(OperationOutcome.success)
+        case Right(CommandResult.CommandFailure(msg)) => Result.failure(msg)
+        case Left(e)                                  => Result.internalError(e)
       }
 
 }
