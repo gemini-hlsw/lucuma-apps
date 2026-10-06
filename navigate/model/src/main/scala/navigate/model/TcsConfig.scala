@@ -5,6 +5,7 @@ package navigate.model
 
 import cats.Show
 import cats.derived.*
+import cats.syntax.all.*
 import navigate.model.enums.LightSink
 
 case class TcsConfig(
@@ -16,4 +17,8 @@ case class TcsConfig(
   rotatorTrackConfig:  RotatorTrackConfig,
   instrumentVariant:   LightSink,
   baffles:             Option[BafflesConfig]
-) derives Show
+) derives Show:
+  def bafflesState: Option[BafflesState] =
+    (baffles, sourceATarget.wavelength).mapN: (b, w) =>
+      val instrument = instrumentVariant.instrument
+      BafflesState(b.central(w, instrument), b.deployable(w, instrument))

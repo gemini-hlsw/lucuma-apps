@@ -5,6 +5,7 @@ package navigate.model
 
 import cats.Eq
 import cats.derived.*
+import cats.syntax.all.*
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 
@@ -12,3 +13,6 @@ case class PwfsMechsState(
   filter:    Option[PwfsFilter],
   fieldStop: Option[PwfsFieldStop]
 ) derives Eq
+
+object PwfsMechsState:
+  val default: PwfsMechsState = PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some)

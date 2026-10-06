@@ -50,7 +50,6 @@ import munit.CatsEffectSuite
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AcquisitionAdjustment
-import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.Distance
@@ -101,6 +100,7 @@ import navigate.server.OdbProxy
 import navigate.server.Systems
 import navigate.server.tcs.TcsNorthController
 import navigate.server.tcs.TcsNorthControllerSim
+import navigate.server.tcs.TcsSimState
 import navigate.server.tcs.TcsSouthController
 import navigate.server.tcs.TcsSouthControllerSim
 import navigate.web.server.OcsBuildInfo
@@ -126,6 +126,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     .downField(mutation)
     .as[T]
     .toOption
+
+  /**
+   * Waits until the GraphQL subscription under test subscribes to `topic`, then runs `publish`.
+   */
+  private def whenSubscribed[A](topic: Topic[IO, A])(publish: IO[Unit]): IO[Unit] =
+    topic.subscribers.find(_ > 0).compile.drain *> publish
 
   test("Process mount follow command") {
     for {
@@ -934,7 +940,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
                 .compile
                 .toList
                 .timeout(Duration.fromNanos(10e9))
-                .both(putLogs(mp.topics.loggingEvents).delayBy(Duration.fromNanos(1e9)))
+                .both(whenSubscribed(mp.topics.loggingEvents)(putLogs(mp.topics.loggingEvents)))
                 .map(_._1.collect { case Right(a) => a })
     } yield {
       assert(logs.exists(_.message === infoMsg))
@@ -977,7 +983,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
                 .compile
                 .toList
                 .timeout(Duration.fromNanos(10e9))
-                .both(putLogs(mp.topics.loggingEvents).delayBy(Duration.fromNanos(1e9)))
+                .both(whenSubscribed(mp.topics.loggingEvents)(putLogs(mp.topics.loggingEvents)))
                 .map(_._1.collect { case Right(a) => a })
     } yield assertEquals(logs, bufferedMessage +: logEvents)
   }
@@ -1055,7 +1061,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               .compile
               .toList
               .timeout(Duration.fromNanos(10e9))
-              .both(putGuideUpdates(mp.topics.guideState).delayBy(Duration.fromNanos(1e9)))
+              .both(whenSubscribed(mp.topics.guideState)(putGuideUpdates(mp.topics.guideState)))
               .map(_._1)
     } yield up
 
@@ -1398,7 +1404,11 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               .compile
               .toList
               .timeout(Duration.fromNanos(10e9))
-              .both(putTelescopeUpdates(mp.topics.telescopeState).delayBy(Duration.fromNanos(1e9)))
+              .both(
+                whenSubscribed(mp.topics.telescopeState)(
+                  putTelescopeUpdates(mp.topics.telescopeState)
+                )
+              )
               .map(_._1)
     } yield up
 
@@ -1473,8 +1483,9 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               .toList
               .timeout(Duration.fromNanos(10e9))
               .both(
-                putAcquisitionAdjustmentUpdates(mp.topics.acquisitionAdjustment)
-                  .delayBy(Duration.fromNanos(1e9))
+                whenSubscribed(mp.topics.acquisitionAdjustment)(
+                  putAcquisitionAdjustmentUpdates(mp.topics.acquisitionAdjustment)
+                )
               )
               .map(_._1)
     } yield up
@@ -2525,7 +2536,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
   }
 
   test("Query AC mechanisms state") {
-    val expected = AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
+    val expected = AcMechsState.default
     for {
       mp <- buildMapping()
       r  <- mp.compileAndRun(
@@ -2669,7 +2680,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
   }
 
   test("Query Pwfs1 mechanisms state") {
-    val expected = PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some)
+    val expected = PwfsMechsState.default
     for {
       mp <- buildMapping()
       r  <- mp.compileAndRun(
@@ -2757,7 +2768,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
   }
 
   test("Query Pwfs2 mechanisms state") {
-    val expected = PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some)
+    val expected = PwfsMechsState.default
     for {
       mp <- buildMapping()
       r  <- mp.compileAndRun(
@@ -2845,7 +2856,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
   }
 
   test("Query M2 baffle positions") {
-    val expected = BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
+    val expected = BafflesState.default
     for {
       mp <- buildMapping(NavigateConfiguration.default, buildServerUndefinedPos)
       r  <- mp.compileAndRun(
@@ -3253,7 +3264,7 @@ object NavigateMappingsTest {
       CommandResult.CommandSuccess.pure[IO]
 
     override def getAcMechsState: IO[AcMechsState] =
-      AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some).pure[IO]
+      AcMechsState.default.pure[IO]
 
     override def pwfs1Filter(filter: PwfsFilter): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
@@ -3268,13 +3279,13 @@ object NavigateMappingsTest {
       CommandResult.CommandSuccess.pure[IO]
 
     override def getPwfs1MechsState: IO[PwfsMechsState] =
-      PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some).pure[IO]
+      PwfsMechsState.default.pure[IO]
 
     override def getPwfs2MechsState: IO[PwfsMechsState] =
-      PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some).pure[IO]
+      PwfsMechsState.default.pure[IO]
 
     override def getBafflesState: IO[BafflesState] =
-      BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[IO]
+      BafflesState.default.pure[IO]
 
     override def pwfs1CircularBuffer(enable: Boolean): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
@@ -3353,61 +3364,25 @@ object NavigateMappingsTest {
     override def ecsShuttersPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
   }
 
-  def buildServer: IO[NavigateEngine[IO]] = for {
-    r <- Ref.of[IO, GuideState](GuideState.default)
-    p <- Ref.of[IO, TelescopeState](TelescopeState.default)
-    q <- Ref.of[IO, GuidersQualityValues](GuidersQualityValues.default)
-    g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
-    u <- Ref.of[IO, AcMechsState](
-           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
-         )
-    v <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    w <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
-  } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
-    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
-    g
-  )
+  def buildServer: IO[NavigateEngine[IO]] = buildServerWithTelescopeState(TelescopeState.default)
 
   def buildServerWithTelescopeState(ts: TelescopeState): IO[NavigateEngine[IO]] = for {
-    r <- Ref.of[IO, GuideState](GuideState.default)
-    p <- Ref.of[IO, TelescopeState](ts)
-    q <- Ref.of[IO, GuidersQualityValues](GuidersQualityValues.default)
+    s <- SignallingRef[IO].of(TcsSimState.default.copy(telescope = ts))
     g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
-    u <- Ref.of[IO, AcMechsState](
-           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
-         )
-    v <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    w <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
-    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
+    new TcsSouthControllerSim[IO](s),
+    new TcsNorthControllerSim[IO](s),
     g
   )
 
   def buildServerCapturingShutterMode(
     captured: Ref[IO, Option[ShutterMode]]
   ): IO[NavigateEngine[IO]] = for {
-    r <- Ref.of[IO, GuideState](GuideState.default)
-    p <- Ref.of[IO, TelescopeState](TelescopeState.default)
+    s <- SignallingRef[IO].of(TcsSimState.default)
     g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
-    u <- Ref.of[IO, AcMechsState](
-           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
-         )
-    v <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    w <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
-    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
+    new TcsSouthControllerSim[IO](s),
+    new TcsNorthControllerSim[IO](s),
     g
   ) {
     override def ecsEnableShutters(mode: ShutterMode): IO[CommandResult] =
@@ -3415,40 +3390,22 @@ object NavigateMappingsTest {
   }
 
   def buildBadServer: IO[NavigateEngine[IO]] = for {
-    r <- Ref.of[IO, GuideState](GuideState.default)
-    p <- Ref.of[IO, TelescopeState](TelescopeState.default)
+    s <- SignallingRef[IO].of(TcsSimState.default)
     g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
-    u <- Ref.of[IO, AcMechsState](
-           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
-         )
-    v <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    w <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
-    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
+    new TcsSouthControllerSim[IO](s),
+    new TcsNorthControllerSim[IO](s),
     g
   ) {
     override def oiwfsPark: IO[CommandResult] = CommandResult.CommandFailure("Error").pure[IO]
   }
 
   def buildServerUndefinedPos: IO[NavigateEngine[IO]] = for {
-    r <- Ref.of[IO, GuideState](GuideState.default)
-    p <- Ref.of[IO, TelescopeState](TelescopeState.default)
+    s <- SignallingRef[IO].of(TcsSimState.default)
     g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
-    u <- Ref.of[IO, AcMechsState](
-           AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)
-         )
-    v <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    w <-
-      Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
-    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
+    new TcsSouthControllerSim[IO](s),
+    new TcsNorthControllerSim[IO](s),
     g
   ) {
     override def getAcMechsState: IO[AcMechsState] = AcMechsState(none, none, none).pure[IO]
@@ -3458,7 +3415,7 @@ object NavigateMappingsTest {
     override def getPwfs2MechsState: IO[PwfsMechsState] = PwfsMechsState(none, none).pure[IO]
 
     override def getBafflesState: IO[BafflesState] =
-      BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[IO]
+      BafflesState.default.pure[IO]
   }
 
   def buildMapping(

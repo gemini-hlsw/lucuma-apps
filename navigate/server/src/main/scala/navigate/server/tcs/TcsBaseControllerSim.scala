@@ -3,7 +3,6 @@
 
 package navigate.server.tcs
 
-import cats.Applicative
 import cats.Eq
 import cats.effect.Ref
 import cats.effect.Resource
@@ -78,21 +77,74 @@ import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
-abstract class TcsBaseControllerSim[F[_]: Async](
-  guideRef:      Ref[F, GuideState],
-  telStateRef:   Ref[F, TelescopeState],
-  acMechRef:     Ref[F, AcMechsState],
-  p1MechRef:     Ref[F, PwfsMechsState],
-  p2MechRef:     Ref[F, PwfsMechsState],
-  wfsConfigsRef: SignallingRef[F, AllWfsConfiguration]
-) extends TcsBaseController[F] {
+abstract class TcsBaseControllerSim[F[_]: Async](stateRef: SignallingRef[F, TcsSimState])
+    extends TcsBaseController[F] {
 
   val acValidNdFilters: List[AcNdFilter] = Enumerated[AcNdFilter].all
 
-  override def mcsPark: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.mount).replace(MechSystemState(Parked, NotFollowing))
+  private def lensRef[A](l: Lens[TcsSimState, A]): SignallingRef[F, A] =
+    SignallingRef.lens(stateRef)(l.get, s => a => l.replace(a)(s))
+
+  private val guideRef        = lensRef(TcsSimState.guide)
+  private val telStateRef     = lensRef(TcsSimState.telescope)
+  private val acMechRef       = lensRef(TcsSimState.acMechs)
+  private val p1MechRef       = lensRef(TcsSimState.pwfs1Mechs)
+  private val p2MechRef       = lensRef(TcsSimState.pwfs2Mechs)
+  private val bafflesRef      = lensRef(TcsSimState.baffles)
+  private val pwfs1ConfigsRef = lensRef(TcsSimState.wfsConfigs.andThen(AllWfsConfiguration.pwfs1))
+  private val pwfs2ConfigsRef = lensRef(TcsSimState.wfsConfigs.andThen(AllWfsConfiguration.pwfs2))
+  private val oiwfsConfigsRef = lensRef(TcsSimState.wfsConfigs.andThen(AllWfsConfiguration.oiwfs))
+
+  private val random: Random[F] = Random.javaUtilConcurrentThreadLocalRandom[F]
+
+  private val parkedState: MechSystemState = MechSystemState(Parked, NotFollowing)
+
+  private val guideOff: GuideState => GuideState =
+    _.copy(mountOffload = MountGuideOption.MountGuideOff,
+           m1Guide = M1GuideConfig.M1GuideOff,
+           m2Guide = M2GuideConfig.M2GuideOff,
+           probeGuide = none
     )
+
+  private val wfsStopped: GuideState => GuideState =
+    _.copy(p1Integrating = false, p2Integrating = false, oiIntegrating = false)
+
+  /**
+   * Mirrors the autopark slew options: a probe with no guider configured in the TcsConfig is parked
+   * when its autopark flag is set.
+   */
+  private def autoparkProbes(slewOptions: SlewOptions, config: TcsConfig)(
+    t: TelescopeState
+  ): TelescopeState = t.copy(
+    pwfs1 = if (slewOptions.autoparkPwfs1.value && config.pwfs1.isEmpty) parkedState else t.pwfs1,
+    pwfs2 = if (slewOptions.autoparkPwfs2.value && config.pwfs2.isEmpty) parkedState else t.pwfs2,
+    oiwfs = if (slewOptions.autoparkOiwfs.value && config.oiwfs.isEmpty) parkedState else t.oiwfs
+  )
+
+  private def withBaffles(config: TcsConfig): TcsSimState => TcsSimState =
+    s => config.bafflesState.fold(s)(TcsSimState.baffles.replace(_)(s))
+
+  private def observe(
+    integrating:  Lens[GuideState, Boolean],
+    wfsConfig:    Lens[AllWfsConfiguration, WfsConfiguration],
+    exposureTime: TimeSpan
+  ): F[ApplyCommandResult] =
+    stateRef
+      .update(
+        TcsSimState.guide
+          .andThen(integrating)
+          .replace(true)
+          .andThen(
+            TcsSimState.wfsConfigs
+              .andThen(wfsConfig)
+              .andThen(WfsConfiguration.exposureTime)
+              .replace(exposureTime)
+          )
+      )
+      .as(ApplyCommandResult.Completed)
+
+  override def mcsPark: F[ApplyCommandResult] = telStateRef
+    .update(_.focus(_.mount).replace(parkedState))
     .as(ApplyCommandResult.Completed)
 
   override def mcsFollow(enable: Boolean): F[ApplyCommandResult] = telStateRef
@@ -102,15 +154,11 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     .as(ApplyCommandResult.Completed)
 
   override def rotStop(useBrakes: Boolean): F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.crcs.following).replace(NotFollowing)
-    )
+    .update(_.focus(_.crcs.following).replace(NotFollowing))
     .as(ApplyCommandResult.Completed)
 
   override def rotPark: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.crcs).replace(MechSystemState(Parked, NotFollowing))
-    )
+    .update(_.focus(_.crcs).replace(parkedState))
     .as(ApplyCommandResult.Completed)
 
   override def rotFollow(enable: Boolean): F[ApplyCommandResult] = telStateRef
@@ -120,19 +168,27 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     .as(ApplyCommandResult.Completed)
 
   override def rotMove(angle: RotatorAngle): F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.crcs.parked).replace(NotParked)
-    )
+    .update(_.focus(_.crcs.parked).replace(NotParked))
     .as(ApplyCommandResult.Completed)
 
   override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+    stateRef.update(withBaffles(config)).as(ApplyCommandResult.Completed)
 
   override def slew(
     slewOptions: SlewOptions,
     tcsConfig:   TcsConfig
   ): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+    val stopGuide: TcsSimState => TcsSimState =
+      if (slewOptions.stopGuide.value) TcsSimState.guide.modify(wfsStopped.andThen(guideOff))
+      else identity
+
+    stateRef
+      .update(
+        stopGuide
+          .andThen(TcsSimState.telescope.modify(autoparkProbes(slewOptions, tcsConfig)))
+          .andThen(withBaffles(tcsConfig))
+      )
+      .as(ApplyCommandResult.Completed)
 
   override def instrumentSpecifics(config: InstrumentSpecifics): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
@@ -147,9 +203,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     ApplyCommandResult.Completed.pure[F]
 
   override def oiwfsPark: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.oiwfs).replace(MechSystemState(Parked, NotFollowing))
-    )
+    .update(_.focus(_.oiwfs).replace(parkedState))
     .as(ApplyCommandResult.Completed)
 
   override def oiwfsFollow(enable: Boolean): F[ApplyCommandResult] = telStateRef
@@ -166,22 +220,19 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def enableGuide(config: TelescopeGuideConfig): F[ApplyCommandResult] = guideRef
     .update(
-      _.copy(mountOffload = config.mountGuide, m1Guide = config.m1Guide, m2Guide = config.m2Guide)
-    )
-    .as(ApplyCommandResult.Completed)
-
-  override def disableGuide: F[ApplyCommandResult] = guideRef
-    .update(
-      _.copy(mountOffload = MountGuideOption.MountGuideOff,
-             m1Guide = M1GuideConfig.M1GuideOff,
-             m2Guide = M2GuideConfig.M2GuideOff
+      _.copy(mountOffload = config.mountGuide,
+             m1Guide = config.m1Guide,
+             m2Guide = config.m2Guide,
+             probeGuide = config.probeGuide
       )
     )
     .as(ApplyCommandResult.Completed)
 
-  override def oiwfsObserve(exposureTime: TimeSpan): F[ApplyCommandResult] = guideRef
-    .update(_.copy(oiIntegrating = true))
-    .as(ApplyCommandResult.Completed)
+  override def disableGuide: F[ApplyCommandResult] =
+    guideRef.update(guideOff).as(ApplyCommandResult.Completed)
+
+  override def oiwfsObserve(exposureTime: TimeSpan): F[ApplyCommandResult] =
+    observe(Focus[GuideState](_.oiIntegrating), AllWfsConfiguration.oiwfs, exposureTime)
 
   override def oiwfsStopObserve: F[ApplyCommandResult] = guideRef
     .update(_.copy(oiIntegrating = false))
@@ -190,21 +241,18 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def getGuideState: F[GuideState] = guideRef.get
 
   override def getGuideQuality: F[GuidersQualityValues] =
-    for {
-      rand   <- Random.scalaUtilRandom[F]
-      p1Cnts <- rand.betweenInt(-100, 100).map(_ + 1000)
-      p2Cnts <- rand.betweenInt(-100, 100).map(_ + 1000)
-      oiCnts <- rand.betweenInt(-100, 100).map(_ + 1000)
-    } yield GuidersQualityValues(
-      pwfs1 = GuiderQuality(p1Cnts, false),
-      pwfs2 = GuiderQuality(p2Cnts, false),
-      oiwfs = GuiderQuality(oiCnts, false)
-    )
+    def quality(integrating: Boolean): F[GuiderQuality] =
+      random.betweenInt(900, 1100).map(GuiderQuality(_, integrating))
+
+    guideRef.get.flatMap: g =>
+      (quality(g.p1Integrating), quality(g.p2Integrating), quality(g.oiIntegrating))
+        .mapN(GuidersQualityValues.apply)
 
   override def baffles(
     central:    CentralBafflePosition,
     deployable: DeployableBafflePosition
-  ): F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  ): F[ApplyCommandResult] =
+    bafflesRef.set(BafflesState(central, deployable)).as(ApplyCommandResult.Completed)
 
   override def getTelescopeState: F[TelescopeState] = telStateRef.get
 
@@ -214,8 +262,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     )
     .as(ApplyCommandResult.Completed)
 
-  override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] = disableGuide
 
   override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
     case enums.Instrument.AcqCamNorth  => 1
@@ -241,12 +288,17 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     ApplyCommandResult.Completed.pure[F]
 
   override def restoreTarget(config: TcsConfig): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+    stateRef
+      .update(TcsSimState.guide.modify(guideOff).andThen(withBaffles(config)))
+      .as(ApplyCommandResult.Completed)
 
-  override def hrwfsObserve(exposureTime: TimeSpan): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def hrwfsObserve(exposureTime: TimeSpan): F[ApplyCommandResult] = guideRef
+    .update(_.copy(acIntegrating = true))
+    .as(ApplyCommandResult.Completed)
 
-  override def hrwfsStopObserve: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def hrwfsStopObserve: F[ApplyCommandResult] = guideRef
+    .update(_.copy(acIntegrating = false))
+    .as(ApplyCommandResult.Completed)
 
   override def m1Park: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
@@ -335,9 +387,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     ApplyCommandResult.Completed.pure[F]
 
   override def pwfs1Park: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.pwfs1).replace(MechSystemState(Parked, NotFollowing))
-    )
+    .update(_.focus(_.pwfs1).replace(parkedState))
     .as(ApplyCommandResult.Completed)
 
   override def pwfs1Follow(enable: Boolean): F[ApplyCommandResult] = telStateRef
@@ -350,9 +400,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     ApplyCommandResult.Completed.pure[F]
 
   override def pwfs2Park: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.pwfs2).replace(MechSystemState(Parked, NotFollowing))
-    )
+    .update(_.focus(_.pwfs2).replace(parkedState))
     .as(ApplyCommandResult.Completed)
 
   override def pwfs2Follow(enable: Boolean): F[ApplyCommandResult] = telStateRef
@@ -361,9 +409,8 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     )
     .as(ApplyCommandResult.Completed)
 
-  override def pwfs1Observe(exposureTime: TimeSpan): F[ApplyCommandResult] = guideRef
-    .update(_.copy(p1Integrating = true))
-    .as(ApplyCommandResult.Completed)
+  override def pwfs1Observe(exposureTime: TimeSpan): F[ApplyCommandResult] =
+    observe(Focus[GuideState](_.p1Integrating), AllWfsConfiguration.pwfs1, exposureTime)
 
   override def pwfs1StopObserve: F[ApplyCommandResult] = guideRef
     .update(_.copy(p1Integrating = false))
@@ -372,9 +419,8 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def pwfs1Sky(exposureTime: TimeSpan)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override def pwfs2Observe(exposureTime: TimeSpan): F[ApplyCommandResult] = guideRef
-    .update(_.copy(p2Integrating = true))
-    .as(ApplyCommandResult.Completed)
+  override def pwfs2Observe(exposureTime: TimeSpan): F[ApplyCommandResult] =
+    observe(Focus[GuideState](_.p2Integrating), AllWfsConfiguration.pwfs2, exposureTime)
 
   override def pwfs2StopObserve: F[ApplyCommandResult] = guideRef
     .update(_.copy(p2Integrating = false))
@@ -400,8 +446,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def getPwfs2Mechs: F[PwfsMechsState] = p2MechRef.get
 
-  override def getBaffles: F[BafflesState] =
-    BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[F]
+  override def getBaffles: F[BafflesState] = bafflesRef.get
 
   override val acCommands: AcCommands[F] = new AcCommands[F] {
     override def lens(l: AcLens): F[ApplyCommandResult] =
@@ -420,39 +465,34 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   }
 
   private val mechanismStepPeriod: FiniteDuration = 1.seconds
+
   protected def simulateMechanism[S, A: Eq](ref: Ref[F, S], l: Lens[S, Option[A]], seq: List[A])(
     pos: A
-  ): F[ApplyCommandResult]                        =
-    ref.get
-      .flatMap(x =>
-        l.get(x)
-          .map { i =>
-            val straight  = (seq ++ seq).dropWhile(_ =!= i).takeWhile(_ =!= pos).tail :+ pos
-            val backwards = (seq ++ seq).reverse.dropWhile(_ =!= i).takeWhile(_ =!= pos).tail :+ pos
-            val finalSeq  = if (straight.length <= backwards.length) straight else backwards
-
-            finalSeq
-              .flatMap(a => List(none, a.some))
-              .map(v => Temporal[F].delayBy(ref.update(l.replace(v)), mechanismStepPeriod))
-              .sequence
-              .whenA(i =!= pos)
-          }
-          .getOrElse(Applicative[F].unit)
+  ): F[ApplyCommandResult] =
+    val target = seq.indexWhere(_ === pos)
+    if target < 0 then
+      Async[F].raiseError(
+        new IllegalArgumentException(s"Mechanism position $pos is not one of $seq")
       )
-      .as(ApplyCommandResult.Completed)
+    else
+      ref.get
+        .flatMap: x =>
+          l.get(x)
+            .traverse_(i =>
+              mechanismPath(seq, seq.indexWhere(_ === i), target)
+                .flatMap(a => List(none, a.some))
+                .traverse_(v => Temporal[F].delayBy(ref.update(l.replace(v)), mechanismStepPeriod))
+            )
+        .as(ApplyCommandResult.Completed)
 
-  private val pwfs1ConfigsRef = SignallingRef.lens(wfsConfigsRef)(
-    AllWfsConfiguration.pwfs1.get,
-    w => p1 => AllWfsConfiguration.pwfs1.replace(p1)(w)
-  )
-  private val pwfs2ConfigsRef = SignallingRef.lens(wfsConfigsRef)(
-    AllWfsConfiguration.pwfs2.get,
-    w => p2 => AllWfsConfiguration.pwfs2.replace(p2)(w)
-  )
-  private val oiwfsConfigsRef = SignallingRef.lens(wfsConfigsRef)(
-    AllWfsConfiguration.oiwfs.get,
-    w => oi => AllWfsConfiguration.oiwfs.replace(oi)(w)
-  )
+  private def mechanismPath[A](seq: List[A], from: Int, to: Int): List[A] =
+    if from < 0 then List(seq(to))
+    else
+      val n        = seq.length
+      val forward  = (to - from + n) % n
+      val backward = (from - to + n) % n
+      if forward <= backward then (1 to forward).toList.map(k => seq((from + k) % n))
+      else (1 to backward).toList.map(k => seq((from - k + n) % n))
 
   override def pwfs1CircularBuffer(enable: Boolean): F[ApplyCommandResult] = pwfs1ConfigsRef
     .update(WfsConfiguration.saving.replace(enable))
@@ -473,13 +513,13 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def getOiwfsConfig: F[WfsConfiguration] = oiwfsConfigsRef.get
 
   override def pwfs1ConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
-    Resource.pure(pwfs1ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
+    Resource.pure(pwfs1ConfigsRef.discrete.changes.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
 
   override def pwfs2ConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
-    Resource.pure(pwfs2ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
+    Resource.pure(pwfs2ConfigsRef.discrete.changes.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
 
   override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
-    Resource.pure(oiwfsConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
+    Resource.pure(oiwfsConfigsRef.discrete.changes.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
 
   override def pwfs1QlMode(mode: QlMode): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
@@ -499,63 +539,43 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def agAllPark: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
 
   override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.dome).replace(mode.some)
-    )
+    .update(_.focus(_.enclosure.dome).replace(mode.some))
     .as(ApplyCommandResult.Completed)
 
   override def ecsDisableDome: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.dome).replace(none)
-    )
+    .update(_.focus(_.enclosure.dome).replace(none))
     .as(ApplyCommandResult.Completed)
 
   override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.shutters).replace(mode.some)
-    )
+    .update(_.focus(_.enclosure.shutters).replace(mode.some))
     .as(ApplyCommandResult.Completed)
 
   override def ecsDisableShutters: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.shutters).replace(none)
-    )
+    .update(_.focus(_.enclosure.shutters).replace(none))
     .as(ApplyCommandResult.Completed)
 
   override def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.eastVentGateOpen).replace(position)
-    )
+    .update(_.focus(_.enclosure.eastVentGateOpen).replace(position))
     .as(ApplyCommandResult.Completed)
 
   override def ecsCloseEastVentGate: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.eastVentGateOpen).replace(EcsEpicsSystem.ventGateClosePos)
-    )
+    .update(_.focus(_.enclosure.eastVentGateOpen).replace(EcsEpicsSystem.ventGateClosePos))
     .as(ApplyCommandResult.Completed)
 
   override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.westVentGateOpen).replace(position)
-    )
+    .update(_.focus(_.enclosure.westVentGateOpen).replace(position))
     .as(ApplyCommandResult.Completed)
 
   override def ecsCloseWestVentGate: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.westVentGateOpen).replace(EcsEpicsSystem.ventGateClosePos)
-    )
+    .update(_.focus(_.enclosure.westVentGateOpen).replace(EcsEpicsSystem.ventGateClosePos))
     .as(ApplyCommandResult.Completed)
 
   override def ecsDomePark: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.dome).replace(none)
-    )
+    .update(_.focus(_.enclosure.dome).replace(none))
     .as(ApplyCommandResult.Completed)
 
   override def ecsShuttersPark: F[ApplyCommandResult] = telStateRef
-    .update(
-      _.focus(_.enclosure.shutters).replace(none)
-    )
+    .update(_.focus(_.enclosure.shutters).replace(none))
     .as(ApplyCommandResult.Completed)
 
   override def azimuthUnwrap: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
