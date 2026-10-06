@@ -21,6 +21,7 @@ import clue.http4s.given
 import clue.otel4s.Otel4sMiddleware
 import clue.websocket.ReconnectionStrategy
 import edu.gemini.epics.acm.CaService
+import fs2.io.net.tls.TLSContext
 import giapi.client.ghost.GhostClient
 import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
@@ -178,13 +179,17 @@ object Systems {
 
     /**
      * Client for Navigate, only built when Observe commands the TCS. It has its own http client
-     * because `configureStep` only returns once the telescope has settled.
+     * because `configureStep` only returns once the telescope has settled. Navigate's certificate
+     * is not verified, as it is self signed and both systems run in the same closed network.
+     * Navigate does the same when calling Observe.
      */
     def navigateClient: Resource[IO, Option[FetchClient[IO, NavigateDB]]] =
       if (settings.systemControl.tcs.command)
         for {
+          tls                        <- TLSContext.Builder.forAsync[IO].insecureResource
           httpClient                 <- EmberClientBuilder
                                           .default[IO]
+                                          .withTLSContext(tls)
                                           .withTimeout(NavigateTimeout)
                                           .withIdleConnectionTime(NavigateIdleTimeout)
                                           .build

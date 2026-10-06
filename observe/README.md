@@ -28,6 +28,22 @@ It can be stopped by executing
    observe_web_server/reStop
 ```
 
+## Connecting to Navigate
+
+When the TCS is under full control (`system-control.tcs = full`), Observe configures the telescope for each step through Navigate's GraphQL API, at the `observe-engine.navigate-http` URL. In `base.conf` it points to a Navigate server started for development, which serves plain HTTP:
+
+```
+http://localhost:9090/navigate/graphql
+```
+
+It can be overridden with the `NAVIGATE_HTTP` environment variable. For example, to use a local Navigate server serving HTTPS (see "Running locally with HTTPS" in the Navigate README):
+
+```
+NAVIGATE_HTTP=https://localhost:9090/navigate/graphql sbt observe_web_server/reStart
+```
+
+Observe does not verify Navigate's certificate, so a self-signed one works. With any other TCS control setting, the TCS configuration is simulated and Navigate is not used.
+
 # Observe Web Client
 
 This module contains a web-based observe client. It contains a SPA (Single-page application) which communicates to the backend using Ajax-style calls and websockets.
