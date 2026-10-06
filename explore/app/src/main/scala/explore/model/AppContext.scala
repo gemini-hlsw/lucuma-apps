@@ -5,8 +5,8 @@ package explore.model
 
 import cats.*
 import cats.effect.*
-import cats.effect.syntax.all.*
 import cats.effect.std.SecureRandom
+import cats.effect.syntax.all.*
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
 import clue.PersistentClientStatus
