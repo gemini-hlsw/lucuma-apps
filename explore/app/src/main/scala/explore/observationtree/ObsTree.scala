@@ -470,11 +470,7 @@ object ObsTree:
                     .compose((_: Option[NonEmptyString]).some)
                     .some,
                   deleteCB = deleteObsList(List(obs.id)),
-                  cloneCB = (
-                    if obs.execution.sequenceCopyChoices.isEmpty then
-                      duplicate(obs, CloneSequenceMode.None)
-                    else duplicating.set(obs.some)
-                  ).some,
+                  cloneCB = requestDuplicate(obs, duplicating, obs)(duplicate(obs, _)).some,
                   setScienceBandCB = (
                     (b: ScienceBand) =>
                       ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)

@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import cats.syntax.all.given
 import crystal.react.*
+import crystal.react.hooks.*
 import explore.Icons
 import explore.common.TimingWindowsQueries
 import explore.components.ActionButtons
@@ -15,6 +16,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.DismissedWarnings
 import explore.model.Focused
+import explore.model.GroupList
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
 import explore.model.Observation
@@ -28,6 +30,7 @@ import explore.render.given
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TimingWindowInclusion
 import lucuma.core.model.Program
@@ -58,6 +61,7 @@ case class SchedulingGroupObsList(
   observations:          UndoSetter[ObservationList],
   undoer:                Undoer,
   schedulingGroups:      SchedulingGroupList,
+  groups:                GroupList,
   focusedObsSet:         Option[ObsIdSet],
   setSummaryPanel:       Callback,
   expandedIds:           View[SortedSet[ObsIdSet]],
@@ -221,7 +225,10 @@ object SchedulingGroupObsList:
             .collect { case Some(obsIdSet) => obsIdSet }
 
         unfocus >> expandSelected >> cleanupExpandedIds
-    .render: (props, ctx, dragging) =>
+    // The observation and its scheduling group, as they were when Duplicate was pressed, waiting
+    // for a Sequence Copy choice
+    .useStateView(none[(Observation, ObsIdSet)])
+    .render: (props, ctx, dragging, duplicating) =>
       import ctx.given
 
       val schedulingGroups: List[(ObsIdSet, SchedulingConstraints)] =
@@ -267,6 +274,31 @@ object SchedulingGroupObsList:
 
       def setObs(obsId: Observation.Id): Callback =
         setObsSet(ObsIdSet.one(obsId).some)
+
+      // The clone shares the scheduling constraints, so it joins the group of the original
+      // observation.
+      def duplicate(obs: Observation, groupObsIds: ObsIdSet)(
+        sequenceCopy: CloneSequenceMode
+      ): Callback =
+        duplicateObs(
+          obs,
+          sequenceCopy,
+          props.observations,
+          props.groups,
+          focusClone =
+            newObsId => props.expandedIds.mod(_ + groupObsIds.add(newObsId)) >> setObs(newObsId),
+          onRemoved = props.expandedIds.mod(_ + groupObsIds) >> setObs(obs.id),
+          ctx
+        ).runAsync
+
+      val sequenceCopyDialog: VdomNode =
+        SequenceCopyDialog(
+          duplicating.get.map(_._1),
+          onChoose = choice =>
+            duplicating.set(none) >>
+              duplicating.get.foldMap((obs, groupObsIds) => duplicate(obs, groupObsIds)(choice)),
+          onCancel = duplicating.set(none)
+        )
 
       val deleteObs: ObsIdSet => Callback = obsIds =>
         props.schedulingGroups.keys
@@ -340,6 +372,9 @@ object SchedulingGroupObsList:
               linkToObsTab = false,
               onSelect = setObs,
               onDelete = deleteObs(ObsIdSet.one(obs.id)),
+              onClone = Option.unless(props.readonly)(
+                requestDuplicate(obs, duplicating, (obs, obsIds))(duplicate(obs, obsIds))
+              ),
               onCtrlClick = id => handleCtrlClick(id, obsIds),
               hasBlindOffset = obs.hasBlindOffset,
               ctx = ctx
@@ -401,6 +436,7 @@ object SchedulingGroupObsList:
             <.div(ExploreStyles.ObsScrollTree)(
               schedulingGroups.map((obsIds, c) => renderGroup(obsIds, c)).toTagMod
             )
-          )
+          ),
+          sequenceCopyDialog
         )
       )

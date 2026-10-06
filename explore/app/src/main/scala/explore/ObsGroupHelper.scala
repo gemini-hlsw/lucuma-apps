@@ -19,13 +19,17 @@ trait ObsGroupHelper:
     focusedGroupId.orElse:
       focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId)
 
-  // If it's an observation calibration group, switch to its parent group.
   def resolveGroupId(groupId: Option[Group.Id]): Option[Group.Id] =
-    val group: Option[Group] = groupId.flatMap(groups.get.get(_))
+    ObsGroupHelper.resolveGroupId(groups.get, groupId)
+
+  def resolvedActiveGroupId: Option[Group.Id] =
+    resolveGroupId(activeGroupId)
+
+object ObsGroupHelper:
+  // If it's an observation calibration group, switch to its parent group.
+  def resolveGroupId(groups: GroupList, groupId: Option[Group.Id]): Option[Group.Id] =
+    val group: Option[Group] = groupId.flatMap(groups.get(_))
     group
       .filterNot(_.isObsCalibration)
       .map(_.id)
       .orElse(group.flatMap(_.parentId))
-
-  def resolvedActiveGroupId: Option[Group.Id] =
-    resolveGroupId(activeGroupId)

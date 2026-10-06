@@ -33,6 +33,7 @@ import explore.services.OdbTargetApi
 import explore.targets.TargetAddDeleteActions
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
@@ -297,6 +298,9 @@ object AsterismGroupObsList:
       ctx               <- useContext(AppContext.ctx)
       dragging          <- useState(Dragging(false))
       addingTargetOrObs <- useStateView(AddingTargetOrObs(false))
+      // The observation and its asterism group, as they were when Duplicate was pressed, waiting
+      // for a Sequence Copy choice
+      duplicating       <- useStateView(none[(Observation, ObsIdSet)])
       _                 <- useEffectOnMount:
                              def replacePage(focused: Focused): Callback =
                                ctx.replacePage((AppTab.Targets, props.programId, focused).some)
@@ -366,6 +370,33 @@ object AsterismGroupObsList:
 
       def selectObsOrSummary(oObsId: Option[Observation.Id]): Callback =
         oObsId.fold(setFocused(Focused.None))(obsId => setFocused(Focused.singleObs(obsId)))
+
+      // The clone shares the asterism, so it joins the group of the original observation.
+      def duplicate(obs: Observation, groupObsIds: ObsIdSet)(
+        sequenceCopy: CloneSequenceMode
+      ): Callback =
+        def focusObs(obsId: Observation.Id): Callback =
+          setFocused(props.focused.withSingleObs(obsId).validateOrSetTarget(obs.scienceTargetIds))
+
+        duplicateObs(
+          obs,
+          sequenceCopy,
+          props.observations,
+          props.programSummaries.get.groups,
+          focusClone =
+            newObsId => props.expandedIds.mod(_ + groupObsIds.add(newObsId)) >> focusObs(newObsId),
+          onRemoved = props.expandedIds.mod(_ + groupObsIds) >> focusObs(obs.id),
+          ctx
+        ).switching(addingTargetOrObs.async, AddingTargetOrObs(_)).runAsync
+
+      val sequenceCopyDialog: VdomNode =
+        SequenceCopyDialog(
+          duplicating.get.map(_._1),
+          onChoose = choice =>
+            duplicating.set(none) >>
+              duplicating.get.foldMap((obs, groupObsIds) => duplicate(obs, groupObsIds)(choice)),
+          onCancel = duplicating.set(none)
+        )
 
       def renderObsClone(obsIds: ObsIdSet): Option[TagMod] =
         obsIds.single.fold {
@@ -521,6 +552,9 @@ object AsterismGroupObsList:
                     .validateOrSetTarget(obs.scienceTargetIds)
                 ),
               onDelete = deleteObs(asterismGroup)(ObsIdSet.one(obs.id)),
+              onClone = Option.unless(props.readonly)(
+                requestDuplicate(obs, duplicating, (obs, obsIds))(duplicate(obs, obsIds))
+              ),
               onCtrlClick = _ => handleCtrlClick(obs.id, obsIds),
               hasBlindOffset = obs.hasBlindOffset,
               ctx = ctx
@@ -645,6 +679,7 @@ object AsterismGroupObsList:
                 .map(t => renderAsterismGroup(t._1, t._2))
                 .toTagMod
             )
-          )
+          ),
+          sequenceCopyDialog
         )
       }

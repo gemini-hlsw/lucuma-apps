@@ -184,6 +184,7 @@ object SchedulingTabContents extends TwoPanels:
             observations,
             props.programSummaries,
             props.programSummaries.get.schedulingGroups,
+            props.programSummaries.get.groups,
             props.focusedObsSet,
             state.set(SelectedPanel.Summary),
             props.expandedIds,
