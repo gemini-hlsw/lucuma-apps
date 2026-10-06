@@ -199,8 +199,7 @@ object TcsChannels {
     ecsShutterTop:    Channel[F, String],
     ecsShutterBottom: Channel[F, String],
     ecsVentGateEast:  Channel[F, String],
-    ecsVentGateWest:  Channel[F, String],
-    ecsVentGatesDir:  Channel[F, CadDirective]
+    ecsVentGateWest:  Channel[F, String]
   )
 
   object EnclosureChannels {
@@ -219,7 +218,6 @@ object TcsChannels {
         esb <- service.getChannel[String](top.value, "shutter.B")
         eve <- service.getChannel[String](top.value, "ventgates.A")
         evw <- service.getChannel[String](top.value, "ventgates.B")
-        evd <- service.getChannel[CadDirective](top.value, s"ventgates$DirSuffix")
       } yield EnclosureChannels(
         edm,
         esm,
@@ -230,8 +228,7 @@ object TcsChannels {
         est,
         esb,
         eve,
-        evw,
-        evd
+        evw
       )
   }
 

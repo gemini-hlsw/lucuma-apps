@@ -10,7 +10,8 @@ import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.model.IntPercent
 import navigate.epics.EpicsService
 import navigate.epics.VerifiedEpics
-import navigate.epics.VerifiedEpics.VerifiedEpics
+import navigate.epics.VerifiedEpics.*
+import navigate.server.acm.CadDirective
 import navigate.server.tcs.EcsEpicsSystem.EcsCommands
 import navigate.server.tcs.EcsEpicsSystem.EcsStatus
 
@@ -30,6 +31,8 @@ object EcsEpicsSystem {
    * so they are fire and forget.
    */
   trait EcsCommands[F[_]] {
+    // CAD record: it is triggered by writing MARK and then START to its directive.
+    def stopShutters: VerifiedEpics[F, F, Unit]
     def closeShutters: VerifiedEpics[F, F, Unit]
     def closeEastVentGate: VerifiedEpics[F, F, Unit]
     def closeWestVentGate: VerifiedEpics[F, F, Unit]
@@ -49,6 +52,10 @@ object EcsEpicsSystem {
     }
 
     override val commands: EcsCommands[F] = new {
+      override def stopShutters: VerifiedEpics[F, F, Unit] =
+        VerifiedEpics.writeChannel(ch.telltale, ch.stopShuttersDir)(CadDirective.MARK.pure[F]) *>
+          VerifiedEpics.writeChannel(ch.telltale, ch.stopShuttersDir)(CadDirective.START.pure[F])
+
       override def closeShutters: VerifiedEpics[F, F, Unit] =
         VerifiedEpics.writeChannel(ch.telltale, ch.closeShutters)(1.pure[F])
 

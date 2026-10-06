@@ -8,6 +8,7 @@ import cats.effect.Temporal
 import monocle.Focus
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.TestChannel
+import navigate.server.acm.CadDirective
 
 object TestEcsEpicsSystem {
   case class State(
@@ -16,13 +17,14 @@ object TestEcsEpicsSystem {
     westVentGatePos:   TestChannel.State[Double],
     closeShutters:     TestChannel.State[Int] = TestChannel.State.default,
     closeEastVentGate: TestChannel.State[Int] = TestChannel.State.default,
-    closeWestVentGate: TestChannel.State[Int] = TestChannel.State.default
+    closeWestVentGate: TestChannel.State[Int] = TestChannel.State.default,
+    stopShuttersDir:   TestChannel.State[CadDirective] = TestChannel.State.default
   )
 
   val defaultState: State = State(
     TestChannel.State.default,
-    TestChannel.State.default,
-    TestChannel.State.default
+    TestChannel.State.of(0.0),
+    TestChannel.State.of(0.0)
   )
 
   def buildChannels[F[_]: Temporal](
@@ -34,7 +36,8 @@ object TestEcsEpicsSystem {
     westVentGateAperture = new TestChannel[F, State, Double](s, Focus[State](_.westVentGatePos)),
     closeShutters = new TestChannel[F, State, Int](s, Focus[State](_.closeShutters)),
     closeEastVentGate = new TestChannel[F, State, Int](s, Focus[State](_.closeEastVentGate)),
-    closeWestVentGate = new TestChannel[F, State, Int](s, Focus[State](_.closeWestVentGate))
+    closeWestVentGate = new TestChannel[F, State, Int](s, Focus[State](_.closeWestVentGate)),
+    stopShuttersDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.stopShuttersDir))
   )
 
   def build[F[_]: Temporal](

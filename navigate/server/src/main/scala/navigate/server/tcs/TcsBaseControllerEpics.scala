@@ -2867,37 +2867,40 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   override def ecsDisableShutters: F[ApplyCommandResult] =
     partialDomeModeCmd(timeout = shutterDisableTimeout, shutterEnabled = false.some)
 
-  private def closeShutters: F[ApplyCommandResult] =
-    sys.ecs.commands.closeShutters.verifiedRun(ConnectionTimeout).as(ApplyCommandResult.Completed)
+  // The shutters ignore close commands while they are moving, so they must be stopped first. Stop
+  // and close have no feedback, so some time is needed between them for the stop to take effect.
+  private val shuttersStopToCloseDelay = FiniteDuration(500, MILLISECONDS)
 
   // Shutters tracking must be disabled before the shutters can be parked
-  override def ecsShuttersPark: F[ApplyCommandResult] = ecsDisableShutters *> closeShutters
+  override def ecsShuttersPark: F[ApplyCommandResult] =
+    ecsDisableShutters *> (
+      sys.ecs.commands.stopShutters *>
+        VerifiedEpics.liftF[F, F, Unit](Temporal[F].sleep(shuttersStopToCloseDelay)) *>
+        sys.ecs.commands.closeShutters
+    ).verifiedRun(ConnectionTimeout).as(ApplyCommandResult.Completed)
 
-  // Both ventilation gates are controlled from the same CAD. Even if only one is changed, it is necesary that all inputs have valid values, otherwise the command fails.
+  // Both ventilation gates are controlled from the same CAD, and every time it is triggered it moves
+  // both gates to the positions in its inputs. To move only one of them, the input of the other one
+  // is set to its current position.
   private def partialVentGateCmd(
     timeout:         FiniteDuration,
     eastVentGatePos: Option[IntPercent] = none,
     westVentGatePos: Option[IntPercent] = none
   ): F[ApplyCommandResult] = (for {
-    egF <- sys.tcsEpics.status.enclosureCommandsState.eastVentGateAperture
-    wgF <- sys.tcsEpics.status.enclosureCommandsState.westVentGateAperture
+    ecF <- sys.ecs.status.eastVentGatePos
+    wcF <- sys.ecs.status.westVentGatePos
   } yield
     for {
-      eg <- egF
-      wg <- wgF
-      r  <- {
-        val eastAp = (cmds: TcsCommands[F]) =>
-          eastVentGatePos
-            .map(v => cmds.ecsVenGatesMoveCmd.setVentGateEast(v.value.toDouble / 100.0))
-            .getOrElse(eg.fold(cmds.ecsVenGatesMoveCmd.setVentGateEast(0.0))(_ => cmds))
-        val westAp = (cmds: TcsCommands[F]) =>
-          westVentGatePos
-            .map(v => cmds.ecsVenGatesMoveCmd.setVentGateWest(v.value.toDouble / 100.0))
-            .getOrElse(wg.fold(cmds.ecsVenGatesMoveCmd.setVentGateWest(0.0))(_ => cmds))
-
-        (eastAp >>> westAp)(sys.tcsEpics.startCommand(timeout)).post
-          .verifiedRun(ConnectionTimeout)
-      }
+      ec <- ecF
+      wc <- wcF
+      r  <- sys.tcsEpics
+              .startCommand(timeout)
+              .ecsVenGatesMoveCmd
+              .setVentGateEast(eastVentGatePos.getOrElse(ec).value.toDouble / 100.0)
+              .ecsVenGatesMoveCmd
+              .setVentGateWest(westVentGatePos.getOrElse(wc).value.toDouble / 100.0)
+              .post
+              .verifiedRun(ConnectionTimeout)
     } yield r).verifiedRun(ConnectionTimeout)
 
   private val ventGateTimeout                                                   = FiniteDuration(60, SECONDS)
@@ -2905,19 +2908,17 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     partialVentGateCmd(ventGateTimeout, eastVentGatePos = position.some)
 
   override def ecsCloseEastVentGate: F[ApplyCommandResult] =
-    sys.tcsEpics.resetEastVentGateInput.verifiedRun(ConnectionTimeout) *>
-      sys.ecs.commands.closeEastVentGate
-        .verifiedRun(ConnectionTimeout)
-        .as(ApplyCommandResult.Completed)
+    sys.ecs.commands.closeEastVentGate
+      .verifiedRun(ConnectionTimeout)
+      .as(ApplyCommandResult.Completed)
 
   override def ecsMoveWestVentGate(position: IntPercent): F[ApplyCommandResult] =
     partialVentGateCmd(ventGateTimeout, westVentGatePos = position.some)
 
   override def ecsCloseWestVentGate: F[ApplyCommandResult] =
-    sys.tcsEpics.resetWestVentGateInput.verifiedRun(ConnectionTimeout) *>
-      sys.ecs.commands.closeWestVentGate
-        .verifiedRun(ConnectionTimeout)
-        .as(ApplyCommandResult.Completed)
+    sys.ecs.commands.closeWestVentGate
+      .verifiedRun(ConnectionTimeout)
+      .as(ApplyCommandResult.Completed)
 
   private val azUnwrapTimeout                       = FiniteDuration(60, SECONDS)
   override def azimuthUnwrap: F[ApplyCommandResult] =
