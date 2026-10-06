@@ -30,19 +30,19 @@ class ConfigurationSummarySuite extends FunSuite:
   test("no suffix without Altair"):
     assertEquals(
       display.configurationSummary(gnirsSlit, none),
-      "SB 32 l/mm @ 2.23µm SXD 0.30\" slit"
+      "GNIRS SB 32 l/mm @ 2.23µm SXD 0.30\" slit"
     )
 
   test("Altair mode is appended"):
     assertEquals(
       display.configurationSummary(gnirsSlit, AltairMode.Ngs.some),
-      "SB 32 l/mm @ 2.23µm SXD 0.30\" slit AO:NGS"
+      "GNIRS SB 32 l/mm @ 2.23µm SXD 0.30\" slit AO:NGS"
     )
     assertEquals(
       display.configurationSummary(gnirsSlit, AltairMode.Lgs.some),
-      "SB 32 l/mm @ 2.23µm SXD 0.30\" slit AO:LGS"
+      "GNIRS SB 32 l/mm @ 2.23µm SXD 0.30\" slit AO:LGS"
     )
     assertEquals(
       display.configurationSummary(gnirsSlit, AltairMode.LgsP1.some),
-      "SB 32 l/mm @ 2.23µm SXD 0.30\" slit AO:LGS+P1"
+      "GNIRS SB 32 l/mm @ 2.23µm SXD 0.30\" slit AO:LGS+P1"
     )
