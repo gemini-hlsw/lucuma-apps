@@ -433,8 +433,8 @@ enum AcWindowSize {
 }
 
 input AcWindowCenter {
-    x: Int
-    y: Int
+    x: Int!
+    y: Int!
 }
 
 input AcWindowInput {
@@ -587,7 +587,7 @@ type Mutation {
     m1ZeroFigure: OperationOutcome!
     m1LoadAoFigure: OperationOutcome!
     m1LoadNonAoFigure: OperationOutcome!
-    lightpathConfig(from: LightSource, instrument: Instrument!, lightSinkVariant: LightSinkVariant): OperationOutcome!
+    lightpathConfig(from: LightSource!, instrument: Instrument!, lightSinkVariant: LightSinkVariant): OperationOutcome!
     acquisitionAdjustment(adjustment: AcquisitionAdjustmentInput!): OperationOutcome!
     wfsSky(wfs: GuideProbe!, period: TimeSpanInput!): OperationOutcome!
     adjustTarget(target: AdjustTarget!, offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
