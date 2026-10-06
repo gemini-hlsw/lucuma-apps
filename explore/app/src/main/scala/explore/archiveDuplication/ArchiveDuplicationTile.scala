@@ -59,8 +59,9 @@ private given matchCacheReuse: Reusability[Map[Observation.Id, Pot[List[ArchiveM
   Reusability.byEq
 
 /**
- * Loads every observation's header into `duplications`, merging per entry: an entry changed while
- * the load ran (a search in flight, a Ready event) outranks the loaded one.
+ * Loads every observation's header into `duplications`, merging per entry: a Search in flight and
+ * an entry changed while the load ran (a Ready event) outrank the loaded one. A failed load only
+ * fills the rows that have nothing yet, so a reload never blanks the tile.
  */
 private def loadHeaders(
   odbApi:         OdbArchiveApi[IO],
@@ -76,8 +77,14 @@ private def loadHeaders(
     duplications.mod: current =>
       loaded.foldLeft(current):
         case (acc, (obsId, header)) =>
-          if current.get(obsId) === before.get(obsId) then acc.updated(obsId, header)
-          else acc
+          val entry: Option[Pot[ArchiveDuplication]] = current.get(obsId)
+          if entry.exists(_.isPending) || entry =!= before.get(obsId) then acc
+          else acc.updated(obsId, header)
+
+  def fillMissing(error: Throwable): IO[Unit] =
+    duplications.mod: current =>
+      observationIds.foldLeft(current): (acc, obsId) =>
+        if acc.contains(obsId) then acc else acc.updated(obsId, Pot.error(error))
 
   duplications
     .modAndGet(identity)
@@ -86,10 +93,8 @@ private def loadHeaders(
         .programArchiveDuplications(programId)
         .attempt
         .flatMap:
-          case Right(headers) =>
-            mergeUnchanged(before, headers.view.mapValues(Pot.apply).toMap)
-          case Left(t)        =>
-            mergeUnchanged(before, observationIds.map(_ -> Pot.error[ArchiveDuplication](t)).toMap)
+          case Right(headers) => mergeUnchanged(before, headers.view.mapValues(Pot.apply).toMap)
+          case Left(t)        => fillMissing(t)
     .guarantee(headersLoaded.set(true))
 
 /**

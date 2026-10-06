@@ -5,9 +5,11 @@ package explore.model
 
 import cats.*
 import cats.effect.*
+import cats.effect.syntax.all.*
 import cats.effect.std.SecureRandom
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
+import clue.PersistentClientStatus
 import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -73,6 +75,7 @@ case class AppContext[F[_]](
   broadcastChannel:       BroadcastChannel[F, ExploreEvent],
   toastRef:               ToastRef,
   resetProgramCacheTopic: Topic[F, Option[ProgramError]], // Error message (if any)
+  odbReconnectionsTopic:  Topic[F, Unit],
   loadProgress:           LoadProgressRef[F],
   simbadClient:           SimbadClient[F],
   shapeInterpreter:       ShapeInterpreter
@@ -113,12 +116,9 @@ case class AppContext[F[_]](
     resetProgramCacheTopic.publish1(errorMsg.map(ProgramError(_, false))).void
 
   // Emits once per reconnection, so subscribers can resync what clue's transparent
-  // resubscription missed. The first Connected is the initial connection, dropped.
+  // resubscription missed. Unbounded, so a subscriber busy resyncing misses none.
   val odbReconnections: fs2.Stream[F, Unit] =
-    clients.odb.statusStream
-      .filter(_ === clue.PersistentClientStatus.Connected)
-      .drop(1)
-      .void
+    odbReconnectionsTopic.subscribeUnbounded
 
   def notifyFatalError(errorMsg: String): F[Unit] =
     resetProgramCacheTopic.publish1(
@@ -167,6 +167,17 @@ object AppContext:
         GraphQLClients
           .build[F](config.odbURI, config.preferencesDBURI, config.sso.uri, reconnectionStrategy)
       resetProgramCacheTopic <- Topic[F, Option[ProgramError]]
+      odbReconnectionsTopic  <- Topic[F, Unit]
+      // A dedicated puller: the status signal skips transitions nobody is pulling. The first
+      // Connected is the current state, not a reconnection.
+      _                      <- clients.odb.statusStream
+                                  .filter(_ === PersistentClientStatus.Connected)
+                                  .drop(1)
+                                  .evalMap(_ => odbReconnectionsTopic.publish1(()).void)
+                                  .compile
+                                  .drain
+                                  .start
+                                  .void
       loadProgress           <- SignallingRef[F].of(Map.empty: LoadProgress)
       httpClient              = FetchClientBuilder[F]
                                   .withRequestTimeout(4.seconds)
@@ -205,6 +216,7 @@ object AppContext:
       broadcastChannel,
       null, // toastRef will be completed later in RootComponent
       resetProgramCacheTopic,
+      odbReconnectionsTopic,
       loadProgress,
       simbadClient,
       shapeInterpreter
