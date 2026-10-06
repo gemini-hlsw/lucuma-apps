@@ -7,6 +7,7 @@ import cats.effect.IO
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import crystal.Pot
+import crystal.ViewF
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
@@ -29,6 +30,7 @@ import explore.model.TargetList
 import explore.model.enums.TableId
 import explore.model.enums.TileSizeState
 import explore.model.enums.Visible
+import explore.services.OdbArchiveApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProposalStatus
@@ -55,6 +57,40 @@ private given controlsReuse: Reusability[ArchiveDuplicationControls]            
 private given entriesReuse: Reusability[List[ArchiveDuplicationEntry]]                   = Reusability.byEq
 private given matchCacheReuse: Reusability[Map[Observation.Id, Pot[List[ArchiveMatch]]]] =
   Reusability.byEq
+
+/**
+ * Loads every observation's header into `duplications`, merging per entry: an entry changed while
+ * the load ran (a search in flight, a Ready event) outranks the loaded one.
+ */
+private def loadHeaders(
+  odbApi:         OdbArchiveApi[IO],
+  programId:      Program.Id,
+  observationIds: Iterable[Observation.Id],
+  duplications:   ViewF[IO, Map[Observation.Id, Pot[ArchiveDuplication]]],
+  headersLoaded:  ViewF[IO, Boolean]
+): IO[Unit] =
+  def mergeUnchanged(
+    before: Map[Observation.Id, Pot[ArchiveDuplication]],
+    loaded: Map[Observation.Id, Pot[ArchiveDuplication]]
+  ): IO[Unit] =
+    duplications.mod: current =>
+      loaded.foldLeft(current):
+        case (acc, (obsId, header)) =>
+          if current.get(obsId) === before.get(obsId) then acc.updated(obsId, header)
+          else acc
+
+  duplications
+    .modAndGet(identity)
+    .flatMap: before =>
+      odbApi
+        .programArchiveDuplications(programId)
+        .attempt
+        .flatMap:
+          case Right(headers) =>
+            mergeUnchanged(before, headers.view.mapValues(Pot.apply).toMap)
+          case Left(t)        =>
+            mergeUnchanged(before, observationIds.map(_ -> Pot.error[ArchiveDuplication](t)).toMap)
+    .guarantee(headersLoaded.set(true))
 
 /**
  * The Archive Duplication Search tile: the program's observations with their Match Count,
@@ -87,20 +123,16 @@ object ArchiveDuplicationTile
           matches          <- useStateView(Map.empty[Observation.Id, Pot[List[ArchiveMatch]]])
           columnVisibility <- useStateView(DefaultColumnVisibility)
           headersLoaded    <- useStateView(false)
-          _                <- useEffectOnMount:
-                                ctx.odbApi
-                                  .programArchiveDuplications(props.programId)
-                                  .attempt
-                                  .flatMap:
-                                    case Right(headers) =>
-                                      duplications.async.set:
-                                        headers.view.mapValues(Pot.apply).toMap
-                                    case Left(t)        =>
-                                      duplications.async.set:
-                                        props.observations.keys
-                                          .map(_ -> Pot.error[ArchiveDuplication](t))
-                                          .toMap
-                                  .guarantee(headersLoaded.async.set(true))
+          load              = loadHeaders(
+                                ctx.odbApi,
+                                props.programId,
+                                props.observations.keys,
+                                duplications.async,
+                                headersLoaded.async
+                              )
+          _                <- useEffectOnMount(load)
+          // A reconnection may have missed Ready events.
+          _                <- useEffectStreamOnMount(ctx.odbReconnections.evalMap(_ => load))
           _                <- useEffectStreamResourceOnMount:
                                 ctx.odbApi
                                   .obsCalcSubscription(props.programId)

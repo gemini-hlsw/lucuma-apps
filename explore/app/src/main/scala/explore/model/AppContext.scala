@@ -112,6 +112,14 @@ case class AppContext[F[_]](
   def resetProgramCache(errorMsg: Option[String]): F[Unit] =
     resetProgramCacheTopic.publish1(errorMsg.map(ProgramError(_, false))).void
 
+  // Emits once per reconnection, so subscribers can resync what clue's transparent
+  // resubscription missed. The first Connected is the initial connection, dropped.
+  val odbReconnections: fs2.Stream[F, Unit] =
+    clients.odb.statusStream
+      .filter(_ === clue.PersistentClientStatus.Connected)
+      .drop(1)
+      .void
+
   def notifyFatalError(errorMsg: String): F[Unit] =
     resetProgramCacheTopic.publish1(
       ProgramError(errorMsg, true).some

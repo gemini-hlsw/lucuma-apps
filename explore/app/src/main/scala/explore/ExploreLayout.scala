@@ -409,8 +409,9 @@ object ExploreLayout:
                         case p @ Some(ProgramError(_, true)) => p // no reset for a fatal error
                         case _                               => None
                       }.toAsync,
-                      ctx.resetProgramCacheTopic.subscribeUnbounded // On error, keep the current program cache.
-                        .map(_.fold(ResetType.Wipe)(_ => ResetType.Keep)),
+                      ctx.resetProgramCacheTopic.subscribeUnbounded // On error or reconnect, keep the current program cache.
+                        .map(_.fold(ResetType.Wipe)(_ => ResetType.Keep))
+                        .merge(ctx.odbReconnections.as(ResetType.Keep)),
                       isProgramSelected = routingInfo.optProgramId.isDefined,
                       ctx.loadProgress
                     ),
