@@ -14,6 +14,7 @@ import explore.model.ExploreModelValidators.*
 import explore.model.RegionOrCoordinatesAt
 import explore.model.conversions.*
 import explore.model.display.given
+import explore.model.enums.SourceProfileType
 import explore.model.formats.*
 import explore.optics.ModelOptics.*
 import explore.syntax.ui.*
@@ -70,8 +71,7 @@ object TargetColumns:
       NameColumnId      -> "Name",
       CatalogName       -> "Catalog",
       CatalogId         -> "Catalog Id",
-      CatalogObjectType -> "Catalog Type",
-      SEDColumnId       -> "SED"
+      CatalogObjectType -> "Catalog Type"
     )
 
   val RaDecColNames: TreeSeqMap[ColumnId, String] =
@@ -86,17 +86,22 @@ object TargetColumns:
 
   val SiderealColNames: TreeSeqMap[ColumnId, String] =
     TreeSeqMap(
-      PMRAColumnId       -> "µ RA",
-      PMDecColumnId      -> "µ Dec",
-      RVColumnId         -> "RV",
-      ZColumnId          -> "z",
+      PMRAColumnId     -> "µ RA",
+      PMDecColumnId    -> "µ Dec",
+      ParallaxColumnId -> "Parallax",
+      RVColumnId       -> "RV",
+      ZColumnId        -> "z"
+    )
+
+  val ProgramColNames: TreeSeqMap[ColumnId, String] =
+    TreeSeqMap(
       CZColumnId         -> "cz",
-      ParallaxColumnId   -> "Parallax",
-      MorphologyColumnId -> "Morphology"
+      MorphologyColumnId -> "Morphology",
+      SEDColumnId        -> "SED"
     )
 
   val AllColNames: TreeSeqMap[ColumnId, String] =
-    BaseColNames ++ RaDecColNames ++ BandColNames ++ SiderealColNames
+    BaseColNames ++ RaDecColNames ++ BandColNames ++ SiderealColNames ++ ProgramColNames
 
   val DefaultVisibility: ColumnVisibility =
     ColumnVisibility(
@@ -132,7 +137,7 @@ object TargetColumns:
       def getName(d:        D): String
 
       def baseColumn[V](id: ColumnId, accessor: Target => V): colDef.TypeFor[Option[V]] =
-        colDef(id, d => getTarget(d).map(accessor), BaseColNames(id))
+        colDef(id, d => getTarget(d).map(accessor), AllColNames(id))
 
       lazy val NameColumn: colDef.Type =
         colDef(NameColumnId, d => getName(d).some, BaseColNames(NameColumnId))
@@ -226,7 +231,7 @@ object TargetColumns:
       ): colDef.TypeFor[Option[V]] =
         colDef(id,
                d => getTarget(d).flatMap(t => Target.sidereal.getOption(t).flatMap(accessor)),
-               SiderealColNames(id)
+               AllColNames(id)
         )
 
       def siderealColumn[V](
@@ -301,11 +306,33 @@ object TargetColumns:
           .withSize(35.toPx)
           .sortableBy(_._2)
 
+      lazy val ProgramColumns: List[colDef.Type] =
+        List(
+          siderealColumnOpt(
+            CZColumnId,
+            Target.Sidereal.radialVelocity.get.andThen(_.map(rvToARVGet))
+          )
+            .withCell(_.value.map(formatCZ.reverseGet).orEmpty)
+            .withSize(90.toPx)
+            .sortable,
+          baseColumn(
+            MorphologyColumnId,
+            Target.sourceProfile.get.andThen(SourceProfileType.fromSourceProfile)
+          )
+            .withCell(_.value.map(_.shortName).orEmpty)
+            .withSize(115.toPx)
+            .sortable,
+          baseColumn(SEDColumnId, _.sedShortName)
+            .withCell(_.value.orEmpty)
+            .withSize(200.toPx)
+            .sortable
+        )
+
       lazy val AllColumns: List[colDef.Type] =
         List(IconColumn,
              TypeColumn,
              NameColumn
-        ) ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns
+        ) ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns ++ ProgramColumns
 
     case class ForSiderealCatalog[D <: TargetWithMetadata, TM, CM, CF](
       colDef: ColumnDef.Applied[D, TM, CM, CF]
