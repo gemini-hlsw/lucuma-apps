@@ -10,11 +10,11 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.CalibrationSets
 import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.VisitTimeCharge
 import explore.model.display.given
+import explore.model.formats.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -168,15 +168,15 @@ object ObservationDetailsTile
               d.total.value +| d.calibrations.existing.time.programTime
 
             val gcalSetsRow: Option[VdomNode] =
-              CalibrationSets
-                .text(d.science.gcalSets, gcalTotal)
+              formatCalibrationSets(d.science.gcalSets, gcalTotal)
                 .map(FormInfo(_, "Flats & Arcs"))
 
             val cals = d.calibrations
 
             val telluricsRow: Option[VdomNode] =
-              CalibrationSets
-                .countTimesEach(cals.count, (cals.existing.time |+| cals.expected.time).programTime)
+              formatCountTimesEach(cals.count,
+                                   (cals.existing.time |+| cals.expected.time).programTime
+              )
                 .map: text =>
                   val tooltip =
                     telluricsTooltip(cals.existing.count.value, cals.expected.count.value)

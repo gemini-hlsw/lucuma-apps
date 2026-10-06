@@ -5,16 +5,19 @@ package explore.model
 
 import cats.syntax.all.*
 import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.optics.ModelOptics.*
 import lucuma.core.math.*
 import lucuma.core.math.HourAngle.HMS
 import lucuma.core.model.IntCentiPercent
 import lucuma.core.optics.*
+import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.syntax.string.*
 import lucuma.core.syntax.validation.*
 import lucuma.core.util.TimeSpan
 import lucuma.core.validation.*
 import lucuma.refined.*
+import lucuma.ui.format.DurationSpacedFormatter
 
 import java.text.NumberFormat
 import java.time.LocalTime
@@ -100,6 +103,34 @@ trait formats:
     else
       f"$arcseconds%01d.$mas%02d″"
   }
+
+  private def formatDuration(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
+
+  /**
+   * Number of calibration sets and their total time, as `N sets, T (T/N each)`, or `None` when
+   * there are none. The time is left out when it is zero.
+   */
+  def formatCalibrationSets(count: NonNegInt, total: TimeSpan): Option[String] =
+    NonZeroInt
+      .from(count.value)
+      .toOption
+      .map: n =>
+        val sets = if n.value === 1 then "1 set" else s"$n sets"
+        if total === TimeSpan.Zero then sets
+        else if n.value === 1 then s"$sets, ${formatDuration(total)}"
+        else s"$sets, ${formatDuration(total)} (${formatDuration(total /| n)} each)"
+
+  /**
+   * Count and the time of each, as `N × T`, or `None` when there are none. The time is left out
+   * when it is zero.
+   */
+  def formatCountTimesEach(count: NonNegInt, total: TimeSpan): Option[String] =
+    NonZeroInt
+      .from(count.value)
+      .toOption
+      .map: n =>
+        if total === TimeSpan.Zero then s"$n"
+        else s"$n × ${formatDuration(total /| n)}"
 
   val durationHM: InputValidWedge[TimeSpan] =
     InputValidWedge(
