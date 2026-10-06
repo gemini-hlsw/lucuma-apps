@@ -70,9 +70,10 @@ object ObservationDetailsTile
         def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
           TimeSpanView(time, TimeSpanFormatter.HoursMinutesLetter, tooltip = tooltip)
 
-        def telluricsTooltip(created: Int, expected: Int): VdomNode =
-          s"$created created, $expected expected. Created tellurics use their own estimate; " +
-            "expected ones use the average of the group's tellurics, or 15m before any exists."
+        def telluricsTooltip(existing: Int, expected: Int): VdomNode =
+          s"$existing existing not yet observed, $expected expected. Existing tellurics use " +
+            "their own estimate, or 15m while they have none; expected ones use the average of " +
+            "the group's tellurics, or 15m before any has an estimate."
 
         val totalTooltip: VdomNode =
           "Includes this observation's tellurics. Other separately scheduled calibrations are " +
@@ -184,7 +185,7 @@ object ObservationDetailsTile
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
-                "Remaining Estimate Duration"
+                "Remaining Estimated Duration"
               )
                 .withOptionalTooltip(digest.staleTooltip),
               FormInfo(
