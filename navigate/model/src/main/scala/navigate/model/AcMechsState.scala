@@ -5,6 +5,7 @@ package navigate.model
 
 import cats.Eq
 import cats.derived.*
+import cats.syntax.all.*
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
@@ -14,3 +15,7 @@ case class AcMechsState(
   ndFilter: Option[AcNdFilter],
   filter:   Option[AcFilter]
 ) derives Eq
+
+object AcMechsState:
+  val default: AcMechsState =
+    AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some)

@@ -3,7 +3,14 @@
 
 package navigate.model
 
+import cats.Eq
+import cats.derived.*
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 
 case class BafflesState(central: CentralBafflePosition, deployable: DeployableBafflePosition)
+    derives Eq
+
+object BafflesState:
+  val default: BafflesState =
+    BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
