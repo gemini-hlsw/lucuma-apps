@@ -14,6 +14,7 @@ import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.VisitTimeCharge
 import explore.model.display.given
+import explore.model.formats.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -22,13 +23,11 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.User
-import lucuma.core.refined.numeric.NonZeroInt
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
-import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.format.TimeSpanFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -71,11 +70,14 @@ object ObservationDetailsTile
         def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
           TimeSpanView(time, TimeSpanFormatter.HoursMinutesLetter, tooltip = tooltip)
 
-        val scienceTooltip: VdomNode =
-          "Includes the flats and arcs taken within the science sequence."
+        def telluricsTooltip(existing: Int, expected: Int): VdomNode =
+          s"$existing existing not yet observed, $expected expected. Existing tellurics use " +
+            "their own estimate, or 15m while they have none; expected ones use the average of " +
+            "the group's tellurics, or 15m before any has an estimate."
 
         val totalTooltip: VdomNode =
-          "Does not include time for telluric standards or other separately scheduled calibrations."
+          "Includes this observation's tellurics. Other separately scheduled calibrations are " +
+            "not included."
 
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
@@ -156,30 +158,38 @@ object ObservationDetailsTile
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
             val setupCount: Int = d.setupCount.value
-            val gcalSets: Int   = d.science.gcalSets.value
 
-            val flats                     = d.science.steps.flats
-            val arcs                      = d.science.steps.arcs
-            val gcalTotal                 = flats.time.programTime +| arcs.time.programTime
-            def secs(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
+            val steps     = d.science.steps
+            val gcalTotal = steps.flats.time.programTime +| steps.arcs.time.programTime
+
+            val scienceTime: TimeSpan =
+              (steps.biases.time |+| steps.darks.time |+| steps.observing.time).programTime
+
+            val total: TimeSpan =
+              d.total.value +| d.calibrations.existing.time.programTime
 
             val gcalSetsRow: Option[VdomNode] =
-              NonZeroInt
-                .from(gcalSets)
-                .toOption
-                .map: n =>
-                  val text =
-                    if gcalSets === 1 then s"1 set, ${secs(gcalTotal)}"
-                    else s"$gcalSets sets, ${secs(gcalTotal)} (${secs(gcalTotal /| n)} each)"
-                  FormInfo(text, "Flats & Arcs")
+              formatCalibrationSets(d.science.gcalSets, gcalTotal)
+                .map(FormInfo(_, "Flats & Arcs"))
+
+            val cals = d.calibrations
+
+            val telluricsRow: Option[VdomNode] =
+              formatCountTimesEach(cals.count,
+                                   (cals.existing.time |+| cals.expected.time).programTime
+              )
+                .map: text =>
+                  val tooltip =
+                    telluricsTooltip(cals.existing.count.value, cals.expected.count.value)
+                  FormInfo(text, "Tellurics", tooltip = tooltip)
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
-                "Estimated Duration"
+                "Remaining Estimated Duration"
               )
                 .withOptionalTooltip(digest.staleTooltip),
               FormInfo(
-                duration(d.science.timeEstimate.programTime, scienceTooltip.some),
+                duration(scienceTime),
                 "Science Sequence"
               ),
               gcalSetsRow,
@@ -187,7 +197,11 @@ object ObservationDetailsTile
                 <.span(s"$setupCount × ", duration(d.setup.full)),
                 "Setup"
               ),
-              FormInfo(duration(d.fullTimeEstimate.programTime, totalTooltip.some), "Total")
+              telluricsRow,
+              FormInfo(
+                <.span(ExploreStyles.ObservationDetailsTotal)(duration(total, totalTooltip.some)),
+                "Total"
+              )
             )
 
         TileContents:

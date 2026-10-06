@@ -4,6 +4,7 @@
 package explore.model.arb
 
 import explore.model.Execution
+import explore.model.ObservationDigest
 import explore.model.ProgramTime
 import lucuma.core.enums.ExecutionState
 import lucuma.core.model.sequence.ExecutionDigest
@@ -19,9 +20,19 @@ import org.scalacheck.Cogen
 
 trait ArbExecution:
 
+  given Arbitrary[ObservationDigest] = Arbitrary(
+    for
+      digest <- arbitrary[ExecutionDigest]
+      total  <- arbitrary[TimeSpan]
+    yield ObservationDigest(digest, ProgramTime(total))
+  )
+
+  given Cogen[ObservationDigest] =
+    Cogen[(ExecutionDigest, TimeSpan)].contramap(d => (d.digest, d.total.value))
+
   given Arbitrary[Execution] = Arbitrary(
     for {
-      digest          <- arbitrary[CalculatedValue[Option[ExecutionDigest]]]
+      digest          <- arbitrary[CalculatedValue[Option[ObservationDigest]]]
       timeCharge      <- arbitrary[TimeSpan]
       original        <- arbitrary[Option[TimeSpan]]
       acqMaterialized <- arbitrary[Boolean]
@@ -38,7 +49,7 @@ trait ArbExecution:
   )
 
   given Cogen[Execution] = Cogen[
-    (CalculatedValue[Option[ExecutionDigest]], TimeSpan, Option[TimeSpan])
+    (CalculatedValue[Option[ObservationDigest]], TimeSpan, Option[TimeSpan])
   ].contramap(e => (e.digest, e.programTimeCharge.value, e.originalEstimate.map(_.value)))
 
 object ArbExecution extends ArbExecution

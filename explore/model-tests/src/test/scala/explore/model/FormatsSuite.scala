@@ -5,6 +5,7 @@ package explore.model
 
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.model.formats.*
 import lucuma.core.arb.*
 import lucuma.core.arb.ArbTime.given
@@ -171,3 +172,30 @@ class FormatsSuite extends munit.DisciplineSuite:
     "time24h",
     ValidWedgeTests(time24h).validWedgeLaws
   )
+
+  private def n(i: Int): NonNegInt = NonNegInt.unsafeFrom(i)
+
+  private def mins(m: Long): TimeSpan = TimeSpan.unsafeFromMicroseconds(m * 60_000_000L)
+
+  test("calibration sets has no text without sets"):
+    assertEquals(formatCalibrationSets(n(0), mins(10)), None)
+
+  test("calibration sets shows the time of a single set"):
+    assertEquals(formatCalibrationSets(n(1), mins(24)), Some("1 set, 24m 0s"))
+
+  test("calibration sets shows the total and the time of each"):
+    assertEquals(formatCalibrationSets(n(2), mins(48)), Some("2 sets, 48m 0s (24m 0s each)"))
+
+  test("calibration sets without time shows only the count"):
+    assertEquals(formatCalibrationSets(n(1), TimeSpan.Zero), Some("1 set"))
+    assertEquals(formatCalibrationSets(n(3), TimeSpan.Zero), Some("3 sets"))
+
+  test("count times each has no text without a count"):
+    assertEquals(formatCountTimesEach(n(0), mins(10)), None)
+
+  test("count times each shows the time of each"):
+    assertEquals(formatCountTimesEach(n(1), mins(15)), Some("1 × 15m 0s"))
+    assertEquals(formatCountTimesEach(n(2), mins(30)), Some("2 × 15m 0s"))
+
+  test("count times each without time shows only the count"):
+    assertEquals(formatCountTimesEach(n(2), TimeSpan.Zero), Some("2"))

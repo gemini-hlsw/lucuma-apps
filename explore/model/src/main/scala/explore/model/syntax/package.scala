@@ -28,7 +28,6 @@ import lucuma.core.model.Semester
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.CalculationState
 import lucuma.core.util.Enumerated
@@ -221,7 +220,7 @@ object all:
 
   extension [A](a: A) def asReady: CalculatedValue[A] = CalculatedValue(CalculationState.Ready, a)
 
-  extension (calcDigest: CalculatedValue[Option[ExecutionDigest]])
+  extension (calcDigest: CalculatedValue[Option[ObservationDigest]])
     def programTimeEstimate: CalculatedValue[Option[TimeSpan]] =
       calcDigest.map(_.map(_.fullTimeEstimate.programTime))
     def fullSetupTime: CalculatedValue[Option[TimeSpan]]       = calcDigest.map(_.map(_.setup.full))

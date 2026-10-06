@@ -17,7 +17,6 @@ import lucuma.core.model.sequence.SequenceDigest
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
-import lucuma.odb.json.sequence.given
 import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
@@ -26,7 +25,7 @@ import monocle.Optional
 import scala.collection.immutable.SortedSet
 
 final case class Execution(
-  digest:                            CalculatedValue[Option[ExecutionDigest]],
+  digest:                            CalculatedValue[Option[ObservationDigest]],
   programTimeCharge:                 ProgramTime,
   originalEstimate:                  Option[ProgramTime],
   acquisitionSequenceIsMaterialized: Boolean,
@@ -52,7 +51,7 @@ final case class Execution(
     digest.value.foldMap(_.science.telescopeConfigs.map(_.offset))
 
 object Execution:
-  val digest: Lens[Execution, CalculatedValue[Option[ExecutionDigest]]] =
+  val digest: Lens[Execution, CalculatedValue[Option[ObservationDigest]]] =
     Focus[Execution](_.digest)
 
   val programTimeCharge: Lens[Execution, ProgramTime] =
@@ -61,16 +60,18 @@ object Execution:
   val sciConfigs: Optional[Execution, SortedSet[TelescopeConfig]] =
     digest
       .andThen(CalculatedValue.value.some)
+      .andThen(ObservationDigest.digest)
       .andThen(ExecutionDigest.science.andThen(SequenceDigest.configs))
 
   val acqConfigs: Optional[Execution, SortedSet[TelescopeConfig]] =
     digest
       .andThen(CalculatedValue.value.some)
+      .andThen(ObservationDigest.digest)
       .andThen(ExecutionDigest.acquisition.andThen(SequenceDigest.configs))
 
   given Decoder[Execution] = Decoder.instance: c =>
     for
-      d  <- c.get[CalculatedValue[Option[ExecutionDigest]]]("digest")
+      d  <- c.get[CalculatedValue[Option[ObservationDigest]]]("digest")
       pt <- c.get[ProgramTime]("timeCharge")
       oe <- c.get[Option[ProgramTime]]("originalEstimate")(using
               Decoder.decodeOption(using Decoder.instance(_.get[ProgramTime]("total")))

@@ -25,6 +25,7 @@ import explore.model.GuidingConfiguration
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
+import explore.model.ObservationDigest
 import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
@@ -51,7 +52,6 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.TelluricType
 import lucuma.core.model.User
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.react.hotkeys.*
@@ -78,7 +78,7 @@ final case class ObservationTargetsEditorTile(
   obsTime:             View[Option[Instant]],
   obsDuration:         View[Option[TimeSpan]],
   obsConf:             ObsConfiguration,
-  digest:              CalculatedValue[Option[ExecutionDigest]],
+  digest:              CalculatedValue[Option[ObservationDigest]],
   focusedTargetId:     Option[Target.Id],
   setTarget:           (Option[Target.Id], SetRouteVia) => Callback,
   onCloneTarget:       OnCloneParameters => Callback,

@@ -665,6 +665,7 @@ object ExploreStyles:
   val ObservationDetailsPriority: Css = Css("observation-details-priority")
   val TimeChargesSection: Css         = Css("time-charges-section")
   val TimeChargesTable: Css           = Css("time-charges-table")
+  val ObservationDetailsTotal: Css    = Css("observation-details-total")
 
   // Program Tab
   val ProgramDetailsTile: Css     = Css("program-details-tile")

@@ -4550,6 +4550,10 @@ a.explore-upgrade-link {
     font-weight: bold;
   }
 
+  .observation-details-total {
+    font-weight: bold;
+  }
+
   .observation-details-select {
     justify-self: start;
     min-width: 12ch;
@@ -4581,6 +4585,10 @@ a.explore-upgrade-link {
 
     .observation-details-column {
       flex: 1;
+
+      &:first-child {
+        flex: 0 0 auto;
+      }
     }
   }
 }

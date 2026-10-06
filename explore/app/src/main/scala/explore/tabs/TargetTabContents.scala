@@ -16,6 +16,7 @@ import explore.actions.ObservationPasteIntoAsterismAction
 import explore.components.*
 import explore.model.*
 import explore.model.GuideStarSelection.AgsSelection
+import explore.model.ObservationDigest
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.SelectedPanel
@@ -38,7 +39,6 @@ import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
-import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
@@ -552,7 +552,7 @@ object TargetTabContents extends TwoPanels:
                     needsAGS,
                     none
                   ),
-                  none[ExecutionDigest].asReady,
+                  none[ObservationDigest].asReady,
                   props.focused.target,
                   setCurrentTarget(idsToEdit.some),
                   onCloneTarget4Asterism,
