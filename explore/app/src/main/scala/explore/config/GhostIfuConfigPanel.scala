@@ -81,6 +81,8 @@ object GhostIfuConfigPanel
                                                      ctx.odbApi
                                                        .observationEditSubscription(props.obsId)
                                                        .map(_.evalMap(_ => stepEstimate.refresh.to[IO]))
+        _                                       <- useEffectStreamOnMount: // Resync after a reconnection
+                                                     ctx.odbReconnections.evalMap(_ => stepEstimate.refresh.to[IO])
         lastEstimatedMode                       <- useState(none[ObservingMode.GhostIfu])
         _                                       <- useEffectWithDeps(stepEstimate.isRunning): running =>
                                                      lastEstimatedMode.setState(props.observingMode.get.some).unless_(running)

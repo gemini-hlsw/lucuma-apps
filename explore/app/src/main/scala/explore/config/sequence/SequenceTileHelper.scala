@@ -62,6 +62,9 @@ object SequenceTileHelper:
             .map:
               _.evalMap(_ => (refreshSequence >> refreshVisits).to[IO])
       _                                       <-
+        useEffectStreamOnMount: // Resync after a reconnection
+          ctx.odbReconnections.evalMap(_ => (refreshSequence >> refreshVisits).to[IO])
+      _                                       <-
         useEffectWithDeps(customSedTimestamps): _ =>
           // if the timestamp for a custom sed attachment changes, it means either a new custom sed
           // has been assigned, OR a new version of the custom sed has been uploaded. This is to

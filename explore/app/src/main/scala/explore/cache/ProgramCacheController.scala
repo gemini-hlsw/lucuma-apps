@@ -362,7 +362,6 @@ object ProgramCacheController
                       obsCalcGroupId.andThen(groupTimeRangeUpdate)
                     )
 
-            // TODO Handle errors, disable transparent resubscription upon connection loss.
             List(
               updateProgramDetails,
               updateTargets,

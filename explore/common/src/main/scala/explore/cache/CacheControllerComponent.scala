@@ -51,28 +51,26 @@ trait CacheControllerComponent[S, P <: CacheControllerComponent.Props[S]]:
           for
             // Start the update fiber. We want subscriptions to start before initial query.
             // This way we don't miss updates.
-            // The update fiber will only update once the cache is initialized (via latch).
+            // The update fiber will only apply updates once the cache is initialized (via latch).
             latch           <- Resource.eval(Deferred[F, Unit])
-            // Next is the update fiber. It will start getting updates immediately,
-            // but will wait until the cache is initialized to start applying them.
+            // Next is the update fiber. It subscribes immediately, but holds the updates (clue
+            // queues them) until the snapshot and the delayed inits are applied, which would
+            // otherwise overwrite them. Held updates are applied in order; they are idempotent.
             // Will run until the component is unmounted.
             updateStreamPot <- updateStream(props).map(_.attempt)
-            _               <- applyStreamUpdates(updateStreamPot).background
+            _               <- applyStreamUpdates(fs2.Stream.exec(latch.get) ++ updateStreamPot).background
             // initResult is (initValue, delayedInitsStream)
             initResult      <- Resource.eval:
                                  initial(props).attemptPot.map:
                                    _.adaptError: t =>
                                      new RuntimeException(s"Initialization Error: ${t.getMessage}", t)
             // Apply initial value.
-            _               <- Resource.eval(props.modState(_ => initResult.map(_._1)))
-            // Build and release update queue.
-            _               <- Resource.eval(latch.complete(()) >> props.onLoad)
-            // Apply delayed inits.
-            _               <- initResult.toOption
+            _               <- Resource.eval(props.modState(_ => initResult.map(_._1)) >> props.onLoad)
+            // Apply delayed inits, then release the held updates.
+            _               <- (initResult.toOption
                                  .map(_._2.attempt)
                                  .map(applyStreamUpdates)
-                                 .orEmpty
-                                 .background
+                                 .orEmpty >> latch.complete(()).void).background
           yield ()
       _                  <- useStreamOnMount:
                               props.resetSignal.evalMap: resetType =>
