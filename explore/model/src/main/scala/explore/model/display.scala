@@ -391,7 +391,7 @@ trait DisplayImplicits:
       val fpuSummary: String        = fpu match
         case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
         case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
-      s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
+      s"GNIRS ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
     case BasicConfiguration.Visitor(mode, _, _, _)                                 =>
       mode.shortName
     case BasicConfiguration.KeckExchange(keckInstrument, _)                        =>
