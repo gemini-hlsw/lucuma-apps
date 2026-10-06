@@ -90,12 +90,12 @@ object TargetColumns:
       PMDecColumnId    -> "µ Dec",
       ParallaxColumnId -> "Parallax",
       RVColumnId       -> "RV",
-      ZColumnId        -> "z",
-      CZColumnId       -> "cz"
+      ZColumnId        -> "z"
     )
 
   val ProgramColNames: TreeSeqMap[ColumnId, String] =
     TreeSeqMap(
+      CZColumnId         -> "cz",
       MorphologyColumnId -> "Morphology",
       SEDColumnId        -> "SED"
     )
@@ -137,7 +137,7 @@ object TargetColumns:
       def getName(d:        D): String
 
       def baseColumn[V](id: ColumnId, accessor: Target => V): colDef.TypeFor[Option[V]] =
-        colDef(id, d => getTarget(d).map(accessor), BaseColNames(id))
+        colDef(id, d => getTarget(d).map(accessor), AllColNames(id))
 
       lazy val NameColumn: colDef.Type =
         colDef(NameColumnId, d => getName(d).some, BaseColNames(NameColumnId))
@@ -231,7 +231,7 @@ object TargetColumns:
       ): colDef.TypeFor[Option[V]] =
         colDef(id,
                d => getTarget(d).flatMap(t => Target.sidereal.getOption(t).flatMap(accessor)),
-               SiderealColNames(id)
+               AllColNames(id)
         )
 
       def siderealColumn[V](
@@ -306,9 +306,6 @@ object TargetColumns:
           .withSize(35.toPx)
           .sortableBy(_._2)
 
-      def programColumn[V](id: ColumnId, accessor: Target => V): colDef.TypeFor[Option[V]] =
-        colDef(id, d => getTargetFn(d).map(accessor), ProgramColNames(id))
-
       lazy val ProgramColumns: List[colDef.Type] =
         List(
           siderealColumnOpt(
@@ -318,22 +315,15 @@ object TargetColumns:
             .withCell(_.value.map(formatCZ.reverseGet).orEmpty)
             .withSize(90.toPx)
             .sortable,
-          programColumn(
+          baseColumn(
             MorphologyColumnId,
             Target.sourceProfile.get.andThen(SourceProfileType.fromSourceProfile)
           )
             .withCell(_.value.map(_.shortName).orEmpty)
             .withSize(115.toPx)
             .sortable,
-          programColumn(
-            SEDColumnId,
-            t =>
-              Target.integratedSpectralDefinition
-                .getOption(t)
-                .map(_.shortName)
-                .orElse(Target.surfaceSpectralDefinition.getOption(t).map(_.shortName))
-          )
-            .withCell(_.value.flatten.orEmpty)
+          baseColumn(SEDColumnId, _.sedShortName)
+            .withCell(_.value.orEmpty)
             .withSize(200.toPx)
             .sortable
         )

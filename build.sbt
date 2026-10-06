@@ -2,6 +2,7 @@ import Dependencies.*
 import Versions.*
 import _root_.cats.effect.kernel.syntax.resource
 import com.github.sbt.git.SbtGit.GitKeys.*
+import org.scalajs.jsenv.nodejs.NodeJSEnv
 import org.scalajs.linker.interface.ModuleSplitStyle
 import org.typelevel.sbt.gha.PermissionValue
 import org.typelevel.sbt.gha.Permissions
@@ -539,6 +540,12 @@ lazy val explore_app: Project = project
     libraryDependencies ++=
       GeminiLocales.value ++
         LucumaReact.value,
+    // Node can't load the asset imports that Vite resolves, so tests stub them
+    Test / jsEnv         := new NodeJSEnv(
+      NodeJSEnv
+        .Config()
+        .withArgs(List("--require", (baseDirectory.value / "src/test/js/stub-assets.cjs").toString))
+    ),
     // Build workers when you build explore
     Compile / fastLinkJS := (Compile / fastLinkJS)
       .dependsOn(explore_workers / Compile / fastLinkJS)

@@ -35,6 +35,7 @@ import lucuma.core.math.Epoch
 import lucuma.core.math.RightAscension
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.GuestRole
+import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.User
@@ -219,6 +220,10 @@ extension (target: Target)
     case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectType).map(_.value)
     case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.simplifiedName.some
     case o: Target.Opportunity  => none
+  def sedShortName: String                                          = target.sourceProfile match
+    case SourceProfile.Point(sd)       => sd.shortName
+    case SourceProfile.Uniform(sd)     => sd.shortName
+    case SourceProfile.Gaussian(_, sd) => sd.shortName
   def regionOrBaseCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]] = target match
     // actually returns an ErrorOrRegionOrCoords to be compatible with the extension methods
     // below, but there wll never be an error. Non-sidereals return a none.

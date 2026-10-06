@@ -22,7 +22,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.Program
-import lucuma.core.model.Target
 import lucuma.core.syntax.display.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
@@ -248,17 +247,11 @@ object ObsSummaryColumns:
         .withCell(_.value.format(MathValidators.truncatedDec.reverseGet))
         .sortable,
       // TODO: TimingColumnId
-      // TODO: SEDColumnId
       ColDef(
         SEDColumnId,
-        v =>
-          v.value
-            .fold(_.targetWithId.target.some, _.targetWithId.map(_.target))
-            .flatMap: t =>
-              Target.integratedSpectralDefinition
-                .getOption(t)
-                .map(_.shortName)
-                .orElse(Target.surfaceSpectralDefinition.getOption(t).map(_.shortName)),
+        _.value
+          .fold(_.targetWithId.target.some, _.targetWithId.map(_.target))
+          .map(_.sedShortName),
         ColumnNames(SEDColumnId)
       ).withFilterMethod(FilterMethod.Select(_.orEmpty))
         .withCell(cell =>
