@@ -23,8 +23,10 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.User
+import lucuma.core.syntax.display.*
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.react.primereact.Tooltip
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.components.TimeSpanView
@@ -71,13 +73,12 @@ object ObservationDetailsTile
           TimeSpanView(time, TimeSpanFormatter.HoursMinutesLetter, tooltip = tooltip)
 
         def telluricsTooltip(existing: Int, expected: Int): VdomNode =
-          s"$existing existing not yet observed, $expected expected. Existing tellurics use " +
-            "their own estimate, or 15m while they have none; expected ones use the average of " +
-            "the group's tellurics, or 15m before any has an estimate."
+          if expected > 0 then
+            s"$existing existing tellurics not yet observed, $expected expected tellurics."
+          else s"$existing tellurics not yet observed."
 
         val totalTooltip: VdomNode =
-          "Includes this observation's tellurics. Other separately scheduled calibrations are " +
-            "not included."
+          "Includes tellurics."
 
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
@@ -181,11 +182,16 @@ object ObservationDetailsTile
                 .map: text =>
                   val tooltip =
                     telluricsTooltip(cals.existing.count.value, cals.expected.count.value)
-                  FormInfo(text, "Tellurics", tooltip = tooltip)
+                  FormInfo(text,
+                           "Tellurics",
+                           tooltip = tooltip,
+                           tooltipPosiiton = Tooltip.Position.Top
+                  )
 
             <.div(ExploreStyles.ObservationDetailsColumn)(
               <.div(ExploreStyles.ObservationDetailsSection, digest.staleClass)(
-                "Remaining Estimated Duration"
+                "Remaining Estimated Duration",
+                HelpIcon("observation/estimated-duration.md".refined)
               )
                 .withOptionalTooltip(digest.staleTooltip),
               FormInfo(
@@ -204,7 +210,16 @@ object ObservationDetailsTile
               )
             )
 
-        TileContents:
+        val title: VdomNode =
+          <.div(ExploreStyles.ObservationDetailsTitle)(
+            scienceBandView.get
+              .filter(_ => props.showScienceBand)
+              .map(band => <.span(band.shortName)),
+            <.span(s"Priority: ${priorityView.get.shortName}")
+          )
+
+        TileContents(
+          title,
           <.div(ExploreStyles.ObservationDetailsForm)(
             <.div(ExploreStyles.ObservationDetailsColumn)(
               FormInfo(props.observation.get.referenceWithId, "Observation"),
@@ -219,4 +234,5 @@ object ObservationDetailsTile
                              props.refreshTimeCharges
             )
           )
+        )
     )
