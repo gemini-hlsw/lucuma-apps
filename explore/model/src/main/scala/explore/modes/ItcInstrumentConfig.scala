@@ -523,6 +523,35 @@ object ItcInstrumentConfig:
         case _                                    => false
   }
 
+  // SCORPIO has no observing mode or ITC support yet, so its rows are shown but cannot be picked.
+  case class ScorpioSpectroscopy(
+    fpu:              ScorpioFpu,
+    disperserLabel:   NonEmptyString,
+    filterLabel:      Option[NonEmptyString],
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = NonEmptyString
+    type Filter   = Option[NonEmptyString]
+    type FPU      = ScorpioFpu
+    type Override = Unit
+    val gratingDisplay: Display[Grating] = Display.byShortName(_.value)
+    val filterStr: String                = filterLabel.fold("none")(_.value)
+    val grating: Grating                 = disperserLabel
+    val filter: Filter                   = filterLabel
+    val instrument                       = Instrument.Scorpio
+    val site                             = Site.GS
+    val hasFilter                        = filterLabel.isDefined
+    val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
+
+    override def needsItc: Boolean      = false
+    override def canBeAccepted: Boolean = false
+  }
+
   // Used for spectroscopy instruments (MaroonX)
   case class GenericSpectroscopy(
     i:                Instrument,

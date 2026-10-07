@@ -14,11 +14,11 @@ object ModesQueriesGQL:
   @GraphQL
   trait ScienceModes extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      query($$supportedInstruments: [Instrument!]!) {
+      query($$spectroscopyInstruments: [Instrument!]!, $$imagingInstruments: [Instrument!]!) {
         spectroscopyConfigOptions(
           WHERE: {
             instrument: {
-              IN: $$supportedInstruments
+              IN: $$spectroscopyInstruments
             }
           }
         ) {
@@ -80,12 +80,15 @@ object ModesQueriesGQL:
             prism
             camera
           }
+          scorpio {
+            fpu
+          }
         }
 
         imagingConfigOptions(
           WHERE: {
             instrument: {
-              IN: $$supportedInstruments
+              IN: $$imagingInstruments
             }
           }
         ) {

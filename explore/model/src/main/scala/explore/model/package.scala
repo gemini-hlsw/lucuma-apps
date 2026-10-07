@@ -136,11 +136,17 @@ val SupportedInstruments: NonEmptyList[Instrument] =
     Instrument.Gnirs,
     Instrument.Igrins2,
     Instrument.MaroonX,
+    Instrument.Scorpio,
     Instrument.Zorro
   )
 
+val SpectroscopyInstruments: NonEmptyList[Instrument] = SupportedInstruments
+
+val ImagingInstruments: NonEmptyList[Instrument] =
+  NonEmptyList.fromListUnsafe(SupportedInstruments.filterNot(_ === Instrument.Scorpio))
+
 val InstrumentsWithoutItc: NonEmptyList[Instrument] =
-  NonEmptyList.of(Instrument.Alopeke, Instrument.Zorro, Instrument.MaroonX)
+  NonEmptyList.of(Instrument.Alopeke, Instrument.Zorro, Instrument.MaroonX, Instrument.Scorpio)
 
 val ItcSupportedInstruments: NonEmptyList[Instrument] =
   NonEmptyList.fromListUnsafe(

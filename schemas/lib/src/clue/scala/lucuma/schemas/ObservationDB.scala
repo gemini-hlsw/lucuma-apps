@@ -204,6 +204,7 @@ trait ObservationDB {
     type SchedulingMode                      = enums.SchedulingMode
     type ScienceBand                         = enums.ScienceBand
     type ScienceMode                         = enums.ScienceMode
+    type ScorpioFpu                          = enums.ScorpioFpu
     type SequenceCommand                     = enums.SequenceCommand
     type SeeingTrend                         = enums.SeeingTrend
     type SequenceType                        = enums.SequenceType

@@ -183,6 +183,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         val widthArcSeconds = Angle.decimalArcseconds.get(slitWidth.value).withUnit[ArcSecond]
         val px              = widthArcSeconds / camera.pixelScale.value
         f"$px%2.1f px"
+      case ItcInstrumentConfig.ScorpioSpectroscopy(fpu = fpu)           =>
+        s"${fpu.slitWidthPixels.value} px"
       // TODO: Is there a relevant tooltip for GHOST?
       case _                                                            => ""
     }
