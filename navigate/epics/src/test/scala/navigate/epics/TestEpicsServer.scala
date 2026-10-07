@@ -84,9 +84,12 @@ object TestEpicsServer {
                     x.dispose()
                   )
                 }
+      // A test may already have destroyed the context, in which case shutdown throws.
       _      <- Resource.make {
-                  IO.delay(ctx.run(0)).start.void
-                }(_ => IO.delay(ctx.shutdown()))
+                  IO.blocking(ctx.run(0)).start.void
+                } { _ =>
+                  IO.blocking(ctx.shutdown()).recover { case _: IllegalStateException => () }
+                }
       _      <- createPV[IO, JInteger](server, top ++ "intVal", Array(0))
       _      <- createPV[IO, JDouble](server, top ++ "doubleVal", Array(0.0))
       _      <- createPV[IO, JFloat](server, top ++ "floatVal", Array(0.0f))
