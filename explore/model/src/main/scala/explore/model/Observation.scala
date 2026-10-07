@@ -176,7 +176,7 @@ final case class Observation(
       explicitAmpGain.foldMap(GmosCcdMode.ampGain.replace)
     ).reduce(_ >>> _)
 
-  private def ifuCcdMode(
+  private def gmosCcdMode(
     xBin:        GmosXBinning,
     yBin:        GmosYBinning,
     ampGain:     GmosAmpGain,
@@ -298,7 +298,7 @@ final case class Observation(
         InstrumentOverrides
           .GmosSpectroscopy(
             n.centralWavelength,
-            ifuCcdMode(n.xBin, n.yBin, n.ampGain, n.ampReadMode),
+            gmosCcdMode(n.xBin, n.yBin, n.ampGain, n.ampReadMode),
             n.roi,
             n.ifuAnalysis.some
           )
@@ -307,7 +307,7 @@ final case class Observation(
         InstrumentOverrides
           .GmosSpectroscopy(
             s.centralWavelength,
-            ifuCcdMode(s.xBin, s.yBin, s.ampGain, s.ampReadMode),
+            gmosCcdMode(s.xBin, s.yBin, s.ampGain, s.ampReadMode),
             s.roi,
             s.ifuAnalysis.some
           )
@@ -382,11 +382,19 @@ final case class Observation(
               )
             )
         case n: GmosNorthImaging                 =>
+          val ccdMode =
+            gmosCcdMode(GmosXBinning(n.bin), GmosYBinning(n.bin), n.ampGain, n.ampReadMode)
           n.filters.toList
-            .map(f => ItcInstrumentConfig.GmosNorthImaging(f.filter, f.exposureTimeMode))
+            .map(f =>
+              ItcInstrumentConfig.GmosNorthImaging(f.filter, f.exposureTimeMode, ccdMode.some)
+            )
         case n: GmosSouthImaging                 =>
+          val ccdMode =
+            gmosCcdMode(GmosXBinning(n.bin), GmosYBinning(n.bin), n.ampGain, n.ampReadMode)
           n.filters.toList
-            .map(f => ItcInstrumentConfig.GmosSouthImaging(f.filter, f.exposureTimeMode))
+            .map(f =>
+              ItcInstrumentConfig.GmosSouthImaging(f.filter, f.exposureTimeMode, ccdMode.some)
+            )
         case f: ObservingMode.Flamingos2LongSlit =>
           List(
             ItcInstrumentConfig

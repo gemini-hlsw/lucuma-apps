@@ -182,10 +182,10 @@ trait syntax:
             .map: mask =>
               InstrumentMode.Flamingos2Spectroscopy(etm, disperser, filter, rm, mask).rightNec
             .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
-        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                     =>
-          InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                     =>
-          InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm, ccd)                =>
+          InstrumentMode.GmosNorthImaging(etm, filter, ccd).rightNec
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm, ccd)                =>
+          InstrumentMode.GmosSouthImaging(etm, filter, ccd).rightNec
         case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                    =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
         case ItcInstrumentConfig.GnirsImaging(filter, camera, etm, coadds, altair) =>

@@ -165,29 +165,43 @@ object ItcImagingTile
             .flatMap(_.ccds.get(idx))
             .map(get)
 
+        // Renders the value, flagged with the ccd's warnings if requested
+        def ccdCell[V](
+          idx:          Int,
+          format:       V => VdomNode,
+          showWarnings: Boolean
+        )(row: ImagingFilterRow, value: Option[V]): Option[VdomNode] =
+          value.map: v =>
+            val warnings: List[String] =
+              if showWarnings then ccdValue(idx, _.warnings.map(_.msg))(row).orEmpty
+              else List.empty
+            ccdWarningsCell(format(v), warnings)
+
         // Single ccd column
         def ccdColumn[V](
-          id:       String,
-          header:   String,
-          accessor: ItcCcd => V,
-          format:   V => VdomNode,
-          size:     SizePx
+          id:           String,
+          header:       String,
+          accessor:     ItcCcd => V,
+          format:       V => VdomNode,
+          size:         SizePx,
+          showWarnings: Boolean
         ): ColumnDef.Single.WithTableMeta[ImagingFilterRow, Option[V], TableMeta] =
           ColDef(
             ColumnId(id),
             accessor = ccdValue(0, accessor),
-            cell = _.value.map(format),
+            cell = c => ccdCell(0, format, showWarnings)(c.row.original, c.value),
             header = header,
             size = size
           )
 
         // per-CCD columns
         def ccdColumns[V](
-          idBase: String,
-          header: String,
-          get:    ItcCcd => V,
-          format: V => VdomNode,
-          size:   SizePx
+          idBase:       String,
+          header:       String,
+          get:          ItcCcd => V,
+          format:       V => VdomNode,
+          size:         SizePx,
+          showWarnings: Boolean
         ): ColumnDef.Group.WithTableMeta[ImagingFilterRow, TableMeta] =
           ColumnDef.Group(
             id = ColumnId(idBase),
@@ -196,7 +210,7 @@ object ItcImagingTile
               ColDef(
                 ColumnId(s"${idBase}-$ccdIndex"),
                 accessor = ccdValue(ccdIndex, get),
-                cell = _.value.map(format),
+                cell = c => ccdCell(ccdIndex, format, showWarnings)(c.row.original, c.value),
                 header = s"CCD ${ccdIndex + 1}",
                 size = size
               )
@@ -204,15 +218,16 @@ object ItcImagingTile
           )
 
         def snColumns[V](
-          id:       String,
-          header:   String,
-          get:      ItcCcd => V,
-          format:   V => VdomNode,
-          ccdSize:  SizePx,
-          flatSize: SizePx
+          id:           String,
+          header:       String,
+          get:          ItcCcd => V,
+          format:       V => VdomNode,
+          ccdSize:      SizePx,
+          flatSize:     SizePx,
+          showWarnings: Boolean = false
         ) =
-          if numDetectors <= 1 then ccdColumn(id, header, get, format, flatSize)
-          else ccdColumns(id, header, get, format, ccdSize)
+          if numDetectors <= 1 then ccdColumn(id, header, get, format, flatSize, showWarnings)
+          else ccdColumns(id, header, get, format, ccdSize, showWarnings)
 
         List(
           column(InstrumentColId, _.config.instrument.shortName)
@@ -225,19 +240,21 @@ object ItcImagingTile
           column(FramesColId, _.result)
             .withHeader(progressingCellHeader("Frames"))
             .withCell: cell =>
-              itcCell(cell.value, ItcColumns.Frames)
+              itcCell(cell.value, ItcColumns.Frames, showWarnings = false)
             .withSize(80.toPx),
           column(ExpTimeColId, _.result)
             .withHeader(progressingCellHeader("Time"))
             .withCell: cell =>
-              itcCell(cell.value, ItcColumns.Time, showTotalTime = false)
+              itcCell(cell.value, ItcColumns.Time, showTotalTime = false, showWarnings = false)
             .withSize(85.toPx),
+          // The ITC warnings are about the peak pixel counts, so they're only shown per CCD here
           snColumns("sn+bg-ccd",
                     "Signal + Background",
                     _.peakPixelFlux,
                     v => f"$v%.0fe-",
                     85.toPx,
-                    110.toPx
+                    110.toPx,
+                    showWarnings = true
           ),
           snColumns("single-sn-ccd",
                     "S/N per Exposure",

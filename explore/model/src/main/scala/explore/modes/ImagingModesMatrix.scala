@@ -5,6 +5,7 @@ package explore.modes
 
 import cats.Eq
 import cats.Order
+import cats.data.NonEmptyList
 import cats.derived.*
 import cats.implicits.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -15,6 +16,8 @@ import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
+import lucuma.core.model.ImageQuality
+import lucuma.core.model.SourceProfile
 import lucuma.itc.AltairParameters
 import lucuma.odb.json.angle.decoder.given
 import monocle.Getter
@@ -34,11 +37,11 @@ case class ImagingModeRow(
     display.withAltairSuffix(instrumentConfig.instrumentLabel, altair)
   val filterType: Option[FilterType] =
     instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthImaging(filter, _)  => filter.filterType.some
-      case ItcInstrumentConfig.GmosSouthImaging(filter, _)  => filter.filterType.some
-      case ItcInstrumentConfig.GnirsImaging(filter = f)     => f.filterType.some
-      case ItcInstrumentConfig.Flamingos2Imaging(filter, _) => filter.filterType.some
-      case _                                                => none
+      case ItcInstrumentConfig.GmosNorthImaging(filter, _, _) => filter.filterType.some
+      case ItcInstrumentConfig.GmosSouthImaging(filter, _, _) => filter.filterType.some
+      case ItcInstrumentConfig.GnirsImaging(filter = f)       => f.filterType.some
+      case ItcInstrumentConfig.Flamingos2Imaging(filter, _)   => filter.filterType.some
+      case _                                                  => none
 
   def withAltairParameters(
     parameters: Map[AltairMode, AltairParameters]
@@ -46,6 +49,14 @@ case class ImagingModeRow(
     AltairModeRows
       .instrumentConfigWith(instrumentConfig, altair, parameters)
       .map(i => copy(instrumentConfig = i))
+
+  // Sets the GMOS ccd mode the ODB would default to for these targets.
+  def withDefaultCcdMode(
+    profiles:     Option[NonEmptyList[SourceProfile]],
+    imageQuality: ImageQuality.Preset
+  ): ImagingModeRow =
+    profiles.fold(this): ps =>
+      copy(instrumentConfig = instrumentConfig.withDefaultCcdMode(ps, imageQuality.toImageQuality))
 
 object ImagingModeRow {
 
