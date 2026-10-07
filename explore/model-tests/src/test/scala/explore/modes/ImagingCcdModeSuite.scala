@@ -124,6 +124,23 @@ class ImagingCcdModeSuite extends ScalaCheckSuite:
       flamingos2
     )
 
+  test("the ccd mode is not part of the mode identity"):
+    List(gmosNorth, gmosSouth).foreach: config =>
+      val twoByTwo = config.withCcdMode(ccdMode(GmosBinning.Two).some)
+      val oneByOne = config.withCcdMode(ccdMode(GmosBinning.One).some)
+      assert(twoByTwo.sameModeAs(oneByOne))
+      assert(twoByTwo.sameModeAs(config))
+      assert(twoByTwo =!= oneByOne)
+
+  test("configs with different filters are different modes"):
+    val gPrime =
+      ItcInstrumentConfig.GmosNorthImaging(GmosNorthFilter.GPrime,
+                                           ItcInstrumentConfig.PlaceholderEtm,
+                                           ccdMode(GmosBinning.Two).some
+      )
+    val rPrime = gPrime.copy(filter = GmosNorthFilter.RPrime)
+    assert(!gPrime.sameModeAs(rPrime))
+
   property("GMOS North imaging observations use the observation's ccd mode"):
     forAll: (obs: Observation, mode: ObservingMode.GmosNorthImaging) =>
       val expected =

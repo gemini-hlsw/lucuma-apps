@@ -91,10 +91,15 @@ sealed trait ItcInstrumentConfig derives Eq:
     imageQuality: ImageQuality
   ): ItcInstrumentConfig = this
 
+  def withCcdMode(ccdMode: Option[GmosCcdMode]): ItcInstrumentConfig = this
+
   // Equal up to the Altair guide star: the observation's star and the one the modes table finds
   // for its rows may differ slightly, but they describe the same mode.
+  // Likewise for the GMOS imaging ccd mode, which the modes table derives from the targets and
+  // image quality, so it changes with them.
   def sameModeAs(other: ItcInstrumentConfig): Boolean =
-    withAltair(none) === other.withAltair(none) && altairMode === other.altairMode
+    withAltair(none).withCcdMode(none) === other.withAltair(none).withCcdMode(none) &&
+      altairMode === other.altairMode
 
 object ItcInstrumentConfig:
 
@@ -229,6 +234,9 @@ object ItcInstrumentConfig:
         defaultGmosImagingCcdMode(profiles, imageQuality, DefaultGmosNorthDetector.pixelSize).some
       )
 
+    override def withCcdMode(ccdMode: Option[GmosCcdMode]): ItcInstrumentConfig =
+      copy(ccdMode = ccdMode)
+
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
@@ -261,6 +269,9 @@ object ItcInstrumentConfig:
       copy(ccdMode =
         defaultGmosImagingCcdMode(profiles, imageQuality, DefaultGmosSouthDetector.pixelSize).some
       )
+
+    override def withCcdMode(ccdMode: Option[GmosCcdMode]): ItcInstrumentConfig =
+      copy(ccdMode = ccdMode)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
