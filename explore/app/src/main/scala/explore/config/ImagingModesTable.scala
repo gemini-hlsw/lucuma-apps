@@ -277,6 +277,13 @@ object ImagingModesTable extends ModesTableCommon:
                                 .filtered(minimumFov, fts, capability, dec, instrument)
                                 .flatMap(_.withAltairParameters(altairParams.toOption.getOrElse(Map.empty)))
                                 .sortBy(!_.enabled)
+                                // The ODB computes the default binning from the full asterism
+                                .map(
+                                  _.withDefaultCcdMode(
+                                    targets.toOption.map(_.map(_.sourceProfile)),
+                                    constraints.imageQuality
+                                  )
+                                )
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in
                                   // multiple places, but we will still need to validate that the etm in set in

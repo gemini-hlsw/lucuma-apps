@@ -4,6 +4,7 @@
 package explore.modes
 
 import cats.Eq
+import cats.data.NonEmptyList
 import cats.derived.*
 import cats.implicits.*
 import eu.timepit.refined.*
@@ -11,10 +12,19 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.*
 import lucuma.core.enums.*
+import lucuma.core.math.Angle
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.ImageQuality
+import lucuma.core.model.SourceProfile
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gmos.binning
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpGain
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpReadMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
@@ -74,12 +84,34 @@ sealed trait ItcInstrumentConfig derives Eq:
 
   def altairMode: Option[AltairMode] = None
 
+  // GMOS imaging only: resets the ccd mode to the one the ODB defaults to for these targets, so
+  // ITC results match those of an observation created from this configuration.
+  def withDefaultCcdMode(
+    profiles:     NonEmptyList[SourceProfile],
+    imageQuality: ImageQuality
+  ): ItcInstrumentConfig = this
+
   // Equal up to the Altair guide star: the observation's star and the one the modes table finds
   // for its rows may differ slightly, but they describe the same mode.
   def sameModeAs(other: ItcInstrumentConfig): Boolean =
     withAltair(none) === other.withAltair(none) && altairMode === other.altairMode
 
 object ItcInstrumentConfig:
+
+  /**
+   * The default GMOS imaging ccd mode, as calculated by the ODB: the spatial binning (capped at 2)
+   * of each target, minimized over the asterism and used for both axes.
+   */
+  def defaultGmosImagingCcdMode(
+    profiles:     NonEmptyList[SourceProfile],
+    imageQuality: ImageQuality,
+    pixelScale:   Angle
+  ): GmosCcdMode                                             =
+    val bin: GmosYBinning =
+      profiles
+        .map(binning.spatialBinning(_, imageQuality, pixelScale))
+        .minimumBy(_.count.value)
+    GmosCcdMode(GmosXBinning(bin.value), bin, DefaultAmpCount, DefaultAmpGain, DefaultAmpReadMode)
   def altairModeOf(parameters: AltairParameters): AltairMode =
     parameters match
       case AltairParameters.Ngs(_, _, _) => AltairMode.Ngs
@@ -169,7 +201,8 @@ object ItcInstrumentConfig:
 
   case class GmosNorthImaging(
     filter:           GmosNorthFilter,
-    exposureTimeMode: ExposureTimeMode
+    exposureTimeMode: ExposureTimeMode,
+    ccdMode:          Option[GmosCcdMode] = None
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
     type Filter   = GmosNorthFilter
@@ -188,12 +221,21 @@ object ItcInstrumentConfig:
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
 
+    override def withDefaultCcdMode(
+      profiles:     NonEmptyList[SourceProfile],
+      imageQuality: ImageQuality
+    ): ItcInstrumentConfig =
+      copy(ccdMode =
+        defaultGmosImagingCcdMode(profiles, imageQuality, DefaultGmosNorthDetector.pixelSize).some
+      )
+
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GmosSouthImaging(
     filter:           GmosSouthFilter,
-    exposureTimeMode: ExposureTimeMode
+    exposureTimeMode: ExposureTimeMode,
+    ccdMode:          Option[GmosCcdMode] = None
   ) extends ItcInstrumentConfig derives Eq {
 
     type Grating  = Unit
@@ -211,6 +253,14 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    override def withDefaultCcdMode(
+      profiles:     NonEmptyList[SourceProfile],
+      imageQuality: ImageQuality
+    ): ItcInstrumentConfig =
+      copy(ccdMode =
+        defaultGmosImagingCcdMode(profiles, imageQuality, DefaultGmosSouthDetector.pixelSize).some
+      )
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }

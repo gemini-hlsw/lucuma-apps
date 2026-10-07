@@ -157,13 +157,13 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                       customSlitWidth = Some(slitWidth)
           ) =>
         BasicConfiguration.Flamingos2Mos(disperser, filter, slitWidth).some
-      case ItcInstrumentConfig.GmosNorthImaging(_, _)                               =>
+      case ItcInstrumentConfig.GmosNorthImaging(_, _, _)                            =>
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _), _) => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosNorthImaging.apply)
-      case ItcInstrumentConfig.GmosSouthImaging(_, _)                               =>
+      case ItcInstrumentConfig.GmosSouthImaging(_, _, _)                            =>
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
       case ItcInstrumentConfig.Flamingos2Imaging(_, _)                              =>
         val filters = configs.collect:

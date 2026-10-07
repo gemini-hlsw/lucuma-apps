@@ -121,6 +121,17 @@ final case class ConfigurationTile(
     else ConfigEditPermissions.FullEdit
   val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
     scienceTargetIds.toItcTargets(allTargets)
+  // A reverted observation goes back to the ODB's default ccd mode, as do the modes table rows.
+  val revertedConfigs: List[ItcInstrumentConfig]                       =
+    (itcTargets.toOption, obsConf.constraints)
+      .mapN: (targets, constraints) =>
+        revertedInstrumentConfig.map(
+          _.withDefaultCcdMode(
+            targets.map(_.sourceProfile),
+            constraints.imageQuality.toImageQuality
+          )
+        )
+      .getOrElse(revertedInstrumentConfig)
 
 object ConfigurationTile
     extends TileComponent[ConfigurationTile]({ (props, _) =>
@@ -340,7 +351,7 @@ object ConfigurationTile
             props.hasMaterializedSequence,
             props.mode,
             props.altairModel,
-            props.revertedInstrumentConfig,
+            props.revertedConfigs,
             props.selectedConfig,
             isChanging
           )

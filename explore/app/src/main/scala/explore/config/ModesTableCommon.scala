@@ -236,7 +236,9 @@ trait ModesTableCommon:
          <.div(baseText),
          <.div("Warnings:"),
          warnings
-           .map(w => <.div(ExploreStyles.WarningLabel, s"• CCD${w._1} ${w._2.mkString(", ")}"))
+           .map(w =>
+             <.div(ExploreStyles.WarningLabel, s"• CCD ${w._1 + 1}: ${w._2.mkString(", ")}")
+           )
            .toVdomArray
        ).some,
        Placement.Bottom
@@ -245,11 +247,31 @@ trait ModesTableCommon:
       ((baseText: VdomNode).some, Placement.RightStart)
     }
 
+  def withWarningIcon(content: TagMod, hasWarnings: Boolean): VdomTag =
+    if (hasWarnings)
+      <.span(
+        content,
+        Icons.ExclamationTriangle
+          .withClass(ExploreStyles.WarningItcIcon)
+          .withSize(IconSize.XS2)
+      )
+    else <.span(content)
+
+  // A value for a single CCD, flagged with that CCD's warnings, if any.
+  def ccdWarningsCell(content: VdomNode, warnings: List[String]): VdomNode =
+    if (warnings.isEmpty) content
+    else
+      withWarningIcon(content, hasWarnings = true).withTooltip(
+        placement = Placement.Bottom,
+        tooltip = <.div(warnings.map(w => <.div(ExploreStyles.WarningLabel, w)).toVdomArray)
+      )
+
   def itcCell(
     c:             Pot[EitherNec[ItcTargetProblem, ItcResult]],
     col:           ItcColumns,
     needsItc:      Boolean = true,
-    showTotalTime: Boolean = true
+    showTotalTime: Boolean = true,
+    showWarnings:  Boolean = true
   ): VdomElement = {
     val content: TagMod =
       if (!needsItc)
@@ -293,8 +315,10 @@ trait ModesTableCommon:
                 )
           case Some(Right(r: ItcResult.Result)) =>
             val ccdWarnings =
-              r.ccdWarnings.collect:
-                case a @ (_, v) if v.nonEmpty => a
+              if (showWarnings)
+                r.ccdWarnings.collect:
+                  case a @ (_, v) if v.nonEmpty => a
+              else SortedMap.empty[Int, List[String]]
 
             val content = col.match
               case ItcColumns.Frames =>
@@ -322,15 +346,7 @@ trait ModesTableCommon:
                 )
                 tooltipContent(baseText, ccdWarnings)
 
-            val node =
-              if (ccdWarnings.nonEmpty)
-                <.span(
-                  content,
-                  Icons.ExclamationTriangle
-                    .withClass(ExploreStyles.WarningItcIcon)
-                    .withSize(IconSize.XS2)
-                )
-              else <.span(content)
+            val node = withWarningIcon(content, ccdWarnings.nonEmpty)
             tooltip.fold(node)(tt =>
               node.withTooltip(
                 placement = placement,
