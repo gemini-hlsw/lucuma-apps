@@ -9,6 +9,7 @@ import clue.data.Input
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
+import explore.model.ConfigurationRequest
 import explore.model.GuidingConfiguration
 import explore.model.MaskDesign
 import explore.model.Observation
@@ -17,7 +18,6 @@ import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Group
 import lucuma.core.model.ObservationReference

@@ -37,7 +37,6 @@ import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.Configuration
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.TimingWindow

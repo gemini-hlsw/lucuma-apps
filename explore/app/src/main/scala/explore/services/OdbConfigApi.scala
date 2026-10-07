@@ -4,8 +4,8 @@
 package explore.services
 
 import cats.effect.Resource
+import explore.model.ConfigurationRequest
 import explore.modes.ScienceModes
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 
 trait OdbConfigApi[F[_]]:

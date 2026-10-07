@@ -6,6 +6,7 @@ package explore.services
 import cats.effect.Resource
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
+import explore.model.ConfigurationRequest
 import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
 import explore.model.ProgramInfo
@@ -15,7 +16,6 @@ import explore.model.ProgramUser
 import explore.model.RedeemInvitationResult
 import lucuma.core.data.EmailAddress
 import lucuma.core.enums.ConfigurationRequestStatus
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.Program
 import lucuma.core.model.ProgramReference

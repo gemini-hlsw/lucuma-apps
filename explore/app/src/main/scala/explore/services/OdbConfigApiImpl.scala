@@ -8,6 +8,7 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import clue.StreamingClient
 import clue.data.syntax.*
+import explore.model.ConfigurationRequest
 import explore.model.ImagingInstruments
 import explore.model.SpectroscopyInstruments
 import explore.modes.AltairModeRows
@@ -16,7 +17,6 @@ import explore.modes.ImagingModesMatrix
 import explore.modes.ScienceModes
 import explore.modes.SpectroscopyModeRow
 import explore.modes.SpectroscopyModesMatrix
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.ConfigurationRequestEditInput

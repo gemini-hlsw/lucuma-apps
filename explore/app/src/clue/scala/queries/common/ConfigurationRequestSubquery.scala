@@ -6,8 +6,7 @@ package queries.common
 import clue.GraphQLSubquery
 import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
-import lucuma.core.model.ConfigurationRequest
-import lucuma.odb.json.configurationrequest.query.given
+import explore.model.ConfigurationRequest
 import lucuma.schemas.ObservationDB
 
 @GraphQL
@@ -20,5 +19,8 @@ object ConfigurationRequestSubquery
       status
       configuration $ConfigurationSubquery
       justification
+      feedback
+      createdAt
+      updatedAt
     }
   """

@@ -13,6 +13,7 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.AutoHeightTable
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.ConfigurationRequest
 import explore.model.ConfigurationRequestList
 import explore.model.Observation
 import explore.model.TargetList
@@ -21,7 +22,6 @@ import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ConfigurationRequestStatus
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.core.syntax.all.*
