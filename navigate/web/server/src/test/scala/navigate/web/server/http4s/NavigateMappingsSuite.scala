@@ -30,6 +30,7 @@ import lucuma.core.enums.TipTiltSource
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.IntPercent
 import lucuma.core.model.M1GuideConfig
@@ -587,7 +588,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |  }
           |  rotator: {
           |    ipa: {
-          |      microarcseconds: 89.76
+          |      degrees: 89.76
           |    }
           |    mode: TRACKING
           |  }
@@ -649,7 +650,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |  }
           |  rotator: {
           |    ipa: {
-          |      microarcseconds: 89.76
+          |      degrees: 89.76
           |    }
           |    mode: TRACKING
           |  }
@@ -724,7 +725,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |  }
           |  rotator: {
           |    ipa: {
-          |      microarcseconds: 89.76
+          |      degrees: 89.76
           |    }
           |    mode: TRACKING
           |  }
@@ -752,7 +753,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               """
                 |mutation { instrumentSpecifics (instrumentSpecificsParams: {
                 |  iaa: {
-                |      microarcseconds: 123.432
+                |      microarcseconds: 123432
                 |    }
                 |    focusOffset: {
                 |      millimeters: 54.5432
@@ -812,6 +813,100 @@ class NavigateMappingsSuite extends CatsEffectSuite {
   test("Process pwfs2Target command")(testWfsTarget("pwfs2"))
 
   test("Process oiwfsTarget command")(testWfsTarget("oiwfs"))
+
+  test("Accept a user-supplied ephemeris key") {
+    for {
+      captured <- Ref.of[IO, Option[Target]](none)
+      mp       <- buildMapping(engIO = buildServerCapturingPwfs1Target(captured))
+      r        <- mp.compileAndRun(
+                    """
+          |mutation { pwfs1Target( target: {
+          |    id: "T0001"
+          |    name: "Dummy"
+          |    nonsidereal: {
+          |      key: "UserSupplied_42"
+          |    }
+          |  }
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+                  )
+      target   <- captured.get
+    } yield {
+      assert(
+        extractResult[OperationOutcome](r, "pwfs1Target").exists(_ === OperationOutcome.success)
+      )
+      assertEquals(
+        target,
+        Target.EphemerisTarget("Dummy", none, Ephemeris.Key.UserSupplied(42)).some
+      )
+    }
+  }
+
+  test("Reject an ephemeris key given both as a key and as type and designation") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+          |mutation { pwfs1Target( target: {
+          |    id: "T0001"
+          |    name: "Dummy"
+          |    nonsidereal: {
+          |      keyType: ASTEROID_NEW
+          |      des: "Dummy"
+          |      key: "AsteroidNew_Dummy"
+          |    }
+          |  }
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor.downField("errors").downArray.downField("message").as[String],
+      "Argument 'target.nonsidereal' is invalid: Must specify either (type and designation) or key, but not both."
+        .asRight[DecodingFailure]
+    )
+  }
+
+  test("Reject a target with more than one kind of coordinates") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+          |mutation { pwfs1Target( target: {
+          |    id: "T0001"
+          |    name: "Dummy"
+          |    sidereal: {
+          |      ra: {
+          |        hms: "21:15:33"
+          |      }
+          |      dec: {
+          |        dms: "-30:26:38"
+          |      }
+          |      epoch:"J2000.000"
+          |    }
+          |    azel: {
+          |      azimuth: {
+          |        degrees: 10
+          |      }
+          |      elevation: {
+          |        degrees: 45
+          |      }
+          |    }
+          |  }
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor.downField("errors").downArray.downField("message").as[String],
+      "Argument 'target' is invalid: Expected exactly one of sidereal, nonsidereal, azel"
+        .asRight[DecodingFailure]
+    )
+  }
 
   private def testWfsProbeTracking(name: String): IO[Unit] =
     for {
@@ -894,7 +989,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               """
           |mutation { rotatorConfig( config: {
           |    ipa: {
-          |      microarcseconds: 89.76
+          |      degrees: 89.76
           |    }
           |    mode: TRACKING
           |  }
@@ -905,6 +1000,55 @@ class NavigateMappingsSuite extends CatsEffectSuite {
             )
     } yield assert(
       extractResult[OperationOutcome](r, "rotatorConfig").exists(_ === OperationOutcome.success)
+    )
+  }
+
+  test("Parse angles given in time units as hour angles") {
+    for {
+      captured <- Ref.of[IO, Option[RotatorTrackConfig]](none)
+      mp       <- buildMapping(engIO = buildServerCapturingRotatorConfig(captured))
+      r        <- mp.compileAndRun(
+                    """
+          |mutation { rotatorConfig( config: {
+          |    ipa: {
+          |      hours: 1.5
+          |    }
+          |    mode: TRACKING
+          |  }
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+                  )
+      cfg      <- captured.get
+    } yield {
+      assert(
+        extractResult[OperationOutcome](r, "rotatorConfig").exists(_ === OperationOutcome.success)
+      )
+      assertEquals(cfg.map(_.ipa), Angle.fromDoubleDegrees(22.5).some)
+    }
+  }
+
+  test("Report the path of an invalid argument") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+          |mutation { rotatorConfig( config: {
+          |    ipa: {
+          |      dms: "not an angle"
+          |    }
+          |    mode: TRACKING
+          |  }
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor.downField("errors").downArray.downField("message").as[String],
+      "Argument 'config.ipa.dms' is invalid: Invalid DMS angle: not an angle"
+        .asRight[DecodingFailure]
     )
   }
 
@@ -1658,6 +1802,33 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Reject a probeGuide with only one probe") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+          |mutation { guideEnable( config: {
+          |    m2Inputs: [ OIWFS ]
+          |    m2Coma: true
+          |    m1Input: OIWFS
+          |    mountOffload: true
+          |    daytimeMode: false
+          |    probeGuide: {
+          |      from: PWFS1
+          |    }
+          |  }
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor.downField("errors").downArray.downField("message").as[String],
+      "Argument 'config.probeGuide' is invalid: Both from and to must be specified."
+        .asRight[DecodingFailure]
+    )
+  }
+
   test("Configure light path") {
     for {
       mp <- buildMapping()
@@ -1757,10 +1928,10 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |      }
           |    },
           |    ipa: {
-          |       milliseconds: 10
+          |       milliarcseconds: 10
           |    },
           |    iaa: {
-          |       milliseconds: 10
+          |       milliarcseconds: 10
           |    }
           |  }
           |) {
@@ -1795,10 +1966,10 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |      }
           |    },
           |    ipa: {
-          |       milliseconds: 10
+          |       milliarcseconds: 10
           |    },
           |    iaa: {
-          |       milliseconds: 10
+          |       milliarcseconds: 10
           |    },
           |    command: USER_CONFIRMS
           |  }
@@ -2129,29 +2300,51 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  private def inputObject(fieldNames: String*)(fields: (String, Value)*): Value = {
+    val values = fields.toMap
+    Value.ObjectValue(fieldNames.toList.map(n => n -> values.getOrElse(n, Value.AbsentValue)))
+  }
+
+  private def configureStepInput(fields: (String, Value)*): Value =
+    inputObject("offset", "wavelength", "lightPath", "defocus", "guiding")(fields*)
+
+  private def distanceInput(fields: (String, Value)*): Value =
+    inputObject("micrometers", "millimeters", "meters")(fields*)
+
+  private def offsetComponentInput(fields: (String, Value)*): Value =
+    inputObject("microarcseconds", "milliarcseconds", "arcseconds")(fields*)
+
   test("Parse the defocus of a step configuration") {
     assertEquals(
-      NavigateMappings.parseConfigureStepInput(
-        List(
-          "defocus" -> Value.ObjectValue(List("millimeters" -> Value.FloatValue(0.25))),
+      input.ConfigureStepInput.Binding.validate(
+        configureStepInput(
+          "defocus" -> distanceInput("millimeters" -> Value.FloatValue(0.25)),
           "guiding" -> Value.BooleanValue(true)
         )
       ),
-      (none, none, none, Distance.fromLongMicrometers(250).some, true).some
+      input
+        .ConfigureStepInput(none, none, none, Distance.fromLongMicrometers(250).some, true)
+        .asRight
     )
     assertEquals(
-      NavigateMappings.parseConfigureStepInput(List("guiding" -> Value.BooleanValue(false))),
-      (none, none, none, none, false).some
+      input.ConfigureStepInput.Binding.validate(
+        configureStepInput("guiding" -> Value.BooleanValue(false))
+      ),
+      input.ConfigureStepInput(none, none, none, none, false).asRight
     )
     // An unparseable defocus fails the whole input instead of being ignored
-    assertEquals(
-      NavigateMappings.parseConfigureStepInput(
-        List(
-          "defocus" -> Value.ObjectValue(List("parsecs" -> Value.FloatValue(1.0))),
-          "guiding" -> Value.BooleanValue(true)
+    assert(
+      input.ConfigureStepInput.Binding
+        .validate(
+          configureStepInput(
+            "defocus" -> distanceInput(
+              "micrometers" -> Value.IntValue(1),
+              "meters"      -> Value.FloatValue(1.0)
+            ),
+            "guiding" -> Value.BooleanValue(true)
+          )
         )
-      ),
-      none
+        .isLeft
     )
   }
 
@@ -2185,19 +2378,19 @@ class NavigateMappingsSuite extends CatsEffectSuite {
 
   test("Parse an offset sent as unsigned microarcseconds") {
     // Values larger than an Int reach the parser as FloatValue
-    val parsed = NavigateMappings.parseConfigureStepInput(
-      List(
+    val parsed = input.ConfigureStepInput.Binding.validate(
+      configureStepInput(
         "offset"  -> Value.ObjectValue(
           List(
-            "p" -> Value.ObjectValue(List("microarcseconds" -> Value.IntValue(1500000))),
-            "q" -> Value.ObjectValue(List("microarcseconds" -> Value.FloatValue(1295997750000.0)))
+            "p" -> offsetComponentInput("microarcseconds" -> Value.IntValue(1500000)),
+            "q" -> offsetComponentInput("microarcseconds" -> Value.FloatValue(1295997750000.0))
           )
         ),
         "guiding" -> Value.BooleanValue(true)
       )
     )
     assertEquals(
-      parsed.flatMap(_._1),
+      parsed.toOption.flatMap(_.offset),
       Offset(
         Offset.P(Angle.fromMicroarcseconds(1500000L)),
         Offset.Q(Angle.fromMicroarcseconds(-2250000L))
@@ -3387,6 +3580,34 @@ object NavigateMappingsTest {
   ) {
     override def ecsEnableShutters(mode: ShutterMode): IO[CommandResult] =
       captured.set(mode.some).as(CommandResult.CommandSuccess)
+  }
+
+  def buildServerCapturingPwfs1Target(
+    captured: Ref[IO, Option[Target]]
+  ): IO[NavigateEngine[IO]] = for {
+    s <- SignallingRef[IO].of(TcsSimState.default)
+    g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
+  } yield new NavigateEngineTest(
+    new TcsSouthControllerSim[IO](s),
+    new TcsNorthControllerSim[IO](s),
+    g
+  ) {
+    override def pwfs1Target(target: Target): IO[CommandResult] =
+      captured.set(target.some).as(CommandResult.CommandSuccess)
+  }
+
+  def buildServerCapturingRotatorConfig(
+    captured: Ref[IO, Option[RotatorTrackConfig]]
+  ): IO[NavigateEngine[IO]] = for {
+    s <- SignallingRef[IO].of(TcsSimState.default)
+    g <- Ref.of[IO, GuideConfig](GuideConfig.defaultGuideConfig)
+  } yield new NavigateEngineTest(
+    new TcsSouthControllerSim[IO](s),
+    new TcsNorthControllerSim[IO](s),
+    g
+  ) {
+    override def rotTrackingConfig(cfg: RotatorTrackConfig): IO[CommandResult] =
+      captured.set(cfg.some).as(CommandResult.CommandSuccess)
   }
 
   def buildBadServer: IO[NavigateEngine[IO]] = for {

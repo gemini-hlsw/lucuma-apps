@@ -4,110 +4,35 @@
 package navigate.web.server.http4s
 
 import cats.MonadThrow
-import cats.data.Validated
 import cats.effect.Sync
 import cats.syntax.all.*
 import fs2.Stream
-import grackle.Env
 import grackle.Query.Binding
 import grackle.QueryCompiler.Elab
 import grackle.QueryCompiler.SelectElaborator
 import grackle.Result
 import grackle.Schema
 import grackle.TypeRef
-import grackle.Value
-import grackle.Value.*
 import grackle.circe.CirceMapping
 import grackle.syntax.given
-import lucuma.core.enums.ComaOption
-import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.Instrument
-import lucuma.core.enums.M1Source
-import lucuma.core.enums.MountGuideOption
-import lucuma.core.enums.TipTiltSource
-import lucuma.core.math.Coordinates
-import lucuma.core.math.Offset
-import lucuma.core.math.Wavelength
-import lucuma.core.model.Ephemeris
-import lucuma.core.model.IntPercent
-import lucuma.core.model.M1GuideConfig
-import lucuma.core.model.M2GuideConfig
-import lucuma.core.model.Observation
-import lucuma.core.model.ProbeGuide
-import lucuma.core.model.TelescopeGuideConfig
-import lucuma.core.util.TimeSpan
+import io.circe.Encoder
 import lucuma.odb.graphql.binding.*
+import lucuma.odb.graphql.input.OffsetInput
+import lucuma.odb.graphql.input.TimeSpanInput
+import lucuma.odb.graphql.input.WavelengthInput
 import lucuma.odb.graphql.schema.SchemaStitcher
-import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
-import lucuma.schemas.model.navigate.LightSinkVariant
-import lucuma.schemas.model.navigate.LightSource
 import mouse.boolean.given
-import navigate.model.AcMechsState
-import navigate.model.AcWindow
-import navigate.model.AcquisitionAdjustment
-import navigate.model.AutoparkAowfs
-import navigate.model.AutoparkGems
-import navigate.model.AutoparkOiwfs
-import navigate.model.AutoparkPwfs1
-import navigate.model.AutoparkPwfs2
-import navigate.model.BafflesConfig
-import navigate.model.BafflesState
 import navigate.model.CommandResult
-import navigate.model.Distance
-import navigate.model.FocalPlaneOffset
-import navigate.model.FocalPlaneOffset.DeltaX
-import navigate.model.FocalPlaneOffset.DeltaY
-import navigate.model.GuideState
-import navigate.model.GuiderConfig
-import navigate.model.GuidersQualityValues
-import navigate.model.HandsetAdjustment
-import navigate.model.InstrumentSpecifics
-import navigate.model.LightPath
-import navigate.model.NavigateState
-import navigate.model.Origin
-import navigate.model.PointingCorrections
-import navigate.model.PwfsMechsState
-import navigate.model.ResetPointing
-import navigate.model.RotatorTrackConfig
-import navigate.model.RotatorTrackingMode
 import navigate.model.ServerConfiguration
-import navigate.model.ShortcircuitMountFilter
-import navigate.model.ShortcircuitTargetFilter
-import navigate.model.SlewOptions
-import navigate.model.StopGuide
-import navigate.model.SwapConfig
-import navigate.model.Target
-import navigate.model.TargetOffsets
-import navigate.model.TcsConfig
-import navigate.model.TelescopeState
-import navigate.model.TrackingConfig
-import navigate.model.WfsConfiguration
-import navigate.model.ZeroChopThrow
-import navigate.model.ZeroGuideOffset
-import navigate.model.ZeroInstrumentOffset
-import navigate.model.ZeroMountDiffTrack
-import navigate.model.ZeroMountOffset
-import navigate.model.ZeroSourceDiffTrack
-import navigate.model.ZeroSourceOffset
 import navigate.model.config.NavigateConfiguration
-import navigate.model.enums.AcFilter
-import navigate.model.enums.AcLens
-import navigate.model.enums.AcNdFilter
 import navigate.model.enums.AcquisitionAdjustmentCommand
-import navigate.model.enums.CentralBafflePosition
-import navigate.model.enums.DeployableBafflePosition
-import navigate.model.enums.DomeMode
-import navigate.model.enums.LightSink
-import navigate.model.enums.PwfsFieldStop
-import navigate.model.enums.PwfsFilter
-import navigate.model.enums.QlMode
-import navigate.model.enums.ShutterMode
-import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
 import navigate.web.server.OcsBuildInfo
+import navigate.web.server.http4s.input.*
+import org.tpolecat.typename.TypeName
 import org.typelevel.log4cats.Logger
 
-import java.time.LocalDate
+import scala.reflect.ClassTag
 
 import encoder.given
 
@@ -120,1155 +45,296 @@ class NavigateMappings[F[_]: Sync](
 ) extends CirceMapping[F] {
   import NavigateMappings._
 
-  def telescopeState: F[Result[TelescopeState]] =
-    server.getTelescopeState.attemptResult
+  val QueryType: TypeRef        = schema.ref("Query")
+  val MutationType: TypeRef     = schema.ref("Mutation")
+  val SubscriptionType: TypeRef = schema.ref("Subscription")
 
-  def guideState: F[Result[GuideState]] =
-    server.getGuideState.attemptResult
+  /** A root field and the elaborator for its arguments. */
+  private case class RootField(
+    elaborator:   PartialFunction[(TypeRef, String, List[Binding]), Elab[Unit]],
+    fieldMapping: RootEffect
+  )
 
-  def guidersQualityValues: F[Result[GuidersQualityValues]] =
-    server.getGuidersQuality.attemptResult
+  private type Args[A] = PartialFunction[List[Binding], Result[A]]
 
-  def navigateState: F[Result[NavigateState]] =
-    server.getNavigateState.attemptResult
+  /** Parses the only argument of a root field, `name`, with `matcher`. */
+  private def arg[A](name: String, matcher: Matcher[A]): Args[A] = {
+    case List(matcher(`name`, r)) => r
+  }
 
-  def targetAdjustmentOffsets: F[Result[TargetOffsets]] =
-    server.getTargetAdjustments.attemptResult
+  /** Parses the two arguments of a root field, in schema order. */
+  private def args[A, B](na: String, ma: Matcher[A], nb: String, mb: Matcher[B]): Args[(A, B)] = {
+    case List(ma(`na`, ra), mb(`nb`, rb)) => (ra, rb).parTupled
+  }
 
-  def originAdjustmentOffset: F[Result[FocalPlaneOffset]] =
-    server.getOriginOffset.attemptResult
+  /** Parses the three arguments of a root field, in schema order. */
+  private def args[A, B, C](
+    na: String,
+    ma: Matcher[A],
+    nb: String,
+    mb: Matcher[B],
+    nc: String,
+    mc: Matcher[C]
+  ): Args[(A, B, C)] = { case List(ma(`na`, ra), mb(`nb`, rb), mc(`nc`, rc)) =>
+    (ra, rb, rc).parTupled
+  }
 
-  def pointingAdjustmentOffset: F[Result[PointingCorrections]] =
-    server.getPointingOffset.attemptResult
+  /**
+   * A root field with arguments. `args` parses them, and `run` gets the result.
+   *
+   * Unexpected arguments are internal errors.
+   */
+  private def rootField[I: {ClassTag, TypeName}, A: Encoder](
+    tpe:   TypeRef,
+    field: String,
+    args:  Args[I]
+  )(run: I => F[Result[A]]): RootField =
+    RootField(
+      { case (`tpe`, `field`, bindings) =>
+        Elab
+          .liftR(
+            args.applyOrElse(
+              bindings,
+              bs => Result.internalError(s"Unexpected arguments for $field: $bs")
+            )
+          )
+          .flatMap(i => Elab.env(ArgsKey -> i))
+      },
+      RootEffect.computeEncodable(field)((_, env) => env.getR[I](ArgsKey).flatTraverse(run))
+    )
 
-  def acMechsState: F[Result[AcMechsState]] =
-    server.getAcMechsState.attemptResult
+  /** A query without arguments. Errors from `run` become GraphQL errors. */
+  private def query[A: Encoder](field: String)(run: => F[A]): RootField =
+    RootField(
+      PartialFunction.empty,
+      RootEffect.computeEncodable(field)((_, _) => run.attemptResult)
+    )
 
-  def pwfs1MechsState: F[Result[PwfsMechsState]] =
-    server.getPwfs1MechsState.attemptResult
+  /**
+   * A mutation without arguments.
+   *
+   * Failed commands are GraphQL errors. Exceptions in `run` are internal errors.
+   */
+  private def command(field: String)(run: => F[CommandResult]): RootField =
+    RootField(
+      PartialFunction.empty,
+      RootEffect.computeEncodable(field)((_, _) => run.attemptResultOutcome)
+    )
 
-  def pwfs2MechsState: F[Result[PwfsMechsState]] =
-    server.getPwfs2MechsState.attemptResult
+  /** A mutation with arguments. Same as `command`, but `run` gets the parsed arguments. */
+  private def command[I: {ClassTag, TypeName}](field: String, args: Args[I])(
+    run: I => F[CommandResult]
+  ): RootField =
+    rootField(MutationType, field, args)(run(_).attemptResultOutcome)
 
-  def pwfs1ConfigState: F[Result[WfsConfiguration]] =
-    server.getPwfs1Configuration.attemptResult
-
-  def pwfs2ConfigState: F[Result[WfsConfiguration]] =
-    server.getPwfs2Configuration.attemptResult
-
-  def oiwfsConfigState: F[Result[WfsConfiguration]] =
-    server.getOiwfsConfiguration.attemptResult
-
-  def bafflesState: F[Result[BafflesState]] =
-    server.getBafflesState.attemptResult
-
-  def instrumentPort(env: Env): F[Result[Option[Int]]] =
-    env
-      .get[Instrument]("instrument")
-      .toResult("instrumentPort parameter could not be parsed.")
-      .flatTraverse: ins =>
-        server
-          .getInstrumentPort(ins)
-          .attemptResult
-
-  def serverVersion: F[Result[String]] = Result.success(OcsBuildInfo.version).pure[F]
-
-  def serverConfig: F[Result[ServerConfiguration]] = Result
-    .success(
+  private val queryFields: List[RootField] = List(
+    query("telescopeState")(server.getTelescopeState),
+    query("guideState")(server.getGuideState),
+    query("guidersQualityValues")(server.getGuidersQuality),
+    query("navigateState")(server.getNavigateState),
+    rootField(QueryType, "instrumentPort", arg("instrument", InstrumentBinding))(
+      server.getInstrumentPort(_).attemptResult
+    ),
+    query("serverVersion")(OcsBuildInfo.version.pure[F]),
+    query("targetAdjustmentOffsets")(server.getTargetAdjustments),
+    query("originAdjustmentOffset")(server.getOriginOffset),
+    query("pointingAdjustmentOffset")(server.getPointingOffset),
+    query("serverConfiguration")(
       ServerConfiguration(
         OcsBuildInfo.version,
         config.site,
         config.navigateEngine.odb.toString,
         config.lucumaSSO.ssoUrl.toString
+      ).pure[F]
+    ),
+    query("acMechsState")(server.getAcMechsState),
+    query("pwfs1MechsState")(server.getPwfs1MechsState),
+    query("pwfs2MechsState")(server.getPwfs2MechsState),
+    query("bafflesState")(server.getBafflesState),
+    query("pwfs1ConfigState")(server.getPwfs1Configuration),
+    query("pwfs2ConfigState")(server.getPwfs2Configuration),
+    query("oiwfsConfigState")(server.getOiwfsConfiguration)
+  )
+
+  private val mutationFields: List[RootField] = List(
+    command("mountPark")(server.mcsPark),
+    command("mountFollow", arg("enable", BooleanBinding))(server.mcsFollow),
+    command("mountUnwrap")(server.mcsUnwrap),
+    command("rotatorPark")(server.rotPark),
+    command("rotatorFollow", arg("enable", BooleanBinding))(server.rotFollow),
+    command("rotatorConfig", arg("config", RotatorTrackingInput.Binding))(server.rotTrackingConfig),
+    command("rotatorUnwrap")(server.rotUnwrap),
+    command("scsFollow", arg("enable", BooleanBinding))(server.scsFollow),
+    command("tcsConfig", arg("config", TcsConfigInput.Binding))(server.tcsConfig),
+    command(
+      "slew",
+      args(
+        "slewOptions",
+        SlewOptionsInput.Binding,
+        "config",
+        TcsConfigInput.Binding,
+        "obsId",
+        ObservationIdBinding.Option
       )
-    )
-    .pure[F]
-
-  def mountFollow(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult("mountFollow parameter could not be parsed.")
-      .flatTraverse: en =>
-        server
-          .mcsFollow(en)
-          .attemptResultOutcome
-
-  def rotatorFollow(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult("rotatorFollow parameter could not be parsed.")
-      .flatTraverse: en =>
-        server
-          .rotFollow(en)
-          .attemptResultOutcome
-
-  def rotatorConfig(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[RotatorTrackConfig]("config")
-      .toResult("rotatorConfig parameter could not be parsed.")
-      .flatTraverse: cfg =>
-        server
-          .rotTrackingConfig(cfg)
-          .attemptResultOutcome
-
-  def scsFollow(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult("scsFollow parameter could not be parsed.")
-      .flatTraverse: en =>
-        server
-          .scsFollow(en)
-          .attemptResultOutcome
-
-  def instrumentSpecifics(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[InstrumentSpecifics]("instrumentSpecificsParams")
-      .toResult("InstrumentSpecifics parameters could not be parsed.")
-      .flatTraverse: isp =>
-        server
-          .instrumentSpecifics(isp)
-          .attemptResultOutcome
-
-  def slew(env: Env): F[Result[OperationOutcome]] =
-    (
-      env.get[Option[Observation.Id]]("obsId"),
-      env.get[SlewOptions]("slewOptions"),
-      env.get[TcsConfig]("config")
-    ).tupled
-      .toResult(s"Slew parameters $env oid could not be parsed.")
-      .flatTraverse: (oid, so, tc) =>
-        server
-          .slew(so, tc, oid)
-          .attemptResultOutcome
-
-  def tcsConfig(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[TcsConfig]("config")
-      .toResult("tcsConfig parameters could not be parsed.")
-      .flatTraverse: tc =>
-        server
-          .tcsConfig(tc)
-          .attemptResultOutcome
-
-  def swapTarget(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[SwapConfig]("swapConfig")
-      .toResult("swapTarget parameters could not be parsed.")
-      .flatTraverse: t =>
-        server
-          .swapTarget(t)
-          .attemptResultOutcome
-
-  def restoreTarget(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[TcsConfig]("config")
-      .toResult("restoreTarget parameters could not be parsed.")
-      .flatTraverse: tc =>
-        server
-          .restoreTarget(tc)
-          .attemptResultOutcome
-
-  private def wfsTarget(name: String, cmd: Target => F[CommandResult])(
-    env: Env
-  ): F[Result[OperationOutcome]] =
-    env
-      .get[Target]("target")
-      .toResult(s"${name}Target parameters could not be parsed.")
-      .flatTraverse: oi =>
-        cmd(oi).attemptResultOutcome
-
-  private def wfsProbeTracking(name: String, cmd: TrackingConfig => F[CommandResult])(
-    env: Env
-  ): F[Result[OperationOutcome]] =
-    env
-      .get[TrackingConfig]("config")
-      .toResult(s"${name}ProbeTracking parameters could not be parsed.")
-      .flatTraverse: tc =>
-        cmd(tc).attemptResultOutcome
-
-  def wfsFollow(name: String, cmd: Boolean => F[CommandResult])(
-    env: Env
-  ): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult(s"${name}Follow parameter could not be parsed.")
-      .flatTraverse: en =>
-        cmd(en).attemptResultOutcome
-
-  def wfsObserve(name: String, cmd: TimeSpan => F[CommandResult])(
-    env: Env
-  ): F[Result[OperationOutcome]] =
-    env
-      .get[TimeSpan]("period")
-      .toResult(s"${name}Observe parameter could not be parsed.")
-      .flatTraverse: p =>
-        cmd(p).attemptResultOutcome
-
-  def wfsFilter(name: String, cmd: PwfsFilter => F[CommandResult])(
-    env: Env
-  ): F[Result[OperationOutcome]] =
-    env
-      .get[PwfsFilter]("filter")
-      .toResult(s"${name}Filter parameter could not be parsed.")
-      .flatTraverse: p =>
-        cmd(p).attemptResultOutcome
-
-  def wfsFieldStop(name: String, cmd: PwfsFieldStop => F[CommandResult])(
-    env: Env
-  ): F[Result[OperationOutcome]] =
-    env
-      .get[PwfsFieldStop]("fieldStop")
-      .toResult(s"${name}FieldStop parameter could not be parsed.")
-      .flatTraverse: p =>
-        cmd(p).attemptResultOutcome
-
-  def acObserve(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[TimeSpan]("period")
-      .toResult("acObserve parameter could not be parsed.")
-      .flatTraverse: p =>
-        server
-          .acObserve(p)
-          .attemptResultOutcome
-
-  def guideEnable(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[TelescopeGuideConfig]("config")
-      .toResult("guideEnable parameters could not be parsed.")
-      .flatTraverse: cfg =>
-        server
-          .enableGuide(cfg)
-          .attemptResultOutcome
-
-  def acquisitionAdjustment(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[AcquisitionAdjustment]("adjustment")
-      .toResult("acquisitionAdjustment parameters could not be parsed.")
-      .flatTraverse: adj =>
-        // First publish the adjustment. if the action fails other clients will be informed anyway
-        topics.acquisitionAdjustment.publish1(adj) *>
-          // Run the adjustment if the user confirms, preserve the upstream error
-          (adj.command === AcquisitionAdjustmentCommand.UserConfirms)
-            .valueOrPure[F, Result[OperationOutcome]](
-              server.acquisitionAdj(adj.offset, adj.iaa, adj.ipa).attemptResultOutcome
-            )(Result.success(OperationOutcome.success))
-
-  def wfsSky(env: Env): F[Result[OperationOutcome]] =
-    (env.get[GuideProbe]("wfs"), env.get[TimeSpan]("period")).tupled
-      .toResult("WFS Sky parameters could not be parsed.")
-      .flatTraverse: (wfs, exp) =>
-        server
-          .wfsSky(wfs, exp)
-          .attemptResultOutcome
-
-  def lightpathConfig(env: Env): F[Result[OperationOutcome]] =
-    (for {
-      from <- env.get[LightSource]("from")
-      ins  <- env.get[Instrument]("instrument")
-      lsv  <- env.get[Option[LightSinkVariant]]("lightSinkVariant")
-      ls   <- LightSink.fromInstrumentAndVariant(ins, lsv)
-    } yield (from, ls))
-      .toResult("lightpathConfig parameters could not be parsed.")
-      .flatTraverse: (from, ls) =>
-        server
-          .lightPathConfig(from, ls)
-          .attemptResultOutcome
-
-  def adjustTarget(env: Env): F[Result[OperationOutcome]] =
-    (
-      env.get[VirtualTelescope]("target"),
-      env.get[HandsetAdjustment]("offset"),
-      env.get[Boolean]("openLoops")
-    ).tupled
-      .toResult("Target adjustment parameters could not be parsed.")
-      .flatTraverse: (target, offset, openLoops) =>
-        server
-          .targetAdjust(target, offset, openLoops)
-          .attemptResultOutcome
-
-  def adjustOrigin(env: Env): F[Result[OperationOutcome]] =
-    (env.get[HandsetAdjustment]("offset"), env.get[Boolean]("openLoops")).tupled
-      .toResult("Origin adjustment parameters could not be parsed.")
-      .flatTraverse: (offset, openLoops) =>
-        server
-          .originAdjust(offset, openLoops)
-          .attemptResultOutcome
-
-  def offset(env: Env): F[Result[OperationOutcome]] =
-    (env.get[Offset]("offset"), env.get[Boolean]("guiding")).tupled
-      .toResult("Offset parameters could not be parsed.")
-      .flatTraverse: (offset, guiding) =>
-        server
-          .offset(offset, guiding)
-          .attemptResultOutcome
-
-  def centralWavelength(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Wavelength]("wavelength")
-      .toResult("Central wavelength parameter could not be parsed.")
-      .flatTraverse: wavelength =>
-        server
-          .centralWavelength(wavelength)
-          .attemptResultOutcome
-
-  def configureStep(env: Env): F[Result[OperationOutcome]] =
-    (
-      env.get[Option[Offset]]("offset"),
-      env.get[Option[Wavelength]]("wavelength"),
-      env.get[Option[LightPath]]("lightPath"),
-      env.get[Option[Distance]]("defocus"),
-      env.get[Boolean]("guiding")
-    ).tupled
-      .toResult("ConfigureStep parameters could not be parsed.")
-      .flatTraverse: (offset, wavelength, lightPath, defocus, guiding) =>
-        server
-          .configureStep(offset, wavelength, lightPath, defocus, guiding)
-          .attemptResultOutcome
-
-  def adjustPointing(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[HandsetAdjustment]("offset")
-      .toResult("Pointing adjustment parameters could not be parsed.")
-      .flatTraverse: offset =>
-        server
-          .pointingAdjust(offset)
-          .attemptResultOutcome
-
-  def resetTargetAdjustment(env: Env): F[Result[OperationOutcome]] =
-    (env.get[VirtualTelescope]("target"), env.get[Boolean]("openLoops")).tupled
-      .toResult("Clear target offset parameters could not be parsed.")
-      .flatTraverse: (target, openLoops) =>
-        server
-          .targetOffsetClear(target, openLoops)
-          .attemptResultOutcome
-
-  def absorbTargetAdjustment(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[VirtualTelescope]("target")
-      .toResult("Absorb target offset parameters could not be parsed.")
-      .flatTraverse: target =>
-        server
-          .targetOffsetAbsorb(target)
-          .attemptResultOutcome
-
-  def resetOriginAdjustment(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("openLoops")
-      .toResult("Clear origin offset parameters could not be parsed.")
-      .flatTraverse: openLoops =>
-        server
-          .originOffsetClear(openLoops)
-          .attemptResultOutcome
-
-  def acLens(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[AcLens]("lens")
-      .toResult("AC lens parameter could not be parsed.")
-      .flatTraverse: lens =>
-        server
-          .acLens(lens)
-          .attemptResultOutcome
-
-  def acFilter(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[AcFilter]("filter")
-      .toResult("AC filter parameter could not be parsed.")
-      .flatTraverse: filter =>
-        server
-          .acFilter(filter)
-          .attemptResultOutcome
-
-  def acNdFilter(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[AcNdFilter]("ndFilter")
-      .toResult("AC ND filter parameter could not be parsed.")
-      .flatTraverse: ndFilter =>
-        server
-          .acNdFilter(ndFilter)
-          .attemptResultOutcome
-
-  def acWindowSize(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[AcWindow]("size")
-      .toResult("AC Window parameter could not be parsed.")
-      .flatTraverse: windowSize =>
-        server
-          .acWindowSize(windowSize)
-          .attemptResultOutcome
-
-  def pwfs1CircularBuffer(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult("PWFS1 circular buffer parameter could not be parsed.")
-      .flatTraverse(server.pwfs1CircularBuffer(_).attemptResultOutcome)
-
-  def pwfs1QlMode(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[QlMode]("mode")
-      .toResult("PWFS1 QL mode parameter could not be parsed.")
-      .flatTraverse(server.pwfs1QlMode(_).attemptResultOutcome)
-
-  def pwfs2CircularBuffer(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult("PWFS2 circular buffer parameter could not be parsed.")
-      .flatTraverse(server.pwfs2CircularBuffer(_).attemptResultOutcome)
-
-  def pwfs2QlMode(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[QlMode]("mode")
-      .toResult("PWFS2 QL mode parameter could not be parsed.")
-      .flatTraverse(server.pwfs2QlMode(_).attemptResultOutcome)
-
-  def oiwfsCircularBuffer(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Boolean]("enable")
-      .toResult("OIWFS circular buffer parameter could not be parsed.")
-      .flatTraverse(server.oiwfsCircularBuffer(_).attemptResultOutcome)
-
-  def oiwfsQlMode(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[QlMode]("mode")
-      .toResult("OIWFS QL mode parameter could not be parsed.")
-      .flatTraverse(server.oiwfsQlMode(_).attemptResultOutcome)
-
-  def domeEnable(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[DomeMode]("mode")
-      .toResult("Dome mode parameter could not be parsed.")
-      .flatTraverse(server.ecsEnableDome(_).attemptResultOutcome)
-
-  def shuttersEnable(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[ShutterMode]("mode")
-      .toResult("Shutter mode parameter could not be parsed.")
-      .flatTraverse(server.ecsEnableShutters(_).attemptResultOutcome)
-
-  def eastVentGateEnable(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[IntPercent]("position")
-      .toResult("East vent parameter could not be parsed.")
-      .flatTraverse(server.ecsMoveEastVentGate(_).attemptResultOutcome)
-
-  def westVentGateEnable(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[IntPercent]("position")
-      .toResult("West vent parameter could not be parsed.")
-      .flatTraverse(server.ecsMoveWestVentGate(_).attemptResultOutcome)
-
-  def refreshEphemerisFiles(env: Env): F[Result[OperationOutcome]] =
-    env
-      .get[Option[LocalDate]]("observingNight")
-      .toResult("Ephemeris file refresh parameter could not be parsed.")
-      .flatTraverse(server.refreshEphemerides(_).attemptResultOutcome)
-
-  val QueryType: TypeRef        = schema.ref("Query")
-  val MutationType: TypeRef     = schema.ref("Mutation")
-  val SubscriptionType: TypeRef = schema.ref("Subscription")
-
-  private def selectWfsTarget(name: String, fields: List[(String, Value)]): Elab[Unit] =
-    Elab
-      .liftR(parseTargetInput(fields).toResult(s"Could not parse ${name}Target parameters."))
-      .flatMap(x => Elab.env("target" -> x))
-
-  private def selectProbeTracking(name: String, fields: List[(String, Value)]): Elab[Unit] =
-    Elab
-      .liftR(
-        parseTrackingInput(fields).toResult(s"Could not parse ${name}ProbeTracking parameters.")
+    )((slewOptions, config, obsId) => server.slew(slewOptions, config, obsId)),
+    command("swapTarget", arg("swapConfig", SwapConfigInput.Binding))(server.swapTarget),
+    command("restoreTarget", arg("config", TcsConfigInput.Binding))(server.restoreTarget),
+    command(
+      "instrumentSpecifics",
+      arg("instrumentSpecificsParams", InstrumentSpecificsInput.Binding)
+    )(server.instrumentSpecifics),
+    // PWFS1
+    command("pwfs1Target", arg("target", TargetPropertiesInput.Binding))(server.pwfs1Target),
+    command("pwfs1ProbeTracking", arg("config", ProbeTrackingInput.Binding))(
+      server.pwfs1ProbeTracking
+    ),
+    command("pwfs1Park")(server.pwfs1Park),
+    command("pwfs1Follow", arg("enable", BooleanBinding))(server.pwfs1Follow),
+    command("pwfs1Unwrap")(server.pwfs1Unwrap),
+    command("pwfs1Observe", arg("period", TimeSpanInput.Binding))(server.pwfs1Observe),
+    command("pwfs1StopObserve")(server.pwfs1StopObserve),
+    command("pwfs1Filter", arg("filter", PwfsFilterBinding))(server.pwfs1Filter),
+    command("pwfs1FieldStop", arg("fieldStop", PwfsFieldStopBinding))(server.pwfs1FieldStop),
+    command("pwfs1CircularBuffer", arg("enable", BooleanBinding))(server.pwfs1CircularBuffer),
+    command("pwfs1QlMode", arg("mode", QlModeBinding))(server.pwfs1QlMode),
+    // PWFS2
+    command("pwfs2Target", arg("target", TargetPropertiesInput.Binding))(server.pwfs2Target),
+    command("pwfs2ProbeTracking", arg("config", ProbeTrackingInput.Binding))(
+      server.pwfs2ProbeTracking
+    ),
+    command("pwfs2Park")(server.pwfs2Park),
+    command("pwfs2Follow", arg("enable", BooleanBinding))(server.pwfs2Follow),
+    command("pwfs2Unwrap")(server.pwfs2Unwrap),
+    command("pwfs2Observe", arg("period", TimeSpanInput.Binding))(server.pwfs2Observe),
+    command("pwfs2StopObserve")(server.pwfs2StopObserve),
+    command("pwfs2Filter", arg("filter", PwfsFilterBinding))(server.pwfs2Filter),
+    command("pwfs2FieldStop", arg("fieldStop", PwfsFieldStopBinding))(server.pwfs2FieldStop),
+    command("pwfs2CircularBuffer", arg("enable", BooleanBinding))(server.pwfs2CircularBuffer),
+    command("pwfs2QlMode", arg("mode", QlModeBinding))(server.pwfs2QlMode),
+    // OIWFS
+    command("oiwfsTarget", arg("target", TargetPropertiesInput.Binding))(server.oiwfsTarget),
+    command("oiwfsProbeTracking", arg("config", ProbeTrackingInput.Binding))(
+      server.oiwfsProbeTracking
+    ),
+    command("oiwfsPark")(server.oiwfsPark),
+    command("oiwfsFollow", arg("enable", BooleanBinding))(server.oiwfsFollow),
+    command("oiwfsObserve", arg("period", TimeSpanInput.Binding))(server.oiwfsObserve),
+    command("oiwfsStopObserve")(server.oiwfsStopObserve),
+    command("oiwfsCircularBuffer", arg("enable", BooleanBinding))(server.oiwfsCircularBuffer),
+    command("oiwfsQlMode", arg("mode", QlModeBinding))(server.oiwfsQlMode),
+    // AC
+    command("acObserve", arg("period", TimeSpanInput.Binding))(server.acObserve),
+    command("acStopObserve")(server.acStopObserve),
+    command("acLens", arg("lens", AcLensBinding))(server.acLens),
+    command("acFilter", arg("filter", AcFilterBinding))(server.acFilter),
+    command("acNdFilter", arg("ndFilter", AcNdFilterBinding))(server.acNdFilter),
+    command("acWindowSize", arg("size", AcWindowInput.Binding))(server.acWindowSize),
+    // Guiding
+    command("guideEnable", arg("config", GuideConfigurationInput.Binding))(server.enableGuide),
+    command("guideDisable")(server.disableGuide),
+    command("wfsSky", args("wfs", GuideProbeBinding, "period", TimeSpanInput.Binding))(
+      (wfs, period) => server.wfsSky(wfs, period)
+    ),
+    // M1
+    command("m1Park")(server.m1Park),
+    command("m1Unpark")(server.m1Unpark),
+    command("m1OpenLoopOff")(server.m1OpenLoopOff),
+    command("m1OpenLoopOn")(server.m1OpenLoopOn),
+    command("m1ZeroFigure")(server.m1ZeroFigure),
+    command("m1LoadAoFigure")(server.m1LoadAoFigure),
+    command("m1LoadNonAoFigure")(server.m1LoadNonAoFigure),
+    // Light path and step configuration
+    command(
+      "lightpathConfig",
+      {
+        case List(
+              LightSourceBinding("from", rFrom),
+              InstrumentBinding("instrument", rInstrument),
+              LightSinkVariantBinding.Option("lightSinkVariant", rLightSinkVariant)
+            ) =>
+          (rFrom, LightPathInput.lightSink(rInstrument, rLightSinkVariant)).parTupled
+      }
+    )((from, lightSink) => server.lightPathConfig(from, lightSink)),
+    command("offset", args("offset", OffsetInput.Binding, "guiding", BooleanBinding))(
+      (offset, guiding) => server.offset(offset, guiding)
+    ),
+    command("centralWavelength", arg("wavelength", WavelengthInput.Binding))(
+      server.centralWavelength
+    ),
+    command("configureStep", arg("config", ConfigureStepInput.Binding)): c =>
+      server.configureStep(c.offset, c.wavelength, c.lightPath, c.defocus, c.guiding),
+    // Adjustments
+    rootField(
+      MutationType,
+      "acquisitionAdjustment",
+      arg("adjustment", AcquisitionAdjustmentInput.Binding)
+    ): adj =>
+      // Publish first. Other clients are informed even if the action fails.
+      topics.acquisitionAdjustment.publish1(adj) *>
+        // If the user confirms, run the adjustment. Keep the upstream error.
+        (adj.command === AcquisitionAdjustmentCommand.UserConfirms)
+          .valueOrPure[F, Result[OperationOutcome]](
+            server.acquisitionAdj(adj.offset, adj.iaa, adj.ipa).attemptResultOutcome
+          )(OperationOutcome.success.success),
+    command(
+      "adjustTarget",
+      args(
+        "target",
+        VirtualTelescopeBinding,
+        "offset",
+        HandsetAdjustmentInput.Binding,
+        "openLoops",
+        BooleanBinding
       )
-      .flatMap(x => Elab.env("config" -> x))
+    )((target, offset, openLoops) => server.targetAdjust(target, offset, openLoops)),
+    command("adjustPointing", arg("offset", HandsetAdjustmentInput.Binding))(
+      server.pointingAdjust
+    ),
+    command(
+      "adjustOrigin",
+      args("offset", HandsetAdjustmentInput.Binding, "openLoops", BooleanBinding)
+    )((offset, openLoops) => server.originAdjust(offset, openLoops)),
+    command(
+      "resetTargetAdjustment",
+      args("target", VirtualTelescopeBinding, "openLoops", BooleanBinding)
+    )((target, openLoops) => server.targetOffsetClear(target, openLoops)),
+    command("absorbTargetAdjustment", arg("target", VirtualTelescopeBinding))(
+      server.targetOffsetAbsorb
+    ),
+    command("resetLocalPointingAdjustment")(server.pointingOffsetClearLocal),
+    command("resetGuidePointingAdjustment")(server.pointingOffsetClearGuide),
+    command("absorbGuidePointingAdjustment")(server.pointingOffsetAbsorbGuide),
+    command("resetOriginAdjustment", arg("openLoops", BooleanBinding))(server.originOffsetClear),
+    command("absorbOriginAdjustment")(server.originOffsetAbsorb),
+    command("refreshEphemerisFiles", arg("observingNight", DateBinding.Option))(
+      server.refreshEphemerides
+    ),
+    // AG
+    command("agScienceFoldPark")(server.agScienceFoldPark),
+    command("agPickoffMirrorPark")(server.agPickoffMirrorPark),
+    command("agAoFoldPark")(server.agAoFoldPark),
+    command("agAllPark")(server.agAllPark),
+    // ECS
+    command("ecsEnableDome", arg("mode", DomeModeBinding))(server.ecsEnableDome),
+    command("ecsDisableDome")(server.ecsDisableDome),
+    command("ecsDomePark")(server.ecsDomePark),
+    command("ecsEnableShutters", arg("mode", ShutterModeInput.Binding))(server.ecsEnableShutters),
+    command("ecsDisableShutters")(server.ecsDisableShutters),
+    command("ecsShuttersPark")(server.ecsShuttersPark),
+    command("ecsMoveEastVentGate", arg("position", IntPercentBinding))(server.ecsMoveEastVentGate),
+    command("ecsCloseEastVentGate")(server.ecsCloseEastVentGate),
+    command("ecsMoveWestVentGate", arg("position", IntPercentBinding))(server.ecsMoveWestVentGate),
+    command("ecsCloseWestVentGate")(server.ecsCloseWestVentGate)
+  )
 
-  private def selectWfsObserve(name: String, fields: List[(String, Value)]): Elab[Unit] =
-    Elab
-      .liftR(parseTimeSpan(fields).toResult(s"Could not parse ${name}Observe parameters."))
-      .flatMap(x => Elab.env("period" -> x))
-
-  override val selectElaborator: SelectElaborator = SelectElaborator {
-    case (MutationType, "mountFollow", List(Binding("enable", BooleanValue(en))))                 =>
-      Elab.env("enable" -> en)
-    case (MutationType, "rotatorFollow", List(Binding("enable", BooleanValue(en))))               =>
-      Elab.env("enable" -> en)
-    case (MutationType, "rotatorConfig", List(Binding("config", ObjectValue(fields))))            =>
-      for {
-        x <- Elab.liftR(
-               parseRotatorConfig(fields).toResult("Could not parse rotatorConfig parameters.")
-             )
-        _ <- Elab.env("config", x)
-      } yield ()
-    case (MutationType, "scsFollow", List(Binding("enable", BooleanValue(en))))                   =>
-      Elab.env("enable" -> en)
-    case (MutationType, "tcsConfig", List(Binding("config", ObjectValue(fields))))                =>
-      for {
-        x <-
-          Elab.liftR(parseTcsConfigInput(fields).toResult("Could not parse TCS config parameters."))
-        _ <- Elab.env("config", x)
-      } yield ()
-    case (MutationType,
-          "slew",
-          List(Binding("slewOptions", ObjectValue(so)),
-               Binding("config", ObjectValue(cf)),
-               Binding("obsId", AbsentValue | NullValue)
-          )
-        ) =>
-      for {
-        x <-
-          Elab.liftR(parseSlewOptionsInput(so).toResult("Could not parse Slew options parameters."))
-        _ <- Elab.env("slewOptions" -> x)
-        y <- Elab.liftR(parseTcsConfigInput(cf).toResult("Could not parse TCS config parameters."))
-        _ <- Elab.env("config" -> y)
-        _ <- Elab.env("obsId" -> none[Observation.Id])
-      } yield ()
-    case (MutationType,
-          "slew",
-          List(Binding("slewOptions", ObjectValue(so)),
-               Binding("config", ObjectValue(cf)),
-               ObservationIdBinding.Option("obsId", rOi)
-          )
-        ) =>
-      for {
-        _ <- Elab.liftR(rOi).flatMap(oi => Elab.env("obsId" -> oi))
-        x <-
-          Elab.liftR(parseSlewOptionsInput(so).toResult("Could not parse Slew options parameters."))
-        _ <- Elab.env("slewOptions" -> x)
-        y <- Elab.liftR(parseTcsConfigInput(cf).toResult("Could not parse TCS config parameters."))
-        _ <- Elab.env("config" -> y)
-      } yield ()
-    case (MutationType, "swapTarget", List(Binding("swapConfig", ObjectValue(fields))))           =>
-      for {
-        x <-
-          Elab.liftR(
-            parseSwapConfigInput(fields).toResult("Could not parse swap target parameters.")
-          )
-        _ <- Elab.env("swapConfig", x)
-      } yield ()
-    case (MutationType, "restoreTarget", List(Binding("config", ObjectValue(fields))))            =>
-      for {
-        x <-
-          Elab.liftR(
-            parseTcsConfigInput(fields).toResult("Could not parse restore target parameters.")
-          )
-        _ <- Elab.env("config", x)
-      } yield ()
-    case (MutationType,
-          "instrumentSpecifics",
-          List(Binding("instrumentSpecificsParams", ObjectValue(fields)))
-        ) =>
-      for {
-        x <- Elab.liftR(
-               parseInstrumentSpecificsInput(fields).toResult(
-                 "Could not parse instrumentSpecifics parameters."
-               )
-             )
-        _ <- Elab.env("instrumentSpecificsParams" -> x)
-      } yield ()
-    case (MutationType, "pwfs1Target", List(Binding("target", ObjectValue(fields))))              =>
-      selectWfsTarget("pwfs1", fields)
-    case (MutationType, "pwfs1ProbeTracking", List(Binding("config", ObjectValue(fields))))       =>
-      selectProbeTracking("pwfs1", fields)
-    case (MutationType, "pwfs1Follow", List(Binding("enable", BooleanValue(en))))                 =>
-      Elab.env("enable" -> en)
-    case (MutationType, "pwfs1Observe", List(Binding("period", ObjectValue(fields))))             =>
-      selectWfsObserve("pwfs1", fields)
-    case (MutationType, "pwfs2Target", List(Binding("target", ObjectValue(fields))))              =>
-      selectWfsTarget("pwfs2", fields)
-    case (MutationType, "pwfs2ProbeTracking", List(Binding("config", ObjectValue(fields))))       =>
-      selectProbeTracking("pwfs2", fields)
-    case (MutationType, "pwfs2Follow", List(Binding("enable", BooleanValue(en))))                 =>
-      Elab.env("enable" -> en)
-    case (MutationType, "pwfs2Observe", List(Binding("period", ObjectValue(fields))))             =>
-      selectWfsObserve("pwfs2", fields)
-    case (MutationType, "oiwfsTarget", List(Binding("target", ObjectValue(fields))))              =>
-      selectWfsTarget("oiwfs", fields)
-    case (MutationType, "oiwfsProbeTracking", List(Binding("config", ObjectValue(fields))))       =>
-      selectProbeTracking("oiwfs", fields)
-    case (MutationType, "oiwfsFollow", List(Binding("enable", BooleanValue(en))))                 =>
-      Elab.env("enable" -> en)
-    case (MutationType, "oiwfsObserve", List(Binding("period", ObjectValue(fields))))             =>
-      selectWfsObserve("oiwfs", fields)
-    case (MutationType, "acObserve", List(Binding("period", ObjectValue(fields))))                =>
-      for {
-        x <- Elab.liftR(
-               parseTimeSpan(fields).toResult(
-                 "Could not parse acObserve parameters."
-               )
-             )
-        _ <- Elab.env("period" -> x)
-      } yield ()
-    case (MutationType, "guideEnable", List(Binding("config", ObjectValue(fields))))              =>
-      for {
-        x <- Elab.liftR(
-               parseGuideConfig(fields).toResult(
-                 "Could not parse guideEnable parameters."
-               )
-             )
-        _ <- Elab.env("config" -> x)
-      } yield ()
-    case (MutationType,
-          "lightpathConfig",
-          List(Binding("from", EnumValue(f)),
-               Binding("instrument", EnumValue(t)),
-               Binding("lightSinkVariant", AbsentValue | NullValue)
-          )
-        ) =>
-      for {
-        from       <- Elab.liftR(
-                        parseEnumerated[LightSource](f).toResult(
-                          s"Could not parse lightpathConfig parameter \"from\" \"${f}\""
-                        )
-                      )
-        instrument <- Elab.liftR(
-                        parseEnumerated[Instrument](t).toResult(
-                          s"Could not parse lightpathConfig parameter \"instrument\" \"${t}\""
-                        )
-                      )
-        _          <- Elab.env("from" -> from)
-        _          <- Elab.env("instrument" -> instrument)
-        _          <- Elab.env("lightSinkVariant" -> none)
-      } yield ()
-    case (MutationType,
-          "lightpathConfig",
-          List(Binding("from", EnumValue(f)),
-               Binding("instrument", EnumValue(t)),
-               Binding("lightSinkVariant", EnumValue(lsv))
-          )
-        ) =>
-      for {
-        from             <- Elab.liftR(
-                              parseEnumerated[LightSource](f).toResult(
-                                s"Could not parse lightpathConfig parameter \"from\" \"${f}\""
-                              )
-                            )
-        instrument       <- Elab.liftR(
-                              parseEnumerated[Instrument](t).toResult(
-                                s"Could not parse lightpathConfig parameter \"instrument\" \"${t}\""
-                              )
-                            )
-        lightSinkVariant <-
-          Elab.liftR(
-            parseEnumerated[LightSinkVariant](lsv).toResult(
-              s"Could not parse lightpathConfig parameter \"lightSinkVariant\" \"${lsv}\""
-            )
-          )
-        _                <- Elab.env("from" -> from)
-        _                <- Elab.env("instrument" -> instrument)
-        _                <- Elab.env("lightSinkVariant" -> lightSinkVariant.some)
-      } yield ()
-    case (MutationType, "acquisitionAdjustment", List(Binding("adjustment", ObjectValue(adj))))   =>
-      Elab
-        .liftR(
-          parseAcquisitionAdjustment(adj)
-            .toResult(s"Could not parse adjustment parameter \"adjustment\" \"${adj}\"")
-        )
-        .flatMap { x =>
-          Elab.env("adjustment" -> x)
-        }
-    case (MutationType,
-          "wfsSky",
-          List(Binding("wfs", EnumValue(wfs)), Binding("period", ObjectValue(fields)))
-        ) =>
-      for {
-        w <- Elab.liftR(
-               parseEnumerated[GuideProbe](wfs).toResult(
-                 s"Could not parse wfsSky parameter \"wfs\" ${wfs}"
-               )
-             )
-        t <- Elab.liftR(
-               parseTimeSpan(fields).toResult(
-                 "Could not parse wfsSky parameter \"period\""
-               )
-             )
-        _ <- Elab.env("wfs" -> w)
-        _ <- Elab.env("period" -> t)
-      } yield ()
-    case (MutationType,
-          "adjustTarget",
-          List(Binding("target", EnumValue(target)),
-               Binding("offset", ObjectValue(offset)),
-               Binding("openLoops", BooleanValue(openLoops))
-          )
-        ) =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[VirtualTelescope](target).toResult(
-                 s"Could not parse adjustTarget parameter \"target\" \"${target}\""
-               )
-             )
-        o <- Elab.liftR(
-               parseHandsetAdjustment(offset).toResult(
-                 "Could not parse adjustTarget parameter \"offset\""
-               )
-             )
-        _ <- Elab.env("target", t)
-        _ <- Elab.env("offset", o)
-        _ <- Elab.env("openLoops", openLoops)
-      } yield ()
-    case (MutationType,
-          "resetTargetAdjustment",
-          List(Binding("target", EnumValue(target)), Binding("openLoops", BooleanValue(openLoops)))
-        ) =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[VirtualTelescope](target).toResult(
-                 s"Could not parse resetTargetAdjustment parameter \"target\" \"${target}\""
-               )
-             )
-        _ <- Elab.env("target", t)
-        _ <- Elab.env("openLoops", openLoops)
-      } yield ()
-    case (MutationType, "absorbTargetAdjustment", List(Binding("target", EnumValue(target))))     =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[VirtualTelescope](target).toResult(
-                 s"Could not parse absorbTargetAdjustment parameter \"target\" \"${target}\""
-               )
-             )
-        _ <- Elab.env("target", t)
-      } yield ()
-    case (MutationType, "adjustPointing", List(Binding("offset", ObjectValue(offset))))           =>
-      for {
-        o <- Elab.liftR(
-               parseHandsetAdjustment(offset).toResult(
-                 "Could not parse adjustPointing parameter \"offset\""
-               )
-             )
-        _ <- Elab.env("offset", o)
-      } yield ()
-    case (MutationType,
-          "adjustOrigin",
-          List(Binding("offset", ObjectValue(offset)),
-               Binding("openLoops", BooleanValue(openLoops))
-          )
-        ) =>
-      for {
-        o <- Elab.liftR(
-               parseHandsetAdjustment(offset).toResult(
-                 "Could not parse adjustOrigin parameter \"offset\""
-               )
-             )
-        _ <- Elab.env("offset", o)
-        _ <- Elab.env("openLoops", openLoops)
-      } yield ()
-    case (MutationType,
-          "offset",
-          List(Binding("offset", ObjectValue(offset)), Binding("guiding", BooleanValue(guiding)))
-        ) =>
-      for {
-        o <- Elab.liftR(parseOffset(offset).toResult("Could not parse offset parameter \"offset\""))
-        _ <- Elab.env("offset", o)
-        _ <- Elab.env("guiding", guiding)
-      } yield ()
-    case (MutationType,
-          "centralWavelength",
-          List(Binding("wavelength", ObjectValue(wavelength)))
-        ) =>
-      for {
-        w <- Elab.liftR(
-               parseWavelength(wavelength).toResult(
-                 "Could not parse centralWavelength parameter \"wavelength\""
-               )
-             )
-        _ <- Elab.env("wavelength", w)
-      } yield ()
-    case (MutationType, "configureStep", List(Binding("config", ObjectValue(config))))            =>
-      for {
-        parsed                                           <- Elab.liftR(
-                                                              parseConfigureStepInput(config).toResult(
-                                                                "Could not parse configureStep parameter \"config\""
-                                                              )
-                                                            )
-        (offset, wavelength, lightPath, defocus, guiding) = parsed
-        _                                                <- Elab.env("offset", offset)
-        _                                                <- Elab.env("wavelength", wavelength)
-        _                                                <- Elab.env("lightPath", lightPath)
-        _                                                <- Elab.env("defocus", defocus)
-        _                                                <- Elab.env("guiding", guiding)
-      } yield ()
-    case (MutationType,
-          "resetOriginAdjustment",
-          List(Binding("openLoops", BooleanValue(openLoops)))
-        ) =>
-      Elab.env("openLoops", openLoops)
-    case (MutationType, "acLens", List(Binding("lens", EnumValue(name))))                         =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[AcLens](name).toResult(
-                 s"Could not parse acLens parameter \"lens\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("lens", t)
-      } yield ()
-    case (MutationType, "acFilter", List(Binding("filter", EnumValue(name))))                     =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[AcFilter](name).toResult(
-                 s"Could not parse acFilter parameter \"filter\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("filter", t)
-      } yield ()
-    case (MutationType, "acNdFilter", List(Binding("ndFilter", EnumValue(name))))                 =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[AcNdFilter](name).toResult(
-                 s"Could not parse acNdFilter parameter \"ndFilter\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("ndFilter", t)
-      } yield ()
-    case (MutationType, "acWindowSize", List(Binding("size", ObjectValue(l))))                    =>
-      for {
-        t <- Elab.liftR(
-               parseAcWindowSize(l).toResult(
-                 "Could not parse acWindowSize parameter \"size\""
-               )
-             )
-        _ <- Elab.env("size", t)
-      } yield ()
-    case (MutationType, "pwfs1Filter", List(Binding("filter", EnumValue(name))))                  =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[PwfsFilter](name).toResult(
-                 s"Could not parse pwfs1Filter parameter \"filter\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("filter", t)
-      } yield ()
-    case (MutationType, "pwfs1FieldStop", List(Binding("fieldStop", EnumValue(name))))            =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[PwfsFieldStop](name).toResult(
-                 s"Could not parse pwfs1FieldStop parameter \"fieldStop\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("fieldStop", t)
-      } yield ()
-    case (MutationType, "pwfs2Filter", List(Binding("filter", EnumValue(name))))                  =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[PwfsFilter](name).toResult(
-                 s"Could not parse pwfs2Filter parameter \"filter\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("filter", t)
-      } yield ()
-    case (MutationType, "pwfs2FieldStop", List(Binding("fieldStop", EnumValue(name))))            =>
-      for {
-        t <- Elab.liftR(
-               parseEnumerated[PwfsFieldStop](name).toResult(
-                 s"Could not parse pwfs2FieldStop parameter \"fieldStop\" \"${name}\""
-               )
-             )
-        _ <- Elab.env("fieldStop", t)
-      } yield ()
-    case (MutationType, "pwfs1CircularBuffer", List(Binding("enable", BooleanValue(v))))          =>
-      Elab.env("enable" -> v)
-    case (MutationType, "pwfs1QlMode", List(Binding("mode", EnumValue(v))))                       =>
-      for {
-        m <- Elab.liftR(
-               parseEnumerated[QlMode](v).toResult(
-                 s"Could not parse pwfs1QlMode parameter \"mode\" \"${v}\""
-               )
-             )
-        _ <- Elab.env("mode" -> m)
-      } yield ()
-    case (MutationType, "pwfs2CircularBuffer", List(Binding("enable", BooleanValue(v))))          =>
-      Elab.env("enable" -> v)
-    case (MutationType, "pwfs2QlMode", List(Binding("mode", EnumValue(v))))                       =>
-      for {
-        m <- Elab.liftR(
-               parseEnumerated[QlMode](v).toResult(
-                 s"Could not parse pwfs2QlMode parameter \"mode\" \"${v}\""
-               )
-             )
-        _ <- Elab.env("mode" -> m)
-      } yield ()
-    case (MutationType, "oiwfsCircularBuffer", List(Binding("enable", BooleanValue(v))))          =>
-      Elab.env("enable" -> v)
-    case (MutationType, "oiwfsQlMode", List(Binding("mode", EnumValue(v))))                       =>
-      for {
-        m <- Elab.liftR(
-               parseEnumerated[QlMode](v).toResult(
-                 s"Could not parse oiwfsQlMode parameter \"mode\" \"${v}\""
-               )
-             )
-        _ <- Elab.env("mode" -> m)
-      } yield ()
-    case (MutationType,
-          "refreshEphemerisFiles",
-          List(Binding("observingNight", AbsentValue | NullValue))
-        ) =>
-      Elab.env("observingNight", none[LocalDate])
-    case (MutationType, "refreshEphemerisFiles", List(Binding("observingNight", StringValue(l)))) =>
-      Elab
-        .liftR(
-          parseDate(l)
-            .map(_.some)
-            .toResult(s"Could not parse refreshEphemerisFiles parameter \"observingNight\" ${l}")
-        )
-        .flatMap(v => Elab.env("observingNight", v))
-    case (MutationType, "ecsEnableDome", List(Binding("mode", EnumValue(v))))                     =>
-      Elab
-        .liftR(
-          parseEnumerated[DomeMode](v)
-            .toResult(s"Could not parse ecsEnableDome parameter \"mode\" ${v}")
-        )
-        .flatMap(m => Elab.env("mode", m))
-    case (MutationType, "ecsEnableShutters", List(Binding("mode", ObjectValue(l))))               =>
-      Elab
-        .liftR(
-          parseShuttersMode(l)
-            .toResult(s"Could not parse ecsEnableShutters parameter \"mode\" ${l}")
-        )
-        .flatMap(m => Elab.env("mode", m))
-    case (MutationType, "ecsMoveEastVentGate", List(IntPercentBinding("position", v)))            =>
-      Elab
-        .liftR(v)
-        .flatMap(d => Elab.env("position", d))
-    case (MutationType, "ecsMoveWestVentGate", List(IntPercentBinding("position", v)))            =>
-      Elab
-        .liftR(v)
-        .flatMap(d => Elab.env("position", d))
-    case (QueryType, "instrumentPort", List(Binding("instrument", EnumValue(ins))))               =>
-      Elab
-        .liftR(
-          parseEnumerated[Instrument](ins)
-            .toResult(s"Could not parse instrumentPort parameter \"instrument\" \"${ins}\"")
-        )
-        .flatMap(x => Elab.env("instrument" -> x))
-  }
+  override val selectElaborator: SelectElaborator = SelectElaborator(
+    (queryFields ++ mutationFields).map(_.elaborator).reduce(_ orElse _)
+  )
 
   override val typeMappings: TypeMappings = TypeMappings(
     List(
-      ObjectMapping(
-        tpe = QueryType,
-        fieldMappings = List(
-          RootEffect.computeEncodable("telescopeState")((_, _) => telescopeState),
-          RootEffect.computeEncodable("guideState")((_, _) => guideState),
-          RootEffect.computeEncodable("guidersQualityValues")((_, _) => guidersQualityValues),
-          RootEffect.computeEncodable("navigateState")((_, _) => navigateState),
-          RootEffect.computeEncodable("instrumentPort")((_, env) => instrumentPort(env)),
-          RootEffect.computeEncodable("serverVersion")((_, _) => serverVersion),
-          RootEffect.computeEncodable("targetAdjustmentOffsets")((_, _) => targetAdjustmentOffsets),
-          RootEffect.computeEncodable("originAdjustmentOffset")((_, _) => originAdjustmentOffset),
-          RootEffect.computeEncodable("pointingAdjustmentOffset")((_, _) =>
-            pointingAdjustmentOffset
-          ),
-          RootEffect.computeEncodable("serverConfiguration")((_, _) => serverConfig),
-          RootEffect.computeEncodable("acMechsState")((_, _) => acMechsState),
-          RootEffect.computeEncodable("pwfs1MechsState")((_, _) => pwfs1MechsState),
-          RootEffect.computeEncodable("pwfs2MechsState")((_, _) => pwfs2MechsState),
-          RootEffect.computeEncodable("bafflesState")((_, _) => bafflesState),
-          RootEffect.computeEncodable("pwfs1ConfigState")((_, _) => pwfs1ConfigState),
-          RootEffect.computeEncodable("pwfs2ConfigState")((_, _) => pwfs2ConfigState),
-          RootEffect.computeEncodable("oiwfsConfigState")((_, _) => oiwfsConfigState)
-        )
-      ),
-      ObjectMapping(
-        tpe = MutationType,
-        fieldMappings = List(
-          RootEffect.computeEncodable("mountPark")((_, _) => server.mcsPark.attemptResultOutcome),
-          RootEffect.computeEncodable("mountFollow")((_, env) => mountFollow(env)),
-          RootEffect.computeEncodable("mountUnwrap")((_, _) =>
-            server.mcsUnwrap.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("rotatorPark")((_, _) => server.rotPark.attemptResultOutcome),
-          RootEffect.computeEncodable("rotatorFollow")((_, env) => rotatorFollow(env)),
-          RootEffect.computeEncodable("rotatorConfig")((_, env) => rotatorConfig(env)),
-          RootEffect.computeEncodable("rotatorUnwrap")((_, _) =>
-            server.rotUnwrap.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("scsFollow")((_, env) => scsFollow(env)),
-          RootEffect.computeEncodable("tcsConfig")((_, env) => tcsConfig(env)),
-          RootEffect.computeEncodable("slew")((_, env) => slew(env)),
-          RootEffect.computeEncodable("swapTarget")((_, env) => swapTarget(env)),
-          RootEffect.computeEncodable("restoreTarget")((_, env) => restoreTarget(env)),
-          RootEffect.computeEncodable("instrumentSpecifics")((_, env) => instrumentSpecifics(env)),
-          RootEffect.computeEncodable("pwfs1Target")((_, env) =>
-            wfsTarget("pwfs1", server.pwfs1Target)(env)
-          ),
-          RootEffect.computeEncodable("pwfs1ProbeTracking")((_, env) =>
-            wfsProbeTracking("pwfs1", server.pwfs1ProbeTracking)(env)
-          ),
-          RootEffect.computeEncodable("pwfs1Park")((_, _) => server.pwfs1Park.attemptResultOutcome),
-          RootEffect.computeEncodable("pwfs1Follow")((_, env) =>
-            wfsFollow("pwfs1", server.pwfs1Follow)(env)
-          ),
-          RootEffect.computeEncodable("pwfs1Unwrap")((_, _) =>
-            server.pwfs1Unwrap.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("pwfs1Observe")((_, env) =>
-            wfsObserve("pwfs1", server.pwfs1Observe)(env)
-          ),
-          RootEffect.computeEncodable("pwfs1StopObserve")((_, _) =>
-            server.pwfs1StopObserve.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("pwfs1Filter")((_, env) =>
-            wfsFilter("pwfs1", server.pwfs1Filter)(env)
-          ),
-          RootEffect.computeEncodable("pwfs1FieldStop")((_, env) =>
-            wfsFieldStop("pwfs1", server.pwfs1FieldStop)(env)
-          ),
-          RootEffect.computeEncodable("pwfs2Target")((_, env) =>
-            wfsTarget("pwfs2", server.pwfs2Target)(env)
-          ),
-          RootEffect.computeEncodable("pwfs2ProbeTracking")((_, env) =>
-            wfsProbeTracking("pwfs2", server.pwfs2ProbeTracking)(env)
-          ),
-          RootEffect.computeEncodable("pwfs2Park")((_, _) => server.pwfs2Park.attemptResultOutcome),
-          RootEffect.computeEncodable("pwfs2Follow")((_, env) =>
-            wfsFollow("pwfs2", server.pwfs2Follow)(env)
-          ),
-          RootEffect.computeEncodable("pwfs2Unwrap")((_, _) =>
-            server.pwfs2Unwrap.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("pwfs2Observe")((_, env) =>
-            wfsObserve("pwfs2", server.pwfs2Observe)(env)
-          ),
-          RootEffect.computeEncodable("pwfs2StopObserve")((_, _) =>
-            server.pwfs2StopObserve.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("pwfs2Filter")((_, env) =>
-            wfsFilter("pwfs2", server.pwfs2Filter)(env)
-          ),
-          RootEffect.computeEncodable("pwfs2FieldStop")((_, env) =>
-            wfsFieldStop("pwfs2", server.pwfs2FieldStop)(env)
-          ),
-          RootEffect.computeEncodable("oiwfsTarget")((_, env) =>
-            wfsTarget("oiwfs", server.oiwfsTarget)(env)
-          ),
-          RootEffect.computeEncodable("oiwfsProbeTracking")((_, env) =>
-            wfsProbeTracking("oiwfs", server.oiwfsProbeTracking)(env)
-          ),
-          RootEffect.computeEncodable("oiwfsPark")((_, _) => server.oiwfsPark.attemptResultOutcome),
-          RootEffect.computeEncodable("oiwfsFollow")((_, env) =>
-            wfsFollow("oiwfs", server.oiwfsFollow)(env)
-          ),
-          RootEffect.computeEncodable("oiwfsObserve")((_, env) =>
-            wfsObserve("oiwfs", server.oiwfsObserve)(env)
-          ),
-          RootEffect.computeEncodable("oiwfsStopObserve")((_, _) =>
-            server.oiwfsStopObserve.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("acObserve")((_, env) => acObserve(env)),
-          RootEffect.computeEncodable("acStopObserve")((_, _) =>
-            server.acStopObserve.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("guideEnable")((_, env) => guideEnable(env)),
-          RootEffect.computeEncodable("guideDisable")((_, _) =>
-            server.disableGuide.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("m1Park")((_, _) => server.m1Park.attemptResultOutcome),
-          RootEffect.computeEncodable("m1Unpark")((_, _) => server.m1Unpark.attemptResultOutcome),
-          RootEffect.computeEncodable("m1OpenLoopOff")((_, _) =>
-            server.m1OpenLoopOff.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("m1OpenLoopOn")((_, _) =>
-            server.m1OpenLoopOn.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("m1ZeroFigure")((_, _) =>
-            server.m1ZeroFigure.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("m1LoadAoFigure")((_, _) =>
-            server.m1LoadAoFigure.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("m1LoadNonAoFigure")((_, _) =>
-            server.m1LoadNonAoFigure.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("lightpathConfig")((_, env) => lightpathConfig(env)),
-          RootEffect.computeEncodable("acquisitionAdjustment") { (_, env) =>
-            acquisitionAdjustment(env)
-          },
-          RootEffect.computeEncodable("wfsSky") { (_, env) =>
-            wfsSky(env)
-          },
-          RootEffect.computeEncodable("adjustTarget") { (_, env) =>
-            adjustTarget(env)
-          },
-          RootEffect.computeEncodable("adjustPointing") { (_, env) =>
-            adjustPointing(env)
-          },
-          RootEffect.computeEncodable("adjustOrigin") { (_, env) =>
-            adjustOrigin(env)
-          },
-          RootEffect.computeEncodable("offset") { (_, env) =>
-            offset(env)
-          },
-          RootEffect.computeEncodable("centralWavelength") { (_, env) =>
-            centralWavelength(env)
-          },
-          RootEffect.computeEncodable("configureStep") { (_, env) =>
-            configureStep(env)
-          },
-          RootEffect.computeEncodable("resetTargetAdjustment")((_, env) =>
-            resetTargetAdjustment(env)
-          ),
-          RootEffect.computeEncodable("absorbTargetAdjustment")((_, env) =>
-            absorbTargetAdjustment(env)
-          ),
-          RootEffect.computeEncodable("resetLocalPointingAdjustment")((_, _) =>
-            server.pointingOffsetClearLocal.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("resetGuidePointingAdjustment")((_, _) =>
-            server.pointingOffsetClearGuide.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("absorbGuidePointingAdjustment")((_, _) =>
-            server.pointingOffsetAbsorbGuide.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("resetOriginAdjustment")((_, env) =>
-            resetOriginAdjustment(env)
-          ),
-          RootEffect.computeEncodable("absorbOriginAdjustment")((_, _) =>
-            server.originOffsetAbsorb.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("acLens")((_, env) => acLens(env)),
-          RootEffect.computeEncodable("acFilter")((_, env) => acFilter(env)),
-          RootEffect.computeEncodable("acNdFilter")((_, env) => acNdFilter(env)),
-          RootEffect.computeEncodable("acWindowSize")((_, env) => acWindowSize(env)),
-          RootEffect.computeEncodable("pwfs1CircularBuffer")((_, env) => pwfs1CircularBuffer(env)),
-          RootEffect.computeEncodable("pwfs2CircularBuffer")((_, env) => pwfs2CircularBuffer(env)),
-          RootEffect.computeEncodable("oiwfsCircularBuffer")((_, env) => oiwfsCircularBuffer(env)),
-          RootEffect.computeEncodable("pwfs1QlMode")((_, env) => pwfs1QlMode(env)),
-          RootEffect.computeEncodable("pwfs2QlMode")((_, env) => pwfs2QlMode(env)),
-          RootEffect.computeEncodable("oiwfsQlMode")((_, env) => oiwfsQlMode(env)),
-          RootEffect.computeEncodable("refreshEphemerisFiles")((_, env) =>
-            refreshEphemerisFiles(env)
-          ),
-          // AG Commands
-          RootEffect.computeEncodable("agScienceFoldPark")((_, _) =>
-            server.agScienceFoldPark.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("agPickoffMirrorPark")((_, _) =>
-            server.agPickoffMirrorPark.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("agAoFoldPark")((_, _) =>
-            server.agAoFoldPark.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("agAllPark")((_, _) => server.agAllPark.attemptResultOutcome),
-          // ECS commands """
-          RootEffect.computeEncodable("ecsEnableDome")((_, env) => domeEnable(env)),
-          RootEffect.computeEncodable("ecsDisableDome")((_, _) =>
-            server.ecsDisableDome.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("ecsDomePark")((_, _) =>
-            server.ecsDomePark.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("ecsEnableShutters")((_, env) => shuttersEnable(env)),
-          RootEffect.computeEncodable("ecsDisableShutters")((_, _) =>
-            server.ecsDisableShutters.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("ecsShuttersPark")((_, _) =>
-            server.ecsShuttersPark.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("ecsMoveEastVentGate")((_, env) => eastVentGateEnable(env)),
-          RootEffect.computeEncodable("ecsCloseEastVentGate")((_, _) =>
-            server.ecsCloseEastVentGate.attemptResultOutcome
-          ),
-          RootEffect.computeEncodable("ecsMoveWestVentGate")((_, env) => westVentGateEnable(env)),
-          RootEffect.computeEncodable("ecsCloseWestVentGate")((_, _) =>
-            server.ecsCloseWestVentGate.attemptResultOutcome
-          )
-        )
-      ),
+      ObjectMapping(tpe = QueryType, fieldMappings = queryFields.map(_.fieldMapping)),
+      ObjectMapping(tpe = MutationType, fieldMappings = mutationFields.map(_.fieldMapping)),
       ObjectMapping(
         tpe = SubscriptionType,
         List(
@@ -1352,7 +418,11 @@ class NavigateMappings[F[_]: Sync](
   )
 }
 
-object NavigateMappings extends GrackleParsers {
+object NavigateMappings {
+
+  /** Environment key for the parsed arguments of a root field. */
+  private val ArgsKey = "args"
+
   def loadSchema[F[_]: {Sync, Logger}]: F[Schema] =
     SchemaStitcher.load("navigate.graphql")
 
@@ -1370,402 +440,6 @@ object NavigateMappings extends GrackleParsers {
         )(_)
       )
 
-  def parseSlewOptionsInput(l: List[(String, Value)]): Option[SlewOptions] = for {
-    zct  <-
-      l.collectFirst { case ("zeroChopThrow", BooleanValue(v)) => v }.map(ZeroChopThrow(_))
-    zso  <- l.collectFirst { case ("zeroSourceOffset", BooleanValue(v)) => v }
-              .map(ZeroSourceOffset(_))
-    zsdt <- l.collectFirst { case ("zeroSourceDiffTrack", BooleanValue(v)) => v }
-              .map(ZeroSourceDiffTrack(_))
-    zmo  <- l.collectFirst { case ("zeroMountOffset", BooleanValue(v)) => v }
-              .map(ZeroMountOffset(_))
-    zmdt <- l.collectFirst { case ("zeroMountDiffTrack", BooleanValue(v)) => v }
-              .map(ZeroMountDiffTrack(_))
-    stf  <- l.collectFirst { case ("shortcircuitTargetFilter", BooleanValue(v)) => v }
-              .map(ShortcircuitTargetFilter(_))
-    smf  <- l.collectFirst { case ("shortcircuitMountFilter", BooleanValue(v)) => v }
-              .map(ShortcircuitMountFilter(_))
-    rp   <-
-      l.collectFirst { case ("resetPointing", BooleanValue(v)) => v }.map(ResetPointing(_))
-    sg   <- l.collectFirst { case ("stopGuide", BooleanValue(v)) => v }.map(StopGuide(_))
-    zgo  <- l.collectFirst { case ("zeroGuideOffset", BooleanValue(v)) => v }
-              .map(ZeroGuideOffset(_))
-    zio  <- l.collectFirst { case ("zeroInstrumentOffset", BooleanValue(v)) => v }
-              .map(ZeroInstrumentOffset(_))
-    ap1  <-
-      l.collectFirst { case ("autoparkPwfs1", BooleanValue(v)) => v }.map(AutoparkPwfs1(_))
-    ap2  <-
-      l.collectFirst { case ("autoparkPwfs2", BooleanValue(v)) => v }.map(AutoparkPwfs2(_))
-    ao   <-
-      l.collectFirst { case ("autoparkOiwfs", BooleanValue(v)) => v }.map(AutoparkOiwfs(_))
-    ag   <- l.collectFirst { case ("autoparkGems", BooleanValue(v)) => v }.map(AutoparkGems(_))
-    aa   <-
-      l.collectFirst { case ("autoparkAowfs", BooleanValue(v)) => v }.map(AutoparkAowfs(_))
-  } yield SlewOptions(zct, zso, zsdt, zmo, zmdt, stf, smf, rp, sg, zgo, zio, ap1, ap2, ao, ag, aa)
-
-  def parseSiderealTarget(
-    name:         String,
-    centralWavel: Option[Wavelength],
-    l:            List[(String, Value)]
-  ): Option[Target.SiderealTarget] = for {
-    ra    <- l.collectFirst { case ("ra", ObjectValue(v)) => parseRightAscension(v) }.flatten
-    dec   <- l.collectFirst { case ("dec", ObjectValue(v)) => parseDeclination(v) }.flatten
-    epoch <- l.collectFirst { case ("epoch", StringValue(v)) => parseEpoch(v) }.flatten
-  } yield Target.SiderealTarget(
-    name,
-    centralWavel,
-    Coordinates(ra, dec),
-    epoch,
-    l.collectFirst { case ("properMotion", ObjectValue(v)) => parseProperMotion(v) }.flatten,
-    l.collectFirst { case ("radialVelocity", ObjectValue(v)) => parseRadialVelocity(v) }.flatten,
-    l.collectFirst { case ("parallax", ObjectValue(v)) => parseParallax(v) }.flatten
-  )
-
-  def parseNonSiderealTarget(
-    name: String,
-    w:    Option[Wavelength],
-    l:    List[(String, Value)]
-  ): Option[Target.EphemerisTarget] = (for {
-    keyType <- l.collectFirst { case ("keyType", EnumValue(v)) =>
-                 parseEnumerated[EphemerisKeyType](v)
-               }.flatten
-    des     <- l.collectFirst { case ("des", StringValue(v)) => v }
-    key     <- Ephemeris.Key.fromTypeAndDes.getOption(keyType, des)
-  } yield key)
-    .orElse(l.collectFirst { case ("key", StringValue(v)) =>
-      Ephemeris.Key.fromString.getOption(v)
-    }.flatten)
-    .map(k => Target.EphemerisTarget(name, w, k))
-
-  def parseAzElTarget(
-    name: String,
-    w:    Option[Wavelength],
-    l:    List[(String, Value)]
-  ): Option[Target.AzElTarget] = for {
-    az <- l.collectFirst { case ("azimuth", ObjectValue(v)) => parseAngle(v) }.flatten
-    el <- l.collectFirst { case ("elevation", ObjectValue(v)) => parseAngle(v) }.flatten
-  } yield Target.AzElTarget(
-    name,
-    w,
-    Target.AzElCoordinates(
-      Target.Azimuth(az),
-      Target.Elevation(el)
-    )
-  )
-
-  def parseEphemerisTarget(
-    @annotation.unused name: String,
-    @annotation.unused w:    Option[Wavelength],
-    @annotation.unused l:    List[(String, Value)]
-  ): Option[Target.EphemerisTarget] = none
-
-  def parseTargetInput(l: List[(String, Value)]): Option[Target] = for {
-    nm <- l.collectFirst { case ("name", StringValue(v)) => v }
-    wv <- l.collectFirst { case ("wavelength", ObjectValue(v)) => parseWavelength(v) } match {
-            case Some(None) => None
-            case None       => Some(None)
-            case x          => x
-          }
-    bt <- l.collectFirst { case ("sidereal", ObjectValue(v)) => v }
-            .flatMap[Target](parseSiderealTarget(nm, wv, _))
-            .orElse(
-              l.collectFirst { case ("nonsidereal", ObjectValue(v)) => v }
-                .flatMap(parseNonSiderealTarget(nm, wv, _))
-            )
-            .orElse(
-              l.collectFirst { case ("azel", ObjectValue(v)) => v }
-                .flatMap(parseAzElTarget(nm, wv, _))
-            )
-  } yield bt
-
-  def parseGuideTargetInput(l: List[(String, Value)]): Option[Target] = for {
-    nm <- l.collectFirst { case ("name", StringValue(v)) => v }
-    bt <- l.collectFirst { case ("sidereal", ObjectValue(v)) => v }
-            .flatMap[Target](parseSiderealTarget(nm, None, _))
-            .orElse(
-              l.collectFirst { case ("nonsidereal", ObjectValue(v)) => v }
-                .flatMap(parseNonSiderealTarget(nm, None, _))
-            )
-  } yield bt
-
-  def parseTrackingInput(l: List[(String, Value)]): Option[TrackingConfig] = for {
-    aa <- l.collectFirst { case ("nodAchopA", BooleanValue(v)) => v }
-    ab <- l.collectFirst { case ("nodAchopB", BooleanValue(v)) => v }
-    ba <- l.collectFirst { case ("nodBchopA", BooleanValue(v)) => v }
-    bb <- l.collectFirst { case ("nodBchopB", BooleanValue(v)) => v }
-  } yield TrackingConfig(aa, ab, ba, bb)
-
-  def parseOrigin(l: List[(String, Value)]): Option[Origin] = for {
-    x <- l.collectFirst { case ("x", ObjectValue(v)) => parseAngle(v) }.flatten
-    y <- l.collectFirst { case ("y", ObjectValue(v)) => parseAngle(v) }.flatten
-  } yield Origin(x, y)
-
-  def parseInstrumentSpecificsInput(l: List[(String, Value)]): Option[InstrumentSpecifics] = for {
-    iaa       <- l.collectFirst { case ("iaa", ObjectValue(v)) => parseAngle(v) }.flatten
-    focOffset <- l.collectFirst { case ("focusOffset", ObjectValue(v)) => parseDistance(v) }.flatten
-    agName    <- l.collectFirst { case ("agName", StringValue(v)) => v }
-    origin    <- l.collectFirst { case ("origin", ObjectValue(v)) => parseOrigin(v) }.flatten
-  } yield InstrumentSpecifics(iaa, focOffset, agName, origin)
-
-  def parseGuiderConfig(l: List[(String, Value)]): Option[GuiderConfig] = for {
-    target   <- l.collectFirst { case ("target", ObjectValue(v)) => parseGuideTargetInput(v) }.flatten
-    tracking <- l.collectFirst { case ("tracking", ObjectValue(v)) =>
-                  parseTrackingInput(v)
-                }.flatten
-  } yield GuiderConfig(target, tracking)
-
-  def parseRotatorConfig(l: List[(String, Value)]): Option[RotatorTrackConfig] = for {
-    ipa  <- l.collectFirst { case ("ipa", ObjectValue(v)) => parseAngle(v) }.flatten
-    mode <- l.collectFirst { case ("mode", EnumValue(v)) =>
-              parseEnumerated[RotatorTrackingMode](v)
-            }.flatten
-  } yield RotatorTrackConfig(ipa, mode)
-
-  def parseBafflesAuto(l: List[(String, Value)]): Option[BafflesConfig] = for {
-    vis <- l.collectFirst { case ("visibleLimit", ObjectValue(v)) => parseWavelength(v) }.flatten
-    ni  <- l.collectFirst { case ("nearirLimit", ObjectValue(v)) => parseWavelength(v) }.flatten
-  } yield BafflesConfig.AutoConfig(vis, ni)
-
-  def parseBafflesManual(l: List[(String, Value)]): Option[BafflesConfig] = for {
-    ctr <- l.collectFirst { case ("centralBaffle", EnumValue(v)) =>
-             parseEnumerated[CentralBafflePosition](v)
-           }.flatten
-    dep <- l.collectFirst { case ("deployableBaffle", EnumValue(v)) =>
-             parseEnumerated[DeployableBafflePosition](v)
-           }.flatten
-  } yield BafflesConfig.ManualConfig(ctr, dep)
-
-  def parseBaffles(l: List[(String, Value)]): Option[BafflesConfig] = l
-    .collectFirst { case ("autoConfig", ObjectValue(v)) => parseBafflesAuto(v) }
-    .flatten
-    .orElse(l.collectFirst { case ("manualConfig", ObjectValue(v)) =>
-      parseBafflesManual(v)
-    }.flatten)
-
-  def parseTcsConfigInput(l: List[(String, Value)]): Option[TcsConfig] = for {
-    t   <- l.collectFirst { case ("sourceATarget", ObjectValue(v)) => parseTargetInput(v) }.flatten
-    inp <- l.collectFirst { case ("instParams", ObjectValue(v)) =>
-             parseInstrumentSpecificsInput(v)
-           }.flatten
-    p1  <-
-      l.collectFirst { case ("pwfs1", ObjectValue(v)) => parseGuiderConfig(v) } match {
-        case Some(None) => None
-        case None       => Some(None)
-        case x          => x
-      }
-    p2  <-
-      l.collectFirst { case ("pwfs2", ObjectValue(v)) => parseGuiderConfig(v) } match {
-        case Some(None) => None
-        case None       => Some(None)
-        case x          => x
-      }
-    oi  <-
-      l.collectFirst { case ("oiwfs", ObjectValue(v)) => parseGuiderConfig(v) } match {
-        case Some(None) => None
-        case None       => Some(None)
-        case x          => x
-      }
-    rc  <- l.collectFirst { case ("rotator", ObjectValue(v)) => parseRotatorConfig(v) }.flatten
-    ins <- l.collectFirst { case ("instrument", EnumValue(v)) =>
-             parseEnumerated[Instrument](v)
-           }.flatten
-    lsv <-
-      l.collectFirst { case ("lightSinkVariant", EnumValue(v)) =>
-        parseEnumerated[LightSinkVariant](v)
-      } match {
-        case Some(None) => None
-        case None       => Some(None)
-        case x          => x
-      }
-    bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => v } match {
-             case Some(x) =>
-               if (x.forall(_._2 == Value.AbsentValue)) Some(None) else parseBaffles(x).map(_.some)
-             case None    => Some(None)
-           }
-    ls  <- LightSink.fromInstrumentAndVariant(ins, lsv)
-  } yield TcsConfig(t, inp, p1, p2, oi, rc, ls, bfs)
-
-  def parseSwapConfigInput(l: List[(String, Value)]): Option[SwapConfig] = for {
-    t   <- l.collectFirst { case ("guideTarget", ObjectValue(v)) => parseTargetInput(v) }.flatten
-    inp <- l.collectFirst { case ("acParams", ObjectValue(v)) =>
-             parseInstrumentSpecificsInput(v)
-           }.flatten
-    rc  <- l.collectFirst { case ("rotator", ObjectValue(v)) => parseRotatorConfig(v) }.flatten
-  } yield SwapConfig(t, inp, rc)
-
-  def parseProbeGuide(l: List[(String, Value)]): Option[ProbeGuide] = for {
-    f <- l.collectFirst { case ("from", EnumValue(v)) => parseEnumerated[GuideProbe](v) }.flatten
-    t <- l.collectFirst { case ("to", EnumValue(v)) => parseEnumerated[GuideProbe](v) }.flatten
-  } yield ProbeGuide(f, t)
-
-  def parseGuideConfig(l: List[(String, Value)]): Option[TelescopeGuideConfig] = {
-    val m2: List[TipTiltSource] = l.collectFirst { case ("m2Inputs", ListValue(v)) =>
-      v.collect { case EnumValue(v) => parseEnumerated[TipTiltSource](v) }.flattenOption
-    }.orEmpty
-
-    val m1: Option[M1Source] = l.collectFirst { case ("m1Input", EnumValue(v)) =>
-      parseEnumerated[M1Source](v)
-    }.flatten
-
-    val coma = l.collectFirst { case ("m2Coma", BooleanValue(v)) => v }.exists(identity)
-
-    val dayTimeMode = l.collectFirst { case ("daytimeMode", BooleanValue(v)) => v }.exists(identity)
-
-    val probeGuide =
-      l.collectFirst { case ("probeGuide", ObjectValue(v)) => parseProbeGuide(v) }.flatten
-
-    l.collectFirst { case ("mountOffload", BooleanValue(v)) => v }
-      .map { mount =>
-        TelescopeGuideConfig(
-          MountGuideOption(mount),
-          m1.map(M1GuideConfig.M1GuideOn(_)).getOrElse(M1GuideConfig.M1GuideOff),
-          m2.isEmpty.fold(
-            M2GuideConfig.M2GuideOff,
-            M2GuideConfig.M2GuideOn(ComaOption(coma && m1.isDefined), m2.toSet)
-          ),
-          Some(dayTimeMode),
-          probeGuide
-        )
-      }
-  }
-
-  def parseOffset(l: List[(String, Value)]): Option[Offset] =
-    for {
-      p <- l.collectFirst { case ("p", ObjectValue(v)) => parseAngle(v) }.flatten
-      q <- l.collectFirst { case ("q", ObjectValue(v)) => parseAngle(v) }.flatten
-    } yield Offset(p.p, q.q)
-
-  def parseAcquisitionAdjustment(l: List[(String, Value)]): Option[AcquisitionAdjustment] =
-    for {
-      o  <-
-        l.collectFirst { case ("offset", ObjectValue(v)) => parseOffset(v) }.flatten
-      ipa = l.collectFirst { case ("ipa", ObjectValue(v)) => parseAngle(v) }.flatten
-      iaa = l.collectFirst { case ("iaa", ObjectValue(v)) => parseAngle(v) }.flatten
-      cmd = l.collectFirst { case ("command", Value.EnumValue(v)) =>
-              parseEnumerated[AcquisitionAdjustmentCommand](v)
-            }.flatten
-    } yield cmd.fold(AcquisitionAdjustment(o, ipa, iaa))(AcquisitionAdjustment(o, ipa, iaa, _))
-
-  def parseLightPathInput(l: List[(String, Value)]): Option[LightPath] =
-    for {
-      from <- l.collectFirst { case ("from", EnumValue(v)) =>
-                parseEnumerated[LightSource](v)
-              }.flatten
-      ins  <-
-        l.collectFirst { case ("instrument", EnumValue(v)) =>
-          parseEnumerated[Instrument](v)
-        }.flatten
-      lsv  <-
-        l.collectFirst { case ("lightSinkVariant", EnumValue(v)) =>
-          parseEnumerated[LightSinkVariant](v)
-        } match {
-          case Some(None) => None
-          case None       => Some(None)
-          case x          => x
-        }
-      to   <- LightSink.fromInstrumentAndVariant(ins, lsv)
-    } yield LightPath(from, to)
-
-  def parseConfigureStepInput(
-    l: List[(String, Value)]
-  ): Option[(Option[Offset], Option[Wavelength], Option[LightPath], Option[Distance], Boolean)] =
-    for {
-      offset     <- l.collectFirst { case ("offset", ObjectValue(v)) => parseOffset(v) } match {
-                      case Some(None) => None
-                      case None       => Some(None)
-                      case x          => x
-                    }
-      wavelength <- l.collectFirst { case ("wavelength", ObjectValue(v)) =>
-                      parseWavelength(v)
-                    } match {
-                      case Some(None) => None
-                      case None       => Some(None)
-                      case x          => x
-                    }
-      lightPath  <- l.collectFirst { case ("lightPath", ObjectValue(v)) =>
-                      parseLightPathInput(v)
-                    } match {
-                      case Some(None) => None
-                      case None       => Some(None)
-                      case x          => x
-                    }
-      defocus    <- l.collectFirst { case ("defocus", ObjectValue(v)) => parseDistance(v) } match {
-                      case Some(None) => None
-                      case None       => Some(None)
-                      case x          => x
-                    }
-      guiding    <- l.collectFirst { case ("guiding", BooleanValue(v)) => v }
-    } yield (offset, wavelength, lightPath, defocus, guiding)
-
-  def parseHandsetAdjustment(l: List[(String, Value)]): Option[HandsetAdjustment] =
-    l.find(_._2 != Value.AbsentValue) match {
-      case Some(("horizontalAdjustment", ObjectValue(n))) =>
-        for {
-          daz <- n.collectFirst { case ("azimuth", ObjectValue(m)) => parseAngle(m) }.flatten
-          del <- n.collectFirst { case ("elevation", ObjectValue(m)) => parseAngle(m) }.flatten
-        } yield HandsetAdjustment.HorizontalAdjustment(daz, del)
-      case Some(("focalPlaneAdjustment", ObjectValue(n))) =>
-        for {
-          dx <- n.collectFirst { case ("deltaX", ObjectValue(m)) => parseAngle(m) }.flatten
-          dy <- n.collectFirst { case ("deltaY", ObjectValue(m)) => parseAngle(m) }.flatten
-        } yield HandsetAdjustment.FocalPlaneAdjustment(FocalPlaneOffset(DeltaX(dx), DeltaY(dy)))
-      case Some(("instrumentAdjustment", ObjectValue(n))) =>
-        parseOffset(n).map(HandsetAdjustment.InstrumentAdjustment.apply)
-      case Some(("equatorialAdjustment", ObjectValue(n))) =>
-        for {
-          dra  <- n.collectFirst { case ("deltaRA", ObjectValue(m)) => parseAngle(m) }.flatten
-          ddec <- n.collectFirst { case ("deltaDec", ObjectValue(m)) => parseAngle(m) }.flatten
-        } yield HandsetAdjustment.EquatorialAdjustment(dra, ddec)
-      case Some(("probeFrameAdjustment", ObjectValue(n))) =>
-        for {
-          probe <- n.collectFirst { case ("probeFrame", EnumValue(name)) =>
-                     parseEnumerated[GuideProbe](name)
-                   }.flatten
-          du    <- n.collectFirst { case ("deltaU", ObjectValue(m)) => parseAngle(m) }.flatten
-          dv    <- n.collectFirst { case ("deltaV", ObjectValue(m)) => parseAngle(m) }.flatten
-          aa    <- n.collectFirst { case ("alignAngle", ObjectValue(m)) => m } match {
-                     case None    => Some(None)
-                     case Some(x) => parseAngle(x).map(_.some)
-                   }
-        } yield HandsetAdjustment.ProbeFrameAdjustment(probe, du, dv, aa)
-      case _                                              => none
-    }
-
-  def parseAcWindowSize(l: List[(String, Value)]): Option[AcWindow] =
-    l.collectFirst { case ("type", EnumValue(v)) => v }
-      .flatMap {
-        case "FULL"           => AcWindow.Full.some
-        case "WINDOW_200X200" =>
-          l.collectFirst { case ("center", ObjectValue(l)) => parseAcWindowCenter(l) }.flatten.map {
-            (x, y) => AcWindow.Square200(x, y)
-          }
-        case "WINDOW_100X100" =>
-          l.collectFirst { case ("center", ObjectValue(l)) => parseAcWindowCenter(l) }.flatten.map {
-            (x, y) => AcWindow.Square100(x, y)
-          }
-        case _                => none
-      }
-
-  def parseAcWindowCenter(l: List[(String, Value)]): Option[(Int, Int)] = for {
-    x <- l.collectFirst { case ("x", IntValue(v)) => v }
-    y <- l.collectFirst { case ("y", IntValue(v)) => v }
-  } yield (x, y)
-
-  def parseDate(s: String): Option[LocalDate] = Validated.catchNonFatal(LocalDate.parse(s)).toOption
-
-  def parseShuttersMode(l: List[(String, Value)]): Option[ShutterMode] =
-    l
-      .collectFirst { case ("mode", EnumValue(v)) => v }
-      .flatMap {
-        case "FULLY_OPEN" => ShutterMode.FullyOpen.some
-        case "TRACKING"   =>
-          for {
-            v <- l.collectFirst { case ("aperture", ObjectValue(v)) => v }
-            d <- parseDistance(v)
-          } yield ShutterMode.Tracking(d)
-        case _            => none
-      }
-
   extension [F[_]: MonadThrow, A](fa: F[A])
     def attemptResult: F[Result[A]] =
       fa.attempt.map(e => Result.fromEither(e.leftMap(_.getMessage)))
@@ -1773,8 +447,8 @@ object NavigateMappings extends GrackleParsers {
   extension [F[_]: MonadThrow](fa: F[CommandResult])
     def attemptResultOutcome: F[Result[OperationOutcome]] =
       fa.attempt.map {
-        case Right(CommandResult.CommandSuccess)      => Result.success(OperationOutcome.success)
-        case Right(CommandResult.CommandPaused)       => Result.success(OperationOutcome.success)
+        case Right(CommandResult.CommandSuccess)      => OperationOutcome.success.success
+        case Right(CommandResult.CommandPaused)       => OperationOutcome.success.success
         case Right(CommandResult.CommandFailure(msg)) => Result.failure(msg)
         case Left(e)                                  => Result.internalError(e)
       }
