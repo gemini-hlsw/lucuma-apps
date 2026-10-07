@@ -887,6 +887,17 @@ extension (a: ObservingMode.GnirsCentralWavelengthConfig)
     coadds = a.coadds.assign
   )
 
+extension (cws: List[ObservingMode.GnirsCentralWavelengthConfig])
+  def toTelluricEtmInput(
+    index: Int,
+    etm:   Input[ExposureTimeModeInput]
+  ): List[GnirsCentralWavelengthConfigInput] =
+    cws.zipWithIndex.map: (cw, i) =>
+      GnirsCentralWavelengthConfigInput(
+        centralWavelength = cw.centralWavelength.value.toInput,
+        exposureTimeMode = if i === index then etm else Input.ignore
+      )
+
 extension (d: ObservingMode.GhostIfu.GhostDetector)
   def toInput: GhostDetectorConfigInput = GhostDetectorConfigInput(
     exposureTimeMode = d.timeAndCount.toInput.assign,

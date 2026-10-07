@@ -113,12 +113,18 @@ case class GnirsIfuPanel(
       )
       .view(_.map(_.value.value).orUnassign)
 
+  def centralWavelengthsAligner: Aligner[
+    NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig],
+    Input[List[GnirsCentralWavelengthConfigInput]]
+  ] =
+    observingMode.zoom(ObservingMode.GnirsIfu.centralWavelengths,
+                       GnirsIfuInput.centralWavelengths.modify
+    )
+
   def centralWavelengthsView: View[
     NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
   ] =
-    observingMode
-      .zoom(ObservingMode.GnirsIfu.centralWavelengths, GnirsIfuInput.centralWavelengths.modify)
-      .view(_.toList.map(_.toInput).assign)
+    centralWavelengthsAligner.view(_.toList.map(_.toInput).assign)
 
   def telescopeConfigsEditor(
     prism:      GnirsPrism,

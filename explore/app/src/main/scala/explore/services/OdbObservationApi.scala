@@ -34,8 +34,9 @@ import queries.common.ObsQueriesGQL.ProgramObservationsDelta
 import java.time.Instant
 
 trait OdbObservationApi[F[_]]:
-  def updateObservations(input:  UpdateObservationsInput): F[Unit]
-  def updateObservations(obsIds: List[Observation.Id], input: ObservationPropertiesInput): F[Unit]
+  def updateObservations(input:        UpdateObservationsInput): F[Unit]
+  def updateObservations(obsIds:       List[Observation.Id], input: ObservationPropertiesInput): F[Unit]
+  def updateTelluricObservation(obsId: Observation.Id, input:       UpdateObservationsInput): F[Unit]
   def updateObservationConstraintSet(
     obsIds:      List[Observation.Id],
     constraints: ConstraintSet

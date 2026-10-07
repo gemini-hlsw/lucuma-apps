@@ -175,6 +175,8 @@ object reusability:
   given gnirsImagingFilterReuse: Reusability[ObservingMode.GnirsImaging.ImagingFilter] =
     Reusability.byEq
 
+  given Reusability[ObservingMode] = Reusability.byEq
+
   // Since we extend the hierarchy here, we need to provide this instance manually
   given [D: Eq]: Reusability[SequenceRow[D]] = Reusability:
     case (a: SequenceRow.FutureStep[D], b: SequenceRow.FutureStep[D])                         => a === b

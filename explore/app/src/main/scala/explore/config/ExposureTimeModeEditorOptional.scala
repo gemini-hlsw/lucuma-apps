@@ -8,6 +8,7 @@ import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.Icons
 import explore.components.CustomizedGroupAddon
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
@@ -27,6 +28,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
+import lucuma.react.primereact.Button
 import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -52,6 +54,9 @@ import lucuma.ui.syntax.all.given
  *    `isCustomized`.
  * @param allowRevertCustomization - Whether clicking the customized addon actually reverts. When
  *    false the addon still shows, but only to report that the value is customized.
+ * @param resetToDerived - Shows a reset addon on the exposure mode dropdown that returns a telluric
+ *    to its derived exposure time mode. Like the customized addon, it is hidden by `forGridRow`.
+ * @param coaddsReadonly - Disables only the coadds control.
  */
 case class ExposureTimeModeEditorOptional(
   instrument:               Option[Instrument],
@@ -69,7 +74,9 @@ case class ExposureTimeModeEditorOptional(
   forGridRow:               Boolean = false,
   isCustomized:             Boolean = false,
   revertCustomization:      Callback = Callback.empty,
-  allowRevertCustomization: Boolean = true
+  allowRevertCustomization: Boolean = true,
+  resetToDerived:           Option[Callback] = none,
+  coaddsReadonly:           Boolean = false
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
 
 object ExposureTimeModeEditorOptional:
@@ -144,6 +151,18 @@ object ExposureTimeModeEditorOptional:
             )
           else EmptyVdom
 
+        val resetAddon: VdomNode =
+          props.resetToDerived.fold(EmptyVdom)(reset =>
+            Button(
+              icon = Icons.ArrowUTurnDownLeft,
+              clazz = ExploreStyles.ResetToDerived,
+              text = true,
+              disabled = props.readonly,
+              tooltip = "Reset to the value derived from the science observation",
+              onClick = reset
+            ).mini.compact
+          )
+
         val modeSelector =
           FormEnumDropdownView(
             id = makeId("ExposureMode".refined),
@@ -151,7 +170,8 @@ object ExposureTimeModeEditorOptional:
             label = ReactFragment(
               "Exposure Mode",
               HelpIcon("configuration/exposure-mode.md".refined),
-              customizedAddon
+              customizedAddon,
+              resetAddon
             ),
             labelClass = ExploreStyles.HiddenLabel.when_(props.forGridRow),
             onChangeE = (v, _) =>
@@ -205,6 +225,7 @@ object ExposureTimeModeEditorOptional:
               showCount = props.forceCount.isEmpty,
               makeId,
               labelClass,
-              controlsWrapper
+              controlsWrapper,
+              props.coaddsReadonly
             )
         )

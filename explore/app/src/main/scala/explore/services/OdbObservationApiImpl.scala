@@ -59,6 +59,16 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .processErrors
       .void
 
+  // The ODB skips a telluric silently when the edit touches anything but its science ETM.
+  def updateTelluricObservation(obsId: Observation.Id, input: UpdateObservationsInput): F[Unit] =
+    UpdateObservationMutation[F]
+      .execute(input)
+      .processErrors
+      .flatMap: result =>
+        raiseAndResetCache(
+          new Exception(s"The ODB did not apply the exposure time change to telluric $obsId.")
+        ).unlessA(result.updateObservations.observations.exists(_.id === obsId))
+
   def updateObservations(
     obsIds: List[Observation.Id],
     input:  ObservationPropertiesInput

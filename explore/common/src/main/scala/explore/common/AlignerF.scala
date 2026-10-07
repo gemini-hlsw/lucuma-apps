@@ -70,6 +70,13 @@ trait AlignerF[F[_], B, S]:
     viewMod(b => _ => toInput(b))
 
   /**
+   * Send a delta built from the current model to the remote server, leaving the model and the undo
+   * stack untouched.
+   */
+  def send(toInput: B => S => S): F[Unit] =
+    _onMod(_remoteMod(toInput(get))(_remoteBaseInput))
+
+  /**
    * Drill-down specifying model getter, model modification and delta structure modification
    * functions.
    */

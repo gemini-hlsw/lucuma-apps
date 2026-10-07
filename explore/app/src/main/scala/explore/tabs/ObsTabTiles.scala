@@ -862,6 +862,7 @@ object ObsTabTiles:
               case x        => x
             } >> agsState.set(AgsState.Calculating),
             props.readonly, // execution status is taken care of in the configuration tile
+            !props.programIsReadonly && props.observation.get.isUnobservedTelluric,
             ObsIdSetEditInfo.of(props.observation.get),
             globalPreferences.get.wavelengthUnits,
             globalPreferences,

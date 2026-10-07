@@ -59,7 +59,8 @@ final case class Flamingos2ConfigFields[P <: SlitOffsetPreset](
   showCustomization:            Boolean,
   allowRevertCustomization:     Boolean,
   etmReadonly:                  Boolean,
-  presetsReadonly:              Boolean
+  presetsReadonly:              Boolean,
+  resetEtm:                     Option[Callback] = none
 )(using val enumerated: Enumerated[P], val display: Display[P])
     extends ReactFnProps(Flamingos2ConfigFields.component)
 
@@ -136,7 +137,8 @@ object Flamingos2ConfigFields:
             readonly = props.etmReadonly,
             units = props.units,
             calibrationRole = props.calibrationRole,
-            idPrefix = props.etmIdPrefix
+            idPrefix = props.etmIdPrefix,
+            resetToDerived = props.resetEtm
           ),
           // Per Andy, we'll use the wavelength of the filter as the central wavelength
           LambdaAndIntervalFormValues(
