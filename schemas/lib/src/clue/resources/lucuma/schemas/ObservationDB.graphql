@@ -8015,7 +8015,7 @@ type ObservationTimeEstimate {
   """
   calibrations: CalibrationDigest!
 
-  """Number of calibration sets still needed."""
+  """Number of tellurics still needed."""
   calibrationCount: NonNegInt! @deprecated(reason: "Use `calibrations.count` instead.")
 
   """Science sequence time estimate."""
@@ -8036,7 +8036,7 @@ Existing calibrations are observations of their own, so only the expected time
 is charged to the observation's total.
 """
 type CalibrationDigest {
-  """Calibration sets still needed: existing plus expected."""
+  """Tellurics still needed: existing plus expected. Zero with no telluric."""
   count: NonNegInt!
 
   """
@@ -8049,7 +8049,8 @@ type CalibrationDigest {
   """
   Calibrations predicted but not generated yet, each at the average estimate
   of the group's calibrations, or a placeholder while none has a digest.
-  Zero when the observation uses no telluric or its telluric was declined.
+  Zero when the observation uses no telluric. A declined telluric fills its
+  slot, so none is expected in its place, but later ones still are.
   Included in the observation's total.
   """
   expected: CalibrationEstimate!
@@ -13000,6 +13001,11 @@ type SpectroscopyConfigOption {
   For GNIRS options, the GNIRS configuration.  Null for other instruments.
   """
   gnirs: SpectroscopyConfigOptionGnirs
+
+  """
+  For SCORPIO options, the SCORPIO configuration.  Null for other instruments.
+  """
+  scorpio: SpectroscopyConfigOptionScorpio
 }
 
 type SpectroscopyConfigOptionFlamingos2 {
@@ -13078,6 +13084,24 @@ enum GnirsPrism {
   MIRROR
   SXD
   LXD
+}
+
+"""
+SCORPIO exposes every channel at once, so a spectroscopy option is identified
+by its long slit alone.
+"""
+type SpectroscopyConfigOptionScorpio {
+  fpu: ScorpioFpu!
+}
+
+enum ScorpioFpu {
+  LONG_SLIT_0_36
+  LONG_SLIT_0_54
+  LONG_SLIT_0_72
+  LONG_SLIT_1_08
+  LONG_SLIT_1_44
+  LONG_SLIT_2_16
+  LONG_SLIT_4_32
 }
 
 enum GnirsCamera {
