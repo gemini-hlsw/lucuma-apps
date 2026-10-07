@@ -659,6 +659,7 @@ object ExploreStyles:
   val TimingWindowExclude: Css                  = Css("timing-window-exclude")
 
   val ObservationDetailsForm: Css     = Css("observation-details-form")
+  val ObservationDetailsTitle: Css    = Css("observation-details-title")
   val ObservationDetailsColumn: Css   = Css("observation-details-column")
   val ObservationDetailsSection: Css  = Css("observation-details-section")
   val ObservationDetailsSelect: Css   = Css("observation-details-select")

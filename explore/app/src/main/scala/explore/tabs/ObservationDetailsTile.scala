@@ -23,6 +23,7 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.User
+import lucuma.core.syntax.display.*
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.primereact.Tooltip
@@ -209,7 +210,16 @@ object ObservationDetailsTile
               )
             )
 
-        TileContents:
+        val title: VdomNode =
+          <.div(ExploreStyles.ObservationDetailsTitle)(
+            scienceBandView.get
+              .filter(_ => props.showScienceBand)
+              .map(band => <.span(band.shortName)),
+            <.span(s"Priority: ${priorityView.get.shortName}")
+          )
+
+        TileContents(
+          title,
           <.div(ExploreStyles.ObservationDetailsForm)(
             <.div(ExploreStyles.ObservationDetailsColumn)(
               FormInfo(props.observation.get.referenceWithId, "Observation"),
@@ -224,4 +234,5 @@ object ObservationDetailsTile
                              props.refreshTimeCharges
             )
           )
+        )
     )

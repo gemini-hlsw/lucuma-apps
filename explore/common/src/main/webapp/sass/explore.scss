@@ -1493,7 +1493,7 @@ $search-preview-margin: 5px;
   .explore-sequence-tile-title-summary {
     display: flex;
     gap: 1rem;
-    justify-self: center;
+    justify-content: center;
     width: 100%;
 
     .explore-sequence-tile-title-item {
@@ -4527,6 +4527,12 @@ a.explore-upgrade-link {
 }
 
 // Observation Tab
+.observation-details-title {
+  @include small-tile-title;
+
+  justify-content: center;
+}
+
 .observation-details-form {
   display: flex;
   flex-direction: column;
