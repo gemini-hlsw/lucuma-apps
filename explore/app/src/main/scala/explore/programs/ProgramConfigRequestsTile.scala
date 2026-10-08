@@ -255,11 +255,11 @@ object ProgramConfigRequestsTile:
                 label = "None",
                 onClick = table.toggleAllRowsSelected(false)
               ).small.compact,
-              ConfigurationRequestJustificationViewer(
+              ConfigurationRequestJustificationFeedbackViewer(
                 requests = selectedRequests,
                 trigger = Button(
                   icon = Icons.BookOpen,
-                  tooltip = "View Justification Message",
+                  tooltip = "View Justification and Feedback",
                   disabled = selectedRequests.length === 0
                 ).small.compact
               ),
