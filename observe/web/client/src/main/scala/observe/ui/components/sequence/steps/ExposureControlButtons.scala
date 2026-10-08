@@ -42,7 +42,10 @@ case class ExposureControlButtons(
 
   val isRunning: Boolean = sequenceStatus.isRunning
 
-  val isStopRequested: Boolean = sequenceStatus.isStopRequested
+  // Only a stop/abort/pause-exposure already in progress (internal stop) locks these buttons.
+  // A pending "Pause Sequence" (user stop) lets the exposure run to completion, so it must
+  // still be possible to stop or abort it.
+  val isStopRequested: Boolean = sequenceStatus.isInternalStopRequested
 
   val requestInFlight: Boolean = requests.stepRequestInFlight
 
