@@ -280,7 +280,7 @@ class ObserveEngineSuite extends TestCommon {
               .as(SeqEvent.NullSeqEvent)
       res                  <-
         eo.executeAndWait(
-          _.start(seqObsId1, user, observer, clientId, RunOverride.Default),
+          _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default),
           {
             case (EventResult.UserCommandResponse(
                     _,
@@ -373,7 +373,7 @@ class ObserveEngineSuite extends TestCommon {
               .as(SeqEvent.NullSeqEvent)
       _                    <-
         eo.executeAndWaitResult(
-          _.start(seqObsId1, user, observer, clientId, RunOverride.Default),
+          _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default),
           {
             case EventResult.UserCommandResponse(
                   _,
@@ -688,7 +688,10 @@ class ObserveEngineSuite extends TestCommon {
       acqAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
       odb       <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
       oe        <- observeEngineWithODB(odb, systemsWithTargetName("proof"))
-      sf        <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
+      sf        <- advanceOne(oe,
+                              s0,
+                              oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default)
+                   )
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isRunning)).assert
@@ -717,7 +720,10 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
       oe  <- observeEngineWithODB(odb, systemsWithTargetName("proof1"))
-      sf  <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
+      sf  <- advanceOne(oe,
+                        s0,
+                        oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default)
+             )
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isIdle)).assert
@@ -747,7 +753,10 @@ class ObserveEngineSuite extends TestCommon {
       systems <- systemsWithTargetName("proof1")
       odb     <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
       oe      <- observeEngineWithODB(odb)
-      sf      <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Override))
+      sf      <- advanceOne(oe,
+                            s0,
+                            oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override)
+                 )
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isRunning)).assert
@@ -825,7 +834,7 @@ class ObserveEngineSuite extends TestCommon {
       sf            <- advanceOne(
                          observeEngine,
                          s0,
-                         observeEngine.start(
+                         observeEngine.startSequence(
                            seqObsId1,
                            user,
                            observer,
@@ -868,7 +877,7 @@ class ObserveEngineSuite extends TestCommon {
       odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
       observeEngine <- observeEngineWithODB(odb)
       result        <-
-        observeEngine.start(
+        observeEngine.startSequence(
           seqObsId1,
           user,
           observer,
@@ -925,7 +934,7 @@ class ObserveEngineSuite extends TestCommon {
           observeEngine,
           s0,
           observeEngine
-            .start(seqObsId1, user, observer, clientId, RunOverride.Override),
+            .startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),
           3
         )
     } yield {
@@ -1242,7 +1251,7 @@ class ObserveEngineSuite extends TestCommon {
       executedSteps  <- IO.ref(0)
       r              <-
         eo.executeAndWaitResult(
-          _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
+          _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),
           { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.SequenceCompleted(_))) =>
             true
           },
@@ -1378,7 +1387,7 @@ class ObserveEngineSuite extends TestCommon {
         ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       _             <- eo.executeAndWaitState(
-                         _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
+                         _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),
                          _.sequences.get(seqObsId1).forall(x => isFinished(x.seq.status))
                        )
       res           <- odb.outCapture
@@ -1470,7 +1479,7 @@ class ObserveEngineSuite extends TestCommon {
         ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       _             <- eo.executeAndWaitState(
-                         _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
+                         _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),
                          _.sequences.get(seqObsId1).forall(x => isFinished(x.seq.status))
                        )
       res           <- odb.outCapture

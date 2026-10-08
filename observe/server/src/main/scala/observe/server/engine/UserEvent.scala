@@ -24,25 +24,26 @@ sealed trait UserEvent[F[_]] extends Product with Serializable {
 }
 
 object UserEvent {
-  case class Pause[F[_]](id: Observation.Id, user: Option[User])       extends UserEvent[F]
-  case class CancelPause[F[_]](id: Observation.Id, user: Option[User]) extends UserEvent[F]
+  case class RequestSequenceHold[F[_]](id: Observation.Id, user: Option[User]) extends UserEvent[F]
+  case class CancelSequenceHoldRequest[F[_]](id: Observation.Id, user: Option[User])
+      extends UserEvent[F]
   case class Breakpoints[F[_]](
     id:    Observation.Id,
     user:  Option[User],
     steps: Set[Step.Id],
     v:     Breakpoint
   ) extends UserEvent[F]
-  case class Poll[F[_]](clientId: ClientId)                            extends UserEvent[F] {
+  case class Poll[F[_]](clientId: ClientId)                                    extends UserEvent[F] {
     val user: Option[User] = None
   }
   // Generic event to put a function in the main Stream process, which takes an
   // action depending on the current state
-  case class GetState[F[_]](f: EngineState[F] => Stream[F, Event[F]])  extends UserEvent[F] {
+  case class GetState[F[_]](f: EngineState[F] => Stream[F, Event[F]])          extends UserEvent[F] {
     val user: Option[User] = None
   }
   // Generic event to put a function in the main Process process, which changes the state
   // depending on the current state
-  case class ModifyState[F[_]](f: EngineHandle[F, SeqEvent])           extends UserEvent[F] {
+  case class ModifyState[F[_]](f: EngineHandle[F, SeqEvent])                   extends UserEvent[F] {
     val user: Option[User] = None
   }
   // Calls a user given function in the main Stream process to stop an Action.

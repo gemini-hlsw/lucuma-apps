@@ -45,8 +45,8 @@ final case class Gnirs[F[_]: {Async, Logger}](
 
   override def observeControl: InstrumentSystem.ObserveControl[F] =
     InstrumentSystem.UnpausableControl(
-      InstrumentSystem.StopObserveCmd(_ => controller.stopObserve),
-      InstrumentSystem.AbortObserveCmd(controller.abortObserve)
+      InstrumentSystem.StopObserveCmd(_ => controller.stopExposure),
+      InstrumentSystem.AbortObserveCmd(controller.abortExposure)
     )
 
   override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =

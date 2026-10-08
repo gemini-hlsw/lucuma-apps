@@ -18,24 +18,26 @@ import org.scalacheck.Cogen
 trait ArbObservationRequests:
   given Arbitrary[ObservationRequests] = Arbitrary:
     for
-      run               <- arbitrary[OperationRequest]
-      stop              <- arbitrary[OperationRequest]
-      abort             <- arbitrary[OperationRequest]
-      pause             <- arbitrary[OperationRequest]
-      cancelPause       <- arbitrary[OperationRequest]
-      resume            <- arbitrary[OperationRequest]
-      startFrom         <- arbitrary[OperationRequest]
-      rewind            <- arbitrary[OperationRequest]
-      subsystemRun      <- arbitrary[Map[Step.Id, Map[Subsystem, OperationRequest]]]
-      acquisitionPrompt <- arbitrary[OperationRequest]
+      startSequence      <- arbitrary[OperationRequest]
+      startSequenceFrom  <- arbitrary[OperationRequest]
+      sequenceHold       <- arbitrary[OperationRequest]
+      cancelSequenceHold <- arbitrary[OperationRequest]
+      stopExposure       <- arbitrary[OperationRequest]
+      abortExposure      <- arbitrary[OperationRequest]
+      pauseExposure      <- arbitrary[OperationRequest]
+      resumeExposure     <- arbitrary[OperationRequest]
+      rewind             <- arbitrary[OperationRequest]
+      subsystemRun       <- arbitrary[Map[Step.Id, Map[Subsystem, OperationRequest]]]
+      acquisitionPrompt  <- arbitrary[OperationRequest]
     yield ObservationRequests(
-      run,
-      stop,
-      abort,
-      pause,
-      cancelPause,
-      resume,
-      startFrom,
+      startSequence,
+      startSequenceFrom,
+      sequenceHold,
+      cancelSequenceHold,
+      stopExposure,
+      abortExposure,
+      pauseExposure,
+      resumeExposure,
       rewind,
       subsystemRun,
       acquisitionPrompt
@@ -50,17 +52,19 @@ trait ArbObservationRequests:
      OperationRequest,
      OperationRequest,
      OperationRequest,
+     OperationRequest,
      List[(Step.Id, List[(Subsystem, OperationRequest)])],
      OperationRequest
     )
   ].contramap(x =>
-    (x.run,
-     x.stop,
-     x.abort,
-     x.pause,
-     x.cancelPause,
-     x.resume,
-     x.startFrom,
+    (x.startSequence,
+     x.startSequenceFrom,
+     x.sequenceHold,
+     x.cancelSequenceHold,
+     x.stopExposure,
+     x.abortExposure,
+     x.pauseExposure,
+     x.resumeExposure,
      x.rewind,
      x.subsystemRun.view.mapValues(_.toList).toList,
      x.acquisitionPrompt

@@ -41,13 +41,13 @@ extension [F[_]](e: UserEvent[F])
   def isModelUpdate: Boolean =
     import UserEvent.*
     e match
-      case UserEvent.Pause(_, _)             => true
-      case UserEvent.CancelPause(id, _)      => true
-      case UserEvent.Breakpoints(_, _, _, _) => true
-      case UserEvent.Poll(_)                 => true
-      case UserEvent.ActionStop(_, _)        => true
-      case UserEvent.ActionResume(_, _, _)   => true
-      case _                                 => false
+      case UserEvent.RequestSequenceHold(_, _)        => true
+      case UserEvent.CancelSequenceHoldRequest(id, _) => true
+      case UserEvent.Breakpoints(_, _, _, _)          => true
+      case UserEvent.Poll(_)                          => true
+      case UserEvent.ActionStop(_, _)                 => true
+      case UserEvent.ActionResume(_, _, _)            => true
+      case _                                          => false
 
 extension (e: SystemEvent)
   def isModelUpdate: Boolean =

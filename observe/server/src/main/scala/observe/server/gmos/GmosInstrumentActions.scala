@@ -60,7 +60,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
         Result
           .Paused(
             ObserveContext(
-              (_: TimeSpan) => resumeObserve(fileId, stepId, env, nsCfg),
+              (_: TimeSpan) => resumeExposure(fileId, stepId, env, nsCfg),
               (_: ElapsedTime) => observationProgressStream(env),
               stopPausedObserve(fileId, stepId, env, nsCfg),
               abortPausedObserve(fileId, stepId, env, nsCfg),
@@ -237,7 +237,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
           Stream.emit(Result.OK(Response.Observed(fileId)))
     }
 
-  def resumeObserve(
+  def resumeExposure(
     fileId:   ImageFileId,
     stepId:   Step.Id,
     env:      ObserveEnvironment[F],

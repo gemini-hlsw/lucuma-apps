@@ -16,30 +16,37 @@ import monocle.Prism
 import monocle.macros.GenPrism
 
 enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
-  case Idle                extends SequenceStatus("Idle")
+  case Idle extends SequenceStatus("Idle")
+
+  /**
+   * The sequence is running.
+   *
+   *   - `sequenceHoldRequested`: the user asked to hold the sequence after the current step
+   *     completes. Set by the request-hold action and cleared by the cancel-hold-request action.
+   *   - `stepInterruptRequested`: the current step is being interrupted by a stop, abort or
+   *     pause-exposure, or by a rewind-step (all of them through the engine's `actionStop`). The
+   *     sequence goes Idle at the next execution-group boundary.
+   */
   case Running(
-    userStop:          SequenceStatus.HasUserStop,
-    internalStop:      SequenceStatus.HasInternalStop,
-    waitingUserPrompt: SequenceStatus.IsWaitingUserPrompt,
-    waitingNextStep:   SequenceStatus.IsWaitingNextStep,
-    starting:          SequenceStatus.IsStarting
+    sequenceHoldRequested:  SequenceStatus.IsSequenceHoldRequested,
+    stepInterruptRequested: SequenceStatus.IsStepInterruptRequested,
+    waitingUserPrompt:      SequenceStatus.IsWaitingUserPrompt,
+    waitingNextStep:        SequenceStatus.IsWaitingNextStep,
+    starting:               SequenceStatus.IsStarting
   )                        extends SequenceStatus("Running")
   case Completed           extends SequenceStatus("Completed")
   case Failed(msg: String) extends SequenceStatus("Failed")
   case Aborted             extends SequenceStatus("Aborted")
 
-  def isUserStopRequested: Boolean =
+  def isSequenceHoldRequested: Boolean =
     this match
       case SequenceStatus.Running(b, _, _, _, _) => b
       case _                                     => false
 
-  def isInternalStopRequested: Boolean =
+  def isStepInterruptRequested: Boolean =
     this match
       case SequenceStatus.Running(_, b, _, _, _) => b
       case _                                     => false
-
-  def isStopRequested: Boolean =
-    isUserStopRequested || isInternalStopRequested
 
   def isError: Boolean =
     this match
@@ -101,11 +108,11 @@ object SequenceStatus:
   val running: Prism[SequenceStatus, SequenceStatus.Running] =
     GenPrism[SequenceStatus, SequenceStatus.Running]
 
-  object HasUserStop extends NewBoolean { val Yes = True; val No = False }
-  type HasUserStop = HasUserStop.Type
+  object IsSequenceHoldRequested extends NewBoolean { val Yes = True; val No = False }
+  type IsSequenceHoldRequested = IsSequenceHoldRequested.Type
 
-  object HasInternalStop extends NewBoolean { val Yes = True; val No = False }
-  type HasInternalStop = HasInternalStop.Type
+  object IsStepInterruptRequested extends NewBoolean { val Yes = True; val No = False }
+  type IsStepInterruptRequested = IsStepInterruptRequested.Type
 
   object IsWaitingUserPrompt extends NewBoolean { val Yes = True; val No = False }
   type IsWaitingUserPrompt = IsWaitingUserPrompt.Type
@@ -119,8 +126,8 @@ object SequenceStatus:
   object Running:
     val Init: Running =
       SequenceStatus.Running(
-        userStop = HasUserStop.No,
-        internalStop = HasInternalStop.No,
+        sequenceHoldRequested = IsSequenceHoldRequested.No,
+        stepInterruptRequested = IsStepInterruptRequested.No,
         waitingUserPrompt = IsWaitingUserPrompt.No,
         waitingNextStep = IsWaitingNextStep.No,
         starting = IsStarting.No
@@ -128,11 +135,11 @@ object SequenceStatus:
 
     val Starting: SequenceStatus = Init.withStarting(true)
 
-    val userStop: Lens[SequenceStatus.Running, HasUserStop] =
-      Focus[SequenceStatus.Running](_.userStop)
+    val sequenceHoldRequested: Lens[SequenceStatus.Running, IsSequenceHoldRequested] =
+      Focus[SequenceStatus.Running](_.sequenceHoldRequested)
 
-    val internalStop: Lens[SequenceStatus.Running, HasInternalStop] =
-      Focus[SequenceStatus.Running](_.internalStop)
+    val stepInterruptRequested: Lens[SequenceStatus.Running, IsStepInterruptRequested] =
+      Focus[SequenceStatus.Running](_.stepInterruptRequested)
 
     val waitingUserPrompt: Lens[SequenceStatus.Running, IsWaitingUserPrompt] =
       Focus[SequenceStatus.Running](_.waitingUserPrompt)

@@ -22,9 +22,9 @@ trait GsaoiController[F[_]] {
 
   def endObserve: F[Unit]
 
-  def stopObserve: F[Unit]
+  def stopExposure: F[Unit]
 
-  def abortObserve: F[Unit]
+  def abortExposure: F[Unit]
 
   def observeProgress(total: TimeSpan): fs2.Stream[F, Progress]
 

@@ -200,27 +200,27 @@ class SeqTranslateSuite extends TestCommon {
     st      <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
   } yield st
 
-  test("SeqTranslate trigger stopObserve command only if exposure is in progress") {
+  test("SeqTranslate trigger stopExposure command only if exposure is in progress") {
     translator.map { t =>
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s0) != Stream.empty)
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s1) == Stream.empty)
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s2) == Stream.empty)
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s3) != Stream.empty)
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s4) != Stream.empty)
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s5) == Stream.empty)
-      assert(t.stopObserve(seqObsId1, graceful = false).apply(s6) == Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s0) != Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s1) == Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s2) == Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s3) != Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s4) != Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s5) == Stream.empty)
+      assert(t.stopExposure(seqObsId1, graceful = false).apply(s6) == Stream.empty)
     }
   }
 
-  test("SeqTranslate trigger abortObserve command only if exposure is in progress") {
+  test("SeqTranslate trigger abortExposure command only if exposure is in progress") {
     translator.map { t =>
-      assert(t.abortObserve(seqObsId1).apply(s0) != Stream.empty)
-      assert(t.abortObserve(seqObsId1).apply(s1) == Stream.empty)
-      assert(t.abortObserve(seqObsId1).apply(s2) == Stream.empty)
-      assert(t.abortObserve(seqObsId1).apply(s3) != Stream.empty)
-      assert(t.abortObserve(seqObsId1).apply(s4) != Stream.empty)
-      assert(t.abortObserve(seqObsId1).apply(s5) == Stream.empty)
-      assert(t.abortObserve(seqObsId1).apply(s6) == Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s0) != Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s1) == Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s2) == Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s3) != Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s4) != Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s5) == Stream.empty)
+      assert(t.abortExposure(seqObsId1).apply(s6) == Stream.empty)
     }
   }
 

@@ -54,11 +54,15 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
   private def cleanLoadedStep(obsId: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(obsId)(_.withNoLoadedStep)
 
-  def pause(id: Observation.Id): EngineHandle[F, Unit] =
-    EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.Yes))
+  def requestSequenceHold(id: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle.modifySequenceState(id)(
+      SequenceState.setSequenceHoldRequested(IsSequenceHoldRequested.Yes)
+    )
 
-  private def cancelPause(id: Observation.Id): EngineHandle[F, Unit] =
-    EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.No))
+  private def cancelSequenceHoldRequest(id: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle.modifySequenceState(id)(
+      SequenceState.setSequenceHoldRequested(IsSequenceHoldRequested.No)
+    )
 
   def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
     EngineHandle.getState.flatMap { st =>
@@ -135,7 +139,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         seqState
           .map: seq =>
             (seq.status, seq.loadedStep) match {
-              case (SequenceStatus.Running(userStop, internalStop, _, _, _), Some(completedStep)) =>
+              case (SequenceStatus.Running(sequenceHoldRequested, stepInterruptRequested, _, _, _),
+                    Some(completedStep)
+                  ) =>
                 seq.withNextExecution match {
                   // Empty state, should never happen
                   case None                                            =>
@@ -143,9 +149,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                   // Step completed (no more execution groups - loadedStep is cleared by `withNextExecution`)
                   case Some(nextState) if nextState.loadedStep.isEmpty =>
                     EngineHandle.replaceSequenceState(obsId)(nextState) *>
-                      (if (userStop || internalStop)
+                      (if (sequenceHoldRequested || stepInterruptRequested)
                          setObsStatus(obsId)(SequenceStatus.Idle) *>
-                           send(Event.sequencePaused(obsId))
+                           send(Event.sequenceHeld(obsId))
                        else
                          send(Event.stepComplete(obsId)) >>
                            send(
@@ -161,15 +167,18 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                   // Execution group completed. Check requested stop-before-observe, breakpoint.
                   case Some(nextState)                                 =>
                     EngineHandle.replaceSequenceState(obsId)(nextState) *>
-                      (if (internalStop && nextState.loadedStep.exists(_.hasObserveAhead)) {
+                      (if (
+                         stepInterruptRequested && nextState.loadedStep.exists(_.hasObserveAhead)
+                       ) {
                          // A rewind requested while configuring stops at the first group boundary,
-                         // before any further configuration or ODB observe events. `internalStop` is
-                         // also set while an exposure is being stopped, aborted or paused; then the
-                         // observe action is already behind us and the post-observe groups must still
-                         // run (see SeqTranslate stepEndObserve/stepEndStep).
+                         // before any further configuration or ODB observe events.
+                         // `stepInterruptRequested` is also set while an exposure is being stopped,
+                         // aborted or paused; then the observe action is already behind us and the
+                         // post-observe groups must still run (see SeqTranslate
+                         // stepEndObserve/stepEndStep).
                          setObsStatus(obsId)(SequenceStatus.Idle) *>
                            cleanLoadedStep(obsId) *>
-                           send(Event.sequencePaused(obsId))
+                           send(Event.sequenceHeld(obsId))
                        } else if (
                          nextState.getCurrentBreakpoint &&
                          !nextState.currentExecution.execution.exists(_.uninterruptible)
@@ -179,7 +188,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                            send(Event.breakpointReached(obsId))
                        } else send(Event.executing(obsId)))
                 }
-              case _                                                                              => EngineHandle.unit
+              case _ => EngineHandle.unit
             }
           .getOrElse(EngineHandle.unit)
       )
@@ -192,9 +201,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
           .map { seq =>
             seq.status match {
               case SequenceStatus
-                    .Running(userStop, internalStop, _, _, isStarting) =>
+                    .Running(sequenceHoldRequested, stepInterruptRequested, _, _, isStarting) =>
                 // TODO Review if all of these conditions are possible with new sequence flow.
-                if (!isStarting && (userStop || internalStop)) {
+                if (!isStarting && (sequenceHoldRequested || stepInterruptRequested)) {
                   if (seq.loadedStep.isEmpty)
                     send(Event.sequenceComplete(obsId))
                   else
@@ -209,8 +218,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                   else
                     setObsStatus(obsId)(
                       SequenceStatus.Running(
-                        userStop,
-                        internalStop,
+                        sequenceHoldRequested,
+                        stepInterruptRequested,
                         IsWaitingUserPrompt.No,
                         IsWaitingNextStep.No,
                         IsStarting.No
@@ -288,7 +297,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       .flatMap(_.map { s =>
         (EngineHandle.fromEventStream(f) >>
           EngineHandle.modifySequenceState(obsId)(
-            SequenceState.internalStopSet(HasInternalStop.Yes)
+            SequenceState.setStepInterruptRequested(IsStepInterruptRequested.Yes)
           ))
           .whenA(SequenceState.isRunning(s))
       }.getOrElse(EngineHandle.unit))
@@ -349,7 +358,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
 
   def actionPause(id: Observation.Id, i: Int, p: Result.Paused): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(id)(s =>
-      SequenceState.internalStopSet(HasInternalStop.No)(s).mark(i)(p)
+      SequenceState.setStepInterruptRequested(IsStepInterruptRequested.No)(s).mark(i)(p)
     )
 
   private def actionResume(
@@ -405,39 +414,41 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
   private def send(ev: Event[F]): EngineHandle[F, Unit] = Handle.fromEventStream(Stream(ev))
 
   private def handleUserEvent(ue: UserEvent[F]): EngineHandle[F, EventResult] = ue match {
-    case Pause(obsId, _)                   =>
-      debug(s"Engine: Pause requested for sequence $obsId") *> pause(obsId) *>
+    case RequestSequenceHold(obsId, _)       =>
+      debug(s"Engine: Sequence hold requested for sequence $obsId") *> requestSequenceHold(obsId) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case CancelPause(obsId, _)             =>
-      debug(s"Engine: Pause canceled for sequence $obsId") *> cancelPause(obsId) *>
+    case CancelSequenceHoldRequest(obsId, _) =>
+      debug(
+        s"Engine: Sequence hold request canceled for sequence $obsId"
+      ) *> cancelSequenceHoldRequest(obsId) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case Breakpoints(obsId, _, stepIds, v) =>
+    case Breakpoints(obsId, _, stepIds, v)   =>
       debug(s"Engine: breakpoints changed for sequence $obsId and steps $stepIds to $v") *>
         EngineHandle.modifySequenceState[F](obsId)(_.setBreakpoints(stepIds.map(id => (id, v)))) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case Poll(_)                           =>
+    case Poll(_)                             =>
       debug("Engine: Polling current state") *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case GetState(f)                       =>
+    case GetState(f)                         =>
       EngineHandle.fromEventStream(f) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case ModifyState(f)                    =>
+    case ModifyState(f)                      =>
       f.map((r: SeqEvent) => UserCommandResponse[F](ue, Outcome.Ok, Some(r)))
-    case ActionStop(obsId, f)              =>
+    case ActionStop(obsId, f)                =>
       debug("Engine: Action stop requested") *> actionStop(obsId, f) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case ActionResume(obsId, i, cont)      =>
+    case ActionResume(obsId, i, cont)        =>
       debug("Engine: Action resume requested") *> actionResume(obsId, i, cont) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case LogDebug(msg, _)                  =>
+    case LogDebug(msg, _)                    =>
       debug(msg) *> EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case LogInfo(msg, _)                   =>
+    case LogInfo(msg, _)                     =>
       info(msg) *> EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case LogWarning(msg, _)                =>
+    case LogWarning(msg, _)                  =>
       warning(msg) *> EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case LogError(msg, _)                  =>
+    case LogError(msg, _)                    =>
       error(msg) *> EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
-    case Pure(v)                           =>
+    case Pure(v)                             =>
       EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, v.some))
   }
 
@@ -489,8 +500,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       case StepComplete(obsId)           =>
         debug(s"Engine: Step completed for observation [$obsId]") *>
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
-      case SequencePaused(obsId)         =>
-        debug(s"Engine: Sequence paused for observation [$obsId]") *>
+      case SequenceHeld(obsId)           =>
+        debug(s"Engine: Sequence held for observation [$obsId]") *>
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case SequenceComplete(obsId)       =>
         debug("Engine: Finished") *>

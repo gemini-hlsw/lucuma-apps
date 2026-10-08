@@ -39,45 +39,45 @@ trait SequenceApi[F[_]: MonadThrow]:
     NotAuthorized
 
   /** Start the sequence from the next pending step */
-  def start(
+  def startSequence(
     @unused obsId:       Observation.Id,
     @unused runOverride: RunOverride = RunOverride.Default
   ): F[Unit] =
     NotAuthorized
 
   /** Start the sequence from the specified step */
-  def startFrom(
+  def startSequenceFrom(
     @unused obsId:       Observation.Id,
     @unused stepId:      Step.Id,
     @unused runOverride: RunOverride = RunOverride.Default
   ): F[Unit] = NotAuthorized
 
-  /** Pause the sequence after current exposure */
-  def pause(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  /** Request holding the sequence after the current step completes */
+  def requestSequenceHold(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
-  /** Cancel requested pause */
-  def cancelPause(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  /** Cancel a requested sequence hold */
+  def cancelSequenceHoldRequest(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
   /** Stop the current exposure */
-  def stop(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  def stopExposure(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
-  /** N&S: Stop the sequence after the current nod(?) */
-  def stopGracefully(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  /** N&S: Stop the exposure after the current nod(?) */
+  def stopExposureGracefully(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
-  /** Stop the sequence immediately */
-  def abort(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  /** Abort the current exposure immediately */
+  def abortExposure(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
-  /** Pause the sequence immediately, even mid-exposure */
-  def pauseObs(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  /** Pause the current exposure immediately */
+  def pauseExposure(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
   /** Stop before the exposure starts and go idle */
   def rewindStep(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
-  /** N&S: Pause the sequence after the current nod(?) */
-  def pauseObsGracefully(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  /** N&S: Pause the exposure after the current nod(?) */
+  def pauseExposureGracefully(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
   /** Resume the current exposure if it was paused mid-exposure */
-  def resumeObs(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+  def resumeExposure(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
   /** Runs a resource or instrument */
   def execute(

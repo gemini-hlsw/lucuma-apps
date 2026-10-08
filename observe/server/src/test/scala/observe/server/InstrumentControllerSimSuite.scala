@@ -56,7 +56,7 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
       f <-
         sim.observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(2, ChronoUnit.SECONDS)).start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.pauseObserve
+      _ <- sim.pauseExposure
       r <- f.joinWithNever
     } yield assertEquals(r, ObserveCommandResult.Paused)
   }
@@ -67,7 +67,7 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
       f <-
         sim.observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(2, ChronoUnit.SECONDS)).start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.abortObserve
+      _ <- sim.abortExposure
       r <- f.joinWithNever
     } yield assertEquals(r, ObserveCommandResult.Aborted)
   }
@@ -78,7 +78,7 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
       f <-
         sim.observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(2, ChronoUnit.SECONDS)).start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.stopObserve
+      _ <- sim.stopExposure
       r <- f.joinWithNever
     } yield assertEquals(r, ObserveCommandResult.Stopped)
   }
@@ -90,7 +90,7 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
              .observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(900, ChronoUnit.MILLIS))
              .start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.pauseObserve
+      _ <- sim.pauseExposure
       _ <- IO.sleep(tick) // give it enough time for at least one tick
       r <- sim.stopPaused
       _ <- f.joinWithNever
@@ -104,7 +104,7 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
              .observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(900, ChronoUnit.MILLIS))
              .start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.pauseObserve
+      _ <- sim.pauseExposure
       r <- sim.resumePaused
       _ <- f.joinWithNever
     } yield assertEquals(r, ObserveCommandResult.Success)
@@ -116,9 +116,9 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
       f <-
         sim.observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(2, ChronoUnit.SECONDS)).start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.pauseObserve
+      _ <- sim.pauseExposure
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.stopObserve
+      _ <- sim.stopExposure
       _ <- IO.sleep(tick) // give it enough time for at least one tick
       r <- f.joinWithNever
     } yield assertEquals(r, ObserveCommandResult.Paused)
@@ -134,7 +134,7 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
              .observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(900, ChronoUnit.MILLIS))
              .start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.pauseObserve
+      _ <- sim.pauseExposure
       _ <- IO.sleep(tick) // give it enough time for at least one tick
       r <- sim.abortPaused
       _ <- f.joinWithNever
@@ -147,9 +147,9 @@ class InstrumentControllerSimSuite extends CatsEffectSuite {
       f <-
         sim.observe(ImageFileId("S001"), TimeSpan.unsafeFromDuration(2, ChronoUnit.SECONDS)).start
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.pauseObserve
+      _ <- sim.pauseExposure
       _ <- IO.sleep(tick) // give it enough time for at least one tick
-      _ <- sim.abortObserve
+      _ <- sim.abortExposure
       r <- f.joinWithNever
     } yield assertEquals(r, ObserveCommandResult.Paused)
 

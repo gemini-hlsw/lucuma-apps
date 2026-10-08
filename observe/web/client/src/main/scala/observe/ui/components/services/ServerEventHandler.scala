@@ -253,7 +253,7 @@ trait ServerEventHandler:
         pushPage(AppTab.LoadedObs(instrument))
       case ClientEvent.StepComplete(_)                                                    =>
         playAudio(Audio.StepBeep)
-      case ClientEvent.SequencePaused(_)                                                  =>
+      case ClientEvent.SequenceHeld(_)                                                    =>
         playAudio(Audio.SequencePaused)
       case ClientEvent.BreakpointReached(_)                                               =>
         playAudio(Audio.SequencePaused)

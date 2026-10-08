@@ -113,13 +113,13 @@ object GmosControllerSim {
         nsConfig.set(NsObsState.fromConfig(config.ns)) *> // Keep the state of NS Config
           sim.applyConfig(config)
 
-      override def stopObserve: F[Unit] = sim.stopObserve
+      override def stopExposure: F[Unit] = sim.stopExposure
 
-      override def abortObserve: F[Unit] = sim.abortObserve
+      override def abortExposure: F[Unit] = sim.abortExposure
 
       override def endObserve: F[Unit] = sim.endObserve
 
-      override def pauseObserve: F[Unit] = sim.pauseObserve
+      override def pauseExposure: F[Unit] = sim.pauseExposure
 
       override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] =
         nsConfig.modify {

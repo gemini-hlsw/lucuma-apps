@@ -69,7 +69,7 @@ object ClientEvent:
 
   case class StepComplete(obsId: Observation.Id) extends AllClientEvent derives Eq
 
-  case class SequencePaused(obsId: Observation.Id) extends AllClientEvent derives Eq
+  case class SequenceHeld(obsId: Observation.Id) extends AllClientEvent derives Eq
 
   case class BreakpointReached(obsId: Observation.Id) extends AllClientEvent derives Eq
 

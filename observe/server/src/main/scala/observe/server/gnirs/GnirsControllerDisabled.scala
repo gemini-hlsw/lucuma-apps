@@ -25,9 +25,9 @@ class GnirsControllerDisabled[F[_]: {Logger, Applicative}] extends GnirsControll
 
   override def endObserve: F[Unit] = overrideLogMessage(name, "endObserve")
 
-  override def stopObserve: F[Unit] = overrideLogMessage(name, "stopObserve")
+  override def stopExposure: F[Unit] = overrideLogMessage(name, "stopExposure")
 
-  override def abortObserve: F[Unit] = overrideLogMessage(name, "abortObserve")
+  override def abortExposure: F[Unit] = overrideLogMessage(name, "abortExposure")
 
   override def observeProgress(total: TimeSpan): Stream[F, Progress] = Stream.empty
 }

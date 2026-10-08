@@ -20,11 +20,11 @@ import java.time.temporal.ChronoUnit
 trait GhostController[F[_]] extends GiapiInstrumentController[F, GhostConfig] {
   def gdsClient: GdsClient[F]
 
-  def stopObserve: F[Unit]
+  def stopExposure: F[Unit]
 
-  def abortObserve: F[Unit]
+  def abortExposure: F[Unit]
 
-  def pauseObserve: F[Unit]
+  def pauseExposure: F[Unit]
 
   def resumePaused(expTime: TimeSpan): F[ObserveCommandResult]
 
@@ -85,13 +85,13 @@ object GhostController {
       override def applyConfig(config: GhostConfig): F[Unit] =
         L.warn("Invalid call to GhostController.applyConfig(GhostConfig).")
 
-      override def stopObserve: F[Unit] =
+      override def stopExposure: F[Unit] =
         client.stop.void
 
-      override def abortObserve: F[Unit] =
+      override def abortExposure: F[Unit] =
         client.abort.void
 
-      override def pauseObserve: F[Unit] =
+      override def pauseExposure: F[Unit] =
         client.pause.void
 
       override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] =

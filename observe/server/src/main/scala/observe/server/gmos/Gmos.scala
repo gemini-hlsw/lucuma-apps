@@ -78,9 +78,9 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
       )
     else
       CompleteControl(
-        StopObserveCmd(_ => controller.stopObserve),
-        AbortObserveCmd(controller.abortObserve),
-        PauseObserveCmd(_ => controller.pauseObserve),
+        StopObserveCmd(_ => controller.stopExposure),
+        AbortObserveCmd(controller.abortExposure),
+        PauseObserveCmd(_ => controller.pauseExposure),
         ContinuePausedCmd(controller.resumePaused),
         StopPausedCmd(controller.stopPaused),
         AbortPausedCmd(controller.abortPaused)
@@ -90,16 +90,16 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
     if (gracefully)
       nsCmdRef.set(NSObserveCommand.StopGracefully.some)
     else
-      nsCmdRef.set(NSObserveCommand.StopImmediately.some) *> controller.stopObserve
+      nsCmdRef.set(NSObserveCommand.StopImmediately.some) *> controller.stopExposure
 
   private def abortNS: F[Unit] =
-    nsCmdRef.set(NSObserveCommand.AbortImmediately.some) *> controller.abortObserve
+    nsCmdRef.set(NSObserveCommand.AbortImmediately.some) *> controller.abortExposure
 
   private def pauseNS(gracefully: Boolean): F[Unit] =
     if (gracefully)
       nsCmdRef.set(NSObserveCommand.PauseGracefully.some)
     else
-      nsCmdRef.set(NSObserveCommand.PauseImmediately.some) *> controller.pauseObserve
+      nsCmdRef.set(NSObserveCommand.PauseImmediately.some) *> controller.pauseExposure
 
   override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =
     Kleisli { fileId =>

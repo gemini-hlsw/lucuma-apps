@@ -388,13 +388,13 @@ object GnirsControllerEpics extends GnirsEncoders {
           epicsSys.endObserveCmd.post(DefaultTimeout) *>
           L.debug("endObserve sent to GNIRS")
 
-      override def stopObserve: F[Unit] =
+      override def stopExposure: F[Unit] =
         L.debug("Stop GNIRS exposure") *>
           epicsSys.stopCmd.mark *>
           epicsSys.stopCmd.post(DefaultTimeout) *>
           L.debug("GNIRS stop observe command sent")
 
-      override def abortObserve: F[Unit] =
+      override def abortExposure: F[Unit] =
         L.debug("Abort GNIRS exposure") *>
           epicsSys.abortCmd.mark *>
           epicsSys.abortCmd.post(DefaultTimeout) *>

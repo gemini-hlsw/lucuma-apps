@@ -37,7 +37,7 @@ final case class Igrins2ControllerSim[F[_]: {Async, Logger}] private (
 
   override def endObserve: F[Unit] = sim.endObserve
 
-  override def abort: F[Unit] = sim.abortObserve
+  override def abort: F[Unit] = sim.abortExposure
 
   override def exposureProgress: F[Stream[F, Int]] =
     configRef.get.map: cfg =>

@@ -224,7 +224,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("start"):
+  test("start sequence"):
     val r = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -234,7 +234,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
           Request[IO](
             method = Method.POST,
             uri = Uri.unsafeFromString(
-              s"/${obsId.show}/${clientId.value}/start/observer?overrideTargetCheck=true"
+              s"/${obsId.show}/${clientId.value}/startSequence/observer?overrideTargetCheck=true"
             )
           )
         ).value
@@ -275,8 +275,8 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("pause sequence"):
-    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/pause/observer")
+  test("request sequence hold"):
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/sequenceHold/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -285,8 +285,8 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("cancelpause sequence"):
-    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/cancelPause/observer")
+  test("cancel sequence hold request"):
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/cancelSequenceHold/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -295,8 +295,8 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("stop sequence"):
-    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/stop/observer")
+  test("stop exposure"):
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/stopExposure/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -305,9 +305,9 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("stop sequence gracefully"):
+  test("stop exposure gracefully"):
     val uri = Uri.unsafeFromString(
-      s"/${obsId.show}/${clientId.value}/stopGracefully/observer"
+      s"/${obsId.show}/${clientId.value}/stopExposureGracefully/observer"
     )
     val r   = for
       engine <- TestObserveEngine.build[IO]
@@ -317,9 +317,9 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("abort sequence"):
+  test("abort exposure"):
     val uri =
-      Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/abort/observer")
+      Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/abortExposure/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -328,9 +328,9 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("pause obs sequence"):
+  test("pause exposure"):
     val uri =
-      Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/pauseObs/observer")
+      Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/pauseExposure/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -339,9 +339,9 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("pause obs gracefully"):
+  test("pause exposure gracefully"):
     val uri = Uri.unsafeFromString(
-      s"/${obsId.show}/${clientId.value}/pauseObsGracefully/observer"
+      s"/${obsId.show}/${clientId.value}/pauseExposureGracefully/observer"
     )
     val r   = for
       engine <- TestObserveEngine.build[IO]
@@ -351,9 +351,9 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("resume obs"):
+  test("resume exposure"):
     val uri =
-      Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/resumeObs/observer")
+      Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/resumeExposure/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -369,8 +369,8 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
       )
 
     assertEquals(
-      template(s"/api/observe/${obsId.show}/${clientId.value}/start/telops"),
-      "/api/observe/{obsId}/{clientId}/start/{param}"
+      template(s"/api/observe/${obsId.show}/${clientId.value}/startSequence/telops"),
+      "/api/observe/{obsId}/{clientId}/startSequence/{param}"
     )
     assertEquals(
       template(
@@ -420,7 +420,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
 
     // Free-form values (observer here) are not turned into attributes.
     assertEquals(
-      attributes(s"/api/observe/${obsId.show}/${clientId.value}/start/Telops").keySet,
+      attributes(s"/api/observe/${obsId.show}/${clientId.value}/startSequence/Telops").keySet,
       Set("observe.obs.id", "observe.client.id")
     )
 

@@ -25,11 +25,11 @@ class GmosControllerDisabled[F[_]: {Logger, Applicative}, T <: GmosController.Gm
 
   override def endObserve: F[Unit] = overrideLogMessage(name, "endObserve")
 
-  override def stopObserve: F[Unit] = overrideLogMessage(name, "stopObserve")
+  override def stopExposure: F[Unit] = overrideLogMessage(name, "stopExposure")
 
-  override def abortObserve: F[Unit] = overrideLogMessage(name, "abortObserve")
+  override def abortExposure: F[Unit] = overrideLogMessage(name, "abortExposure")
 
-  override def pauseObserve: F[Unit] = overrideLogMessage(name, "pauseObserve")
+  override def pauseExposure: F[Unit] = overrideLogMessage(name, "pauseExposure")
 
   override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] =
     overrideLogMessage(name, "resumePaused").as(ObserveCommandResult.Success)

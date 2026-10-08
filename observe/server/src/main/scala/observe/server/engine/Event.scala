@@ -29,45 +29,45 @@ object Event {
   case class EventUser[F[_]](ue: UserEvent[F])  extends Event[F]
   case class EventSystem[F[_]](se: SystemEvent) extends Event[F]
 
-  def pause[F[_]](obsId: Observation.Id, user: User): Event[F]           =
-    EventUser[F](Pause(obsId, user.some))
-  def cancelPause[F[_]](obsId: Observation.Id, user: User): Event[F]     =
-    EventUser[F](CancelPause(obsId, user.some))
+  def requestSequenceHold[F[_]](obsId: Observation.Id, user: User): Event[F]       =
+    EventUser[F](RequestSequenceHold(obsId, user.some))
+  def cancelSequenceHoldRequest[F[_]](obsId: Observation.Id, user: User): Event[F] =
+    EventUser[F](CancelSequenceHoldRequest(obsId, user.some))
   def breakpoints[F[_]](
     id:    Observation.Id,
     user:  User,
     steps: Set[Step.Id],
     v:     Breakpoint
-  ): Event[F]                                                            = EventUser[F](Breakpoints(id, user.some, steps, v))
-  def poll[F[_]](clientId: ClientId): Event[F]                           =
+  ): Event[F]                                                                      = EventUser[F](Breakpoints(id, user.some, steps, v))
+  def poll[F[_]](clientId: ClientId): Event[F]                                     =
     EventUser[F](Poll(clientId))
-  def getState[F[_]](f: EngineState[F] => Stream[F, Event[F]]): Event[F] =
+  def getState[F[_]](f: EngineState[F] => Stream[F, Event[F]]): Event[F]           =
     EventUser[F](GetState(f))
-  def modifyState[F[_]](f: EngineHandle[F, SeqEvent]): Event[F]          =
+  def modifyState[F[_]](f: EngineHandle[F, SeqEvent]): Event[F]                    =
     EventUser[F](ModifyState(f))
   def actionStop[F[_]](
     obsId: Observation.Id,
     f:     EngineState[F] => Stream[F, Event[F]]
-  ): Event[F]                                                            = EventUser[F](ActionStop(obsId, f))
+  ): Event[F]                                                                      = EventUser[F](ActionStop(obsId, f))
   def actionResume[F[_]](
     obsId: Observation.Id,
     i:     Int,
     c:     Stream[F, Result]
-  ): Event[F]                                                            =
+  ): Event[F]                                                                      =
     EventUser[F](ActionResume(obsId, i, c))
-  def logDebugMsg[F[_]](msg: String, ts: Instant): Event[F]              =
+  def logDebugMsg[F[_]](msg: String, ts: Instant): Event[F]                        =
     EventUser[F](LogDebug(msg, ts))
-  def logDebugMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]       =
+  def logDebugMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]                 =
     Clock[F].realTimeInstant.map(t => EventUser[F](LogDebug(msg, t)))
-  def logInfoMsg[F[_]](msg: String, ts: Instant): Event[F]               =
+  def logInfoMsg[F[_]](msg: String, ts: Instant): Event[F]                         =
     EventUser[F](LogInfo(msg, ts))
-  def logInfoMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]        =
+  def logInfoMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]                  =
     Clock[F].realTimeInstant.map(t => EventUser[F](LogInfo(msg, t)))
-  def logWarningMsg[F[_]](msg: String, ts: Instant): Event[F]            =
+  def logWarningMsg[F[_]](msg: String, ts: Instant): Event[F]                      =
     EventUser[F](LogWarning(msg, ts))
-  def logErrorMsg[F[_]](msg: String, ts: Instant): Event[F]              =
+  def logErrorMsg[F[_]](msg: String, ts: Instant): Event[F]                        =
     EventUser[F](LogError(msg, ts))
-  def logErrorMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]       =
+  def logErrorMsgF[F[_]: Clock: Functor](msg: String): F[Event[F]]                 =
     Clock[F].realTimeInstant.map(t => EventUser[F](LogError(msg, t)))
 
   def pure[F[_]](v: SeqEvent): Event[F] = EventUser[F](Pure(v))
@@ -105,8 +105,8 @@ object Event {
     EventSystem[F](Paused(obsId, stepId, i, c))
   def breakpointReached[F[_]](obsId: Observation.Id): Event[F]                                 =
     EventSystem[F](BreakpointReached(obsId))
-  def sequencePaused[F[_]](obsId: Observation.Id): Event[F]                                    =
-    EventSystem[F](SequencePaused(obsId))
+  def sequenceHeld[F[_]](obsId: Observation.Id): Event[F]                                      =
+    EventSystem[F](SequenceHeld(obsId))
   def busy[F[_]](obsId: Observation.Id, clientId: ClientId): Event[F]                          =
     EventSystem[F](Busy(obsId, clientId))
   def executed[F[_]](obsId: Observation.Id): Event[F]                                          =
