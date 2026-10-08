@@ -709,8 +709,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   private def testTracking(
-    cmdL: Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]],
-    l:    Getter[State, ProbeTrackingState]
+    cmdL:   Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]],
+    l:      Getter[State, ProbeTrackingState],
+    others: List[Getter[State, ProbeTrackingState]]
   ): IO[Unit] = {
     val trackingConfig = TrackingConfig(true, false, false, true)
 
@@ -735,27 +736,37 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(l.get(rs).nodBchopB.value.flatMap(Enumerated[BinaryOnOff].fromTag),
                    trackingConfig.nodBchopB.fold(BinaryOnOff.On, BinaryOnOff.Off).some
       )
+      others.foreach(o => checkTracking(o.get(rs), TrackingConfig.noTracking))
     }
   }
 
   test("pwfs1 probe tracking command") {
     testTracking(
       Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]](_.pwfs1ProbeTracking),
-      Getter[State, ProbeTrackingState](_.pwfs1Tracking)
+      Getter[State, ProbeTrackingState](_.pwfs1Tracking),
+      List(Getter[State, ProbeTrackingState](_.pwfs2Tracking),
+           Getter[State, ProbeTrackingState](_.oiwfsTracking)
+      )
     )
   }
 
   test("pwfs2 probe tracking command") {
     testTracking(
       Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]](_.pwfs2ProbeTracking),
-      Getter[State, ProbeTrackingState](_.pwfs2Tracking)
+      Getter[State, ProbeTrackingState](_.pwfs2Tracking),
+      List(Getter[State, ProbeTrackingState](_.pwfs1Tracking),
+           Getter[State, ProbeTrackingState](_.oiwfsTracking)
+      )
     )
   }
 
   test("oiwfs probe tracking command") {
     testTracking(
       Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]](_.oiwfsProbeTracking),
-      Getter[State, ProbeTrackingState](_.oiwfsTracking)
+      Getter[State, ProbeTrackingState](_.oiwfsTracking),
+      List(Getter[State, ProbeTrackingState](_.pwfs1Tracking),
+           Getter[State, ProbeTrackingState](_.pwfs2Tracking)
+      )
     )
   }
 
@@ -2224,19 +2235,24 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       // guide-status mirror (guideStatus, read by getGuideState) to "guiding", since that is
       // what offset() actually consults to decide whether to pause.
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
-      _         <- ctr.pwfs1ProbeTracking(TrackingConfig.default)
+      _         <- ctr.pwfs1ProbeTracking(TrackingConfig.defaultTracking)
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
       _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(offsetQ)), guiding = false)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.defaultTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield {
       checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
       checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
       checkTracking(r1.pwfs1Tracking, TrackingConfig.noTracking)
+      checkTracking(r1.pwfs2Tracking, TrackingConfig.noTracking)
+      checkTracking(r1.oiwfsTracking, TrackingConfig.noTracking)
       checkPauseResumeGuide(r1, noGuideConfig)
     }
   }
@@ -2251,7 +2267,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
     val expectedYmm   =
       Angle.fromBigDecimalArcseconds(0.0).toLengthInFocalPlane.toMillimeters.value.toDouble
-    val rememberedCfg = TrackingConfig.default
+    val rememberedCfg = TrackingConfig.defaultTracking
 
     for {
       (st, ctr) <- createController()
@@ -2282,6 +2298,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
       checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
       checkTracking(r1.pwfs1Tracking, rememberedCfg)
+      checkTracking(r1.pwfs2Tracking, TrackingConfig.noTracking)
+      checkTracking(r1.oiwfsTracking, TrackingConfig.noTracking)
       checkPauseResumeGuide(r1, guideCfg)
     }
   }
@@ -2341,7 +2359,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       // Guiding state: PWFS1 is tracking and guiding, matching the "Offset command disables
       // guiding..." test's setup.
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
-      _         <- ctr.pwfs1ProbeTracking(TrackingConfig.default)
+      _         <- ctr.pwfs1ProbeTracking(TrackingConfig.defaultTracking)
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
@@ -2353,7 +2371,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                      guiding = false
                    )(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.defaultTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield {
@@ -2367,6 +2388,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         .fold(fail("No Source B wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
       assertEquals(r1.scienceFoldMech.position.value, "gmos3".some)
       checkTracking(r1.pwfs1Tracking, TrackingConfig.noTracking)
+      checkTracking(r1.pwfs2Tracking, TrackingConfig.noTracking)
+      checkTracking(r1.oiwfsTracking, TrackingConfig.noTracking)
       checkPauseResumeGuide(r1, noGuideConfig)
     }
   }
@@ -2375,7 +2398,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     "ConfigureStep command resumes guiding and restores tracking when guiding is true, with no offset/wavelength/lightPath change requested"
   ) {
     val guideCfg      = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
-    val rememberedCfg = TrackingConfig.default
+    val rememberedCfg = TrackingConfig.defaultTracking
 
     for {
       (st, ctr) <- createController()
@@ -2400,6 +2423,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       r1        <- st.tcs.get
     } yield {
       checkTracking(r1.pwfs1Tracking, rememberedCfg)
+      checkTracking(r1.pwfs2Tracking, TrackingConfig.noTracking)
+      checkTracking(r1.oiwfsTracking, TrackingConfig.noTracking)
       checkPauseResumeGuide(r1, guideCfg)
     }
   }
@@ -2465,7 +2490,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                      guiding = true
                    )(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, noGuideConfig)
@@ -2489,7 +2517,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                      guiding = true
                    )(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, guideCfg)
@@ -2515,7 +2546,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, noGuideConfig)
@@ -2539,7 +2573,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, guideCfg)
@@ -2566,7 +2603,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, guideCfg)
@@ -2586,7 +2626,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.ags.update(_.focus(_.port1Label.value).replace("GMOS".some))
       _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, guideCfg)
@@ -2606,7 +2649,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, noGuideConfig)
@@ -2633,7 +2679,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- ctr.configureStep(none, none, none, none, guiding = true)(
                      GuideConfig(guideCfg, none),
-                     WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+                     WfsGuideStates(TrackingConfig.noTracking,
+                                    TrackingConfig.noTracking,
+                                    TrackingConfig.defaultTracking
+                     )
                    )
       r1        <- st.tcs.get
     } yield checkPauseResumeGuide(r1, noGuideConfig)

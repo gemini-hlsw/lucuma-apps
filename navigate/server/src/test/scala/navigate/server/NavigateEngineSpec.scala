@@ -34,6 +34,7 @@ import navigate.model.config.NavigateEngineConfiguration
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.LightSink
+import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.server.tcs.TcsNorthControllerSim
 import navigate.server.tcs.TcsSouthControllerSim
 import org.http4s.Response
@@ -215,6 +216,116 @@ class NavigateEngineSpec extends CatsEffectSuite with RetryFlakyTests {
                .drain
       r   <- eng.getGuideDemand
     } yield assertEquals(r.tcsGuide, guideOnCfg)
+  }
+
+  private def waitForWfsStates(eng: NavigateEngine[IO], expected: WfsGuideStates): IO[Unit] =
+    eng.getWfsGuideStates
+      .flatMap { r =>
+        if (r == expected) {
+          IO.unit
+        } else {
+          IO.sleep(10.millis) *> waitForWfsStates(eng, expected)
+        }
+      }
+      .timeout(5.seconds)
+
+  private val noTrackingStates =
+    WfsGuideStates(TrackingConfig.noTracking, TrackingConfig.noTracking, TrackingConfig.noTracking)
+
+  private def tcsConfig(
+    pwfs1: Option[GuiderConfig],
+    pwfs2: Option[GuiderConfig],
+    oiwfs: Option[GuiderConfig]
+  ): TcsConfig =
+    TcsConfig(
+      target,
+      instrumentSpecifics,
+      pwfs1,
+      pwfs2,
+      oiwfs,
+      RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
+      LightSink.GmosNorth,
+      BafflesConfig
+        .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
+        .some
+    )
+
+  private def withEngine(f: NavigateEngine[IO] => IO[Unit]): IO[Unit] =
+    NavigateEngineSpec.buildEngine[IO].flatMap { eng =>
+      eng.eventStream.compile.drain.background.use(_ => f(eng))
+    }
+
+  test("NavigateEngine must start with no tracking for all WFS.") {
+    withEngine(eng => eng.getWfsGuideStates.map(assertEquals(_, noTrackingStates)))
+  }
+
+  test("NavigateEngine must memorize requested PWFS1 probe tracking only.") {
+    withEngine { eng =>
+      val expected = noTrackingStates.copy(pwfs1 = wfsTracking)
+      eng.pwfs1ProbeTracking(wfsTracking) *> waitForWfsStates(eng, expected)
+    }
+  }
+
+  test("NavigateEngine must memorize requested PWFS2 probe tracking only.") {
+    withEngine { eng =>
+      val expected = noTrackingStates.copy(pwfs2 = wfsTracking)
+      eng.pwfs2ProbeTracking(wfsTracking) *> waitForWfsStates(eng, expected)
+    }
+  }
+
+  test("NavigateEngine must memorize requested OIWFS probe tracking only.") {
+    withEngine { eng =>
+      val expected = noTrackingStates.copy(oiwfs = wfsTracking)
+      eng.oiwfsProbeTracking(wfsTracking) *> waitForWfsStates(eng, expected)
+    }
+  }
+
+  test("NavigateEngine must memorize the last requested probe tracking.") {
+    withEngine { eng =>
+      eng.pwfs1ProbeTracking(wfsTracking) *>
+        waitForWfsStates(eng, noTrackingStates.copy(pwfs1 = wfsTracking)) *>
+        eng.pwfs1ProbeTracking(TrackingConfig.noTracking) *>
+        waitForWfsStates(eng, noTrackingStates)
+    }
+  }
+
+  test("NavigateEngine must memorize the WFS tracking requested in a TCS config.") {
+    withEngine { eng =>
+      eng.tcsConfig(
+        tcsConfig(GuiderConfig(pwfs1Target, wfsTracking).some,
+                  GuiderConfig(pwfs2Target, wfsTracking).some,
+                  GuiderConfig(oiwfsTarget, wfsTracking).some
+        )
+      ) *> waitForWfsStates(eng, WfsGuideStates(wfsTracking, wfsTracking, wfsTracking))
+    }
+  }
+
+  test("NavigateEngine must reset to no tracking the WFS not included in a TCS config.") {
+    withEngine { eng =>
+      eng.pwfs2ProbeTracking(wfsTracking) *>
+        waitForWfsStates(eng, noTrackingStates.copy(pwfs2 = wfsTracking)) *>
+        eng.tcsConfig(
+          tcsConfig(GuiderConfig(pwfs1Target, wfsTracking).some,
+                    none,
+                    GuiderConfig(oiwfsTarget, TrackingConfig.noTracking).some
+          )
+        ) *> waitForWfsStates(eng, noTrackingStates.copy(pwfs1 = wfsTracking))
+    }
+  }
+
+  test("NavigateEngine must memorize the WFS tracking requested in a slew.") {
+    withEngine { eng =>
+      eng.slew(
+        slewOptions,
+        tcsConfig(GuiderConfig(pwfs1Target, wfsTracking).some,
+                  none,
+                  GuiderConfig(oiwfsTarget, wfsTracking).some
+        ),
+        none
+      ) *> waitForWfsStates(eng,
+                            WfsGuideStates(wfsTracking, TrackingConfig.noTracking, wfsTracking)
+      )
+    }
   }
 
 }

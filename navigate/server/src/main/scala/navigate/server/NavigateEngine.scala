@@ -222,6 +222,7 @@ trait NavigateEngine[F[_]] {
   def getNavigateStateStream: Stream[F, NavigateState]
   def getInstrumentPort(instrument: Instrument): F[Option[Int]]
   def getGuideDemand: F[GuideConfig]
+  def getWfsGuideStates: F[WfsGuideStates]
   def getTargetAdjustments: F[TargetOffsets]
   def getPointingOffset: F[PointingCorrections]
   def getOriginOffset: F[FocalPlaneOffset]
@@ -328,12 +329,15 @@ object NavigateEngine {
     // tcsConfig/slew apply (or clear) per-guider tracking as part of the TcsConfig; keep
     // the remembered last-applied tracking config for each guider up to date, the same way
     // pwfs1ProbeTracking/pwfs2ProbeTracking/oiwfsProbeTracking do for their own mutations.
-    private def recordWfsTrackingConfig(config: TcsConfig): State => State = { s =>
-      val s1 = config.pwfs1.fold(s)(g => s.focus(_.wfsTrackingConfig.pwfs1).replace(g.tracking))
-      val s2 =
-        config.pwfs2.fold(s1)(g => s1.focus(_.wfsTrackingConfig.pwfs2).replace(g.tracking))
-      config.oiwfs.fold(s2)(g => s2.focus(_.wfsTrackingConfig.oiwfs).replace(g.tracking))
-    }
+    // A guider not included in the config is not tracking.
+    private def recordWfsTrackingConfig(config: TcsConfig): State => State =
+      _.focus(_.wfsTrackingConfig).replace(
+        WfsGuideStates(
+          config.pwfs1.fold(TrackingConfig.noTracking)(_.tracking),
+          config.pwfs2.fold(TrackingConfig.noTracking)(_.tracking),
+          config.oiwfs.fold(TrackingConfig.noTracking)(_.tracking)
+        )
+      )
 
     override def tcsConfig(config: TcsConfig): F[CommandResult] = command(
       engine,
@@ -665,6 +669,8 @@ object NavigateEngine {
     }
 
     override def getGuideDemand: F[GuideConfig] = stateRef.get.map(_.guideConfig)
+
+    override def getWfsGuideStates: F[WfsGuideStates] = stateRef.get.map(_.wfsTrackingConfig)
 
     override def getTargetAdjustments: F[TargetOffsets] = systems.tcsCommon.getTargetAdjustments
 
@@ -1035,8 +1041,10 @@ object NavigateEngine {
     commandInProgress = None,
     guideConfig = GuideConfig.defaultGuideConfig,
     onSwappedTarget = false,
-    wfsTrackingConfig =
-      WfsGuideStates(TrackingConfig.default, TrackingConfig.default, TrackingConfig.default)
+    wfsTrackingConfig = WfsGuideStates(TrackingConfig.noTracking,
+                                       TrackingConfig.noTracking,
+                                       TrackingConfig.noTracking
+    )
   )
 
   /**
