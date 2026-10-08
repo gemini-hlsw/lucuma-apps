@@ -37,7 +37,8 @@ case class ObservationProgressBar(
   fileIds:        Option[NonEmptyChain[ImageFileId]],
   isPausedInStep: Boolean
 ) extends ReactFnProps(ObservationProgressBar):
-  val isStopRequested: Boolean = sequenceStatus.isStopRequested
+  // A pending "Pause Sequence" (user stop) does not affect the current exposure.
+  val isStopRequested: Boolean = sequenceStatus.isInternalStopRequested
 
   val isStatic: Boolean =
     isStopRequested || !sequenceStatus.isRunning ||
