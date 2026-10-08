@@ -462,6 +462,8 @@ object ExploreStyles:
   val ImagingFilterGridAction: Css         = Css("explore-imaging-filter-grid-action")
   val GmosIfuAnalysisAngle: Css            = Css("explore-gmos-ifu-analysis-angle")
 
+  val ResetToDerived: Css = Css("explore-reset-to-derived")
+
   // GNIRS spectroscopy central wavelengths, one row per configuration.
   val GnirsWavelengthGrid: Css             = Css("explore-gnirs-wavelength-grid")
   val GnirsWavelengthGridHeader: Css       = Css("explore-gnirs-wavelength-grid-header")

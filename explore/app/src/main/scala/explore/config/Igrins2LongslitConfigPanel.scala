@@ -6,8 +6,9 @@ package explore.config
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.data.Input
 import clue.data.syntax.*
-import crystal.react.View
+import crystal.react.*
 import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.HelpIcon
@@ -79,12 +80,18 @@ object Igrins2LongslitConfigPanel
           )
           .view(_.map(_.toInput).orUnassign)
 
-        val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
+        val exposureTimeModeAligner = props.observingMode
           .zoom(
             ObservingMode.Igrins2LongSlit.exposureTimeMode,
             Igrins2LongSlitInput.exposureTimeMode.modify
           )
-          .view(_.toInput.assign)
+
+        val exposureTimeMode: View[ExposureTimeMode] =
+          exposureTimeModeAligner.view(_.toInput.assign)
+
+        val resetEtm: Option[Callback] =
+          Option.when(props.permissions.isTelluricEtmOnly):
+            exposureTimeModeAligner.send(_ => _ => Input.unassign).runAsync
 
         val svcEnabled: View[Boolean] = props.observingMode
           .zoom(
@@ -139,10 +146,11 @@ object Igrins2LongslitConfigPanel
                 exposureTimeMode = exposureTimeMode,
                 coadds = none,
                 scienceMode = ScienceMode.Spectroscopy,
-                readonly = !props.permissions.isFullEdit,
+                readonly = !props.permissions.canEditScienceEtm,
                 units = props.units,
                 calibrationRole = props.calibrationRole,
-                idPrefix = "ig2LongSlit".refined
+                idPrefix = "ig2LongSlit".refined,
+                resetToDerived = resetEtm
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(

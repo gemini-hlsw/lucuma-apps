@@ -37,7 +37,9 @@ final case class ExposureTimeModeEditor(
   forGridRow:               Boolean = false,
   isCustomized:             Boolean = false,
   revertCustomization:      Callback = Callback.empty,
-  allowRevertCustomization: Boolean = true
+  allowRevertCustomization: Boolean = true,
+  resetToDerived:           Option[Callback] = none,
+  coaddsReadonly:           Boolean = false
 ) extends ReactFnProps(ExposureTimeModeEditor)
 
 object ExposureTimeModeEditor
@@ -65,6 +67,8 @@ object ExposureTimeModeEditor
           props.forGridRow,
           props.isCustomized,
           props.revertCustomization,
-          props.allowRevertCustomization
+          props.allowRevertCustomization,
+          props.resetToDerived,
+          props.coaddsReadonly
         )
     )

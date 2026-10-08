@@ -147,13 +147,17 @@ final case class MosMaskContext(
 )
 
 enum ConfigEditPermissions derives Eq:
-  case Readonly, OnlyForOngoing, FullEdit
+  case Readonly, TelluricEtmOnly, OnlyForOngoing, FullEdit
 
-  def fold[A](ro: => A, ongoing: => A, full: => A): A = this match
-    case Readonly       => ro
-    case OnlyForOngoing => ongoing
-    case FullEdit       => full
+  def fold[A](ro: => A, telluricEtm: => A, ongoing: => A, full: => A): A = this match
+    case Readonly        => ro
+    case TelluricEtmOnly => telluricEtm
+    case OnlyForOngoing  => ongoing
+    case FullEdit        => full
 
-  def isReadonly: Boolean       = fold(true, false, false)
-  def isOnlyForOngoing: Boolean = fold(false, true, false)
-  def isFullEdit: Boolean       = fold(false, false, true)
+  // Tellurics count as readonly so every other control stays locked; see canEditScienceEtm.
+  def isReadonly: Boolean        = fold(true, true, false, false)
+  def isTelluricEtmOnly: Boolean = fold(false, true, false, false)
+  def isOnlyForOngoing: Boolean  = fold(false, false, true, false)
+  def isFullEdit: Boolean        = fold(false, false, false, true)
+  def canEditScienceEtm: Boolean = fold(false, true, false, true)

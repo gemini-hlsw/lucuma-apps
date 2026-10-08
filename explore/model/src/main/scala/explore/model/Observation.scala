@@ -502,13 +502,15 @@ final case class Observation(
 
   val isInactive = workflow.value.state === ObservationWorkflowState.Inactive
 
-  inline def isCalibration: Boolean = calibrationRole.isDefined
-  lazy val isOngoing                =
+  inline def isCalibration: Boolean      = calibrationRole.isDefined
+  lazy val isOngoing                     =
     workflow.value.state === ObservationWorkflowState.Ongoing ||
       (workflow.value.state === ObservationWorkflowState.Inactive &&
         workflow.value.validTransitions.contains(ObservationWorkflowState.Ongoing))
-  lazy val isCompleted              = workflow.value.state === ObservationWorkflowState.Completed
-  lazy val isExecuted: Boolean      = isOngoing || isCompleted
+  lazy val isCompleted                   = workflow.value.state === ObservationWorkflowState.Completed
+  lazy val isExecuted: Boolean           = isOngoing || isCompleted
+  lazy val isUnobservedTelluric: Boolean =
+    calibrationRole.contains(CalibrationRole.Telluric) && !isExecuted
 
   inline def newConfigurationRequestApplies(config: Configuration): Boolean =
     (hasNotRequestedCode || hasDeniedValidationCode) &&

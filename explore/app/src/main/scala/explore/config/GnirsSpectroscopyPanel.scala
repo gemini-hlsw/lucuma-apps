@@ -8,7 +8,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.*
 import clue.data.syntax.*
-import crystal.react.View
+import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
@@ -99,6 +99,11 @@ trait GnirsSpectroscopyPanelProps[Fpu]:
     NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]
   ]
 
+  def centralWavelengthsAligner: Aligner[
+    NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig],
+    Input[List[GnirsCentralWavelengthConfigInput]]
+  ]
+
   /** The offsets editor: along-slit presets for the slit, plain p/q offsets for the IFU. */
   def telescopeConfigsEditor(
     prism:      GnirsPrism,
@@ -157,6 +162,29 @@ abstract class GnirsSpectroscopyPanelBuilder[
 
       val centralWavelengthsView: View[NonEmptyList[ObservingMode.GnirsCentralWavelengthConfig]] =
         props.centralWavelengthsView
+
+      // centralWavelengthsView resends every entry with its ETM and coadds. The ODB skips a
+      // telluric edit that carries coadds, and an ETM on an entry makes it an override, so each
+      // row gets its own undoable view that sends the wavelengths with only its ETM.
+      val telluricEtm: Option[GnirsTelluricEtm] =
+        Option.when(props.permissions.isTelluricEtmOnly):
+          val aligner = props.centralWavelengthsAligner
+          GnirsTelluricEtm(
+            view = idx =>
+              aligner
+                .viewMod: cws =>
+                  val etm = cws.toList(idx).exposureTimeMode.toInput.assign
+                  _ => cws.toList.toTelluricEtmInput(idx, etm).assign
+                .zoom(_.toList(idx).exposureTimeMode): f =>
+                  _.zipWithIndex.map: (cw, i) =>
+                    if i === idx then
+                      ObservingMode.GnirsCentralWavelengthConfig.exposureTimeMode.modify(f)(cw)
+                    else cw,
+            reset = idx =>
+              aligner
+                .send(cws => _ => cws.toList.toTelluricEtmInput(idx, Input.unassign).assign)
+                .runAsync
+          )
 
       // Where a single representative wavelength is needed (the along-slit offset
       // defaults are computed from the grating setting), use the first in the
@@ -403,8 +431,9 @@ abstract class GnirsSpectroscopyPanelBuilder[
           calibrationRole = props.calibrationRole,
           allowRevertCustomization = allowRevertCustomization,
           wavelengthReadonly = disableSimpleEdit,
-          exposureTimeModeReadonly = !props.permissions.isFullEdit,
-          showCustomization = showCustomization
+          exposureTimeModeReadonly = !props.permissions.canEditScienceEtm,
+          showCustomization = showCustomization,
+          telluricEtm = telluricEtm
         ),
         <.div(ExploreStyles.GnirsLowerGrid)(
           Panel(

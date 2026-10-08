@@ -41,6 +41,7 @@ import explore.modes.ItcInstrumentConfig
 import explore.modes.ScienceModes
 import explore.services.OdbObservationApi
 import explore.services.OdbSequenceApi
+import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.AltairMode
@@ -92,6 +93,7 @@ final case class ConfigurationTile(
   observingModeGroups:      ObservingModeGroupList,
   sequenceChanged:          Callback,
   readonly:                 Boolean,
+  telluricEtmEditable:      Boolean,
   obsIdSetEditInfo:         ObsIdSetEditInfo,          // for determining edit permissions
   units:                    WavelengthUnits,
   globalPreferences:        View[GlobalPreferences],
@@ -114,7 +116,8 @@ final case class ConfigurationTile(
     pacAndMode.zoom(PosAngleConstraintAndObsMode.posAngleConstraint)
   // staff can edit some things for ongoing observations
   val permissions: ConfigEditPermissions                               =
-    if readonly || obsIdSetEditInfo.hasCompleted || (obsIdSetEditInfo.hasExecuted && !isStaffOrAdmin)
+    if telluricEtmEditable then ConfigEditPermissions.TelluricEtmOnly
+    else if readonly || obsIdSetEditInfo.hasCompleted || (obsIdSetEditInfo.hasExecuted && !isStaffOrAdmin)
     then ConfigEditPermissions.Readonly
     else if obsIdSetEditInfo.hasExecuted
     then ConfigEditPermissions.OnlyForOngoing
@@ -415,20 +418,28 @@ object ConfigurationTile
         val posAngleConstraintView: View[PosAngleConstraint] =
           posAngleConstraintAligner.view(_.toInput.assign)
 
+        def modeInput(input: ObservingModeInput): UpdateObservationsInput =
+          UpdateObservationsInput(
+            WHERE = props.obsId.toWhereObservation.assign,
+            SET = ObservationPropertiesInput(observingMode = input.assign)
+          )
+
+        val updateMode: UpdateObservationsInput => IO[Unit] =
+          if props.permissions.isTelluricEtmOnly then
+            input =>
+              (ctx.odbApi.updateTelluricObservation(props.obsId, input) >>
+                props.sequenceChanged.to[IO]).toastErrors
+          else ctx.odbApi.updateObservations(_)
+
         def optModeAligner(
           input: ObservingModeInput
         ): Option[Aligner[ObservingMode, Input[ObservingModeInput]]] =
-          Aligner(
-            props.mode,
-            UpdateObservationsInput(
-              WHERE = props.obsId.toWhereObservation.assign,
-              SET = ObservationPropertiesInput(observingMode = input.assign)
-            ),
-            (ctx.odbApi.updateObservations(_)).andThen(_.void)
-          ).zoom( // Can we avoid the zoom and make an Aligner constructor that takes an input value?
-            Iso.id,
-            UpdateObservationsInput.SET.andThen(ObservationPropertiesInput.observingMode).modify
-          ).toOption
+          Aligner(props.mode, modeInput(input), updateMode)
+            .zoom( // Can we avoid the zoom and make an Aligner constructor that takes an input value?
+              Iso.id,
+              UpdateObservationsInput.SET.andThen(ObservationPropertiesInput.observingMode).modify
+            )
+            .toOption
 
         val optGmosNorthAligner: Option[Aligner[GmosNorthLongSlit, GmosNorthLongSlitInput]] =
           optModeAligner(EmptyGmosNorthLongSlitInput).flatMap:

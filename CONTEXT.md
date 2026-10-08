@@ -300,6 +300,18 @@ observed with, which can differ from its science observation's, and it no longer
 toward what the next visit needs.
 _Avoid_: executed telluric, completed telluric
 
+**Derived Exposure Time Mode**:
+A telluric's exposure time mode as the ODB computes it from its science observation:
+twice the science S/N. The ODB rewrites it on every recalculation unless an Exposure Time
+Mode Override is set.
+_Avoid_: default ETM, automatic ETM
+
+**Exposure Time Mode Override**:
+An exposure time mode the user sets on an Unobserved Telluric in place of the Derived
+Exposure Time Mode. It holds until the user resets it, the science observation changes
+observing mode or stops observing that wavelength, or the telluric is replaced.
+_Avoid_: custom ETM, telluric customization
+
 # Telescope Offset Configuration
 
 How Gemini instruments specify where the telescope points at each step of a

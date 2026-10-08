@@ -39,7 +39,8 @@ case class TimeAndCountEditor(
   showCount:       Boolean,
   makeId:          NonEmptyString => NonEmptyString,
   labelClass:      Css,
-  controlsWrapper: (VdomNode, Css) => VdomNode
+  controlsWrapper: (VdomNode, Css) => VdomNode,
+  coaddsReadonly:  Boolean = false
 ) extends ReactFnProps[TimeAndCountEditor](TimeAndCountEditor.component)
 
 object TimeAndCountEditor extends ConfigurationFormats:
@@ -69,7 +70,7 @@ object TimeAndCountEditor extends ConfigurationFormats:
               labelClass = props.labelClass,
               validFormat = InputValidSplitEpi.posInt,
               changeAuditor = ChangeAuditor.int,
-              disabled = props.readonly
+              disabled = props.readonly || props.coaddsReadonly
             )(^.autoComplete.off),
             ExploreStyles.ExposureTimeModeCoadds
           ),

@@ -56,6 +56,9 @@ trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
       resetCache(e.getMessage).whenA(doReset) >>
       notifyFatalError(e.getMessage).unlessA(doReset)
 
+  protected def raiseAndResetCache[A](e: Throwable): F[A] =
+    logErrorAndResetCache(e) >> F.raiseError(e)
+
   extension [A](fa: F[A])
     private def adaptOdbErrors: F[A] =
       fa.adaptError(adaptResponseException)

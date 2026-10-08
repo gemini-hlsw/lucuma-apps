@@ -55,8 +55,15 @@ case class GnirsWavelengthsPanel(
   // ...but the exposure time modes are ordinary observation parameters and stay
   // editable without customizing, as they were when they lived in the panel above.
   exposureTimeModeReadonly:     Boolean,
-  showCustomization:            Boolean
+  showCustomization:            Boolean,
+  telluricEtm:                  Option[GnirsTelluricEtm] = none
 ) extends ReactFnProps(GnirsWavelengthsPanel.component)
+
+/** Per-row exposure time mode edits and resets for an Unobserved Telluric. */
+final case class GnirsTelluricEtm(
+  view:  Int => View[ExposureTimeMode],
+  reset: Int => Callback
+)
 
 object GnirsWavelengthsPanel:
 
@@ -159,15 +166,25 @@ object GnirsWavelengthsPanel:
                           <.span(ExploreStyles.GnirsWavelengthDragHandle)(
                             if props.wavelengthReadonly then EmptyVdom else Icons.GripDotsVertical
                           ).withRef(handleRef),
-                          Button(
-                            icon = Icons.Trash,
-                            clazz = ExploreStyles.GnirsWavelengthGridAction,
-                            text = true,
-                            disabled = props.wavelengthReadonly,
-                            // By position, not by value: with duplicates allowed, deleting by
-                            // wavelength would remove every row that shares it.
-                            onClick = localView.mod(l => l.take(idx) ++ l.drop(idx + 1))
-                          ).tiny.compact,
+                          props.telluricEtm.fold(
+                            Button(
+                              icon = Icons.Trash,
+                              clazz = ExploreStyles.GnirsWavelengthGridAction,
+                              text = true,
+                              disabled = props.wavelengthReadonly,
+                              onClick = localView.mod(l => l.take(idx) ++ l.drop(idx + 1))
+                            ).tiny.compact
+                          )(telluric =>
+                            Button(
+                              icon = Icons.ArrowUTurnDownLeft,
+                              clazz =
+                                ExploreStyles.GnirsWavelengthGridAction |+| ExploreStyles.ResetToDerived,
+                              text = true,
+                              disabled = props.exposureTimeModeReadonly,
+                              tooltip = "Reset to the value derived from the science observation",
+                              onClick = telluric.reset(idx)
+                            ).tiny.compact
+                          ),
                           <.span(
                             ExploreStyles.GnirsWavelengthCenter,
                             FormInputTextView(
@@ -188,15 +205,17 @@ object GnirsWavelengthsPanel:
                           ExposureTimeModeEditor(
                             instrument = props.instrument,
                             wavelength = wavelength.value.some,
-                            exposureTimeMode =
-                              swView.zoom(GnirsCentralWavelengthConfig.exposureTimeMode),
+                            exposureTimeMode = props.telluricEtm.fold(
+                              swView.zoom(GnirsCentralWavelengthConfig.exposureTimeMode)
+                            )(_.view(idx)),
                             coadds = swView.zoom(GnirsCentralWavelengthConfig.coadds).some,
                             scienceMode = ScienceMode.Spectroscopy,
                             readonly = props.exposureTimeModeReadonly,
                             units = props.units,
                             calibrationRole = props.calibrationRole,
                             idPrefix = NonEmptyString.unsafeFrom(s"gnirsWavelength$idx"),
-                            forGridRow = true
+                            forGridRow = true,
+                            coaddsReadonly = props.telluricEtm.isDefined
                           )
                         ),
                       getInitialData = _ => Data(idx),
