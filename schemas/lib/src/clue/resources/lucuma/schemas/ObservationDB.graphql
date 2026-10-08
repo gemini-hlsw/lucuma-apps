@@ -8015,7 +8015,7 @@ type ObservationTimeEstimate {
   """
   calibrations: CalibrationDigest!
 
-  """Number of calibration sets still needed."""
+  """Number of tellurics still needed."""
   calibrationCount: NonNegInt! @deprecated(reason: "Use `calibrations.count` instead.")
 
   """Science sequence time estimate."""
@@ -8036,7 +8036,7 @@ Existing calibrations are observations of their own, so only the expected time
 is charged to the observation's total.
 """
 type CalibrationDigest {
-  """Calibration sets still needed: existing plus expected."""
+  """Tellurics still needed: existing plus expected. Zero with no telluric."""
   count: NonNegInt!
 
   """
@@ -8049,7 +8049,8 @@ type CalibrationDigest {
   """
   Calibrations predicted but not generated yet, each at the average estimate
   of the group's calibrations, or a placeholder while none has a digest.
-  Zero when the observation uses no telluric or its telluric was declined.
+  Zero when the observation uses no telluric. A declined telluric fills its
+  slot, so none is expected in its place, but later ones still are.
   Included in the observation's total.
   """
   expected: CalibrationEstimate!
@@ -8917,7 +8918,10 @@ input Flamingos2LongSlitInput {
 
   """
   Exposure time mode for the science sequence.  If not specified, the exposure
-  time mode of the observation's science requirements are used.
+  time mode of the observation's science requirements are used.  On a telluric
+  calibration a value overrides the mode derived from the science observation
+  and survives recalculation; null clears the override.  Null is only valid on
+  a telluric.
   """
   exposureTimeMode: ExposureTimeModeInput
 
@@ -9634,8 +9638,11 @@ type Igrins2LongSlit {
 """Edit or create IGRINS-2 Long Slit configuration"""
 input Igrins2LongSlitInput {
   """
-  The exposureTimeMode field may be unset by assigning a null value, or ignored
-  by skipping it altogether
+  Exposure time mode for the science sequence.  If not specified, the exposure
+  time mode of the observation's science requirements are used.  On a telluric
+  calibration a value overrides the mode derived from the science observation
+  and survives recalculation; null clears the override.  Null is only valid on
+  a telluric.
   """
   exposureTimeMode: ExposureTimeModeInput
 
@@ -9925,8 +9932,11 @@ input GnirsCentralWavelengthConfigInput {
   centralWavelength: WavelengthInput!
 
   """
-  Exposure time mode for this central wavelength.
-  If not specified, it is taken from the observation's requirements.
+  Exposure time mode for this central wavelength.  If not specified, it is
+  taken from the observation's requirements.  On a telluric calibration a value
+  overrides the mode derived from the science observation and survives
+  recalculation; null clears the override.  Null is only valid on a telluric,
+  whose wavelength list must then match its current configuration in order.
   """
   exposureTimeMode: ExposureTimeModeInput
 
