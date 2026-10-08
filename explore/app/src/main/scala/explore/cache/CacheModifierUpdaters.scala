@@ -5,13 +5,13 @@ package explore.cache
 
 import cats.Order.given
 import cats.syntax.all.*
+import explore.model.ConfigurationRequest
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ProgramAttachments
 import explore.model.ProgramInfo
 import explore.model.ProgramSummaries
 import explore.model.syntax.all.*
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Group
 import lucuma.schemas.ObservationDB.Enums.EditType
 import lucuma.schemas.ObservationDB.Enums.EditType.*

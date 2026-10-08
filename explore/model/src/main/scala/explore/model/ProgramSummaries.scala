@@ -19,7 +19,6 @@ import lucuma.core.enums.ProposalStatus
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.Site
 import lucuma.core.model.Configuration
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.ProgramReference

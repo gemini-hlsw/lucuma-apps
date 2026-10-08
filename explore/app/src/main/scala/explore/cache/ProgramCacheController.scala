@@ -8,6 +8,7 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.Throttler
+import explore.model.ConfigurationRequest
 import explore.model.Group
 import explore.model.Observation
 import explore.model.ProgramAttachments
@@ -24,7 +25,6 @@ import fs2.Stream
 import fs2.concurrent.Channel
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ObservingModeType
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB.Enums.Existence

@@ -8,11 +8,11 @@ import cats.syntax.all.*
 import crystal.react.hooks.*
 import explore.Icons
 import explore.components.ui.ExploreStyles
+import explore.model.ConfigurationRequest
 import explore.model.PopupState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.model.ConfigurationRequest
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.markdown.ReactMarkdown

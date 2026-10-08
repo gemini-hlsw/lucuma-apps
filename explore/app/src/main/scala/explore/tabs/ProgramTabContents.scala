@@ -11,6 +11,7 @@ import explore.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.ConfigurationRequest
 import explore.model.ConfigurationRequestList
 import explore.model.ExploreGridLayouts
 import explore.model.Observation
@@ -33,7 +34,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramUserRole
 import lucuma.core.model.Configuration
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnComponent

@@ -37,7 +37,6 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
-import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
