@@ -99,6 +99,7 @@ import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
 import navigate.server.OdbProxy
 import navigate.server.Systems
+import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.server.tcs.TcsNorthController
 import navigate.server.tcs.TcsNorthControllerSim
 import navigate.server.tcs.TcsSimState
@@ -3385,6 +3386,13 @@ object NavigateMappingsTest {
     ): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
     override def getGuideDemand: IO[GuideConfig] = guideRef.get
+
+    override def getWfsGuideStates: IO[WfsGuideStates] =
+      WfsGuideStates(TrackingConfig.noTracking,
+                     TrackingConfig.noTracking,
+                     TrackingConfig.noTracking
+      )
+        .pure[IO]
 
     def getTargetAdjustments: IO[TargetOffsets] = TargetOffsets.default.pure[IO]
 

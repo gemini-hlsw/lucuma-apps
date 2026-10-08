@@ -16,6 +16,6 @@ case class TrackingConfig(
 }
 
 object TrackingConfig {
-  val default: TrackingConfig    = TrackingConfig(true, false, false, true)
-  val noTracking: TrackingConfig = TrackingConfig(false, false, false, false)
+  val defaultTracking: TrackingConfig = TrackingConfig(true, false, false, true)
+  val noTracking: TrackingConfig      = TrackingConfig(false, false, false, false)
 }
