@@ -20,26 +20,31 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
 import lucuma.ui.primereact.*
 
-case class ConfigurationRequestJustificationViewer(
+case class ConfigurationRequestJustificationFeedbackViewer(
   trigger:  Button,
   requests: List[ConfigurationRequest]
-) extends ReactFnProps(ConfigurationRequestJustificationViewer)
+) extends ReactFnProps(ConfigurationRequestJustificationFeedbackViewer)
 
-object ConfigurationRequestJustificationViewer
-    extends ReactFnComponent[ConfigurationRequestJustificationViewer](props =>
+object ConfigurationRequestJustificationFeedbackViewer
+    extends ReactFnComponent[ConfigurationRequestJustificationFeedbackViewer](props =>
       for {
         popupState <- useStateView(PopupState.Closed)
         md         <- useMemo(props.requests): requests =>
-                        val map  = requests.groupMap(_.justification)(_.id).view.mapValues(_.sorted)
+                        // Requests with the same justification and feedback share a section.
+                        val map  = requests
+                          .groupMap(r => (r.justification, r.feedback))(_.id)
+                          .view
+                          .mapValues(_.sorted)
                         val list = map.toList.sortBy(_._2.headOption)
                         if (list.length === 0) "## Nothing selected"
                         else
                           list
-                            .map((ojust, ids) =>
+                            .map { case ((ojust, ofeedback), ids) =>
                               val just     = ojust.fold("_<No Justification Provided>_")(_.value)
+                              val feedback = ofeedback.fold("_<No Feedback Provided>_")(_.value)
                               val idString = ids.mkString("### ", ", ", "")
-                              s"$idString\n$just"
-                            )
+                              s"$idString\n#### Justification\n$just\n#### Feedback\n$feedback"
+                            }
                             .mkString("\n\n")
       } yield
         val close = popupState.set(PopupState.Closed)
@@ -62,7 +67,7 @@ object ConfigurationRequestJustificationViewer
             dismissableMask = true,
             resizable = true,
             clazz = LucumaPrimeStyles.Dialog.Small,
-            header = "Justification Viewer",
+            header = "Justification and Feedback Viewer",
             footer = footer
           )(
             <.div(ExploreStyles.HelpMarkdownBody)(ReactMarkdown(content = md))
