@@ -832,6 +832,16 @@ body {
     }
   }
 
+  &.observe-sequence-hold-button {
+    @include control-button;
+
+    background-color: var(--teal-500);
+
+    &:enabled:hover {
+      background-color: var(--teal-600);
+    }
+  }
+
   &.observe-rewind-button {
     @include control-button;
 
@@ -842,7 +852,7 @@ body {
     }
   }
 
-  &.observe-cancel-pause-button {
+  &.observe-cancel-sequence-hold-button {
     @include control-button;
 
     background-color: var(--orange-700);

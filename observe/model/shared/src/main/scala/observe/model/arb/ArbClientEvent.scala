@@ -70,10 +70,10 @@ trait ArbClientEvent:
   given Cogen[ClientEvent.StepComplete] =
     Cogen[Observation.Id].contramap(_.obsId)
 
-  given Arbitrary[ClientEvent.SequencePaused] = Arbitrary:
-    arbitrary[Observation.Id].map(ClientEvent.SequencePaused(_))
+  given Arbitrary[ClientEvent.SequenceHeld] = Arbitrary:
+    arbitrary[Observation.Id].map(ClientEvent.SequenceHeld(_))
 
-  given Cogen[ClientEvent.SequencePaused] =
+  given Cogen[ClientEvent.SequenceHeld] =
     Cogen[Observation.Id].contramap(_.obsId)
 
   given Arbitrary[ClientEvent.BreakpointReached] = Arbitrary:
@@ -166,7 +166,7 @@ trait ArbClientEvent:
       arbitrary[ClientEvent.InitialEvent],
       arbitrary[ClientEvent.ObserveState],
       arbitrary[ClientEvent.StepComplete],
-      arbitrary[ClientEvent.SequencePaused],
+      arbitrary[ClientEvent.SequenceHeld],
       arbitrary[ClientEvent.BreakpointReached],
       arbitrary[ClientEvent.AcquisitionPromptReached],
       arbitrary[ClientEvent.SingleActionEvent],
@@ -192,7 +192,7 @@ trait ArbClientEvent:
             Either[
               ClientEvent.StepComplete,
               Either[
-                ClientEvent.SequencePaused,
+                ClientEvent.SequenceHeld,
                 Either[
                   ClientEvent.BreakpointReached,
                   Either[
@@ -235,7 +235,7 @@ trait ArbClientEvent:
       case e @ ClientEvent.ObserveState(_, _, _, _)         => Right(Right(Left(e)))
       case e @ ClientEvent.ObsLoaded(_)                     => Right(Right(Right(Left(e))))
       case e @ ClientEvent.StepComplete(_)                  => Right(Right(Right(Right(Left(e)))))
-      case e @ ClientEvent.SequencePaused(_)                => Right(Right(Right(Right(Right(Left(e))))))
+      case e @ ClientEvent.SequenceHeld(_)                  => Right(Right(Right(Right(Right(Left(e))))))
       case e @ ClientEvent.BreakpointReached(_)             => Right(Right(Right(Right(Right(Right(Left(e)))))))
       case e @ ClientEvent.AcquisitionPromptReached(_)      =>
         Right(Right(Right(Right(Right(Right(Right(Left(e))))))))

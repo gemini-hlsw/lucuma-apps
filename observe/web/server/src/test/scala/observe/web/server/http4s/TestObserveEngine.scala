@@ -31,7 +31,7 @@ import org.typelevel.log4cats.Logger
 class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
   override val systems: Systems[F] = sys
 
-  override def start(
+  override def startSequence(
     id:          Id,
     user:        User,
     observer:    Observer,
@@ -39,13 +39,13 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     runOverride: RunOverride
   ): F[Unit] = Applicative[F].unit
 
-  override def requestPause(
+  override def requestSequenceHold(
     id:       Id,
     observer: Observer,
     user:     User
   ): F[Unit] = Applicative[F].unit
 
-  override def requestCancelPause(
+  override def cancelSequenceHoldRequest(
     id:       Id,
     observer: Observer,
     user:     User
@@ -132,27 +132,27 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
 
   override def requestRefresh(clientId: ClientId): F[Unit] = Applicative[F].unit
 
-  override def stopObserve(
+  override def stopExposure(
     seqId:    Id,
     observer: Observer,
     user:     User,
     graceful: Boolean
   ): F[Unit] = Applicative[F].unit
 
-  override def abortObserve(
+  override def abortExposure(
     seqId:    Id,
     observer: Observer,
     user:     User
   ): F[Unit] = Applicative[F].unit
 
-  override def pauseObserve(
+  override def pauseExposure(
     seqId:    Id,
     observer: Observer,
     user:     User,
     graceful: Boolean
   ): F[Unit] = Applicative[F].unit
 
-  override def resumeObserve(
+  override def resumeExposure(
     seqId:    Id,
     observer: Observer,
     user:     User

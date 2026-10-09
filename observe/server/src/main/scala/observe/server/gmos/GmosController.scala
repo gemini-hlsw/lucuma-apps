@@ -37,11 +37,11 @@ trait GmosController[F[_], T <: GmosController.GmosSite] {
   // endObserve is to notify the completion of the observation, not to cause its end.
   def endObserve: F[Unit]
 
-  def stopObserve: F[Unit]
+  def stopExposure: F[Unit]
 
-  def abortObserve: F[Unit]
+  def abortExposure: F[Unit]
 
-  def pauseObserve: F[Unit]
+  def pauseExposure: F[Unit]
 
   def resumePaused(expTime: TimeSpan): F[ObserveCommandResult]
 

@@ -38,14 +38,14 @@ case class ExposureControlButtons(
   requests:       ObservationRequests
 ) extends ReactFnProps(ExposureControlButtons):
   val operations: List[Operations] =
-    instrument.operations(OperationLevel.Observation, isPausedInStep, isMultiLevel)
+    instrument.operations(OperationLevel.Exposure, isPausedInStep, isMultiLevel)
 
   val isRunning: Boolean = sequenceStatus.isRunning
 
-  // Only a stop/abort/pause-exposure already in progress (internal stop) locks these buttons.
-  // A pending "Pause Sequence" (user stop) lets the exposure run to completion, so it must
-  // still be possible to stop or abort it.
-  val isStopRequested: Boolean = sequenceStatus.isInternalStopRequested
+  // Only a stop/abort/pause-exposure already in progress (step interrupt requested) locks these
+  // buttons. A pending "Hold sequence" request (sequence hold requested) lets the exposure run to
+  // completion, so it must still be possible to stop or abort it.
+  val isStepInterruptRequested: Boolean = sequenceStatus.isStepInterruptRequested
 
   val requestInFlight: Boolean = requests.stepRequestInFlight
 
@@ -73,47 +73,51 @@ object ExposureControlButtons
             TagMod.when(props.isRunning):
               props.operations
                 .map[VdomNode]:
-                  case ResumeObservation =>
+                  case ResumeExposure =>
                     Button(
                       clazz = ObserveStyles.PlayButton,
                       icon = Icons.Play.withFixedWidth(),
                       tooltip = "Resume the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled = props.requestInFlight || !props.isPausedInStep,
-                      onClickE = _.stopPropagationCB >> sequenceApi.resumeObs(props.obsId).runAsync
+                      onClickE =
+                        _.stopPropagationCB >> sequenceApi.resumeExposure(props.obsId).runAsync
                     )
-                  case PauseObservation  =>
+                  case PauseExposure  =>
                     Button(
                       clazz = ObserveStyles.PauseButton,
                       icon = Icons.Pause.withFixedWidth(),
                       tooltip = "Pause the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =
-                        props.requestInFlight || props.isPausedInStep || !props.isExposure || props.isStopRequested,
-                      onClickE = _.stopPropagationCB >> sequenceApi.pauseObs(props.obsId).runAsync
+                        props.requestInFlight || props.isPausedInStep || !props.isExposure || props.isStepInterruptRequested,
+                      onClickE =
+                        _.stopPropagationCB >> sequenceApi.pauseExposure(props.obsId).runAsync
                     )
-                  case StopObservation   =>
+                  case StopExposure   =>
                     Button(
                       clazz = ObserveStyles.StopButton,
                       icon = Icons.Stop.withFixedWidth().withSize(IconSize.LG),
                       tooltip = "Stop the current exposure early",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =
-                        props.requestInFlight || !props.isExposure || props.isStopRequested,
-                      onClickE = _.stopPropagationCB >> sequenceApi.stop(props.obsId).runAsync
+                        props.requestInFlight || !props.isExposure || props.isStepInterruptRequested,
+                      onClickE =
+                        _.stopPropagationCB >> sequenceApi.stopExposure(props.obsId).runAsync
                     )
-                  case AbortObservation  =>
+                  case AbortExposure  =>
                     Button(
                       clazz = ObserveStyles.AbortButton,
                       icon = SequenceIcons.XMark.withFixedWidth().withSize(IconSize.LG),
                       tooltip = "Abort the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =
-                        props.requestInFlight || !props.isExposure || props.isStopRequested,
-                      onClickE = _.stopPropagationCB >> sequenceApi.abort(props.obsId).runAsync
+                        props.requestInFlight || !props.isExposure || props.isStepInterruptRequested,
+                      onClickE =
+                        _.stopPropagationCB >> sequenceApi.abortExposure(props.obsId).runAsync
                     )
                   // // N&S operations
-                  // case PauseImmediatelyObservation =>
+                  // case PauseExposureImmediately =>
                   //   Popup(
                   //     position = PopupPosition.TopRight,
                   //     trigger = Button(
@@ -124,7 +128,7 @@ object ExposureControlButtons
                   //       disabled = p.requestInFlight || p.isObservePaused || isReadingOut
                   //     )(IconPause)
                   //   )("Pause the current exposure immediately")
-                  // case PauseGracefullyObservation  =>
+                  // case PauseExposureGracefully  =>
                   //   Popup(
                   //     position = PopupPosition.TopRight,
                   //     trigger = Button(
@@ -135,7 +139,7 @@ object ExposureControlButtons
                   //         p.requestInFlight || p.isObservePaused || p.nsPendingObserveCmd.isDefined || isReadingOut
                   //     )(pauseGracefullyIcon)
                   //   )("Pause the current exposure at the end of the cycle")
-                  // case StopImmediatelyObservation  =>
+                  // case StopExposureImmediately  =>
                   //   Popup(
                   //     position = PopupPosition.TopRight,
                   //     trigger = Button(
@@ -146,7 +150,7 @@ object ExposureControlButtons
                   //       disabled = p.requestInFlight || isReadingOut
                   //     )(IconStop)
                   //   )("Stop the current exposure immediately")
-                  // case StopGracefullyObservation   =>
+                  // case StopExposureGracefully   =>
                   //   Popup(
                   //     position = PopupPosition.TopRight,
                   //     trigger = Button(
@@ -157,7 +161,7 @@ object ExposureControlButtons
                   //         p.requestInFlight || p.isObservePaused || p.nsPendingObserveCmd.isDefined || isReadingOut
                   //     )(stopGracefullyIcon)
                   //   )("Stop the current exposure at the end of the cycle")
-                  case _                 => EmptyVdom
+                  case _              => EmptyVdom
                 .toTagMod
           )
         else EmptyVdom

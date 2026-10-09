@@ -501,9 +501,9 @@ object GmosControllerEpics extends GmosEncoders {
         }.flatten
       }
 
-      override def stopObserve: F[Unit] = protectedObserveCommand("Stop", sys.stopCmd)
+      override def stopExposure: F[Unit] = protectedObserveCommand("Stop", sys.stopCmd)
 
-      override def abortObserve: F[Unit] = protectedObserveCommand("Abort", sys.abortCmd)
+      override def abortExposure: F[Unit] = protectedObserveCommand("Abort", sys.abortCmd)
 
       override def endObserve: F[Unit] =
         L.debug("Send endObserve to Gmos") *>
@@ -511,7 +511,7 @@ object GmosControllerEpics extends GmosEncoders {
           sys.endObserveCmd.post(DefaultTimeout) *>
           L.debug("endObserve sent to Gmos")
 
-      override def pauseObserve: F[Unit] = protectedObserveCommand("Pause", sys.pauseCmd)
+      override def pauseExposure: F[Unit] = protectedObserveCommand("Pause", sys.pauseCmd)
 
       override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] = for {
         _   <- L.debug("Resume Gmos observation")

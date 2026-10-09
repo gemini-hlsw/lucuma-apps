@@ -315,7 +315,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     }
 
   // Stars a sequence from the first non executed step. The method checks for resources conflict.
-  override def start(
+  override def startSequence(
     obsId:       Observation.Id,
     user:        User,
     observer:    Observer,
@@ -354,23 +354,23 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, obsId, seqType)
         .getOrElse(EngineHandle.unit)
 
-  override def requestPause(
+  override def requestSequenceHold(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
       setObserver(obsId, user, observer) *>
-      executeEngine.offer(Event.pause(obsId, user))
+      executeEngine.offer(Event.requestSequenceHold(obsId, user))
 
-  override def requestCancelPause(
+  override def cancelSequenceHoldRequest(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Continue requested by ${user.displayName}") *>
       setObserver(obsId, user, observer) *>
-      executeEngine.offer(Event.cancelPause(obsId, user))
+      executeEngine.offer(Event.cancelSequenceHoldRequest(obsId, user))
 
   override def rewindStep(
     obsId:    Observation.Id,
@@ -379,7 +379,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Step rewind requested by ${user.displayName}") *>
       setObserver(obsId, user, observer) *>
-      // An action stop with nothing to stop: it only raises the internal stop flag, which the
+      // An action stop with nothing to stop: it only raises the step-interrupt-requested flag, which the
       // engine honours at the next execution group boundary while the exposure is still ahead.
       executeEngine.offer(Event.actionStop(obsId, _ => Stream.empty))
 
@@ -800,8 +800,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           case SystemEvent.StepComplete(obsId)                                     =>
             Stream.emit(StepComplete(obsId): TargetedClientEvent) ++
               buildObserveStateStream(svs, odbProxy)
-          case SystemEvent.SequencePaused(obsId)                                   =>
-            Stream.emit(SequencePaused(obsId): TargetedClientEvent)
+          case SystemEvent.SequenceHeld(obsId)                                     =>
+            Stream.emit(SequenceHeld(obsId): TargetedClientEvent)
           case SystemEvent.BreakpointReached(obsId)                                =>
             Stream.emit(BreakpointReached(obsId): TargetedClientEvent) ++
               buildObserveStateStream(svs, odbProxy)
@@ -845,7 +845,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     // TODO We are never using the process function. Consider removing the `process` method and just returning the stream.
     executeEngine.process(PartialFunction.empty)(s0)
 
-  override def stopObserve(
+  override def stopExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User,
@@ -867,9 +867,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         .offer(Event.modifyState(setObsCmd(obsId, StopGracefully)))
         .whenA(graceful) *>
       executeEngine.offer:
-        Event.actionStop(obsId, translator.stopObserve(obsId, graceful))
+        Event.actionStop(obsId, translator.stopExposure(obsId, graceful))
 
-  override def abortObserve(
+  override def abortExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
@@ -877,9 +877,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     logInfoEvent(s"Sequence $obsId: Abort requested by ${user.displayName}") *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer:
-        Event.actionStop(obsId, translator.abortObserve(obsId))
+        Event.actionStop(obsId, translator.abortExposure(obsId))
 
-  override def pauseObserve(
+  override def pauseExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User,
@@ -892,9 +892,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           Event.modifyState(setObsCmd(obsId, PauseGracefully))
         .whenA(graceful) *>
       executeEngine.offer:
-        Event.actionStop(obsId, translator.pauseObserve(obsId, graceful))
+        Event.actionStop(obsId, translator.pauseExposure(obsId, graceful))
 
-  override def resumeObserve(
+  override def resumeExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
@@ -1033,7 +1033,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         Event.modifyState:
           configSystemHandle(obsId, stepId, sys, clientId)
 
-  private def notifyOdbSequencePaused(obsId: Observation.Id): F[Unit] =
+  private def notifyOdbSequenceHeld(obsId: Observation.Id): F[Unit] =
     systems.odb
       .obsPause(obsId)
       .ensure(
@@ -1054,10 +1054,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
               ObserveFailure
                 .Unexpected("Unable to send ObservationAborted message to ODB.")
             )(identity)
-      case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _)               =>
-        notifyOdbSequencePaused(obsId)
+      case (SystemUpdate(SystemEvent.SequenceHeld(obsId), _), _)                 =>
+        notifyOdbSequenceHeld(obsId)
       case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _)            =>
-        notifyOdbSequencePaused(obsId)
+        notifyOdbSequenceHeld(obsId)
       case (SystemUpdate(SystemEvent.LoadFailed(obsId, _, e), _), _)             =>
         Logger[F].error(s"Error loading $obsId due to $e") <*
           systems.odb
@@ -1069,7 +1069,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       case (UserCommandResponse(UserEvent.ModifyState(_), _, Some(seqEvent)), _) =>
         seqEvent match
           case AcquisitionCompleted(obsId)                        =>
-            notifyOdbSequencePaused(obsId)
+            notifyOdbSequenceHeld(obsId)
           case NewStepLoaded(obsId, sequenceType, atomId, stepId) =>
             systems.odb
               .obsContinue(obsId)

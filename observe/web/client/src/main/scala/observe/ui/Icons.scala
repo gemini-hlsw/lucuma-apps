@@ -122,6 +122,10 @@ object Icons:
   private val faPause: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faPlayPause")
+  private val faPlayPause: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faPlay")
   private val faPlay: FAIcon = js.native
 
@@ -195,6 +199,7 @@ object Icons:
     faMoon,
     faPause,
     faPlay,
+    faPlayPause,
     faPlus,
     faRectangleList,
     faReply,
@@ -237,6 +242,7 @@ object Icons:
   inline def Moon              = FontAwesomeIcon(faMoon)
   inline def Pause             = FontAwesomeIcon(faPause)
   inline def Play              = FontAwesomeIcon(faPlay)
+  inline def PlayPause         = FontAwesomeIcon(faPlayPause)
   inline def Plus              = FontAwesomeIcon(faPlus)
   inline def RectangleList     = FontAwesomeIcon(faRectangleList)
   inline def Reply             = FontAwesomeIcon(faReply)
@@ -248,9 +254,9 @@ object Icons:
   inline def Volume            = FontAwesomeIcon(faVolume)
   inline def VolumeSlash       = FontAwesomeIcon(faVolumeSlash)
 
-  val CancelPause =
+  val CancelSequenceHold =
     LayeredIcon()(
-      Pause.withSize(IconSize.SM).withClass(ObserveStyles.IconSoft),
+      PlayPause.withSize(IconSize.SM).withClass(ObserveStyles.IconSoft),
       Ban.withSize(IconSize.LG)
     )
 

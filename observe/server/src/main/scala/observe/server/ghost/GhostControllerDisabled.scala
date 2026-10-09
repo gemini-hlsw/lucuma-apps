@@ -25,11 +25,11 @@ class GhostControllerDisabled[F[_]: {Logger, Applicative}] extends GhostControll
 
   override def endObserve: F[Unit] = overrideLogMessage(name, "endObserve")
 
-  override def stopObserve: F[Unit] = Applicative[F].unit
+  override def stopExposure: F[Unit] = Applicative[F].unit
 
-  override def abortObserve: F[Unit] = Applicative[F].unit
+  override def abortExposure: F[Unit] = Applicative[F].unit
 
-  override def pauseObserve: F[Unit] = Applicative[F].unit
+  override def pauseExposure: F[Unit] = Applicative[F].unit
 
   override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] =
     ObserveCommandResult.Success.pure[F].widen

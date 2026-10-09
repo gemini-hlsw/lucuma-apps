@@ -37,11 +37,12 @@ case class ObservationProgressBar(
   fileIds:        Option[NonEmptyChain[ImageFileId]],
   isPausedInStep: Boolean
 ) extends ReactFnProps(ObservationProgressBar):
-  // A pending "Pause Sequence" (user stop) does not affect the current exposure.
-  val isStopRequested: Boolean = sequenceStatus.isInternalStopRequested
+  // A pending "Hold sequence" request (sequence hold requested) does not affect the current
+  // exposure.
+  val isStepInterruptRequested: Boolean = sequenceStatus.isStepInterruptRequested
 
   val isStatic: Boolean =
-    isStopRequested || !sequenceStatus.isRunning ||
+    isStepInterruptRequested || !sequenceStatus.isRunning ||
       !progress.map(_.stage).contains_(ObserveStage.Exposure) ||
       isPausedInStep
 
@@ -91,7 +92,9 @@ object ObservationProgressBar
             _.map: progressRemainingTime =>
               remainingActual.setAsync(progressRemainingTime) >>
                 Option
-                  .when(progressRemainingTime < remainingShown.value && !props.isStopRequested):
+                  .when(
+                    progressRemainingTime < remainingShown.value && !props.isStepInterruptRequested
+                  ):
                     remainingShown.setStateAsync(progressRemainingTime)
                   .orEmpty
             .orEmpty
@@ -102,7 +105,7 @@ object ObservationProgressBar
             renderProgressLabel(
               props.fileIds,
               none,
-              props.isStopRequested,
+              props.isStepInterruptRequested,
               props.isPausedInStep,
               ObserveStage.Preparing
             )
@@ -125,7 +128,7 @@ object ObservationProgressBar
                 renderProgressLabel(
                   props.fileIds,
                   remainingShown.value.some,
-                  props.isStopRequested,
+                  props.isStepInterruptRequested,
                   props.isPausedInStep,
                   runningProgress.stage
                 )

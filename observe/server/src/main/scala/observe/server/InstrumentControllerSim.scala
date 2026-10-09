@@ -32,13 +32,13 @@ sealed trait InstrumentControllerSim[F[_]] {
 
   def applyConfig[C: Show](config: C): F[Unit]
 
-  def stopObserve: F[Unit]
+  def stopExposure: F[Unit]
 
-  def abortObserve: F[Unit]
+  def abortExposure: F[Unit]
 
   def endObserve: F[Unit]
 
-  def pauseObserve: F[Unit]
+  def pauseExposure: F[Unit]
 
   def resumePaused: F[ObserveCommandResult]
 
@@ -79,7 +79,7 @@ object InstrumentControllerSim {
     name:               String,
     useTimeout:         Boolean,
     readOutDelay:       TimeSpan,
-    stopObserveDelay:   TimeSpan,
+    stopExposureDelay:  TimeSpan,
     configurationDelay: TimeSpan,
     obsStateRef:        Ref[F, ObserveState]
   )(using val F: Temporal[F], L: Logger[F])
@@ -135,19 +135,19 @@ object InstrumentControllerSim {
       log(s"Simulate applying $name configuration ${config.show}") *>
         F.sleep(FiniteDuration(configurationDelay.toMicroseconds, MICROSECONDS))
 
-    def stopObserve: F[Unit] =
+    def stopExposure: F[Unit] =
       log(s"Simulate stopping $name exposure") *>
-        F.sleep(FiniteDuration(stopObserveDelay.toMicroseconds, MICROSECONDS)) *>
+        F.sleep(FiniteDuration(stopExposureDelay.toMicroseconds, MICROSECONDS)) *>
         obsStateRef.update(Focus[ObserveState](_.stopFlag).replace(true))
 
-    def abortObserve: F[Unit] =
+    def abortExposure: F[Unit] =
       log(s"Simulate aborting $name exposure") *>
         obsStateRef.update(Focus[ObserveState](_.abortFlag).replace(true))
 
     def endObserve: F[Unit] =
       log(s"Simulate sending endObserve to $name")
 
-    def pauseObserve: F[Unit] =
+    def pauseExposure: F[Unit] =
       log(s"Simulate pausing $name exposure") *>
         obsStateRef.update(Focus[ObserveState](_.pauseFlag).replace(true))
 
@@ -202,7 +202,7 @@ object InstrumentControllerSim {
   def unsafeWithTimes[F[_]: {Async, Logger}](
     name:               String,
     readOutDelay:       TimeSpan,
-    stopObserveDelay:   TimeSpan,
+    stopExposureDelay:  TimeSpan,
     configurationDelay: TimeSpan
   ): InstrumentControllerSim[F] = {
     val obsStateRef = InstrumentControllerSim.ObserveState.unsafeRef[F]
@@ -210,7 +210,7 @@ object InstrumentControllerSim {
       name,
       true,
       readOutDelay,
-      stopObserveDelay,
+      stopExposureDelay,
       configurationDelay,
       obsStateRef
     )

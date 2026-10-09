@@ -88,10 +88,10 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
   given stepsDecoder: EntityDecoder[F, List[Step.Id]] = jsonOf[F, List[Step.Id]]
 
   private val commandServices: HttpRoutes[F] = HttpRoutes.of[F] {
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "start" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "startSequence" /
         ObserverVar(obs) :? OptionalRunOverride(runOverride) =>
       ssoClient.require(req): user =>
-        oe.start(obsId, user, obs, clientId, runOverride.getOrElse(RunOverride.Default)) *>
+        oe.startSequence(obsId, user, obs, clientId, runOverride.getOrElse(RunOverride.Default)) *>
           NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / StepIdVar(stepId) / ClientIDVar(clientId) /
@@ -100,15 +100,15 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.configSystem(obsId, obs, user, stepId, resource, clientId) *> NoContent()
 
     // In a number of endpoints, clientId is not used but we keep it anyway so that it's logged.
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "pause" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "sequenceHold" /
         ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.requestPause(obsId, obs, user) *> NoContent()
+        oe.requestSequenceHold(obsId, obs, user) *> NoContent()
 
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "cancelPause" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "cancelSequenceHold" /
         ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.requestCancelPause(obsId, obs, user) *> NoContent()
+        oe.cancelSequenceHoldRequest(obsId, obs, user) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "proceedAfterPrompt" /
         ObserverVar(obs) / SequenceTypeVar(seqType) =>
@@ -127,25 +127,25 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         req.decode[List[Step.Id]]: steps =>
           oe.setBreakpoints(obsId, user, obs, steps.toSet, bp) *> NoContent()
 
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "stop" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "stopExposure" /
         ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.stopObserve(obsId, obs, user, graceful = false) *> NoContent()
+        oe.stopExposure(obsId, obs, user, graceful = false) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
-        "stopGracefully" / ObserverVar(obs) =>
+        "stopExposureGracefully" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.stopObserve(obsId, obs, user, graceful = true) *> NoContent()
+        oe.stopExposure(obsId, obs, user, graceful = true) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
-        "abort" / ObserverVar(obs) =>
+        "abortExposure" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.abortObserve(obsId, obs, user) *> NoContent()
+        oe.abortExposure(obsId, obs, user) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
-        "pauseObs" / ObserverVar(obs) =>
+        "pauseExposure" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.pauseObserve(obsId, obs, user, graceful = false) *> NoContent()
+        oe.pauseExposure(obsId, obs, user, graceful = false) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
         "rewindStep" / ObserverVar(obs) =>
@@ -153,14 +153,14 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.rewindStep(obsId, obs, user) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
-        "pauseObsGracefully" / ObserverVar(obs) =>
+        "pauseExposureGracefully" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.pauseObserve(obsId, obs, user, graceful = true) *> NoContent()
+        oe.pauseExposure(obsId, obs, user, graceful = true) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
-        "resumeObs" / ObserverVar(obs) =>
+        "resumeExposure" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.resumeObserve(obsId, obs, user) *> NoContent()
+        oe.resumeExposure(obsId, obs, user) *> NoContent()
 
     case req @ POST -> Root / ClientIDVar(clientId) / "operator" / OperatorVar(op) =>
       ssoClient.require(req): user =>
@@ -264,7 +264,7 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
 
   /**
    * Supplies the `http.route` span attribute, which the otel4s server middleware uses to name spans
-   * — `POST /api/observe/{obsId}/{clientId}/start/{param}` rather than a bare `POST`.
+   * — `POST /api/observe/{obsId}/{clientId}/startSequence/{param}` rather than a bare `POST`.
    */
   val routeClassifier: RouteClassifier =
     RouteClassifier.of[F]:

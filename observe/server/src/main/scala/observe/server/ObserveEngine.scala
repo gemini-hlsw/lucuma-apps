@@ -51,7 +51,7 @@ trait ObserveEngine[F[_]] {
 
   val systems: Systems[F]
 
-  def start(
+  def startSequence(
     obsId:       Observation.Id,
     user:        User,
     observer:    Observer,
@@ -66,13 +66,13 @@ trait ObserveEngine[F[_]] {
     seqType:  SequenceType
   ): F[Unit]
 
-  def requestPause(
+  def requestSequenceHold(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
   ): F[Unit]
 
-  def requestCancelPause(
+  def cancelSequenceHoldRequest(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
@@ -153,27 +153,27 @@ trait ObserveEngine[F[_]] {
 
   def requestRefresh(clientId: ClientId): F[Unit]
 
-  def stopObserve(
+  def stopExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User,
     graceful: Boolean
   ): F[Unit]
 
-  def abortObserve(
+  def abortExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
   ): F[Unit]
 
-  def pauseObserve(
+  def pauseExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User,
     graceful: Boolean
   ): F[Unit]
 
-  def resumeObserve(
+  def resumeExposure(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User

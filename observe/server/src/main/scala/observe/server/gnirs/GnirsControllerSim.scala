@@ -26,9 +26,9 @@ final case class GnirsControllerSim[F[_]] private (sim: InstrumentControllerSim[
 
   override def endObserve: F[Unit] = sim.endObserve
 
-  override def stopObserve: F[Unit] = sim.stopObserve
+  override def stopExposure: F[Unit] = sim.stopExposure
 
-  override def abortObserve: F[Unit] = sim.abortObserve
+  override def abortExposure: F[Unit] = sim.abortExposure
 
   override def observeProgress(total: TimeSpan): Stream[F, Progress] =
     sim.observeCountdown(total, ElapsedTime(TimeSpan.Zero))

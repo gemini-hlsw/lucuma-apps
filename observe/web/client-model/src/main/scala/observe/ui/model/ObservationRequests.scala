@@ -14,24 +14,26 @@ import observe.model.Subsystem
 import observe.ui.model.enums.OperationRequest
 
 case class ObservationRequests(
-  run:               OperationRequest,
-  stop:              OperationRequest,
-  abort:             OperationRequest,
-  pause:             OperationRequest,
-  cancelPause:       OperationRequest,
-  resume:            OperationRequest,
-  startFrom:         OperationRequest,
-  rewind:            OperationRequest,
-  subsystemRun:      Map[Step.Id, Map[Subsystem, OperationRequest]],
-  acquisitionPrompt: OperationRequest
+  startSequence:      OperationRequest,
+  startSequenceFrom:  OperationRequest,
+  sequenceHold:       OperationRequest,
+  cancelSequenceHold: OperationRequest,
+  stopExposure:       OperationRequest,
+  abortExposure:      OperationRequest,
+  pauseExposure:      OperationRequest,
+  resumeExposure:     OperationRequest,
+  rewind:             OperationRequest,
+  subsystemRun:       Map[Step.Id, Map[Subsystem, OperationRequest]],
+  acquisitionPrompt:  OperationRequest
 ) derives Eq:
   val stepRequestInFlight: Boolean                =
-    pause === OperationRequest.InFlight ||
-    cancelPause === OperationRequest.InFlight ||
-    resume === OperationRequest.InFlight ||
-    stop === OperationRequest.InFlight ||
-    abort === OperationRequest.InFlight ||
-    startFrom === OperationRequest.InFlight ||
+    sequenceHold === OperationRequest.InFlight ||
+    cancelSequenceHold === OperationRequest.InFlight ||
+    pauseExposure === OperationRequest.InFlight ||
+    resumeExposure === OperationRequest.InFlight ||
+    stopExposure === OperationRequest.InFlight ||
+    abortExposure === OperationRequest.InFlight ||
+    startSequenceFrom === OperationRequest.InFlight ||
     rewind === OperationRequest.InFlight
 
     // Indicate if any resource is being executed
@@ -40,44 +42,52 @@ case class ObservationRequests(
 
   def withSequenceStatus(status: SequenceStatus, isPaused: Boolean): ObservationRequests =
     this.copy(
-      run = if (status.isRunning) OperationRequest.Idle else run,
-      stop = if (status.isRunning) stop else OperationRequest.Idle,
-      abort = if (status.isAborted) OperationRequest.Idle else abort,
-      pause = if (status.isUserStopRequested || isPaused) OperationRequest.Idle else pause,
-      cancelPause = if (!status.isUserStopRequested) OperationRequest.Idle else cancelPause,
-      resume = if (status.isRunning) OperationRequest.Idle else resume,
-      startFrom = if (status.isRunning) OperationRequest.Idle else startFrom,
+      startSequence = if (status.isRunning) OperationRequest.Idle else startSequence,
+      startSequenceFrom = if (status.isRunning) OperationRequest.Idle else startSequenceFrom,
+      sequenceHold =
+        if (status.isSequenceHoldRequested || !status.isRunning) OperationRequest.Idle
+        else sequenceHold,
+      cancelSequenceHold =
+        if (!status.isSequenceHoldRequested) OperationRequest.Idle else cancelSequenceHold,
+      stopExposure = if (status.isRunning) stopExposure else OperationRequest.Idle,
+      abortExposure = if (status.isAborted) OperationRequest.Idle else abortExposure,
+      pauseExposure =
+        if (isPaused || !status.isRunning) OperationRequest.Idle else pauseExposure,
+      resumeExposure = if (status.isRunning) OperationRequest.Idle else resumeExposure,
       rewind = if (status.isRunning) rewind else OperationRequest.Idle
     )
 
 object ObservationRequests:
   val Idle: ObservationRequests = ObservationRequests(
-    run = OperationRequest.Idle,
-    stop = OperationRequest.Idle,
-    abort = OperationRequest.Idle,
-    pause = OperationRequest.Idle,
-    cancelPause = OperationRequest.Idle,
-    resume = OperationRequest.Idle,
-    startFrom = OperationRequest.Idle,
+    startSequence = OperationRequest.Idle,
+    startSequenceFrom = OperationRequest.Idle,
+    sequenceHold = OperationRequest.Idle,
+    cancelSequenceHold = OperationRequest.Idle,
+    stopExposure = OperationRequest.Idle,
+    abortExposure = OperationRequest.Idle,
+    pauseExposure = OperationRequest.Idle,
+    resumeExposure = OperationRequest.Idle,
     rewind = OperationRequest.Idle,
     subsystemRun = Map.empty,
     acquisitionPrompt = OperationRequest.Idle
   )
 
-  val run: Lens[ObservationRequests, OperationRequest]                                        =
-    Focus[ObservationRequests](_.run)
-  val stop: Lens[ObservationRequests, OperationRequest]                                       =
-    Focus[ObservationRequests](_.stop)
-  val abort: Lens[ObservationRequests, OperationRequest]                                      =
-    Focus[ObservationRequests](_.abort)
-  val pause: Lens[ObservationRequests, OperationRequest]                                      =
-    Focus[ObservationRequests](_.pause)
-  val cancelPause: Lens[ObservationRequests, OperationRequest]                                =
-    Focus[ObservationRequests](_.cancelPause)
-  val resume: Lens[ObservationRequests, OperationRequest]                                     =
-    Focus[ObservationRequests](_.resume)
-  val startFrom: Lens[ObservationRequests, OperationRequest]                                  =
-    Focus[ObservationRequests](_.startFrom)
+  val startSequence: Lens[ObservationRequests, OperationRequest]                              =
+    Focus[ObservationRequests](_.startSequence)
+  val startSequenceFrom: Lens[ObservationRequests, OperationRequest]                          =
+    Focus[ObservationRequests](_.startSequenceFrom)
+  val sequenceHold: Lens[ObservationRequests, OperationRequest]                               =
+    Focus[ObservationRequests](_.sequenceHold)
+  val cancelSequenceHold: Lens[ObservationRequests, OperationRequest]                         =
+    Focus[ObservationRequests](_.cancelSequenceHold)
+  val stopExposure: Lens[ObservationRequests, OperationRequest]                               =
+    Focus[ObservationRequests](_.stopExposure)
+  val abortExposure: Lens[ObservationRequests, OperationRequest]                              =
+    Focus[ObservationRequests](_.abortExposure)
+  val pauseExposure: Lens[ObservationRequests, OperationRequest]                              =
+    Focus[ObservationRequests](_.pauseExposure)
+  val resumeExposure: Lens[ObservationRequests, OperationRequest]                             =
+    Focus[ObservationRequests](_.resumeExposure)
   val rewind: Lens[ObservationRequests, OperationRequest]                                     =
     Focus[ObservationRequests](_.rewind)
   val subsystemRun: Lens[ObservationRequests, Map[Step.Id, Map[Subsystem, OperationRequest]]] =

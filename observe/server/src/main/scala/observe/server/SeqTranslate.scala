@@ -66,15 +66,15 @@ trait SeqTranslate[F[_]] {
     stepIdFrom: Either[SequenceType, OdbStep.Id]
   ): (List[Throwable], Option[StepGen[F]])
 
-  def stopObserve(seqId: Observation.Id, graceful: Boolean)(using
+  def stopExposure(seqId: Observation.Id, graceful: Boolean)(using
     Temporal[F]
   ): EngineState[F] => Stream[F, Event[F]]
 
-  def abortObserve(seqId: Observation.Id)(using
+  def abortExposure(seqId: Observation.Id)(using
     Temporal[F]
   ): EngineState[F] => Stream[F, Event[F]]
 
-  def pauseObserve(seqId: Observation.Id, graceful: Boolean)(using
+  def pauseExposure(seqId: Observation.Id, graceful: Boolean)(using
     Temporal[F]
   ): EngineState[F] => Stream[F, Event[F]]
 
@@ -307,7 +307,7 @@ object SeqTranslate {
       case _                       => Event.nullEvent[F].pure[F].widen[Event[F]]
     }
 
-    override def stopObserve(obsId: Observation.Id, graceful: Boolean)(using
+    override def stopExposure(obsId: Observation.Id, graceful: Boolean)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = st => {
       def f(oc: ObserveControl[F]): F[Unit] = oc match {
@@ -318,7 +318,7 @@ object SeqTranslate {
       deliverObserveCmd(obsId, f)(st).getOrElse(stopPaused(obsId).apply(st))
     }
 
-    override def abortObserve(obsId: Observation.Id)(using
+    override def abortExposure(obsId: Observation.Id)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = st => {
       def f(oc: ObserveControl[F]): F[Unit] = oc match {
@@ -330,7 +330,7 @@ object SeqTranslate {
       deliverObserveCmd(obsId, f)(st).getOrElse(abortPaused(obsId).apply(st))
     }
 
-    override def pauseObserve(obsId: Observation.Id, graceful: Boolean)(using
+    override def pauseExposure(obsId: Observation.Id, graceful: Boolean)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = {
       def f(oc: ObserveControl[F]): F[Unit] = oc match {

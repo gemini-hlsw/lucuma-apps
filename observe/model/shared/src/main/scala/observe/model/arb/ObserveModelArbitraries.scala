@@ -75,8 +75,8 @@ trait ObserveModelArbitraries {
 
   given Arbitrary[SequenceStatus.Running] = Arbitrary[SequenceStatus.Running] {
     for {
-      u <- arbitrary[HasUserStop]
-      i <- arbitrary[HasInternalStop]
+      u <- arbitrary[IsSequenceHoldRequested]
+      i <- arbitrary[IsStepInterruptRequested]
       w <- arbitrary[IsWaitingUserPrompt]
       a <- arbitrary[IsWaitingNextStep]
       s <- arbitrary[IsStarting]

@@ -7,24 +7,24 @@ import lucuma.core.enums.Instrument
 
 object operations:
   enum OperationLevel:
-    case Observation, NsCycle, NsNod
+    case Exposure, NsCycle, NsNod
 
   import OperationLevel.*
 
   enum Operations(val level: OperationLevel):
     // Operations possible at the observation level
-    case PauseObservation  extends Operations(Observation)
-    case StopObservation   extends Operations(Observation)
-    case AbortObservation  extends Operations(Observation)
-    case ResumeObservation extends Operations(Observation)
+    case PauseExposure  extends Operations(Exposure)
+    case StopExposure   extends Operations(Exposure)
+    case AbortExposure  extends Operations(Exposure)
+    case ResumeExposure extends Operations(Exposure)
 
     // Operations possible for N&S Cycle
-    case PauseGracefullyObservation extends Operations(NsCycle)
-    case StopGracefullyObservation  extends Operations(NsCycle)
+    case PauseExposureGracefully extends Operations(NsCycle)
+    case StopExposureGracefully  extends Operations(NsCycle)
 
     // Operations possible for N&S Nod
-    case PauseImmediatelyObservation extends Operations(NsNod)
-    case StopImmediatelyObservation  extends Operations(NsNod)
+    case PauseExposureImmediately extends Operations(NsNod)
+    case StopExposureImmediately  extends Operations(NsNod)
 
   sealed trait SupportedOperations:
     def apply(
@@ -48,28 +48,28 @@ object operations:
       isMultiLevel:    Boolean
     ): List[Operations] =
       level match
-        case Observation =>
+        case Exposure =>
           if (isMultiLevel)
             if (isObservePaused)
-              List(Operations.ResumeObservation, Operations.AbortObservation)
+              List(Operations.ResumeExposure, Operations.AbortExposure)
             else
-              List(Operations.AbortObservation)
+              List(Operations.AbortExposure)
           else if (isObservePaused)
             List(
-              Operations.ResumeObservation,
-              Operations.StopObservation,
-              Operations.AbortObservation
+              Operations.ResumeExposure,
+              Operations.StopExposure,
+              Operations.AbortExposure
             )
           else
             List(
-              Operations.PauseObservation,
-              Operations.StopObservation,
-              Operations.AbortObservation
+              Operations.PauseExposure,
+              Operations.StopExposure,
+              Operations.AbortExposure
             )
-        case NsCycle     =>
-          List(Operations.PauseGracefullyObservation, Operations.StopGracefullyObservation)
-        case NsNod       =>
-          List(Operations.PauseImmediatelyObservation, Operations.StopImmediatelyObservation)
+        case NsCycle  =>
+          List(Operations.PauseExposureGracefully, Operations.StopExposureGracefully)
+        case NsNod    =>
+          List(Operations.PauseExposureImmediately, Operations.StopExposureImmediately)
 
   private object GnirsSupportedOperations extends SupportedOperations:
     def apply(
@@ -78,8 +78,8 @@ object operations:
       isMultiLevel:    Boolean
     ): List[Operations] =
       level match
-        case Observation => List(Operations.StopObservation, Operations.AbortObservation)
-        case _           => Nil
+        case Exposure => List(Operations.StopExposure, Operations.AbortExposure)
+        case _        => Nil
 
   private object Igrins2SupportedOperations extends SupportedOperations:
     def apply(
@@ -88,8 +88,8 @@ object operations:
       isMultiLevel:    Boolean
     ): List[Operations] =
       level match
-        case Observation => List(Operations.AbortObservation)
-        case _           => Nil
+        case Exposure => List(Operations.AbortExposure)
+        case _        => Nil
 
   private object NiriSupportedOperations extends SupportedOperations:
     def apply(
@@ -98,8 +98,8 @@ object operations:
       isMultiLevel:    Boolean
     ): List[Operations] =
       level match
-        case Observation => List(Operations.StopObservation, Operations.AbortObservation)
-        case _           => Nil
+        case Exposure => List(Operations.StopExposure, Operations.AbortExposure)
+        case _        => Nil
 
   private object GsaoiSupportedOperations extends SupportedOperations:
     def apply(
@@ -108,8 +108,8 @@ object operations:
       isMultiLevel:    Boolean
     ): List[Operations] =
       level match
-        case Observation => List(Operations.StopObservation, Operations.AbortObservation)
-        case _           => Nil
+        case Exposure => List(Operations.StopExposure, Operations.AbortExposure)
+        case _        => Nil
 
   private object NilSupportedOperations extends SupportedOperations:
     def apply(

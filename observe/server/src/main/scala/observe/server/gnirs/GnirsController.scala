@@ -22,9 +22,9 @@ trait GnirsController[F[_]] {
   // endObserve is to notify the completion of the observation, not to cause its end.
   def endObserve: F[Unit]
 
-  def stopObserve: F[Unit]
+  def stopExposure: F[Unit]
 
-  def abortObserve: F[Unit]
+  def abortExposure: F[Unit]
 
   def observeProgress(total: TimeSpan): Stream[F, Progress]
 }

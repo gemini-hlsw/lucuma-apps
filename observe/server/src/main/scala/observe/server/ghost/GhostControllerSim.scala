@@ -26,11 +26,11 @@ final case class GhostControllerSim[F[_]: {Async, Logger}] private (
 
   override def gdsClient: GdsClient[F] = GdsClient.simulatedClient("GHOST", accumulator)
 
-  override def stopObserve: F[Unit] = sim.stopObserve
+  override def stopExposure: F[Unit] = sim.stopExposure
 
-  override def abortObserve: F[Unit] = sim.abortObserve
+  override def abortExposure: F[Unit] = sim.abortExposure
 
-  override def pauseObserve: F[Unit] = sim.pauseObserve
+  override def pauseExposure: F[Unit] = sim.pauseExposure
 
   override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] = sim.resumePaused
 

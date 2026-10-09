@@ -11,8 +11,8 @@ import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
 import observe.model.SequenceStatus
-import observe.model.SequenceStatus.HasInternalStop
-import observe.model.SequenceStatus.HasUserStop
+import observe.model.SequenceStatus.IsSequenceHoldRequested
+import observe.model.SequenceStatus.IsStepInterruptRequested
 import observe.model.SystemOverrides
 import observe.server.HeaderExtraData
 import observe.server.StepGen
@@ -141,7 +141,7 @@ object SequenceState:
 
   def canUnload[F[_]](st: SequenceState[F]): Boolean = st.status.canUnload
 
-  def userStopRequested[F[_]](st: SequenceState[F]): Boolean = st.status.isUserStopRequested
+  def sequenceHoldRequested[F[_]](st: SequenceState[F]): Boolean = st.status.isSequenceHoldRequested
 
   def anyStopRequested[F[_]](st: SequenceState[F]): Boolean = st.status match
     case SequenceStatus.Running(u, i, _, _, _) => u || i
@@ -151,14 +151,18 @@ object SequenceState:
 
   def isStarting[F[_]](st: SequenceState[F]): Boolean = st.status.isStarting
 
-  def userStopSet[F[_]](v: HasUserStop): SequenceState[F] => SequenceState[F] = status.modify {
-    case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(userStop = v)
+  def setSequenceHoldRequested[F[_]](
+    v: IsSequenceHoldRequested
+  ): SequenceState[F] => SequenceState[F] = status.modify {
+    case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(sequenceHoldRequested = v)
     case r                                         => r
   }
 
-  def internalStopSet[F[_]](v: HasInternalStop): SequenceState[F] => SequenceState[F] =
+  def setStepInterruptRequested[F[_]](
+    v: IsStepInterruptRequested
+  ): SequenceState[F] => SequenceState[F] =
     status.modify {
-      case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(internalStop = v)
+      case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(stepInterruptRequested = v)
       case r                                         => r
     }
 

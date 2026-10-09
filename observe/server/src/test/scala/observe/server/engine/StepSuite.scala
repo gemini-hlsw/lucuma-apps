@@ -15,7 +15,7 @@ import observe.common.test.*
 import observe.model.ActionType
 import observe.model.SequenceStatus
 import observe.model.SequenceStatus.*
-import observe.model.SequenceStatus.HasUserStop
+import observe.model.SequenceStatus.IsSequenceHoldRequested
 import observe.model.StepState
 import observe.model.enums.Resource
 import observe.server.EngineState
@@ -163,7 +163,7 @@ class StepSuite extends CatsEffectSuite {
   def triggerPause(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Undefined,
     for {
-      _ <- eng.offer(Event.pause(obsId, user))
+      _ <- eng.offer(Event.requestSequenceHold(obsId, user))
       // There is not a distinct result for Pause because the Pause action is a
       // trick for testing but we don't need to support it in real life, the pause
       // input event is enough.
@@ -187,9 +187,9 @@ class StepSuite extends CatsEffectSuite {
     } yield Result.OK(DummyResult)
   )
 
-  // Simulates `internalStop` being set while the exposure itself is already running (e.g. a
+  // Simulates `stepInterruptRequested` being set while the exposure itself is already running (e.g. a
   // stop/abort/pause of the exposure), as opposed to a Rewind request made while configuring.
-  def observeSettingInternalStop(eng: Engine[IO]): Action[IO] = fromF[IO](
+  def observeSettingStepInterruptRequested(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Observe,
     for {
       _ <- eng.offer(Event.actionStop(obsId, _ => Stream.empty))
@@ -297,11 +297,11 @@ class StepSuite extends CatsEffectSuite {
       )
 
     // The sequence's status already flips to Idle as part of the same state update that later
-    // *sends* the `SequencePaused` event (see `Engine.nextExecution`), so stopping as soon as the
+    // *sends* the `SequenceHeld` event (see `Engine.nextExecution`), so stopping as soon as the
     // status is Idle would cut the stream one pull short of observing that event. Instead, keep
-    // pulling through the `SequencePaused`/`SequenceComplete` pair itself.
+    // pulling through the `SequenceHeld`/`SequenceComplete` pair itself.
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequencePaused(_), _)   => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
       case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
@@ -321,8 +321,8 @@ class StepSuite extends CatsEffectSuite {
         val lastSeq = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
 
         val sequencePausedEmitted = results.exists {
-          case EventResult.SystemUpdate(SystemEvent.SequencePaused(o), _) => o == obsId
-          case _                                                          => false
+          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case _                                                        => false
         }
         // Only the initial `Executing` (config group start) should have happened; neither the
         // post-config group nor the observe group must have been kicked off.
@@ -344,7 +344,7 @@ class StepSuite extends CatsEffectSuite {
   }
 
   test(
-    "internalStop set while the observe group is running has no early effect: the step runs " +
+    "stepInterruptRequested set while the observe group is running has no early effect: the step runs " +
       "through its remaining groups and the sequence pauses at the step end, as before"
   ) {
     def qs0(eng: Engine[IO]): EngineState[IO] =
@@ -355,9 +355,11 @@ class StepSuite extends CatsEffectSuite {
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
-              NonEmptyList.of(configureTcs, configureInst),      // config group
-              NonEmptyList.one(observeSettingInternalStop(eng)), // observe group: sets internalStop
-              NonEmptyList.one(action)                           // post-observe group (no Observe action)
+              NonEmptyList.of(configureTcs, configureInst), // config group
+              NonEmptyList.one(
+                observeSettingStepInterruptRequested(eng)
+              ),                                            // observe group: sets stepInterruptRequested
+              NonEmptyList.one(action)                      // post-observe group (no Observe action)
             )
           ),
           sequenceType = SequenceType.Science,
@@ -367,9 +369,9 @@ class StepSuite extends CatsEffectSuite {
       )
 
     // See the comment in the previous test: keep pulling through the pair that carries the
-    // `SequencePaused` event itself, since the status already reads Idle one pull earlier.
+    // `SequenceHeld` event itself, since the status already reads Idle one pull earlier.
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequencePaused(_), _)   => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
       case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
@@ -389,11 +391,11 @@ class StepSuite extends CatsEffectSuite {
         val lastSeq = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
 
         val sequencePausedCount = results.count {
-          case EventResult.SystemUpdate(SystemEvent.SequencePaused(o), _) => o == obsId
-          case _                                                          => false
+          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case _                                                        => false
         }
         // All 4 actions (2 config + 1 observe + 1 post-observe marker) must have completed: the
-        // post-observe group was not skipped despite internalStop being set mid-observe.
+        // post-observe group was not skipped despite stepInterruptRequested being set mid-observe.
         val completedCount      = results.count {
           case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
           case _                                                              => false
@@ -477,8 +479,8 @@ class StepSuite extends CatsEffectSuite {
         SequenceState[IO](
           obsId = observationId(1),
           status = SequenceStatus.Running(
-            HasUserStop.Yes,
-            HasInternalStop.No,
+            IsSequenceHoldRequested.Yes,
+            IsStepInterruptRequested.No,
             IsWaitingUserPrompt.No,
             IsWaitingNextStep.No,
             IsStarting.No
@@ -504,7 +506,7 @@ class StepSuite extends CatsEffectSuite {
 
     val qs1 = for {
       eng <- executionEngine
-      _   <- eng.offer(Event.cancelPause[IO](obsId, user))
+      _   <- eng.offer(Event.cancelSequenceHoldRequest[IO](obsId, user))
       v   <- eng
                .process(PartialFunction.empty)(qs0)
                .take(1)
@@ -543,7 +545,7 @@ class StepSuite extends CatsEffectSuite {
 
     val qss = for {
       eng <- executionEngine
-      _   <- eng.offer(Event.pause[IO](obsId, user))
+      _   <- eng.offer(Event.requestSequenceHold[IO](obsId, user))
       v   <- eng
                .process(PartialFunction.empty)(qs0)
                .take(1)

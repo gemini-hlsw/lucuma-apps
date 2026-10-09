@@ -62,63 +62,63 @@ case class SequenceApiImpl(
       stepIds
     )
 
-  override def start(
+  override def startSequence(
     obsId:       Observation.Id,
     runOverride: RunOverride = RunOverride.Default
   ): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.run) >>
+    setInFlight(obsId, ObservationRequests.startSequence) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "start" / observer.toString,
+        Uri.Path.empty / obsId.toString / client.clientId.value / "startSequence" / observer.toString,
         if (runOverride === RunOverride.Override) Query.fromPairs("overrideTargetCheck" -> "true")
         else Query.empty
       )
 
-  override def startFrom(
+  override def startSequenceFrom(
     obsId:       Observation.Id,
     stepId:      Step.Id,
     runOverride: RunOverride = RunOverride.Default
   ): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.startFrom) >>
+    setInFlight(obsId, ObservationRequests.startSequenceFrom) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / stepId.toString / client.clientId.value / "startFrom" / observer.toString,
+        Uri.Path.empty / obsId.toString / stepId.toString / client.clientId.value / "startSequenceFrom" / observer.toString,
         if (runOverride === RunOverride.Override) Query.fromPairs("overrideTargetCheck" -> "true")
         else Query.empty
       )
 
-  override def pause(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.pause) >>
+  override def requestSequenceHold(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.sequenceHold) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "pause" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "sequenceHold" / observer.toString
       )
 
-  override def cancelPause(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.cancelPause) >>
+  override def cancelSequenceHoldRequest(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.cancelSequenceHold) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "cancelPause" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "cancelSequenceHold" / observer.toString
       )
 
-  override def stop(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.stop) >>
+  override def stopExposure(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.stopExposure) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "stop" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "stopExposure" / observer.toString
       )
 
-  override def stopGracefully(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.stop) >>
+  override def stopExposureGracefully(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.stopExposure) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "stopGracefully" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "stopExposureGracefully" / observer.toString
       )
 
-  override def abort(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.abort) >>
+  override def abortExposure(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.abortExposure) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "abort" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "abortExposure" / observer.toString
       )
 
-  override def pauseObs(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.pause) >>
+  override def pauseExposure(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.pauseExposure) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "pauseObs" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "pauseExposure" / observer.toString
       )
 
   override def rewindStep(obsId: Observation.Id): IO[Unit] =
@@ -127,16 +127,16 @@ case class SequenceApiImpl(
         Uri.Path.empty / obsId.toString / client.clientId.value / "rewindStep" / observer.toString
       )
 
-  override def pauseObsGracefully(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.pause) >>
+  override def pauseExposureGracefully(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.pauseExposure) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "pauseObsGracefully" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "pauseExposureGracefully" / observer.toString
       )
 
-  override def resumeObs(obsId: Observation.Id): IO[Unit] =
-    setInFlight(obsId, ObservationRequests.resume) >>
+  override def resumeExposure(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.resumeExposure) >>
       client.postNoData(
-        Uri.Path.empty / obsId.toString / client.clientId.value / "resumeObs" / observer.toString
+        Uri.Path.empty / obsId.toString / client.clientId.value / "resumeExposure" / observer.toString
       )
 
   override def execute(
