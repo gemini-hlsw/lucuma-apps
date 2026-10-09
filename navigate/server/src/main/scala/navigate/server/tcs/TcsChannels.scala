@@ -21,89 +21,92 @@ case class TcsChannels[F[_]](
   /**
    * List of all TcsChannels. Channel -> Defines a raw channel Other cases -> Group of channels
    */
-  telltale:                TelltaleChannel[F],
-  telescopeParkDir:        Channel[F, CadDirective],
-  mountFollow:             Channel[F, String],
-  rotStopBrake:            Channel[F, String],
-  rotParkDir:              Channel[F, CadDirective],
-  rotFollow:               Channel[F, String],
-  rotMoveAngle:            Channel[F, String],
-  enclosure:               EnclosureChannels[F],
-  sourceA:                 TargetChannels[F],
-  pwfs1Target:             TargetChannels[F],
-  pwfs2Target:             TargetChannels[F],
-  oiwfsTarget:             TargetChannels[F],
-  wavelSourceA:            Channel[F, String],
-  wavelSourceB:            Channel[F, String],
-  wavelPwfs1:              Channel[F, String],
-  wavelPwfs2:              Channel[F, String],
-  wavelOiwfs:              Channel[F, String],
-  slew:                    SlewChannels[F],
-  rotator:                 RotatorChannels[F],
-  origin:                  OriginChannels[F],
-  focusOffset:             Channel[F, String],
-  focusOffsetB:            Channel[F, String],
-  p1ProbeTracking:         ProbeTrackingChannels[F],
-  p1Probe:                 ProbeChannels[F],
-  p2ProbeTracking:         ProbeTrackingChannels[F],
-  p2Probe:                 ProbeChannels[F],
-  oiProbeTracking:         ProbeTrackingChannels[F],
-  oiProbe:                 ProbeChannels[F],
-  m1Guide:                 Channel[F, String],
-  m1GuideConfig:           M1GuideConfigChannels[F],
-  m2Guide:                 Channel[F, String],
-  m2GuideMode:             Channel[F, String],
-  m2GuideConfig:           M2GuideConfigChannels[F],
-  m2GuideReset:            Channel[F, CadDirective],
-  m2Follow:                Channel[F, String],
-  mountGuide:              MountGuideChannels[F],
-  pwfs1:                   WfsChannels[F],
-  pwfs2:                   WfsChannels[F],
-  oiwfs:                   WfsChannels[F],
-  guide:                   GuideConfigStatusChannels[F],
-  probeGuideMode:          ProbeGuideModeChannels[F],
-  oiwfsSelect:             OiwfsSelectChannels[F],
-  m2Baffles:               M2BafflesChannels[F],
-  hrwfsMech:               AgMechChannels[F],
-  scienceFoldMech:         AgMechChannels[F],
-  aoFoldMech:              AgMechChannels[F],
-  m1Channels:              M1Channels[F],
-  nodState:                Channel[F, String],
-  p1ProbeTrackingState:    ProbeTrackingStateChannels[F],
-  p2ProbeTrackingState:    ProbeTrackingStateChannels[F],
-  oiProbeTrackingState:    ProbeTrackingStateChannels[F],
-  targetAdjust:            AdjustChannels[F],
-  targetOffsetAbsorb:      OffsetCommandChannels[F],
-  targetOffsetClear:       OffsetCommandChannels[F],
-  originAdjust:            AdjustChannels[F],
-  originOffsetAbsorb:      OffsetCommandChannels[F],
-  originOffsetClear:       OffsetCommandChannels[F],
-  pointingAdjust:          PointingModelAdjustChannels[F],
-  inPosition:              Channel[F, String],
-  targetFilter:            TargetFilterChannels[F],
-  sourceATargetReadout:    Channel[F, Array[Double]],
-  pwfs1TargetReadout:      Channel[F, Array[Double]],
-  pwfs2TargetReadout:      Channel[F, Array[Double]],
-  oiwfsTargetReadout:      Channel[F, Array[Double]],
-  pointingAdjustmentState: PointingCorrections[F],
-  pointingConfig:          PointingConfigChannels[F],
-  absorbGuideDir:          Channel[F, CadDirective],
-  zeroGuideDir:            Channel[F, CadDirective],
-  instrumentOffsetA:       InstrumentOffsetCommandChannels[F],
-  instrumentOffsetB:       InstrumentOffsetCommandChannels[F],
-  azimuthWrap:             Channel[F, String],
-  rotatorWrap:             Channel[F, String],
-  zeroRotatorGuideDir:     Channel[F, CadDirective],
-  pwfs1Mechs:              PwfsMechCmdChannels[F],
-  pwfs2Mechs:              PwfsMechCmdChannels[F],
-  chopConfig:              ChopConfigChannels[F],
-  chopRelative:            ChopRelativeChannels[F],
-  pwfs1UnwrapDir:          Channel[F, CadDirective],
-  pwfs2UnwrapDir:          Channel[F, CadDirective],
-  demandAzimuth:           Channel[F, String],
-  demandRotator:           Channel[F, Double],
-  enclosureState:          EnclosureStateChannels[F],
-  instrAA:                 Channel[F, Double]
+  telltale:                 TelltaleChannel[F],
+  telescopeParkDir:         Channel[F, CadDirective],
+  mountFollow:              Channel[F, String],
+  rotStopBrake:             Channel[F, String],
+  rotParkDir:               Channel[F, CadDirective],
+  rotFollow:                Channel[F, String],
+  rotMoveAngle:             Channel[F, String],
+  enclosure:                EnclosureChannels[F],
+  sourceA:                  TargetChannels[F],
+  pwfs1Target:              TargetChannels[F],
+  pwfs2Target:              TargetChannels[F],
+  oiwfsTarget:              TargetChannels[F],
+  wavelSourceA:             Channel[F, String],
+  wavelSourceB:             Channel[F, String],
+  wavelPwfs1:               Channel[F, String],
+  wavelPwfs2:               Channel[F, String],
+  wavelOiwfs:               Channel[F, String],
+  slew:                     SlewChannels[F],
+  rotator:                  RotatorChannels[F],
+  origin:                   OriginChannels[F],
+  focusOffset:              Channel[F, String],
+  focusOffsetB:             Channel[F, String],
+  p1ProbeTracking:          ProbeTrackingChannels[F],
+  p1Probe:                  ProbeChannels[F],
+  p2ProbeTracking:          ProbeTrackingChannels[F],
+  p2Probe:                  ProbeChannels[F],
+  oiProbeTracking:          ProbeTrackingChannels[F],
+  oiProbe:                  ProbeChannels[F],
+  m1Guide:                  Channel[F, String],
+  m1GuideConfig:            M1GuideConfigChannels[F],
+  m2Guide:                  Channel[F, String],
+  m2GuideMode:              Channel[F, String],
+  m2GuideConfig:            M2GuideConfigChannels[F],
+  m2GuideReset:             Channel[F, CadDirective],
+  m2Follow:                 Channel[F, String],
+  mountGuide:               MountGuideChannels[F],
+  pwfs1:                    WfsChannels[F],
+  pwfs2:                    WfsChannels[F],
+  oiwfs:                    WfsChannels[F],
+  guide:                    GuideConfigStatusChannels[F],
+  probeGuideMode:           ProbeGuideModeChannels[F],
+  oiwfsSelect:              OiwfsSelectChannels[F],
+  m2Baffles:                M2BafflesChannels[F],
+  hrwfsMech:                AgMechChannels[F],
+  scienceFoldMech:          AgMechChannels[F],
+  aoFoldMech:               AgMechChannels[F],
+  m1Channels:               M1Channels[F],
+  nodState:                 Channel[F, String],
+  p1ProbeTrackingState:     ProbeTrackingStateChannels[F],
+  p2ProbeTrackingState:     ProbeTrackingStateChannels[F],
+  oiProbeTrackingState:     ProbeTrackingStateChannels[F],
+  targetAdjust:             AdjustChannels[F],
+  targetOffsetAbsorb:       OffsetCommandChannels[F],
+  targetOffsetClear:        OffsetCommandChannels[F],
+  originAdjust:             AdjustChannels[F],
+  originOffsetAbsorb:       OffsetCommandChannels[F],
+  originOffsetClear:        OffsetCommandChannels[F],
+  pointingAdjust:           PointingModelAdjustChannels[F],
+  inPosition:               Channel[F, String],
+  targetFilter:             TargetFilterChannels[F],
+  sourceATargetReadout:     Channel[F, Array[Double]],
+  pwfs1TargetReadout:       Channel[F, Array[Double]],
+  pwfs2TargetReadout:       Channel[F, Array[Double]],
+  oiwfsTargetReadout:       Channel[F, Array[Double]],
+  pointingAdjustmentState:  PointingCorrections[F],
+  pointingConfig:           PointingConfigChannels[F],
+  absorbGuideDir:           Channel[F, CadDirective],
+  zeroGuideDir:             Channel[F, CadDirective],
+  focalPlaneOffsetCommandA: FocalPlaneOffsetCommandChannels[F],
+  focalPlaneOffsetCommandB: FocalPlaneOffsetCommandChannels[F],
+  azimuthWrap:              Channel[F, String],
+  rotatorWrap:              Channel[F, String],
+  zeroRotatorGuideDir:      Channel[F, CadDirective],
+  pwfs1Mechs:               PwfsMechCmdChannels[F],
+  pwfs2Mechs:               PwfsMechCmdChannels[F],
+  chopConfig:               ChopConfigChannels[F],
+  chopRelative:             ChopRelativeChannels[F],
+  pwfs1UnwrapDir:           Channel[F, CadDirective],
+  pwfs2UnwrapDir:           Channel[F, CadDirective],
+  demandAzimuth:            Channel[F, String],
+  demandRotator:            Channel[F, Double],
+  enclosureState:           EnclosureStateChannels[F],
+  instrAA:                  Channel[F, Double],
+  focalPlaneOffsetAX:       Channel[F, Double],
+  focalPlaneOffsetAY:       Channel[F, Double],
+  sourceAWavelength:        Channel[F, Double]
 )
 
 object TcsChannels {
@@ -791,20 +794,20 @@ object TcsChannels {
     } yield OffsetCommandChannels(vt, idx)
   }
 
-  case class InstrumentOffsetCommandChannels[F[_]](
+  case class FocalPlaneOffsetCommandChannels[F[_]](
     x: Channel[F, String],
     y: Channel[F, String]
   )
 
-  object InstrumentOffsetCommandChannels {
+  object FocalPlaneOffsetCommandChannels {
     def build[F[_]](
       service:   EpicsService[F],
       top:       TcsTop,
       cadPrefix: String
-    ): Resource[F, InstrumentOffsetCommandChannels[F]] = for {
+    ): Resource[F, FocalPlaneOffsetCommandChannels[F]] = for {
       x <- service.getChannel[String](top.value, s"$cadPrefix.A")
       y <- service.getChannel[String](top.value, s"$cadPrefix.B")
-    } yield InstrumentOffsetCommandChannels(x, y)
+    } yield FocalPlaneOffsetCommandChannels(x, y)
   }
 
   case class TargetFilterChannels[F[_]](
@@ -981,8 +984,8 @@ object TcsChannels {
       pncf  <- PointingConfigChannels.build(service, tcsTop)
       abgd  <- service.getChannel[CadDirective](tcsTop.value, "absorbGuide.DIR")
       zgud  <- service.getChannel[CadDirective](tcsTop.value, "zeroGuide.DIR")
-      ioffA <- InstrumentOffsetCommandChannels.build(service, tcsTop, "offsetPoA1")
-      ioffB <- InstrumentOffsetCommandChannels.build(service, tcsTop, "offsetPoB1")
+      ioffA <- FocalPlaneOffsetCommandChannels.build(service, tcsTop, "offsetPoA1")
+      ioffB <- FocalPlaneOffsetCommandChannels.build(service, tcsTop, "offsetPoB1")
       azwr  <- service.getChannel[String](tcsTop.value, "azwrap.A")
       rtwr  <- service.getChannel[String](tcsTop.value, "rotwrap.A")
       p1uw  <- service.getChannel[CadDirective](tcsTop.value, "pwfs1Unwrap.DIR")
@@ -996,6 +999,9 @@ object TcsChannels {
       dmrot <- service.getChannel[Double](tcsTop.value, "demandRma.VAL")
       encst <- EnclosureStateChannels.build(service, tcsTop)
       iaa   <- service.getChannel[Double](tcsTop.value, "sad:instrAA.VAL")
+      ioax  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALA")
+      ioay  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALB")
+      swa   <- service.getChannel[Double](tcsTop.value, "sad:sourceAWavelength.VAL")
     } yield TcsChannels[F](
       tt,
       tpd,
@@ -1079,7 +1085,10 @@ object TcsChannels {
       demandAzimuth = dmaz,
       demandRotator = dmrot,
       enclosureState = encst,
-      instrAA = iaa
+      instrAA = iaa,
+      focalPlaneOffsetAX = ioax,
+      focalPlaneOffsetAY = ioay,
+      sourceAWavelength = swa
     )
   }
 }

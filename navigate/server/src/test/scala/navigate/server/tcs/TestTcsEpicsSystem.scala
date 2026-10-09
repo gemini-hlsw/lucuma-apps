@@ -32,8 +32,8 @@ import navigate.server.tcs.TcsChannels.ChopConfigChannels
 import navigate.server.tcs.TcsChannels.ChopRelativeChannels
 import navigate.server.tcs.TcsChannels.EnclosureChannels
 import navigate.server.tcs.TcsChannels.EnclosureStateChannels
+import navigate.server.tcs.TcsChannels.FocalPlaneOffsetCommandChannels
 import navigate.server.tcs.TcsChannels.GuideConfigStatusChannels
-import navigate.server.tcs.TcsChannels.InstrumentOffsetCommandChannels
 import navigate.server.tcs.TcsChannels.M1Channels
 import navigate.server.tcs.TcsChannels.M1GuideConfigChannels
 import navigate.server.tcs.TcsChannels.M2BafflesChannels
@@ -326,13 +326,13 @@ object TestTcsEpicsSystem {
     )
   }
 
-  case class InstrumentOffsetCommandState(
+  case class FocalPlaneOffsetCommandState(
     offsetX: TestChannel.State[String],
     offsetY: TestChannel.State[String]
   )
 
-  object InstrumentOffsetCommandState {
-    val default: InstrumentOffsetCommandState = InstrumentOffsetCommandState(
+  object FocalPlaneOffsetCommandState {
+    val default: FocalPlaneOffsetCommandState = FocalPlaneOffsetCommandState(
       TestChannel.State.default,
       TestChannel.State.default
     )
@@ -371,91 +371,94 @@ object TestTcsEpicsSystem {
   }
 
   case class State(
-    telltale:             TestChannel.State[String],
-    telescopeParkDir:     TestChannel.State[CadDirective],
-    mountFollow:          TestChannel.State[String],
-    rotStopBrake:         TestChannel.State[String],
-    rotParkDir:           TestChannel.State[CadDirective],
-    rotFollow:            TestChannel.State[String],
-    rotMoveAngle:         TestChannel.State[String],
-    enclosure:            EnclosureChannelsState,
-    enclosureState:       EnclosureStateChannelsState,
-    sourceA:              TargetChannelsState,
-    pwfs1Target:          TargetChannelsState,
-    pwfs2Target:          TargetChannelsState,
-    oiwfsTarget:          TargetChannelsState,
-    wavelSourceA:         TestChannel.State[String],
-    wavelSourceB:         TestChannel.State[String],
-    wavelPwfs1:           TestChannel.State[String],
-    wavelPwfs2:           TestChannel.State[String],
-    wavelOiwfs:           TestChannel.State[String],
-    slew:                 SlewChannelsState,
-    rotator:              RotatorChannelState,
-    origin:               OriginChannelState,
-    focusOffset:          TestChannel.State[String],
-    focusOffsetB:         TestChannel.State[String],
-    pwfs1Tracking:        ProbeTrackingState,
-    pwfs1Probe:           ProbeState,
-    pwfs2Tracking:        ProbeTrackingState,
-    pwfs2Probe:           ProbeState,
-    oiwfsTracking:        ProbeTrackingState,
-    oiwfsProbe:           ProbeState,
-    m1Guide:              TestChannel.State[String],
-    m1GuideConfig:        M1GuideConfigState,
-    m2Guide:              TestChannel.State[String],
-    m2GuideMode:          TestChannel.State[String],
-    m2GuideConfig:        M2GuideConfigState,
-    m2GuideReset:         TestChannel.State[CadDirective],
-    m2Follow:             TestChannel.State[String],
-    mountGuide:           MountGuideState,
-    pwfs1:                WfsChannelState,
-    pwfs2:                WfsChannelState,
-    oiwfs:                WfsChannelState,
-    guideStatus:          GuideConfigState,
-    probeGuideMode:       ProbeGuideModeState,
-    oiwfsSelect:          OiwfsSelectState,
-    m2Baffles:            M2BafflesState,
-    hrwfsMech:            AgMechState,
-    scienceFoldMech:      AgMechState,
-    aoFoldMech:           AgMechState,
-    m1Cmds:               M1CommandsState,
-    nodState:             TestChannel.State[String],
-    pwfs1TrackingState:   ProbeTrackingStateState,
-    pwfs2TrackingState:   ProbeTrackingStateState,
-    oiwfsTrackingState:   ProbeTrackingStateState,
-    targetAdjust:         AdjustCommandState,
-    targetOffsetAbsorb:   OffsetCommandState,
-    targetOffsetClear:    OffsetCommandState,
-    originAdjust:         AdjustCommandState,
-    originOffsetAbsorb:   OffsetCommandState,
-    originOffsetClear:    OffsetCommandState,
-    pointingAdjust:       PointingAdjustCommandState,
-    inPosition:           TestChannel.State[String],
-    targetFilter:         TargetFilterCommandState,
-    sourceATargetReadout: TestChannel.State[Array[Double]],
-    pwfs1TargetReadout:   TestChannel.State[Array[Double]],
-    pwfs2TargetReadout:   TestChannel.State[Array[Double]],
-    oiwfsTargetReadout:   TestChannel.State[Array[Double]],
-    pointingOffsetState:  PointingOffsetState,
-    pointingConfig:       PointingConfigState,
-    absorbGuideDirState:  TestChannel.State[CadDirective],
-    zeroGuideDirState:    TestChannel.State[CadDirective],
-    instrumentOffset:     InstrumentOffsetCommandState,
-    instrumentOffsetB:    InstrumentOffsetCommandState,
-    azimuthWrap:          TestChannel.State[String],
-    rotatorWrap:          TestChannel.State[String],
-    zeroRotatorGuide:     TestChannel.State[CadDirective],
-    p1Filter:             TestChannel.State[String],
-    p1FieldStop:          TestChannel.State[String],
-    p2Filter:             TestChannel.State[String],
-    p2FieldStop:          TestChannel.State[String],
-    chopConfig:           ChopConfigState,
-    chopRelative:         ChopRelativeState,
-    pwfs1UnwrapDir:       TestChannel.State[CadDirective],
-    pwfs2UnwrapDir:       TestChannel.State[CadDirective],
-    demandAzimuth:        TestChannel.State[String],
-    demandRotator:        TestChannel.State[Double],
-    instrAA:              TestChannel.State[Double]
+    telltale:                 TestChannel.State[String],
+    telescopeParkDir:         TestChannel.State[CadDirective],
+    mountFollow:              TestChannel.State[String],
+    rotStopBrake:             TestChannel.State[String],
+    rotParkDir:               TestChannel.State[CadDirective],
+    rotFollow:                TestChannel.State[String],
+    rotMoveAngle:             TestChannel.State[String],
+    enclosure:                EnclosureChannelsState,
+    enclosureState:           EnclosureStateChannelsState,
+    sourceA:                  TargetChannelsState,
+    pwfs1Target:              TargetChannelsState,
+    pwfs2Target:              TargetChannelsState,
+    oiwfsTarget:              TargetChannelsState,
+    wavelSourceA:             TestChannel.State[String],
+    wavelSourceB:             TestChannel.State[String],
+    wavelPwfs1:               TestChannel.State[String],
+    wavelPwfs2:               TestChannel.State[String],
+    wavelOiwfs:               TestChannel.State[String],
+    slew:                     SlewChannelsState,
+    rotator:                  RotatorChannelState,
+    origin:                   OriginChannelState,
+    focusOffset:              TestChannel.State[String],
+    focusOffsetB:             TestChannel.State[String],
+    pwfs1Tracking:            ProbeTrackingState,
+    pwfs1Probe:               ProbeState,
+    pwfs2Tracking:            ProbeTrackingState,
+    pwfs2Probe:               ProbeState,
+    oiwfsTracking:            ProbeTrackingState,
+    oiwfsProbe:               ProbeState,
+    m1Guide:                  TestChannel.State[String],
+    m1GuideConfig:            M1GuideConfigState,
+    m2Guide:                  TestChannel.State[String],
+    m2GuideMode:              TestChannel.State[String],
+    m2GuideConfig:            M2GuideConfigState,
+    m2GuideReset:             TestChannel.State[CadDirective],
+    m2Follow:                 TestChannel.State[String],
+    mountGuide:               MountGuideState,
+    pwfs1:                    WfsChannelState,
+    pwfs2:                    WfsChannelState,
+    oiwfs:                    WfsChannelState,
+    guideStatus:              GuideConfigState,
+    probeGuideMode:           ProbeGuideModeState,
+    oiwfsSelect:              OiwfsSelectState,
+    m2Baffles:                M2BafflesState,
+    hrwfsMech:                AgMechState,
+    scienceFoldMech:          AgMechState,
+    aoFoldMech:               AgMechState,
+    m1Cmds:                   M1CommandsState,
+    nodState:                 TestChannel.State[String],
+    pwfs1TrackingState:       ProbeTrackingStateState,
+    pwfs2TrackingState:       ProbeTrackingStateState,
+    oiwfsTrackingState:       ProbeTrackingStateState,
+    targetAdjust:             AdjustCommandState,
+    targetOffsetAbsorb:       OffsetCommandState,
+    targetOffsetClear:        OffsetCommandState,
+    originAdjust:             AdjustCommandState,
+    originOffsetAbsorb:       OffsetCommandState,
+    originOffsetClear:        OffsetCommandState,
+    pointingAdjust:           PointingAdjustCommandState,
+    inPosition:               TestChannel.State[String],
+    targetFilter:             TargetFilterCommandState,
+    sourceATargetReadout:     TestChannel.State[Array[Double]],
+    pwfs1TargetReadout:       TestChannel.State[Array[Double]],
+    pwfs2TargetReadout:       TestChannel.State[Array[Double]],
+    oiwfsTargetReadout:       TestChannel.State[Array[Double]],
+    pointingOffsetState:      PointingOffsetState,
+    pointingConfig:           PointingConfigState,
+    absorbGuideDirState:      TestChannel.State[CadDirective],
+    zeroGuideDirState:        TestChannel.State[CadDirective],
+    focalPlaneOffsetCommandA: FocalPlaneOffsetCommandState,
+    focalPlaneOffsetCommandB: FocalPlaneOffsetCommandState,
+    azimuthWrap:              TestChannel.State[String],
+    rotatorWrap:              TestChannel.State[String],
+    zeroRotatorGuide:         TestChannel.State[CadDirective],
+    p1Filter:                 TestChannel.State[String],
+    p1FieldStop:              TestChannel.State[String],
+    p2Filter:                 TestChannel.State[String],
+    p2FieldStop:              TestChannel.State[String],
+    chopConfig:               ChopConfigState,
+    chopRelative:             ChopRelativeState,
+    pwfs1UnwrapDir:           TestChannel.State[CadDirective],
+    pwfs2UnwrapDir:           TestChannel.State[CadDirective],
+    demandAzimuth:            TestChannel.State[String],
+    demandRotator:            TestChannel.State[Double],
+    instrAA:                  TestChannel.State[Double],
+    focalPlaneOffsetAX:       TestChannel.State[Double],
+    focalPlaneOffsetAY:       TestChannel.State[Double],
+    sourceAWavelength:        TestChannel.State[Double]
   )
 
   val defaultState: State = State(
@@ -607,8 +610,8 @@ object TestTcsEpicsSystem {
     pointingConfig = PointingConfigState.default,
     absorbGuideDirState = TestChannel.State.default,
     zeroGuideDirState = TestChannel.State.default,
-    instrumentOffset = InstrumentOffsetCommandState.default,
-    instrumentOffsetB = InstrumentOffsetCommandState.default,
+    focalPlaneOffsetCommandA = FocalPlaneOffsetCommandState.default,
+    focalPlaneOffsetCommandB = FocalPlaneOffsetCommandState.default,
     azimuthWrap = TestChannel.State.default,
     rotatorWrap = TestChannel.State.default,
     zeroRotatorGuide = TestChannel.State.default,
@@ -622,7 +625,10 @@ object TestTcsEpicsSystem {
     pwfs2UnwrapDir = TestChannel.State.default,
     demandAzimuth = TestChannel.State.default,
     demandRotator = TestChannel.State.default,
-    instrAA = TestChannel.State.default
+    instrAA = TestChannel.State.default,
+    focalPlaneOffsetAX = TestChannel.State.default,
+    focalPlaneOffsetAY = TestChannel.State.default,
+    sourceAWavelength = TestChannel.State.default
   )
 
   def buildEnclosureChannels[F[_]: Temporal](s: Ref[F, State]): EnclosureChannels[F] =
@@ -1165,16 +1171,16 @@ object TestTcsEpicsSystem {
     new TestChannel[F, State, String](s, l.andThen(Focus[OffsetCommandState](_.index)))
   )
 
-  def buildInstrumentOffsetCommandChannels[F[_]: Temporal](
+  def buildFocalPlaneOffsetCommandChannels[F[_]: Temporal](
     s: Ref[F, State],
-    l: Lens[State, InstrumentOffsetCommandState]
-  ): InstrumentOffsetCommandChannels[F] =
-    InstrumentOffsetCommandChannels[F](
+    l: Lens[State, FocalPlaneOffsetCommandState]
+  ): FocalPlaneOffsetCommandChannels[F] =
+    FocalPlaneOffsetCommandChannels[F](
       new TestChannel[F, State, String](s,
-                                        l.andThen(Focus[InstrumentOffsetCommandState](_.offsetX))
+                                        l.andThen(Focus[FocalPlaneOffsetCommandState](_.offsetX))
       ),
       new TestChannel[F, State, String](s,
-                                        l.andThen(Focus[InstrumentOffsetCommandState](_.offsetY))
+                                        l.andThen(Focus[FocalPlaneOffsetCommandState](_.offsetY))
       )
     )
 
@@ -1256,9 +1262,10 @@ object TestTcsEpicsSystem {
       absorbGuideDir =
         new TestChannel[F, State, CadDirective](s, Focus[State](_.absorbGuideDirState)),
       zeroGuideDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.zeroGuideDirState)),
-      instrumentOffsetA = buildInstrumentOffsetCommandChannels(s, Focus[State](_.instrumentOffset)),
-      instrumentOffsetB =
-        buildInstrumentOffsetCommandChannels(s, Focus[State](_.instrumentOffsetB)),
+      focalPlaneOffsetCommandA =
+        buildFocalPlaneOffsetCommandChannels(s, Focus[State](_.focalPlaneOffsetCommandA)),
+      focalPlaneOffsetCommandB =
+        buildFocalPlaneOffsetCommandChannels(s, Focus[State](_.focalPlaneOffsetCommandB)),
       azimuthWrap = new TestChannel[F, State, String](s, Focus[State](_.azimuthWrap)),
       rotatorWrap = new TestChannel[F, State, String](s, Focus[State](_.rotatorWrap)),
       zeroRotatorGuideDir =
@@ -1298,7 +1305,10 @@ object TestTcsEpicsSystem {
         shuttersEnabled =
           new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsShutterEnable))
       ),
-      instrAA = new TestChannel[F, State, Double](s, Focus[State](_.instrAA))
+      instrAA = new TestChannel[F, State, Double](s, Focus[State](_.instrAA)),
+      focalPlaneOffsetAX = new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAX)),
+      focalPlaneOffsetAY = new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAY)),
+      sourceAWavelength = new TestChannel[F, State, Double](s, Focus[State](_.sourceAWavelength))
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {

@@ -486,7 +486,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .compose(setRotatorTrackingConfig(config.rotatorTrackConfig))
       .compose(setOrigin(config.instrumentSpecifics.origin))
 
-  private val TcsConfigTimeout = FiniteDuration(60, SECONDS)
+  private val TcsConfigTimeout  = FiniteDuration(60, SECONDS)
+  // Maximum time to wait for the telescope to get in position after a configuration change,
+  // as in Observe
+  private val InPositionTimeout = FiniteDuration(90, SECONDS)
 
   // Added a 1.5 s wait between selecting the OIWFS and setting targets, to copy TCC
   override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] = for {
@@ -545,9 +548,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                applyTcsConfig(tcsConfig, p1f, p2f)
                  .andThen(c => c.targetFilter.shortcircuit(ShortcircuitTargetFilter(true)))
                  .andThen { c =>
-                   c.instrumentOffsetCommand
+                   c.focalPlaneOffsetCommand
                      .offsetX(Distance.Zero)
-                     .instrumentOffsetCommand
+                     .focalPlaneOffsetCommand
                      .offsetY(Distance.Zero)
                  }
                  .andThen(resetChopParameters)
@@ -1803,7 +1806,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     (aoFold >>> hrwfsPickup >>> scienceFold)(x)
   }
 
-  private val LightPathTimeout = FiniteDuration(30, SECONDS)
+  private val LightPathTimeout = FiniteDuration(60, SECONDS)
 
   override def lightPath(from: LightSource, to: LightSink): F[ApplyCommandResult] = for {
     p2Parked <- sys.ags.status.p2Parked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
@@ -2095,21 +2098,46 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       } <*
       resumeGuide(guide.tcsGuide).whenA(openLoops)
 
-  private def applyOffset(offset: FocalPlaneOffset): F[ApplyCommandResult] = {
-    val (size, _)  = rectToPolar(offset.deltaX.value, offset.deltaY.value)
-    val sizeArcsec = Angle.signedDecimalArcseconds.get(size).doubleValue
-    sys.tcsEpics
-      .startCommand(AdjTimeout)
-      .instrumentOffsetCommand
-      .offsetX(offset.deltaX.value.toLengthInFocalPlane)
-      .instrumentOffsetCommand
-      .offsetY(offset.deltaY.value.toLengthInFocalPlane)
-      .post
-      .verifiedRun(ConnectionTimeout) <*
-      sys.tcsEpics.status
-        .waitInPosition(SettleTime, offsetTimeout(sizeArcsec))
-        .verifiedRun(ConnectionTimeout)
+  private def calcOffsetMove(offset: Offset): F[OffsetMove] =
+    for {
+      iaa          <- sys.tcsEpics.status.instrAA.verifiedRun(ConnectionTimeout)
+      (curX, curY) <- sys.tcsEpics.status.focalPlaneOffsetA.verifiedRun(ConnectionTimeout)
+      fp            = FocalPlaneOffset.fromOffset(offset, iaa)
+    } yield OffsetMove.from(fp.deltaX.value.toLengthInFocalPlane,
+                            fp.deltaY.value.toLengthInFocalPlane,
+                            curX,
+                            curY
+    )
+
+  private def oiwfsSettleTime(instrument: Instrument): FiniteDuration = instrument match {
+    case Instrument.Niri | Instrument.Gnirs => FiniteDuration(4, TimeUnit.SECONDS)
+    case _                                  => SettleTime
   }
+
+  // The OIWFS is only waited for when it is actually in use for guiding.
+  private def offsetSettleTime(
+    oiInstrument: Option[Instrument],
+    guide:        TelescopeGuideConfig
+  ): FiniteDuration =
+    oiInstrument
+      .filter(_ => activeWfs(guide).oiwfs)
+      .map(i => List(SettleTime, oiwfsSettleTime(i)).max)
+      .getOrElse(SettleTime)
+
+  private def applyOffset(move: OffsetMove, settleTime: FiniteDuration): F[ApplyCommandResult] =
+    if (move.isNull) ApplyCommandResult.Completed.pure[F]
+    else
+      sys.tcsEpics
+        .startCommand(AdjTimeout)
+        .focalPlaneOffsetCommand
+        .offsetX(move.demandX)
+        .focalPlaneOffsetCommand
+        .offsetY(move.demandY)
+        .post
+        .verifiedRun(ConnectionTimeout) <*
+        sys.tcsEpics.status
+          .waitInPosition(settleTime, offsetTimeout(move.displacementArcsec))
+          .verifiedRun(ConnectionTimeout)
 
   override def offset(offset: Offset, guiding: Boolean)(
     guide:       GuideConfig,
@@ -2118,14 +2146,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     for {
       gs           <- getGuideState
       pg           <- getProbesGuideState.verifiedRun(ConnectionTimeout)
-      iaa          <- sys.tcsEpics.status.instrAA.verifiedRun(ConnectionTimeout)
       oiInstrument <- sys.ags.status.oiwfsName.verifiedRun(ConnectionTimeout)
-      fpOffset      = FocalPlaneOffset.fromOffset(offset, iaa)
-      active        = activeWfs(guide.tcsGuide)
-      // guiding = false always forces a pause; otherwise pause only if the offset is large
+      move         <- calcOffsetMove(offset)
+      // guiding = false always forces a pause; otherwise pause only if the displacement is large
       // enough to risk losing lock on an in-use guider.
-      pause         = gs.isGuiding &&
-                        (!guiding || mustPauseWhileOffsetting(fpOffset, oiInstrument, guide.tcsGuide))
+      pause         =
+        gs.isGuiding &&
+          (!guiding ||
+            mustPauseWhileOffsetting(move.displacement, oiInstrument, guide.tcsGuide, wfsTracking))
       _            <- pauseGuide.whenA(pause)
       // When guiding is turned off for this offset, also stop probe tracking on the WFS that
       // was guiding, so it doesn't try to follow the star through the move. When guiding is
@@ -2133,33 +2161,55 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       _            <- pauseWfsTracking(pg)
                         .verifiedRun(ConnectionTimeout)
                         .whenA(!guiding)
-      r            <- applyOffset(fpOffset)
+      r            <- applyOffset(move, offsetSettleTime(oiInstrument, guide.tcsGuide))
       _            <- resumeWfsTracking(pg, wfsTracking)
                         .verifiedRun(ConnectionTimeout)
                         .whenA(guiding)
       _            <- resumeGuide(guide.tcsGuide).whenA(guiding && (pause || !gs.isGuiding))
     } yield r
 
-  // Same wavelength is applied to both beams (A and B).
   // The instrument defocus is applied as focus offset B, leaving the instrument's own focus offset
   // (focus offset A, set on slew from the instrument specifics) unchanged.
   private def instrumentDefocus(defocus: Distance): F[ApplyCommandResult] =
     sys.tcsEpics
-      .startCommand(timeout)
+      .startCommand(TcsConfigTimeout)
       .focusOffsetCommand
       .focusOffsetB(defocus)
       .post
       .verifiedRun(ConnectionTimeout)
 
-  override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
-    sys.tcsEpics
-      .startCommand(timeout)
-      .sourceAWavel
-      .wavelength(wavelength)
-      .sourceBWavel
-      .wavelength(wavelength)
-      .post
+  // The TCS reports the wavelength in Angstroms with no decimals
+  private val WavelengthTolerance: Double = 0.5 // Å
+
+  private def wavelengthChanged(wavelength: Wavelength): F[Boolean] =
+    sys.tcsEpics.status.sourceAWavelength
       .verifiedRun(ConnectionTimeout)
+      .map(
+        _.forall(current =>
+          Math.abs(
+            current.toAngstroms.value.value.doubleValue - wavelength.toAngstroms.value.value.doubleValue
+          ) > WavelengthTolerance
+        )
+      )
+
+  // Same wavelength is applied to both beams (A and B). Like Observe, which handles it as a mount
+  // parameter, wait for the telescope to be in position again if the wavelength changed.
+  override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
+    for {
+      changed <- wavelengthChanged(wavelength)
+      r       <- sys.tcsEpics
+                   .startCommand(TcsConfigTimeout)
+                   .sourceAWavel
+                   .wavelength(wavelength)
+                   .sourceBWavel
+                   .wavelength(wavelength)
+                   .post
+                   .verifiedRun(ConnectionTimeout)
+      _       <- sys.tcsEpics.status
+                   .waitInPosition(SettleTime, InPositionTimeout)
+                   .verifiedRun(ConnectionTimeout)
+                   .whenA(changed)
+    } yield r
 
   // A LightSink for the given instrument, disregarding its light-sink variant (e.g. which of
   // NIRI's f-ratios, or GMOS's IFU mode): only its instrument identity matters to callers here.
@@ -2234,6 +2284,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       result   <- if (sfParked) parkedLightPath else configuredLightPath
     } yield result
 
+  // Logs the start, end and failure of a configureStep sub-step with its timeouts, to find which
+  // sub-step caused a timeout.
+  private def logStep[A](name: String, timeouts: String)(fa: F[A]): F[A] =
+    Logger[F].debug(s"configureStep: $name (timeout $timeouts)") *>
+      fa.onError { case e =>
+        Logger[F].debug(s"configureStep: $name failed: ${e.getClass.getName}: ${e.getMessage}")
+      } <* Logger[F].debug(s"configureStep: $name done")
+
   override def configureStep(
     offset:      Option[Offset],
     wavelength:  Option[Wavelength],
@@ -2249,13 +2307,13 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       pg               <- getProbesGuideState.verifiedRun(ConnectionTimeout)
       oiInstrument     <- sys.ags.status.oiwfsName.verifiedRun(ConnectionTimeout)
       // Only consult the rotator angle channel when there is actually an offset to apply.
-      fpOffsetAndPause <- offset.traverse { o =>
-                            sys.tcsEpics.status.instrAA.verifiedRun(ConnectionTimeout).map { iaa =>
-                              val fp = FocalPlaneOffset.fromOffset(o, iaa)
-                              (fp, mustPauseWhileOffsetting(fp, oiInstrument, guide.tcsGuide))
-                            }
-                          }
-      fpOffset          = fpOffsetAndPause.map(_._1)
+      moveAndPause     <-
+        offset.traverse { o =>
+          calcOffsetMove(o).map { m =>
+            (m, mustPauseWhileOffsetting(m.displacement, oiInstrument, guide.tcsGuide, wfsTracking))
+          }
+        }
+      offsetMove        = moveAndPause.map(_._1)
       // OIWFS guiding may only stay/become enabled while starlight (Sky or AO) is being routed
       // to the same instrument OIWFS is configured for. The light path in effect once this
       // command completes is the one requested here, or, if none is requested, whatever is
@@ -2268,25 +2326,43 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           lightPath
             .fold(currentLightPath)(_.some.pure[F])
             .map(_.exists(lp => lp.from.sendsStarlight && oiInstrument.contains(lp.to.instrument)))
-      // guiding = false always forces a pause; otherwise pause only if the offset (when there
-      // is one) is large enough to risk losing lock on an in-use guider.
-      pause             = gs.isGuiding && (!effectiveGuiding || fpOffsetAndPause.exists(_._2))
-      _                <- pauseGuide.whenA(pause)
+      // guiding = false always forces a pause; otherwise pause only if the displacement (when
+      // there is an offset) is large enough to risk losing lock on an in-use guider.
+      pause             = gs.isGuiding && (!effectiveGuiding || moveAndPause.exists(_._2))
+      _                <- logStep("pause guiding", CommandAcknowledgeTimeout.toString)(pauseGuide)
+                            .whenA(pause)
       // When guiding is turned off, also stop probe tracking on the WFS that was guiding, so it
       // doesn't try to follow the star through the reconfiguration. When guiding is turned back
       // on, restore probe tracking to whatever was last explicitly configured.
-      _                <- pauseWfsTracking(pg)
-                            .verifiedRun(ConnectionTimeout)
-                            .whenA(!effectiveGuiding)
-      lpResult         <- lightPath.traverse(lp => this.lightPath(lp.from, lp.to))
-      wlResult         <- wavelength.traverse(centralWavelength)
-      dfResult         <- defocus.traverse(instrumentDefocus)
-      offResult        <- fpOffset.traverse(applyOffset)
-      _                <- resumeWfsTracking(pg, wfsTracking)
-                            .verifiedRun(ConnectionTimeout)
-                            .whenA(effectiveGuiding)
-      _                <-
-        resumeGuide(guide.tcsGuide).whenA(effectiveGuiding && (pause || !gs.isGuiding))
+      _                <- logStep("pause probe tracking", timeout.toString)(
+                            pauseWfsTracking(pg).verifiedRun(ConnectionTimeout)
+                          ).whenA(!effectiveGuiding)
+      lpResult         <- lightPath.traverse { lp =>
+                            logStep("light path", LightPathTimeout.toString)(
+                              this.lightPath(lp.from, lp.to)
+                            )
+                          }
+      wlResult         <- wavelength.traverse { w =>
+                            logStep("central wavelength",
+                                    s"$TcsConfigTimeout, in position $InPositionTimeout"
+                            )(centralWavelength(w))
+                          }
+      dfResult         <- defocus.traverse { d =>
+                            logStep("defocus", TcsConfigTimeout.toString)(instrumentDefocus(d))
+                          }
+      offResult        <- offsetMove.traverse { m =>
+                            logStep("offset",
+                                    s"$AdjTimeout, in position ${offsetTimeout(m.displacementArcsec)}"
+                            )(
+                              applyOffset(m, offsetSettleTime(oiInstrument, guide.tcsGuide))
+                            )
+                          }
+      _                <- logStep("resume probe tracking", timeout.toString)(
+                            resumeWfsTracking(pg, wfsTracking).verifiedRun(ConnectionTimeout)
+                          ).whenA(effectiveGuiding)
+      _                <- logStep("resume guiding", CommandAcknowledgeTimeout.toString)(
+                            resumeGuide(guide.tcsGuide)
+                          ).whenA(effectiveGuiding && (pause || !gs.isGuiding))
     } yield offResult
       .orElse(dfResult)
       .orElse(wlResult)
@@ -2325,60 +2401,6 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   }
 
   private val MaxClearedOffset: Double = 120.0 // arcsec
-
-  // Guiding is paused during an offset only if the move is large enough to risk losing lock
-  // on a guider that is actually in use. Kept as separate constants (even though they agree
-  // today) since each guider's tolerance may need to be tuned independently later.
-  private val Pwfs1OffsetThreshold: Distance =
-    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
-  private val Pwfs2OffsetThreshold: Distance =
-    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
-  private val AoOffsetThreshold: Distance    =
-    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
-
-  private def oiwfsOffsetThreshold(instrument: Instrument): Option[Distance] = instrument match {
-    case Instrument.Flamingos2 | Instrument.GmosSouth | Instrument.GmosNorth =>
-      Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane.some
-    case _                                                                   => none // hasOI instruments without a threshold defined yet
-  }
-
-  private case class ActiveWfs(pwfs1: Boolean, pwfs2: Boolean, oiwfs: Boolean)
-
-  // Which of the PWFS1/PWFS2/OIWFS probes are currently designated as an M1 or M2 guide
-  // source, i.e. are actually in use for guiding right now.
-  private def activeWfs(guide: TelescopeGuideConfig): ActiveWfs = ActiveWfs(
-    pwfs1 = guide.m2Guide.uses(TipTiltSource.PWFS1) || guide.m1Guide.uses(M1Source.PWFS1),
-    pwfs2 = guide.m2Guide.uses(TipTiltSource.PWFS2) || guide.m1Guide.uses(M1Source.PWFS2),
-    oiwfs = guide.m2Guide.uses(TipTiltSource.OIWFS) || guide.m1Guide.uses(M1Source.OIWFS)
-  )
-
-  private def mustPauseWhileOffsetting(
-    offset:       FocalPlaneOffset,
-    oiInstrument: Option[Instrument],
-    guide:        TelescopeGuideConfig
-  ): Boolean = {
-    val dxMm            = offset.deltaX.value.toLengthInFocalPlane.toMillimeters.value.toDouble
-    val dyMm            = offset.deltaY.value.toLengthInFocalPlane.toMillimeters.value.toDouble
-    val distanceSquared = dxMm * dxMm + dyMm * dyMm
-
-    def thresholdSquared(t: Distance): Double = {
-      val mm = t.toMillimeters.value.toDouble
-      mm * mm
-    }
-
-    val active = activeWfs(guide)
-
-    val thresholds = List(
-      active.pwfs1.option(Pwfs1OffsetThreshold),
-      active.pwfs2.option(Pwfs2OffsetThreshold),
-      (guide.m2Guide.uses(TipTiltSource.GAOS) || guide.m1Guide.uses(M1Source.GAOS))
-        .option(AoOffsetThreshold),
-      oiInstrument.filter(_ => active.oiwfs).flatMap(oiwfsOffsetThreshold)
-    )
-
-    // Does the offset movement surpass any of the applicable thresholds?
-    thresholds.exists(_.exists(thresholdSquared(_) < distanceSquared))
-  }
 
   override def targetOffsetClear(target: VirtualTelescope, openLoops: Boolean)(
     guide: GuideConfig
@@ -2952,6 +2974,95 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
 object TcsBaseControllerEpics {
 
+  // An offset move, expressed in the focal plane. The pause criteria, the timeout and the settle
+  // time all depend on the displacement, i.e. how far the telescope has to move from the offset it
+  // currently has to the demanded one, and not on the absolute value of the demanded offset.
+  private[tcs] case class OffsetMove(demandX: Distance, demandY: Distance, displacement: Distance) {
+    val displacementMm: Double     = displacement.toMillimeters.value.toDouble
+    val displacementArcsec: Double =
+      Angle.decimalArcseconds.get(displacement.toAngleInFocalPlane).doubleValue
+    val isNull: Boolean            = displacementMm <= OffsetMove.Tolerance
+  }
+
+  private[tcs] object OffsetMove {
+    // The TCS offset resolution. Offsets that differ by less than this are not applied again.
+    val Tolerance: Double = 1e-6 // mm
+
+    def from(
+      demandX:  Distance,
+      demandY:  Distance,
+      currentX: Distance,
+      currentY: Distance
+    ): OffsetMove = {
+      val dx = demandX.toMillimeters.value.toDouble - currentX.toMillimeters.value.toDouble
+      val dy = demandY.toMillimeters.value.toDouble - currentY.toMillimeters.value.toDouble
+      OffsetMove(demandX,
+                 demandY,
+                 Distance.fromBigDecimalMillimeters(BigDecimal(Math.hypot(dx, dy)))
+      )
+    }
+  }
+
+  // Guiding is paused during an offset only if the displacement is large enough to risk losing
+  // lock on a guider that is actually in use. Kept as separate constants (even though they agree
+  // today) since each guider's tolerance may need to be tuned independently later.
+  private[tcs] val Pwfs1OffsetThreshold: Distance =
+    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
+  private[tcs] val Pwfs2OffsetThreshold: Distance =
+    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
+  private[tcs] val AoOffsetThreshold: Distance    =
+    Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane
+
+  private[tcs] def oiwfsOffsetThreshold(instrument: Instrument): Option[Distance] =
+    instrument match {
+      case Instrument.Flamingos2 | Instrument.GmosSouth | Instrument.GmosNorth =>
+        Angle.fromBigDecimalArcseconds(0.01).toLengthInFocalPlane.some
+      case _                                                                   => none // hasOI instruments without a threshold defined yet
+    }
+
+  private[tcs] case class ActiveWfs(pwfs1: Boolean, pwfs2: Boolean, oiwfs: Boolean)
+
+  // Which of the PWFS1/PWFS2/OIWFS probes are currently designated as an M1 or M2 guide
+  // source, i.e. are actually in use for guiding right now.
+  private[tcs] def activeWfs(guide: TelescopeGuideConfig): ActiveWfs = ActiveWfs(
+    pwfs1 = guide.m2Guide.uses(TipTiltSource.PWFS1) || guide.m1Guide.uses(M1Source.PWFS1),
+    pwfs2 = guide.m2Guide.uses(TipTiltSource.PWFS2) || guide.m1Guide.uses(M1Source.PWFS2),
+    oiwfs = guide.m2Guide.uses(TipTiltSource.OIWFS) || guide.m1Guide.uses(M1Source.OIWFS)
+  )
+
+  // The displacement is the distance the telescope moves from its current offset to the demanded
+  // one, not the absolute value of the demanded offset. A guider only counts if it is in use by
+  // M1/M2 and its probe tracking is active.
+  private[tcs] def mustPauseWhileOffsetting(
+    displacement: Distance,
+    oiInstrument: Option[Instrument],
+    guide:        TelescopeGuideConfig,
+    wfsTracking:  WfsGuideStates
+  ): Boolean = {
+    val displacementMm  = displacement.toMillimeters.value.toDouble
+    val distanceSquared = displacementMm * displacementMm
+
+    def thresholdSquared(t: Distance): Double = {
+      val mm = t.toMillimeters.value.toDouble
+      mm * mm
+    }
+
+    val active = activeWfs(guide)
+
+    val thresholds = List(
+      (active.pwfs1 && wfsTracking.pwfs1.active).option(Pwfs1OffsetThreshold),
+      (active.pwfs2 && wfsTracking.pwfs2.active).option(Pwfs2OffsetThreshold),
+      (guide.m2Guide.uses(TipTiltSource.GAOS) || guide.m1Guide.uses(M1Source.GAOS))
+        .option(AoOffsetThreshold),
+      oiInstrument
+        .filter(_ => active.oiwfs && wfsTracking.oiwfs.active)
+        .flatMap(oiwfsOffsetThreshold)
+    )
+
+    // Does the displacement surpass any of the applicable thresholds?
+    thresholds.exists(_.exists(thresholdSquared(_) < distanceSquared))
+  }
+
   def encodeOiwfsSelect(oiGuideConfig: Option[GuiderConfig], instrument: Instrument): String =
     oiGuideConfig
       .flatMap { _ =>
@@ -3012,7 +3123,7 @@ object TcsBaseControllerEpics {
   // Timeout rate for offsets
   private val OffsetTimeout: Double                     = 1.0 // seconds/arcsec
 
-  private def offsetTimeout(size: Double): FiniteDuration =
+  private[tcs] def offsetTimeout(size: Double): FiniteDuration =
     CommandAcknowledgeTimeout + (size * OffsetTimeout).seconds
 
 }
