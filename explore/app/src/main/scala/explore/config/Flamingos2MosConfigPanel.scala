@@ -5,8 +5,9 @@ package explore.config
 
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.data.Input
 import clue.data.syntax.*
-import crystal.react.View
+import crystal.react.*
 import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.*
@@ -119,12 +120,18 @@ object Flamingos2MosConfigPanel
           )
           .view(_.map(_.toInput).orUnassign)
 
-        val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
+        val exposureTimeModeAligner = props.observingMode
           .zoom(
             ObservingMode.Flamingos2Mos.exposureTimeMode,
             Flamingos2MosInput.exposureTimeMode.modify
           )
-          .view(_.toInput.assign)
+
+        val exposureTimeMode: View[ExposureTimeMode] =
+          exposureTimeModeAligner.view(_.toInput.assign)
+
+        val resetEtm: Option[Callback] =
+          Option.when(props.permissions.isTelluricEtmOnly):
+            exposureTimeModeAligner.send(_ => _ => Input.unassign).runAsync
 
         val deckerView: View[Option[Flamingos2Decker]] = props.observingMode
           .zoom(
@@ -236,8 +243,9 @@ object Flamingos2MosConfigPanel
             disableAdvancedEdit = disableAdvancedEdit,
             showCustomization = showCustomization,
             allowRevertCustomization = allowRevertCustomization,
-            etmReadonly = !props.permissions.isFullEdit,
-            presetsReadonly = !props.permissions.isFullEdit
+            etmReadonly = !props.permissions.canEditScienceEtm,
+            presetsReadonly = !props.permissions.isFullEdit,
+            resetEtm = resetEtm
           ),
           <.div(
             ExploreStyles.Flamingos2LowerGrid,
