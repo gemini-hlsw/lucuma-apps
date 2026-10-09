@@ -84,6 +84,10 @@ object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, Seque
           science $StepDigestSubquery
         }
         executionState
+        exposureTimeViolations {
+          severity
+          description
+        }
       }
   """
 
