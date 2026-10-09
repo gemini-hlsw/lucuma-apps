@@ -168,6 +168,21 @@ object TestOdbProxy {
         )
       case i                     => sys.error(s"Unexpected instrument $i")
 
+  /**
+   * Wraps `delegate`, keeping every behavior except `readExecutionConfig`, which always fails. Used
+   * to test the retry / failure path when the ODB can't be reached while resuming a paused step.
+   */
+  def withFailingReadExecutionConfig[F[_]: Async](delegate: TestOdbProxy[F]): TestOdbProxy[F] =
+    new TestOdbProxy[F]:
+      export delegate.{readExecutionConfig as _, *}
+
+      override def readExecutionConfig(
+        obsId:       Observation.Id,
+        instrument:  Instrument,
+        futureLimit: NonNegInt
+      ): F[InstrumentExecutionConfig] =
+        Async[F].raiseError(new RuntimeException("Test: ODB unreachable"))
+
   def buildGmosNorth[F[_]: Async](
     obsId:              Observation.Id,
     staticCfg:          gmos.StaticConfig.GmosNorth,

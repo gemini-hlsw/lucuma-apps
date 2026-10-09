@@ -34,6 +34,7 @@ import observe.model.config.*
 import observe.model.enums.BatchExecState
 import observe.model.enums.RunOverride
 import observe.server.engine.*
+import observe.server.engine.Action.ActionState
 import observe.server.engine.Event
 import observe.server.engine.Handle.given
 import observe.server.events.*
@@ -176,7 +177,8 @@ trait ObserveEngine[F[_]] {
   def resumeObserve(
     obsId:    Observation.Id,
     observer: Observer,
-    user:     User
+    user:     User,
+    clientId: ClientId
   ): F[Unit]
 
   def addSequencesToQueue(qid: QueueId, obsIds: List[Observation.Id]): F[Unit]
@@ -488,6 +490,123 @@ object ObserveEngine {
                 EngineHandle
                   .fromSingleEvent(Event.sequenceComplete(obsId))
                   .as(SeqEvent.SequenceCompleted(obsId))
+
+  /** Finds the paused Observe action, if any, in the execution currently loaded for `sd`. */
+  private def findPausedObserve[F[_]](sd: SequenceData[F]): Option[ObserveContext[F]] =
+    sd.seq.currentExecution.execution
+      .find(_.kind === ActionType.Observe)
+      .flatMap: a =>
+        a.state.runState match
+          case ActionState.Paused(c: ObserveContext[F] @unchecked) => c.some
+          case _                                                   => none
+
+  /**
+   * Handles a `Continue` request while an Observe action is paused mid-exposure.
+   *
+   * Before blindly resuming the paused action, this re-reads the next atom from the ODB and checks
+   * that the loaded step is still the one the ODB expects. If an observer edits a paused step, the
+   * ODB abandons it and inserts an edited copy under a new step id; resuming against the old,
+   * abandoned step would complete an exposure the ODB no longer counts. When the ODB reports a
+   * different (or no) next step, the paused exposure is aborted and the edited step is loaded (but
+   * not started) instead, so the observer can review it and explicitly press Run.
+   */
+  def resumeOrReloadStep[F[_]: {Temporal, Logger}](
+    odb:        OdbProxy[F],
+    translator: SeqTranslate[F],
+    obsId:      Observation.Id,
+    clientId:   ClientId
+  ): EngineHandle[F, SeqEvent] = {
+
+    def resumePausedAction: EngineHandle[F, SeqEvent] =
+      EngineHandle
+        .fromSingleEvent(Event.getState(translator.resumePaused(obsId)))
+        .as(SeqEvent.NullSeqEvent)
+
+    EngineHandle
+      .inspectState[F, Option[SequenceData[F]]](EngineState.sequenceDataAt(obsId).getOption)
+      .flatMap: seqDataOpt =>
+        val checkInfo: Option[(SequenceData[F], LoadedStep[F], ObserveContext[F])] =
+          for
+            sd         <- seqDataOpt
+            loadedStep <- sd.seq.loadedStep
+            obsCtx     <- findPausedObserve(sd)
+          yield (sd, loadedStep, obsCtx)
+
+        checkInfo match
+          case None                           => resumePausedAction
+          case Some((sd, loadedStep, obsCtx)) =>
+            EngineHandle
+              .liftF(odb.readExecutionConfig(obsId, sd.instrument, OdbProxy.NextAtomOnly))
+              .attempt
+              .flatMap:
+                case Left(e)      =>
+                  val msg =
+                    s"Could not read execution config from the ODB while resuming paused observation [$obsId]"
+                  EngineHandle
+                    .logError(e)(msg)
+                    .as[SeqEvent]:
+                      SeqEvent.NotifyUser(
+                        Notification.SequenceCheckFailed(
+                          obsId,
+                          List(
+                            "Could not verify the sequence with the ODB, the step is still paused. Press Continue to retry.",
+                            e.getMessage
+                          )
+                        ),
+                        clientId
+                      )
+                case Right(odbEx) =>
+                  val expectedStepId: Option[Step.Id] =
+                    translator
+                      .nextStep(
+                        OdbObservationData(sd.observation, odbEx),
+                        sd.seq.currentSequenceType.asLeft
+                      )
+                      ._2
+                      .map(_.id)
+
+                  if expectedStepId.exists(_ === loadedStep.stepGen.id) then resumePausedAction
+                  else
+                    val oldStepId = loadedStep.stepGen.id
+
+                    // Abort directly on the paused context's stream instead of going through
+                    // Event.actionStop / translator.abortObserve: that path drives the action to
+                    // ActionState.Aborted and the sequence's Aborted status, which we don't want -
+                    // the step is simply being replaced (at the user's request to continue), not
+                    // the sequence aborted. `abortPaused` still records the abort on the old,
+                    // abandoned step in the ODB, which is fine.
+                    val abortStaleExposure: EngineHandle[F, Unit] =
+                      EngineHandle
+                        .liftF(obsCtx.abortPaused.compile.drain)
+                        .attempt
+                        .flatMap:
+                          case Left(abortError) =>
+                            EngineHandle.logError(abortError):
+                              s"Error aborting paused exposure for observation [$obsId], step [$oldStepId]"
+                          case Right(_)         =>
+                            EngineHandle.unit
+
+                    val editedMsg =
+                      s"Step [$oldStepId] for observation [$obsId] was edited in the ODB while paused; " +
+                        "discarding the exposure and loading the updated step"
+
+                    // Load the edited step but don't start it: the observer asked to continue an
+                    // exposure that no longer exists, not to run whatever replaced it. Leave the
+                    // sequence Idle with the new step loaded so they can review it and press Run.
+                    val loadEditedStep: EngineHandle[F, Unit] =
+                      retrieveStep(odb, translator, obsId, sd.seq.currentSequenceType.asLeft)
+                        .flatMap:
+                          case Some(_) =>
+                            EngineHandle.modifySequenceState[F](obsId)(_.withIdleStatus)
+                          case None    => EngineHandle.unit
+
+                    abortStaleExposure *>
+                      EngineHandle.modifySequenceState[F](obsId)(_.withNoLoadedStep) *>
+                      EngineHandle.liftF(Logger[F].info(editedMsg)) *>
+                      loadEditedStep *>
+                      EngineHandle.pure[F, SeqEvent]:
+                        SeqEvent.NotifyUser(Notification.StepEdited(obsId, oldStepId), clientId)
+  }
 
   private def updateStep[F[_]](
     obsId:      Observation.Id,

@@ -295,6 +295,13 @@ trait ServerEventHandler:
             case Notification.SubsystemBusy(obsId, stepId, resource) =>
               List(s"Error in observation $obsId, step $stepId: Subsystem $resource already in use")
                 .pure[IO]
+            case Notification.SequenceCheckFailed(obsId, msgs)       =>
+              List(s"Error in observation $obsId: ${msgs.mkString(". ")}").pure[IO]
+            case Notification.StepEdited(obsId, stepId)              =>
+              List(
+                s"Observation $obsId: step $stepId was edited while paused. The exposure was " +
+                  "discarded and the updated step is loaded. Press Run to start it."
+              ).pure[IO]
 
         msgs.flatMap: ms =>
           showToast(toast, ms) >>

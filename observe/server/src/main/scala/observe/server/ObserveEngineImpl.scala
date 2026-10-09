@@ -897,13 +897,15 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   override def resumeObserve(
     obsId:    Observation.Id,
     observer: Observer,
-    user:     User
+    user:     User,
+    clientId: ClientId
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Continue requested by ${user.displayName}") *>
       executeEngine.offer(Event.modifyState(clearObsCmd(obsId))) *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer:
-        Event.getState(translator.resumePaused(obsId))
+        Event.modifyState:
+          ObserveEngine.resumeOrReloadStep(systems.odb, translator, obsId, clientId)
 
   private def queueO(qid: QueueId): Optional[EngineState[F], ExecutionQueue] =
     Focus[EngineState[F]](_.queues).andThen(mapIndex[QueueId, ExecutionQueue].index(qid))

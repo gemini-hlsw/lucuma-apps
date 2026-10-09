@@ -155,7 +155,8 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
   override def resumeObserve(
     seqId:    Id,
     observer: Observer,
-    user:     User
+    user:     User,
+    clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 
   override def addSequencesToQueue(qid: QueueId, seqIds: List[Id]): F[Unit] =
