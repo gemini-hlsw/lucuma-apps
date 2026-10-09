@@ -16,6 +16,7 @@ import fs2.Stream
 import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
 import grackle.Value
+import grackle.syntax.*
 import io.circe.Decoder
 import io.circe.Decoder.Result
 import io.circe.DecodingFailure
@@ -2325,13 +2326,13 @@ class NavigateMappingsSuite extends CatsEffectSuite {
       ),
       input
         .ConfigureStepInput(none, none, none, Distance.fromLongMicrometers(250).some, true)
-        .asRight
+        .success
     )
     assertEquals(
       input.ConfigureStepInput.Binding.validate(
         configureStepInput("guiding" -> Value.BooleanValue(false))
       ),
-      input.ConfigureStepInput(none, none, none, none, false).asRight
+      input.ConfigureStepInput(none, none, none, none, false).success
     )
     // An unparseable defocus fails the whole input instead of being ignored
     assert(
@@ -2345,7 +2346,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
             "guiding" -> Value.BooleanValue(true)
           )
         )
-        .isLeft
+        .isFailure
     )
   }
 

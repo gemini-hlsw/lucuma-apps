@@ -23,7 +23,7 @@ object LightPathInput:
     rInstrument: Result[Instrument],
     rVariant:    Result[Option[LightSinkVariant]]
   ): Result[LightSink] =
-    (rInstrument, rVariant).parTupled.flatMap: (instrument, variant) =>
+    (rInstrument, rVariant).parFlatMapN: (instrument, variant) =>
       LightSink
         .fromInstrumentAndVariant(instrument, variant)
         .toResult(

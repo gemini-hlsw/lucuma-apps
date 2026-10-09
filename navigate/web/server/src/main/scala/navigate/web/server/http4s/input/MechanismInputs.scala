@@ -33,7 +33,7 @@ object AcWindowInput:
             SizeBinding("type", rType),
             CenterBinding.Option("center", rCenter)
           ) =>
-        (rType, rCenter).parTupled.flatMap:
+        (rType, rCenter).parFlatMapN:
           case (Size.Full, _)                     => AcWindow.Full.success
           case (Size.Window200x200, Some((x, y))) => AcWindow.Square200(x, y).success
           case (Size.Window100x100, Some((x, y))) => AcWindow.Square100(x, y).success
@@ -56,7 +56,7 @@ object ShutterModeInput:
             ModeBinding("mode", rMode),
             DistanceInput.Binding.Option("aperture", rAperture)
           ) =>
-        (rMode, rAperture).parTupled.flatMap:
+        (rMode, rAperture).parFlatMapN:
           case (Mode.FullyOpen, _)      => ShutterMode.FullyOpen.success
           case (Mode.Tracking, Some(a)) => ShutterMode.Tracking(a).success
           case (Mode.Tracking, None)    =>
