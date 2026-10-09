@@ -120,7 +120,7 @@ import TcsBaseController.*
 import TcsBaseControllerEpics.WfsGuideStates
 import TestTcsEpicsSystem.EnclosureStateChannelsState
 import TestTcsEpicsSystem.GuideConfigState
-import TestTcsEpicsSystem.InstrumentOffsetCommandState
+import TestTcsEpicsSystem.FocalPlaneOffsetCommandState
 import TestTcsEpicsSystem.ProbeState
 import TestTcsEpicsSystem.ProbeTrackingState
 import TestTcsEpicsSystem.ProbeTrackingStateState
@@ -2189,8 +2189,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  private def checkInstrumentOffset(
-    obtained: InstrumentOffsetCommandState,
+  private def checkFocalPlaneOffset(
+    obtained: FocalPlaneOffsetCommandState,
     expX:     Double,
     expY:     Double
   ): Unit = {
@@ -2239,6 +2239,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAX.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAY.value).replace(0.0.some))
       _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(offsetQ)), guiding = false)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(TrackingConfig.defaultTracking,
@@ -2248,8 +2250,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       r1        <- st.tcs.get
     } yield {
-      checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
-      checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandA, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandB, expectedXmm, expectedYmm)
       checkTracking(r1.pwfs1Tracking, TrackingConfig.noTracking)
       checkTracking(r1.pwfs2Tracking, TrackingConfig.noTracking)
       checkTracking(r1.oiwfsTracking, TrackingConfig.noTracking)
@@ -2289,18 +2291,78 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAX.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAY.value).replace(0.0.some))
       _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(offsetQ)), guiding = true)(
                      GuideConfig(guideCfg, none),
                      WfsGuideStates(rememberedCfg, TrackingConfig.noTracking, TrackingConfig.noTracking)
                    )
       r1        <- st.tcs.get
     } yield {
-      checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
-      checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandA, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandB, expectedXmm, expectedYmm)
       checkTracking(r1.pwfs1Tracking, rememberedCfg)
       checkTracking(r1.pwfs2Tracking, TrackingConfig.noTracking)
       checkTracking(r1.oiwfsTracking, TrackingConfig.noTracking)
       checkPauseResumeGuide(r1, guideCfg)
+    }
+  }
+
+  test("Offset command does not reapply an offset when the telescope is already there") {
+    val offsetP     = Angle.fromBigDecimalArcseconds(5.0)
+    val expectedXmm =
+      Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+
+    for {
+      (st, ctr) <- createController()
+      _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
+      _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAX.value).replace(expectedXmm.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAY.value).replace(0.0.some))
+      _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(Angle.Angle0)), guiding = true)(
+                     GuideConfig(guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1), none),
+                     WfsGuideStates(TrackingConfig.defaultTracking,
+                                    TrackingConfig.defaultTracking,
+                                    TrackingConfig.defaultTracking
+                     )
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      assertEquals(r1.focalPlaneOffsetCommandA.offsetX.value, none)
+      assertEquals(r1.focalPlaneOffsetCommandA.offsetY.value, none)
+    }
+  }
+
+  test("Offset command sends the absolute offset, not the displacement from the current one") {
+    val offsetP     = Angle.fromBigDecimalArcseconds(5.0)
+    val expectedXmm =
+      Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val expectedYmm =
+      Angle.fromBigDecimalArcseconds(0.0).toLengthInFocalPlane.toMillimeters.value.toDouble
+    val currentXmm  = 1.5
+    val currentYmm  = -0.7
+
+    for {
+      (st, ctr) <- createController()
+      _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
+      _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAX.value).replace(currentXmm.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAY.value).replace(currentYmm.some))
+      _         <- ctr.offset(Offset(Offset.P(offsetP), Offset.Q(Angle.Angle0)), guiding = true)(
+                     GuideConfig(guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1), none),
+                     WfsGuideStates(TrackingConfig.defaultTracking,
+                                    TrackingConfig.defaultTracking,
+                                    TrackingConfig.defaultTracking
+                     )
+                   )
+      r1        <- st.tcs.get
+    } yield {
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandA, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandB, expectedXmm, expectedYmm)
     }
   }
 
@@ -2310,6 +2372,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
     for {
       (st, ctr) <- createController()
+      _         <- st.tcs.update(_.focus(_.sourceAWavelength.value).replace(1000.0.some))
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.centralWavelength(wavelength)
       r1        <- st.tcs.get
     } yield {
@@ -2322,6 +2386,18 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         .flatMap(_.toDoubleOption)
         .fold(fail("No Source B wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))
     }
+  }
+
+  test(
+    "Central wavelength command does not wait for the telescope if the wavelength is unchanged"
+  ) {
+    val wavelength = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
+
+    for {
+      (st, ctr) <- createController()
+      _         <- st.tcs.update(_.focus(_.sourceAWavelength.value).replace(5000.0.some))
+      r         <- ctr.centralWavelength(wavelength)
+    } yield assertEquals(r, ApplyCommandResult.Completed)
   }
 
   test(
@@ -2363,6 +2439,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- st.tcs.update(_.focus(_.instrAA.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAX.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAY.value).replace(0.0.some))
+      _         <- st.tcs.update(_.focus(_.sourceAWavelength.value).replace(1000.0.some))
       _         <- ctr.configureStep(
                      Offset(Offset.P(offsetP), Offset.Q(offsetQ)).some,
                      wavelength.some,
@@ -2378,8 +2457,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       r1        <- st.tcs.get
     } yield {
-      checkInstrumentOffset(r1.instrumentOffset, expectedXmm, expectedYmm)
-      checkInstrumentOffset(r1.instrumentOffsetB, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandA, expectedXmm, expectedYmm)
+      checkFocalPlaneOffset(r1.focalPlaneOffsetCommandB, expectedXmm, expectedYmm)
       r1.wavelSourceA.value
         .flatMap(_.toDoubleOption)
         .fold(fail("No Source A wavelength set"))(v => assertEqualsDouble(v, expectedWavelµm, 1e-6))

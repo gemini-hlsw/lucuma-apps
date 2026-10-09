@@ -213,6 +213,10 @@ object TcsEpicsSystem {
     def oiwfsOn: VerifiedEpics[F, F, BinaryYesNo]
     def nodState: VerifiedEpics[F, F, NodState]
     def instrAA: VerifiedEpics[F, F, Angle]
+    // Current focal plane offset of source A (x, y), as lengths in the tangent plane
+    def focalPlaneOffsetA: VerifiedEpics[F, F, (Distance, Distance)]
+    // Current wavelength of source A, as reported by the TCS in Angstroms
+    def sourceAWavelength: VerifiedEpics[F, F, Option[Wavelength]]
     // def inPosition: F[String]
     // def agInPosition: F[Double]
     val pwfs1ProbeGuideState: ProbeGuideState[F]
@@ -589,6 +593,20 @@ object TcsEpicsSystem {
           readChannel(channels.telltale, channels.instrAA).map(
             _.map(Angle.fromDoubleDegrees)
           )
+
+        override def sourceAWavelength: VerifiedEpics[F, F, Option[Wavelength]] =
+          readChannel(channels.telltale, channels.sourceAWavelength).map(
+            _.map(a => Wavelength.decimalAngstroms.getOption(BigDecimal(a)))
+          )
+
+        override def focalPlaneOffsetA: VerifiedEpics[F, F, (Distance, Distance)] = for {
+          xf <- readChannel(channels.telltale, channels.focalPlaneOffsetAX)
+          yf <- readChannel(channels.telltale, channels.focalPlaneOffsetAY)
+        } yield
+          for {
+            x <- xf
+            y <- yf
+          } yield (Distance.fromBigDecimalMillimeters(x), Distance.fromBigDecimalMillimeters(y))
       }
   }
 
@@ -1415,15 +1433,15 @@ object TcsEpicsSystem {
           writeChannel(channels.telltale, channels.zeroGuideDir)(CadDirective.MARK.pure[F])
         )
       }
-    override val instrumentOffsetCommand: InstrumentOffsetCommand[F, TcsCommands[F]] =
-      new InstrumentOffsetCommand[F, TcsCommands[F]] {
+    override val focalPlaneOffsetCommand: FocalPlaneOffsetCommand[F, TcsCommands[F]] =
+      new FocalPlaneOffsetCommand[F, TcsCommands[F]] {
         // Same offset is applied to both beams (A and B).
         override def offsetX(v: Distance): TcsCommands[F] = addMultipleParams(
           List(
-            writeCadParam(channels.telltale, channels.instrumentOffsetA.x)(
+            writeCadParam(channels.telltale, channels.focalPlaneOffsetCommandA.x)(
               v.toMillimeters.value.toDouble
             ),
-            writeCadParam(channels.telltale, channels.instrumentOffsetB.x)(
+            writeCadParam(channels.telltale, channels.focalPlaneOffsetCommandB.x)(
               v.toMillimeters.value.toDouble
             )
           )
@@ -1431,10 +1449,10 @@ object TcsEpicsSystem {
 
         override def offsetY(v: Distance): TcsCommands[F] = addMultipleParams(
           List(
-            writeCadParam(channels.telltale, channels.instrumentOffsetA.y)(
+            writeCadParam(channels.telltale, channels.focalPlaneOffsetCommandA.y)(
               v.toMillimeters.value.toDouble
             ),
-            writeCadParam(channels.telltale, channels.instrumentOffsetB.y)(
+            writeCadParam(channels.telltale, channels.focalPlaneOffsetCommandB.y)(
               v.toMillimeters.value.toDouble
             )
           )
@@ -2250,7 +2268,7 @@ object TcsEpicsSystem {
     def focusOffsetB(v: Distance): S
   }
 
-  trait InstrumentOffsetCommand[F[_], +S] {
+  trait FocalPlaneOffsetCommand[F[_], +S] {
     def offsetX(v: Distance): S
     def offsetY(v: Distance): S
   }
@@ -2474,7 +2492,7 @@ object TcsEpicsSystem {
     val pointingConfigCommand: PointingConfigCommand[F, TcsCommands[F]]
     val absorbGuideCommand: BaseCommand[F, TcsCommands[F]]
     val zeroGuideCommand: BaseCommand[F, TcsCommands[F]]
-    val instrumentOffsetCommand: InstrumentOffsetCommand[F, TcsCommands[F]]
+    val focalPlaneOffsetCommand: FocalPlaneOffsetCommand[F, TcsCommands[F]]
     val wrapsCommand: WrapsCommand[F, TcsCommands[F]]
     val zeroRotatorGuide: BaseCommand[F, TcsCommands[F]]
     val pwfs1MechCommands: PwfsMechCommands[F]
