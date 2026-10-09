@@ -7,7 +7,6 @@ import cats.syntax.all.*
 import lucuma.odb.graphql.binding.*
 import lucuma.odb.graphql.input.AngleInput
 import lucuma.odb.graphql.input.WavelengthInput
-import lucuma.odb.graphql.input.atMostOne
 import navigate.model.AutoparkAowfs
 import navigate.model.AutoparkGems
 import navigate.model.AutoparkOiwfs
@@ -101,15 +100,8 @@ object BaffleConfigInput:
           ) =>
         (rCentral, rDeployable).parMapN(BafflesConfig.ManualConfig.apply)
 
-  /** An empty baffle configuration means that the baffles are not configured. */
-  val Binding: Matcher[Option[BafflesConfig]] =
-    ObjectFieldsBinding.rmap:
-      case List(
-            AutoBinding.Option("autoConfig", rAuto),
-            ManualBinding.Option("manualConfig", rManual)
-          ) =>
-        (rAuto, rManual).parTupled.flatMap: (auto, manual) =>
-          atMostOne(auto -> "autoConfig", manual -> "manualConfig")
+  val Binding: Matcher[BafflesConfig] =
+    OneOfBinding("autoConfig" -> AutoBinding, "manualConfig" -> ManualBinding)
 
 object TcsConfigInput:
 
@@ -133,7 +125,7 @@ object TcsConfigInput:
          rOiwfs,
          rRotator,
          LightPathInput.lightSink(rInstrument, rLightSinkVariant),
-         rBaffles.map(_.flatten)
+         rBaffles
         )
           .parMapN(TcsConfig.apply)
 

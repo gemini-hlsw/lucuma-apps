@@ -53,7 +53,7 @@ object TargetPropertiesInput:
             AzElTargetInput.Binding.Option("azel", rAzel),
             WavelengthInput.Binding.Option("wavelength", rWavelength)
           ) =>
-        (rName, rSidereal, rNonsidereal, rAzel, rWavelength).parTupled.flatMap:
+        (rName, rSidereal, rNonsidereal, rAzel, rWavelength).parFlatMapN:
           (name, sidereal, nonsidereal, azel, wavelength) =>
             target(name.value, wavelength, sidereal, nonsidereal, azel)
 
@@ -96,5 +96,5 @@ object GuideTargetPropertiesInput:
             SiderealInput.CreateBinding.Option("sidereal", rSidereal),
             EphemerisKeyInput.Binding.Option("nonsidereal", rNonsidereal)
           ) =>
-        (rName, rSidereal, rNonsidereal).parTupled.flatMap: (name, sidereal, nonsidereal) =>
+        (rName, rSidereal, rNonsidereal).parFlatMapN: (name, sidereal, nonsidereal) =>
           TargetPropertiesInput.target(name.value, none, sidereal, nonsidereal, none)

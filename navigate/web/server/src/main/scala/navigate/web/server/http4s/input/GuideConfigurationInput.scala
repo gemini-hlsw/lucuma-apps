@@ -22,7 +22,7 @@ object ProbeGuideInput:
             GuideProbeBinding.Option("from", rFrom),
             GuideProbeBinding.Option("to", rTo)
           ) =>
-        (rFrom, rTo).parTupled.flatMap:
+        (rFrom, rTo).parFlatMapN:
           case (Some(from), Some(to)) => ProbeGuide(from, to).some.success
           case (None, None)           => none[ProbeGuide].success
           case _                      => Matcher.validationFailure("Both from and to must be specified.")

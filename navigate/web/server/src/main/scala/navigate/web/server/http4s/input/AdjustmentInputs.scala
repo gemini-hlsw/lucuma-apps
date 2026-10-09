@@ -7,7 +7,6 @@ import cats.syntax.all.*
 import lucuma.odb.graphql.binding.*
 import lucuma.odb.graphql.input.AngleInput
 import lucuma.odb.graphql.input.OffsetInput
-import lucuma.odb.graphql.input.oneOrFail
 import navigate.model.AcquisitionAdjustment
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
@@ -42,23 +41,13 @@ object HandsetAdjustmentInput:
         )
 
   val Binding: Matcher[HandsetAdjustment] =
-    ObjectFieldsBinding.rmap:
-      case List(
-            HorizontalAdjustmentBinding.Option("horizontalAdjustment", rHorizontal),
-            FocalPlaneAdjustmentBinding.Option("focalPlaneAdjustment", rFocalPlane),
-            InstrumentAdjustmentBinding.Option("instrumentAdjustment", rInstrument),
-            EquatorialAdjustmentBinding.Option("equatorialAdjustment", rEquatorial),
-            ProbeFrameAdjustmentBinding.Option("probeFrameAdjustment", rProbeFrame)
-          ) =>
-        (rHorizontal, rFocalPlane, rInstrument, rEquatorial, rProbeFrame).parTupled.flatMap:
-          (horizontal, focalPlane, instrument, equatorial, probeFrame) =>
-            oneOrFail(
-              horizontal -> "horizontalAdjustment",
-              focalPlane -> "focalPlaneAdjustment",
-              instrument -> "instrumentAdjustment",
-              equatorial -> "equatorialAdjustment",
-              probeFrame -> "probeFrameAdjustment"
-            )
+    OneOfBinding(
+      "horizontalAdjustment" -> HorizontalAdjustmentBinding,
+      "focalPlaneAdjustment" -> FocalPlaneAdjustmentBinding,
+      "instrumentAdjustment" -> InstrumentAdjustmentBinding,
+      "equatorialAdjustment" -> EquatorialAdjustmentBinding,
+      "probeFrameAdjustment" -> ProbeFrameAdjustmentBinding
+    )
 
 object AcquisitionAdjustmentInput:
 
