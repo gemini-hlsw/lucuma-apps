@@ -70,6 +70,7 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           observingMode $BasicConfigurationSubquery
           observerNotes
           calibrationRole
+          isUserDefinedTelluric
           scienceBand
           priority
           configuration $ConfigurationSubquery

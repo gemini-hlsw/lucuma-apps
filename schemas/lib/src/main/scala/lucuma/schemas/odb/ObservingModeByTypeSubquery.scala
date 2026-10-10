@@ -296,6 +296,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             telluricType {
               tag
               starTypes
+              count
             }
             acquisition {
               defaultFilter
@@ -325,6 +326,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             telluricType {
               tag
               starTypes
+              count
             }
             acquisition {
               defaultFilter
@@ -345,6 +347,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             telluricType {
               tag
               starTypes
+              count
             }
           }
           gnirsImaging @include(if: $$includeGnirsImaging) {
@@ -404,6 +407,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             telluricType {
               tag
               starTypes
+              count
             }
             acquisition {
               explicitAcquisitionType
@@ -445,6 +449,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             telluricType {
               tag
               starTypes
+              count
             }
             acquisition {
               explicitAcquisitionType

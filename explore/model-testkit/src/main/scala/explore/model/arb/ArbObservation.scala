@@ -31,6 +31,7 @@ import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Group
+import lucuma.core.model.IsUserDefinedTelluric
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
@@ -90,6 +91,7 @@ trait ArbObservation:
         validations           <- arbitrary[List[ObservationValidation]]
         observerNotes         <- arbitrary[Option[NonEmptyString]]
         calibrationRole       <- arbitrary[Option[CalibrationRole]]
+        isUserDefinedTelluric <- arbitrary[Boolean].map(IsUserDefinedTelluric(_))
         scienceBand           <- arbitrary[Option[ScienceBand]]
         priority              <- arbitrary[ObservationPriority]
         configuration         <- arbitrary[Option[Configuration]]
@@ -123,6 +125,7 @@ trait ArbObservation:
         centralWavelength,
         observerNotes,
         calibrationRole,
+        isUserDefinedTelluric,
         scienceBand,
         priority,
         configuration,
@@ -170,7 +173,8 @@ trait ArbObservation:
         Option[Coordinates],
         BlindOffset,
         Option[GuideProbe],
-        Option[AltairConfiguration]
+        Option[AltairConfiguration],
+        Boolean
        )
       )
     ]
@@ -204,7 +208,8 @@ trait ArbObservation:
           o.explicitBase,
           o.blindOffset,
           o.explicitGuideProbe,
-          o.altair
+          o.altair,
+          o.isUserDefinedTelluric.value
          )
         )
       )
