@@ -489,6 +489,7 @@ object ExploreStyles:
   val TableRowSelectedEnd: Css             = Css("explore-table-row-selected-end")
   val ModesTableTitle: Css                 = Css("explore-modes-table-title")
   val ModesTableTarget: Css                = Css("explore-modes-table-target")
+  val ModesTableAdaptiveOptics: Css        = Css("explore-modes-table-ao")
   val ModesTableInfo: Css                  = Css("explore-modes-table-info")
   val ModesTableCount: Css                 = Css("explore-modes-table-count")
   val ModesTableFilter: Css                = Css("explore-modes-table-filter")

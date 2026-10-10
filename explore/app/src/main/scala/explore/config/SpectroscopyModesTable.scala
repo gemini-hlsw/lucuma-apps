@@ -282,7 +282,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
 
   private def useRows(
     props:      Props,
-    itcResults: View[ItcResultsCache]
+    itcResults: View[ItcResultsCache],
+    aoFilter:   AdaptiveOpticsFilter
   ): HookResult[Reusable[List[SpectroscopyModeRowWithResult]]] =
     useMemo(
       (props.matrix,
@@ -294,65 +295,80 @@ private object SpectroscopyModesTable extends ModesTableCommon:
        props.constraints,
        props.customSedTimestamps,
        props.instrument,
-       props.altairParams
+       props.altairParams,
+       aoFilter
       )
-    ) { (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps, instrument, altair) =>
-      val rows: List[SpectroscopyModeRow] =
-        matrix
-          .filtered(
-            focalPlane = s.focalPlane,
-            capability = s.capability,
-            wavelength = s.wavelength,
-            slitLength = s.focalPlaneAngle.map(s => SlitLength(ModeSlitSize(s))),
-            resolution = s.resolution,
-            range = s.wavelengthCoverage,
-            declination = dec,
-            instrument = instrument
-          )
-          .flatMap(_.withAltairParameters(altair.toOption.getOrElse(Map.empty)))
-
-      val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)
-      // Computes the mode overrides for the current parameters
-      val fixedModeRows: List[SpectroscopyModeRow] =
-        sortedRows
-          .map(
-            _.withModeOverridesFor(
-              // Should this wv come from the grating, or is the obs wavelength?
-              s.wavelength,
-              targets.toOption.map(_.map(_.sourceProfile)),
-              constraints.imageQuality
+    ) {
+      (
+        matrix,
+        etm,
+        s,
+        dec,
+        _,
+        targets,
+        constraints,
+        customSedTimestamps,
+        instrument,
+        altair,
+        aoFilter
+      ) =>
+        val rows: List[SpectroscopyModeRow] =
+          matrix
+            .filtered(
+              focalPlane = s.focalPlane,
+              capability = s.capability,
+              wavelength = s.wavelength,
+              slitLength = s.focalPlaneAngle.map(s => SlitLength(ModeSlitSize(s))),
+              resolution = s.resolution,
+              range = s.wavelengthCoverage,
+              declination = dec,
+              instrument = instrument
             )
+            .flatMap(_.withAltairParameters(altair.toOption.getOrElse(Map.empty)))
+            .filter(row => aoFilter.admits(row.altair))
+
+        val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)
+        // Computes the mode overrides for the current parameters
+        val fixedModeRows: List[SpectroscopyModeRow] =
+          sortedRows
+            .map(
+              _.withModeOverridesFor(
+                // Should this wv come from the grating, or is the obs wavelength?
+                s.wavelength,
+                targets.toOption.map(_.map(_.sourceProfile)),
+                constraints.imageQuality
+              )
+            )
+            .flattenOption
+
+        fixedModeRows.map: row =>
+          // We update the etm here so that we don't have to do it multiple times in
+          // multiple places, but we will still need to validate that the etm in set in
+          // the requirements before calling the itc.
+          val rowWithEtm: SpectroscopyModeRow =
+            etm.fold(row)(etm =>
+              SpectroscopyModeRow.instrumentConfig.modify(_.setSingleExposureTimeMode(etm))(row)
+            )
+
+          val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
+            // Visitors don't need itc, skip the query altogether
+            if !rowWithEtm.instrumentConfig.needsItc then none
+            else
+              (s.wavelength, etm).mapN: (_, _) =>
+                targets.flatMap: asterism =>
+                  itcResults.get.forRow(
+                    constraints,
+                    asterism.some,
+                    customSedTimestamps,
+                    rowWithEtm
+                  )
+
+          SpectroscopyModeRowWithResult(
+            rowWithEtm,
+            Pot.fromOption(result),
+            s.wavelength.flatMap: w =>
+              row.wavelengthInterval(w)
           )
-          .flattenOption
-
-      fixedModeRows.map: row =>
-        // We update the etm here so that we don't have to do it multiple times in
-        // multiple places, but we will still need to validate that the etm in set in
-        // the requirements before calling the itc.
-        val rowWithEtm: SpectroscopyModeRow =
-          etm.fold(row)(etm =>
-            SpectroscopyModeRow.instrumentConfig.modify(_.setSingleExposureTimeMode(etm))(row)
-          )
-
-        val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-          // Visitors don't need itc, skip the query altogether
-          if !rowWithEtm.instrumentConfig.needsItc then none
-          else
-            (s.wavelength, etm).mapN: (_, _) =>
-              targets.flatMap: asterism =>
-                itcResults.get.forRow(
-                  constraints,
-                  asterism.some,
-                  customSedTimestamps,
-                  rowWithEtm
-                )
-
-        SpectroscopyModeRowWithResult(
-          rowWithEtm,
-          Pot.fromOption(result),
-          s.wavelength.flatMap: w =>
-            row.wavelengthInterval(w)
-        )
     }
 
   private val component =
@@ -361,7 +377,9 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         ctx            <- useContext(AppContext.ctx)
         itcResults     <- useStateView(ItcResultsCache.Empty)
         itcProgress    <- useStateView(none[Progress])
-        rows           <- useRows(props, itcResults)
+        aoFilter       <-
+          useStateView(AdaptiveOpticsFilter.forMode(props.selectedConfig.get.altairMode))
+        rows           <- useRows(props, itcResults, aoFilter.get)
         cols           <- useColumns(props.exposureTimeMode.map(_.modeType), props.units)
         table          <- useReactTableWithStateStore:
                             import ctx.given
@@ -400,11 +418,20 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             sortedRows,
                             props.altairParams.toOption.getOrElse(Map.empty)
                           )
+        // A configuration selected from outside the table (e.g. a reverted one) widens the filter
+        // to show its Altair mode. Changing the filter drops selections it hides.
+        _              <- useEffectWithDeps(props.selectedConfig.get.altairMode): mode =>
+                            Callback.when(mode.exists(m => !aoFilter.get.admits(m.some))):
+                              aoFilter.set(AdaptiveOpticsFilter.forMode(mode))
         // Set the selected config if the rows change because the new rows may no longer contain
         // one or more of the selected rows or the itc results may have changed.
         // Note, we use rows for the dependency, not sorted rows, because sorted rows also changes with sort.
         _              <- useEffectWithDeps(rows): rs =>
-                            resyncSelection(rs.value, props.selectedConfig, props.altairParams.isPending)
+                            resyncSelection(
+                              rs.value,
+                              props.selectedConfig,
+                              retainAltairSelection(props.altairParams.isPending, aoFilter.get)
+                            )
         // The selected index needs to be the index into the sorted data, because that is what
         // the virtualizer uses for scrollTo.
         selectedIndex  <-
@@ -422,12 +449,16 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                                   scrollTo.set(ScrollTo.NoScroll)
                               )
       } yield
-        val errLabel = itcHookData.errorLabel(props.spectroscopyRequirements.wavelength.isDefined)
+        val errLabel: List[VdomNode] =
+          itcHookData.errorLabel(props.spectroscopyRequirements.wavelength.isDefined)
 
         val selectedTarget: Option[VdomNode] = findSelectedTarget(
           rows.value,
           props.targets.toOption
         )
+
+        val isAwaitingGuideStar: Boolean =
+          props.altairParams.isPending && aoFilter.get.awaitsGuideStar
 
         React.Fragment(
           <.div(ExploreStyles.ModesTableTitle)(
@@ -435,6 +466,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
               s"${rows.length} available configurations",
               HelpIcon("configuration/table.md".refined)
             ),
+            adaptiveOpticsFilterDropdown(aoFilter),
             <.div(ExploreStyles.ModesTableInfo)(
               errLabel.toTagMod,
               selectedTarget,
@@ -489,11 +521,11 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                 virtualizerRef,
                 visibleRows.get
               )
-            ).unless(props.altairParams.isPending),
+            ).unless(isAwaitingGuideStar),
             <.div(ExploreStyles.SpectroscopyTableEmpty)(
               Icons.Spinner.withSpin(true),
               " ",
               AltairControls.AwaitingAltairGuideStarMessage
-            ).when(props.altairParams.isPending)
+            ).when(isAwaitingGuideStar)
           )
         )
