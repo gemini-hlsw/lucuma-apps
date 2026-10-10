@@ -11,7 +11,7 @@
     "@tanstack/react-virtual": "3.14.13",
     "@tanstack/store": "0.11.2",
     "@tanstack/table-core": "9.2.6",
-    "@vitejs/plugin-react": "6.1.1",
+    "@vitejs/plugin-react": "6.1.2",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
     "primereact": "10.9.9",
@@ -20,7 +20,7 @@
     "react-grid-layout": "2.2.4",
     "sass": "1.105.1",
     "ua-parser-js": "2.0.10",
-    "vite": "8.3.2"
+    "vite": "8.3.3"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "7.3.1",
