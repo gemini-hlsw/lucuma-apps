@@ -28,8 +28,10 @@ import explore.model.boopickle.ItcPicklers.given
 import explore.model.enums.Visible
 import explore.model.itc.*
 import explore.model.reusability.given
+import explore.modes.AdaptiveOpticsFilter
 import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -52,10 +54,12 @@ import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.HTMLTableVirtualizer
 import lucuma.react.table.HeaderContext
+import lucuma.refined.*
 import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.components.ThemeIcons
 import lucuma.ui.format.*
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.FilterMethod
@@ -97,21 +101,31 @@ trait ModesTableCommon:
   /**
    * Re-points the selection at the current rows, dropping selections whose row is gone. Rows are
    * matched by mode, since a reverted configuration carries the observation's Altair guide star,
-   * not the table's. Altair selections are kept while the table's guide star search runs, as their
-   * rows only appear once it is done.
+   * not the table's. A selection whose row is gone is kept when `retain` holds for its
+   * configuration (see `retainAltairSelection`).
    */
   def resyncSelection[Row <: TableRowWithResult](
-    rows:       List[Row],
-    selection:  View[ConfigSelection],
-    agsRunning: Boolean
+    rows:      List[Row],
+    selection: View[ConfigSelection],
+    retain:    ItcInstrumentConfig => Boolean
   ): Callback =
     val oldCfgs = selection.get.configs
     val newCfgs = oldCfgs.flatMap: cfg =>
       rows
         .find(_.config.sameModeAs(cfg.instrumentConfig))
         .map(_.configAndResult)
-        .orElse(Option.when(agsRunning && cfg.instrumentConfig.altairMode.isDefined)(cfg))
+        .orElse(Option.when(retain(cfg.instrumentConfig))(cfg))
     Callback.when(oldCfgs =!= newCfgs)(selection.set(ConfigSelection.fromList(newCfgs)))
+
+  /**
+   * Altair selections survive a missing row while the guide star search runs, as their rows only
+   * appear once it is done. A row the AO filter hides is dropped like any other missing row.
+   */
+  def retainAltairSelection(
+    agsRunning: Boolean,
+    filter:     AdaptiveOpticsFilter
+  ): ItcInstrumentConfig => Boolean =
+    cfg => cfg.altairMode.exists(mode => agsRunning && filter.admits(mode.some))
 
   object ScrollTo extends NewBoolean:
     inline def Scroll = True; inline def NoScroll = False
@@ -194,6 +208,17 @@ trait ModesTableCommon:
       tooltip = "Filters on/off",
       tooltipOptions = TooltipOptions(position = Tooltip.Position.Bottom)
     ).tiny.compact
+
+  def adaptiveOpticsFilterDropdown(filter: View[AdaptiveOpticsFilter]): VdomNode =
+    <.div(ExploreStyles.ModesTableAdaptiveOptics)(
+      <.label("AO: "),
+      EnumDropdownView(
+        id = "modes-table-ao-filter".refined,
+        value = filter,
+        size = PlSize.Tiny,
+        modifiers = List(testId := "explore-config-ao-filter")
+      )
+    )
 
   def tableOnChangeHandler(
     visibleRows: View[Option[Range.Inclusive]],

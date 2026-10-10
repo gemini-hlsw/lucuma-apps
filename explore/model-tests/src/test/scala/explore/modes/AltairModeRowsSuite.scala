@@ -52,14 +52,17 @@ class AltairModeRowsSuite extends FunSuite:
       none
     )
 
-  private def spectroscopyRow(config: ItcInstrumentConfig): SpectroscopyModeRow =
+  private def spectroscopyRow(
+    config: ItcInstrumentConfig,
+    ao:     ModeAO = ModeAO.AO
+  ): SpectroscopyModeRow =
     SpectroscopyModeRow(
       none,
       config,
       NonEmptyString.unsafeFrom("config"),
       FocalPlane.SingleSlit,
       none,
-      ModeAO.NoAO,
+      ao,
       ModeWavelength(wavelength),
       ModeWavelength(wavelength),
       ModeWavelength(wavelength),
@@ -79,43 +82,58 @@ class AltairModeRowsSuite extends FunSuite:
       none
     )
 
-  private def imagingRow(config: ItcInstrumentConfig): ImagingModeRow =
-    ImagingModeRow(none, config, ModeAO.NoAO, Angle.fromDoubleArcseconds(50.0), none, none)
+  private def imagingRow(config: ItcInstrumentConfig, ao: ModeAO = ModeAO.AO): ImagingModeRow =
+    ImagingModeRow(none, config, ao, Angle.fromDoubleArcseconds(50.0), none, none)
 
-  test("GNIRS rows are followed by an NGS and an LGS copy, never LGS+P1"):
+  private val allAltair: List[Option[AltairMode]] =
+    List(none, AltairMode.Ngs.some, AltairMode.Lgs.some, AltairMode.LgsP1.some)
+
+  test("AO-capable rows are followed by an NGS, an LGS and an LGS+P1 copy"):
     val expanded = AltairModeRows.expandSpectroscopy(List(spectroscopyRow(gnirsSpectroscopy)))
-    assertEquals(expanded.map(_.altair), List(none, AltairMode.Ngs.some, AltairMode.Lgs.some))
+    assertEquals(expanded.map(_.altair), allAltair)
     assertEquals(expanded.map(_.instrumentConfig).distinct, List(gnirsSpectroscopy))
 
-  test("rows of instruments without Altair are not duplicated"):
-    val rows = List(spectroscopyRow(gmosNorthSpectroscopy))
+  test("rows the matrix does not flag for AO are not duplicated"):
+    val rows = List(spectroscopyRow(gnirsSpectroscopy, ModeAO.NoAO),
+                    spectroscopyRow(gmosNorthSpectroscopy, ModeAO.NoAO)
+    )
     assertEquals(AltairModeRows.expandSpectroscopy(rows), rows)
 
   test("imaging rows expand the same way"):
     val expanded = AltairModeRows.expandImaging(List(imagingRow(gnirsImaging(GnirsFilter.Order4))))
-    assertEquals(expanded.map(_.altair), List(none, AltairMode.Ngs.some, AltairMode.Lgs.some))
+    assertEquals(expanded.map(_.altair), allAltair)
 
   test("numbering after the expansion gives every row its own id"):
     val expanded =
       AltairModeRows
         .expandSpectroscopy(
-          List(spectroscopyRow(gnirsSpectroscopy), spectroscopyRow(gmosNorthSpectroscopy))
+          List(spectroscopyRow(gnirsSpectroscopy),
+               spectroscopyRow(gmosNorthSpectroscopy, ModeAO.NoAO)
+          )
         )
         .zipWithIndex
         .map((r, i) => r.copy(id = i.some))
-    assertEquals(expanded.flatMap(_.id).distinct.length, 4)
+    assertEquals(expanded.flatMap(_.id).distinct.length, 5)
 
   test("the Altair mode is appended to the instrument label"):
     val labels =
       AltairModeRows
         .expandSpectroscopy(List(spectroscopyRow(gnirsSpectroscopy)))
         .map(_.instrumentLabel)
-    assertEquals(labels, List("GNIRS SC", "GNIRS SC AO:NGS", "GNIRS SC AO:LGS"))
+    assertEquals(labels,
+                 List("GNIRS SC", "GNIRS SC AO:NGS", "GNIRS SC AO:LGS", "GNIRS SC AO:LGS+P1")
+    )
 
   test("an Altair row without parameters for its mode is hidden"):
     val row = spectroscopyRow(gnirsSpectroscopy).copy(altair = AltairMode.Lgs.some)
     assertEquals(row.withAltairParameters(Map(AltairMode.Ngs -> ngsParameters)), none)
     assertEquals(row.withAltairParameters(Map.empty), none)
+
+  test("an LGS+P1 row needs no guide star parameters"):
+    val row = spectroscopyRow(gnirsSpectroscopy).copy(altair = AltairMode.LgsP1.some)
+    assertEquals(row.withAltairParameters(Map.empty).flatMap(_.instrumentConfig.altairMode),
+                 AltairMode.LgsP1.some
+    )
 
   test("an Altair row gets the parameters of its mode"):
     val row      = spectroscopyRow(gnirsSpectroscopy).copy(altair = AltairMode.Ngs.some)

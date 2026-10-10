@@ -79,7 +79,7 @@ object UseAltairModesAgs:
   )(ctx: AppContext[IO]): IO[Map[AltairMode, AltairParameters]] =
     val configuration = representativeGnirs(wavelength.getOrElse(FallbackWavelength))
 
-    AltairModeRows.TableAltairModes
+    AltairModeRows.GuideStarAltairModes
       .traverseFilter: mode =>
         configuration
           .agsParams(PortDisposition.Side, mode.guideProbe.some, mode.some)
@@ -115,10 +115,10 @@ object UseAltairModesAgs:
           .as(Map.empty)
 
   /**
-   * The Altair parameters of the guide star AGS finds for each Altair mode of the modes table,
-   * pending while the search runs. A mode is missing while AGS runs or when no usable star is
-   * found, so that its rows are not offered. Unlike `useAgs`, this is silent: it does not touch the
-   * AGS state or the guide star selection.
+   * The Altair parameters of the guide star AGS finds for each guide star Altair mode of the modes
+   * table, pending while the search runs. A mode is missing while AGS runs or when no usable star
+   * is found, so that its rows are not offered. Unlike `useAgs`, this is silent: it does not touch
+   * the AGS state or the guide star selection.
    */
   def useAltairModesAgs(
     obsTargets:             Option[ObservationTargets],
