@@ -36,6 +36,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
+import lucuma.core.model.IsUserDefinedTelluric
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -568,6 +569,7 @@ object TargetTabContents extends TwoPanels:
                   allowEditingOngoing =
                     false, // only allow editing of ongoing observations from the obs tab
                   isStaffOrAdmin = props.isStaffOrAdmin,
+                  isUserDefinedTelluric = IsUserDefinedTelluric.False,
                   backButton = backButton.some
                 )
 

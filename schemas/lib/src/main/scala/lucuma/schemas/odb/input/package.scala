@@ -766,12 +766,16 @@ extension (o: ObservingMode.GnirsImaging)
 
 extension (t: TelluricType)
   def toInput: TelluricTypeInput = t match
-    case TelluricType.Hot               => TelluricTypeInput(tag = TelluricTag.Hot)
-    case TelluricType.A0V               => TelluricTypeInput(tag = TelluricTag.A0v)
-    case TelluricType.Solar             => TelluricTypeInput(tag = TelluricTag.Solar)
-    case TelluricType.NoTelluric        => TelluricTypeInput(tag = TelluricTag.NoTelluric)
-    case TelluricType.Manual(starTypes) =>
-      TelluricTypeInput(tag = TelluricTag.Manual, starTypes = starTypes.toList.assign)
+    case TelluricType.Hot                              => TelluricTypeInput(tag = TelluricTag.Hot)
+    case TelluricType.A0V                              => TelluricTypeInput(tag = TelluricTag.A0v)
+    case TelluricType.Solar                            => TelluricTypeInput(tag = TelluricTag.Solar)
+    case TelluricType.NoTelluric                       => TelluricTypeInput(tag = TelluricTag.NoTelluric)
+    case TelluricType.ExplicitSpectralTypes(starTypes) =>
+      TelluricTypeInput(tag = TelluricTag.ExplicitSpectralTypes,
+                        starTypes = starTypes.toList.assign
+      )
+    case TelluricType.UserDefined(count)               =>
+      TelluricTypeInput(tag = TelluricTag.UserDefined, count = count.value.value.assign)
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
   def toInput: Flamingos2LongSlitAcquisitionInput = Flamingos2LongSlitAcquisitionInput(

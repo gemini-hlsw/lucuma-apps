@@ -762,10 +762,14 @@ object ObsTabTiles:
           ghostSkyPositionView.map(skySlot -> _).toList :+ (SlotId.Base -> baseView)
 
         // The telluric star type observed by a telluric calibration, shown next to
-        // its system-assigned target. Hidden while the observing mode is hydrating.
+        // its system-assigned target. Hidden while the observing mode is hydrating
+        // and for a user-defined telluric, whose target is the user's own.
         val telluricType: Option[TelluricType] =
           Option
-            .when(props.observation.get.calibrationRole.contains(CalibrationRole.Telluric)):
+            .when(
+              props.observation.get.calibrationRole.contains(CalibrationRole.Telluric) &&
+                !props.observation.get.isUserDefinedTelluric.value
+            ):
               props.observation.get.observingMode.toOption.flatten
             .flatten
             .flatMap(ObservingMode.telluricType.getOption)
@@ -796,6 +800,7 @@ object ObsTabTiles:
             props.obsIsReadonly,
             allowEditingOngoing = props.isStaffOrAdminUser,
             isStaffOrAdmin = props.isStaffOrAdminUser,
+            isUserDefinedTelluric = props.observation.get.isUserDefinedTelluric,
             telluricType = telluricType,
             slotPositions = slotPositions,
             // Any target changes invalidate the sequence
@@ -862,7 +867,8 @@ object ObsTabTiles:
               case x        => x
             } >> agsState.set(AgsState.Calculating),
             props.readonly, // execution status is taken care of in the configuration tile
-            !props.programIsReadonly && props.observation.get.isUnobservedTelluric,
+            !props.programIsReadonly && props.observation.get.isUnobservedTelluric &&
+              !props.observation.get.isUserDefinedTelluric.value,
             ObsIdSetEditInfo.of(props.observation.get),
             globalPreferences.get.wavelengthUnits,
             globalPreferences,
