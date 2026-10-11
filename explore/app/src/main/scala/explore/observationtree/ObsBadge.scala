@@ -27,6 +27,7 @@ import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
+import lucuma.core.model.TelluricCount
 import lucuma.core.model.TelluricType
 import lucuma.core.syntax.all.*
 import lucuma.core.util.CalculatedValue
@@ -102,27 +103,32 @@ object ObsBadge:
     val TargetsTab: Layout      = Layout(false, false, Section.Header, true)
     val ConstraintsTab: Layout  = Layout(true, false, Section.Detail, false)
 
-  // Dropdown of TelluricType. Labels are kept short so the selector stays narrow.
-  // Manual is not offered.
+  // Dropdown of TelluricType.
   private enum TelluricSelection(val tag: String, val name: String) derives Enumerated, Display:
-    case Hot        extends TelluricSelection("hot", "Hot")
-    case A0V        extends TelluricSelection("a0v", "A0V")
-    case Solar      extends TelluricSelection("solar", "G2V")
-    case NoTelluric extends TelluricSelection("noTelluric", "None")
+    case Hot          extends TelluricSelection("hot", "Hot")
+    case A0V          extends TelluricSelection("a0v", "A0V")
+    case Solar        extends TelluricSelection("solar", "G2V")
+    case UserDefined1 extends TelluricSelection("userDefined1", "User Defined (1)")
+    case UserDefined2 extends TelluricSelection("userDefined2", "User Defined (2)")
+    case NoTelluric   extends TelluricSelection("noTelluric", "None")
 
   private object TelluricSelection:
     def fromTelluricType(tt: TelluricType): Option[TelluricSelection] = tt match
-      case TelluricType.Hot        => Hot.some
-      case TelluricType.A0V        => A0V.some
-      case TelluricType.Solar      => Solar.some
-      case TelluricType.NoTelluric => NoTelluric.some
-      case TelluricType.Manual(_)  => none
+      case TelluricType.Hot                      => Hot.some
+      case TelluricType.A0V                      => A0V.some
+      case TelluricType.Solar                    => Solar.some
+      case TelluricType.UserDefined(count)       =>
+        if count.value.value > 1 then UserDefined2.some else UserDefined1.some
+      case TelluricType.NoTelluric               => NoTelluric.some
+      case TelluricType.ExplicitSpectralTypes(_) => none
 
     def toTelluricType(selection: TelluricSelection): TelluricType = selection match
-      case Hot        => TelluricType.Hot
-      case A0V        => TelluricType.A0V
-      case Solar      => TelluricType.Solar
-      case NoTelluric => TelluricType.NoTelluric
+      case Hot          => TelluricType.Hot
+      case A0V          => TelluricType.A0V
+      case Solar        => TelluricType.Solar
+      case UserDefined1 => TelluricType.UserDefined(TelluricCount.unsafeFrom(1))
+      case UserDefined2 => TelluricType.UserDefined(TelluricCount.unsafeFrom(2))
+      case NoTelluric   => TelluricType.NoTelluric
 
   // TODO Make this a component similar to the one in the docs.
   private def renderEnumProgress[A: Enumerated](value: A): VdomNode = {
@@ -332,43 +338,65 @@ object ObsBadge:
           ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
         )
 
-      // Unobserved tellurics follow the science observation's telluric type
-      def scienceTelluricSelector(rowId: Observation.Id): Option[VdomNode] =
-        (props.telluricType, props.setTelluricTypeCB).mapN: (telluricType, setCB) =>
-          telluricSelector(rowId, telluricType, Option.unless(props.isDisabledExecuted)(setCB))
-
-      // A telluric with visits keeps its original telluric type
-      def spentTelluricSelector(telluric: Observation): Option[VdomNode] =
+      // A telluric with visits keeps the telluric type it was observed with
+      def spentTelluricType(telluric: Observation): Option[VdomNode] =
         telluric.observingMode.toOption.flatten
           .flatMap(ObservingMode.telluricType.getOption)
           .map: telluricType =>
-            telluricSelector(telluric.id, telluricType, none)
+            <.span(ExploreStyles.ObsBadgeTelluricSpentType, telluricType.shortName)
               .withTooltip(content = "Telluric type used when observed")
 
       def isTelluric(o: Observation): Boolean =
         o.calibrationRole.contains(CalibrationRole.Telluric)
 
-      // With no telluric the ODB generates no telluric observation, so the selector
-      // gets its own row to allow turning tellurics back on. Spent tellurics are read
-      // only, so they don't count. Inactive or executed observations get no new
-      // calibrations either, so the row would be misleading there.
-      val hasUnobservedTelluricObs: Boolean =
-        props.associatedObss.exists(o => isTelluric(o) && !o.isExecuted)
+      val (tellurics, otherAssociated) = props.associatedObss.partition(isTelluric)
 
-      val telluricOnlyRow: Option[VdomNode] =
-        scienceTelluricSelector(obs.id)
-          .filterNot(_ => hasUnobservedTelluricObs || obs.isInactive || obs.isExecuted)
+      def associatedObsRow(childObs: Observation, extra: Option[VdomNode]): VdomNode =
+        val selected: Boolean = props.focusedObs.contains_(childObs.id)
+
+        val currentState: ObservationWorkflowState = childObs.workflow.value.state
+
+        Button(
+          clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
+            ExploreStyles.ObsBadgeSelectedAssociatedObs.when_(selected),
+          onClickE = linkOverride(
+            focusObs(props.programId, childObs.id.some, ctx)
+          ),
+          severity = Button.Severity.Secondary
+        ).withMods(
+          stateTag(currentState),
+          <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
+            <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, badgeTitle(childObs)),
+            extra,
+            <.span(ExploreStyles.ObsBadgeAssociatedObsId, obsIdentifier(childObs)),
+            <.span(ExploreStyles.ObsBadgeAssociatedObsTime)(
+              childObs.execution.digest.programTimeEstimate.value
+                .map(TimeSpanView(_))
+            )
+          )
+        ).compact
+
+      val telluricSection: Option[VdomNode] =
+        (props.telluricType, props.setTelluricTypeCB)
+          .mapN: (telluricType, setCB) =>
+            telluricSelector(obs.id, telluricType, Option.unless(props.isDisabledExecuted)(setCB))
+          .filter(_ => tellurics.nonEmpty || !(obs.isInactive || obs.isExecuted))
           .map: dropdown =>
-            Button(
-              clazz = ExploreStyles.ObsBadgeAssociatedObs |+| ExploreStyles.ObsBadgeTelluricOnlyRow,
-              onClickE = e => e.preventDefaultCB *> e.stopPropagationCB,
-              severity = Button.Severity.Secondary
-            ).withMods(
-              <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
-                <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, "No Telluric"),
+            <.div(ExploreStyles.ObsBadgeTelluricSection)(
+              <.div(ExploreStyles.ObsBadgeTelluricHeader)(
+                <.span(ExploreStyles.ObsBadgeTelluricTitle, "Telluric Calibrations"),
                 dropdown
-              )
-            ).compact
+              )(
+                ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
+              ),
+              tellurics
+                .map: telluric =>
+                  associatedObsRow(
+                    telluric,
+                    Option.when(telluric.isExecuted)(spentTelluricType(telluric)).flatten
+                  )
+                .toTagMod
+            )
 
       React.Fragment(
         <.div(
@@ -439,39 +467,9 @@ object ObsBadge:
                 validationIcon
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
-                props.associatedObss
-                  .map: childObs =>
-                    val selected: Boolean = props.focusedObs.contains_(childObs.id)
-
-                    val currentState: ObservationWorkflowState = childObs.workflow.value.state
-
-                    val childTelluricSelector: Option[VdomNode] =
-                      if !isTelluric(childObs) then none
-                      else if childObs.isExecuted then spentTelluricSelector(childObs)
-                      else scienceTelluricSelector(childObs.id)
-
-                    Button(
-                      clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
-                        ExploreStyles.ObsBadgeSelectedAssociatedObs.when_(selected),
-                      onClickE = linkOverride(
-                        focusObs(props.programId, childObs.id.some, ctx)
-                      ),
-                      severity = Button.Severity.Secondary
-                    ).withMods(
-                      stateTag(currentState),
-                      <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
-                        <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, badgeTitle(childObs)),
-                        childTelluricSelector,
-                        <.span(ExploreStyles.ObsBadgeAssociatedObsId, obsIdentifier(childObs)),
-                        <.span(ExploreStyles.ObsBadgeAssociatedObsTime)(
-                          childObs.execution.digest.programTimeEstimate.value
-                            .map(TimeSpanView(_))
-                        )
-                      )
-                    ).compact
-                  .toTagMod,
-                telluricOnlyRow
-              ).when(props.associatedObss.nonEmpty || telluricOnlyRow.isDefined)
+                otherAssociated.map(associatedObsRow(_, none)).toTagMod,
+                telluricSection
+              ).when(props.associatedObss.nonEmpty || telluricSection.isDefined)
             )
           )
         ),

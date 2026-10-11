@@ -1824,7 +1824,8 @@ svg.fa-check.explore-success-icon {
           text-overflow: ellipsis;
         }
 
-        .obs-badge-telluric-select-wrapper {
+        .obs-badge-telluric-select-wrapper,
+        .obs-badge-telluric-spent-type {
           grid-column: 2;
         }
 
@@ -1850,10 +1851,33 @@ svg.fa-check.explore-success-icon {
             width: 1.5em;
           }
         }
+      }
 
-        // Placeholder row when no telluric obs exists; not clickable
-        &.obs-badge-telluric-only-row {
+      // Groups the telluric rows under one header on a shared background. A subgrid
+      // keeps the rows' selectors, ids and times aligned with the other rows.
+      .obs-badge-telluric-section {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: subgrid;
+        row-gap: 0.4em;
+        padding: 0.3em 0.4em;
+        border-radius: 3px;
+        background-color: var(--obs-selected-badge-background);
+
+        // Heads the rows with the science observation's telluric type; not clickable
+        .obs-badge-telluric-header {
+          grid-column: 1 / -1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.5em;
           cursor: default;
+
+          .obs-badge-telluric-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
         }
       }
     }

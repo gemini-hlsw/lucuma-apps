@@ -38,6 +38,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.IsUserDefinedTelluric
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
@@ -92,6 +93,7 @@ final case class Observation(
   centralWavelength:       Option[CentralWavelength],
   observerNotes:           Option[NonEmptyString],
   calibrationRole:         Option[CalibrationRole],
+  isUserDefinedTelluric:   IsUserDefinedTelluric,
   scienceBand:             Option[ScienceBand],
   priority:                ObservationPriority,
   configuration:           Option[Configuration],
@@ -502,6 +504,8 @@ final case class Observation(
   val isInactive = workflow.value.state === ObservationWorkflowState.Inactive
 
   inline def isCalibration: Boolean      = calibrationRole.isDefined
+  // A user-defined telluric is edited like a science observation.
+  lazy val isLockedCalibration: Boolean  = isCalibration && !isUserDefinedTelluric.value
   lazy val isOngoing                     =
     workflow.value.state === ObservationWorkflowState.Ongoing ||
       (workflow.value.state === ObservationWorkflowState.Inactive &&
@@ -618,6 +622,7 @@ object Observation:
   val posAngleConstraint       = Focus[Observation](_.posAngleConstraint)
   val observerNotes            = Focus[Observation](_.observerNotes)
   val calibrationRole          = Focus[Observation](_.calibrationRole)
+  val isUserDefinedTelluric    = Focus[Observation](_.isUserDefinedTelluric)
   val scienceBand              = Focus[Observation](_.scienceBand)
   val priority                 = Focus[Observation](_.priority)
   val configuration            = Focus[Observation](_.configuration)
@@ -719,6 +724,7 @@ object Observation:
       posAngleConstraint    <- c.get[PosAngleConstraint]("posAngleConstraint")
       observerNotes         <- c.get[Option[NonEmptyString]]("observerNotes")
       calibrationRole       <- c.get[Option[CalibrationRole]]("calibrationRole")
+      isUserDefinedTelluric <- c.get[IsUserDefinedTelluric]("isUserDefinedTelluric")
       scienceBand           <- c.get[Option[ScienceBand]]("scienceBand")
       priority              <- c.get[ObservationPriority]("priority")
       configuration         <- c.get[Configuration]("configuration").fold(_ => none.asRight, _.some.asRight)
@@ -755,6 +761,7 @@ object Observation:
         .map(CentralWavelength(_)),
       observerNotes,
       calibrationRole,
+      isUserDefinedTelluric,
       scienceBand,
       priority,
       configuration,
