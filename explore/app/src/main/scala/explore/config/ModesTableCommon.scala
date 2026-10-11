@@ -35,7 +35,6 @@ import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.AltairMode
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.TotalSN
 import lucuma.core.model.ConstraintSet
@@ -43,7 +42,6 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.itc.AltairParameters
 import lucuma.react.circularprogressbar.CircularProgressbar
 import lucuma.react.common.Css
 import lucuma.react.fa.IconSize
@@ -210,10 +208,11 @@ trait ModesTableCommon:
     ).tiny.compact
 
   def adaptiveOpticsFilterDropdown(filter: View[AdaptiveOpticsFilter]): VdomNode =
+    val id: NonEmptyString = "modes-table-ao-filter".refined
     <.div(ExploreStyles.ModesTableAdaptiveOptics)(
-      <.label("AO: "),
+      FormLabel(htmlFor = id, size = PlSize.Tiny)("AO"),
       EnumDropdownView(
-        id = "modes-table-ao-filter".refined,
+        id = id,
         value = filter,
         size = PlSize.Tiny,
         modifiers = List(testId := "explore-config-ao-filter")
@@ -429,8 +428,7 @@ trait ModesTableCommon:
     constraints:         ConstraintSet,
     targets:             Option[NonEmptyList[ItcTarget]],
     customSedTimestamps: List[Timestamp],
-    sortedRows:          Reusable[List[Row]],
-    altairParams:        Map[AltairMode, AltairParameters]
+    sortedRows:          Reusable[List[Row]]
   ): HookResult[ItcHookData] =
     for {
       ctx    <- useContext(AppContext.ctx)
@@ -448,11 +446,18 @@ trait ModesTableCommon:
                     .flatten
                     .toList
                     .distinct
-      // A new Altair guide star changes the Altair rows' configs but not the row count.
+      // Keyed on the visible configs rather than the row count: an AO filter switch or a new Altair
+      // guide star can replace rows without changing how many there are. A set, so sorting doesn't
+      // restart the requests.
       _      <-
         useEffectStreamResourceWithDeps(
-          (expTimeMode, constraints, targets, customSedTimestamps, sortedRows.length, altairParams)
-        ): (expTimeMode, constraints, asterism, customSedTimestamps, _, _) =>
+          (expTimeMode,
+           constraints,
+           targets,
+           customSedTimestamps,
+           sortedRows.value.map(_.config).toSet
+          )
+        ): (expTimeMode, constraints, asterism, customSedTimestamps, _) =>
           import ctx.given
 
           // We need to check exposure time mode because it must be set for the ITC request,

@@ -371,8 +371,7 @@ object ImagingModesTable extends ModesTableCommon:
                             props.constraints,
                             effectiveTargets,
                             props.customSedTimestamps,
-                            sortedRows,
-                            props.altairParams.toOption.getOrElse(Map.empty)
+                            sortedRows
                           )
       // Notify parent of target selection
       _                <- useEffectWithDeps((props.targetView.get, props.targets.toOption)):

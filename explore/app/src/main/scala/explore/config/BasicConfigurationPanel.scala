@@ -31,6 +31,7 @@ import explore.model.enums.WavelengthUnits
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.model.syntax.all.*
+import explore.modes.AltairModeRows
 import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
 import explore.utils.testId
@@ -174,10 +175,12 @@ private object BasicConfigurationPanel:
         val selectedBasicConfig: Option[BasicConfiguration] =
           props.selectedConfig.get.toBasicConfiguration()
 
-        // An Altair row selection is retained (with its old ITC result) while the table's guide
+        // An NGS/LGS row selection is retained (with its old ITC result) while the table's guide
         // star search reruns, but it can't be accepted until the search validates the mode.
+        // LGS+P1 needs no guide star, so it doesn't wait.
         val awaitingAltairGuideStar: Boolean =
-          props.selectedConfig.get.altairMode.isDefined && props.altairParams.isPending
+          props.selectedConfig.get.altairMode.exists(AltairModeRows.GuideStarAltairModes.contains_)
+            && props.altairParams.isPending
 
         val canAccept: Boolean =
           if isAlienVisitor then alienInput.isDefined

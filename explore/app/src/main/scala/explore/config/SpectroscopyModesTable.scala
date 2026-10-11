@@ -415,8 +415,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             props.constraints,
                             props.targets.toOption,
                             props.customSedTimestamps,
-                            sortedRows,
-                            props.altairParams.toOption.getOrElse(Map.empty)
+                            sortedRows
                           )
         // A configuration selected from outside the table (e.g. a reverted one) widens the filter
         // to show its Altair mode. Changing the filter drops selections it hides.

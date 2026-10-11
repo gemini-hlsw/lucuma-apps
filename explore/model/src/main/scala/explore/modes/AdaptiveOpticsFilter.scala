@@ -27,13 +27,11 @@ enum AdaptiveOpticsFilter(val tag: String, val label: String) derives Enumerated
       case LgsP1 => altair.contains_(AltairMode.LgsP1)
 
   /**
-   * Whether the filter admits NGS or LGS rows, which only exist once the guide star search is done.
-   * NoAo and LgsP1 do not depend on it.
+   * Whether the filter admits rows whose Altair parameters come from the guide star search, which
+   * only exist once it is done.
    */
   def awaitsGuideStar: Boolean =
-    this match
-      case All | Ngs | Lgs => true
-      case LgsP1 | NoAo    => false
+    AltairModeRows.GuideStarAltairModes.exists(mode => admits(mode.some))
 
 object AdaptiveOpticsFilter:
   // We use None as the default until AO is supported.
