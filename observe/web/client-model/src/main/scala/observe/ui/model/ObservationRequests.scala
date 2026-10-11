@@ -23,6 +23,7 @@ case class ObservationRequests(
   pauseExposure:      OperationRequest,
   resumeExposure:     OperationRequest,
   rewind:             OperationRequest,
+  cancelRewind:       OperationRequest,
   subsystemRun:       Map[Step.Id, Map[Subsystem, OperationRequest]],
   acquisitionPrompt:  OperationRequest
 ) derives Eq:
@@ -34,7 +35,8 @@ case class ObservationRequests(
     stopExposure === OperationRequest.InFlight ||
     abortExposure === OperationRequest.InFlight ||
     startSequenceFrom === OperationRequest.InFlight ||
-    rewind === OperationRequest.InFlight
+    rewind === OperationRequest.InFlight ||
+    cancelRewind === OperationRequest.InFlight
 
     // Indicate if any resource is being executed
   def subsystemInFlight(stepId: Step.Id): Boolean =
@@ -54,7 +56,11 @@ case class ObservationRequests(
       pauseExposure =
         if (isPaused || !status.isRunning) OperationRequest.Idle else pauseExposure,
       resumeExposure = if (status.isRunning) OperationRequest.Idle else resumeExposure,
-      rewind = if (status.isRunning) rewind else OperationRequest.Idle
+      rewind =
+        if (status.isRewindRequested || !status.isRunning) OperationRequest.Idle else rewind,
+      cancelRewind =
+        if (!status.isRewindRequested || !status.isRunning) OperationRequest.Idle
+        else cancelRewind
     )
 
 object ObservationRequests:
@@ -68,6 +74,7 @@ object ObservationRequests:
     pauseExposure = OperationRequest.Idle,
     resumeExposure = OperationRequest.Idle,
     rewind = OperationRequest.Idle,
+    cancelRewind = OperationRequest.Idle,
     subsystemRun = Map.empty,
     acquisitionPrompt = OperationRequest.Idle
   )
@@ -90,6 +97,8 @@ object ObservationRequests:
     Focus[ObservationRequests](_.resumeExposure)
   val rewind: Lens[ObservationRequests, OperationRequest]                                     =
     Focus[ObservationRequests](_.rewind)
+  val cancelRewind: Lens[ObservationRequests, OperationRequest]                               =
+    Focus[ObservationRequests](_.cancelRewind)
   val subsystemRun: Lens[ObservationRequests, Map[Step.Id, Map[Subsystem, OperationRequest]]] =
     Focus[ObservationRequests](_.subsystemRun)
   val acquisitionPrompt: Lens[ObservationRequests, OperationRequest]                          =

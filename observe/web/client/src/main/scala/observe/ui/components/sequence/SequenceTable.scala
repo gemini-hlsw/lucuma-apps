@@ -9,6 +9,7 @@ import crystal.react.View
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
@@ -42,6 +43,7 @@ private trait SequenceTable[S, D](
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
+  def sequenceControls: VdomNode
 
   // The mask name for a GMOS custom mask attachment, when known. Only GMOS sequence
   // tables have a custom mask FPU, so other instruments keep the default.
@@ -86,10 +88,11 @@ private trait SequenceTable[S, D](
     atoms:   List[Atom[D]],
     seqType: SequenceType
   ): List[SequenceRow.FutureStep[D]] =
-    SequenceRow.FutureStep.fromAtoms(atoms,
-                                     signalToNoise(seqType),
-                                     peakPixel(seqType),
-                                     seqType
+    SequenceRow.FutureStep.fromAtoms(
+      atoms,
+      signalToNoise(seqType),
+      peakPixel(seqType),
+      seqType
     ) match
       case head :: tail if shouldHideFirstFutureStep(tail.headOption.flatMap(_.id.toOption)) =>
         head.some.filterNot(row => lastVisitStepId === row.id.toOption).toList ++ tail

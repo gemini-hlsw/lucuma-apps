@@ -480,6 +480,7 @@ class StepSuite extends CatsEffectSuite {
           obsId = observationId(1),
           status = SequenceStatus.Running(
             IsSequenceHoldRequested.Yes,
+            IsRewindRequested.No,
             IsStepInterruptRequested.No,
             IsWaitingUserPrompt.No,
             IsWaitingNextStep.No,

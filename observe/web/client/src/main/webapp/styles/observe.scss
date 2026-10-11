@@ -356,8 +356,17 @@ body {
   height: 100%;
   width: 100%;
 
-  .observation-area-sequence-table-expand-button {
-    margin: 0 0 15px 10px;
+  .observation-area-sequence-table-toolbar {
+    margin: 0 10px 15px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .observation-area-sequence-table-visit-buttons {
+    margin-left: auto;
     display: flex;
     flex-direction: row;
     gap: 8px;
@@ -862,6 +871,16 @@ body {
     }
   }
 
+  &.observe-cancel-rewind-button {
+    @include control-button;
+
+    background-color: var(--orange-700);
+
+    &:enabled:hover {
+      background-color: var(--orange-800);
+    }
+  }
+
   &.observe-stop-button {
     @include control-button;
 
@@ -1089,6 +1108,12 @@ body {
       margin: 5px 10px;
     }
   }
+}
+
+.observe-seq-control-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
 }
 
 .observe-obs-summary {

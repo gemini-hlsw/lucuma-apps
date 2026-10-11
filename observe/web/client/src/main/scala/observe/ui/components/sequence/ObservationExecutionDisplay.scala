@@ -19,8 +19,6 @@ import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
-import observe.model.ObserveStep.*
-import observe.model.SequenceStatus
 import observe.model.StepProgress
 import observe.model.SubsystemOrServer
 import observe.model.enums.ControlStrategy
@@ -82,13 +80,6 @@ object ObservationExecutionDisplay
         ObsHeader(
           props.selectedObs,
           executionStateAndConfig.map(_.map(_._1)),
-          loadedObsViewPot.map(_.zoom(LoadedObservation.isRefreshing)),
-          executionStateOpt.get.map(_.sequenceStatus).getOrElse(SequenceStatus.Idle),
-          executionStateOpt.get.exists(_.loadedStep.exists(_.isObserveStarted)),
-          rootModelData.obsRequests.getOrElse(
-            selectedObsId,
-            ObservationRequests.Idle
-          ),
           executionStateAndConfig
             .flatMap(_.toOption.map(_._4.zoom(ExecutionState.systemOverrides))),
           props.rootModelData.zoom(RootModelData.observer),
@@ -120,6 +111,7 @@ object ObservationExecutionDisplay
                 sequenceData,
                 visits,
                 executionState,
+                loadedObsViewPot.map(_.zoom(LoadedObservation.isRefreshing)),
                 currentRecordedVisit,
                 progress,
                 requests,

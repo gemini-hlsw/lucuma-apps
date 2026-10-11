@@ -64,6 +64,36 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       SequenceState.setSequenceHoldRequested(IsSequenceHoldRequested.No)
     )
 
+  def requestStepRewind(id: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle
+      .getSequenceState(id)
+      .flatMap:
+        _.map: s =>
+          EngineHandle
+            .modifySequenceState(id):
+              SequenceState
+                .setStepInterruptRequested[F](IsStepInterruptRequested.Yes)
+                .andThen(SequenceState.setRewindRequested[F](IsRewindRequested.Yes))
+            .whenA(SequenceState.isRunning(s))
+        .getOrElse(EngineHandle.unit)
+
+  // Conditional because `stepInterruptRequested` is shared with stop/abort/pause-exposure: if no
+  // rewind is requested, a stop/abort may own the flag and must not be cleared here.
+  private def cancelStepRewindRequest(id: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle
+      .getSequenceState(id)
+      .flatMap(
+        _.map: s =>
+          EngineHandle
+            .modifySequenceState(id)(
+              SequenceState
+                .setRewindRequested[F](IsRewindRequested.No)
+                .andThen(SequenceState.setStepInterruptRequested[F](IsStepInterruptRequested.No))
+            )
+            .whenA(s.status.isRewindRequested)
+        .getOrElse(EngineHandle.unit)
+      )
+
   def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
     EngineHandle.getState.flatMap { st =>
       val resultStream: Option[Stream[F, Result]] =
@@ -139,7 +169,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         seqState
           .map: seq =>
             (seq.status, seq.loadedStep) match {
-              case (SequenceStatus.Running(sequenceHoldRequested, stepInterruptRequested, _, _, _),
+              case (SequenceStatus
+                      .Running(sequenceHoldRequested, _, stepInterruptRequested, _, _, _),
                     Some(completedStep)
                   ) =>
                 seq.withNextExecution match {
@@ -201,7 +232,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
           .map { seq =>
             seq.status match {
               case SequenceStatus
-                    .Running(sequenceHoldRequested, stepInterruptRequested, _, _, isStarting) =>
+                    .Running(sequenceHoldRequested,
+                             rewindRequested,
+                             stepInterruptRequested,
+                             _,
+                             _,
+                             isStarting
+                    ) =>
                 // TODO Review if all of these conditions are possible with new sequence flow.
                 if (!isStarting && (sequenceHoldRequested || stepInterruptRequested)) {
                   if (seq.loadedStep.isEmpty)
@@ -219,6 +256,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                     setObsStatus(obsId)(
                       SequenceStatus.Running(
                         sequenceHoldRequested,
+                        rewindRequested,
                         stepInterruptRequested,
                         IsWaitingUserPrompt.No,
                         IsWaitingNextStep.No,
@@ -421,6 +459,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       debug(
         s"Engine: Sequence hold request canceled for sequence $obsId"
       ) *> cancelSequenceHoldRequest(obsId) *>
+        EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
+    case RequestStepRewind(obsId, _)         =>
+      debug(s"Engine: Rewind requested for sequence $obsId") *> requestStepRewind(obsId) *>
+        EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
+    case CancelStepRewindRequest(obsId, _)   =>
+      debug(s"Engine: Rewind request canceled for sequence $obsId") *>
+        cancelStepRewindRequest(obsId) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
     case Breakpoints(obsId, _, stepIds, v)   =>
       debug(s"Engine: breakpoints changed for sequence $obsId and steps $stepIds to $v") *>

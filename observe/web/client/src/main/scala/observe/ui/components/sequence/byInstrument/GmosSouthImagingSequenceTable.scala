@@ -5,6 +5,7 @@ package observe.ui.components.sequence.byInstrument
 
 import crystal.react.View
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
@@ -37,7 +38,8 @@ final case class GmosSouthImagingSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
+  sequenceControls:     VdomNode
 ) extends ReactFnProps(GmosSouthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
       Instrument.GmosSouth

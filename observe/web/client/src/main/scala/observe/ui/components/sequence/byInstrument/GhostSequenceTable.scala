@@ -5,6 +5,7 @@ package observe.ui.components.sequence.byInstrument
 
 import crystal.react.View
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.ExecutionConfig
@@ -38,7 +39,8 @@ case class GhostSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
+  sequenceControls:     VdomNode
 ) extends ReactFnProps(GhostSequenceTable.component)
     with SequenceTable[GhostStaticConfig, GhostDynamicConfig](Instrument.Ghost)
     with SpectroscopySequenceTable[GhostDynamicConfig]:

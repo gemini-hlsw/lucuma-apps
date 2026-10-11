@@ -100,12 +100,12 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.configSystem(obsId, obs, user, stepId, resource, clientId) *> NoContent()
 
     // In a number of endpoints, clientId is not used but we keep it anyway so that it's logged.
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "sequenceHold" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "holdSequence" /
         ObserverVar(obs) =>
       ssoClient.require(req): user =>
         oe.requestSequenceHold(obsId, obs, user) *> NoContent()
 
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "cancelSequenceHold" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "cancelHoldSequence" /
         ObserverVar(obs) =>
       ssoClient.require(req): user =>
         oe.cancelSequenceHoldRequest(obsId, obs, user) *> NoContent()
@@ -151,6 +151,11 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         "rewindStep" / ObserverVar(obs) =>
       ssoClient.require(req): user =>
         oe.rewindStep(obsId, obs, user) *> NoContent()
+
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
+        "cancelRewindStep" / ObserverVar(obs) =>
+      ssoClient.require(req): user =>
+        oe.cancelRewindRequest(obsId, obs, user) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) /
         "pauseExposureGracefully" / ObserverVar(obs) =>

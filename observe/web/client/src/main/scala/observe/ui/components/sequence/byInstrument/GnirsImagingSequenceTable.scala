@@ -6,6 +6,7 @@ package observe.ui.components.sequence.byInstrument
 import cats.syntax.option.*
 import crystal.react.View
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
@@ -39,7 +40,8 @@ final case class GnirsImagingSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
+  sequenceControls:     VdomNode
 ) extends ReactFnProps(GnirsImagingSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)
     with ImagingSequenceTable[GnirsDynamicConfig, GnirsFilter]:

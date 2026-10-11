@@ -90,8 +90,8 @@ Match is case-sensitive and whole-identifier; adjust casing for the surrounding 
 |---|---|
 | `"start"` | `"startSequence"` |
 | `"startFrom"` | `"startSequenceFrom"` |
-| `"pause"` | `"sequenceHold"` |
-| `"cancelpause"` | `"cancelSequenceHold"` |
+| `"pause"` | `"holdSequence"` |
+| `"cancelpause"` | `"cancelHoldSequence"` |
 | `"stop"` | `"stopExposure"` |
 | `"stopGracefully"` | `"stopExposureGracefully"` |
 | `"abort"` | `"abortExposure"` |
