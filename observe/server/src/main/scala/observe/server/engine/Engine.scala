@@ -64,6 +64,10 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       SequenceState.setSequenceHoldRequested(IsSequenceHoldRequested.No)
     )
 
+  // A rewind only makes sense while the observe group is still pending: `nextExecution` honours
+  // it at the group boundary right before it. Once the observe group has started, the request is
+  // ignored rather than turned into a hold, so that `rewindRequested` never coexists with an
+  // exposure that a stop/abort/pause may interrupt.
   def requestStepRewind(id: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle
       .getSequenceState(id)
@@ -74,11 +78,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
               SequenceState
                 .setStepInterruptRequested[F](IsStepInterruptRequested.Yes)
                 .andThen(SequenceState.setRewindRequested[F](IsRewindRequested.Yes))
-            .whenA(SequenceState.isRunning(s))
+            .whenA(SequenceState.isRunning(s) && s.loadedStep.exists(_.hasObservePending))
         .getOrElse(EngineHandle.unit)
 
-  // Conditional because `stepInterruptRequested` is shared with stop/abort/pause-exposure: if no
-  // rewind is requested, a stop/abort may own the flag and must not be cleared here.
+  // `stepInterruptRequested` is shared with stop/abort/pause-exposure, so it's only cleared when a
+  // rewind is pending. That is safe: a rewind can only be pending before the observe group starts
+  // (see `requestStepRewind`), when no exposure exists for those actions to interrupt, so any
+  // interrupt raised in that window has the same effect as the rewind being cancelled.
   private def cancelStepRewindRequest(id: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle
       .getSequenceState(id)
