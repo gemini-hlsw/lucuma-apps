@@ -25,7 +25,6 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig.M2GuideOn
 import lucuma.core.model.TelescopeGuideConfig
-import lucuma.core.util.RetryFlakyTests
 import lucuma.horizons.HorizonsClient
 import munit.CatsEffectSuite
 import navigate.model.*
@@ -44,7 +43,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.duration.*
 
-class NavigateEngineSpec extends CatsEffectSuite with RetryFlakyTests {
+class NavigateEngineSpec extends CatsEffectSuite {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("navigate-engine")
 
@@ -56,12 +55,8 @@ class NavigateEngineSpec extends CatsEffectSuite with RetryFlakyTests {
     probeGuide = none
   )
 
-  test("NavigateEngine must memorize requested guide configuration.".flaky) {
-    for {
-      eng <- NavigateEngineSpec.buildEngine[IO]
-      _   <- Stream.eval(eng.enableGuide(guideOnCfg)).merge(eng.eventStream.take(1)).compile.drain
-      r   <- eng.getGuideDemand
-    } yield assertEquals(r.tcsGuide, guideOnCfg)
+  test("NavigateEngine must memorize requested guide configuration.") {
+    withEngine(eng => eng.enableGuide(guideOnCfg) *> waitForGuide(eng, guideOnCfg))
   }
 
   val targetRa  = "17:01:00.000000"
