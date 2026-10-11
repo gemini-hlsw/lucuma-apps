@@ -554,9 +554,9 @@ thead tr th.sticky-header {
 }
 
 .explore-tile-body-hidden {
-  // Future-proofing: no tile body class sets display today, but one that did would win over
-  // this. A minimized auto-height body left laid out keeps its size, so maximizing it never
-  // triggers a re-measure and the tile stays stuck at its minimum height.
+  // Future-proofing: no auto-height tile body sets display today, but one that did would win
+  // over this. A minimized auto-height body left laid out keeps its size, so maximizing it
+  // never triggers a re-measure and the tile stays stuck at its minimum height.
   display: none !important;
 }
 
