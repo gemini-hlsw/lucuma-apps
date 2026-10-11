@@ -27,6 +27,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
+import lucuma.core.model.IsUserDefinedTelluric
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -100,7 +101,8 @@ object SingleTargetEditorTile
                 readonly = props.readonly,
                 // don't allow this when editing non-specifically for an observation
                 allowEditingOngoing = false,
-                isStaffOrAdmin = props.isStaffOrAdmin
+                isStaffOrAdmin = props.isStaffOrAdmin,
+                isUserDefinedTelluric = IsUserDefinedTelluric.False
               )
             )
           )

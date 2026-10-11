@@ -46,6 +46,7 @@ import lucuma.core.math.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.Ephemeris
+import lucuma.core.model.IsUserDefinedTelluric
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.SiderealTracking
@@ -100,6 +101,7 @@ case class TargetEditor(
   readonly:                    Boolean,
   allowEditingOngoing:         Boolean,
   isStaffOrAdmin:              Boolean,
+  isUserDefinedTelluric:       IsUserDefinedTelluric,
   telluricType:                Option[TelluricType] = None,
   invalidateSequence:          Callback = Callback.empty,
   blindOffsetInfo:             Option[(Observation.Id, View[BlindOffset])] = none,
@@ -238,7 +240,9 @@ object TargetEditor:
         val disabled: Boolean =
           props.searching.get.exists(_ === props.obsTargets.focus.id) ||
             cloning.get || props.readonly || readonlyForStatuses.get ||
-            props.targetWithId.get.isReadonlyForProgramType(props.programType)
+            (props.targetWithId.get.isReadonlyForProgramType(
+              props.programType
+            ) && !props.isUserDefinedTelluric.value)
 
         val catalogInfo: Option[CatalogInfo] =
           Target.catalogInfo.getOption(props.targetWithId.get.target).flatten
@@ -478,7 +482,7 @@ object TargetEditor:
               React.Fragment(
                 FormLabel(htmlFor = "telluric-type".refined)("Telluric"),
                 <.span(^.id := "telluric-type", tt.shortName).withOptionalTooltip(
-                  TelluricType.manual
+                  TelluricType.explicitSpectralTypes
                     .getOption(tt)
                     .map(m => s"Star types: ${m.starTypes.toList.mkString(", ")}")
                 )

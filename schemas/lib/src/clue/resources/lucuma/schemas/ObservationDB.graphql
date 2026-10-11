@@ -8740,7 +8740,8 @@ enum TelluricTag {
   HOT
   A0V
   SOLAR
-  MANUAL
+  EXPLICIT_SPECTRAL_TYPES
+  USER_DEFINED
   NO_TELLURIC
 }
 
@@ -8748,11 +8749,13 @@ enum TelluricTag {
 type TelluricType {
   tag: TelluricTag!
   starTypes: [String!]
+  count: Int
 }
 
 input TelluricTypeInput {
   tag: TelluricTag!
   starTypes: [String!]
+  count: Int
 }
 
 """Flamingos2 Long Slit acquisition settings."""
@@ -13768,6 +13771,13 @@ type Observation {
 
   """The Calibration role of this observation"""
   calibrationRole: CalibrationRole
+
+  """
+  Whether this is a telluric calibration whose target and configuration the
+  user defines (science telluric type USER_DEFINED).  Such a telluric is
+  editable like a science observation and is never regenerated.
+  """
+  isUserDefinedTelluric: Boolean!
 
   """Notes for the observer"""
   observerNotes: NonEmptyString
