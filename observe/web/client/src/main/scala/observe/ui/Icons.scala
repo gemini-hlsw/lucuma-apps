@@ -22,6 +22,10 @@ object Icons:
   private val faArrowUpFromLine: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faBackward")
+  private val faBackward: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faBackwardStep")
   private val faBackwardStep: FAIcon = js.native
 
@@ -102,6 +106,10 @@ object Icons:
   private val faFileCross: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faForward")
+  private val faForward: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faGears")
   private val faGears: FAIcon = js.native
 
@@ -174,6 +182,7 @@ object Icons:
     faArrowsRotate,
     faArrowsRetweet,
     faArrowUpFromLine,
+    faBackward,
     faBackwardStep,
     faBan,
     faBars,
@@ -194,6 +203,7 @@ object Icons:
     faFileArrowUp,
     faFileCheck,
     faFileCross,
+    faForward,
     faGears,
     faMinus,
     faMoon,
@@ -216,6 +226,7 @@ object Icons:
   inline def ArrowsRotate      = FontAwesomeIcon(faArrowsRotate)
   inline def ArrowsRetweet     = FontAwesomeIcon(faArrowsRetweet)
   inline def ArrowUpFromLine   = FontAwesomeIcon(faArrowUpFromLine)
+  inline def Backward          = FontAwesomeIcon(faBackward)
   inline def BackwardStep      = FontAwesomeIcon(faBackwardStep)
   inline def Ban               = FontAwesomeIcon(faBan)
   inline def Bars              = FontAwesomeIcon(faBars)
@@ -236,6 +247,7 @@ object Icons:
   inline def FileArrowUp       = FontAwesomeIcon(faFileArrowUp)
   inline def FileCheck         = FontAwesomeIcon(faFileCheck)
   inline def FileCross         = FontAwesomeIcon(faFileCross)
+  inline def Forward           = FontAwesomeIcon(faForward)
   inline def Gears             = FontAwesomeIcon(faGears)
   inline def Minus             = FontAwesomeIcon(faMinus)
   inline def Logout            = FontAwesomeIcon(faSignOutAlt)

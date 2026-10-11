@@ -487,6 +487,80 @@ class ObserveEngineSuite extends TestCommon {
     }).assert
   }
 
+  private def skipAcquisitionState(status: SequenceStatus): EngineState[IO] =
+    (loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      EngineState
+        .sequenceStateAt[IO](seqObsId1)
+        .modify(_.copy(currentSequenceType = SequenceType.Acquisition, status = status)))
+      .apply(EngineState.default[IO])
+
+  private def skipAcquisitionStep(idx: Int, obsClass: ObserveClass): Step[DynamicConfig.GmosNorth] =
+    Step[DynamicConfig.GmosNorth](
+      stepId(idx),
+      dynamicCfg1,
+      stepCfg1,
+      telescopeCfg1,
+      StepEstimate.Zero,
+      obsClass,
+      Breakpoint.Disabled
+    )
+
+  private def skipAcquisitionFrom(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
+    for
+      acqAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
+      sciAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
+      odb       <- TestOdbProxy.buildGmosNorth[IO](
+                     seqObsId1,
+                     staticCfg1,
+                     Atom[DynamicConfig.GmosNorth](
+                       acqAtomId,
+                       none,
+                       NonEmptyList.one(skipAcquisitionStep(1, ObserveClass.Science))
+                     ).some,
+                     List(
+                       Atom[DynamicConfig.GmosNorth](
+                         sciAtomId,
+                         none,
+                         NonEmptyList.one(skipAcquisitionStep(2, ObserveClass.Science))
+                       )
+                     ),
+                     s0.selected.gmosNorth.map(_.observation)
+                   )
+      oe        <- observeEngineWithODB(odb)
+      // setObserver and the skip itself are two engine events
+      sf        <- advanceN(
+                     oe,
+                     s0,
+                     oe.skipAcquisition(seqObsId1, user, observer, clientId),
+                     2
+                   )
+    yield sf
+
+  test("ObserveEngine skipAcquisition loads the first science step while idle") {
+    skipAcquisitionFrom(skipAcquisitionState(SequenceStatus.Idle)).map: sf =>
+      val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(seq.map(_.seq.status), SequenceStatus.Idle.some)
+      assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Science.some)
+      assertEquals(seq.flatMap(_.seq.loadedStep.map(_.id)), stepId(2).some)
+  }
+
+  test("ObserveEngine skipAcquisition does nothing while the sequence is running") {
+    val s0 = skipAcquisitionState(SequenceStatus.Running.Init)
+    skipAcquisitionFrom(s0).map: sf =>
+      val before = EngineState.atSequence(seqObsId1).getOption(s0)
+      val after  = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(after.map(_.seq.status), SequenceStatus.Running.Init.some)
+      assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
+      assertEquals(
+        after.flatMap(_.seq.loadedStep.map(_.id)),
+        before.flatMap(_.seq.loadedStep.map(_.id))
+      )
+  }
+
   test("ObserveEngine should not run a system configuration if sequence is running") {
     val s0 = (loadSequenceWithResources(
       seqObsId1,

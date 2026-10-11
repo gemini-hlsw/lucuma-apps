@@ -116,6 +116,16 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.proceedAfterPrompt(obsId, user, obs, seqType) *>
           NoContent()
 
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "skipAcquisition" /
+        ObserverVar(obs) =>
+      ssoClient.require(req): user =>
+        oe.skipAcquisition(obsId, user, obs, clientId) *> NoContent()
+
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "resetAcquisition" /
+        ObserverVar(obs) =>
+      ssoClient.require(req): user =>
+        oe.resetAcquisition(obsId, user, obs, clientId) *> NoContent()
+
     case req @ POST -> Root / ObsIdVar(obsId) / StepIdVar(stepId) / ClientIDVar(clientId) /
         "breakpoint" / ObserverVar(obs) / BreakpointVar(bp) =>
       ssoClient.require(req): user =>

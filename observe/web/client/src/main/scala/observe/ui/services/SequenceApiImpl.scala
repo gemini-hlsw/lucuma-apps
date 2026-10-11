@@ -127,6 +127,18 @@ case class SequenceApiImpl(
         Uri.Path.empty / obsId.toString / client.clientId.value / "rewindStep" / observer.toString
       )
 
+  override def skipAcquisition(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.skipAcquisition) >>
+      client.postNoData(
+        Uri.Path.empty / obsId.toString / client.clientId.value / "skipAcquisition" / observer.toString
+      )
+
+  override def resetAcquisition(obsId: Observation.Id): IO[Unit] =
+    setInFlight(obsId, ObservationRequests.resetAcquisition) >>
+      client.postNoData(
+        Uri.Path.empty / obsId.toString / client.clientId.value / "resetAcquisition" / observer.toString
+      )
+
   override def cancelRewindRequest(obsId: Observation.Id): IO[Unit] =
     setInFlight(obsId, ObservationRequests.cancelRewind) >>
       client.postNoData(

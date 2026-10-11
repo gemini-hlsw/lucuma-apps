@@ -213,6 +213,20 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     observer: Observer,
     atomType: SequenceType
   ): F[Unit] = Applicative[F].unit
+
+  override def skipAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit] = Applicative[F].unit
+
+  override def resetAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit] = Applicative[F].unit
 }
 
 object TestObserveEngine {

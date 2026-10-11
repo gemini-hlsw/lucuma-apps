@@ -56,12 +56,24 @@ object ObservationSequence
       yield
         import ctx.given
 
+        val hasAcquisition: Boolean =
+          props.sequenceData.config match
+            case InstrumentExecutionConfig.GmosNorth(config)  => config.acquisition.isDefined
+            case InstrumentExecutionConfig.GmosSouth(config)  => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Flamingos2(config) => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Igrins2(config)    => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Ghost(config)      => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Gnirs(config)      => config.acquisition.isDefined
+            case _                                            => false
+
         val sequenceControls: VdomNode =
           SeqControlButtons(
             props.obsId,
             props.refreshing,
             props.executionState.get.sequenceStatus,
             props.executionState.get.loadedStep.exists(_.isObserveStarted),
+            props.executionState.get.sequenceType,
+            hasAcquisition,
             props.requests
           )
 

@@ -8,6 +8,7 @@ import crystal.*
 import crystal.react.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.SequenceType
 import lucuma.react.common.*
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
@@ -29,6 +30,8 @@ case class SeqControlButtons(
   refreshing:       Pot[View[Boolean]],
   sequenceStatus:   SequenceStatus,
   isObserveStarted: Boolean,
+  sequenceType:     SequenceType,
+  hasAcquisition:   Boolean,
   requests:         ObservationRequests
 ) extends ReactFnProps(SeqControlButtons):
   val isSequenceHoldRequested: Boolean      = sequenceStatus.isSequenceHoldRequested
@@ -42,6 +45,10 @@ case class SeqControlButtons(
   val isWaitingUserPrompt: Boolean          = sequenceStatus.isWaitingUserPrompt
   val isRefreshing: Boolean                 = refreshing.exists(_.get)
   val isCompleted: Boolean                  = sequenceStatus.isCompleted
+  val isIdleOrError: Boolean                = sequenceStatus.isIdle || sequenceStatus.isError
+  val isSkipAcquisitionInFlight: Boolean    = requests.skipAcquisition === OperationRequest.InFlight
+  val isResetAcquisitionInFlight: Boolean   =
+    requests.resetAcquisition === OperationRequest.InFlight
 
 object SeqControlButtons
     extends ReactFnComponent[SeqControlButtons](props =>
@@ -86,7 +93,7 @@ object SeqControlButtons
           Button(
             clazz = ObserveStyles.RewindButton |+| ObserveStyles.ObsSummaryButton,
             icon = Icons.BackwardStep.withFixedWidth().withSize(IconSize.LG),
-            tooltip = "Rewind step: stop before the exposure and go idle. Run configures again.",
+            tooltip = "Rewind current step: stop before the exposure. Run configures again.",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.rewindStep(props.obsId).runAsync,
             disabled = !props.isRunning || props.isObserveStarted || props.isRewindInFlight ||
@@ -99,6 +106,23 @@ object SeqControlButtons
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.cancelRewindRequest(props.obsId).runAsync,
             disabled = props.isCancelRewindInFlight || props.isWaitingUserPrompt
-          ).when(props.isRewindRequested)
+          ).when(props.isRewindRequested),
+          Button(
+            clazz = ObserveStyles.SkipAcquisitionButton |+| ObserveStyles.ObsSummaryButton,
+            icon = Icons.Forward.withFixedWidth().withSize(IconSize.LG),
+            tooltip = "Skip acquisition",
+            tooltipOptions = tooltipOptions,
+            onClick = sequenceApi.skipAcquisition(props.obsId).runAsync,
+            disabled = !props.isIdleOrError || props.isRefreshing || props.isSkipAcquisitionInFlight
+          ).when(props.hasAcquisition && props.sequenceType === SequenceType.Acquisition),
+          Button(
+            clazz = ObserveStyles.ResetAcquisitionButton |+| ObserveStyles.ObsSummaryButton,
+            icon = Icons.Backward.withFixedWidth().withSize(IconSize.LG),
+            tooltip = "Reacquire",
+            tooltipOptions = tooltipOptions,
+            onClick = sequenceApi.resetAcquisition(props.obsId).runAsync,
+            disabled =
+              !props.isIdleOrError || props.isRefreshing || props.isResetAcquisitionInFlight
+          ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science)
         )
     )

@@ -66,6 +66,27 @@ trait ObserveEngine[F[_]] {
     seqType:  SequenceType
   ): F[Unit]
 
+  /**
+   * While the sequence is idle (or in error), load the first science step. Nothing is started.
+   */
+  def skipAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit]
+
+  /**
+   * While the sequence is idle (or in error), reset the acquisition in the ODB and load its first
+   * step. Nothing is started.
+   */
+  def resetAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit]
+
   def requestSequenceHold(
     obsId:    Observation.Id,
     observer: Observer,
