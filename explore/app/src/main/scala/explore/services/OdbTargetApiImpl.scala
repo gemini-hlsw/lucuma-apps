@@ -18,6 +18,7 @@ import lucuma.schemas.ObservationDB.Types.CloneTargetInput
 import lucuma.schemas.ObservationDB.Types.TargetPropertiesInput
 import lucuma.schemas.ObservationDB.Types.UpdateTargetsInput
 import lucuma.schemas.model.TargetWithId
+import lucuma.schemas.odb.drain
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.ToastCtx
 import queries.common.ProgramSummaryQueriesGQL.AllProgramTargets
@@ -117,7 +118,7 @@ trait OdbTargetApiImpl[F[_]: Sync](using
       .map(_.map(_.targetEdit))
 
   def allProgramTargets(programId: Program.Id): F[List[TargetWithId]] =
-    drain[TargetWithId, Target.Id, AllProgramTargets.Data.Targets](
+    drain[F, TargetWithId, Target.Id, AllProgramTargets.Data.Targets](
       offset =>
         AllProgramTargets[F]
           .query(programId.toWhereTarget, offset.orUnassign)

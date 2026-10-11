@@ -103,24 +103,6 @@ trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
           case (None, None)                                                                      =>
             F.raiseError[D](new RuntimeException("No data and no errors in GraphQL response"))
 
-  protected def drain[A, Id, R](
-    fetch:      Option[Id] => F[R],
-    getList:    R => List[A],
-    getHasMore: R => Boolean,
-    getId:      A => Id
-  ): F[List[A]] = {
-    def go(id: Option[Id], accum: List[A]): F[List[A]] =
-      fetch(id).flatMap(result =>
-        val list = getList(result)
-        // Fetching with offset includes the offset, so .dropRight(1) ensures we don't include it twice.
-        val all  = accum.dropRight(1) ++ list
-        if (getHasMore(result)) go(list.lastOption.map(getId), all)
-        else all.pure
-      )
-
-    go(none, List.empty)
-  }
-
   extension [D](subscription: Resource[F, fs2.Stream[F, GraphQLResponse[D]]])
     protected def processErrors(
       logPrefix: String,

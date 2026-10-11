@@ -20,6 +20,7 @@ import explore.modes.SpectroscopyModesMatrix
 import lucuma.core.model.Program
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.ConfigurationRequestEditInput
+import lucuma.schemas.odb.drain
 import queries.common.ModesQueriesGQL
 import queries.common.ProgramQueriesGQL.ConfigurationRequestSubscription
 import queries.common.ProgramSummaryQueriesGQL.AllProgramConfigurationRequests
@@ -55,6 +56,7 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
     programId: Program.Id
   ): F[List[ConfigurationRequest]] =
     drain[
+      F,
       ConfigurationRequest,
       ConfigurationRequest.Id,
       Option[AllProgramConfigurationRequests.Data.Program.ConfigurationRequests]

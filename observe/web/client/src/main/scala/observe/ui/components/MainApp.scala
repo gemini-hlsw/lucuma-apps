@@ -9,6 +9,7 @@ import cats.effect.std.Dispatcher
 import cats.effect.std.Semaphore
 import cats.syntax.all.*
 import clue.PersistentClientStatus
+import clue.data.syntax.*
 import clue.js.WebSocketJsBackend
 import clue.js.WebSocketJsClient
 import clue.otel4s.Otel4sMiddleware
@@ -28,6 +29,7 @@ import japgolly.scalajs.react.extra.router.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.LocalObservingNight
+import lucuma.core.model.Observation
 import lucuma.core.model.StandardRole
 import lucuma.core.model.StandardUser
 import lucuma.react.common.*
@@ -39,6 +41,7 @@ import lucuma.react.primereact.PrimeReactProvider
 import lucuma.react.primereact.hooks.all.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.drain
 import lucuma.ui.LucumaStyles
 import lucuma.ui.components.SolarProgress
 import lucuma.ui.components.state.IfLogged
@@ -51,6 +54,7 @@ import observe.model.*
 import observe.model.enums.ObserveLogLevel
 import observe.model.events.ClientEvent
 import observe.queries.ObsQueriesGQL
+import observe.queries.ObsQueriesGQL.ActiveObservationIdsQuery
 import observe.ui.BroadcastEvent
 import observe.ui.ObserveStyles
 import observe.ui.components.services.ObservationSyncer
@@ -371,16 +375,26 @@ object MainApp extends ServerEventHandler:
                         LocalObservingNight
                           .fromSiteAndInstant(clientConfig.site, Instant.ofEpochMilli(now.toMillis))
 
-                      ObsQueriesGQL
-                        .ActiveObservationIdsQuery[IO]
-                        .query(
-                          clientConfig.site,
-                          localObservingNight.toLocalDate
-                        )
-                        .raiseGraphQLErrors
-                        .flatMap: data =>
-                          readyObservations.set:
-                            data.observations.matches.ready
+                      drain[IO,
+                            ObsSummary,
+                            Observation.Id,
+                            ActiveObservationIdsQuery.Data.Observations
+                      ](
+                        offset =>
+                          ActiveObservationIdsQuery[IO]
+                            .query(
+                              clientConfig.site,
+                              localObservingNight.toLocalDate,
+                              offset.orUnassign
+                            )
+                            .raiseGraphQLErrors
+                            .map(_.observations),
+                        _.matches,
+                        _.hasMore,
+                        _.obsId
+                      )
+                        .flatMap: obs =>
+                          readyObservations.set(obs.ready)
                         .recoverWith(t => readyObservations.set(Pot.error(t)))
                         .void
                         .reRunOnResourceSignals:

@@ -12,7 +12,7 @@ object ObsQueriesGQL {
   @GraphQL
   trait ActiveObservationIdsQuery extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$site: Site!, $$date: Date!) {
+      query($$site: Site!, $$date: Date!, $$offset: ObservationId) {
         observations(
           WHERE: {
             site: { EQ: $$site },
@@ -28,8 +28,10 @@ object ObsQueriesGQL {
                 IN: [READY, ONGOING, COMPLETED]
               }
             }
-          }
+          },
+          OFFSET: $$offset
         ) {
+          hasMore
           matches $ObservationSummarySubquery
         }
       }

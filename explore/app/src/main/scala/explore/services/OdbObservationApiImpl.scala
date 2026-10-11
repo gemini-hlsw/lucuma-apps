@@ -40,6 +40,7 @@ import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.enums.BlindOffsetType
+import lucuma.schemas.odb.drain
 import lucuma.schemas.odb.input.*
 import queries.common.ObsQueriesGQL.*
 import queries.common.ProgramSummaryQueriesGQL.AllProgramObservations
@@ -496,7 +497,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .map(_.map(_.observationEdit))
 
   def allProgramObservations(programId: Program.Id): F[List[Observation]] =
-    drain[Observation, Observation.Id, AllProgramObservations.Data.Observations](
+    drain[F, Observation, Observation.Id, AllProgramObservations.Data.Observations](
       offset =>
         AllProgramObservations[F]
           .query(programId.toWhereObservation, offset.orUnassign)
@@ -613,6 +614,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   ): F[List[(Observation.Id, Option[ObservingMode])]] =
     val flags: ModeViewFlags = modeViewFlagsFor(modeType)
     drain[
+      F,
       AllProgramObservationsObservingMode.Data.Observations.Matches,
       Observation.Id,
       AllProgramObservationsObservingMode.Data.Observations
