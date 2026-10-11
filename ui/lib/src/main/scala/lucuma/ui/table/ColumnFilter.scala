@@ -46,13 +46,22 @@ object ColumnFilter:
     panelClass:  Css = Css.Empty
   ) extends ReactFnProps(Select.component):
     // Group by displayed text: distinct raw values can render identically.
-    protected[table] val options: List[SelectItem[String]] =
+    private val present: List[(String, Int)] =
       col
         .getFacetedUniqueValues()
         .toList
         .groupMapReduce((a, _) => display(a))(_._2)(_ + _)
         .filter((name, _) => name.nonEmpty)
         .toList
+
+    // A filter value restored from preferences may match no current row. Without an option for it
+    // the dropdown shows the placeholder while the filter still hides every row, so keep it listed
+    // and clearable.
+    private val missing: Option[(String, Int)] =
+      col.getFilterValue().filterNot(v => present.exists(_._1 == v)).map(_ -> 0)
+
+    protected[table] val options: List[SelectItem[String]] =
+      (present ++ missing)
         .sortBy(_._2)
         .map: (name, count) =>
           val label: String = if showCount then s"$name (${count})" else name
