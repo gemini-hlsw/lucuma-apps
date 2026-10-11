@@ -27,8 +27,11 @@ trait ArbObservationRequests:
       pauseExposure      <- arbitrary[OperationRequest]
       resumeExposure     <- arbitrary[OperationRequest]
       rewind             <- arbitrary[OperationRequest]
+      cancelRewind       <- arbitrary[OperationRequest]
       subsystemRun       <- arbitrary[Map[Step.Id, Map[Subsystem, OperationRequest]]]
       acquisitionPrompt  <- arbitrary[OperationRequest]
+      skipAcquisition    <- arbitrary[OperationRequest]
+      resetAcquisition   <- arbitrary[OperationRequest]
     yield ObservationRequests(
       startSequence,
       startSequenceFrom,
@@ -39,8 +42,11 @@ trait ArbObservationRequests:
       pauseExposure,
       resumeExposure,
       rewind,
+      cancelRewind,
       subsystemRun,
-      acquisitionPrompt
+      acquisitionPrompt,
+      skipAcquisition,
+      resetAcquisition
     )
 
   given Cogen[ObservationRequests] = Cogen[
@@ -53,7 +59,10 @@ trait ArbObservationRequests:
      OperationRequest,
      OperationRequest,
      OperationRequest,
+     OperationRequest,
      List[(Step.Id, List[(Subsystem, OperationRequest)])],
+     OperationRequest,
+     OperationRequest,
      OperationRequest
     )
   ].contramap(x =>
@@ -66,8 +75,11 @@ trait ArbObservationRequests:
      x.pauseExposure,
      x.resumeExposure,
      x.rewind,
+     x.cancelRewind,
      x.subsystemRun.view.mapValues(_.toList).toList,
-     x.acquisitionPrompt
+     x.acquisitionPrompt,
+     x.skipAcquisition,
+     x.resetAcquisition
     )
   )
 

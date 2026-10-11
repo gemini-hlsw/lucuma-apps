@@ -17,15 +17,10 @@ import observe.model.enums.ControlStrategy
 import observe.ui.ObserveStyles
 import observe.ui.components.ConfigPanel
 import observe.ui.model.ObsSummary
-import observe.ui.model.ObservationRequests
 
 case class ObsHeader(
   observation:                ObsSummary,
   loadedObsId:                Option[Pot[Observation.Id]],
-  refreshing:                 Pot[View[Boolean]],
-  sequenceStatus:             SequenceStatus,
-  isObserveStarted:           Boolean,
-  requests:                   ObservationRequests,
   overrides:                  Option[View[SystemOverrides]],
   observer:                   View[Option[Observer]],
   operator:                   View[Option[Operator]],
@@ -39,13 +34,6 @@ object ObsHeader
       <.div(ObserveStyles.ObsHeader)(
         <.div(ObserveStyles.ObsSummary)(
           <.div(ObserveStyles.ObsSummaryTitle)(
-            SeqControlButtons(
-              props.observation.obsId,
-              props.refreshing,
-              props.sequenceStatus,
-              props.isObserveStarted,
-              props.requests
-            ),
             s"${props.observation.title} [${props.observation.refAndId}]",
             props.linkToExploreObs:
               props.observation.obsReference

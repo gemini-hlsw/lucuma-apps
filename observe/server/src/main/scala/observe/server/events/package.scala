@@ -35,6 +35,7 @@ extension (e: SeqEvent)
       case StartSysConfig(_, _, _)       => true
       case SequenceStart(_, _)           => true
       case SequencesStart(_)             => true
+      case SequenceTypeChanged(_)        => true
       case _                             => false
 
 extension [F[_]](e: UserEvent[F])
@@ -43,6 +44,8 @@ extension [F[_]](e: UserEvent[F])
     e match
       case UserEvent.RequestSequenceHold(_, _)        => true
       case UserEvent.CancelSequenceHoldRequest(id, _) => true
+      case UserEvent.RequestStepRewind(_, _)          => true
+      case UserEvent.CancelStepRewindRequest(_, _)    => true
       case UserEvent.Breakpoints(_, _, _, _)          => true
       case UserEvent.Poll(_)                          => true
       case UserEvent.ActionStop(_, _)                 => true

@@ -30,8 +30,9 @@ Match is case-sensitive and whole-identifier; adjust casing for the surrounding 
 | Seqexec | Observe |
 |---|---|
 | `SequenceState` | `SequenceStatus` |
-| `SequenceState.Running(userStop, internalStop)` | `SequenceStatus.Running(sequenceHoldRequested, stepInterruptRequested, waitingUserPrompt, waitingNextStep, starting)` |
+| `SequenceState.Running(userStop, internalStop)` | `SequenceStatus.Running(sequenceHoldRequested, rewindRequested, stepInterruptRequested, waitingUserPrompt, waitingNextStep, starting)` |
 | `userStop: Boolean` | `sequenceHoldRequested: IsSequenceHoldRequested` |
+| (none) | `rewindRequested: IsRewindRequested` (a rewind-step is pending; also raises `stepInterruptRequested`) |
 | `internalStop: Boolean` | `stepInterruptRequested: IsStepInterruptRequested` |
 | `userStopRequested` | `isSequenceHoldRequested` |
 | `internalStopRequested` | `isStepInterruptRequested` |
@@ -90,8 +91,8 @@ Match is case-sensitive and whole-identifier; adjust casing for the surrounding 
 |---|---|
 | `"start"` | `"startSequence"` |
 | `"startFrom"` | `"startSequenceFrom"` |
-| `"pause"` | `"sequenceHold"` |
-| `"cancelpause"` | `"cancelSequenceHold"` |
+| `"pause"` | `"holdSequence"` |
+| `"cancelpause"` | `"cancelHoldSequence"` |
 | `"stop"` | `"stopExposure"` |
 | `"stopGracefully"` | `"stopExposureGracefully"` |
 | `"abort"` | `"abortExposure"` |

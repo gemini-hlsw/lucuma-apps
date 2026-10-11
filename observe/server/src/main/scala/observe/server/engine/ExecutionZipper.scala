@@ -43,6 +43,10 @@ case class ExecutionZipper[F[_]](
   lazy val hasObserveAhead: Boolean =
     (focus.execution ++ pending.flatMap(_.toList)).exists(_.kind === ActionType.Observe)
 
+  /** Whether an observe action is in a group after the current one (so it hasn't started yet). */
+  lazy val hasObservePending: Boolean =
+    pending.flatMap(_.toList).exists(_.kind === ActionType.Observe)
+
   /**
    * Obtain the resulting `Step` only if all `Execution`s have been completed. This is a special way
    * of *unzipping* a `Zipper`.

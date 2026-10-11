@@ -353,8 +353,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               SequenceRowHeight.Regular
 
         React.Fragment(
-          if (visitIds.nonEmpty) {
-            <.div(ObserveStyles.SequenceTableExpandButton)(
+          <.div(ObserveStyles.SequenceTableToolbar)(
+            props.sequenceControls,
+            <.div(ObserveStyles.SequenceTableVisitButtons)(
               Button(
                 icon = Icons.Minus,
                 label = "Collapse all visits",
@@ -367,8 +368,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 disabled = allVisitsAreExpanded,
                 onClick = expandVisits
               ).mini.compact
-            )
-          } else EmptyVdom,
+            ).when(visitIds.nonEmpty)
+          ),
           PrimeAutoHeightVirtualizedTable(
             table,
             estimateSize = estimateRowHeight,

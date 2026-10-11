@@ -57,6 +57,12 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     user:     User
   ): F[Unit] = Applicative[F].unit
 
+  override def cancelRewindRequest(
+    id:       Id,
+    observer: Observer,
+    user:     User
+  ): F[Unit] = Applicative[F].unit
+
   override def setBreakpoints(
     seqId:    Id,
     user:     User,
@@ -206,6 +212,20 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     user:     User,
     observer: Observer,
     atomType: SequenceType
+  ): F[Unit] = Applicative[F].unit
+
+  override def skipAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit] = Applicative[F].unit
+
+  override def resetAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 }
 

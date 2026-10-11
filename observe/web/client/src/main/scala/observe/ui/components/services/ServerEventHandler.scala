@@ -228,7 +228,9 @@ trait ServerEventHandler:
                 obsId -> sequenceExecution
                   .get(obsId)
                   .map: es =>
-                    obsRequests.withSequenceStatus(es.sequenceStatus, es.pausedStep.isDefined)
+                    obsRequests
+                      .withSequenceStatus(es.sequenceStatus, es.pausedStep.isDefined)
+                      .withSequenceType(es.sequenceType)
                   .getOrElse(obsRequests)
             ) >>>
             RootModelData.loadedObservations
@@ -278,6 +280,18 @@ trait ServerEventHandler:
       // and in SequenceTable it's being done once per step.
       // However, we need to turn the app initialization on its head in MainApp to achieve this.
       case UserNotification(notification)                              =>
+        // A rejected or failed skip/reset acquisition never produces a state update, so its
+        // in-flight request must be cleared here.
+        def clearAcquisitionRequests(obsId: Observation.Id): IO[Unit] =
+          rootModelDataMod:
+            RootModelData.obsRequests
+              .index(obsId)
+              .modify:
+                _.copy(
+                  skipAcquisition = OperationRequest.Idle,
+                  resetAcquisition = OperationRequest.Idle
+                )
+
         val msgs: IO[List[String]] =
           notification match
             case Notification.ResourceConflict(obsId)                =>
@@ -292,6 +306,11 @@ trait ServerEventHandler:
                   .replace:
                     Pot.error(new RuntimeException(msgs.mkString("; ")))
               .as(msgs)
+            case Notification.SequenceNotIdle(obsId, action)         =>
+              clearAcquisitionRequests(obsId).as(List(s"Sequence $obsId must be idle to $action"))
+            case Notification.ActionFailed(obsId, action, msg)       =>
+              clearAcquisitionRequests(obsId)
+                .as(List(s"Could not $action for observation $obsId: $msg"))
             case Notification.SubsystemBusy(obsId, stepId, resource) =>
               List(s"Error in observation $obsId, step $stepId: Subsystem $resource already in use")
                 .pure[IO]

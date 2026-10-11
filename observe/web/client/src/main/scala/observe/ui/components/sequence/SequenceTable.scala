@@ -9,6 +9,7 @@ import crystal.react.View
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
@@ -42,6 +43,7 @@ private trait SequenceTable[S, D](
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
+  def sequenceControls: VdomNode
 
   // The mask name for a GMOS custom mask attachment, when known. Only GMOS sequence
   // tables have a custom mask FPU, so other instruments keep the default.
@@ -57,24 +59,26 @@ private trait SequenceTable[S, D](
         toInstrumentVisits.andThen(_.toList)
       .orEmpty
 
-  private lazy val lastVisitStepId: Option[Step.Id] =
+  // All step ids recorded in the current (last) visit. The currently executing step is not
+  // necessarily the last one recorded: after a re-acquisition, a regenerated science step is
+  // recorded in the science atom that precedes the new acquisition atoms.
+  private lazy val currentVisitStepIds: Set[Step.Id] =
     instrumentVisits.lastOption
-      .flatMap(_.atoms.lastOption)
-      .flatMap(_.steps.lastOption)
-      .map(_.id)
+      .foldMap(_.atoms.flatMap(_.steps.map(_.id)))
+      .toSet
 
   protected[sequence] lazy val loadedStepId: Option[Step.Id] =
     executionState.loadedStep.map(_.id)
 
-  // Obtain the id of the last recorded step only if its step id is the same
-  // as the currently executing step. This will be filtered out from the visit steps.
+  // The currently executing step, if it's already recorded in the current visit. This will be
+  // filtered out from the visit steps, so that it isn't shown twice.
   protected[sequence] lazy val currentRecordedStepId: Option[Step.Id] =
-    lastVisitStepId.filter(loadedStepId.contains_(_))
+    loadedStepId.filter(currentVisitStepIds.contains)
 
   // There's a temporary situation where the loadedStep has moved on to the next one,
   // but the visits and sequence haven't caught up yet. Therefore, if the loadedStep id
-  // is the 2nd in the future sequence, and the last visit step id is the same as the
-  // 1st in the future sequence, we remove the 1st future step.
+  // is the 2nd in the future sequence, and the 1st in the future sequence is already recorded
+  // in the current visit, we remove the 1st future step.
   private def shouldHideFirstFutureStep(secondStepId: Option[Step.Id]): Boolean =
     (loadedStepId, secondStepId, executionState.sequenceStatus) match
       case (Some(runStepId), Some(secStepId), _)               => runStepId === secStepId
@@ -86,13 +90,16 @@ private trait SequenceTable[S, D](
     atoms:   List[Atom[D]],
     seqType: SequenceType
   ): List[SequenceRow.FutureStep[D]] =
-    SequenceRow.FutureStep.fromAtoms(atoms,
-                                     signalToNoise(seqType),
-                                     peakPixel(seqType),
-                                     seqType
+    SequenceRow.FutureStep.fromAtoms(
+      atoms,
+      signalToNoise(seqType),
+      peakPixel(seqType),
+      seqType
     ) match
       case head :: tail if shouldHideFirstFutureStep(tail.headOption.flatMap(_.id.toOption)) =>
-        head.some.filterNot(row => lastVisitStepId === row.id.toOption).toList ++ tail
+        head.some
+          .filterNot(_.id.toOption.exists(currentVisitStepIds.contains))
+          .toList ++ tail
       case other                                                                             => other
 
   protected[sequence] lazy val scienceRows: List[SequenceRow[D]] =

@@ -276,7 +276,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     assertIO(r, Some(Status.NoContent))
 
   test("request sequence hold"):
-    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/sequenceHold/observer")
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/holdSequence/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -286,7 +286,27 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     assertIO(r, Some(Status.NoContent))
 
   test("cancel sequence hold request"):
-    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/cancelSequenceHold/observer")
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/cancelHoldSequence/observer")
+    val r   = for
+      engine <- TestObserveEngine.build[IO]
+      s      <- commandRoutes(engine)
+      wsb    <- WebSocketBuilder2[IO]
+      l      <- s(Request[IO](method = Method.POST, uri = uri)).value
+    yield l.map(_.status)
+    assertIO(r, Some(Status.NoContent))
+
+  test("rewind step"):
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/rewindStep/observer")
+    val r   = for
+      engine <- TestObserveEngine.build[IO]
+      s      <- commandRoutes(engine)
+      wsb    <- WebSocketBuilder2[IO]
+      l      <- s(Request[IO](method = Method.POST, uri = uri)).value
+    yield l.map(_.status)
+    assertIO(r, Some(Status.NoContent))
+
+  test("cancel rewind step request"):
+    val uri = Uri.unsafeFromString(s"/${obsId.show}/${clientId.value}/cancelRewindStep/observer")
     val r   = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)

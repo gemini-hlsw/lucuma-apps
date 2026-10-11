@@ -11,6 +11,7 @@ import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
 import observe.model.SequenceStatus
+import observe.model.SequenceStatus.IsRewindRequested
 import observe.model.SequenceStatus.IsSequenceHoldRequested
 import observe.model.SequenceStatus.IsStepInterruptRequested
 import observe.model.SystemOverrides
@@ -144,8 +145,8 @@ object SequenceState:
   def sequenceHoldRequested[F[_]](st: SequenceState[F]): Boolean = st.status.isSequenceHoldRequested
 
   def anyStopRequested[F[_]](st: SequenceState[F]): Boolean = st.status match
-    case SequenceStatus.Running(u, i, _, _, _) => u || i
-    case _                                     => false
+    case SequenceStatus.Running(u, _, i, _, _, _) => u || i
+    case _                                        => false
 
   def isWaitingUserPrompt[F[_]](st: SequenceState[F]): Boolean = st.status.isWaitingUserPrompt
 
@@ -154,16 +155,24 @@ object SequenceState:
   def setSequenceHoldRequested[F[_]](
     v: IsSequenceHoldRequested
   ): SequenceState[F] => SequenceState[F] = status.modify {
-    case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(sequenceHoldRequested = v)
-    case r                                         => r
+    case r @ SequenceStatus.Running(_, _, _, _, _, _) => r.copy(sequenceHoldRequested = v)
+    case r                                            => r
   }
 
   def setStepInterruptRequested[F[_]](
     v: IsStepInterruptRequested
   ): SequenceState[F] => SequenceState[F] =
     status.modify {
-      case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(stepInterruptRequested = v)
-      case r                                         => r
+      case r @ SequenceStatus.Running(_, _, _, _, _, _) => r.copy(stepInterruptRequested = v)
+      case r                                            => r
+    }
+
+  def setRewindRequested[F[_]](
+    v: IsRewindRequested
+  ): SequenceState[F] => SequenceState[F] =
+    status.modify {
+      case r @ SequenceStatus.Running(_, _, _, _, _, _) => r.copy(rewindRequested = v)
+      case r                                            => r
     }
 
   /**

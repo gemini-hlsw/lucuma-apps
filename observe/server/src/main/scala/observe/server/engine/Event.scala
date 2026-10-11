@@ -33,6 +33,10 @@ object Event {
     EventUser[F](RequestSequenceHold(obsId, user.some))
   def cancelSequenceHoldRequest[F[_]](obsId: Observation.Id, user: User): Event[F] =
     EventUser[F](CancelSequenceHoldRequest(obsId, user.some))
+  def requestStepRewind[F[_]](obsId: Observation.Id, user: User): Event[F]         =
+    EventUser[F](RequestStepRewind(obsId, user.some))
+  def cancelStepRewindRequest[F[_]](obsId: Observation.Id, user: User): Event[F]   =
+    EventUser[F](CancelStepRewindRequest(obsId, user.some))
   def breakpoints[F[_]](
     id:    Observation.Id,
     user:  User,

@@ -487,6 +487,163 @@ class ObserveEngineSuite extends TestCommon {
     }).assert
   }
 
+  private def acquisitionCommandState(
+    seqType: SequenceType,
+    status:  SequenceStatus
+  ): EngineState[IO] =
+    (loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      EngineState
+        .sequenceStateAt[IO](seqObsId1)
+        .modify(_.copy(currentSequenceType = seqType, status = status)))
+      .apply(EngineState.default[IO])
+
+  private def acquisitionCommandStep(
+    idx:      Int,
+    obsClass: ObserveClass
+  ): Step[DynamicConfig.GmosNorth] =
+    Step[DynamicConfig.GmosNorth](
+      stepId(idx),
+      dynamicCfg1,
+      stepCfg1,
+      telescopeCfg1,
+      StepEstimate.Zero,
+      obsClass,
+      Breakpoint.Disabled
+    )
+
+  private def acquisitionCommandAtom(
+    idx:      Int,
+    obsClass: ObserveClass
+  ): IO[Atom[DynamicConfig.GmosNorth]] =
+    IO.randomUUID.map: uuid =>
+      Atom[DynamicConfig.GmosNorth](
+        Atom.Id.fromUuid(uuid),
+        none,
+        NonEmptyList.one(acquisitionCommandStep(idx, obsClass))
+      )
+
+  /**
+   * Runs `command` on an engine whose ODB has the acquisition step 1 and the science step 2 (either
+   * may be omitted), returning the final engine state and the ODB events.
+   */
+  private def runAcquisitionCommand(
+    s0:                      EngineState[IO],
+    command:                 ObserveEngine[IO] => IO[Unit],
+    withAcquisition:         Boolean = true,
+    withScience:             Boolean = true,
+    resetAcquisitionFailure: Option[Throwable] = None
+  ): IO[(Option[EngineState[IO]], List[TestOdbProxy.OdbEvent])] =
+    for
+      acqAtom <- acquisitionCommandAtom(1, ObserveClass.Acquisition)
+      sciAtom <- acquisitionCommandAtom(2, ObserveClass.Science)
+      odb     <- TestOdbProxy.buildGmosNorth[IO](
+                   seqObsId1,
+                   staticCfg1,
+                   acqAtom.some.filter(_ => withAcquisition),
+                   List(sciAtom).filter(_ => withScience),
+                   s0.selected.gmosNorth.map(_.observation),
+                   resetAcquisitionFailure = resetAcquisitionFailure
+                 )
+      oe      <- observeEngineWithODB(odb)
+      // setObserver and the command itself are two engine events
+      sf      <- advanceN(oe, s0, command(oe), 2)
+      events  <- odb.outCapture
+    yield (sf, events)
+
+  private def loadedStepId(s: Option[EngineState[IO]]): Option[Step.Id] =
+    s.flatMap(EngineState.atSequence(seqObsId1).getOption).flatMap(_.seq.loadedStep.map(_.id))
+
+  test("ObserveEngine skipAcquisition loads the first science step while idle") {
+    val s0 = acquisitionCommandState(SequenceType.Acquisition, SequenceStatus.Idle)
+    runAcquisitionCommand(s0, _.skipAcquisition(seqObsId1, user, observer, clientId)).map:
+      (sf, _) =>
+        val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+        assertEquals(seq.map(_.seq.status), SequenceStatus.Idle.some)
+        assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Science.some)
+        assertEquals(loadedStepId(sf), stepId(2).some)
+  }
+
+  test("ObserveEngine skipAcquisition does nothing while the sequence is running") {
+    val s0 = acquisitionCommandState(SequenceType.Acquisition, SequenceStatus.Running.Init)
+    runAcquisitionCommand(s0, _.skipAcquisition(seqObsId1, user, observer, clientId)).map:
+      (sf, _) =>
+        val after = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+        assertEquals(after.map(_.seq.status), SequenceStatus.Running.Init.some)
+        assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
+        assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+  }
+
+  test(
+    "ObserveEngine skipAcquisition leaves the sequence as it was when there is no science step"
+  ) {
+    val s0 = acquisitionCommandState(SequenceType.Acquisition, SequenceStatus.Idle)
+    runAcquisitionCommand(
+      s0,
+      _.skipAcquisition(seqObsId1, user, observer, clientId),
+      withScience = false
+    ).map: (sf, _) =>
+      val after = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(after.map(_.seq.status), SequenceStatus.Idle.some)
+      assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+  }
+
+  test(
+    "ObserveEngine resetAcquisition resets the ODB acquisition and loads its first step while idle"
+  ) {
+    val s0 = acquisitionCommandState(SequenceType.Science, SequenceStatus.Idle)
+    runAcquisitionCommand(s0, _.resetAcquisition(seqObsId1, user, observer, clientId)).map:
+      (sf, events) =>
+        val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+        assertEquals(seq.map(_.seq.status), SequenceStatus.Idle.some)
+        assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
+        assertEquals(loadedStepId(sf), stepId(1).some)
+        assertEquals(events, List(TestOdbProxy.ResetAcquisition(seqObsId1)))
+  }
+
+  test("ObserveEngine resetAcquisition does nothing while the sequence is running") {
+    val s0 = acquisitionCommandState(SequenceType.Science, SequenceStatus.Running.Init)
+    runAcquisitionCommand(s0, _.resetAcquisition(seqObsId1, user, observer, clientId)).map:
+      (sf, events) =>
+        val after = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+        assertEquals(after.map(_.seq.status), SequenceStatus.Running.Init.some)
+        assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Science.some)
+        assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+        assertEquals(events, Nil)
+  }
+
+  test("ObserveEngine resetAcquisition leaves the sequence as it was when the ODB reset fails") {
+    val s0 = acquisitionCommandState(SequenceType.Science, SequenceStatus.Idle)
+    runAcquisitionCommand(
+      s0,
+      _.resetAcquisition(seqObsId1, user, observer, clientId),
+      resetAcquisitionFailure = new RuntimeException("ITC failed").some
+    ).map: (sf, _) =>
+      val after = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(after.map(_.seq.status), SequenceStatus.Idle.some)
+      assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Science.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+  }
+
+  test(
+    "ObserveEngine resetAcquisition leaves the sequence as it was when there is no acquisition"
+  ) {
+    val s0 = acquisitionCommandState(SequenceType.Science, SequenceStatus.Idle)
+    runAcquisitionCommand(
+      s0,
+      _.resetAcquisition(seqObsId1, user, observer, clientId),
+      withAcquisition = false
+    ).map: (sf, _) =>
+      val after = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(after.map(_.seq.status), SequenceStatus.Idle.some)
+      assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Science.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+  }
+
   test("ObserveEngine should not run a system configuration if sequence is running") {
     val s0 = (loadSequenceWithResources(
       seqObsId1,

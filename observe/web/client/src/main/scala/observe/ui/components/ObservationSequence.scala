@@ -3,9 +3,11 @@
 
 package observe.ui.components
 
+import crystal.Pot
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Breakpoint
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
@@ -20,8 +22,10 @@ import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceData
 import observe.model.ExecutionState
+import observe.model.ObserveStep.*
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
+import observe.ui.components.sequence.SeqControlButtons
 import observe.ui.components.sequence.byInstrument.*
 import observe.ui.model.AppContext
 import observe.ui.model.ObservationRequests
@@ -34,6 +38,7 @@ case class ObservationSequence(
   sequenceData:         SequenceData,
   visits:               View[Option[ExecutionVisits]],
   executionState:       View[ExecutionState],
+  refreshing:           Pot[View[Boolean]],
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
   requests:             ObservationRequests,
@@ -50,6 +55,27 @@ object ObservationSequence
         sequenceApi <- useContext(SequenceApi.ctx)
       yield
         import ctx.given
+
+        val hasAcquisition: Boolean =
+          props.sequenceData.config match
+            case InstrumentExecutionConfig.GmosNorth(config)  => config.acquisition.isDefined
+            case InstrumentExecutionConfig.GmosSouth(config)  => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Flamingos2(config) => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Igrins2(config)    => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Ghost(config)      => config.acquisition.isDefined
+            case InstrumentExecutionConfig.Gnirs(config)      => config.acquisition.isDefined
+            case _                                            => false
+
+        val sequenceControls: VdomNode =
+          SeqControlButtons(
+            props.obsId,
+            props.refreshing,
+            props.executionState.get.sequenceStatus,
+            props.executionState.get.loadedStep.exists(_.isObserveStarted),
+            props.executionState.get.sequenceType,
+            hasAcquisition,
+            props.requests
+          )
 
         val breakpoints: View[Set[Step.Id]] =
           props.executionState.zoom(ExecutionState.breakpoints)
@@ -95,7 +121,8 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  props.getMaskName
+                  props.getMaskName,
+                  sequenceControls
                 )
               case ModeSignalToNoise.GmosNorthImaging(snByFilter)             =>
                 GmosNorthImagingSequenceTable(
@@ -111,7 +138,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  sequenceControls
                 )
               // Twilight calibrations have no signal to noise
               case ModeSignalToNoise.Undefined                                =>
@@ -130,7 +158,8 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  props.getMaskName
+                  props.getMaskName,
+                  sequenceControls
                 )
               case _                                                          => mismatchError
           case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise)  =>
@@ -151,7 +180,8 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  props.getMaskName
+                  props.getMaskName,
+                  sequenceControls
                 )
               case ModeSignalToNoise.GmosSouthImaging(snByFilter)             =>
                 GmosSouthImagingSequenceTable(
@@ -167,7 +197,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  sequenceControls
                 )
               // Twilight calibrations have no signal to noise
               case ModeSignalToNoise.Undefined                                =>
@@ -186,7 +217,8 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  props.getMaskName
+                  props.getMaskName,
+                  sequenceControls
                 )
               case _                                                          => mismatchError
           case SequenceData(InstrumentExecutionConfig.Flamingos2(config), signalToNoise) =>
@@ -207,7 +239,8 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  props.getMaskName
+                  props.getMaskName,
+                  sequenceControls
                 )
               case ModeSignalToNoise.Flamingos2Imaging(snByFilter)            =>
                 Flamingos2ImagingSequenceTable(
@@ -223,7 +256,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  sequenceControls
                 )
               case _                                                          => mismatchError
           case SequenceData(
@@ -244,7 +278,8 @@ object ObservationSequence
               props.setSelectedRowId,
               props.requests,
               isPreview = false,
-              onBreakpointFlip
+              onBreakpointFlip,
+              sequenceControls
             )
           case SequenceData(InstrumentExecutionConfig.Ghost(config), _)                  =>
             GhostSequenceTable(
@@ -261,7 +296,8 @@ object ObservationSequence
               props.setSelectedRowId,
               props.requests,
               isPreview = false,
-              onBreakpointFlip
+              onBreakpointFlip,
+              sequenceControls
             )
           case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise)      =>
             signalToNoise match
@@ -280,7 +316,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  sequenceControls
                 )
               case ModeSignalToNoise.GnirsImaging(snByFilter)                      =>
                 GnirsImagingSequenceTable(
@@ -296,7 +333,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  sequenceControls
                 )
               // Twilight calibrations have no signal to noise
               case ModeSignalToNoise.Undefined                                     =>
@@ -314,7 +352,8 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip
+                  onBreakpointFlip,
+                  sequenceControls
                 )
               case _                                                               => mismatchError
           case _                                                                         => mismatchError

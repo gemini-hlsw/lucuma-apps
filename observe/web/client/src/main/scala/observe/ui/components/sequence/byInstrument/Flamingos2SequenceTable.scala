@@ -6,6 +6,7 @@ package observe.ui.components.sequence.byInstrument
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
@@ -41,7 +42,8 @@ final case class Flamingos2SequenceTable(
   requests:             ObservationRequests,
   isPreview:            Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  getMaskName:          Attachment.Id => Option[NonEmptyString]
+  getMaskName:          Attachment.Id => Option[NonEmptyString],
+  sequenceControls:     VdomNode
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:

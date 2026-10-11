@@ -6,6 +6,7 @@ package observe.ui.components.sequence.byInstrument
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
@@ -40,7 +41,8 @@ final case class GmosNorthSpectroscopySequenceTable(
   requests:             ObservationRequests,
   isPreview:            Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  getMaskName:          Attachment.Id => Option[NonEmptyString]
+  getMaskName:          Attachment.Id => Option[NonEmptyString],
+  sequenceControls:     VdomNode
 ) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
       Instrument.GmosNorth
