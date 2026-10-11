@@ -13,6 +13,8 @@ import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import japgolly.webapputil.indexeddb.IndexedDb
 import lucuma.catalog.clients.GaiaClient
+import lucuma.catalog.simbad.SEDDataLoader
+import org.http4s.Uri
 import org.http4s.client.middleware.RequestLogger
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
@@ -42,21 +44,24 @@ object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCa
     config: Option[AppConfig]
   ): (LoggerFactory[IO], Tracer[IO], TracerProvider[IO]) ?=> IO[Invocation => IO[Unit]] =
     for {
-      self      <- IO(dom.DedicatedWorkerGlobalScope.self)
-      idb       <- IO(self.indexedDB.toOption)
-      stores     = CacheIDBStores()
-      cacheDb   <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
-      cache     <- Cache.withIDB[IO](idb, "explore-gaia") // only used for blind offsets for now
-      rawClient  = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
-      log       <- IO(LoggerFactory[IO].getLoggerFromName("catalog-server"))
-      httpClient = RequestLogger(
-                     logHeaders = true,
-                     logBody = false,
-                     logAction = Some((msg: String) =>
-                       log.info(URLDecoder.decode(msg, StandardCharsets.UTF_8))
-                     )
-                   )(rawClient)
-      client     = GaiaClient.build(httpClient)
+      self       <- IO(dom.DedicatedWorkerGlobalScope.self)
+      idb        <- IO(self.indexedDB.toOption)
+      stores      = CacheIDBStores()
+      cacheDb    <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
+      cache      <- Cache.withIDB[IO](idb, "explore-gaia") // only used for blind offsets for now
+      rawClient   = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
+      log        <- IO(LoggerFactory[IO].getLoggerFromName("catalog-server"))
+      httpClient  = RequestLogger(
+                      logHeaders = true,
+                      logBody = false,
+                      logAction = Some((msg: String) =>
+                        log.info(URLDecoder.decode(msg, StandardCharsets.UTF_8))
+                      )
+                    )(rawClient)
+      client      = GaiaClient.build(httpClient)
+      sedMatcher <- SEDDataLoader
+                      .loadMatcher[IO](rawClient, Uri.unsafeFromString(self.location.origin))
+                      .memoize
     } yield invocation =>
       invocation.data match
         case CatalogMessage.CleanCache =>
@@ -73,11 +78,13 @@ object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCa
             .toF[IO]
             .handleErrorWith(e => log.error(e)("Error expiring guidestar candidates"))
 
-        case BlindOffsetRequest(baseCoordinatesAt) =>
+        case BlindOffsetRequest(baseCoordinatesAt, instrument) =>
           given Logger[IO] = log
           BlindOffsetRequestHandler(
             client,
+            sedMatcher,
             baseCoordinatesAt,
+            instrument,
             cache,
             invocation.respond(_)
           )

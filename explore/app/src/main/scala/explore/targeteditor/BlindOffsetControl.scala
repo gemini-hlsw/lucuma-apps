@@ -26,6 +26,8 @@ import explore.services.OdbTargetApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.catalog.BlindOffsetCandidate
+import lucuma.catalog.BlindOffsetLimits
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
@@ -58,10 +60,13 @@ case class BlindOffsetControl(
   blindOffset:  View[BlindOffset],
   obsTime:      Instant,
   baseTracking: Tracking,
+  instrument:   Option[Instrument],
   obsTargets:   ObservationTargets,
   allTargets:   View[TargetList],
   readonly:     Boolean
-) extends ReactFnProps(BlindOffsetControl)
+) extends ReactFnProps(BlindOffsetControl):
+  val supportedInstrument: Option[Instrument] =
+    instrument.filter(BlindOffsetLimits.forInstrument(_).isDefined)
 
 // TODO: Set the blind offset to the selected target when it is changed.
 object BlindOffsetControl
@@ -170,22 +175,27 @@ object BlindOffsetControl
                               else Callback.empty
         candidatesResult <-
           useEffectResultWithDeps(
-            (props.blindOffset.get.useBlindOffset, time2Search.value, props.baseTracking)
-          ): (useBlindOffset, obsTime, baseTracking) =>
+            (props.blindOffset.get.useBlindOffset,
+             time2Search.value,
+             props.baseTracking,
+             props.supportedInstrument
+            )
+          ): (useBlindOffset, obsTime, baseTracking, oInstrument) =>
             import ctx.given
 
-            if useBlindOffset then
-              baseTracking
-                .coordinatesAt(obsTime)
-                .fold(
-                  _.asLeft.some.pure[IO],
-                  coordsAt =>
-                    CatalogClient[IO]
-                      .requestSingle(
-                        BlindOffsetRequest(coordsAt)
-                      )
-                )
-            else none.pure[IO]
+            oInstrument
+              .filter(_ => useBlindOffset)
+              .fold(none.pure[IO]): instrument =>
+                baseTracking
+                  .coordinatesAt(obsTime)
+                  .fold(
+                    _.asLeft.some.pure[IO],
+                    coordsAt =>
+                      CatalogClient[IO]
+                        .requestSingle(
+                          BlindOffsetRequest(coordsAt, instrument)
+                        )
+                  )
         index            <- useStateView(-1)
         isWorking        <- useStateView(IsWorking(false))
         _                <-
@@ -202,19 +212,21 @@ object BlindOffsetControl
                )
               )
                 .mapN: (list, oCurrent) =>
-                  // if the list is empty, delete the current blind offset, if any
-                  list.headOption.fold(
-                    oCurrent.foldMap: twid =>
-                      initializeAutomaticBlindOffset(twid.id.some, isWorking)
-                  ): candidate =>
-                    if oCurrent.forall(_.target =!= candidate.catalogResult.target)
-                    then
-                      setBlindOffset(candidate,
-                                     BlindOffsetType.Automatic,
-                                     oCurrent.map(_.id),
-                                     isWorking
-                      )
-                    else IO.unit
+                  // if there is no usable candidate, delete the current blind offset, if any
+                  list
+                    .find(_.isUsable)
+                    .fold(
+                      oCurrent.foldMap: twid =>
+                        initializeAutomaticBlindOffset(twid.id.some, isWorking)
+                    ): candidate =>
+                      if oCurrent.forall(_.target =!= candidate.catalogResult.target)
+                      then
+                        setBlindOffset(candidate,
+                                       BlindOffsetType.Automatic,
+                                       oCurrent.map(_.id),
+                                       isWorking
+                        )
+                      else IO.unit
                 .getOrElse(IO.unit)
         _                <-
           useEffectWithDeps((candidatesResult.value, props.obsTargets.blindOffset)):
@@ -243,7 +255,12 @@ object BlindOffsetControl
             if candidates.isEmpty then "No candidates found"
             else s"${candidates.length} candidates found"
           ): current =>
-            s"${current.target.name} (${index.get + 1}/${candidates.length} candidates)"
+            val rejection =
+              candidates
+                .lift(index.get)
+                .flatMap(_.rejection)
+                .foldMap(r => s", ${r.tag.replace('_', ' ')}")
+            s"${current.target.name} (${index.get + 1}/${candidates.length} candidates$rejection)"
           NonEmptyList
             .fromList(candidates)
             .fold(<.span(text)): nel =>
@@ -273,13 +290,16 @@ object BlindOffsetControl
                     label = "Revert to Automatic",
                     tooltip = "Use automatic blind offset selection",
                     tooltipOptions = TooltipOptions.Left,
-                    disabled = props.readonly,
-                    onClick = setBlindOffset(
-                      nel.head,
-                      BlindOffsetType.Automatic,
-                      props.blindOffset.get.blindOffsetTargetId,
-                      isWorking
-                    ).runAsync
+                    disabled = props.readonly || !nel.exists(_.isUsable),
+                    onClick = nel
+                      .find(_.isUsable)
+                      .foldMap: candidate =>
+                        setBlindOffset(
+                          candidate,
+                          BlindOffsetType.Automatic,
+                          props.blindOffset.get.blindOffsetTargetId,
+                          isWorking
+                        ).runAsync
                   ).veryCompact.when(props.blindOffset.get.isManual),
                   Button(
                     icon = Icons.TrashUnstyled,
@@ -298,12 +318,16 @@ object BlindOffsetControl
             legend = "Blind Offset",
             clazz = ExploreStyles.BlindOffsetControl
           )(
-            candidatesResult.value.value.renderPot(
-              oel =>
-                oel.fold(EmptyVdom): el =>
-                  el.fold(err => s"Error loading candidates: ${err}", renderControl(_)),
-              pendingRender = "Loading candidates..."
-            )
+            props.instrument
+              .filter(_ => props.supportedInstrument.isEmpty)
+              .fold(
+                candidatesResult.value.value.renderPot(
+                  oel =>
+                    oel.fold(EmptyVdom): el =>
+                      el.fold(err => s"Error loading candidates: ${err}", renderControl(_)),
+                  pendingRender = "Loading candidates..."
+                )
+              )(i => <.span(s"Blind offsets are not supported for ${i.shortName}"))
           )
         else EmptyVdom
     )
