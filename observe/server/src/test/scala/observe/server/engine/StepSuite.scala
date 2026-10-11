@@ -180,6 +180,24 @@ class StepSuite extends CatsEffectSuite {
 
   // Simulates a Rewind request (UI "Rewind" button) arriving while a config action is running:
   // same trick as `triggerPause`, an action that offers the event as a side effect of its `gen`.
+  def triggerRewindRequest(eng: Engine[IO]): Action[IO] = fromF[IO](
+    ActionType.Undefined,
+    eng.offer(Event.requestStepRewind(obsId, user)).as(Result.OK(DummyResult))
+  )
+
+  def triggerRewindRequestAndCancel(eng: Engine[IO]): Action[IO] = fromF[IO](
+    ActionType.Undefined,
+    (eng.offer(Event.requestStepRewind(obsId, user)) >>
+      eng.offer(Event.cancelStepRewindRequest(obsId, user))).as(Result.OK(DummyResult))
+  )
+
+  // A stop-owned interrupt (as stop/abort/pause-exposure raise it) followed by a rewind cancel.
+  def triggerStopAndCancelRewind(eng: Engine[IO]): Action[IO] = fromF[IO](
+    ActionType.Undefined,
+    (eng.offer(Event.actionStop(obsId, _ => Stream.empty)) >>
+      eng.offer(Event.cancelStepRewindRequest(obsId, user))).as(Result.OK(DummyResult))
+  )
+
   def triggerStopBeforeObserve(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Undefined,
     for {
@@ -408,6 +426,212 @@ class StepSuite extends CatsEffectSuite {
   }
 
   test(
+    "rewindStep requested and then cancelled during configuration: both flags are set and then " +
+      "cleared, and the step runs through the exposure to completion"
+  ) {
+    def qs0(eng: Engine[IO]): EngineState[IO] =
+      TestUtil.initStateWithSequence(
+        obsId,
+        initSeqState(
+          obsId = obsId,
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.of(configureTcs,
+                              configureInst,
+                              triggerRewindRequestAndCancel(eng)
+              ),                        // config group
+              NonEmptyList.one(action), // post-config group
+              NonEmptyList.one(observe) // observe group
+            )
+          ),
+          sequenceType = SequenceType.Science,
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
+        )
+      )
+
+    def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
+      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case _                                                            => true
+
+    val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
+      for {
+        eng <- Stream.eval(executionEngine)
+        _   <- Stream.eval(eng.offer(startEvent(eng)))
+        u   <- eng
+                 .process(PartialFunction.empty)(qs0(eng))
+                 .drop(1)
+                 .takeThrough(notDone)
+      } yield u
+
+    m.compile.toList
+      .map: events =>
+        val results  = events.map(_._1)
+        val statuses = events.flatMap(_._2.sequences.get(obsId)).map(_.seq.status)
+
+        val sequenceHeldEmitted   = results.exists {
+          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case _                                                        => false
+        }
+        val sequenceCompleteCount = results.count {
+          case EventResult.SystemUpdate(SystemEvent.SequenceComplete(o), _) => o == obsId
+          case _                                                            => false
+        }
+        val completedCount        = results.count {
+          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case _                                                              => false
+        }
+        val rewindWasPending      = statuses.exists: st =>
+          st.isRewindRequested && st.isStepInterruptRequested
+        // After the cancellation the sequence keeps running with neither flag set.
+        val rewindWasCancelled    = statuses.exists: st =>
+          st.isRunning && !st.isRewindRequested && !st.isStepInterruptRequested
+
+        // All 5 actions (3 config + 1 post-config + 1 observe) must have completed.
+        rewindWasPending &&
+        rewindWasCancelled &&
+        !sequenceHeldEmitted &&
+        sequenceCompleteCount === 1 &&
+        completedCount === 5
+      .assert
+  }
+
+  test(
+    "cancelStepRewindRequest leaves an interrupt that was not raised by a rewind in place: the " +
+      "sequence still stops before the exposure"
+  ) {
+    def qs0(eng: Engine[IO]): EngineState[IO] =
+      TestUtil.initStateWithSequence(
+        obsId,
+        initSeqState(
+          obsId = obsId,
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.of(configureTcs,
+                              configureInst,
+                              triggerStopAndCancelRewind(eng)
+              ),                        // config group
+              NonEmptyList.one(action), // post-config group, must not run
+              NonEmptyList.one(observe) // observe group
+            )
+          ),
+          sequenceType = SequenceType.Science,
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
+        )
+      )
+
+    def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
+      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case _                                                            => true
+
+    val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
+      for {
+        eng <- Stream.eval(executionEngine)
+        _   <- Stream.eval(eng.offer(startEvent(eng)))
+        u   <- eng
+                 .process(PartialFunction.empty)(qs0(eng))
+                 .drop(1)
+                 .takeThrough(notDone)
+      } yield u
+
+    m.compile.toList
+      .map: events =>
+        val results = events.map(_._1)
+
+        val sequenceHeldEmitted   = results.exists {
+          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case _                                                        => false
+        }
+        val sequenceCompleteCount = results.count {
+          case EventResult.SystemUpdate(SystemEvent.SequenceComplete(o), _) => o == obsId
+          case _                                                            => false
+        }
+        val completedCount        = results.count {
+          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case _                                                              => false
+        }
+        val lastSeq               = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
+
+        // Only the 3 config-group actions should have completed (the observe action never ran).
+        lastSeq.exists(s => s.loadedStep.isEmpty && s.status === SequenceStatus.Idle) &&
+        sequenceHeldEmitted &&
+        sequenceCompleteCount === 0 &&
+        completedCount === 3
+      .assert
+  }
+
+  test(
+    "rewindStep requested once the observe group has started is ignored: no flag is set and the " +
+      "step runs to completion"
+  ) {
+    def qs0(eng: Engine[IO]): EngineState[IO] =
+      TestUtil.initStateWithSequence(
+        obsId,
+        initSeqState(
+          obsId = obsId,
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.of(configureTcs, configureInst),        // config group
+              NonEmptyList.of(observe, triggerRewindRequest(eng)), // observe group
+              NonEmptyList.one(action)                             // post-observe group
+            )
+          ),
+          sequenceType = SequenceType.Science,
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
+        )
+      )
+
+    def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
+      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
+      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case _                                                            => true
+
+    val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
+      for {
+        eng <- Stream.eval(executionEngine)
+        _   <- Stream.eval(eng.offer(startEvent(eng)))
+        u   <- eng
+                 .process(PartialFunction.empty)(qs0(eng))
+                 .drop(1)
+                 .takeThrough(notDone)
+      } yield u
+
+    m.compile.toList
+      .map: events =>
+        val results  = events.map(_._1)
+        val statuses = events.flatMap(_._2.sequences.get(obsId)).map(_.seq.status)
+
+        val sequenceHeldEmitted   = results.exists {
+          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case _                                                        => false
+        }
+        val sequenceCompleteCount = results.count {
+          case EventResult.SystemUpdate(SystemEvent.SequenceComplete(o), _) => o == obsId
+          case _                                                            => false
+        }
+        val completedCount        = results.count {
+          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case _                                                              => false
+        }
+        val anyFlagSet            = statuses.exists: st =>
+          st.isRewindRequested || st.isStepInterruptRequested
+
+        // All 5 actions (2 config + 2 observe-group + 1 post-observe) must have completed.
+        !anyFlagSet &&
+        !sequenceHeldEmitted &&
+        sequenceCompleteCount === 1 &&
+        completedCount === 5
+      .assert
+  }
+
+  test(
     "resume execution from the non-running state in response to a resume command, rolling back a partially run step."
   ) {
     // Engine state with one idle sequence partially executed. Step partially done.
@@ -480,6 +704,7 @@ class StepSuite extends CatsEffectSuite {
           obsId = observationId(1),
           status = SequenceStatus.Running(
             IsSequenceHoldRequested.Yes,
+            IsRewindRequested.No,
             IsStepInterruptRequested.No,
             IsWaitingUserPrompt.No,
             IsWaitingNextStep.No,

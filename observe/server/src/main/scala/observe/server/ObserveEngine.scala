@@ -84,6 +84,12 @@ trait ObserveEngine[F[_]] {
     user:     User
   ): F[Unit]
 
+  def cancelRewindRequest(
+    obsId:    Observation.Id,
+    observer: Observer,
+    user:     User
+  ): F[Unit]
+
   def setBreakpoints(
     obsId:    Observation.Id,
     user:     User,

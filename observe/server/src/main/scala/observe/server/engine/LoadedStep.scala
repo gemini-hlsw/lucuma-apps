@@ -12,7 +12,7 @@ final case class LoadedStep[F[_]](
   executionZipper: ExecutionZipper[F]
 ):
   export stepGen.{atomId, generator, obsControl, resources}
-  export executionZipper.{done, focus, hasObserveAhead, id, pending}
+  export executionZipper.{done, focus, hasObserveAhead, hasObservePending, id, pending}
 
   lazy val withNextExecution: Option[LoadedStep[F]] =
     executionZipper.withNextExecution.map(es => copy(executionZipper = es))

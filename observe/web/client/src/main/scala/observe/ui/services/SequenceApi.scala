@@ -73,6 +73,9 @@ trait SequenceApi[F[_]: MonadThrow]:
   /** Stop before the exposure starts and go idle */
   def rewindStep(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
+  /** Cancel a requested rewind */
+  def cancelRewindRequest(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+
   /** N&S: Pause the exposure after the current nod(?) */
   def pauseExposureGracefully(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 

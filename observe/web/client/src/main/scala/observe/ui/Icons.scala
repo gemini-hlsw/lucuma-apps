@@ -260,6 +260,12 @@ object Icons:
       Ban.withSize(IconSize.LG)
     )
 
+  val CancelRewind =
+    LayeredIcon()(
+      BackwardStep.withSize(IconSize.SM).withClass(ObserveStyles.IconSoft),
+      Ban.withSize(IconSize.LG)
+    )
+
   val DaytimeCalendar =
     LayeredIcon()(
       Calendar,

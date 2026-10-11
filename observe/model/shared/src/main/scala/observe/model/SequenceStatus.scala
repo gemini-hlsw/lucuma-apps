@@ -23,12 +23,15 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
    *
    *   - `sequenceHoldRequested`: the user asked to hold the sequence after the current step
    *     completes. Set by the request-hold action and cleared by the cancel-hold-request action.
+   *   - `rewindRequested`: a rewind-step was requested. It also raises `stepInterruptRequested`,
+   *     which is what the engine honours. Cleared together with it, or by a cancel-rewind request.
    *   - `stepInterruptRequested`: the current step is being interrupted by a stop, abort or
-   *     pause-exposure, or by a rewind-step (all of them through the engine's `actionStop`). The
-   *     sequence goes Idle at the next execution-group boundary.
+   *     pause-exposure, or by a rewind-step. The sequence goes Idle at the next execution-group
+   *     boundary.
    */
   case Running(
     sequenceHoldRequested:  SequenceStatus.IsSequenceHoldRequested,
+    rewindRequested:        SequenceStatus.IsRewindRequested,
     stepInterruptRequested: SequenceStatus.IsStepInterruptRequested,
     waitingUserPrompt:      SequenceStatus.IsWaitingUserPrompt,
     waitingNextStep:        SequenceStatus.IsWaitingNextStep,
@@ -40,13 +43,18 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
 
   def isSequenceHoldRequested: Boolean =
     this match
-      case SequenceStatus.Running(b, _, _, _, _) => b
-      case _                                     => false
+      case SequenceStatus.Running(b, _, _, _, _, _) => b
+      case _                                        => false
 
   def isStepInterruptRequested: Boolean =
     this match
-      case SequenceStatus.Running(_, b, _, _, _) => b
-      case _                                     => false
+      case SequenceStatus.Running(_, _, b, _, _, _) => b
+      case _                                        => false
+
+  def isRewindRequested: Boolean =
+    this match
+      case SequenceStatus.Running(_, b, _, _, _, _) => b
+      case _                                        => false
 
   def isError: Boolean =
     this match
@@ -58,13 +66,13 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
 
   def isRunning: Boolean =
     this match
-      case SequenceStatus.Running(_, _, _, _, _) => true
-      case _                                     => false
+      case SequenceStatus.Running(_, _, _, _, _, _) => true
+      case _                                        => false
 
   def isWaitingUserPrompt: Boolean =
     this match
-      case SequenceStatus.Running(_, _, waitingUserPrompt, _, _) => waitingUserPrompt
-      case _                                                     => false
+      case SequenceStatus.Running(_, _, _, waitingUserPrompt, _, _) => waitingUserPrompt
+      case _                                                        => false
 
   // A sequence can be unloaded if it's not running or if it's running but waiting for user prompt.
   def canUnload: Boolean =
@@ -72,8 +80,8 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
 
   def isStarting: Boolean =
     this match
-      case SequenceStatus.Running(_, _, _, _, starting) => starting
-      case _                                            => false
+      case SequenceStatus.Running(_, _, _, _, _, starting) => starting
+      case _                                               => false
 
   def isCompleted: Boolean =
     this === SequenceStatus.Completed
@@ -86,21 +94,21 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
 
   def withWaitingUserPrompt(value: Boolean): SequenceStatus =
     this match
-      case r @ SequenceStatus.Running(_, _, _, _, _) =>
+      case r @ SequenceStatus.Running(_, _, _, _, _, _) =>
         r.copy(waitingUserPrompt = SequenceStatus.IsWaitingUserPrompt(value))
-      case other                                     => other
+      case other                                        => other
 
   def withWaitingNextStep(value: Boolean): SequenceStatus =
     this match
-      case r @ SequenceStatus.Running(_, _, _, _, _) =>
+      case r @ SequenceStatus.Running(_, _, _, _, _, _) =>
         r.copy(waitingNextStep = SequenceStatus.IsWaitingNextStep(value))
-      case other                                     => other
+      case other                                        => other
 
   def withStarting(value: Boolean): SequenceStatus =
     this match
-      case r @ SequenceStatus.Running(_, _, _, _, _) =>
+      case r @ SequenceStatus.Running(_, _, _, _, _, _) =>
         r.copy(starting = SequenceStatus.IsStarting(value))
-      case other                                     => other
+      case other                                        => other
 
 object SequenceStatus:
   given Display[SequenceStatus] = Display.byShortName(_.name)
@@ -113,6 +121,9 @@ object SequenceStatus:
 
   object IsStepInterruptRequested extends NewBoolean { val Yes = True; val No = False }
   type IsStepInterruptRequested = IsStepInterruptRequested.Type
+
+  object IsRewindRequested extends NewBoolean { val Yes = True; val No = False }
+  type IsRewindRequested = IsRewindRequested.Type
 
   object IsWaitingUserPrompt extends NewBoolean { val Yes = True; val No = False }
   type IsWaitingUserPrompt = IsWaitingUserPrompt.Type
@@ -127,6 +138,7 @@ object SequenceStatus:
     val Init: Running =
       SequenceStatus.Running(
         sequenceHoldRequested = IsSequenceHoldRequested.No,
+        rewindRequested = IsRewindRequested.No,
         stepInterruptRequested = IsStepInterruptRequested.No,
         waitingUserPrompt = IsWaitingUserPrompt.No,
         waitingNextStep = IsWaitingNextStep.No,
@@ -137,6 +149,9 @@ object SequenceStatus:
 
     val sequenceHoldRequested: Lens[SequenceStatus.Running, IsSequenceHoldRequested] =
       Focus[SequenceStatus.Running](_.sequenceHoldRequested)
+
+    val rewindRequested: Lens[SequenceStatus.Running, IsRewindRequested] =
+      Focus[SequenceStatus.Running](_.rewindRequested)
 
     val stepInterruptRequested: Lens[SequenceStatus.Running, IsStepInterruptRequested] =
       Focus[SequenceStatus.Running](_.stepInterruptRequested)

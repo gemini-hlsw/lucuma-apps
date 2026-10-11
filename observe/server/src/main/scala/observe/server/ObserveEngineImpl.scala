@@ -379,9 +379,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Step rewind requested by ${user.displayName}") *>
       setObserver(obsId, user, observer) *>
-      // An action stop with nothing to stop: it only raises the step-interrupt-requested flag, which the
-      // engine honours at the next execution group boundary while the exposure is still ahead.
-      executeEngine.offer(Event.actionStop(obsId, _ => Stream.empty))
+      executeEngine.offer(Event.requestStepRewind(obsId, user))
+
+  override def cancelRewindRequest(
+    obsId:    Observation.Id,
+    observer: Observer,
+    user:     User
+  ): F[Unit] =
+    logInfoEvent(s"Sequence $obsId: Rewind request cancelled by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
+      executeEngine.offer(Event.cancelStepRewindRequest(obsId, user))
 
   override def setBreakpoints(
     obsId:    Observation.Id,

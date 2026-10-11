@@ -29,7 +29,8 @@ object ObserveStyles:
 
   val ObservationArea: Css           = Css("observe-observation-area")
   val ObservationAreaError: Css      = Css("observe-observation-area-error")
-  val SequenceTableExpandButton: Css = Css("observation-area-sequence-table-expand-button")
+  val SequenceTableToolbar: Css      = Css("observation-area-sequence-table-toolbar")
+  val SequenceTableVisitButtons: Css = Css("observation-area-sequence-table-visit-buttons")
 
   val ObserveTable: Css = Css("observe-observe-table")
 
@@ -76,9 +77,11 @@ object ObserveStyles:
   val ObservationStepProgressBar: Css = Css("observe-observation-progress-bar")
   val ControlButtonStrip: Css         = Css("observe-control-button-strip")
   val PauseButton: Css                = Css("observe-pause-button")
+  val SeqControlButtons: Css          = Css("observe-seq-control-buttons")
   val RewindButton: Css               = Css("observe-rewind-button")
   val SequenceHoldButton: Css         = Css("observe-sequence-hold-button")
   val CancelSequenceHoldButton: Css   = Css("observe-cancel-sequence-hold-button")
+  val CancelRewindButton: Css         = Css("observe-cancel-rewind-button")
   val StopButton: Css                 = Css("observe-stop-button")
   val PlayButton: Css                 = Css("observe-play-button")
   val AbortButton: Css                = Css("observe-abort-button")

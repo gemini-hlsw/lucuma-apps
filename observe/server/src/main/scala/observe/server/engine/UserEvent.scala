@@ -27,6 +27,9 @@ object UserEvent {
   case class RequestSequenceHold[F[_]](id: Observation.Id, user: Option[User]) extends UserEvent[F]
   case class CancelSequenceHoldRequest[F[_]](id: Observation.Id, user: Option[User])
       extends UserEvent[F]
+  case class RequestStepRewind[F[_]](id: Observation.Id, user: Option[User])   extends UserEvent[F]
+  case class CancelStepRewindRequest[F[_]](id: Observation.Id, user: Option[User])
+      extends UserEvent[F]
   case class Breakpoints[F[_]](
     id:    Observation.Id,
     user:  Option[User],

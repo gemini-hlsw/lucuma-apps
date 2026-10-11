@@ -76,11 +76,12 @@ trait ObserveModelArbitraries {
   given Arbitrary[SequenceStatus.Running] = Arbitrary[SequenceStatus.Running] {
     for {
       u <- arbitrary[IsSequenceHoldRequested]
+      r <- arbitrary[IsRewindRequested]
       i <- arbitrary[IsStepInterruptRequested]
       w <- arbitrary[IsWaitingUserPrompt]
       a <- arbitrary[IsWaitingNextStep]
       s <- arbitrary[IsStarting]
-    } yield SequenceStatus.Running(u, i, w, a, s)
+    } yield SequenceStatus.Running(u, r, i, w, a, s)
   }
 
   given Arbitrary[SequenceStatus] = Arbitrary[SequenceStatus] {

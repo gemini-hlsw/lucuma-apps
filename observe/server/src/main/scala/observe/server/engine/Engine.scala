@@ -64,6 +64,42 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       SequenceState.setSequenceHoldRequested(IsSequenceHoldRequested.No)
     )
 
+  // A rewind only makes sense while the observe group is still pending: `nextExecution` honours
+  // it at the group boundary right before it. Once the observe group has started, the request is
+  // ignored rather than turned into a hold, so that `rewindRequested` never coexists with an
+  // exposure that a stop/abort/pause may interrupt.
+  def requestStepRewind(id: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle
+      .getSequenceState(id)
+      .flatMap:
+        _.map: s =>
+          EngineHandle
+            .modifySequenceState(id):
+              SequenceState
+                .setStepInterruptRequested[F](IsStepInterruptRequested.Yes)
+                .andThen(SequenceState.setRewindRequested[F](IsRewindRequested.Yes))
+            .whenA(SequenceState.isRunning(s) && s.loadedStep.exists(_.hasObservePending))
+        .getOrElse(EngineHandle.unit)
+
+  // `stepInterruptRequested` is shared with stop/abort/pause-exposure, so it's only cleared when a
+  // rewind is pending. That is safe: a rewind can only be pending before the observe group starts
+  // (see `requestStepRewind`), when no exposure exists for those actions to interrupt, so any
+  // interrupt raised in that window has the same effect as the rewind being cancelled.
+  private def cancelStepRewindRequest(id: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle
+      .getSequenceState(id)
+      .flatMap(
+        _.map: s =>
+          EngineHandle
+            .modifySequenceState(id)(
+              SequenceState
+                .setRewindRequested[F](IsRewindRequested.No)
+                .andThen(SequenceState.setStepInterruptRequested[F](IsStepInterruptRequested.No))
+            )
+            .whenA(s.status.isRewindRequested)
+        .getOrElse(EngineHandle.unit)
+      )
+
   def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
     EngineHandle.getState.flatMap { st =>
       val resultStream: Option[Stream[F, Result]] =
@@ -139,7 +175,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         seqState
           .map: seq =>
             (seq.status, seq.loadedStep) match {
-              case (SequenceStatus.Running(sequenceHoldRequested, stepInterruptRequested, _, _, _),
+              case (SequenceStatus
+                      .Running(sequenceHoldRequested, _, stepInterruptRequested, _, _, _),
                     Some(completedStep)
                   ) =>
                 seq.withNextExecution match {
@@ -201,7 +238,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
           .map { seq =>
             seq.status match {
               case SequenceStatus
-                    .Running(sequenceHoldRequested, stepInterruptRequested, _, _, isStarting) =>
+                    .Running(sequenceHoldRequested,
+                             rewindRequested,
+                             stepInterruptRequested,
+                             _,
+                             _,
+                             isStarting
+                    ) =>
                 // TODO Review if all of these conditions are possible with new sequence flow.
                 if (!isStarting && (sequenceHoldRequested || stepInterruptRequested)) {
                   if (seq.loadedStep.isEmpty)
@@ -219,6 +262,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                     setObsStatus(obsId)(
                       SequenceStatus.Running(
                         sequenceHoldRequested,
+                        rewindRequested,
                         stepInterruptRequested,
                         IsWaitingUserPrompt.No,
                         IsWaitingNextStep.No,
@@ -421,6 +465,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       debug(
         s"Engine: Sequence hold request canceled for sequence $obsId"
       ) *> cancelSequenceHoldRequest(obsId) *>
+        EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
+    case RequestStepRewind(obsId, _)         =>
+      debug(s"Engine: Rewind requested for sequence $obsId") *> requestStepRewind(obsId) *>
+        EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
+    case CancelStepRewindRequest(obsId, _)   =>
+      debug(s"Engine: Rewind request canceled for sequence $obsId") *>
+        cancelStepRewindRequest(obsId) *>
         EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, None))
     case Breakpoints(obsId, _, stepIds, v)   =>
       debug(s"Engine: breakpoints changed for sequence $obsId and steps $stepIds to $v") *>

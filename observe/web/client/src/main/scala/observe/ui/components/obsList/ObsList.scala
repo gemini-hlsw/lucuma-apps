@@ -130,7 +130,7 @@ object ObsList
             case (Some(Pot.Ready(_)), Some(SequenceStatus.Idle))                                => Icons.FileCheck
             case (Some(Pot.Ready(_)), Some(SequenceStatus.Completed))                           =>
               Icons.FileCheck
-            case (Some(Pot.Ready(_)), Some(SequenceStatus.Running(_, _, _, _, _)))              =>
+            case (Some(Pot.Ready(_)), Some(SequenceStatus.Running(_, _, _, _, _, _)))           =>
               LucumaIcons.CircleNotch
             case (Some(Pot.Ready(_)), Some(SequenceStatus.Failed(_))) | (Some(Pot.Error(_)), _) =>
               Icons.FileCross
