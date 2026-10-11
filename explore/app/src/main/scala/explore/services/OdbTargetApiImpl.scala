@@ -118,8 +118,8 @@ trait OdbTargetApiImpl[F[_]: Sync](using
       .map(_.map(_.targetEdit))
 
   def allProgramTargets(programId: Program.Id): F[List[TargetWithId]] =
-    drain[F, TargetWithId, Target.Id, AllProgramTargets.Data.Targets](
-      offset =>
+    drain(
+      (offset: Option[Target.Id]) =>
         AllProgramTargets[F]
           .query(programId.toWhereTarget, offset.orUnassign)
           .processErrors

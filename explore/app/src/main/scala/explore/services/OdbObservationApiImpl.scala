@@ -497,8 +497,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .map(_.map(_.observationEdit))
 
   def allProgramObservations(programId: Program.Id): F[List[Observation]] =
-    drain[F, Observation, Observation.Id, AllProgramObservations.Data.Observations](
-      offset =>
+    drain(
+      (offset: Option[Observation.Id]) =>
         AllProgramObservations[F]
           .query(programId.toWhereObservation, offset.orUnassign)
           // We need this because we currently get errors for things like having no targets
@@ -613,13 +613,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     modeType: ObservingModeType
   ): F[List[(Observation.Id, Option[ObservingMode])]] =
     val flags: ModeViewFlags = modeViewFlagsFor(modeType)
-    drain[
-      F,
-      AllProgramObservationsObservingMode.Data.Observations.Matches,
-      Observation.Id,
-      AllProgramObservationsObservingMode.Data.Observations
-    ](
-      offset =>
+    drain(
+      (offset: Option[Observation.Id]) =>
         AllProgramObservationsObservingMode[F]
           .query(
             where,

@@ -55,13 +55,8 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
   def allProgramConfigurationRequests(
     programId: Program.Id
   ): F[List[ConfigurationRequest]] =
-    drain[
-      F,
-      ConfigurationRequest,
-      ConfigurationRequest.Id,
-      Option[AllProgramConfigurationRequests.Data.Program.ConfigurationRequests]
-    ](
-      offset =>
+    drain(
+      (offset: Option[ConfigurationRequest.Id]) =>
         AllProgramConfigurationRequests[F]
           .query(programId, offset.orUnassign)
           .processErrors

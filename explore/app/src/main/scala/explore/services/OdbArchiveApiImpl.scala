@@ -24,13 +24,8 @@ trait OdbArchiveApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
   def programArchiveDuplications(
     programId: Program.Id
   ): F[Map[Observation.Id, ArchiveDuplication]] =
-    drain[
-      F,
-      ProgramArchiveDuplications.Data.Observations.Matches,
-      Observation.Id,
-      ProgramArchiveDuplications.Data.Observations
-    ](
-      offset =>
+    drain(
+      (offset: Option[Observation.Id]) =>
         ProgramArchiveDuplications[F]
           .query(programId.toWhereObservation, offset.orUnassign)
           .processNoDataErrors

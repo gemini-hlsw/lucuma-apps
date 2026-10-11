@@ -375,12 +375,8 @@ object MainApp extends ServerEventHandler:
                         LocalObservingNight
                           .fromSiteAndInstant(clientConfig.site, Instant.ofEpochMilli(now.toMillis))
 
-                      drain[IO,
-                            ObsSummary,
-                            Observation.Id,
-                            ActiveObservationIdsQuery.Data.Observations
-                      ](
-                        offset =>
+                      drain(
+                        (offset: Option[Observation.Id]) =>
                           ActiveObservationIdsQuery[IO]
                             .query(
                               clientConfig.site,

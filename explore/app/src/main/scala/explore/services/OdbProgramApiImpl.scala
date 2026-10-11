@@ -280,8 +280,8 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
       .map(_.program)
 
   val allPrograms: F[List[ProgramInfo]] =
-    drain[F, ProgramInfo, Program.Id, AllPrograms.Data.Programs](
-      offset =>
+    drain(
+      (offset: Option[Program.Id]) =>
         AllPrograms[F]
           .query(offset.orUnassign)
           .processErrors
