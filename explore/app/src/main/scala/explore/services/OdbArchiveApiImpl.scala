@@ -13,6 +13,7 @@ import explore.model.Observation
 import lucuma.core.model.Program
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.RefreshArchiveDuplicationInput
+import lucuma.schemas.odb.drain
 import lucuma.schemas.odb.input.*
 import queries.common.ArchiveDuplicationQueriesGQL.*
 
@@ -23,12 +24,8 @@ trait OdbArchiveApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
   def programArchiveDuplications(
     programId: Program.Id
   ): F[Map[Observation.Id, ArchiveDuplication]] =
-    drain[
-      ProgramArchiveDuplications.Data.Observations.Matches,
-      Observation.Id,
-      ProgramArchiveDuplications.Data.Observations
-    ](
-      offset =>
+    drain(
+      (offset: Option[Observation.Id]) =>
         ProgramArchiveDuplications[F]
           .query(programId.toWhereObservation, offset.orUnassign)
           .processNoDataErrors

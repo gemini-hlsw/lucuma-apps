@@ -26,6 +26,7 @@ import lucuma.core.model.ProgramReference
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Enums.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.odb.drain
 import lucuma.schemas.odb.input.*
 import queries.common.InvitationQueriesGQL.*
 import queries.common.InvitationQueriesGQL.CreateInviteMutation.Data.CreateUserInvitation
@@ -279,8 +280,8 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
       .map(_.program)
 
   val allPrograms: F[List[ProgramInfo]] =
-    drain[ProgramInfo, Program.Id, AllPrograms.Data.Programs](
-      offset =>
+    drain(
+      (offset: Option[Program.Id]) =>
         AllPrograms[F]
           .query(offset.orUnassign)
           .processErrors
