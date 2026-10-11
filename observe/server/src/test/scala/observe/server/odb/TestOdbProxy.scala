@@ -169,12 +169,13 @@ object TestOdbProxy {
       case i                     => sys.error(s"Unexpected instrument $i")
 
   def buildGmosNorth[F[_]: Async](
-    obsId:              Observation.Id,
-    staticCfg:          gmos.StaticConfig.GmosNorth,
-    acquisition:        Option[Atom[gmos.DynamicConfig.GmosNorth]],
-    science:            List[Atom[gmos.DynamicConfig.GmosNorth]] = List.empty,
-    obsData:            Option[ODBObservation] = None,
-    updateStartObserve: SequenceState => SequenceState = identity
+    obsId:                   Observation.Id,
+    staticCfg:               gmos.StaticConfig.GmosNorth,
+    acquisition:             Option[Atom[gmos.DynamicConfig.GmosNorth]],
+    science:                 List[Atom[gmos.DynamicConfig.GmosNorth]] = List.empty,
+    obsData:                 Option[ODBObservation] = None,
+    updateStartObserve:      SequenceState => SequenceState = identity,
+    resetAcquisitionFailure: Option[Throwable] = None
   ): F[TestOdbProxy[F]] =
     build(
       Map(
@@ -185,13 +186,15 @@ object TestOdbProxy {
         )
       ),
       obsData,
-      _.updateObs(obsId)(updateStartObserve)
+      _.updateObs(obsId)(updateStartObserve),
+      resetAcquisitionFailure
     )
 
   def build[F[_]: Async](
-    sequences:          Map[Instrument, InstrumentState],
-    obsData:            Option[ODBObservation] = None,
-    updateStartObserve: State => State = identity
+    sequences:               Map[Instrument, InstrumentState],
+    obsData:                 Option[ODBObservation] = None,
+    updateStartObserve:      State => State = identity,
+    resetAcquisitionFailure: Option[Throwable] = None // When set, `resetAcquisition` fails with it
   ): F[TestOdbProxy[F]] =
     Ref
       .of[F, State](State(sequences, List.empty))
@@ -201,9 +204,12 @@ object TestOdbProxy {
             rf.modify(s => (s.focus(_.out).modify(_.appended(ev)), ()))
 
           override def resetAcquisition(obsId: Observation.Id): F[Unit] =
-            rf.update:
-              _.updateObs(obsId):
-                _.resetAcquisition(sequences.sequenceForObs(obsId).flatMap(_._2.acquisition))
+            resetAcquisitionFailure.fold(
+              rf.update:
+                _.updateObs(obsId):
+                  _.resetAcquisition(sequences.sequenceForObs(obsId).flatMap(_._2.acquisition))
+              >> addEvent(ResetAcquisition(obsId))
+            )(Async[F].raiseError)
 
           override def read(obsId: Observation.Id): F[OdbObservationData] =
             rf.get.map { s =>
@@ -343,6 +349,7 @@ object TestOdbProxy {
       )
 
   sealed trait OdbEvent
+  case class ResetAcquisition(obsId: Observation.Id)                          extends OdbEvent
   case class VisitStart[S](obsId: Observation.Id)                             extends OdbEvent
   case class SequenceStart(obsId: Observation.Id)                             extends OdbEvent
   case class StepStartStep[D](obsId: Observation.Id)                          extends OdbEvent

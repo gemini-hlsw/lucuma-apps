@@ -35,6 +35,7 @@ extension (e: SeqEvent)
       case StartSysConfig(_, _, _)       => true
       case SequenceStart(_, _)           => true
       case SequencesStart(_)             => true
+      case SequenceTypeChanged(_)        => true
       case _                             => false
 
 extension [F[_]](e: UserEvent[F])

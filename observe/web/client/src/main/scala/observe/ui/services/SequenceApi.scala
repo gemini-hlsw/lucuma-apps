@@ -73,6 +73,12 @@ trait SequenceApi[F[_]: MonadThrow]:
   /** Stop before the exposure starts and go idle */
   def rewindStep(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
+  /** While idle, load the first science step. Does not start anything. */
+  def skipAcquisition(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+
+  /** While idle, reset the acquisition and load its first step. Does not start anything. */
+  def resetAcquisition(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+
   /** Cancel a requested rewind */
   def cancelRewindRequest(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 

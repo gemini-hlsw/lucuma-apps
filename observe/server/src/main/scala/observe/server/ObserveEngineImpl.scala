@@ -350,9 +350,100 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       EngineState
         .atSequence(obsId)
         .getOption(st)
-        .map: _ => // Sequence exists in memory, proceed
-          ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, obsId, seqType)
+        .map: seqData => // Sequence exists in memory, proceed
+          // Without the prompt check, proceedAfterPrompt from Idle silently reloads the step.
+          if seqData.seq.status.isWaitingUserPrompt then
+            ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, obsId, seqType)
+          else EngineHandle.unit
         .getOrElse(EngineHandle.unit)
+
+  /**
+   * Replaces the loaded step with the next step of `seqType` without starting it. This is how the
+   * acquisition is skipped (`seqType` = Science) or restarted (`seqType` = Acquisition with
+   * `resetAcquisition`).
+   *
+   * Only allowed while the sequence is idle or in error; otherwise the client gets a
+   * `SequenceNotIdle` notification and nothing changes. If the ODB reset or the step read fails, or
+   * there is no step of `seqType`, the sequence is left as it was and an `ActionFailed` is
+   * reported.
+   *
+   * Engine events run one at a time, so the idle check and the state change below cannot race with
+   * a sequence start. The ODB reset must therefore happen here and not in the caller.
+   */
+  private def loadNextStepWhileIdle(
+    obsId:            Observation.Id,
+    seqType:          SequenceType,
+    resetAcquisition: Boolean,
+    clientId:         ClientId,
+    actionName:       String
+  ): EngineHandle[F, SeqEvent] =
+    EngineHandle.getState.flatMap: st =>
+      EngineState
+        .atSequence(obsId)
+        .getOption(st)
+        .map: seqData =>
+          if !(seqData.seq.status.isIdle || seqData.seq.status.isError) then
+            EngineHandle.pure[F, SeqEvent]:
+              SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
+          else
+            def failed(msg: String): SeqEvent =
+              SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
+
+            (
+              (if resetAcquisition then EngineHandle.liftF(systems.odb.resetAcquisition(obsId))
+               else EngineHandle.unit[F]) >>
+                // `readStep` (unlike `retrieveStep`) neither swallows errors nor touches the state,
+                // so a failure can be reported without having changed anything.
+                ObserveEngine.readStep(systems.odb, translator, obsId, seqType.asLeft)
+            ).flatMap:
+              // The translator falls back to science when there's no acquisition; that's no reset.
+              case Some(stepGen) if stepGen.sequenceType === seqType =>
+                EngineHandle
+                  .modifyState_(ObserveEngine.updateStep(obsId, stepGen.some, seqType.asLeft))
+                  .as[SeqEvent](SeqEvent.SequenceTypeChanged(obsId))
+              case _                                                 =>
+                EngineHandle.pure[F, SeqEvent](failed(s"There is no ${seqType.tag} step to load"))
+            .handleErrorWith: e =>
+                EngineHandle.pure[F, SeqEvent](failed(e.getMessage))
+        .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
+
+  override def skipAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit] =
+    logInfoEvent(s"Sequence $obsId: Skip acquisition requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
+      executeEngine.offer:
+        Event.modifyState[F]:
+          clearObsCmd(obsId) *>
+            loadNextStepWhileIdle(
+              obsId,
+              SequenceType.Science,
+              resetAcquisition = false,
+              clientId,
+              "skip acquisition"
+            )
+
+  override def resetAcquisition(
+    obsId:    Observation.Id,
+    user:     User,
+    observer: Observer,
+    clientId: ClientId
+  ): F[Unit] =
+    logInfoEvent(s"Sequence $obsId: Reset acquisition requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
+      executeEngine.offer:
+        Event.modifyState[F]:
+          clearObsCmd(obsId) *>
+            loadNextStepWhileIdle(
+              obsId,
+              SequenceType.Acquisition,
+              resetAcquisition = true,
+              clientId,
+              "reset acquisition"
+            )
 
   override def requestSequenceHold(
     obsId:    Observation.Id,

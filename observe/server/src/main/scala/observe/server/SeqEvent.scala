@@ -91,3 +91,4 @@ object SeqEvent:
   ) extends SeqEvent
   case class AcquisitionCompleted(obsId: Observation.Id)                            extends SeqEvent
   case class SequenceCompleted(obsId: Observation.Id)                               extends SeqEvent
+  case class SequenceTypeChanged(obsId: Observation.Id)                             extends SeqEvent

@@ -6,6 +6,7 @@ package observe.ui.model
 import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
@@ -25,7 +26,9 @@ case class ObservationRequests(
   rewind:             OperationRequest,
   cancelRewind:       OperationRequest,
   subsystemRun:       Map[Step.Id, Map[Subsystem, OperationRequest]],
-  acquisitionPrompt:  OperationRequest
+  acquisitionPrompt:  OperationRequest,
+  skipAcquisition:    OperationRequest,
+  resetAcquisition:   OperationRequest
 ) derives Eq:
   val stepRequestInFlight: Boolean                =
     sequenceHold === OperationRequest.InFlight ||
@@ -36,7 +39,9 @@ case class ObservationRequests(
     abortExposure === OperationRequest.InFlight ||
     startSequenceFrom === OperationRequest.InFlight ||
     rewind === OperationRequest.InFlight ||
-    cancelRewind === OperationRequest.InFlight
+    cancelRewind === OperationRequest.InFlight ||
+    skipAcquisition === OperationRequest.InFlight ||
+    resetAcquisition === OperationRequest.InFlight
 
     // Indicate if any resource is being executed
   def subsystemInFlight(stepId: Step.Id): Boolean =
@@ -60,7 +65,19 @@ case class ObservationRequests(
         if (status.isRewindRequested || !status.isRunning) OperationRequest.Idle else rewind,
       cancelRewind =
         if (!status.isRewindRequested || !status.isRunning) OperationRequest.Idle
-        else cancelRewind
+        else cancelRewind,
+      skipAcquisition = if (status.isRunning) OperationRequest.Idle else skipAcquisition,
+      resetAcquisition = if (status.isRunning) OperationRequest.Idle else resetAcquisition
+    )
+
+  // Skipping or resetting the acquisition leaves the sequence idle, so the status alone never
+  // clears these requests. They are done when the sequence type reaches its target.
+  def withSequenceType(sequenceType: SequenceType): ObservationRequests =
+    this.copy(
+      skipAcquisition =
+        if (sequenceType =!= SequenceType.Acquisition) OperationRequest.Idle else skipAcquisition,
+      resetAcquisition =
+        if (sequenceType =!= SequenceType.Science) OperationRequest.Idle else resetAcquisition
     )
 
 object ObservationRequests:
@@ -76,7 +93,9 @@ object ObservationRequests:
     rewind = OperationRequest.Idle,
     cancelRewind = OperationRequest.Idle,
     subsystemRun = Map.empty,
-    acquisitionPrompt = OperationRequest.Idle
+    acquisitionPrompt = OperationRequest.Idle,
+    skipAcquisition = OperationRequest.Idle,
+    resetAcquisition = OperationRequest.Idle
   )
 
   val startSequence: Lens[ObservationRequests, OperationRequest]                              =
@@ -103,3 +122,7 @@ object ObservationRequests:
     Focus[ObservationRequests](_.subsystemRun)
   val acquisitionPrompt: Lens[ObservationRequests, OperationRequest]                          =
     Focus[ObservationRequests](_.acquisitionPrompt)
+  val skipAcquisition: Lens[ObservationRequests, OperationRequest]                            =
+    Focus[ObservationRequests](_.skipAcquisition)
+  val resetAcquisition: Lens[ObservationRequests, OperationRequest]                           =
+    Focus[ObservationRequests](_.resetAcquisition)
