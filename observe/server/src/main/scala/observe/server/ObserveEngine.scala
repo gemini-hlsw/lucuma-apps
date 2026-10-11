@@ -516,7 +516,7 @@ object ObserveEngine {
                   .fromSingleEvent(Event.sequenceComplete(obsId))
                   .as(SeqEvent.SequenceCompleted(obsId))
 
-  private def updateStep[F[_]](
+  private[server] def updateStep[F[_]](
     obsId:      Observation.Id,
     stepGen:    Option[StepGen[F]],
     stepIdFrom: Either[SequenceType, Step.Id]
@@ -554,6 +554,28 @@ object ObserveEngine {
           SequenceData.seq.replace(newSeqState)(seqData)
         }(st)
 
+  /**
+   * Reads the step at `stepIdFrom` from the ODB and translates it, without touching the engine
+   * state. Errors propagate to the caller.
+   */
+  def readStep[F[_]: MonadCancelThrow](
+    odb:        OdbProxy[F],
+    translator: SeqTranslate[F],
+    obsId:      Observation.Id,
+    stepIdFrom: Either[SequenceType, Step.Id]
+  ): EngineHandle[F, Option[StepGen[F]]] =
+    // Jumping to a chosen step needs the future atoms, moving on to the next one does not.
+    val limit = stepIdFrom.fold(_ => OdbProxy.NextAtomOnly, _ => OdbProxy.FullFuture)
+    EngineHandle
+      .inspectState[F, Option[SequenceData[F]]](EngineState.sequenceDataAt(obsId).getOption)
+      .flatMap:
+        _.flatTraverse: sd =>
+          EngineHandle
+            .liftF(odb.readExecutionConfig(obsId, sd.instrument, limit))
+            .map: odbEx =>
+              // TODO Do something with warnings? (_1)
+              translator.nextStep(OdbObservationData(sd.observation, odbEx), stepIdFrom)._2
+
   private def loadStep[F[_]: {MonadCancelThrow, Logger}](
     odb:        OdbProxy[F],
     translator: SeqTranslate[F],
@@ -561,22 +583,10 @@ object ObserveEngine {
     stepIdFrom: Either[SequenceType, Step.Id]
   ): EngineHandle[F, Option[StepGen[F]]] =
     (for
-        _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
-        seqData <- EngineHandle.inspectState[F, Option[SequenceData[F]]](
-                     EngineState.sequenceDataAt(obsId).getOption
-                   )
-        // Jumping to a chosen step needs the future atoms, moving on to the next one does not.
-        limit    = stepIdFrom.fold(_ => OdbProxy.NextAtomOnly, _ => OdbProxy.FullFuture)
-        stepGen <-
-          seqData
-            .traverse: sd =>
-              EngineHandle
-                .liftF(odb.readExecutionConfig(obsId, sd.instrument, limit))
-                .map: odbEx =>
-                  translator.nextStep(OdbObservationData(sd.observation, odbEx), stepIdFrom)._2
-            .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
-      yield stepGen.flatten // TODO Do something with warnings? (_1)
-    ).handleErrorWith: e =>
+      _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
+      stepGen <- readStep(odb, translator, obsId, stepIdFrom)
+                   .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
+    yield stepGen).handleErrorWith: e =>
       EngineHandle.logError(e)(
         s"Error loading step for observation [$obsId] from [$stepIdFrom]"
       ) >>

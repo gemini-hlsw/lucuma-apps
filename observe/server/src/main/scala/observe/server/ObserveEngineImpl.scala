@@ -363,8 +363,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
    * `resetAcquisition`).
    *
    * Only allowed while the sequence is idle or in error; otherwise the client gets a
-   * `SequenceNotIdle` notification and nothing changes. A failed ODB reset leaves the sequence as
-   * it was and reports an `ActionFailed`.
+   * `SequenceNotIdle` notification and nothing changes. If the ODB reset or the step read fails, or
+   * there is no step of `seqType`, the sequence is left as it was and an `ActionFailed` is
+   * reported.
    *
    * Engine events run one at a time, so the idle check and the state change below cannot race with
    * a sequence start. The ODB reset must therefore happen here and not in the caller.
@@ -385,18 +386,25 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             EngineHandle.pure[F, SeqEvent]:
               SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
           else
+            def failed(msg: String): SeqEvent =
+              SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
+
             (
               (if resetAcquisition then EngineHandle.liftF(systems.odb.resetAcquisition(obsId))
                else EngineHandle.unit[F]) >>
-                ObserveEngine
-                  .retrieveStep(systems.odb, translator, obsId, seqType.asLeft)
+                // `readStep` (unlike `retrieveStep`) neither swallows errors nor touches the state,
+                // so a failure can be reported without having changed anything.
+                ObserveEngine.readStep(systems.odb, translator, obsId, seqType.asLeft)
+            ).flatMap:
+              // The translator falls back to science when there's no acquisition; that's no reset.
+              case Some(stepGen) if stepGen.sequenceType === seqType =>
+                EngineHandle
+                  .modifyState_(ObserveEngine.updateStep(obsId, stepGen.some, seqType.asLeft))
                   .as[SeqEvent](SeqEvent.SequenceTypeChanged(obsId))
-            ).handleErrorWith: e =>
-              EngineHandle.pure[F, SeqEvent]:
-                SeqEvent.NotifyUser(
-                  Notification.ActionFailed(obsId, actionName, e.getMessage),
-                  clientId
-                )
+              case _                                                 =>
+                EngineHandle.pure[F, SeqEvent](failed(s"There is no ${seqType.tag} step to load"))
+            .handleErrorWith: e =>
+                EngineHandle.pure[F, SeqEvent](failed(e.getMessage))
         .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
 
   override def skipAcquisition(
