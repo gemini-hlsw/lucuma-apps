@@ -8,6 +8,7 @@ import eu.timepit.refined.cats.*
 import explore.model.enums.ConfigurationMode
 import explore.model.enums.WavelengthUnits
 import explore.modes.ItcInstrumentConfig
+import lucuma.catalog.BlindOffsetRejection
 import lucuma.core.enums.*
 import lucuma.core.math.BoundedInterval
 import lucuma.core.math.BoundedInterval.*
@@ -44,6 +45,12 @@ trait DisplayImplicits:
 
   given Display[Site] =
     Display.byShortName(_.shortName)
+
+  given Display[BlindOffsetRejection] =
+    Display.byShortName:
+      case BlindOffsetRejection.TooBright           => "too bright"
+      case BlindOffsetRejection.TooFaint            => "too faint"
+      case BlindOffsetRejection.NoMagnitudeEstimate => "no magnitude estimate"
 
   given Display[TelluricType] =
     Display.byShortName:
