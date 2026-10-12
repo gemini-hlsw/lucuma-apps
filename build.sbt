@@ -1043,42 +1043,25 @@ lazy val navigate_deploy = project
 def prettierCmd(fix: Boolean): String =
   s"pnpm exec prettier ${if (fix) "--write" else "--check"} ."
 
-def styleLintCmds(mode: String, fix: Boolean, dirs: List[String]): List[String] = {
-  val stylelintFixFlag = if (fix) "--fix " else ""
-  // Removes all lines that don't define a variable, thus building a viable CSS file for linting. Thanks ChatGPT.
-  (raw"""find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$$/p' -e '/^[[:space:]]*--[^;]*$$/,/;$$/p' {} + >vars.css"""
-    +: dirs.map(dir => s"pnpm exec stylelint $stylelintFixFlag$dir")) :+
-    "rm vars.css"
-}
-
 val cssDirs: List[String] = List(
   "explore/common/src/main/webapp/sass",
   "observe/web/client/src/main/webapp/styles",
   "ui/lib/src/main/resources/lucuma-css"
 )
 
-def allStyleLintCmds(fix: Boolean): List[String] =
-  styleLintCmds("dark", fix, cssDirs) ++
-    styleLintCmds("light", fix, cssDirs)
+def styleLintCmds(fix: Boolean): List[String] = {
+  val stylelintFixFlag = if (fix) "--fix " else ""
+  cssDirs.map(dir => s"pnpm exec stylelint $stylelintFixFlag$dir")
+}
 
 def allLintCmds(fix: Boolean): List[String] =
-  allStyleLintCmds(fix) :+ prettierCmd(fix)
+  styleLintCmds(fix) :+ prettierCmd(fix)
 
-def runCmds(cmds: List[String]): Unit = {
-  val batch: List[ProcessBuilder] = cmds.flatMap { cmd =>
-    val fixedCmd: String     = cmd.replaceAll("'", "") // Quotes not needed when running from here.
-    val echo: ProcessBuilder = Process(s"echo <$fixedCmd>")
-    val split: List[String]  = fixedCmd.split(" >").toList
-    split match {
-      case exec :: fileName :: Nil => List(echo, Process(exec) #> file(fileName))
-      case _                       => List(echo, Process(fixedCmd))
-    }
-  }
-  batch.reduceLeft(_ #&& _) ! match {
+def runCmds(cmds: List[String]): Unit =
+  cmds.map(cmd => Process(s"echo <$cmd>") #&& Process(cmd)).reduceLeft(_ #&& _) ! match {
     case 0 => ()
-    case n => throw new Exception(s"Error in CSS format (dark), exit code $n")
+    case n => throw new Exception(s"Lint failed, exit code $n")
   }
-}
 
 val lintCheck: TaskKey[Unit] = taskKey[Unit]("Lint style files")
 lintCheck := {

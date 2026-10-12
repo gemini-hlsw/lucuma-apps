@@ -65,15 +65,12 @@ sbt -J-Xmx6g 'project rootJVM' '++ 3' headerCheckAll scalafmtCheckAll \
   'project /' scalafmtSbtCheck lucumaScalafmtCheck lucumaScalafixCheck
 sbt -J-Xmx6g 'project rootJVM' '++ 3' 'scalafixAll --check'
 
-# CSS linting. Stylelint resolves custom properties from vars.css, which has to be
-# extracted from the lucuma-css sources first (as CI does); without it, every var()
-# from the lucuma-ui variables files is reported as unknown.
+# CSS linting. stylelint.config.mjs reads the lucuma-css SCSS variables directly; the
+# PrimeReact theme variables come from ui/css/target, so run lucumaCss once per checkout.
 sbt -J-Xmx6g '++ 3' ui_css/lucumaCss
-find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$/p' -e '/^[[:space:]]*--[^;]*$/,/;$/p' {} + >vars.css
 pnpm exec stylelint explore/common/src/main/webapp/sass
 pnpm exec stylelint observe/web/client/src/main/webapp/styles
 pnpm exec stylelint ui/lib/src/main/resources/lucuma-css
-rm vars.css
 
 # Prettier
 pnpm exec prettier --check .
