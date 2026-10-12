@@ -5,6 +5,7 @@ package workers
 
 import boopickle.DefaultBasic.*
 import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import explore.events.CatalogMessage
@@ -13,6 +14,9 @@ import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import japgolly.webapputil.indexeddb.IndexedDb
 import lucuma.catalog.clients.GaiaClient
+import lucuma.catalog.simbad.SEDDataLoader
+import lucuma.catalog.simbad.SEDMatcher
+import org.http4s.Uri
 import org.http4s.client.middleware.RequestLogger
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
@@ -57,6 +61,15 @@ object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCa
                      )
                    )(rawClient)
       client     = GaiaClient.build(httpClient)
+      sedRef    <- Ref.of[IO, Option[SEDMatcher]](none)
+      // Keep only a successful load so a failed fetch is retried on the next request
+      sedMatcher = sedRef.get.flatMap(
+                     _.fold(
+                       SEDDataLoader
+                         .loadMatcher[IO](httpClient, Uri.unsafeFromString(self.location.origin))
+                         .flatTap(m => sedRef.set(m.some))
+                     )(IO.pure)
+                   )
     } yield invocation =>
       invocation.data match
         case CatalogMessage.CleanCache =>
@@ -73,11 +86,13 @@ object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCa
             .toF[IO]
             .handleErrorWith(e => log.error(e)("Error expiring guidestar candidates"))
 
-        case BlindOffsetRequest(baseCoordinatesAt) =>
+        case BlindOffsetRequest(baseCoordinatesAt, instrument) =>
           given Logger[IO] = log
           BlindOffsetRequestHandler(
             client,
+            sedMatcher,
             baseCoordinatesAt,
+            instrument,
             cache,
             invocation.respond(_)
           )

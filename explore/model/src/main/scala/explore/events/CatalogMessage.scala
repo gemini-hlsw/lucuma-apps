@@ -12,6 +12,7 @@ import explore.model.boopickle.CatalogPicklers
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.BlindOffsetCandidate
 import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Tracking
 import lucuma.schemas.model.CoordinatesAt
 import org.typelevel.cats.time.given
@@ -39,7 +40,8 @@ object CatalogMessage extends CatalogPicklers {
   }
 
   case class BlindOffsetRequest(
-    baseCoordinatesAt: CoordinatesAt
+    baseCoordinatesAt: CoordinatesAt,
+    instrument:        Instrument
   ) extends Request derives Eq {
     type ResponseType = ErrorMsgOr[List[BlindOffsetCandidate]]
   }

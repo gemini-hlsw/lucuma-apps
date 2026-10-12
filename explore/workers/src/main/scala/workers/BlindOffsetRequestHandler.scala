@@ -11,27 +11,37 @@ import explore.model.boopickle.CatalogPicklers.given
 import lucuma.catalog.BlindOffsetCandidate
 import lucuma.catalog.BlindOffsets
 import lucuma.catalog.clients.GaiaClient
+import lucuma.catalog.simbad.SEDMatcher
+import lucuma.core.enums.Instrument
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.schemas.model.CoordinatesAt
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 object BlindOffsetRequestHandler:
-  val cacheVersion = CacheVersion(4)
+  val cacheVersion = CacheVersion(5)
 
   def apply[F[_]: {Concurrent, Logger}](
     client:            GaiaClient[F],
+    sedMatcher:        F[SEDMatcher],
     baseCoordinatesAt: CoordinatesAt,
+    instrument:        Instrument,
     cache:             Cache[F],
     callback:          ErrorMsgOr[List[BlindOffsetCandidate]] => F[Unit]
   ): F[Unit] =
-    def doRequest(coordsAt: CoordinatesAt): F[ErrorMsgOr[List[BlindOffsetCandidate]]] =
-      BlindOffsets
-        .runBlindOffsetAnalysis(
-          client,
-          coordsAt.coordinates,
-          coordsAt.at
-        )
+    def doRequest(
+      input: (CoordinatesAt, Instrument)
+    ): F[ErrorMsgOr[List[BlindOffsetCandidate]]] =
+      val (coordsAt, instrument) = input
+      sedMatcher
+        .flatMap: matcher =>
+          BlindOffsets.runBlindOffsetAnalysis(
+            client,
+            matcher,
+            instrument,
+            coordsAt.coordinates,
+            coordsAt.at
+          )
         .map: list =>
           list.asRight
         .handleErrorWith: t =>
@@ -46,4 +56,4 @@ object BlindOffsetRequestHandler:
         (_, result) => result.isRight
       )
 
-    cache.eval(cacheableRequest).apply(baseCoordinatesAt).flatMap(callback)
+    cache.eval(cacheableRequest).apply((baseCoordinatesAt, instrument)).flatMap(callback)

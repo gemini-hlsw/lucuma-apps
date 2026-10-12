@@ -6,6 +6,7 @@ package explore.events.arb
 import cats.syntax.all.*
 import explore.events.CatalogMessage
 import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Tracking
 import lucuma.core.model.arb.ArbTracking.given
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -41,10 +42,13 @@ trait ArbCatalogMessage:
 
   given Arbitrary[CatalogMessage.BlindOffsetRequest] =
     Arbitrary:
-      arbitrary[CoordinatesAt].map(CatalogMessage.BlindOffsetRequest(_))
+      for
+        coordsAt   <- arbitrary[CoordinatesAt]
+        instrument <- arbitrary[Instrument]
+      yield CatalogMessage.BlindOffsetRequest(coordsAt, instrument)
 
   given Cogen[CatalogMessage.BlindOffsetRequest] =
-    Cogen[CoordinatesAt].contramap(_.baseCoordinatesAt)
+    Cogen[(CoordinatesAt, Instrument)].contramap(r => (r.baseCoordinatesAt, r.instrument))
 
   given Arbitrary[CatalogMessage.Request] =
     Arbitrary:

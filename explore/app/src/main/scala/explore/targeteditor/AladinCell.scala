@@ -444,6 +444,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             boInfo._2,
             props.obsTime,
             bt,
+            props.obsConf.flatMap(_.configuration).flatMap(_.instrument),
             props.obsTargets,
             props.allTargets,
             props.blindOffsetReadonly

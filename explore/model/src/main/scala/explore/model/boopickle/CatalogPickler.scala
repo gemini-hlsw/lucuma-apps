@@ -14,7 +14,9 @@ import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.catalog.AngularSize
 import lucuma.catalog.BlindOffsetCandidate
+import lucuma.catalog.BlindOffsetLimits
 import lucuma.catalog.CatalogTargetResult
+import lucuma.catalog.GaiaStellarParameters
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.Area
@@ -107,6 +109,10 @@ trait CatalogPicklers extends ItcPicklers:
   given Pickler[AngularSize] = generatePickler
 
   given Pickler[CatalogTargetResult] = generatePickler
+
+  given Pickler[BlindOffsetLimits] = generatePickler
+
+  given Pickler[GaiaStellarParameters] = generatePickler
 
   given Pickler[BlindOffsetCandidate] = generatePickler
 

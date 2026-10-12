@@ -4,7 +4,6 @@
 package explore.targeteditor
 
 import boopickle.DefaultBasic.*
-import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
@@ -20,16 +19,20 @@ import explore.model.ObservationTargets
 import explore.model.TargetList
 import explore.model.WorkerClients.CatalogClient
 import explore.model.boopickle.CatalogPicklers.given
+import explore.model.display.given
 import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.catalog.BlindOffsetCandidate
+import lucuma.catalog.BlindOffsetLimits
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
+import lucuma.core.syntax.display.*
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -58,10 +61,18 @@ case class BlindOffsetControl(
   blindOffset:  View[BlindOffset],
   obsTime:      Instant,
   baseTracking: Tracking,
+  instrument:   Option[Instrument],
   obsTargets:   ObservationTargets,
   allTargets:   View[TargetList],
   readonly:     Boolean
-) extends ReactFnProps(BlindOffsetControl)
+) extends ReactFnProps(BlindOffsetControl):
+  val supportedInstrument: Option[Instrument] =
+    instrument.filter(BlindOffsetLimits.forInstrument(_).isDefined)
+
+  // Candidate targets carry estimated brightnesses and an SED, so compare by Gaia source id
+  // rather than relying on the whole target surviving an ODB round-trip unchanged.
+  def isSameStar(target: Target, candidate: BlindOffsetCandidate): Boolean =
+    target.name.value === candidate.sourceId.value
 
 // TODO: Set the blind offset to the selected target when it is changed.
 object BlindOffsetControl
@@ -170,22 +181,27 @@ object BlindOffsetControl
                               else Callback.empty
         candidatesResult <-
           useEffectResultWithDeps(
-            (props.blindOffset.get.useBlindOffset, time2Search.value, props.baseTracking)
-          ): (useBlindOffset, obsTime, baseTracking) =>
+            (props.blindOffset.get.useBlindOffset,
+             time2Search.value,
+             props.baseTracking,
+             props.supportedInstrument
+            )
+          ): (useBlindOffset, obsTime, baseTracking, oInstrument) =>
             import ctx.given
 
-            if useBlindOffset then
-              baseTracking
-                .coordinatesAt(obsTime)
-                .fold(
-                  _.asLeft.some.pure[IO],
-                  coordsAt =>
-                    CatalogClient[IO]
-                      .requestSingle(
-                        BlindOffsetRequest(coordsAt)
-                      )
-                )
-            else none.pure[IO]
+            oInstrument
+              .filter(_ => useBlindOffset)
+              .fold(none.pure[IO]): instrument =>
+                baseTracking
+                  .coordinatesAt(obsTime)
+                  .fold(
+                    _.asLeft.some.pure[IO],
+                    coordsAt =>
+                      CatalogClient[IO]
+                        .requestSingle(
+                          BlindOffsetRequest(coordsAt, instrument)
+                        )
+                  )
         index            <- useStateView(-1)
         isWorking        <- useStateView(IsWorking(false))
         _                <-
@@ -202,19 +218,21 @@ object BlindOffsetControl
                )
               )
                 .mapN: (list, oCurrent) =>
-                  // if the list is empty, delete the current blind offset, if any
-                  list.headOption.fold(
-                    oCurrent.foldMap: twid =>
-                      initializeAutomaticBlindOffset(twid.id.some, isWorking)
-                  ): candidate =>
-                    if oCurrent.forall(_.target =!= candidate.catalogResult.target)
-                    then
-                      setBlindOffset(candidate,
-                                     BlindOffsetType.Automatic,
-                                     oCurrent.map(_.id),
-                                     isWorking
-                      )
-                    else IO.unit
+                  // if there is no usable candidate, delete the current blind offset, if any
+                  list.headOption
+                    .filter(_.isUsable)
+                    .fold(
+                      oCurrent.foldMap: twid =>
+                        initializeAutomaticBlindOffset(twid.id.some, isWorking)
+                    ): candidate =>
+                      if oCurrent.forall(c => !props.isSameStar(c.target, candidate))
+                      then
+                        setBlindOffset(candidate,
+                                       BlindOffsetType.Automatic,
+                                       oCurrent.map(_.id),
+                                       isWorking
+                        )
+                      else IO.unit
                 .getOrElse(IO.unit)
         _                <-
           useEffectWithDeps((candidatesResult.value, props.obsTargets.blindOffset)):
@@ -223,7 +241,7 @@ object BlindOffsetControl
                 .flatMap(_.toOption)
                 .foldMap: list =>
                   val newIndex = oBlindOffset.fold(-1): bo =>
-                    list.indexWhere(c => bo.target === c.catalogResult.target)
+                    list.indexWhere(props.isSameStar(bo.target, _))
                   index.set(newIndex)
       yield
         import ctx.given
@@ -238,59 +256,87 @@ object BlindOffsetControl
                              isWorking
               ).runAsync
 
-        def renderControl(candidates: List[BlindOffsetCandidate]): VdomNode =
+        def renderNavigation(candidates: List[BlindOffsetCandidate]): VdomNode =
           val text = props.obsTargets.blindOffset.fold(
             if candidates.isEmpty then "No candidates found"
             else s"${candidates.length} candidates found"
           ): current =>
-            s"${current.target.name} (${index.get + 1}/${candidates.length} candidates)"
-          NonEmptyList
-            .fromList(candidates)
-            .fold(<.span(text)): nel =>
-              React.Fragment(
-                <.span(
-                  Button(
-                    icon = Icons.ChevronLeft,
-                    tooltip = "Select Previous Candidate",
-                    tooltipOptions = TooltipOptions.ShowOnDisabled,
-                    severity = Button.Severity.Secondary,
-                    disabled = index.get < 1 || isWorking.get.value || props.readonly,
-                    onClick = selectIndex(candidates, index.get - 1)
-                  ).veryCompact,
-                  Button(
-                    icon = Icons.ChevronRight,
-                    tooltip = "Select Next Candidate",
-                    tooltipOptions = TooltipOptions.ShowOnDisabled,
-                    severity = Button.Severity.Secondary,
-                    disabled =
-                      (index.get + 1) >= candidates.length || index.get < 0 || isWorking.get.value || props.readonly,
-                    onClick = selectIndex(candidates, index.get + 1)
-                  ).veryCompact,
-                  text
-                ),
-                <.span(
-                  Button(
-                    label = "Revert to Automatic",
-                    tooltip = "Use automatic blind offset selection",
-                    tooltipOptions = TooltipOptions.Left,
-                    disabled = props.readonly,
-                    onClick = setBlindOffset(
-                      nel.head,
-                      BlindOffsetType.Automatic,
-                      props.blindOffset.get.blindOffsetTargetId,
-                      isWorking
-                    ).runAsync
-                  ).veryCompact.when(props.blindOffset.get.isManual),
-                  Button(
-                    icon = Icons.TrashUnstyled,
-                    severity = Button.Severity.Danger,
-                    tooltip = "Delete blind offset",
-                    tooltipOptions = TooltipOptions.Left,
-                    onClick = deleteBlindOffsetTarget,
-                    disabled = props.readonly
-                  ).veryCompact
-                )
+            val rejection =
+              candidates
+                .lift(index.get)
+                .flatMap(_.rejection)
+                .foldMap(r => s", ${r.shortName}")
+            s"${current.target.name} (${index.get + 1}/${candidates.length} candidates$rejection)"
+          <.span(
+            React
+              .Fragment(
+                Button(
+                  icon = Icons.ChevronLeft,
+                  tooltip = "Select Previous Candidate",
+                  tooltipOptions = TooltipOptions.ShowOnDisabled,
+                  severity = Button.Severity.Secondary,
+                  disabled = index.get < 1 || isWorking.get.value || props.readonly,
+                  onClick = selectIndex(candidates, index.get - 1)
+                ).veryCompact,
+                Button(
+                  icon = Icons.ChevronRight,
+                  tooltip = "Select Next Candidate",
+                  tooltipOptions = TooltipOptions.ShowOnDisabled,
+                  severity = Button.Severity.Secondary,
+                  disabled =
+                    (index.get + 1) >= candidates.length || index.get < 0 || isWorking.get.value || props.readonly,
+                  onClick = selectIndex(candidates, index.get + 1)
+                ).veryCompact
               )
+              .when(candidates.nonEmpty),
+            text
+          )
+
+        def renderUnavailable: VdomNode =
+          val reason = props.instrument.fold("select an observing mode to search for candidates"):
+            i => s"blind offsets are not supported for ${i.shortName}"
+          <.span(
+            props.obsTargets.blindOffset.fold(reason.capitalize)(c => s"${c.target.name} ($reason)")
+          )
+
+        // Kept outside the candidate list so a blind offset can always be reverted or deleted,
+        // even when no candidates can be searched for.
+        def renderActions(candidates: List[BlindOffsetCandidate]): VdomNode =
+          val usable = candidates.headOption.filter(_.isUsable)
+          <.span(
+            Button(
+              label = "Revert to Automatic",
+              tooltip = usable.fold("No usable candidates, the blind offset will be removed")(_ =>
+                "Use automatic blind offset selection"
+              ),
+              tooltipOptions = TooltipOptions.Left,
+              disabled = props.readonly || isWorking.get.value,
+              onClick = usable
+                .fold(
+                  initializeAutomaticBlindOffset(props.blindOffset.get.blindOffsetTargetId,
+                                                 isWorking
+                  )
+                ): candidate =>
+                  setBlindOffset(
+                    candidate,
+                    BlindOffsetType.Automatic,
+                    props.blindOffset.get.blindOffsetTargetId,
+                    isWorking
+                  )
+                .runAsync
+            ).veryCompact.when(props.blindOffset.get.isManual),
+            Button(
+              icon = Icons.TrashUnstyled,
+              severity = Button.Severity.Danger,
+              tooltip = "Delete blind offset",
+              tooltipOptions = TooltipOptions.Left,
+              onClick = deleteBlindOffsetTarget,
+              disabled = props.readonly
+            ).veryCompact
+          )
+
+        val candidates: List[BlindOffsetCandidate] =
+          candidatesResult.value.value.toOption.flatten.flatMap(_.toOption).orEmpty
 
         if props.blindOffset.get.useBlindOffset
         then
@@ -298,12 +344,14 @@ object BlindOffsetControl
             legend = "Blind Offset",
             clazz = ExploreStyles.BlindOffsetControl
           )(
-            candidatesResult.value.value.renderPot(
-              oel =>
-                oel.fold(EmptyVdom): el =>
-                  el.fold(err => s"Error loading candidates: ${err}", renderControl(_)),
-              pendingRender = "Loading candidates..."
-            )
+            props.supportedInstrument.fold(renderUnavailable): _ =>
+              candidatesResult.value.value.renderPot(
+                oel =>
+                  oel.fold(EmptyVdom): el =>
+                    el.fold(err => s"Error loading candidates: ${err}", renderNavigation(_)),
+                pendingRender = "Loading candidates..."
+              ),
+            renderActions(candidates)
           )
         else EmptyVdom
     )
