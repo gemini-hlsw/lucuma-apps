@@ -1489,6 +1489,23 @@ $search-preview-margin: 5px;
   margin-top: 5px;
 }
 
+.explore-sequence-tile-customized {
+  margin-left: 0.75em;
+  color: var(--warning-background-color);
+  font-weight: normal;
+  font-style: italic;
+  letter-spacing: normal;
+
+  svg {
+    margin-left: 0.25em;
+  }
+
+  // The warning orange is too light to read as text on the light title bar
+  .light-theme & {
+    color: var(--orange-700);
+  }
+}
+
 .explore-sequence-tile-title {
   width: 100%;
   display: flex;

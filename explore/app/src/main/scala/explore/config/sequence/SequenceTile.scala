@@ -59,7 +59,15 @@ final case class SequenceTile(
   attachments:             AttachmentList
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
-      "Sequence",
+      <.span(
+        "Sequence",
+        Option.when(obsExecution.scienceSequenceIsCustomized):
+          <.span(ExploreStyles.SequenceTileCustomized)(
+            "Customized",
+            Icons.WandMagicSparkles,
+            testId := "explore-sequence-customized"
+          ).withTooltip(content = "The science sequence has been customized")
+      ),
       canMinimize = !isEditingAcquisition.get && !isEditingScience.get
     )(
       SequenceTile // TODO Move isEditing state here, but we need to be able to change tile state from within tile

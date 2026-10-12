@@ -532,6 +532,7 @@ object ExploreStyles:
   val SequenceTileTitle        = Css("explore-sequence-tile-title")
   val SequenceTileTitleSummary = Css("explore-sequence-tile-title-summary")
   val SequenceTileTitleItem    = Css("explore-sequence-tile-title-item")
+  val SequenceTileCustomized   = Css("explore-sequence-tile-customized")
 
   val ButtonCopy: Css            = Css("explore-button-copy")
   val ButtonSummary: Css         = Css("explore-button-summary")
