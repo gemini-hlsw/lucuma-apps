@@ -90,13 +90,10 @@ As mentioned the theme is mostly based on `slate` but it has been further refine
 
 # Linting
 
-[Stylelint](https://stylelint.io/) has been setup to check for common errors on the css/less/sass files.
+[Stylelint](https://stylelint.io/) checks the scss files, including that every `var(--x)`
+refers to a defined custom property. `stylelint.config.mjs` builds the list of known
+variables from the lucuma-css sources and the stock PrimeReact `arya-blue` theme, which
+lucuma-prime-styles is built on.
 
-A tricky part of using `stylelint` is the way variables are checked.
-A small sed script can take the variables from either the dark or light theme and export them as a `vars.css` file by removing the lines that don't define variables.
-This file in turns is used by `stylelint` to check that all variables required are present.
-To run the linters locally you can do either:
-`npm run lint-dark`
-`npm run lint-light`
-
-Note the light version has false positives as the variables used come from less and not all can be expanded by `stylelint`
+After `pnpm install`, run `sbt lintCheck` (or `sbt lintFix`), or
+`pnpm exec stylelint <dir>` for a single folder.

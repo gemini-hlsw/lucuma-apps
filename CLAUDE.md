@@ -65,9 +65,8 @@ sbt -J-Xmx6g 'project rootJVM' '++ 3' headerCheckAll scalafmtCheckAll \
   'project /' scalafmtSbtCheck lucumaScalafmtCheck lucumaScalafixCheck
 sbt -J-Xmx6g 'project rootJVM' '++ 3' 'scalafixAll --check'
 
-# CSS linting. stylelint.config.mjs reads the lucuma-css SCSS variables directly; the
-# PrimeReact theme variables come from ui/css/target, so run lucumaCss once per checkout.
-sbt -J-Xmx6g '++ 3' ui_css/lucumaCss
+# CSS linting. stylelint.config.mjs reads the lucuma-css SCSS variables and the PrimeReact
+# theme from node_modules, so `pnpm install` is the only prerequisite.
 pnpm exec stylelint explore/common/src/main/webapp/sass
 pnpm exec stylelint observe/web/client/src/main/webapp/styles
 pnpm exec stylelint ui/lib/src/main/resources/lucuma-css

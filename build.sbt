@@ -1064,16 +1064,10 @@ def runCmds(cmds: List[String]): Unit =
   }
 
 val lintCheck: TaskKey[Unit] = taskKey[Unit]("Lint style files")
-lintCheck := {
-  val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
-  runCmds(allLintCmds(fix = false))
-}
+lintCheck := runCmds(allLintCmds(fix = false))
 
 val lintFix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
-lintFix := {
-  val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
-  runCmds(allLintCmds(fix = true))
-}
+lintFix := runCmds(allLintCmds(fix = true))
 
 addCommandAlias(
   "fixImports",
@@ -1331,8 +1325,6 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
   navigate_deploy
 )
 
-lazy val lucumaCssStep = WorkflowStep.Sbt(List("ui_css/lucumaCss"), name = Some("Import CSS files"))
-
 lazy val lintAllStep = WorkflowStep.Run(
   allLintCmds(fix = false),
   name = Some("Run linters")
@@ -1344,7 +1336,6 @@ ThisBuild / githubWorkflowAddedJobs +=
     "Run linters",
     githubWorkflowJobSetup.value.toList :::
       setupNodePnpmInstall :::
-      lucumaCssStep ::
       lintAllStep ::
       Nil,
     scalas = List(scalaVersion.value),

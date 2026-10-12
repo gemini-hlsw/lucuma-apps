@@ -497,9 +497,6 @@ jobs:
       - name: pnpm install
         run: pnpm ci --offline
 
-      - name: Import CSS files
-        run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss
-
       - name: Run linters
         run: |
           pnpm exec stylelint explore/common/src/main/webapp/sass
