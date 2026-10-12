@@ -1119,10 +1119,14 @@ object NavigateEngine {
                             Event(
                               engine
                                 // Unmark the command in progress flag
-                                .modifyState(_.focus(_.commandInProgress).replace(none)) *>
+                                .modifyState(_.focus(_.commandInProgress).replace(none))
+                                // And create an output event with the command result
+                                .as(CommandEnd(cmdType, z).some) <*
                                 // Only then pass the result to the Async callback, so a command issued
                                 // as soon as this one returns is not rejected as in progress
-                                engine.lift(Async[F].delay(f(z.asRight)).as(CommandEnd(cmdType, z)))
+                                Handler.fromStream[F, State, Event[F, State, NavigateEvent]](
+                                  Stream.exec(Async[F].delay(f(z.asRight)))
+                                )
                             )
                           )
                       )
