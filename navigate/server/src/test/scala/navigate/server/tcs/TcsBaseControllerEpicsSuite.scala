@@ -2366,6 +2366,58 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
+  test("Central wavelength command waits for the telescope to be in position if it changed") {
+    val wavelength = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
+
+    for {
+      (st, ctr) <- createController()
+      _         <- st.tcs.update(_.focus(_.sourceAWavelength.value).replace(1000.0.some))
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("FALSE".some))
+      r         <- ctr.centralWavelength(wavelength).timeout(FiniteDuration(3, TimeUnit.SECONDS)).attempt
+    } yield assert(r.left.exists(_.isInstanceOf[java.util.concurrent.TimeoutException]))
+  }
+
+  private def lightPathAtGnPort3(
+    sfParked: Int,
+    sfName:   Option[String]
+  ): IO[(StateRefs[IO], TcsBaseControllerEpics[IO])] =
+    for {
+      x        <- createController(site = Site.GN)
+      (st, ctr) = x
+      _        <- st.ags.update(_.focus(_.gmosPort.value).replace(3.some))
+      _        <- st.ags.update(
+                    _.focus(_.aoParked.value)
+                      .replace(1.some)
+                      .focus(_.hwParked.value)
+                      .replace(1.some)
+                      .focus(_.sfParked.value)
+                      .replace(sfParked.some)
+                      .focus(_.sfName.value)
+                      .replace(sfName)
+                  )
+      // The telescope is in position, the A&G mechanisms are not
+      _        <- st.tcs.update(_.focus(_.agInPosition.value).replace(0.0.some))
+    } yield (st, ctr)
+
+  test("Light path command waits for the A&G mechanisms to be in position if one moves") {
+    for {
+      (_, ctr) <- lightPathAtGnPort3(sfParked = 1, sfName = none)
+      r        <- ctr
+                    .lightPath(LightSource.Sky, LightSink.GmosNorth)
+                    .timeout(FiniteDuration(3, TimeUnit.SECONDS))
+                    .attempt
+    } yield assert(r.left.exists(_.isInstanceOf[java.util.concurrent.TimeoutException]))
+  }
+
+  test("Light path command does not wait for the A&G mechanisms if none has to move") {
+    for {
+      (_, ctr) <- lightPathAtGnPort3(sfParked = 0, sfName = "gmos3".some)
+      r        <- ctr
+                    .lightPath(LightSource.Sky, LightSink.GmosNorth)
+                    .timeout(FiniteDuration(3, TimeUnit.SECONDS))
+    } yield assertEquals(r, ApplyCommandResult.Completed)
+  }
+
   test("Central wavelength command sets the same wavelength on both source A and B beams") {
     val wavelength      = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
     val expectedWavelµm = Wavelength.decimalMicrometers.reverseGet(wavelength).doubleValue
@@ -2396,7 +2448,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.sourceAWavelength.value).replace(5000.0.some))
-      r         <- ctr.centralWavelength(wavelength)
+      _         <- st.tcs.update(_.focus(_.inPosition.value).replace("FALSE".some))
+      r         <- ctr.centralWavelength(wavelength).timeout(FiniteDuration(3, TimeUnit.SECONDS))
     } yield assertEquals(r, ApplyCommandResult.Completed)
   }
 
@@ -3374,7 +3427,13 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     Dispatcher.parallel[IO](true).use { dispatcher =>
       given Dispatcher[IO] = dispatcher
       for {
-        tcs  <- Ref.of[IO, TestTcsEpicsSystem.State](TestTcsEpicsSystem.defaultState)
+        tcs  <- Ref.of[IO, TestTcsEpicsSystem.State](
+                  TestTcsEpicsSystem.defaultState
+                    .focus(_.inPosition.value)
+                    .replace("TRUE".some)
+                    .focus(_.agInPosition.value)
+                    .replace(1.0.some)
+                )
         p1   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
         p2   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
         oiw  <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)

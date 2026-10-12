@@ -80,6 +80,7 @@ case class TcsChannels[F[_]](
   originOffsetClear:        OffsetCommandChannels[F],
   pointingAdjust:           PointingModelAdjustChannels[F],
   inPosition:               Channel[F, String],
+  agInPosition:             Channel[F, Double],
   targetFilter:             TargetFilterChannels[F],
   sourceATargetReadout:     Channel[F, Array[Double]],
   pwfs1TargetReadout:       Channel[F, Array[Double]],
@@ -975,6 +976,7 @@ object TcsChannels {
       p2gs  <- buildProbeTrackingStateChannels(service, tcsTop, "Pwfs2")
       oigs  <- buildProbeTrackingStateChannels(service, tcsTop, "Oiwfs")
       inpo  <- service.getChannel[String](tcsTop.value, "sad:inPosition.VAL")
+      agip  <- service.getChannel[Double](tcsTop.value, "agInPosCalc.VAL")
       tf    <- TargetFilterChannels.build(service, tcsTop)
       satr  <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetA.VAL")
       p1tr  <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetPwfs1.VAL")
@@ -1062,6 +1064,7 @@ object TcsChannels {
       orcl,
       pmad,
       inpo,
+      agip,
       tf,
       satr,
       p1tr,

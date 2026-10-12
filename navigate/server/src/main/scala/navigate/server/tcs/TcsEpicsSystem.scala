@@ -3,6 +3,7 @@
 
 package navigate.server.tcs
 
+import cats.Eq
 import cats.Monad
 import cats.MonadThrow
 import cats.Parallel
@@ -64,6 +65,7 @@ import navigate.server.tcs.TcsEpicsSystem.TcsStatus
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.MILLISECONDS
+import java.util.concurrent.TimeUnit.SECONDS
 import scala.concurrent.duration.FiniteDuration
 
 import encoders.given
@@ -229,17 +231,14 @@ object TcsEpicsSystem {
       stabilizationTime: FiniteDuration,
       timeout:           FiniteDuration
     ): VerifiedEpics[F, F, Unit]
-    def waitPwfs1Sky(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
-    def waitPwfs2Sky(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
-    def waitOiwfsSky(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
+    def waitPwfs1Sky(timeout:     FiniteDuration): VerifiedEpics[F, F, Unit]
+    def waitPwfs2Sky(timeout:     FiniteDuration): VerifiedEpics[F, F, Unit]
+    def waitOiwfsSky(timeout:     FiniteDuration): VerifiedEpics[F, F, Unit]
     def probeGuideEnabled: VerifiedEpics[F, F, BinaryOnOff]
     def probeGuideSource: VerifiedEpics[F, F, String]
     def probeGuideSink: VerifiedEpics[F, F, String]
-    // // `waitAGInPosition` works like `waitInPosition`, but for the AG in-position flag.
-    // /* TODO: AG inposition can take up to 1[s] to react to a TCS command. If the value is read before that, it may induce
-    //   * an error. A better solution is to detect the edge, from not in position to in-position.
-    //   */
-    // def waitAGInPosition(timeout: FiniteDuration)(using T: Timer[F]): F[Unit]
+    // `waitAGInPosition` works like `waitInPosition`, but for the AG in-position flag.
+    def waitAGInPosition(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
     // def hourAngle: F[String]
     // def localTime: F[String]
     // def trackingFrame: F[String]
@@ -374,17 +373,23 @@ object TcsEpicsSystem {
         override val oiwfsProbeGuideState: ProbeGuideState[F]       =
           buildProbeGuideState(channels.telltale, channels.oiProbeTrackingState)
 
-        private val tcsSettleTime    = FiniteDuration(2800, MILLISECONDS)
-        override def waitInPosition(
+        // Waits for `channel` to get the `expected` value and keep it for `stabilizationTime`. The
+        // values seen during the first `settleTime` are ignored, to absorb the transients of the
+        // flag reacting to a command.
+        private def waitForFlag[A: Eq](
+          channel:           Channel[F, A],
+          expected:          A,
+          name:              String,
+          settleTime:        FiniteDuration,
           stabilizationTime: FiniteDuration,
           timeout:           FiniteDuration
         ): VerifiedEpics[F, F, Unit] = {
-          val presV: VerifiedEpics[F, Resource[F, *], (Stream[F, StreamEvent[String]], F[String])] =
+          val presV: VerifiedEpics[F, Resource[F, *], (Stream[F, StreamEvent[A]], F[A])] =
             for {
-              valStr <- VerifiedEpics.eventStream(channels.telltale, channels.inPosition)
+              valStr <- VerifiedEpics.eventStream(channels.telltale, channel)
               valRdr <- VerifiedEpics
-                          .readChannel(channels.telltale, channels.inPosition)
-                          .map(Resource.pure[F, F[String]])
+                          .readChannel(channels.telltale, channel)
+                          .map(Resource.pure[F, F[A]])
             } yield
               for {
                 x <- valStr
@@ -392,19 +397,19 @@ object TcsEpicsSystem {
               } yield (x, y)
 
           presV.map(_.use { pair =>
-            val (stream: Stream[F, StreamEvent[String]], read: F[String]) = pair
+            val (stream: Stream[F, StreamEvent[A]], read: F[A]) = pair
             Temporal[F].realTime.flatMap { t0 =>
               stream
                 .flatMap {
                   case StreamEvent.ValueChanged(v) => Stream(v)
                   case StreamEvent.Disconnected    =>
-                    Stream.raiseError[F](new Throwable(s"TCS in-position channel disconnected"))
+                    Stream.raiseError[F](new Throwable(s"$name channel disconnected"))
                   case _                           => Stream.empty
                 }
-                .keepAlive[F, String](stabilizationTime, read)
+                .keepAlive[F, A](stabilizationTime, read)
                 .zip(Stream.eval(Temporal[F].realTime.map(_ - t0)).repeat)
-                .dropWhile { case (_, t) => t < tcsSettleTime }
-                .mapAccumulate(none[(String, FiniteDuration)]) { case (acc, (v, t)) =>
+                .dropWhile { case (_, t) => t < settleTime }
+                .mapAccumulate(none[(A, FiniteDuration)]) { case (acc, (v, t)) =>
                   acc
                     .map { case (vOld, tOld) =>
                       if (v === vOld)
@@ -416,7 +421,7 @@ object TcsEpicsSystem {
                 }
                 .map(_._2)
                 .unNone
-                .filter(_ === "TRUE")
+                .filter(_ === expected)
                 .head
                 .timeout(timeout)
                 .compile
@@ -424,6 +429,34 @@ object TcsEpicsSystem {
             }
           })
         }
+
+        private val tcsSettleTime = FiniteDuration(2800, MILLISECONDS)
+
+        override def waitInPosition(
+          stabilizationTime: FiniteDuration,
+          timeout:           FiniteDuration
+        ): VerifiedEpics[F, F, Unit] =
+          waitForFlag(channels.inPosition,
+                      "TRUE",
+                      "TCS in-position",
+                      tcsSettleTime,
+                      stabilizationTime,
+                      timeout
+          )
+
+        // The AG in-position flag can take up to 1 s to react to a command, so, like in Observe,
+        // its value is only trusted after that.
+        private val agSettleTime    = FiniteDuration(1100, MILLISECONDS)
+        private val agStabilizeTime = FiniteDuration(1, SECONDS)
+
+        override def waitAGInPosition(timeout: FiniteDuration): VerifiedEpics[F, F, Unit] =
+          waitForFlag(channels.agInPosition,
+                      1.0,
+                      "AG in-position",
+                      agSettleTime,
+                      agStabilizeTime,
+                      timeout
+          )
 
         //  WFS monitoring period
         val WfsMonitorDelay: FiniteDuration = FiniteDuration(500, TimeUnit.MILLISECONDS)
