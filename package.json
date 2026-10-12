@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@12.11.2",
   "devDependencies": {
+    "postcss-scss": "4.0.9",
     "prettier": "3.9.9",
     "stylelint": "17.16.0",
     "stylelint-color-format": "1.1.0",

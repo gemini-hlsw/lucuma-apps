@@ -497,21 +497,11 @@ jobs:
       - name: pnpm install
         run: pnpm ci --offline
 
-      - name: Import CSS files
-        run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss
-
       - name: Run linters
         run: |
-          find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$/p' -e '/^[[:space:]]*--[^;]*$/,/;$/p' {} + >vars.css
           pnpm exec stylelint explore/common/src/main/webapp/sass
           pnpm exec stylelint observe/web/client/src/main/webapp/styles
           pnpm exec stylelint ui/lib/src/main/resources/lucuma-css
-          rm vars.css
-          find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$/p' -e '/^[[:space:]]*--[^;]*$/,/;$/p' {} + >vars.css
-          pnpm exec stylelint explore/common/src/main/webapp/sass
-          pnpm exec stylelint observe/web/client/src/main/webapp/styles
-          pnpm exec stylelint ui/lib/src/main/resources/lucuma-css
-          rm vars.css
           pnpm exec prettier --check .
 
   affected:
