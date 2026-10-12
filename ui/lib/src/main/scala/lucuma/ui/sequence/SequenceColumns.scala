@@ -13,6 +13,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
+import lucuma.core.enums.GmosAmpGain
+import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Angle
@@ -359,6 +361,21 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private lazy val gmosReadModeCol: colDef.TypeFor[Option[(GmosAmpReadMode, GmosAmpGain)]] =
+    colDef(
+      SequenceColumns.ReadModeColumnId,
+      _.getStep.flatMap(_.gmosReadMode),
+      header = "Read Mode",
+      cell = _.value.fold(EmptyVdom): (readMode, gain) =>
+        // GmosAmpReadMode's shortName is lower case, so we use longName.
+        <.span(s"${readMode.longName}, ${gain.shortName}")
+          .withTooltip(
+            content = s"${readMode.longName}, ${gain.shortName} Gain",
+            showDelay = 100,
+            position = Tooltip.Position.Top
+          )
+    )
+
   private lazy val gcalCol: colDef.TypeFor[Option[NonEmptyString]] =
     colDef(
       SequenceColumns.GCalColumnId,
@@ -521,6 +538,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       filterCol,
       xBinCol,
       yBinCol,
+      gmosReadModeCol,
       roiCol,
       gcalCol,
       peakCol,
@@ -678,9 +696,10 @@ object SequenceColumns:
 
     val ForGmos: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
-        XBinColumnId -> FixedSize(60.toPx),
-        YBinColumnId -> FixedSize(60.toPx),
-        ROIColumnId  -> Resizable(75.toPx, min = 75.toPx)
+        XBinColumnId     -> FixedSize(60.toPx),
+        YBinColumnId     -> FixedSize(60.toPx),
+        ROIColumnId      -> Resizable(75.toPx, min = 75.toPx),
+        ReadModeColumnId -> Resizable(85.toPx, min = 75.toPx, max = 130.toPx)
       )
 
     val ForFlamingos2: Map[ColumnId, ColumnSize] =
@@ -749,6 +768,7 @@ object SequenceColumns:
       PeakColumnId,
       SNColumnId,
       ROIColumnId,
+      ReadModeColumnId,
       XBinColumnId,
       YBinColumnId,
       FilterColumnId,

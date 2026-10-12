@@ -9,6 +9,8 @@ import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.enums.GmosAmpGain
+import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.Igrins2FowlerSamples
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
@@ -183,6 +185,10 @@ sealed trait SequenceRow[+D]:
   lazy val readoutYBin: Option[String] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(readout = readout) => readout.yBin.shortName
     case gmos.DynamicConfig.GmosSouth(readout = readout) => readout.yBin.shortName
+
+  lazy val gmosReadMode: Option[(GmosAmpReadMode, GmosAmpGain)] = instrumentConfig.collect:
+    case gmos.DynamicConfig.GmosNorth(readout = readout) => (readout.ampReadMode, readout.ampGain)
+    case gmos.DynamicConfig.GmosSouth(readout = readout) => (readout.ampReadMode, readout.ampGain)
 
   lazy val readMode: Option[String] = instrumentConfig.collect:
     case Flamingos2DynamicConfig(readMode = readMode) => readMode.shortName
