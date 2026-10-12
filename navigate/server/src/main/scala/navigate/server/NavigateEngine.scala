@@ -1112,10 +1112,8 @@ object NavigateEngine {
                     Stream
                       .eval(
                         // x is the F that executes the command. It will be evaluated in the main Stream join and produce a result.
-                        // The result is then passed to the Async callback.
                         x.attempt
                           .map(cmdResultToNavigateEvent)
-                          .flatTap(y => Async[F].delay(f(y.asRight)))
                           .map(z =>
                             // Here we build the State that will be evaluated at the end
                             Event(
@@ -1123,7 +1121,12 @@ object NavigateEngine {
                                 // Unmark the command in progress flag
                                 .modifyState(_.focus(_.commandInProgress).replace(none))
                                 // And create an output event with the command result
-                                .as(CommandEnd(cmdType, z).some)
+                                .as(CommandEnd(cmdType, z).some) <*
+                                // Only then pass the result to the Async callback, so a command issued
+                                // as soon as this one returns is not rejected as in progress
+                                Handler.fromStream[F, State, Event[F, State, NavigateEvent]](
+                                  Stream.exec(Async[F].delay(f(z.asRight)))
+                                )
                             )
                           )
                       )
