@@ -178,6 +178,10 @@ object Icons {
   val faExclamationDiamond: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-light-svg-icons", "faWandMagicSparkles")
+  val faWandMagicSparkles: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faSkullCrossbones")
   val faSkullCrossbones: FAIcon = js.native
 
@@ -491,6 +495,7 @@ object Icons {
     faUserPlus,
     faExclamationTriangle,
     faExclamationDiamond,
+    faWandMagicSparkles,
     faSkullCrossbones,
     faCheck,
     faChevronRight,
@@ -596,6 +601,7 @@ object Icons {
   val Ban                         = FontAwesomeIcon(faBan)
   val ExclamationTriangle         = FontAwesomeIcon(faExclamationTriangle)
   val ExclamationDiamond          = FontAwesomeIcon(faExclamationDiamond)
+  val WandMagicSparkles           = FontAwesomeIcon(faWandMagicSparkles)
   val UserGears                   = FontAwesomeIcon(faUserGears)
   val UserGroupSimple             = FontAwesomeIcon(faUserGroupSimple)
   val UserMagnifyingGlass         = FontAwesomeIcon(faUserMagnifyingGlass)

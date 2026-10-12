@@ -30,6 +30,7 @@ final case class Execution(
   originalEstimate:                  Option[ProgramTime],
   acquisitionSequenceIsMaterialized: Boolean,
   scienceSequenceIsMaterialized:     Boolean,
+  scienceSequenceIsCustomized:       Boolean,
   executionState:                    ExecutionState
 ) derives Eq:
   val hasMaterializedSequence: Boolean =
@@ -78,5 +79,6 @@ object Execution:
             )
       a  <- c.get[Boolean]("acquisitionSequenceIsMaterialized")
       s  <- c.get[Boolean]("scienceSequenceIsMaterialized")
+      sc <- c.get[Boolean]("scienceSequenceIsCustomized")
       es <- c.get[ExecutionState]("executionState")
-    yield Execution(d, pt, oe, a, s, es)
+    yield Execution(d, pt, oe, a, s, sc, es)
