@@ -364,7 +364,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.GCalColumnId,
       _.getStep.flatMap(_.gcal),
       header = "GCal",
-      cell = _.value.map(_.value).orEmpty
+      cell = _.value.fold(EmptyVdom): gcal =>
+        <.span(gcal.value)
+          .withTooltip(
+            content = gcal.value,
+            showDelay = 100,
+            position = Tooltip.Position.Top
+          )
     )
 
   private def ghostDetectorCols(
@@ -516,6 +522,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       xBinCol,
       yBinCol,
       roiCol,
+      gcalCol,
       peakCol,
       snCol
     )
@@ -534,6 +541,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       gratingCol,
       filterCol,
       readModeCol,
+      gcalCol,
       peakCol,
       snCol
     )
@@ -663,6 +671,7 @@ object SequenceColumns:
       FPUColumnId        -> Resizable(132.toPx, min = 132.toPx),
       GratingColumnId    -> Resizable(120.toPx, min = 120.toPx),
       FilterColumnId     -> Resizable(90.toPx, min = 90.toPx),
+      GCalColumnId       -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx),
       SNColumnId         -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx),
       PeakColumnId       -> Resizable(85.toPx, min = 85.toPx, max = 130.toPx)
     )
