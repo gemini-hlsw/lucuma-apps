@@ -28,12 +28,12 @@ import explore.model.boopickle.ItcPicklers.given
 import explore.model.enums.Visible
 import explore.model.itc.*
 import explore.model.reusability.given
+import explore.modes.AdaptiveOpticsFilter
 import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.AltairMode
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.TotalSN
 import lucuma.core.model.ConstraintSet
@@ -41,7 +41,6 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.itc.AltairParameters
 import lucuma.react.circularprogressbar.CircularProgressbar
 import lucuma.react.common.Css
 import lucuma.react.fa.IconSize
@@ -97,21 +96,31 @@ trait ModesTableCommon:
   /**
    * Re-points the selection at the current rows, dropping selections whose row is gone. Rows are
    * matched by mode, since a reverted configuration carries the observation's Altair guide star,
-   * not the table's. Altair selections are kept while the table's guide star search runs, as their
-   * rows only appear once it is done.
+   * not the table's. A selection whose row is gone is kept when `retain` holds for its
+   * configuration (see `retainAltairSelection`).
    */
   def resyncSelection[Row <: TableRowWithResult](
-    rows:       List[Row],
-    selection:  View[ConfigSelection],
-    agsRunning: Boolean
+    rows:      List[Row],
+    selection: View[ConfigSelection],
+    retain:    ItcInstrumentConfig => Boolean
   ): Callback =
     val oldCfgs = selection.get.configs
     val newCfgs = oldCfgs.flatMap: cfg =>
       rows
         .find(_.config.sameModeAs(cfg.instrumentConfig))
         .map(_.configAndResult)
-        .orElse(Option.when(agsRunning && cfg.instrumentConfig.altairMode.isDefined)(cfg))
+        .orElse(Option.when(retain(cfg.instrumentConfig))(cfg))
     Callback.when(oldCfgs =!= newCfgs)(selection.set(ConfigSelection.fromList(newCfgs)))
+
+  /**
+   * Altair selections survive a missing row while the guide star search runs, as their rows only
+   * appear once it is done. A row the AO filter hides is dropped like any other missing row.
+   */
+  def retainAltairSelection(
+    agsRunning: Boolean,
+    filter:     AdaptiveOpticsFilter
+  ): ItcInstrumentConfig => Boolean =
+    cfg => cfg.altairMode.exists(mode => agsRunning && filter.admits(mode.some))
 
   object ScrollTo extends NewBoolean:
     inline def Scroll = True; inline def NoScroll = False
@@ -404,8 +413,7 @@ trait ModesTableCommon:
     constraints:         ConstraintSet,
     targets:             Option[NonEmptyList[ItcTarget]],
     customSedTimestamps: List[Timestamp],
-    sortedRows:          Reusable[List[Row]],
-    altairParams:        Map[AltairMode, AltairParameters]
+    sortedRows:          Reusable[List[Row]]
   ): HookResult[ItcHookData] =
     for {
       ctx    <- useContext(AppContext.ctx)
@@ -423,11 +431,18 @@ trait ModesTableCommon:
                     .flatten
                     .toList
                     .distinct
-      // A new Altair guide star changes the Altair rows' configs but not the row count.
+      // Keyed on the visible configs rather than the row count: an AO filter switch or a new Altair
+      // guide star can replace rows without changing how many there are. A set, so sorting doesn't
+      // restart the requests.
       _      <-
         useEffectStreamResourceWithDeps(
-          (expTimeMode, constraints, targets, customSedTimestamps, sortedRows.length, altairParams)
-        ): (expTimeMode, constraints, asterism, customSedTimestamps, _, _) =>
+          (expTimeMode,
+           constraints,
+           targets,
+           customSedTimestamps,
+           sortedRows.value.map(_.config).toSet
+          )
+        ): (expTimeMode, constraints, asterism, customSedTimestamps, _) =>
           import ctx.given
 
           // We need to check exposure time mode because it must be set for the ITC request,

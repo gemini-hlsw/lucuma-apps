@@ -80,6 +80,7 @@ final case class ImagingModesTable(
   capability:          Option[ImagingCapability],
   instrument:          Option[Instrument],
   showFilters:         View[Visible],
+  aoFilter:            AdaptiveOpticsFilter,
   altairParams:        Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(ImagingModesTable.component)
 
@@ -256,7 +257,8 @@ object ImagingModesTable extends ModesTableCommon:
                             dec,
                             props.capability,
                             props.instrument,
-                            props.altairParams
+                            props.altairParams,
+                            props.aoFilter
                           ):
                             (
                               matrix,
@@ -271,11 +273,13 @@ object ImagingModesTable extends ModesTableCommon:
                               dec,
                               capability,
                               instrument,
-                              altairParams
+                              altairParams,
+                              aoFilter
                             ) =>
                               matrix
                                 .filtered(minimumFov, fts, capability, dec, instrument)
                                 .flatMap(_.withAltairParameters(altairParams.toOption.getOrElse(Map.empty)))
+                                .filter(row => aoFilter.admits(row.altair))
                                 .sortBy(!_.enabled)
                                 // The ODB computes the default binning from the full asterism
                                 .map(
@@ -366,8 +370,7 @@ object ImagingModesTable extends ModesTableCommon:
                             props.constraints,
                             effectiveTargets,
                             props.customSedTimestamps,
-                            sortedRows,
-                            props.altairParams.toOption.getOrElse(Map.empty)
+                            sortedRows
                           )
       // Notify parent of target selection
       _                <- useEffectWithDeps((props.targetView.get, props.targets.toOption)):
@@ -375,11 +378,13 @@ object ImagingModesTable extends ModesTableCommon:
                               selectedTarget match
                                 case None => props.targetView.set(targets.map(_.head))
                                 case _    => Callback.empty
-      // Set the selected config if the rows change because the new rows may no longer contain
       // one or more of the selected rows or the itc results may have changed.
       // Note, we use rows for the dependency, not sorted rows, because sorted rows also changes with sort.
       _                <- useEffectWithDeps(rows): rs =>
-                            resyncSelection(rs.value, props.selectedConfigs, props.altairParams.isPending)
+                            resyncSelection(rs.value,
+                                            props.selectedConfigs,
+                                            retainAltairSelection(props.altairParams.isPending, props.aoFilter)
+                            )
       selectedIndices  <-
         useMemo((sortedRows, props.selectedConfigs.get)): (sortRows, selectedConfigs) =>
           selectedConfigs.configs
@@ -397,8 +402,10 @@ object ImagingModesTable extends ModesTableCommon:
                                   scrollTo.set(ScrollTo.NoScroll)
                               )
     } yield
-      val errlabel      = itcHookData.errorLabel(true)
-      val selectedCount = props.selectedConfigs.get.count
+      val errlabel: List[VdomNode]     = itcHookData.errorLabel(true)
+      val selectedCount: Int           = props.selectedConfigs.get.count
+      val isAwaitingGuideStar: Boolean =
+        props.altairParams.isPending && props.aoFilter.awaitsGuideStar
 
       // Target selector
       val targetSelector = props.targets.toOption.map { targets =>
@@ -488,11 +495,11 @@ object ImagingModesTable extends ModesTableCommon:
               virtualizerRef,
               visibleRows.get
             )
-          ).unless(props.altairParams.isPending),
+          ).unless(isAwaitingGuideStar),
           <.div(ExploreStyles.SpectroscopyTableEmpty)(
             Icons.Spinner.withSpin(true),
             " ",
             AltairControls.AwaitingAltairGuideStarMessage
-          ).when(props.altairParams.isPending)
+          ).when(isAwaitingGuideStar)
         )
       )

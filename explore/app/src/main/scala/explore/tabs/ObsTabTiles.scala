@@ -456,14 +456,13 @@ object ObsTabTiles:
           )
 
         // The reverted config must carry the observation's Altair mode to land on its table row.
-        // NGS/LGS take the table's guide star when it has one, else the observation's; LGS+P1 has
-        // no row of its own (its guider is chosen once the mode exists), so it reverts to the
-        // plain row.
+        // NGS/LGS take the table's guide star when it has one, else the observation's; LGS+P1
+        // needs no guide star.
         val revertedAltairParameters: Option[AltairParameters] =
           obsConf.altair.flatMap: altair =>
             altair.mode match
               case AltairMode.LgsP1                         =>
-                none
+                AltairParameters.LgsP1.some
               case mode @ (AltairMode.Ngs | AltairMode.Lgs) =>
                 altairParams.toOption.flatMap(_.get(mode)).orElse(altairItcParameters)
 

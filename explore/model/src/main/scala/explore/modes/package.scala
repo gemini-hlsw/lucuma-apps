@@ -44,30 +44,34 @@ object ScienceModes:
   val empty = ScienceModes(SpectroscopyModesMatrix.empty, ImagingModesMatrix.empty)
 
 object AltairModeRows:
-  // LGS+P1 performance does not depend on the guide star, so it is left to the guider selector
-  // once the mode exists instead of getting a row of its own.
-  val TableAltairModes: List[AltairMode] = List(AltairMode.Ngs, AltairMode.Lgs)
+  // Each AO-capable row gets a copy per Altair mode. LGS+P1 is computed by the ITC without a guide
+  // star.
+  val TableAltairModes: List[AltairMode] =
+    List(AltairMode.Ngs, AltairMode.Lgs, AltairMode.LgsP1)
 
-  // Each row of an instrument supporting Altair is followed by one copy per table Altair mode.
-  def expand[A](rows: List[A])(instrumentConfig: A => ItcInstrumentConfig)(
-    withAltair: (A, AltairMode) => A
-  ): List[A] =
+  // The modes whose ITC parameters come from a guide star, so the table runs an AGS search for them.
+  val GuideStarAltairModes: List[AltairMode] = List(AltairMode.Ngs, AltairMode.Lgs)
+
+  // The ODB matrix flags the modes that can be used with AO. Each of those rows is followed by one
+  // copy per table Altair mode.
+  def expand[A](rows: List[A])(ao: A => ModeAO)(withAltair: (A, AltairMode) => A): List[A] =
     rows.flatMap: row =>
-      if instrumentConfig(row).instrument.supportsAltair then
-        row :: TableAltairModes.map(withAltair(row, _))
+      if ao(row) === ModeAO.AO then row :: TableAltairModes.map(withAltair(row, _))
       else List(row)
 
-  // A row's Altair mode is only usable with the parameters of a guide star for it.
+  // NGS and LGS rows are only usable with the parameters of a guide star for their mode. LGS+P1
+  // needs no guide star.
   def instrumentConfigWith(
     instrumentConfig: ItcInstrumentConfig,
     altair:           Option[AltairMode],
     parameters:       Map[AltairMode, AltairParameters]
   ): Option[ItcInstrumentConfig] =
-    altair.fold(instrumentConfig.some): mode =>
-      parameters.get(mode).map(p => instrumentConfig.withAltair(p.some))
+    altair.fold(instrumentConfig.some):
+      case AltairMode.LgsP1 => instrumentConfig.withAltair(AltairParameters.LgsP1.some).some
+      case mode             => parameters.get(mode).map(p => instrumentConfig.withAltair(p.some))
 
   def expandSpectroscopy(rows: List[SpectroscopyModeRow]): List[SpectroscopyModeRow] =
-    expand(rows)(_.instrumentConfig)((row, mode) => row.copy(altair = mode.some))
+    expand(rows)(_.ao)((row, mode) => row.copy(altair = mode.some))
 
   def expandImaging(rows: List[ImagingModeRow]): List[ImagingModeRow] =
-    expand(rows)(_.instrumentConfig)((row, mode) => row.copy(altair = mode.some))
+    expand(rows)(_.ao)((row, mode) => row.copy(altair = mode.some))
