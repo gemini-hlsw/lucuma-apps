@@ -20,12 +20,12 @@ class AppConfigSuite extends FunSuite:
       |  {
       |    "hostName": "*",
       |    "environment": "DEVELOPMENT",
-      |    "odbURI": "wss://odb-dev.lucuma.xyz/ws",
-      |    "odbRestURI": "https://odb-dev.lucuma.xyz",
-      |    "preferencesDBURI": "wss://gpp-prefs-dev.lucuma.xyz/v1/graphql",
-      |    "itcURI": "https://itc-dev.lucuma.xyz/itc",
+      |    "odbURI": "wss://odb-dev.gpp.gemini.edu/ws",
+      |    "odbRestURI": "https://odb-dev.gpp.gemini.edu",
+      |    "preferencesDBURI": "wss://prefs-dev.gpp.gemini.edu/v1/graphql",
+      |    "itcURI": "https://itc-dev.gpp.gemini.edu/itc",
       |    "sso": {
-      |      "uri": "https://sso-dev.gpp.lucuma.xyz",
+      |      "uri": "https://sso-dev.gpp.gemini.edu",
       |      "readTimeoutSeconds": 10,
       |      "expirationAnticipationSeconds": 10
       |    },
@@ -37,10 +37,10 @@ class AppConfigSuite extends FunSuite:
     AppConfig.parseConf("anyhost", DeployedJson) match
       case Right(cfg) =>
         assertEquals(cfg.hostName, "*")
-        assertEquals(cfg.odbURI.renderString, "wss://odb-dev.lucuma.xyz/ws")
-        assertEquals(cfg.odbRestURI.renderString, "https://odb-dev.lucuma.xyz")
-        assertEquals(cfg.preferencesDBURI.renderString, "wss://gpp-prefs-dev.lucuma.xyz/v1/graphql")
-        assertEquals(cfg.itcURI.renderString, "https://itc-dev.lucuma.xyz/itc")
+        assertEquals(cfg.odbURI.renderString, "wss://odb-dev.gpp.gemini.edu/ws")
+        assertEquals(cfg.odbRestURI.renderString, "https://odb-dev.gpp.gemini.edu")
+        assertEquals(cfg.preferencesDBURI.renderString, "wss://prefs-dev.gpp.gemini.edu/v1/graphql")
+        assertEquals(cfg.itcURI.renderString, "https://itc-dev.gpp.gemini.edu/itc")
         assertEquals(
           cfg.otelEndpoint.map(_.value.renderString),
           Some("https://otel-collector.gpp.gemini.edu/v1/traces")

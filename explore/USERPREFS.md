@@ -74,15 +74,15 @@ Changes should be first tested on user-prefs-master to be later applied to
 - user-prefs
 
 ```
-hasura migrate apply --endpoint https://gpp-prefs-dev.lucuma.xyz
-hasura metadata apply --endpoint https://gpp-prefs-dev.lucuma.xyz
+hasura migrate apply --endpoint https://prefs-dev.gpp.gemini.edu
+hasura metadata apply --endpoint https://prefs-dev.gpp.gemini.edu
 ```
 
 If you update a table that is used as a GraphQL Enum, such as `lucumaGridLayoutPositions`,
 the GraphQL enums might be out of sync. So, it is probably safest to always run:
 
 ```
-hasura metadata reload --endpoint https://gpp-prefs-dev.lucuma.xyz
+hasura metadata reload --endpoint https://prefs-dev.gpp.gemini.edu
 ```
 
 For more information visit:

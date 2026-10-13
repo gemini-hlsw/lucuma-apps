@@ -2,12 +2,12 @@
   {
     "hostName": "*",
     "environment": "DEVELOPMENT",
-    "odbURI": "wss://odb-dev.lucuma.xyz/ws",
-    "odbRestURI": "https://odb-dev.lucuma.xyz",
-    "preferencesDBURI": "wss://gpp-prefs-dev.lucuma.xyz/v1/graphql",
-    "itcURI": "https://itc-dev.lucuma.xyz/itc",
+    "odbURI": "wss://odb-dev.gpp.gemini.edu/ws",
+    "odbRestURI": "https://odb-dev.gpp.gemini.edu",
+    "preferencesDBURI": "wss://prefs-dev.gpp.gemini.edu/v1/graphql",
+    "itcURI": "https://itc-dev.gpp.gemini.edu/itc",
     "sso": {
-      "uri": "https://sso-dev.gpp.lucuma.xyz",
+      "uri": "https://sso-dev.gpp.gemini.edu",
       "readTimeoutSeconds": 10,
       "expirationAnticipationSeconds": 10
     },

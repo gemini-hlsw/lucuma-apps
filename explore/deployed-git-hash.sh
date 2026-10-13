@@ -8,7 +8,7 @@ set -euo pipefail
 
 hosts=("$@")
 if [[ ${#hosts[@]} -eq 0 ]]; then
-  hosts=(explore-dev.lucuma.xyz explore-test.gemini.edu explore.gemini.edu)
+  hosts=(explore-dev.gemini.edu explore-test.gemini.edu explore.gemini.edu)
 fi
 
 for host in "${hosts[@]}"; do
