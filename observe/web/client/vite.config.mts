@@ -116,6 +116,6 @@ export default defineConfig(async ({ mode }) => {
         },
       },
     },
-    plugins: [mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }), fontImport, react()],
+    plugins: [mkcert({ hosts: ['localhost', 'local.gemini.edu'] }), fontImport, react()],
   } satisfies UserConfig;
 });

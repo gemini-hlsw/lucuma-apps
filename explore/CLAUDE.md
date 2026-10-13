@@ -9,7 +9,7 @@ sbt -J-Xmx6g '~explore_app/fastLinkJS'
 # Terminal 2: install deps + start Vite dev server
 pnpm install --frozen-lockfile --filter explore --prefer-offline
 cd explore && pnpm exec vite
-# Serves at https://local.lucuma.xyz:8080
+# Serves at https://local.gemini.edu:8080
 ```
 
 ## The observation subquery

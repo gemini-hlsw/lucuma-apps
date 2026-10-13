@@ -19,11 +19,11 @@ a key or use sops-nix
 export FONTAWESOME_NPM_AUTH_TOKEN=...
 ```
 
-For auth to work you need your app to run on the `lucuma.xyz` domain, the simplest way
+For auth to work you need your app to run on the `gemini.edu` domain, the simplest way
 is to setup `/etc/host` adding an alias for `localhost`
 
 ```
-127.0.0.1   localhost local.lucuma.xyz
+127.0.0.1   localhost local.gemini.edu
 ```
 
 Alternatively if you run a home DNS server you can provide a local alias. This has the benefit
@@ -41,7 +41,7 @@ calling the command `pnpm dev`. Or, from the root directory, `pnpm explore dev`.
 You may need to update your node modules via `pnpm install`
 
 With that you can open the app at:
-http://local.lucuma.xyz:8080/
+http://local.gemini.edu:8080/
 
 ## Overriding endpoints locally
 
@@ -72,11 +72,11 @@ pnpm explore build && pnpm explore serve
 ```
 
 As before you can now see the app locally but in a different port
-http://local.lucuma.xyz:5000/
+http://local.gemini.edu:5000/
 
 ## Testing PWA locally
 
-Besides doing a full deployment you need to comment out the condition about local.lucuma.xyz on main.jsx
+Besides doing a full deployment you need to comment out the condition about local.gemini.edu on main.jsx
 
 Normally you want to test changes thus you need to do even a tiny change and build again to trigger an update prompt.
 

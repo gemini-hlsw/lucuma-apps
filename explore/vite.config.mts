@@ -242,7 +242,7 @@ export default defineConfig(async ({ mode }) => {
       cors: { origin: '*' },
       hmr: {
         port: 8080,
-        host: 'local.lucuma.xyz',
+        host: 'local.gemini.edu',
         clientPort: 8080,
         // Reduce HMR overhead
         overlay: false,
@@ -298,7 +298,7 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       noStoreForWorkersBundlePlugin(),
       reloadEnvPlugin(publicDirProd, publicDirDev),
-      mkcert({ hosts: ['localhost', 'local.lucuma.xyz', 'local.gemini.edu'] }),
+      mkcert({ hosts: ['localhost', 'local.gemini.edu'] }),
       fontImport,
       VitePWA({
         injectRegister: 'inline',

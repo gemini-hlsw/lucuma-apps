@@ -30,17 +30,13 @@ import { registerSW } from 'virtual:pwa-register';
 fetch('/environments.conf.json').then((response) => {
   response.json().then((environments) => {
     // Setup the Service Worker, before Explore is started
-    if (
-      'serviceWorker' in navigator &&
-      !/local.lucuma.xyz/.test(window.location) &&
-      !/local.gemini.edu/.test(window.location)
-    ) {
+    if ('serviceWorker' in navigator && !/local.gemini.edu/.test(window.location)) {
       ExplorePWA.runServiceWorker();
     }
 
     // Allow override of environments via environment variables
     // It only makes sense for local dev
-    if (/local.lucuma.xyz/.test(window.location) || /local.gemini.edu/.test(window.location)) {
+    if (/local.gemini.edu/.test(window.location)) {
       // Override the dev env, it is just a json object we can update in place
       const dev = environments.find((e) => e.hostName === '*');
       if (dev) {

@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      allowedHosts: ['local.lucuma.xyz'],
+      allowedHosts: ['local.gemini.edu'],
       watch: {
         ignored: [
           function ignoreThisPath(_path) {

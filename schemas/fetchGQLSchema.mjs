@@ -28,7 +28,7 @@ const endpoints = {
   },
   sso: {
     local: 'http://localhost:8080/graphql',
-    dev: 'https://sso-dev.gpp.lucuma.xyz/graphql',
+    dev: 'https://sso-dev.gpp.gemini.edu/graphql',
     staging: 'https://lucuma-sso-staging.herokuapp.com/graphql',
   },
 };

@@ -43,7 +43,7 @@ The server reads `conf/<SITE>/site.conf` from the directory above its classes, f
 
    The start-up log lists the configuration files it loads, and should show `conf/local/site.conf (present: true)`. The server then serves HTTPS on `https://localhost:9090`.
 
-The certificate is self-signed for `local.lucuma.xyz`, so clients must not verify it. Observe does not verify Navigate's certificate, nor Navigate Observe's, as they run in the same closed network. See the Observe README to point Observe at a Navigate server over HTTPS.
+The certificate is self-signed for `local.gemini.edu`, so clients must not verify it. Observe does not verify Navigate's certificate, nor Navigate Observe's, as they run in the same closed network. See the Observe README to point Observe at a Navigate server over HTTPS.
 
 # Running in Test and Production
 
