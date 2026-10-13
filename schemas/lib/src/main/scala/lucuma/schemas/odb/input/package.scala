@@ -665,20 +665,25 @@ extension (tcg: TelescopeConfigGenerator)
   def toInput: TelescopeConfigGeneratorInput =
     tcg match
       case TelescopeConfigGenerator.Enumerated(values)                                        =>
-        TelescopeConfigGeneratorInput.Enumerated:
-          EnumeratedTelescopeConfigGeneratorInput(values.toList.map(_.toInput))
+        TelescopeConfigGeneratorInput(enumerated =
+          EnumeratedTelescopeConfigGeneratorInput(values.toList.map(_.toInput)).assign
+        )
       case TelescopeConfigGenerator.FromOffsetGenerator(OffsetGenerator.Random(size, center)) =>
-        TelescopeConfigGeneratorInput.Random:
-          RandomTelescopeConfigGeneratorInput(size.toInput, center.toInput.assign)
+        TelescopeConfigGeneratorInput(random =
+          RandomTelescopeConfigGeneratorInput(size.toInput, center.toInput.assign).assign
+        )
       case TelescopeConfigGenerator.FromOffsetGenerator(OffsetGenerator.Spiral(size, center)) =>
-        TelescopeConfigGeneratorInput.Spiral:
-          SpiralTelescopeConfigGeneratorInput(size.toInput, center.toInput.assign)
+        TelescopeConfigGeneratorInput(spiral =
+          SpiralTelescopeConfigGeneratorInput(size.toInput, center.toInput.assign).assign
+        )
       case TelescopeConfigGenerator.FromOffsetGenerator(
             OffsetGenerator.Uniform(cornerA, cornerB)
           ) =>
-        TelescopeConfigGeneratorInput.Uniform:
-          UniformTelescopeConfigGeneratorInput(cornerA.toInput, cornerB.toInput)
-      case _                                                                                  => ???
+        TelescopeConfigGeneratorInput(uniform =
+          UniformTelescopeConfigGeneratorInput(cornerA.toInput, cornerB.toInput).assign
+        )
+      case _                                                                                  =>
+        TelescopeConfigGeneratorInput()
 
 extension (iv: ImagingVariant.Grouped)
   def toInput: GroupedImagingVariantInput =
@@ -850,9 +855,9 @@ extension (a: SlitTelescopeConfigs)
   def toInput: SlitTelescopeConfigsInput =
     a match
       case SlitTelescopeConfigs.AlongSlit(value) =>
-        SlitTelescopeConfigsInput(alongSlit = value.toList.map(_.toInput).assign)
+        SlitTelescopeConfigsInput.AlongSlit(value.toList.map(_.toInput))
       case SlitTelescopeConfigs.ToSky(value)     =>
-        SlitTelescopeConfigsInput(toSky = value.toList.map(_.toInput).assign)
+        SlitTelescopeConfigsInput.ToSky(value.toList.map(_.toInput))
 
 extension (a: ObservingMode.GnirsLongSlit)
   def toInput: GnirsLongSlitInput = GnirsLongSlitInput(
@@ -1289,17 +1294,11 @@ extension (f2: Flamingos2FpuMask.Custom)
 
 extension (g: GmosFpuMask[GmosSouthFpu])
   def toInput: GmosSouthFpuInput =
-    GmosSouthFpuInput(
-      customMask = g.custom.map(_.toInput).orUnassign,
-      builtin = g.builtinFpu.orUnassign
-    )
+    g.fold(b => GmosSouthFpuInput.Builtin(b.value), c => GmosSouthFpuInput.CustomMask(c.toInput))
 
 extension (g: GmosFpuMask[GmosNorthFpu])
   def toInput: GmosNorthFpuInput =
-    GmosNorthFpuInput(
-      customMask = g.custom.map(_.toInput).orUnassign,
-      builtin = g.builtinFpu.orUnassign
-    )
+    g.fold(b => GmosNorthFpuInput.Builtin(b.value), c => GmosNorthFpuInput.CustomMask(c.toInput))
 
 extension (mask: Flamingos2FpuMask)
   def toInput: Input[Flamingos2FpuMaskInput] =
