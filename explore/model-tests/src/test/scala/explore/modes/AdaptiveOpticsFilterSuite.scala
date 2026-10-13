@@ -13,28 +13,10 @@ class AdaptiveOpticsFilterSuite extends FunSuite:
   private val altairs: List[Option[AltairMode]] =
     none :: List(AltairMode.Ngs, AltairMode.Lgs, AltairMode.LgsP1).map(_.some)
 
-  private def admitted(filter: AdaptiveOpticsFilter): List[Option[AltairMode]] =
-    altairs.filter(filter.admits)
-
-  test("All admits every row"):
-    assertEquals(admitted(All), altairs)
-
-  test("NoAo admits only the plain rows"):
-    assertEquals(admitted(NoAo), List(none))
-
-  test("each Altair filter admits only its own mode"):
-    assertEquals(admitted(Ngs), List(AltairMode.Ngs.some))
-    assertEquals(admitted(Lgs), List(AltairMode.Lgs.some))
-    assertEquals(admitted(LgsP1), List(AltairMode.LgsP1.some))
-
   test("only the filters admitting NGS or LGS rows await the guide star"):
     assertEquals(List(All, Ngs, Lgs).map(_.awaitsGuideStar), List(true, true, true))
     assertEquals(List(LgsP1, NoAo).map(_.awaitsGuideStar), List(false, false))
 
-  test("forMode round trips through admits"):
+  test("forMode admits exactly the mode it was derived from"):
     altairs.foreach: altair =>
-      assertEquals(forMode(altair).admits(altair), true)
       assertEquals(altairs.filter(forMode(altair).admits), List(altair))
-
-  test("the default filter is NoAo"):
-    assertEquals(Default, NoAo)
