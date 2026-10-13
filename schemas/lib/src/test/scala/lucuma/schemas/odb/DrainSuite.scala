@@ -8,9 +8,9 @@ import munit.FunSuite
 class DrainSuite extends FunSuite:
   case class Page(matches: List[Int], hasMore: Boolean)
 
-  // Mimics the ODB: results from `offset` inclusive, at most `limit` of them.
-  def fetch(all: List[Int], limit: Int)(offset: Option[Int]): Either[Throwable, Page] =
-    val from = offset.fold(all)(o => all.dropWhile(_ < o))
+  // Mimics the ODB with `OFFSET_AFTER`: results after `after`, at most `limit` of them.
+  def fetch(all: List[Int], limit: Int)(after: Option[Int]): Either[Throwable, Page] =
+    val from = after.fold(all)(a => all.dropWhile(_ <= a))
     Right(Page(from.take(limit), from.sizeIs > limit))
 
   def drainAll(all: List[Int], limit: Int): Either[Throwable, List[Int]] =
@@ -22,16 +22,20 @@ class DrainSuite extends FunSuite:
   test("single page"):
     assertEquals(drainAll(List(1, 2), 3), Right(List(1, 2)))
 
-  test("several pages, without duplicating the offset element"):
+  test("several pages"):
     val all = (1 to 10).toList
     assertEquals(drainAll(all, 3), Right(all))
 
-  test("keeps the first element when the offset element stopped matching"):
+  test("one element per page"):
+    val all = (1 to 5).toList
+    assertEquals(drainAll(all, 1), Right(all))
+
+  test("keeps going when the last element of a page stopped matching"):
     val all     = (1 to 10).toList
     val without = all.filterNot(_ == 3)
     // 3 is the last element of the first page, and disappears before the second request.
     val result  = drain(
-      (offset: Option[Int]) => fetch(if (offset.isEmpty) all else without, 3)(offset),
+      (after: Option[Int]) => fetch(if (after.isEmpty) all else without, 3)(after),
       _.matches,
       _.hasMore,
       identity
@@ -47,7 +51,3 @@ class DrainSuite extends FunSuite:
         identity
       ).isLeft
     )
-
-  test("fails instead of looping when a page doesn't advance past the offset"):
-    // With LIMIT 1 and an inclusive OFFSET, every page after the first is just the offset element.
-    assert(drainAll((1 to 5).toList, 1).isLeft)
