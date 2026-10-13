@@ -18,7 +18,7 @@ object ExecutionVisitsSubquery
 
   override val subquery = gql"""
     {
-      visits(OFFSET: $$visitIdOffset) {
+      visits(OFFSET_AT: $$visitIdOffset) {
         matches {
           id
           instrument

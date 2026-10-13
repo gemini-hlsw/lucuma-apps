@@ -13,8 +13,8 @@ object ProgramSummaryQueriesGQL {
   @GraphQL
   trait AllProgramObservations extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$where: WhereObservation!, $$OFFSET: ObservationId) {
-        observations(WHERE: $$where, OFFSET: $$OFFSET) {
+      query($$where: WhereObservation!, $$OFFSET_AFTER: ObservationId) {
+        observations(WHERE: $$where, OFFSET_AFTER: $$OFFSET_AFTER) {
           matches $ObservationSubquery
           hasMore
         }
@@ -31,7 +31,7 @@ object ProgramSummaryQueriesGQL {
     val document = gql"""
       query(
         $$where: WhereObservation!,
-        $$OFFSET: ObservationId,
+        $$OFFSET_AFTER: ObservationId,
         $$includeGmosNorthLongSlit: Boolean!,
         $$includeGmosSouthLongSlit: Boolean!,
         $$includeGmosNorthImaging: Boolean!,
@@ -51,7 +51,7 @@ object ProgramSummaryQueriesGQL {
         $$includeVisitor: Boolean!,
         $$includeExchange: Boolean!
       ) {
-        observations(WHERE: $$where, OFFSET: $$OFFSET) {
+        observations(WHERE: $$where, OFFSET_AFTER: $$OFFSET_AFTER) {
           matches {
             id
             observingMode $ObservingModeByTypeSubquery
@@ -65,8 +65,8 @@ object ProgramSummaryQueriesGQL {
   @GraphQL
   trait AllProgramTargets extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$where: WhereTarget!, $$OFFSET: TargetId) {
-        targets(WHERE: $$where, OFFSET: $$OFFSET) {
+      query($$where: WhereTarget!, $$OFFSET_AFTER: TargetId) {
+        targets(WHERE: $$where, OFFSET_AFTER: $$OFFSET_AFTER) {
           matches $TargetWithIdSubquery
           hasMore
         }
@@ -77,9 +77,9 @@ object ProgramSummaryQueriesGQL {
   @GraphQL
   trait AllProgramConfigurationRequests extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$pid: ProgramId!, $$OFFSET: ConfigurationRequestId) {
+      query($$pid: ProgramId!, $$OFFSET_AFTER: ConfigurationRequestId) {
         program(programId: $$pid) {
-          configurationRequests(OFFSET: $$OFFSET) {
+          configurationRequests(OFFSET_AFTER: $$OFFSET_AFTER) {
             matches $ConfigurationRequestSubquery
             hasMore
           }
@@ -103,8 +103,8 @@ object ProgramSummaryQueriesGQL {
   @GraphQL
   trait AllPrograms extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$OFFSET: ProgramId) {
-        programs(OFFSET: $$OFFSET, includeDeleted: true) {
+      query($$OFFSET_AFTER: ProgramId) {
+        programs(OFFSET_AFTER: $$OFFSET_AFTER, includeDeleted: true) {
           matches $ProgramInfoSubquery
           hasMore
         }

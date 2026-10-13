@@ -14,8 +14,8 @@ object ArchiveDuplicationQueriesGQL:
   @GraphQL
   trait ProgramArchiveDuplications extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      query($$where: WhereObservation!, $$OFFSET: ObservationId) {
-        observations(WHERE: $$where, OFFSET: $$OFFSET) {
+      query($$where: WhereObservation!, $$OFFSET_AFTER: ObservationId) {
+        observations(WHERE: $$where, OFFSET_AFTER: $$OFFSET_AFTER) {
           matches {
             id
             archiveDuplication $ArchiveDuplicationSubquery

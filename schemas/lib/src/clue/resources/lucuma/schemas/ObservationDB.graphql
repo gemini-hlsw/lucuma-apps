@@ -321,8 +321,20 @@ type AtomRecord {
 
   """Recorded steps associated with this atom, ordered by execution order."""
   steps(
-    """Starts the result set at this index."""
-    OFFSET: PosInt
+    """
+    Starts the result set at this index. Indices are unique within the observation.
+    """
+    OFFSET: PosInt @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given index, or at the next one if it does not exist. Indices are unique within the observation.
+    """
+    OFFSET_AT: PosInt
+
+    """
+    Starts the result set after the given index. Indices are unique within the observation.
+    """
+    OFFSET_AFTER: PosInt
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -3407,8 +3419,9 @@ type Mutation {
 
   """
   Resets the acquisition sequence to start from the initial step regardless of
-  which acquisition steps may have been executed.  Requires staff (or better)
-  access.
+  which acquisition steps may have been executed.  An acquisition customized
+  via `replace*Sequence` restarts from a copy of its edited steps and stays
+  customized, unless `regenerate` is set.  Requires staff (or better) access.
   """
   resetAcquisition(input: ResetAcquisitionInput!): ResetAcquisitionResult!
 
@@ -5006,6 +5019,12 @@ executed.  Select one of `observationId` or `observationReference`.
 input ResetAcquisitionInput {
   observationId: ObservationId
   observationReference: ObservationReferenceLabel
+
+  """
+  Regenerate the acquisition from the observing mode even if it was customized
+  via `replace*Sequence`, clearing the customization.
+  """
+  regenerate: Boolean = false
 }
 
 """The result of resetting the acquisition sequence."""
@@ -6631,9 +6650,17 @@ type AsterismGroup {
     includeDeleted: Boolean! = false
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7294,9 +7321,17 @@ type ConstraintSetGroup {
     includeDeleted: Boolean! = false
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7404,7 +7439,15 @@ type Dataset {
     """
     Starts the result set at (or after if not existent) the given execution event id.
     """
-    OFFSET: ExecutionEventId
+    OFFSET: ExecutionEventId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given execution event id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ExecutionEventId
+
+    """Starts the result set after the given execution event id."""
+    OFFSET_AFTER: ExecutionEventId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7773,9 +7816,19 @@ type Execution {
   atomRecords(
     """
     Starts the result set at the given step (execution) index -- atom indices
-    are the index of the first contained step.
+    are the index of the first contained step. Indices are unique within the observation.
     """
-    OFFSET: PosInt
+    OFFSET: PosInt @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given index, or at the next one if it does not exist. Indices are unique within the observation.
+    """
+    OFFSET_AT: PosInt
+
+    """
+    Starts the result set after the given index. Indices are unique within the observation.
+    """
+    OFFSET_AFTER: PosInt
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7788,7 +7841,15 @@ type Execution {
     """
     Starts the result set at (or after if not existent) the given dataset id.
     """
-    OFFSET: DatasetId
+    OFFSET: DatasetId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given dataset id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: DatasetId
+
+    """Starts the result set after the given dataset id."""
+    OFFSET_AFTER: DatasetId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7801,7 +7862,15 @@ type Execution {
     """
     Starts the result set at (or after if not existent) the given execution event id.
     """
-    OFFSET: ExecutionEventId
+    OFFSET: ExecutionEventId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given execution event id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ExecutionEventId
+
+    """Starts the result set after the given execution event id."""
+    OFFSET_AFTER: ExecutionEventId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7814,7 +7883,15 @@ type Execution {
     """
     Starts the result set at (or after if not existent) the given visit id.
     """
-    OFFSET: VisitId
+    OFFSET: VisitId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given visit id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: VisitId
+
+    """Starts the result set after the given visit id."""
+    OFFSET_AFTER: VisitId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -7855,7 +7932,8 @@ type Execution {
   """
   Whether the acquisition sequence has been customized via `replace*Sequence`
   (regardless of whether the replacement differs from what would have been
-  generated).  Cleared by `deleteSequence` or by resetting the acquisition.
+  generated).  Cleared by `deleteSequence` or by `resetAcquisition` with
+  `regenerate` set.
   """
   acquisitionSequenceIsCustomized: Boolean!
 }
@@ -14885,9 +14963,17 @@ type Program {
     includeDeleted: Boolean! = false
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -14898,9 +14984,17 @@ type Program {
   """All configuration requests associated with the program."""
   configurationRequests(
     """
-    Starts the result set at (or after if not existent) the given configuration request id.
+    Starts the result set at (or after if not existent) the given configuration request id. The id is unique.
     """
-    OFFSET: ConfigurationRequestId
+    OFFSET: ConfigurationRequestId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given configuration request id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ConfigurationRequestId
+
+    """Starts the result set after the given configuration request id."""
+    OFFSET_AFTER: ConfigurationRequestId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15346,7 +15440,15 @@ type Query {
     WHERE: WhereCallForProposals
 
     """Starts the result set at (or after if not existent) the given id."""
-    OFFSET: CallForProposalsId
+    OFFSET: CallForProposalsId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given call for proposals id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: CallForProposalsId
+
+    """Starts the result set after the given call for proposals id."""
+    OFFSET_AFTER: CallForProposalsId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15404,9 +15506,17 @@ type Query {
     WHERE: WhereDataset
 
     """
-    Starts the result set at (or after if not existent) the given dataset id.
+    Starts the result set at (or after if not existent) the given dataset id. The id is unique.
     """
-    OFFSET: DatasetId
+    OFFSET: DatasetId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given dataset id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: DatasetId
+
+    """Starts the result set after the given dataset id."""
+    OFFSET_AFTER: DatasetId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15422,8 +15532,18 @@ type Query {
     """Filters the selection of chronicle entries."""
     WHERE: WhereDatasetChronicleEntry
 
-    """Starts the result set at (or after if not existent) the given id."""
-    OFFSET: ChronicleId
+    """
+    Starts the result set at (or after if not existent) the given id. The id is unique.
+    """
+    OFFSET: ChronicleId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given chronicle entry id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ChronicleId
+
+    """Starts the result set after the given chronicle entry id."""
+    OFFSET_AFTER: ChronicleId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15439,9 +15559,17 @@ type Query {
     WHERE: WhereExecutionEvent
 
     """
-    Starts the result set at (or after if not existent) the given execution event id.
+    Starts the result set at (or after if not existent) the given execution event id. The id is unique.
     """
-    OFFSET: ExecutionEventId
+    OFFSET: ExecutionEventId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given execution event id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ExecutionEventId
+
+    """Starts the result set after the given execution event id."""
+    OFFSET_AFTER: ExecutionEventId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15506,9 +15634,17 @@ type Query {
     WHERE: WhereObservation
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15527,9 +15663,17 @@ type Query {
     WHERE: WhereConfigurationRequest
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ConfigurationRequestId
+    OFFSET: ConfigurationRequestId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given configuration request id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ConfigurationRequestId
+
+    """Starts the result set after the given configuration request id."""
+    OFFSET_AFTER: ConfigurationRequestId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15590,9 +15734,17 @@ type Query {
     WHERE: WhereProgram
 
     """
-    Starts the result set at (or after if not existent) the given program id.
+    Starts the result set at (or after if not existent) the given program id. The id is unique.
     """
-    OFFSET: ProgramId
+    OFFSET: ProgramId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given program id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ProgramId
+
+    """Starts the result set after the given program id."""
+    OFFSET_AFTER: ProgramId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15615,7 +15767,15 @@ type Query {
     WHERE: WhereProgramNote
 
     """Starts the result set at (or after if no existent) the given note id."""
-    OFFSET: ProgramNoteId
+    OFFSET: ProgramNoteId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given program note id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ProgramNoteId
+
+    """Starts the result set after the given program note id."""
+    OFFSET_AFTER: ProgramNoteId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15641,7 +15801,15 @@ type Query {
     """
     Starts the result set at (or after, if no exact match) the given trigger id.
     """
-    OFFSET: TooTriggerId
+    OFFSET: TooTriggerId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given ToO trigger id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: TooTriggerId
+
+    """Starts the result set after the given ToO trigger id."""
+    OFFSET_AFTER: TooTriggerId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15657,7 +15825,15 @@ type Query {
     WHERE: WhereTooTriggerChronicleEntry
 
     """Starts the result set at (or after, if not existent) the given id."""
-    OFFSET: ChronicleId
+    OFFSET: ChronicleId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given chronicle entry id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ChronicleId
+
+    """Starts the result set after the given chronicle entry id."""
+    OFFSET_AFTER: ChronicleId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15674,7 +15850,17 @@ type Query {
     WHERE: WhereProgramUser
 
     """Starts the result set at (or after if not existent) the given user id."""
-    OFFSET: UserId
+    OFFSET: UserId @deprecated(reason: "Use `OFFSET_AT` with a program user id instead; user ids are not unique here.")
+
+    """
+    Starts the result set at the given program user id, or at the next one if it does not exist. Ordering is by program user id when `OFFSET` is not given.
+    """
+    OFFSET_AT: ProgramUserId
+
+    """
+    Starts the result set after the given program user id. Ordering is by program user id when `OFFSET` is not given.
+    """
+    OFFSET_AFTER: ProgramUserId
 
     """
     Limits the result to at most this number of matches (but never more than
@@ -15734,9 +15920,17 @@ type Query {
     WHERE: WhereTarget
 
     """
-    Starts the result set at (or after if not existent) the given target id.
+    Starts the result set at (or after if not existent) the given target id. The id is unique.
     """
-    OFFSET: TargetId
+    OFFSET: TargetId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given target id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: TargetId
+
+    """Starts the result set after the given target id."""
+    OFFSET_AFTER: TargetId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15846,9 +16040,17 @@ type ObservingModeGroup {
     includeDeleted: Boolean! = false
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -15932,9 +16134,17 @@ type ScienceRequirementsGroup {
     includeDeleted: Boolean! = false
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -17061,7 +17271,15 @@ type StepRecord {
     """
     Starts the result set at (or after if not existent) the given dataset id.
     """
-    OFFSET: DatasetId
+    OFFSET: DatasetId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given dataset id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: DatasetId
+
+    """Starts the result set after the given dataset id."""
+    OFFSET_AFTER: DatasetId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -17074,7 +17292,15 @@ type StepRecord {
     """
     Starts the result set at (or after if not existent) the given execution event id.
     """
-    OFFSET: ExecutionEventId
+    OFFSET: ExecutionEventId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given execution event id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ExecutionEventId
+
+    """Starts the result set after the given execution event id."""
+    OFFSET_AFTER: ExecutionEventId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -17472,9 +17698,17 @@ type TargetGroup {
     includeDeleted: Boolean! = false
 
     """
-    Starts the result set at (or after if not existent) the given observation id.
+    Starts the result set at (or after if not existent) the given observation id. The id is unique.
     """
-    OFFSET: ObservationId
+    OFFSET: ObservationId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given observation id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ObservationId
+
+    """Starts the result set after the given observation id."""
+    OFFSET_AFTER: ObservationId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -17861,9 +18095,19 @@ type Visit {
   atomRecords(
     """
     Starts the result set at the given step index.  The atom record index is the
-    index of its first contained step.
+    index of its first contained step. Indices are unique within the observation.
     """
-    OFFSET: PosInt
+    OFFSET: PosInt @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given index, or at the next one if it does not exist. Indices are unique within the observation.
+    """
+    OFFSET_AT: PosInt
+
+    """
+    Starts the result set after the given index. Indices are unique within the observation.
+    """
+    OFFSET_AFTER: PosInt
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -17876,7 +18120,15 @@ type Visit {
     """
     Starts the result set at (or after if not existent) the given dataset id.
     """
-    OFFSET: DatasetId
+    OFFSET: DatasetId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given dataset id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: DatasetId
+
+    """Starts the result set after the given dataset id."""
+    OFFSET_AFTER: DatasetId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
@@ -17889,7 +18141,15 @@ type Visit {
     """
     Starts the result set at (or after if not existent) the given execution event id.
     """
-    OFFSET: ExecutionEventId
+    OFFSET: ExecutionEventId @deprecated(reason: "Use `OFFSET_AT` instead.")
+
+    """
+    Starts the result set at the given execution event id, or at the next one if it does not exist.
+    """
+    OFFSET_AT: ExecutionEventId
+
+    """Starts the result set after the given execution event id."""
+    OFFSET_AFTER: ExecutionEventId
 
     """
     Limits the result to at most this number of matches (but never more than 1000).
