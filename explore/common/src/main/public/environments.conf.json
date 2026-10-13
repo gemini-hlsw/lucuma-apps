@@ -19,7 +19,7 @@
     "odbURI": "wss://lucuma-postgres-odb-staging.herokuapp.com/ws",
     "odbRestURI": "https://lucuma-postgres-odb-staging.herokuapp.com",
     "preferencesDBURI": "wss://prefs-test.gpp.gemini.edu/v1/graphql",
-    "itcURI": "https://itc-staging.lucuma.xyz/itc",
+    "itcURI": "https://itc-test.gpp.gemini.edu/itc",
     "sso": {
       "uri": "https://sso-test.gpp.gemini.edu",
       "readTimeoutSeconds": 10,
