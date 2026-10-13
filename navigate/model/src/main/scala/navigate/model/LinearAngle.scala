@@ -13,10 +13,21 @@ class LinearAngle[A <: Long & Singleton: ValueOf, B <: Long & Singleton: ValueOf
   val MinValue: Long = valueOf[A]
   val MaxValue: Long = valueOf[B]
 
-  def fromMicroarcseconds(value: Long): Type = {
-    val range = MaxValue - MinValue
+  require(
+    MaxValue - MinValue >= LinearAngle.angle360µas,
+    "Invariant violated. The range must cover a full turn."
+  )
 
-    val v = ((((value - MinValue) % range) + range) % range) + MinValue
+  // A value in range is kept as it is, because the range is a physical range of movement that
+  // overlaps itself (e.g. both 100º and -260º are valid). An out of range value circles around
+  // 360º, as an angle does, until it gets in range.
+  def fromMicroarcseconds(value: Long): Type = {
+    val turn = LinearAngle.angle360µas
+
+    val v =
+      if (value >= MaxValue) MaxValue - turn + (value - MaxValue) % turn
+      else if (value < MinValue) MinValue + turn - 1 - (MinValue - value - 1) % turn
+      else value
 
     LinearAngle.Value.apply[A, B](v)
   }
