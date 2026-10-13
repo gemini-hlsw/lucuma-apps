@@ -31,6 +31,7 @@ import explore.model.enums.WavelengthUnits
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.model.syntax.all.*
+import explore.modes.AdaptiveOpticsFilter
 import explore.modes.AltairModeRows
 import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
@@ -122,6 +123,15 @@ private object BasicConfigurationPanel:
         // different set of instruments.
         specInstrumentFilter    <- useStateView(none[Instrument])
         imagingInstrumentFilter <- useStateView(none[Instrument])
+        // AO filter for the tables, shared by both modes. It starts on the selection's Altair mode
+        // and widens to it when a configuration is selected from outside the table (e.g. a
+        // reverted one). Changing the filter drops the selections it hides.
+        aoFilter                <-
+          useStateView(AdaptiveOpticsFilter.forMode(props.selectedConfig.get.altairMode))
+        _                       <- useEffectWithDeps(props.selectedConfig.get.altairMode): mode =>
+                                     Callback.when(mode.exists(m => !aoFilter.get.admits(m.some)))(
+                                       aoFilter.set(AdaptiveOpticsFilter.forMode(mode))
+                                     )
         exposureTimeModeType    <- useStateView(
                                      props.requirementsView.get.exposureTimeMode
                                        .map(ExposureTimeModeType.fromExposureTimeMode)
@@ -341,6 +351,13 @@ private object BasicConfigurationPanel:
                   instrumentFilterDropdown(imagingInstrumentFilter,
                                            props.confMatrix.imaging.instruments
                   ),
+                FormEnumDropdownView(
+                  id = "configuration-adaptive-optics".refined,
+                  label = "Adaptive Optics",
+                  value = aoFilter,
+                  disabled = props.readonly,
+                  modifiers = List(testId := "explore-config-ao-filter")
+                ),
                 spectroscopyView.mapValue: s =>
                   SpectroscopyConfigurationPanel(
                     props.selectedConfig.get.headOption.map(_.instrument),
@@ -385,6 +402,7 @@ private object BasicConfigurationPanel:
                           spectroscopyModesTableFilters = v.some
                         )
                     ),
+                    aoFilter.get,
                     props.altairParams
                   )
                 ),
@@ -411,6 +429,7 @@ private object BasicConfigurationPanel:
                         imagingModesTableFilters = v.some
                       )
                   ),
+                  aoFilter.get,
                   props.altairParams
                 )
               )

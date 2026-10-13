@@ -80,6 +80,7 @@ final case class ImagingModesTable(
   capability:          Option[ImagingCapability],
   instrument:          Option[Instrument],
   showFilters:         View[Visible],
+  aoFilter:            AdaptiveOpticsFilter,
   altairParams:        Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(ImagingModesTable.component)
 
@@ -242,8 +243,6 @@ object ImagingModesTable extends ModesTableCommon:
       ctx              <- useContext(AppContext.ctx)
       itcResults       <- useStateView(ItcResultsCache.Empty)
       itcProgress      <- useStateView(none[Progress])
-      aoFilter         <-
-        useStateView(AdaptiveOpticsFilter.forMode(props.selectedConfigs.get.altairMode))
       dec               = props.baseCoordinates.map(_.dec)
       rows             <- useMemo(
                             props.matrix,
@@ -259,7 +258,7 @@ object ImagingModesTable extends ModesTableCommon:
                             props.capability,
                             props.instrument,
                             props.altairParams,
-                            aoFilter.get
+                            props.aoFilter
                           ):
                             (
                               matrix,
@@ -379,18 +378,12 @@ object ImagingModesTable extends ModesTableCommon:
                               selectedTarget match
                                 case None => props.targetView.set(targets.map(_.head))
                                 case _    => Callback.empty
-      // A configuration selected from outside the table (e.g. a reverted one) widens the filter
-      // to show its Altair mode. Changing the filter drops selections it hides.
-      _                <- useEffectWithDeps(props.selectedConfigs.get.altairMode): mode =>
-                            Callback.when(mode.exists(m => !aoFilter.get.admits(m.some))):
-                              aoFilter.set(AdaptiveOpticsFilter.forMode(mode))
-      // Set the selected config if the rows change because the new rows may no longer contain
       // one or more of the selected rows or the itc results may have changed.
       // Note, we use rows for the dependency, not sorted rows, because sorted rows also changes with sort.
       _                <- useEffectWithDeps(rows): rs =>
                             resyncSelection(rs.value,
                                             props.selectedConfigs,
-                                            retainAltairSelection(props.altairParams.isPending, aoFilter.get)
+                                            retainAltairSelection(props.altairParams.isPending, props.aoFilter)
                             )
       selectedIndices  <-
         useMemo((sortedRows, props.selectedConfigs.get)): (sortRows, selectedConfigs) =>
@@ -412,7 +405,7 @@ object ImagingModesTable extends ModesTableCommon:
       val errlabel: List[VdomNode]     = itcHookData.errorLabel(true)
       val selectedCount: Int           = props.selectedConfigs.get.count
       val isAwaitingGuideStar: Boolean =
-        props.altairParams.isPending && aoFilter.get.awaitsGuideStar
+        props.altairParams.isPending && props.aoFilter.awaitsGuideStar
 
       // Target selector
       val targetSelector = props.targets.toOption.map { targets =>
@@ -455,7 +448,6 @@ object ImagingModesTable extends ModesTableCommon:
             s"${rows.length} available configurations, ${selectedCount} selected",
             HelpIcon("configuration/imaging_table.md".refined)
           ),
-          adaptiveOpticsFilterDropdown(aoFilter),
           <.div(
             ExploreStyles.ModesTableInfo,
             errlabel.toTagMod,

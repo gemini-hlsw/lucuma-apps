@@ -81,6 +81,7 @@ case class SpectroscopyModesTable(
   units:                    WavelengthUnits,
   instrument:               Option[Instrument],
   showFilters:              View[Visible],
+  aoFilter:                 AdaptiveOpticsFilter,
   altairParams:             Pot[Map[AltairMode, AltairParameters]]
 ) extends ReactFnProps(SpectroscopyModesTable.component)
 
@@ -377,9 +378,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         ctx            <- useContext(AppContext.ctx)
         itcResults     <- useStateView(ItcResultsCache.Empty)
         itcProgress    <- useStateView(none[Progress])
-        aoFilter       <-
-          useStateView(AdaptiveOpticsFilter.forMode(props.selectedConfig.get.altairMode))
-        rows           <- useRows(props, itcResults, aoFilter.get)
+        rows           <- useRows(props, itcResults, props.aoFilter)
         cols           <- useColumns(props.exposureTimeMode.map(_.modeType), props.units)
         table          <- useReactTableWithStateStore:
                             import ctx.given
@@ -417,19 +416,13 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             props.customSedTimestamps,
                             sortedRows
                           )
-        // A configuration selected from outside the table (e.g. a reverted one) widens the filter
-        // to show its Altair mode. Changing the filter drops selections it hides.
-        _              <- useEffectWithDeps(props.selectedConfig.get.altairMode): mode =>
-                            Callback.when(mode.exists(m => !aoFilter.get.admits(m.some))):
-                              aoFilter.set(AdaptiveOpticsFilter.forMode(mode))
-        // Set the selected config if the rows change because the new rows may no longer contain
         // one or more of the selected rows or the itc results may have changed.
         // Note, we use rows for the dependency, not sorted rows, because sorted rows also changes with sort.
         _              <- useEffectWithDeps(rows): rs =>
                             resyncSelection(
                               rs.value,
                               props.selectedConfig,
-                              retainAltairSelection(props.altairParams.isPending, aoFilter.get)
+                              retainAltairSelection(props.altairParams.isPending, props.aoFilter)
                             )
         // The selected index needs to be the index into the sorted data, because that is what
         // the virtualizer uses for scrollTo.
@@ -457,7 +450,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         )
 
         val isAwaitingGuideStar: Boolean =
-          props.altairParams.isPending && aoFilter.get.awaitsGuideStar
+          props.altairParams.isPending && props.aoFilter.awaitsGuideStar
 
         React.Fragment(
           <.div(ExploreStyles.ModesTableTitle)(
@@ -465,7 +458,6 @@ private object SpectroscopyModesTable extends ModesTableCommon:
               s"${rows.length} available configurations",
               HelpIcon("configuration/table.md".refined)
             ),
-            adaptiveOpticsFilterDropdown(aoFilter),
             <.div(ExploreStyles.ModesTableInfo)(
               errLabel.toTagMod,
               selectedTarget,

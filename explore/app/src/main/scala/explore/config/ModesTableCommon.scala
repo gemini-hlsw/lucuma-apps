@@ -31,7 +31,6 @@ import explore.model.reusability.given
 import explore.modes.AdaptiveOpticsFilter
 import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
-import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -52,12 +51,10 @@ import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.HTMLTableVirtualizer
 import lucuma.react.table.HeaderContext
-import lucuma.refined.*
 import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.components.ThemeIcons
 import lucuma.ui.format.*
 import lucuma.ui.primereact.*
-import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.FilterMethod
@@ -206,18 +203,6 @@ trait ModesTableCommon:
       tooltip = "Filters on/off",
       tooltipOptions = TooltipOptions(position = Tooltip.Position.Bottom)
     ).tiny.compact
-
-  def adaptiveOpticsFilterDropdown(filter: View[AdaptiveOpticsFilter]): VdomNode =
-    val id: NonEmptyString = "modes-table-ao-filter".refined
-    <.div(ExploreStyles.ModesTableAdaptiveOptics)(
-      FormLabel(htmlFor = id, size = PlSize.Tiny)("AO"),
-      EnumDropdownView(
-        id = id,
-        value = filter,
-        size = PlSize.Tiny,
-        modifiers = List(testId := "explore-config-ao-filter")
-      )
-    )
 
   def tableOnChangeHandler(
     visibleRows: View[Option[Range.Inclusive]],
