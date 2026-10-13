@@ -2418,6 +2418,57 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield assertEquals(r, ApplyCommandResult.Completed)
   }
 
+  // The focal plane offset in mm that the TCS must receive, calculated with plain doubles.
+  private def expectedFocalPlaneMm(p: Double, q: Double, iaaDeg: Double): (Double, Double) = {
+    val iaa = Math.toRadians(iaaDeg)
+    ((-p * Math.cos(iaa) - q * Math.sin(iaa)) / 1.61144,
+     (p * Math.sin(iaa) - q * Math.cos(iaa)) / 1.61144
+    )
+  }
+
+  List(
+    (-10.0, 0.0, 0.0),
+    (10.0, 0.0, 33.0),
+    (-10.0, 0.0, 33.0),
+    (0.0, -10.0, 33.0),
+    (-10.0, -10.0, 33.0),
+    (-10.0, 5.0, -45.0)
+  ).foreach { case (p, q, iaaDeg) =>
+    test(s"Offset command writes the right focal plane offset for p=$p, q=$q, iaa=$iaaDeg") {
+      val (expectedX, expectedY) = expectedFocalPlaneMm(p, q, iaaDeg)
+
+      for {
+        (st, ctr) <- createController()
+        _         <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+        _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideWithP1State))
+        _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
+        _         <- st.tcs.update(_.focus(_.instrAA.value).replace(iaaDeg.some))
+        _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAX.value).replace(0.0.some))
+        _         <- st.tcs.update(_.focus(_.focalPlaneOffsetAY.value).replace(0.0.some))
+        _         <- ctr.offset(
+                       Offset(Offset.P(Angle.fromBigDecimalArcseconds(BigDecimal(p))),
+                              Offset.Q(Angle.fromBigDecimalArcseconds(BigDecimal(q)))
+                       ),
+                       guiding = true
+                     )(
+                       GuideConfig(guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1), none),
+                       WfsGuideStates(TrackingConfig.defaultTracking,
+                                      TrackingConfig.defaultTracking,
+                                      TrackingConfig.defaultTracking
+                       )
+                     )
+        r1        <- st.tcs.get
+      } yield List(r1.focalPlaneOffsetCommandA, r1.focalPlaneOffsetCommandB).foreach { o =>
+        o.offsetX.value
+          .flatMap(_.toDoubleOption)
+          .fold(fail("No X value set"))(v => assertEqualsDouble(v, expectedX, 2e-3))
+        o.offsetY.value
+          .flatMap(_.toDoubleOption)
+          .fold(fail("No Y value set"))(v => assertEqualsDouble(v, expectedY, 2e-3))
+      }
+    }
+  }
+
   test("Central wavelength command sets the same wavelength on both source A and B beams") {
     val wavelength      = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
     val expectedWavelµm = Wavelength.decimalMicrometers.reverseGet(wavelength).doubleValue
