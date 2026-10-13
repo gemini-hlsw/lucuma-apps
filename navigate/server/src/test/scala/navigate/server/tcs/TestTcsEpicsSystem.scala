@@ -431,6 +431,7 @@ object TestTcsEpicsSystem {
     originOffsetClear:        OffsetCommandState,
     pointingAdjust:           PointingAdjustCommandState,
     inPosition:               TestChannel.State[String],
+    agInPosition:             TestChannel.State[Double],
     targetFilter:             TargetFilterCommandState,
     sourceATargetReadout:     TestChannel.State[Array[Double]],
     pwfs1TargetReadout:       TestChannel.State[Array[Double]],
@@ -601,6 +602,7 @@ object TestTcsEpicsSystem {
     originOffsetClear = OffsetCommandState.default,
     pointingAdjust = PointingAdjustCommandState.default,
     inPosition = TestChannel.State.of("FALSE"),
+    agInPosition = TestChannel.State.of(0.0),
     targetFilter = TargetFilterCommandState.default,
     sourceATargetReadout = TestChannel.State.of[Array[Double]](Array.fill(8)(0.0)),
     pwfs1TargetReadout = TestChannel.State.of[Array[Double]](Array.fill(8)(0.0)),
@@ -1247,6 +1249,7 @@ object TestTcsEpicsSystem {
       originOffsetClear = buildOffsetCommandChannels(s, Focus[State](_.originOffsetClear)),
       pointingAdjust = buildPointingAdjustChannels(s, Focus[State](_.pointingAdjust)),
       inPosition = new TestChannel[F, State, String](s, Focus[State](_.inPosition)),
+      agInPosition = new TestChannel[F, State, Double](s, Focus[State](_.agInPosition)),
       targetFilter = buildTargetFilterChannels(s, Focus[State](_.targetFilter)),
       sourceATargetReadout =
         new TestChannel[F, State, Array[Double]](s, Focus[State](_.sourceATargetReadout)),

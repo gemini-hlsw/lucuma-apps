@@ -486,10 +486,12 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .compose(setRotatorTrackingConfig(config.rotatorTrackConfig))
       .compose(setOrigin(config.instrumentSpecifics.origin))
 
-  private val TcsConfigTimeout  = FiniteDuration(60, SECONDS)
+  private val TcsConfigTimeout    = FiniteDuration(60, SECONDS)
   // Maximum time to wait for the telescope to get in position after a configuration change,
   // as in Observe
-  private val InPositionTimeout = FiniteDuration(90, SECONDS)
+  private val InPositionTimeout   = FiniteDuration(90, SECONDS)
+  // Maximum time to wait for the A&G mechanisms to get in position, as in Observe
+  private val AgInPositionTimeout = FiniteDuration(90, SECONDS)
 
   // Added a 1.5 s wait between selecting the OIWFS and setting targets, to copy TCC
   override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] = for {
@@ -1767,75 +1769,100 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   protected def takeHrOut(cmds: TcsCommands[F]): TcsCommands[F] = cmds.hrwfsCommands.park.mark
 
-  private def setLightPath(
+  // The mechanism moves needed to get the requested light path, in the order they must be
+  // applied. Empty if all the mechanisms are already where they should be.
+  private def lightPathMoves(
     from:  LightSource,
     to:    LightSink,
     port:  Int,
     aoPos: AgMechPosition,
     hwPos: AgMechPosition,
     sfPos: ScienceFold
-  ): TcsCommands[F] => TcsCommands[F] = (x: TcsCommands[F]) => {
-    val aoFold      = (s: TcsCommands[F]) =>
-      (from, aoPos) match {
-        case (LightSource.AO, AgMechPosition.In) => s
-        case (LightSource.AO, _)                 => s.aoFoldCommands.move.setPosition(AoFoldPosition.In)
-        case (LightSource.GCAL, _)               => s
-        case (_, AgMechPosition.Parked)          => s
-        case _                                   => s.aoFoldCommands.park.mark
-      }
-    val hrwfsPickup = (s: TcsCommands[F]) =>
-      (to.instrument, hwPos) match {
-        case (Instrument.AcqCamSouth, AgMechPosition.In) |
-            (Instrument.AcqCamNorth, AgMechPosition.In) =>
-          s
-        case (Instrument.AcqCamSouth, _) | (Instrument.AcqCamNorth, _) =>
-          s.hrwfsCommands.move.setPosition(HrwfsPickupPosition.In)
-        case (_, AgMechPosition.Parked) | (_, AgMechPosition.Out)      => s
-        case _ if port === 1                                           => takeHrOut(s)
-        case _                                                         => s
-      }
+  ): List[TcsCommands[F] => TcsCommands[F]] = {
+    val aoFold      = (from, aoPos) match {
+      case (LightSource.AO, AgMechPosition.In) => none
+      case (LightSource.AO, _)                 =>
+        ((s: TcsCommands[F]) => s.aoFoldCommands.move.setPosition(AoFoldPosition.In)).some
+      case (LightSource.GCAL, _)               => none
+      case (_, AgMechPosition.Parked)          => none
+      case _                                   => ((s: TcsCommands[F]) => s.aoFoldCommands.park.mark).some
+    }
+    val hrwfsPickup = (to.instrument, hwPos) match {
+      case (Instrument.AcqCamSouth, AgMechPosition.In) |
+          (Instrument.AcqCamNorth, AgMechPosition.In) =>
+        none
+      case (Instrument.AcqCamSouth, _) | (Instrument.AcqCamNorth, _) =>
+        ((s: TcsCommands[F]) => s.hrwfsCommands.move.setPosition(HrwfsPickupPosition.In)).some
+      case (_, AgMechPosition.Parked) | (_, AgMechPosition.Out)      => none
+      case _ if port === 1                                           => (takeHrOut(_)).some
+      case _                                                         => none
+    }
     val reqPos      = ScienceFold.Position(from, to.scienceFoldSinkName(from), port)
-    val scienceFold = (s: TcsCommands[F]) =>
-      (port, from, sfPos) match {
-        case (1, LightSource.Sky, ScienceFold.Parked)        => s
-        case (1, LightSource.Sky, _)                         => s.scienceFoldCommands.park.mark
-        case (_, _, p: ScienceFold.Position) if p === reqPos => s
-        case _                                               => s.scienceFoldCommands.move.setPosition(reqPos)
-      }
+    val scienceFold = (port, from, sfPos) match {
+      case (1, LightSource.Sky, ScienceFold.Parked)        => none
+      case (1, LightSource.Sky, _)                         =>
+        ((s: TcsCommands[F]) => s.scienceFoldCommands.park.mark).some
+      case (_, _, p: ScienceFold.Position) if p === reqPos => none
+      case _                                               =>
+        ((s: TcsCommands[F]) => s.scienceFoldCommands.move.setPosition(reqPos)).some
+    }
 
-    (aoFold >>> hrwfsPickup >>> scienceFold)(x)
+    List(aoFold, hrwfsPickup, scienceFold).flattenOption
   }
 
   private val LightPathTimeout = FiniteDuration(60, SECONDS)
 
-  override def lightPath(from: LightSource, to: LightSink): F[ApplyCommandResult] = for {
-    p2Parked <- sys.ags.status.p2Parked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
-    aoParked <- sys.ags.status.aoParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
-    aoPos    <- aoParked.fold(AgMechPosition.Parked.pure[F],
-                              sys.ags.status.aoName.verifiedRun(ConnectionTimeout)
-                )
-    hwParked <- sys.ags.status.hwParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
-    hwPos    <- hwParked.fold(AgMechPosition.Parked.pure[F],
-                              sys.ags.status.hwName.verifiedRun(ConnectionTimeout)
-                )
-    sfParked <- sys.ags.status.sfParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
-    sfPos    <- sfParked.fold(ScienceFold.Parked.pure[F],
-                              sys.ags.status.sfName.verifiedRun(ConnectionTimeout)
-                )
-    // ports    <- getInstrumentPorts
-    _        <- pwfs2Park.whenA(!p2Parked && from === LightSource.AO)
-    ret      <-
-      getInstrumentPort(to.instrument)
-        .flatMap {
-          _.map { p =>
-            setLightPath(from, to, p, aoPos, hwPos, sfPos)(
-              sys.tcsEpics.startCommand(LightPathTimeout)
-            ).post
-              .verifiedRun(ConnectionTimeout)
+  // Sends the commands needed to get the requested light path. The boolean tells if any mechanism
+  // was commanded to move.
+  private def sendLightPath(from: LightSource, to: LightSink): F[(ApplyCommandResult, Boolean)] =
+    for {
+      p2Parked <-
+        sys.ags.status.p2Parked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      aoParked <-
+        sys.ags.status.aoParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      aoPos    <- aoParked.fold(AgMechPosition.Parked.pure[F],
+                                sys.ags.status.aoName.verifiedRun(ConnectionTimeout)
+                  )
+      hwParked <-
+        sys.ags.status.hwParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      hwPos    <- hwParked.fold(AgMechPosition.Parked.pure[F],
+                                sys.ags.status.hwName.verifiedRun(ConnectionTimeout)
+                  )
+      sfParked <-
+        sys.ags.status.sfParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
+      sfPos    <- sfParked.fold(ScienceFold.Parked.pure[F],
+                                sys.ags.status.sfName.verifiedRun(ConnectionTimeout)
+                  )
+      // ports    <- getInstrumentPorts
+      _        <- pwfs2Park.whenA(!p2Parked && from === LightSource.AO)
+      ret      <-
+        getInstrumentPort(to.instrument)
+          .flatMap {
+            _.map { p =>
+              val moves = lightPathMoves(from, to, p, aoPos, hwPos, sfPos)
+              if (moves.isEmpty) (ApplyCommandResult.Completed, false).pure[F]
+              else
+                moves
+                  .reduce(_ andThen _)(sys.tcsEpics.startCommand(LightPathTimeout))
+                  .post
+                  .verifiedRun(ConnectionTimeout)
+                  .map((_, true))
+            }
+              .getOrElse((ApplyCommandResult.Completed, false).pure[F])
           }
-            .getOrElse(ApplyCommandResult.Completed.pure[F])
-        }
-  } yield ret
+    } yield ret
+
+  private def waitInPositionAfterConfig(timeout: FiniteDuration, settleTime: FiniteDuration) =
+    sys.tcsEpics.status.waitInPosition(settleTime, timeout).verifiedRun(ConnectionTimeout)
+
+  // The TCS in-position flag does not cover the A&G mechanisms (science fold, etc.).
+  private def waitAGInPositionAfterConfig(timeout: FiniteDuration) =
+    sys.tcsEpics.status.waitAGInPosition(timeout).verifiedRun(ConnectionTimeout)
+
+  override def lightPath(from: LightSource, to: LightSink): F[ApplyCommandResult] =
+    sendLightPath(from, to).flatMap { case (r, moved) =>
+      waitAGInPositionAfterConfig(AgInPositionTimeout).whenA(moved).as(r)
+    }
 
   private val hrwfsStream: String = "hrwfsScience"
 
@@ -2124,20 +2151,21 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .map(i => List(SettleTime, oiwfsSettleTime(i)).max)
       .getOrElse(SettleTime)
 
+  private def sendOffset(move: OffsetMove): F[ApplyCommandResult] =
+    sys.tcsEpics
+      .startCommand(AdjTimeout)
+      .focalPlaneOffsetCommand
+      .offsetX(move.demandX)
+      .focalPlaneOffsetCommand
+      .offsetY(move.demandY)
+      .post
+      .verifiedRun(ConnectionTimeout)
+
   private def applyOffset(move: OffsetMove, settleTime: FiniteDuration): F[ApplyCommandResult] =
     if (move.isNull) ApplyCommandResult.Completed.pure[F]
     else
-      sys.tcsEpics
-        .startCommand(AdjTimeout)
-        .focalPlaneOffsetCommand
-        .offsetX(move.demandX)
-        .focalPlaneOffsetCommand
-        .offsetY(move.demandY)
-        .post
-        .verifiedRun(ConnectionTimeout) <*
-        sys.tcsEpics.status
-          .waitInPosition(settleTime, offsetTimeout(move.displacementArcsec))
-          .verifiedRun(ConnectionTimeout)
+      sendOffset(move) <*
+        waitInPositionAfterConfig(offsetTimeout(move.displacementArcsec), settleTime)
 
   override def offset(offset: Offset, guiding: Boolean)(
     guide:       GuideConfig,
@@ -2194,7 +2222,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   // Same wavelength is applied to both beams (A and B). Like Observe, which handles it as a mount
   // parameter, wait for the telescope to be in position again if the wavelength changed.
-  override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
+  private def sendWavelength(wavelength: Wavelength): F[(ApplyCommandResult, Boolean)] =
     for {
       changed <- wavelengthChanged(wavelength)
       r       <- sys.tcsEpics
@@ -2205,11 +2233,12 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                    .wavelength(wavelength)
                    .post
                    .verifiedRun(ConnectionTimeout)
-      _       <- sys.tcsEpics.status
-                   .waitInPosition(SettleTime, InPositionTimeout)
-                   .verifiedRun(ConnectionTimeout)
-                   .whenA(changed)
-    } yield r
+    } yield (r, changed)
+
+  override def centralWavelength(wavelength: Wavelength): F[ApplyCommandResult] =
+    sendWavelength(wavelength).flatMap { case (r, changed) =>
+      waitInPositionAfterConfig(InPositionTimeout, SettleTime).whenA(changed).as(r)
+    }
 
   // A LightSink for the given instrument, disregarding its light-sink variant (e.g. which of
   // NIRI's f-ratios, or GMOS's IFU mode): only its instrument identity matters to callers here.
@@ -2339,23 +2368,38 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                           ).whenA(!effectiveGuiding)
       lpResult         <- lightPath.traverse { lp =>
                             logStep("light path", LightPathTimeout.toString)(
-                              this.lightPath(lp.from, lp.to)
+                              sendLightPath(lp.from, lp.to)
                             )
                           }
       wlResult         <- wavelength.traverse { w =>
-                            logStep("central wavelength",
-                                    s"$TcsConfigTimeout, in position $InPositionTimeout"
-                            )(centralWavelength(w))
+                            logStep("central wavelength", TcsConfigTimeout.toString)(
+                              sendWavelength(w)
+                            )
                           }
       dfResult         <- defocus.traverse { d =>
                             logStep("defocus", TcsConfigTimeout.toString)(instrumentDefocus(d))
                           }
-      offResult        <- offsetMove.traverse { m =>
-                            logStep("offset",
-                                    s"$AdjTimeout, in position ${offsetTimeout(m.displacementArcsec)}"
-                            )(
-                              applyOffset(m, offsetSettleTime(oiInstrument, guide.tcsGuide))
-                            )
+      offResult        <- offsetMove.filterNot(_.isNull).traverse { m =>
+                            logStep("offset", AdjTimeout.toString)(sendOffset(m))
+                          }
+      // Like Observe, wait once, after everything has been sent: for the TCS to be in position if
+      // the mount moved (offset or wavelength change) or, if it did not, for the A&G mechanisms
+      // if the light path changed. A wavelength change waits for the full in-position timeout; an
+      // offset, for a time that depends on how far the telescope has to move.
+      inPositionTimeout =
+        List(
+          wlResult.exists(_._2).option(InPositionTimeout),
+          offsetMove.filterNot(_.isNull).map(m => offsetTimeout(m.displacementArcsec))
+        ).flattenOption.maxOption
+      _                <- inPositionTimeout match {
+                            case Some(t) =>
+                              logStep("wait for in position", t.toString)(
+                                waitInPositionAfterConfig(t, offsetSettleTime(oiInstrument, guide.tcsGuide))
+                              )
+                            case None    =>
+                              logStep("wait for AG in position", AgInPositionTimeout.toString)(
+                                waitAGInPositionAfterConfig(AgInPositionTimeout)
+                              ).whenA(lpResult.exists(_._2))
                           }
       _                <- logStep("resume probe tracking", timeout.toString)(
                             resumeWfsTracking(pg, wfsTracking).verifiedRun(ConnectionTimeout)
@@ -2365,8 +2409,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                           ).whenA(effectiveGuiding && (pause || !gs.isGuiding))
     } yield offResult
       .orElse(dfResult)
-      .orElse(wlResult)
-      .orElse(lpResult)
+      .orElse(wlResult.map(_._1))
+      .orElse(lpResult.map(_._1))
       .getOrElse(ApplyCommandResult.Completed)
 
   override def pointingAdjust(handsetAdjustment: HandsetAdjustment): F[ApplyCommandResult] =
