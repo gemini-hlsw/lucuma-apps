@@ -11,20 +11,38 @@
 
 @include meta.load-css('/lucuma-css/lucuma-ui-prime');
 
-.light-theme {
-  .p-button {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-  }
+// Inside PrimeReact's layer so its button variants still win by specificity.
+@layer primereact {
+  .light-theme {
+    .p-button {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+    }
 
-  .p-button:enabled:hover {
-    background: hsl(210deg 50% 38%);
-    border-color: hsl(210deg 50% 38%);
-  }
+    .p-button:enabled:hover {
+      background: var(--primary-color-hover);
+      border-color: var(--primary-color-hover);
+    }
 
-  .p-button:enabled:active {
-    background: hsl(210deg 50% 33%);
-    border-color: hsl(210deg 50% 33%);
+    .p-button:enabled:active {
+      background: var(--primary-color-active);
+      border-color: var(--primary-color-active);
+    }
+
+    .p-button.p-button-text,
+    .p-button.p-button-outlined {
+      color: var(--primary-color);
+    }
+
+    .p-button.p-button-outlined {
+      border-color: var(--primary-color);
+    }
+
+    .p-badge,
+    .p-tag {
+      background: var(--primary-color);
+      color: var(--primary-color-text);
+    }
   }
 }
 

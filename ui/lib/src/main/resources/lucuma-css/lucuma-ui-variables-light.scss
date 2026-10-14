@@ -150,7 +150,9 @@
   --warning-text-color: hsl(0deg 0% 100%);
   --warning-background-color: hsl(35deg 95% 50%);
   --error-background-color: hsl(0deg 100% 50%);
-  --primary-color: hsl(210deg 50% 45%);
+  --primary-color: var(--gray-dark);
+  --primary-color-hover: hsl(var(--gray-dark-h) var(--gray-dark-s) calc(var(--gray-dark-l) + 8%));
+  --primary-color-active: hsl(var(--gray-dark-h) var(--gray-dark-s) calc(var(--gray-dark-l) - 6%));
   --primary-color-text: hsl(0deg 0% 100%);
   --under-tab-background-color: var(--color-background-light-3);
   --under-tab-background-focus-color: var(--color-background-light-6);
@@ -326,7 +328,7 @@
 }
 
 @mixin tile-light {
-  --tile-background: var(--color-background-light-5);
+  --tile-background: var(--color-background-dark-5);
   --tile-title-background: var(--color-background-light-8);
   --tile-title-color: var(--color-text-full);
   --tile-resize-handle-brightness: 0;

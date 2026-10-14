@@ -2172,6 +2172,10 @@ svg.fa-check.explore-success-icon {
   background-color: var(--surface-card);
 }
 
+.light-theme .explore-configuration-tile-body {
+  background-color: var(--tile-background);
+}
+
 .explore-configuration-grid {
   padding: 0.5em;
   width: 100%;
