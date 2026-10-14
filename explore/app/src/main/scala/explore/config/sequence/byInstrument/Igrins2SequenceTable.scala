@@ -7,6 +7,7 @@ import cats.effect.IO
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
+import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
@@ -30,6 +31,7 @@ final case class Igrins2SequenceTable(
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
+  wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[Igrins2DynamicConfig]] => IO[
     List[Atom[Igrins2DynamicConfig]]
   ]

@@ -25,6 +25,7 @@ import lucuma.core.validation.*
 import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.sequence.SequenceWavelengthFormat
 
 import scala.collection.immutable.SortedSet
 
@@ -74,6 +75,12 @@ trait ConfigurationFormats:
         case WavelengthUnits.Micrometers => bdFormat(2).andThen(Wavelength.decimalMicrometers)
         case WavelengthUnits.Nanometers  => bdFormat(1).andThen(Wavelength.decimalNanometers)
         case WavelengthUnits.Angstroms   => bdFormat(0).andThen(Wavelength.decimalAngstroms)
+
+    def toSequenceWavelengthFormat: SequenceWavelengthFormat =
+      u match
+        case WavelengthUnits.Nanometers => SequenceWavelengthFormat.Nanometers
+        case _                          =>
+          SequenceWavelengthFormat(u.symbol, toInputFormat.reverseGet, toInputFormat, toAuditor)
 
     def toDeltaInputWedge: InputValidWedge[Option[WavelengthDelta]] =
       u match

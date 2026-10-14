@@ -17,6 +17,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
@@ -105,6 +106,19 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
   // Coadds for GNIRS.
   protected val coaddsReplace: Step.Id => PosInt => Endo[List[Atom[D]]] =
     modifyStep(gnirs.andThen(GnirsDynamicConfig.coadds).replace)
+
+  protected val gmosWavelengthReplace: Step.Id => Wavelength => Endo[List[Atom[D]]] =
+    modifyStep:
+      combineOptionalsReplace(
+        gmosNorth
+          .andThen(gmos.DynamicConfig.GmosNorth.gratingConfig)
+          .some
+          .andThen(gmos.GmosGratingConfig.North.wavelength),
+        gmosSouth
+          .andThen(gmos.DynamicConfig.GmosSouth.gratingConfig)
+          .some
+          .andThen(gmos.GmosGratingConfig.South.wavelength)
+      )
 
   // p/q and guiding live in the telescope config, which is not instrument specific.
   private val stepTelescopeConfig: Lens[Step[D], TelescopeConfig] = Step.telescopeConfig[D]

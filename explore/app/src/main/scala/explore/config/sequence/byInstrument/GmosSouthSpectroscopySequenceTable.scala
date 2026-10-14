@@ -8,6 +8,7 @@ import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
 import explore.model.AttachmentList
+import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Attachment
@@ -30,6 +31,7 @@ final case class GmosSouthSpectroscopySequenceTable(
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
+  wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosSouth]] => IO[
     List[Atom[gmos.DynamicConfig.GmosSouth]]
   ],
