@@ -306,6 +306,7 @@
   $tertiary-active-color: color.adjust($tertiary-hover-color, $lightness: 20%);
 
   --button-hover-background-color: hsl(220deg 2.9% 79.8%);
+  --button-active-background-color: hsl(220deg 2.9% 74%);
   --button-basic-hover-background-color: hsl(0deg 0% 100%);
   --button-background-color: hsl(210deg 3% 88%);
   --button-background-color-semi: hsl(210deg 3% 88% / 75%);

@@ -38,6 +38,29 @@
       border-color: var(--primary-color);
     }
 
+    .p-button.p-button-secondary {
+      color: var(--text-color);
+      background: var(--button-background-color);
+      border-color: var(--button-background-color);
+    }
+
+    .p-button.p-button-secondary:not(:disabled):hover {
+      color: var(--text-color);
+      background: var(--button-hover-background-color);
+      border-color: var(--button-hover-background-color);
+    }
+
+    .p-button.p-button-secondary:not(:disabled):active {
+      color: var(--text-color);
+      background: var(--button-active-background-color);
+      border-color: var(--button-active-background-color);
+    }
+
+    .p-button.p-button-secondary.p-button-text,
+    .p-button.p-button-secondary.p-button-outlined {
+      color: var(--text-color);
+    }
+
     .p-badge,
     .p-tag {
       background: var(--primary-color);
