@@ -78,8 +78,16 @@ trait ConfigurationFormats:
 
     def toSequenceWavelengthFormat: SequenceWavelengthFormat =
       u match
-        case WavelengthUnits.Nanometers => SequenceWavelengthFormat.Nanometers
-        case _                          =>
+        case WavelengthUnits.Nanometers  => SequenceWavelengthFormat.Nanometers
+        // Step wavelengths keep 0.1 nm precision, so μm needs four decimals.
+        case WavelengthUnits.Micrometers =>
+          SequenceWavelengthFormat(
+            u.symbol,
+            toInputFormat.reverseGet,
+            toInputFormat,
+            ChangeAuditor.posBigDecimal(4.refined)
+          )
+        case WavelengthUnits.Angstroms   =>
           SequenceWavelengthFormat(u.symbol, toInputFormat.reverseGet, toInputFormat, toAuditor)
 
     def toDeltaInputWedge: InputValidWedge[Option[WavelengthDelta]] =
