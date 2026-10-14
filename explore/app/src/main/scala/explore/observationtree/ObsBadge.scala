@@ -163,11 +163,12 @@ object ObsBadge:
       )
     ).withTooltip(content = state.shortName)
 
-  // Daytime pinhole calibrations have no meaningful target, so we label them by role.
+  // Daytime calibrations have no meaningful target, so we label them by role.
   private def badgeTitle(obs: Observation): String =
     obs.calibrationRole match
-      case Some(CalibrationRole.DaytimePinhole) => "Daytime Pinhole"
-      case _                                    => obs.title
+      case Some(CalibrationRole.DaytimePinhole)     => "Daytime Pinhole"
+      case Some(CalibrationRole.DaytimeCalibration) => "Daytime Calibration"
+      case _                                        => obs.title
 
   private val component = ScalaFnComponent[Props]: props =>
     for
