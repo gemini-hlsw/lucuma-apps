@@ -19,6 +19,7 @@ import explore.model.enums.AppTab
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CloneSequenceMode
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.schemas.ObservationDB.Types.*
@@ -135,6 +136,27 @@ def insertObs(
     .void
     .switching(adding.as(AddingObservation.Value).async)
     .withToastDuring("Creating observation")
+
+def insertDaytimeCalibration(
+  programId:    Program.Id,
+  parentId:     Option[Group.Id],
+  observations: UndoSetter[ObservationList],
+  adding:       View[AddingObservation],
+  ctx:          AppContext[IO]
+): IO[Unit] =
+  import ctx.given
+
+  ObsActions
+    .insertDaytimeCalibration(
+      programId,
+      parentId,
+      Instrument.GmosNorth,
+      focusObs = obsId => focusObs(programId, obsId.some, ctx),
+      postMessage = ToastCtx[IO].showToast(_)
+    )(observations)
+    .void
+    .switching(adding.as(AddingObservation.Value).async)
+    .withToastDuring("Creating daytime calibration")
 
 def insertGroup(
   programId: Program.Id,

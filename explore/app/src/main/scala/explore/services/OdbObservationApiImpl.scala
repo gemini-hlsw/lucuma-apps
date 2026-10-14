@@ -23,6 +23,7 @@ import explore.model.SchedulingConstraints
 import explore.utils.*
 import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.FacilityObservingModeType
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
@@ -279,6 +280,25 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         )
       .processErrors
       .map(_.createObservation.observation)
+
+  def createDaytimeCalibration(
+    programId:  Program.Id,
+    parentId:   Option[Group.Id],
+    instrument: Instrument
+  ): F[Observation] =
+    ProgramCreateObservation[F]
+      .execute:
+        CreateObservationInput(
+          programId = programId.assign,
+          SET = ObservationPropertiesInput(
+            groupId = parentId.orIgnore,
+            observingMode =
+              ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(instrument)).assign
+          ).assign
+        )
+      .processErrors
+      .map(_.createObservation.observation)
+      .flatMap(hydrateObservingMode)
 
   // Re-hydrate an observation with a one query call to fill the blanks of teh subquery.
   private def hydrateObservingMode(obs: Observation): F[Observation] =
