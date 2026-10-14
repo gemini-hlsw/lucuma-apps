@@ -84,13 +84,7 @@ sealed trait SequenceRow[+D]:
   lazy val stepTypeDisplay: Option[StepTypeDisplay] =
     stepConfig.flatMap(StepTypeDisplay.fromStepConfig)
 
-  // Single-string summary of Lamp, Filter, IR Shutter and Diffuser, when stepConfig is a Gcal.
-  lazy val gcal: Option[NonEmptyString] = stepConfig.collect:
-    case StepConfig.Gcal(lamp, filter, diffuser, shutter) =>
-      val lampName = lamp.fold(_.shortName, _.toSortedSet.toList.map(_.shortName).mkString("+"))
-      NonEmptyString.unsafeFrom(
-        List(lampName, filter.shortName, shutter.shortName, diffuser.shortName).mkString(", ")
-      )
+  lazy val gcal: Option[StepConfig.Gcal] = stepConfig.flatMap(sc => StepConfig.gcal.getOption(sc))
 
   lazy val offset: Option[Offset] = telescopeConfig.map(_.offset)
 

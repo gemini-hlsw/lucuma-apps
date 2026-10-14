@@ -22,6 +22,7 @@ import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
+import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.optics.ValidWedge
 import lucuma.core.syntax.validation.*
@@ -376,15 +377,15 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
           )
     )
 
-  private lazy val gcalCol: colDef.TypeFor[Option[NonEmptyString]] =
+  private lazy val gcalCol: colDef.TypeFor[Option[StepConfig.Gcal]] =
     colDef(
       SequenceColumns.GCalColumnId,
       _.getStep.flatMap(_.gcal),
       header = "GCal",
       cell = _.value.fold(EmptyVdom): gcal =>
-        <.span(gcal.value)
+        <.span(gcal.shortName)
           .withTooltip(
-            content = gcal.value,
+            content = gcal.longName,
             showDelay = 100,
             position = Tooltip.Position.Top
           )
@@ -773,7 +774,8 @@ object SequenceColumns:
       YBinColumnId,
       FilterColumnId,
       GratingColumnId,
-      FPUColumnId
+      FPUColumnId,
+      GCalColumnId
     ).reverse
 
     val ForFlamingos2: List[ColumnId] = List(
@@ -785,7 +787,8 @@ object SequenceColumns:
       SNColumnId,
       FilterColumnId,
       GratingColumnId,
-      FPUColumnId
+      FPUColumnId,
+      GCalColumnId
     ).reverse
 
     val ForIgrins2: List[ColumnId] = List(
@@ -812,7 +815,8 @@ object SequenceColumns:
       PeakColumnId,
       SNColumnId,
       FilterColumnId,
-      FPUColumnId
+      FPUColumnId,
+      GCalColumnId
     ).reverse
 
     def apply(instrument: Instrument): List[ColumnId] =
