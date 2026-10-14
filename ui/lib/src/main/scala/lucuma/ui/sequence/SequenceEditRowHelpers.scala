@@ -60,6 +60,18 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
         ctx     <- cellContext.table.options.meta.map(_.editContexts.forSequenceType(seqType))
       yield ctx.isEditing.get.value).getOrElse(false)
 
+  extension (gcal: StepConfig.Gcal)
+    protected def shortName: String =
+      val lampName =
+        gcal.lamp.fold(_.shortName, _.toSortedSet.toList.map(_.shortName).mkString("+"))
+      List(lampName, gcal.filter.shortName, gcal.shutter.shortName, gcal.diffuser.shortName)
+        .mkString(", ")
+
+    protected def longName: String =
+      val lampName = gcal.lamp.fold(_.longName, _.toSortedSet.toList.map(_.longName).mkString("+"))
+      List(lampName, gcal.filter.longName, gcal.shutter.longName, gcal.diffuser.longName)
+        .mkString(", ")
+
   protected def handleSeqTypeRowEditAsync[A](
     c:       CellContextType[A],
     seqType: SequenceType
