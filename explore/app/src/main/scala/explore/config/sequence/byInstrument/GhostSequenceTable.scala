@@ -7,6 +7,7 @@ import cats.effect.IO
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
+import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.callback.Callback
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
@@ -28,6 +29,7 @@ final case class GhostSequenceTable(
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
+  wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[GhostDynamicConfig]] => IO[
     List[Atom[GhostDynamicConfig]]
   ]

@@ -105,6 +105,11 @@ sealed trait SequenceRow[+D]:
     case Igrins2DynamicConfig(_)                                 => none
     case GhostDynamicConfig(_, _, _, _)                          => none
 
+  lazy val gmosGratingWavelength: Option[Wavelength] = instrumentConfig.flatMap:
+    case gmos.DynamicConfig.GmosNorth(gratingConfig = grating) => grating.map(_.wavelength)
+    case gmos.DynamicConfig.GmosSouth(gratingConfig = grating) => grating.map(_.wavelength)
+    case _                                                     => none
+
   lazy val exposureTime: Option[TimeSpan] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(exposure = exposure) => exposure.some
     case gmos.DynamicConfig.GmosSouth(exposure = exposure) => exposure.some

@@ -261,8 +261,35 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     colDef(
       SequenceColumns.WavelengthColumnId,
       _.getStep.flatMap(_.wavelength),
-      header = _ => "λ (nm)",
-      cell = _.value.map(FormatWavelength(_).value).getOrElse("-")
+      header = h =>
+        val symbol: String =
+          h.table.options.meta.fold(SequenceWavelengthFormat.Nanometers)(_.wavelengthFormat).symbol
+        s"λ ($symbol)"
+      ,
+      cell = c =>
+        val wvFormat: SequenceWavelengthFormat =
+          c.table.options.meta.fold(SequenceWavelengthFormat.Nanometers)(_.wavelengthFormat)
+        val isFinished: Boolean                =
+          c.getStep.forall(_.isFinished)
+        c.getStep.flatMap(_.gmosGratingWavelength) match
+          case Some(wv) if c.isRowEditing && !isFinished =>
+            FormInputTextView(
+              id = NonEmptyString.unsafeFrom(
+                s"${SequenceColumns.WavelengthColumnId.value}-${c.row.index}"
+              ),
+              value = View[Wavelength](
+                wv,
+                (mod, cb) =>
+                  val newWv: Wavelength = mod(wv)
+                  handleRowValueEdit(c)(gmosWavelengthReplace)(newWv.some) >> cb(wv, newWv)
+              ),
+              validFormat = wvFormat.validFormat,
+              changeAuditor = wvFormat.changeAuditor,
+              groupClass = SequenceStyles.SequenceInput,
+              inputClass = SequenceStyles.OffsetInput
+            ): VdomNode
+          case _                                         =>
+            c.value.map(wvFormat.display).getOrElse("-"): VdomNode
     )
 
   private lazy val fpuCol: colDef.TypeFor[Option[String]] =

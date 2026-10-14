@@ -10,3 +10,5 @@ trait SequenceTableMeta[D]:
   def editContexts: SequenceEditContexts[D]
 
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
+
+  def wavelengthFormat: SequenceWavelengthFormat = SequenceWavelengthFormat.Nanometers

@@ -25,6 +25,7 @@ import lucuma.core.validation.*
 import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.sequence.SequenceWavelengthFormat
 
 import scala.collection.immutable.SortedSet
 
@@ -74,6 +75,20 @@ trait ConfigurationFormats:
         case WavelengthUnits.Micrometers => bdFormat(2).andThen(Wavelength.decimalMicrometers)
         case WavelengthUnits.Nanometers  => bdFormat(1).andThen(Wavelength.decimalNanometers)
         case WavelengthUnits.Angstroms   => bdFormat(0).andThen(Wavelength.decimalAngstroms)
+
+    def toSequenceWavelengthFormat: SequenceWavelengthFormat =
+      u match
+        case WavelengthUnits.Nanometers  => SequenceWavelengthFormat.Nanometers
+        // Step wavelengths keep 0.1 nm precision, so μm needs four decimals.
+        case WavelengthUnits.Micrometers =>
+          SequenceWavelengthFormat(
+            u.symbol,
+            toInputFormat.reverseGet,
+            toInputFormat,
+            ChangeAuditor.posBigDecimal(4.refined)
+          )
+        case WavelengthUnits.Angstroms   =>
+          SequenceWavelengthFormat(u.symbol, toInputFormat.reverseGet, toInputFormat, toAuditor)
 
     def toDeltaInputWedge: InputValidWedge[Option[WavelengthDelta]] =
       u match

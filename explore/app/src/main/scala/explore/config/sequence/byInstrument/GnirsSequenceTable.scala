@@ -7,6 +7,7 @@ import cats.effect.IO
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
+import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
@@ -31,6 +32,7 @@ final case class GnirsSequenceTable(
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
+  wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[GnirsDynamicConfig]] => IO[
     List[Atom[GnirsDynamicConfig]]
   ]

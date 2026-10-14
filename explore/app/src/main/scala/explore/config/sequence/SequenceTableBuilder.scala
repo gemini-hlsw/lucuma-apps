@@ -11,6 +11,7 @@ import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
+import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.reusability.given
 import explore.utils.testId
@@ -59,11 +60,12 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   private type Props = SequenceTable[S, D]
 
   private case class TableMeta[D](
-    allVisits:          View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    editContexts:       SequenceEditContexts[D],
-    isUserStaffOrAdmin: Boolean,
-    getMaskName:        Attachment.Id => Option[NonEmptyString]
+    allVisits:                     View[Option[ExecutionVisits]],
+    datasetIdsInFlight:            View[HashSet[Dataset.Id]],
+    editContexts:                  SequenceEditContexts[D],
+    isUserStaffOrAdmin:            Boolean,
+    getMaskName:                   Attachment.Id => Option[NonEmptyString],
+    override val wavelengthFormat: SequenceWavelengthFormat
   ) extends SequenceTableMeta[D]:
     override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
       getMaskName(attachmentId)
@@ -183,7 +185,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 datasetIdsInFlight,
                 editContexts,
                 props.isUserStaffOrAdmin,
-                props.maskName
+                props.maskName,
+                props.wavelengthUnits.toSequenceWavelengthFormat
               )
             )
         _                             <-

@@ -558,6 +558,7 @@ object ObsTabTiles:
             isEditingAcquisition,
             isEditingScience,
             props.isStaffOrAdminUser,
+            globalPreferences.get.wavelengthUnits,
             props.observation.get.isExecuted,
             props.programIsReadonly,
             props.attachments.get

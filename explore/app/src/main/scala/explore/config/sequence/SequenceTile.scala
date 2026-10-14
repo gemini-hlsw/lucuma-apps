@@ -16,6 +16,7 @@ import explore.model.AttachmentList
 import explore.model.Execution
 import explore.model.ObsTabTileIds
 import explore.model.Observation
+import explore.model.enums.WavelengthUnits
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.utils.*
@@ -54,6 +55,7 @@ final case class SequenceTile(
   isEditingAcquisition:    View[IsEditing],
   isEditingScience:        View[IsEditing],
   isUserStaffOrAdmin:      Boolean,
+  wavelengthUnits:         WavelengthUnits,
   obsIsExecuted:           Boolean,
   readonly:                Boolean,
   attachments:             AttachmentList
@@ -208,6 +210,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -225,6 +228,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -243,6 +247,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -275,6 +280,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -292,6 +298,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -310,6 +317,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -342,6 +350,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -359,6 +368,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     atoms =>
                                       ctx.odbApi
@@ -388,6 +398,7 @@ object SequenceTile
                               props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
+                              props.wavelengthUnits,
                               seqType => ctx.odbApi.replaceIgrins2Sequence(props.obsId, seqType, _)
                             )
                       case SequenceData(InstrumentExecutionConfig.Ghost(config), _)             =>
@@ -407,6 +418,7 @@ object SequenceTile
                               props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
+                              props.wavelengthUnits,
                               seqType => ctx.odbApi.replaceGhostSequence(props.obsId, seqType, _)
                             )
                       case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise) =>
@@ -430,6 +442,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
@@ -445,6 +458,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
@@ -461,6 +475,7 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )

@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
@@ -30,6 +31,7 @@ private trait SequenceTable[S, D]:
   def isEditingAcquisition: View[IsEditing]
   def isEditingScience: View[IsEditing]
   def isUserStaffOrAdmin: Boolean
+  def wavelengthUnits: WavelengthUnits
   def remoteReplace: SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
 
   // The mask name for a custom mask attachment, when known.
