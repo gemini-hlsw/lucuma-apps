@@ -990,6 +990,8 @@ extension (b: ObservingMode)
       ObservingModeInput.Exchange(o.toInput)
     case o: ObservingMode.SubaruExchange     =>
       ObservingModeInput.Exchange(o.toInput)
+    case o: ObservingMode.DaytimeCalibration =>
+      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(o.calibrationInstrument))
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
@@ -1184,6 +1186,8 @@ extension (i: BasicConfiguration)
           totalRequestTime = totalRequestTime.toInput.assign
         )
       )
+    case BasicConfiguration.DaytimeCalibration(calibrationInstrument)                             =>
+      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(calibrationInstrument))
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

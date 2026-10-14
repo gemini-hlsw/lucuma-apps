@@ -73,6 +73,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case v: BasicConfiguration.Visitor            => v.site.some
     case _: BasicConfiguration.KeckExchange       => none
     case _: BasicConfiguration.SubaruExchange     => none
+    case _: BasicConfiguration.DaytimeCalibration => none
 
   def obsModeType: ObservingModeType = this match
     case _: BasicConfiguration.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
@@ -93,6 +94,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case v: BasicConfiguration.Visitor            => v.mode
     case _: BasicConfiguration.KeckExchange       => ObservingModeType.ExchangeKeck
     case _: BasicConfiguration.SubaruExchange     => ObservingModeType.ExchangeSubaru
+    case _: BasicConfiguration.DaytimeCalibration => ObservingModeType.DaytimeCalibration
 
   def centralWv: Option[CentralWavelength] = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -122,8 +124,10 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _                                                            =>
       none
 
-  def instrument: Option[Instrument] =
-    obsModeType.fold(_ => none, _.instrument.some, _.instrument.some)
+  def instrument: Option[Instrument] = this match
+    case BasicConfiguration.DaytimeCalibration(instrument) => instrument.some
+    case _                                                 =>
+      obsModeType.fold(_ => none, _ => none, _.instrument.some, _.instrument.some)
 
   // The dispersing element in the beam, as this configuration states it.
   def disperserShortName: Option[String] = this match
@@ -195,6 +199,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       AGSWavelength(Wavelength.Min)
     case _: BasicConfiguration.SubaruExchange                         =>
       AGSWavelength(Wavelength.Min)
+    case _: BasicConfiguration.DaytimeCalibration                     =>
+      AGSWavelength(Wavelength.Min)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -232,6 +238,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.KeckExchange                           =>
       Wavelength.Min
     case _: BasicConfiguration.SubaruExchange                         =>
+      Wavelength.Min
+    case _: BasicConfiguration.DaytimeCalibration                     =>
       Wavelength.Min
 
   def guideProbe(trackType: Option[TrackType], altair: Option[AltairMode]): Option[GuideProbe] =
@@ -311,6 +319,8 @@ object BasicConfiguration:
             c.downField("exchange").as[KeckExchange]
           .orElse:
             c.downField("exchange").as[SubaruExchange]
+          .orElse:
+            c.downField("daytimeCalibration").as[DaytimeCalibration]
           .orElse:
             DecodingFailure("Could not decode BasicConfiguration", c.history).asLeft
 
@@ -621,6 +631,13 @@ object BasicConfiguration:
         totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
       yield SubaruExchange(subaruInstrument, totalRequestTime)
 
+  case class DaytimeCalibration(calibrationInstrument: Instrument) extends BasicConfiguration
+      derives Eq
+
+  object DaytimeCalibration:
+    given Decoder[DaytimeCalibration] = Decoder.instance: c =>
+      c.downField("instrument").as[Instrument].map(DaytimeCalibration(_))
+
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =
     GenPrism[BasicConfiguration, GmosNorthLongSlit]
 
@@ -671,3 +688,6 @@ object BasicConfiguration:
 
   val subaruExchange: Prism[BasicConfiguration, SubaruExchange] =
     GenPrism[BasicConfiguration, SubaruExchange]
+
+  val daytimeCalibration: Prism[BasicConfiguration, DaytimeCalibration] =
+    GenPrism[BasicConfiguration, DaytimeCalibration]

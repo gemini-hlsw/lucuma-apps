@@ -248,6 +248,11 @@ trait ArbBasicConfiguration {
       } yield BasicConfiguration.SubaruExchange(subaruInstrument, requested)
     )
 
+  given Arbitrary[BasicConfiguration.DaytimeCalibration] =
+    Arbitrary[BasicConfiguration.DaytimeCalibration](
+      arbitrary[Instrument].map(BasicConfiguration.DaytimeCalibration(_))
+    )
+
   given Arbitrary[BasicConfiguration] = Arbitrary[BasicConfiguration](
     Gen.oneOf(
       arbitrary[BasicConfiguration.GmosNorthLongSlit],
@@ -267,7 +272,8 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GhostIfu],
       arbitrary[BasicConfiguration.Visitor],
       arbitrary[BasicConfiguration.KeckExchange],
-      arbitrary[BasicConfiguration.SubaruExchange]
+      arbitrary[BasicConfiguration.SubaruExchange],
+      arbitrary[BasicConfiguration.DaytimeCalibration]
     )
   )
 
@@ -384,6 +390,9 @@ trait ArbBasicConfiguration {
     Cogen[(SubaruInstrument, TimeSpan)]
       .contramap(o => (o.subaruInstrument, o.totalRequestTime))
 
+  given Cogen[BasicConfiguration.DaytimeCalibration] =
+    Cogen[Instrument].contramap(_.calibrationInstrument)
+
   // Keyed on the mode discriminator rather than a nested Either, which had to grow two levels
   // for every mode added.
   given Cogen[BasicConfiguration] =
@@ -421,7 +430,10 @@ trait ArbBasicConfiguration {
                                     BasicConfiguration.Flamingos2Mos,
                                     Either[
                                       BasicConfiguration.GmosNorthIfu,
-                                      BasicConfiguration.GmosSouthIfu
+                                      Either[
+                                        BasicConfiguration.GmosSouthIfu,
+                                        BasicConfiguration.DaytimeCalibration
+                                      ]
                                     ]
                                   ]
                                 ]
@@ -470,6 +482,8 @@ trait ArbBasicConfiguration {
         case n: BasicConfiguration.GmosNorthIfu       =>
           n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: BasicConfiguration.GmosSouthIfu       =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case d: BasicConfiguration.DaytimeCalibration =>
+          d.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 }
 object ArbBasicConfiguration extends ArbBasicConfiguration

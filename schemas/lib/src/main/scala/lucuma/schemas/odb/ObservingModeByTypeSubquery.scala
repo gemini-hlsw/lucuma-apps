@@ -12,6 +12,7 @@ import lucuma.schemas.model.ObservingMode
 // only the mode it needs. `mode` is always selected: a caller removing the observing mode turns
 // off every flag, and an empty selection set on the non-leaf `observingMode` field is a server
 // error.
+// `daytimeCalibration` is a single field, so it is always selected rather than flagged.
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
@@ -495,6 +496,9 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             keckInstrument
             subaruInstrument
             totalRequestTime $TimeSpanSubquery
+          }
+          daytimeCalibration {
+            instrument
           }
         }
       """

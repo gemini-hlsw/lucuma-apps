@@ -563,6 +563,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case ObservingModeInput.GhostIfu(_)           => ObservingModeType.GhostIfu.some
       case ObservingModeInput.Visitor(_)            => none
       case ObservingModeInput.Exchange(_)           => none
+      case ObservingModeInput.DaytimeCalibration(_) => none
 
   // Every ObservingModeType maps to exactly one `ObservingMode` union view.
   // We turn on only that view's `@include` flag so the server resolves a single mode-view.
@@ -607,6 +608,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           ObservingModeType.VisitorSouth | ObservingModeType.ZorroSpeckle |
           ObservingModeType.ZorroWideField =>
         ModeViewFlags(visitor = true)
+      case ObservingModeType.DaytimeCalibration                              =>
+        ModeViewFlags()
 
   private def fetchObservingModes(
     where:    WhereObservation,

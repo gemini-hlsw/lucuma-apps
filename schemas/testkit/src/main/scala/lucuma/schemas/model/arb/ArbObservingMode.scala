@@ -1782,6 +1782,13 @@ trait ArbObservingMode {
     Cogen[(SubaruInstrument, TimeSpan)]
       .contramap(o => (o.subaruInstrument, o.totalRequestTime))
 
+  given Arbitrary[ObservingMode.DaytimeCalibration] = Arbitrary[ObservingMode.DaytimeCalibration](
+    arbitrary[Instrument].map(ObservingMode.DaytimeCalibration(_))
+  )
+
+  given Cogen[ObservingMode.DaytimeCalibration] =
+    Cogen[Instrument].contramap(_.calibrationInstrument)
+
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(
       arbitrary[ObservingMode.GmosNorthLongSlit],
@@ -1802,7 +1809,8 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GhostIfu],
       arbitrary[ObservingMode.Visitor],
       arbitrary[ObservingMode.KeckExchange],
-      arbitrary[ObservingMode.SubaruExchange]
+      arbitrary[ObservingMode.SubaruExchange],
+      arbitrary[ObservingMode.DaytimeCalibration]
     )
   )
 
@@ -1835,12 +1843,15 @@ trait ArbObservingMode {
                               ObservingMode.SubaruExchange,
                               Either[
                                 ObservingMode.GmosNorthMos,
-                                Either[ObservingMode.GmosSouthMos,
-                                       Either[ObservingMode.Flamingos2Mos,
-                                              Either[ObservingMode.GmosNorthIfu,
-                                                     ObservingMode.GmosSouthIfu
-                                              ]
-                                       ]
+                                Either[
+                                  ObservingMode.GmosSouthMos,
+                                  Either[ObservingMode.Flamingos2Mos,
+                                         Either[ObservingMode.GmosNorthIfu,
+                                                Either[ObservingMode.GmosSouthIfu,
+                                                       ObservingMode.DaytimeCalibration
+                                                ]
+                                         ]
+                                  ]
                                 ]
                               ]
                             ]
@@ -1888,7 +1899,9 @@ trait ArbObservingMode {
         case n: ObservingMode.GmosNorthIfu       =>
           n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: ObservingMode.GmosSouthIfu       =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case d: ObservingMode.DaytimeCalibration =>
+          d.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 }
 

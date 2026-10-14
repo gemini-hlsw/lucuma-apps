@@ -405,6 +405,8 @@ trait DisplayImplicits:
       s"Keck Exchange: ${keckInstrument.longName}"
     case BasicConfiguration.SubaruExchange(subaruInstrument, _)                    =>
       s"Subaru Exchange: ${subaruInstrument.longName}"
+    case BasicConfiguration.DaytimeCalibration(calibrationInstrument)              =>
+      s"Daytime Calibration (${calibrationInstrument.shortName})"
 
   // The guider selector entry; summaries use the shorter `altairSummaryLabel` instead.
   def altairModeLabel(mode: AltairMode): String = s"Altair ${mode.shortName}"

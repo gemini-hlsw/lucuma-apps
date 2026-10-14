@@ -491,6 +491,7 @@ final case class Observation(
         case _: ObservingMode.Visitor            => List.empty
         case _: ObservingMode.KeckExchange       => List.empty
         case _: ObservingMode.SubaruExchange     => List.empty
+        case _: ObservingMode.DaytimeCalibration => List.empty
 
   lazy val constraintsSummary: String =
     s"${constraints.imageQuality.toImageQuality.label} ${constraints.cloudExtinction.toCloudExtinction.label}" +
