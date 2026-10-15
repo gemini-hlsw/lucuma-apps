@@ -314,6 +314,12 @@ input OffsetInput {
   "Offset in q"
   q: OffsetComponentInput!
 }
+"""
+Program reference, formatted according to the type.  For example, a Science
+Program has format G-YYYY[AB]-NNNN+-[CDLFSV]. For example, G-2024B-1234-Q
+where 2024B refers to the associated semester.
+"""
+scalar ProgramReferenceLabel
 type Sidereal {
   "Right ascension at epoch"
   ra: RightAscension!
@@ -524,6 +530,7 @@ input TcsConfigInput {
   instrument: Instrument!
   lightSinkVariant: LightSinkVariant
   baffles: BaffleConfigInput
+  programLabel: ProgramReferenceLabel
 }
 input SwapConfigInput {
   guideTarget: TargetPropertiesInput!

@@ -168,7 +168,8 @@ class NavigateEngineSpec extends CatsEffectSuite {
                      LightSink.GmosNorth,
                      BafflesConfig
                        .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
-                       .some
+                       .some,
+                     none
                    ),
                    none
                  ) *>
@@ -199,7 +200,8 @@ class NavigateEngineSpec extends CatsEffectSuite {
                        LightSink.GmosNorth,
                        BafflesConfig
                          .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
-                         .some
+                         .some,
+                       none
                      ),
                      none
                    )
@@ -242,7 +244,8 @@ class NavigateEngineSpec extends CatsEffectSuite {
       LightSink.GmosNorth,
       BafflesConfig
         .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
-        .some
+        .some,
+      none
     )
 
   private def withEngine(f: NavigateEngine[IO] => IO[Unit]): IO[Unit] =

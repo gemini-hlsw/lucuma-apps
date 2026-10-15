@@ -6,7 +6,10 @@ package navigate.model
 import cats.Show
 import cats.derived.*
 import cats.syntax.all.*
+import lucuma.core.model.ProgramReference
 import navigate.model.enums.LightSink
+
+private given Show[ProgramReference] = Show.show(_.label)
 
 case class TcsConfig(
   sourceATarget:       Target,
@@ -16,7 +19,8 @@ case class TcsConfig(
   oiwfs:               Option[GuiderConfig],
   rotatorTrackConfig:  RotatorTrackConfig,
   instrumentVariant:   LightSink,
-  baffles:             Option[BafflesConfig]
+  baffles:             Option[BafflesConfig],
+  programLabel:        Option[ProgramReference]
 ) derives Show:
   def bafflesState: Option[BafflesState] =
     (baffles, sourceATarget.wavelength).mapN: (b, w) =>
