@@ -4,8 +4,12 @@
 The deployed version is not part of `config.sh`. The only way to change it is
 `observe update <tag>`; the tag is mandatory and there is no `latest` fallback. Tags are
 `YYYYMMDD-<sha8>` as published by CI (e.g. `20260916-4b3faa6d`); the promote script prints the
-exact command to run. The current tag is stored in `~/observe/deployed-version` (written only by
-`update`) and shown by `observe version`. `observe start` and `observe restart` reuse it.
+exact command to run and posts it on Slack. Deploying `latest` is refused unless `--force` is
+given: it is whatever CI built last from `main`, not a promoted version, and may be incompatible
+with the other systems of the environment. The servers cannot reach github.com, so the refusal
+prints a `curl` command to run elsewhere that looks the promoted tag up in the GitHub deployment
+records. The current tag is stored in `~/observe/deployed-version` (written only by `update`) and
+shown by `observe version`. `observe start` and `observe restart` reuse it.
 
 You can use the commands in `install.sh` to copy the latest version of the scripts:
 
