@@ -73,4 +73,14 @@ object ObsQueriesGQL {
         }
       }
     """
+
+  @GraphQL
+  trait InsertSmartGcalMutation extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation($$obsId: ObservationId!, $$smartGcalTypes: [SmartGcalType!]!) {
+        insertSmartGcal(input: { observationId: $$obsId, smartGcalTypes: $$smartGcalTypes }) {
+          stepIds
+        }
+      }
+    """
 }

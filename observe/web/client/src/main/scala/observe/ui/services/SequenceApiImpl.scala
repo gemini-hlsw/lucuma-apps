@@ -6,7 +6,6 @@ package observe.ui.services
 import cats.effect.IO
 import cats.syntax.eq.*
 import crystal.react.View
-import crystal.react.syntax.all.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
@@ -34,11 +33,7 @@ case class SequenceApiImpl(
     obsId: Observation.Id,
     lens:  Lens[ObservationRequests, OperationRequest]
   ): IO[Unit] =
-    requests
-      .mod: r =>
-        r + (obsId ->
-          lens.replace(OperationRequest.InFlight)(r.getOrElse(obsId, ObservationRequests.Idle)))
-      .to[IO]
+    requests.modObservation(obsId)(lens.replace(OperationRequest.InFlight))
 
   override def loadObservation(obsId: Observation.Id, instrument: Instrument): IO[Unit] =
     client.postNoData:

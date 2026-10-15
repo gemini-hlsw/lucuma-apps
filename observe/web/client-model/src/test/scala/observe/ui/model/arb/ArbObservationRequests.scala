@@ -32,6 +32,8 @@ trait ArbObservationRequests:
       acquisitionPrompt  <- arbitrary[OperationRequest]
       skipAcquisition    <- arbitrary[OperationRequest]
       resetAcquisition   <- arbitrary[OperationRequest]
+      insertSmartGcal    <- arbitrary[OperationRequest]
+      insertedSteps      <- arbitrary[Set[Step.Id]]
     yield ObservationRequests(
       startSequence,
       startSequenceFrom,
@@ -46,7 +48,9 @@ trait ArbObservationRequests:
       subsystemRun,
       acquisitionPrompt,
       skipAcquisition,
-      resetAcquisition
+      resetAcquisition,
+      insertSmartGcal,
+      insertedSteps
     )
 
   given Cogen[ObservationRequests] = Cogen[
@@ -63,7 +67,9 @@ trait ArbObservationRequests:
      List[(Step.Id, List[(Subsystem, OperationRequest)])],
      OperationRequest,
      OperationRequest,
-     OperationRequest
+     OperationRequest,
+     OperationRequest,
+     List[Step.Id]
     )
   ].contramap(x =>
     (x.startSequence,
@@ -79,7 +85,9 @@ trait ArbObservationRequests:
      x.subsystemRun.view.mapValues(_.toList).toList,
      x.acquisitionPrompt,
      x.skipAcquisition,
-     x.resetAcquisition
+     x.resetAcquisition,
+     x.insertSmartGcal,
+     x.insertedSteps.toList
     )
   )
 

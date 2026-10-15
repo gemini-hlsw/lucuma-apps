@@ -40,12 +40,15 @@ import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 
 import scala.collection.immutable.HashSet
+import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
 
 // Helper to build component objects for instrument sequence tables.
 private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrument)
     extends SequenceTableDefs[D]:
   private type Props = SequenceTable[S, D]
+
+  private val InsertedStepFlashDuration: FiniteDuration = 1.second
 
   private val ScrollOptions =
     rawVirtual.mod
@@ -224,6 +227,18 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 case Expanded.AllRows    => Expanded.AllRows
                 case Expanded.Rows(rows) => Expanded.Rows(rows + (getRowId(sequence.last) -> true))
             case _                        => Callback.empty
+        renderedInsertedSteps     =
+          props.scienceRows
+            .flatMap(_.id.right)
+            .filter(props.requests.insertedSteps.contains)
+            .sortBy(_.toString)
+        _                        <- // Inserted steps are flashed once their rows render, then forgotten.
+          useEffectWithDeps(renderedInsertedSteps): stepIds =>
+            import ctx.given
+
+            Callback.when(stepIds.nonEmpty):
+              (IO.sleep(InsertedStepFlashDuration) >>
+                odbQueryApi.clearInsertedSteps(props.obsId, stepIds.toSet)).runAsync
       yield
         extension (step: SequenceRow[D]) {
           def isSelected: Boolean =
@@ -247,6 +262,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 selectableRowIdOpt
                   .exists: selectedRowId =>
                     props.executionState.breakpoints.contains_(selectedRowId.stepId)
+              val stepWasInserted: Boolean                  =
+                selectableRowIdOpt
+                  .exists: selectedRowId =>
+                    props.requests.insertedSteps.contains_(selectedRowId.stepId)
 
               TagMod(
                 selectableRowIdOpt
@@ -272,6 +291,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                   .when_(step.isSelected || step.isLoaded || step.isFinished),
                 ObserveStyles.RowIdle.unless_(step.isSelected || step.isLoaded),
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
+                ObserveStyles.StepRowInserted.when_(stepWasInserted),
                 ObserveStyles.StepRowFirstInAtom.when_(step.isFirstInAtom),
                 step.stepState match
                   case s if s.hasError                      => ObserveStyles.StepRowError

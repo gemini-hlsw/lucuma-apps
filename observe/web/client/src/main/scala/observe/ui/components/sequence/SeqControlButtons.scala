@@ -9,20 +9,29 @@ import crystal.react.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.SmartGcalType
+import lucuma.core.syntax.display.*
+import lucuma.core.util.Enumerated
 import lucuma.react.common.*
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.MenuItem
+import lucuma.react.primereact.PopupMenu
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.hooks.all.*
 import lucuma.ui.LucumaIcons
+import lucuma.ui.reusability.given
 import observe.model.Observation
 import observe.model.SequenceStatus
 import observe.model.enums.RunOverride
 import observe.ui.Icons
 import observe.ui.ObserveStyles
+import observe.ui.display.given
 import observe.ui.model.AppContext
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.OperationRequest
+import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 
 case class SeqControlButtons(
@@ -49,6 +58,8 @@ case class SeqControlButtons(
   val isSkipAcquisitionInFlight: Boolean    = requests.skipAcquisition === OperationRequest.InFlight
   val isResetAcquisitionInFlight: Boolean   =
     requests.resetAcquisition === OperationRequest.InFlight
+  val isInsertSmartGcalInFlight: Boolean    =
+    requests.insertSmartGcal === OperationRequest.InFlight
 
 object SeqControlButtons
     extends ReactFnComponent[SeqControlButtons](props =>
@@ -58,6 +69,16 @@ object SeqControlButtons
       for
         ctx         <- useContext(AppContext.ctx)
         sequenceApi <- useContext(SequenceApi.ctx)
+        odbApi      <- useContext(ODBQueryApi.ctx)
+        menuRef     <- usePopupMenuRef
+        insertItems <- useMemo(props.obsId): obsId =>
+                         import ctx.given
+
+                         Enumerated[SmartGcalType].all.map: smartGcalType =>
+                           MenuItem.Item(
+                             label = smartGcalType.shortName,
+                             command = odbApi.insertSmartGcal(obsId, smartGcalType).runAsync
+                           )
       yield
         import ctx.given
 
@@ -123,6 +144,23 @@ object SeqControlButtons
             onClick = sequenceApi.resetAcquisition(props.obsId).runAsync,
             disabled =
               !props.isIdleOrError || props.isRefreshing || props.isResetAcquisitionInFlight
-          ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science)
+          ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science),
+          React
+            .Fragment(
+              Button(
+                clazz = ObserveStyles.InsertCalibrationButton |+| ObserveStyles.ObsSummaryButton,
+                loading = props.isInsertSmartGcalInFlight,
+                icon = Icons.Plus.withFixedWidth().withSize(IconSize.LG),
+                loadingIcon =
+                  LucumaIcons.CircleNotch.withFixedWidth().withSize(IconSize.LG).withSpin(),
+                tooltip = "Insert calibration after the current step",
+                tooltipOptions = tooltipOptions,
+                onClickE = menuRef.toggle,
+                disabled =
+                  props.isCompleted || props.isRefreshing || props.isInsertSmartGcalInFlight
+              ),
+              PopupMenu(model = insertItems).withRef(menuRef.ref)
+            )
+            .when(props.sequenceType === SequenceType.Science)
         )
     )

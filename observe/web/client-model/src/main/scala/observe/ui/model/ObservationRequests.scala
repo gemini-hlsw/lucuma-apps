@@ -14,6 +14,10 @@ import observe.model.SequenceStatus
 import observe.model.Subsystem
 import observe.ui.model.enums.OperationRequest
 
+/**
+ * Client-side state of the operations requested on an observation. `insertedSteps` holds the ids
+ * returned by the last smart GCAL insertion so the table can flash them when they show up.
+ */
 case class ObservationRequests(
   startSequence:      OperationRequest,
   startSequenceFrom:  OperationRequest,
@@ -28,7 +32,9 @@ case class ObservationRequests(
   subsystemRun:       Map[Step.Id, Map[Subsystem, OperationRequest]],
   acquisitionPrompt:  OperationRequest,
   skipAcquisition:    OperationRequest,
-  resetAcquisition:   OperationRequest
+  resetAcquisition:   OperationRequest,
+  insertSmartGcal:    OperationRequest,
+  insertedSteps:      Set[Step.Id]
 ) derives Eq:
   val stepRequestInFlight: Boolean                =
     sequenceHold === OperationRequest.InFlight ||
@@ -95,7 +101,9 @@ object ObservationRequests:
     subsystemRun = Map.empty,
     acquisitionPrompt = OperationRequest.Idle,
     skipAcquisition = OperationRequest.Idle,
-    resetAcquisition = OperationRequest.Idle
+    resetAcquisition = OperationRequest.Idle,
+    insertSmartGcal = OperationRequest.Idle,
+    insertedSteps = Set.empty
   )
 
   val startSequence: Lens[ObservationRequests, OperationRequest]                              =
@@ -126,3 +134,7 @@ object ObservationRequests:
     Focus[ObservationRequests](_.skipAcquisition)
   val resetAcquisition: Lens[ObservationRequests, OperationRequest]                           =
     Focus[ObservationRequests](_.resetAcquisition)
+  val insertSmartGcal: Lens[ObservationRequests, OperationRequest]                            =
+    Focus[ObservationRequests](_.insertSmartGcal)
+  val insertedSteps: Lens[ObservationRequests, Set[Step.Id]]                                  =
+    Focus[ObservationRequests](_.insertedSteps)

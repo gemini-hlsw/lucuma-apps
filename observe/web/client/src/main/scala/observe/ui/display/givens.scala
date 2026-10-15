@@ -5,6 +5,7 @@ package observe.ui.display
 
 // import cats.syntax.eq.*
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SmartGcalType
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import observe.model.RunningStepProgress
@@ -52,3 +53,9 @@ given Display[SubsystemOrServer] = Display.by(
 )
 
 given Display[RunningStepProgress] = Display.byShortName(u => s"${u.last + 1}/${u.total}")
+
+given Display[SmartGcalType] = Display.byShortName:
+  case SmartGcalType.Arc           => "Arc"
+  case SmartGcalType.Flat          => "Flat"
+  case SmartGcalType.DayBaseline   => "Day baseline"
+  case SmartGcalType.NightBaseline => "Night baseline"

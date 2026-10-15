@@ -72,6 +72,7 @@ object ObserveStyles:
   val StepRowError: Css          = Css("observe-step-row-error")
   val StepRowDone: Css           = Css("observe-step-row-done")
   val StepRowWithBreakpoint: Css = Css("observe-step-row-with-breakpoint")
+  val StepRowInserted: Css       = Css("observe-step-row-inserted")
   val StepRowFirstInAtom: Css    = Css("observe-stepRow-first-in-atom")
 
   val ObservationStepProgressBar: Css = Css("observe-observation-progress-bar")
@@ -88,6 +89,7 @@ object ObserveStyles:
   val PlayButton: Css                 = Css("observe-play-button")
   val AbortButton: Css                = Css("observe-abort-button")
   val ReloadButton: Css               = Css("observe-reload-button")
+  val InsertCalibrationButton: Css    = Css("observe-insert-calibration-button")
   val SingleButton: Css               = Css("observe-single-button")
   val IconSoft: Css                   = Css("observe-icon-soft")
 

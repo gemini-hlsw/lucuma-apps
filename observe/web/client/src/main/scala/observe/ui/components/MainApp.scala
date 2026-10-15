@@ -415,7 +415,7 @@ object MainApp extends ServerEventHandler:
                 observer = observer,
                 requests = rootModelData.zoom(RootModelData.obsRequests)
               ),
-              ODBQueryApiImpl()
+              ODBQueryApiImpl(requests = rootModelData.zoom(RootModelData.obsRequests))
             )
 
         def provideApiCtx(children: VdomNode*) =

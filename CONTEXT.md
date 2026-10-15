@@ -406,3 +406,39 @@ _Avoid_: partner allocation (that is the awarded time, decided later)
 Asking the ODB for a fresh set of Proposal Summaries before submission. Strictly on request,
 never automatic. Not possible after submission: the submitted set is final.
 _Avoid_: generate (the first request is also a Regenerate), refresh, rebuild
+
+# Observe — Sequence Execution
+
+Observe is the web application observers use at the telescope to execute the sequence of
+an observation.
+
+## Language
+
+### Calibrations
+
+**Smart GCAL Step**:
+A placeholder step in a sequence that names a kind of calibration (Arc, Flat, Day
+Baseline, Night Baseline) rather than a lamp setup. The ODB resolves it into one or more
+GCAL steps for the instrument configuration of the step it is matched against.
+_Avoid_: smart cal, auto cal
+
+**Arc**, **Flat**:
+Smart GCAL kinds taken during the night next to the science data they calibrate.
+
+**Day Baseline**, **Night Baseline**:
+Smart GCAL kinds that stand on their own: baseline calibrations taken for the instrument
+configuration, during the day or the night respectively, not tied to a particular science
+exposure.
+_Avoid_: basecal, baseline cal
+
+**Insert Calibration**:
+The observer's act of adding the GCAL steps for a Smart GCAL kind to the science sequence
+of a loaded observation, next in line after the step being or last executed, with that
+step's instrument configuration. It makes the sequence Customized.
+_Avoid_: add cal, insert step
+
+**Customized Sequence**:
+A sequence that has been edited by hand after the ODB generated it. The ODB stops
+regenerating it from the Observing Mode. Inserting a calibration is one way a sequence
+becomes Customized; there is no way to undo an insertion from Observe.
+_Avoid_: edited sequence, manual sequence
