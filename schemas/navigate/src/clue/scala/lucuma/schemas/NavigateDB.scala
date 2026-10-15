@@ -21,6 +21,7 @@ trait NavigateDB {
   object Scalars {
     // Ids
     type ObservationId  = Observation.Id
+    type ProgramReferenceLabel = lucuma.core.model.ProgramReference
     type TargetId       = Target.Id
     // Basic types
     type BigDecimal     = scala.BigDecimal

@@ -31,6 +31,7 @@ import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.M2GuideConfig.M2GuideOn
 import lucuma.core.model.ProbeGuide
+import lucuma.core.model.ProgramReference
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -300,7 +301,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
     val wfsTracking = TrackingConfig(true, false, false, true)
 
-    val slewOptions = SlewOptions(
+    val programLabel = ProgramReference.fromString.getOption("G-2025B-0001-Q")
+    val slewOptions  = SlewOptions(
       ZeroChopThrow(true),
       ZeroSourceOffset(false),
       ZeroSourceDiffTrack(true),
@@ -340,11 +342,13 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
                        LightSink.GmosNorth,
-                       m2Baffles.some
+                       m2Baffles.some,
+                       programLabel
                      )
                    )
       rs        <- st.tcs.get
     } yield {
+      assertEquals(rs.programId.value, programLabel.map(_.label))
       // Targets
       checkTarget(rs.sourceA, target)
       checkTarget(rs.pwfs1Target, pwfs1Target)

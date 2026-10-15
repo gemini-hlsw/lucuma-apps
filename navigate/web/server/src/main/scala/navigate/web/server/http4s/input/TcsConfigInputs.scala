@@ -116,7 +116,8 @@ object TcsConfigInput:
             RotatorTrackingInput.Binding("rotator", rRotator),
             InstrumentBinding("instrument", rInstrument),
             LightSinkVariantBinding.Option("lightSinkVariant", rLightSinkVariant),
-            BaffleConfigInput.Binding.Option("baffles", rBaffles)
+            BaffleConfigInput.Binding.Option("baffles", rBaffles),
+            ProgramReferenceBinding.Option("programLabel", rProgramLabel)
           ) =>
         (rTarget,
          rInstParams,
@@ -125,7 +126,8 @@ object TcsConfigInput:
          rOiwfs,
          rRotator,
          LightPathInput.lightSink(rInstrument, rLightSinkVariant),
-         rBaffles
+         rBaffles,
+         rProgramLabel
         )
           .parMapN(TcsConfig.apply)
 

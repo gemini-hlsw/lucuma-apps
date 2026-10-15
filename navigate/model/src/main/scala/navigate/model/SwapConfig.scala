@@ -23,6 +23,7 @@ case class SwapConfig(
     None,
     rotatorTrackConfig,
     (site === Site.GS).fold(LightSink.AcqCamSouth, LightSink.AcqCamNorth),
+    None,
     None
   )
 }

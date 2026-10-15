@@ -1,5 +1,5 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
-#import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
+#import SiderealInput, ObservationId, ProgramReferenceLabel, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput, IntPercent from "lucuma/schemas/ObservationDB.graphql"
 #import Instrument, Site, TimeSpan, Date  from "lucuma/schemas/ObservationDB.graphql"
 
@@ -155,6 +155,7 @@ input TcsConfigInput {
     instrument: Instrument!
     lightSinkVariant: LightSinkVariant
     baffles: BaffleConfigInput
+    programLabel: ProgramReferenceLabel
 }
 
 input SwapConfigInput {

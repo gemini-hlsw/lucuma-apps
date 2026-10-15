@@ -5,6 +5,7 @@ package navigate.server.tcs
 
 import cats.syntax.all.*
 import lucuma.core.enums.GuideProbe
+import lucuma.core.model.ProgramReference
 import lucuma.core.util.Enumerated
 import mouse.all.*
 import navigate.model.enums.CentralBafflePosition
@@ -17,6 +18,8 @@ import navigate.server.acm.Encoder
 import navigate.server.acm.Encoder.*
 
 package object encoders {
+  given Encoder[ProgramReference, String] = _.label
+
   given Encoder[GuideProbe, String] = {
     case GuideProbe.GmosOIWFS       => "OIWFS"
     case GuideProbe.Flamingos2OIWFS => "OIWFS"

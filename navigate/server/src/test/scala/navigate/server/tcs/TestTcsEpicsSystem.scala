@@ -459,7 +459,8 @@ object TestTcsEpicsSystem {
     instrAA:                  TestChannel.State[Double],
     focalPlaneOffsetAX:       TestChannel.State[Double],
     focalPlaneOffsetAY:       TestChannel.State[Double],
-    sourceAWavelength:        TestChannel.State[Double]
+    sourceAWavelength:        TestChannel.State[Double],
+    programId:                TestChannel.State[String]
   )
 
   val defaultState: State = State(
@@ -630,7 +631,8 @@ object TestTcsEpicsSystem {
     instrAA = TestChannel.State.default,
     focalPlaneOffsetAX = TestChannel.State.default,
     focalPlaneOffsetAY = TestChannel.State.default,
-    sourceAWavelength = TestChannel.State.default
+    sourceAWavelength = TestChannel.State.default,
+    programId = TestChannel.State.default
   )
 
   def buildEnclosureChannels[F[_]: Temporal](s: Ref[F, State]): EnclosureChannels[F] =
@@ -1311,7 +1313,8 @@ object TestTcsEpicsSystem {
       instrAA = new TestChannel[F, State, Double](s, Focus[State](_.instrAA)),
       focalPlaneOffsetAX = new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAX)),
       focalPlaneOffsetAY = new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAY)),
-      sourceAWavelength = new TestChannel[F, State, Double](s, Focus[State](_.sourceAWavelength))
+      sourceAWavelength = new TestChannel[F, State, Double](s, Focus[State](_.sourceAWavelength)),
+      programId = new TestChannel[F, State, String](s, Focus[State](_.programId))
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {

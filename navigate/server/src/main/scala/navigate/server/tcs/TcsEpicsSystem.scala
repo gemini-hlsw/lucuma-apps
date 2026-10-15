@@ -22,6 +22,7 @@ import lucuma.core.math.RightAscension
 import lucuma.core.math.Wavelength
 import lucuma.core.model.IntPercent
 import lucuma.core.model.ProbeGuide
+import lucuma.core.model.ProgramReference
 import lucuma.core.util.Enumerated
 import mouse.all.*
 import navigate.epics.Channel
@@ -113,6 +114,7 @@ object TcsEpicsSystem {
     val shuttersMoveCmd: Command2Channels[F, Double, Double]
     val ventGatesMoveCmd: Command2Channels[F, Double, Double]
     val slewCmd: SlewCommandChannels[F]
+    val programIdCmd: ProgramIdCommandChannels[F]
     val rotatorConfigCmd: Command4Channels[F, Double, String, String, Double]
     val originCmd: Command6Channels[F, Double, Double, Double, Double, Double, Double]
     val focusOffsetCmd: Command2Channels[F, Double, Double]
@@ -911,6 +913,9 @@ object TcsEpicsSystem {
         )
       )
     }
+
+    override val programIdCommand: ProgramIdCommand[F, TcsCommands[F]] =
+      (v: Option[ProgramReference]) => addParam(tcsEpics.programIdCmd(v))
 
     override val slewOptionsCommand: SlewOptionsCommand[F, TcsCommands[F]] =
       new SlewOptionsCommand[F, TcsCommands[F]] {
@@ -1717,6 +1722,9 @@ object TcsEpicsSystem {
     override val slewCmd: SlewCommandChannels[F] =
       SlewCommandChannels(channels.telltale, channels.slew)
 
+    override val programIdCmd: ProgramIdCommandChannels[F] =
+      ProgramIdCommandChannels(channels.telltale, channels.programId)
+
     override val rotatorConfigCmd: Command4Channels[F, Double, String, String, Double] =
       Command4Channels(
         channels.telltale,
@@ -1901,6 +1909,20 @@ object TcsEpicsSystem {
       writeCadParam[F, BinaryOnOff](tt, slewChannels.autoparkGems)(v)
     def autoparkAowfs(v: BinaryOnOff): VerifiedEpics[F, F, Unit]            =
       writeCadParam[F, BinaryOnOff](tt, slewChannels.autoparkAowfs)(v)
+  }
+
+  case class ProgramIdCommandChannels[F[_]: Monad](
+    tt:        TelltaleChannel[F],
+    programId: Channel[F, String]
+  ) {
+    private val noProgramId: String = "None"
+
+    private val optionalProgramEncoder: Encoder[Option[ProgramReference], String] =
+      (v: Option[ProgramReference]) =>
+        v.fold(noProgramId)(summon[Encoder[ProgramReference, String]].encode)
+
+    def apply(v: Option[ProgramReference]): VerifiedEpics[F, F, Unit] =
+      writeChannel[F, String](tt, programId)(optionalProgramEncoder.encode(v).pure[F])
   }
 
   case class ProbeTrackingCommandChannels[F[_]: Monad](
@@ -2265,6 +2287,10 @@ object TcsEpicsSystem {
     def wavelength(v: Wavelength): S
   }
 
+  trait ProgramIdCommand[F[_], +S] {
+    def programId(v: Option[ProgramReference]): S
+  }
+
   trait SlewOptionsCommand[F[_], +S] {
     def zeroChopThrow(v:            Boolean): S
     def zeroSourceOffset(v:         Boolean): S
@@ -2486,6 +2512,7 @@ object TcsEpicsSystem {
     val pwfs2Wavel: WavelengthCommand[F, TcsCommands[F]]
     val oiwfsWavel: WavelengthCommand[F, TcsCommands[F]]
     val slewOptionsCommand: SlewOptionsCommand[F, TcsCommands[F]]
+    val programIdCommand: ProgramIdCommand[F, TcsCommands[F]]
     val rotatorCommand: RotatorCommand[F, TcsCommands[F]]
     val originCommand: OriginCommand[F, TcsCommands[F]]
     val focusOffsetCommand: FocusOffsetCommand[F, TcsCommands[F]]

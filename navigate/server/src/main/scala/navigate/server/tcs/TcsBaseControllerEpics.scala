@@ -556,7 +556,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                      .offsetY(Distance.Zero)
                  }
                  .andThen(resetChopParameters)
-                 .andThen(setSlewOptions(slewOptions))(
+                 .andThen(setSlewOptions(slewOptions))
+                 .andThen(_.programIdCommand.programId(tcsConfig.programLabel))(
                    sys.tcsEpics.startCommand(TcsConfigTimeout)
                  )
                  .post
