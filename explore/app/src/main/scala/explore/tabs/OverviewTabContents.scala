@@ -23,6 +23,7 @@ import explore.components.TileController
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.AttachmentList
+import explore.model.DismissedWarnings
 import explore.model.ExploreGridLayouts
 import explore.model.GlobalPreferences
 import explore.model.Group
@@ -38,6 +39,7 @@ import explore.model.enums.GridLayoutSection
 import explore.model.enums.GroupWarning
 import explore.model.enums.Visible
 import explore.model.layout.LayoutsMap
+import explore.syntax.ui.*
 import explore.validations.GroupWarningsTile
 import explore.validations.ObservationValidationsTableBody
 import explore.validations.ObservationValidationsTableTileState
@@ -103,6 +105,11 @@ object OverviewTabContents
                   .storeTableFilterPreferences[IO](uid, archiveDuplicationTableFilters = v.some)
                   .runAsync
 
+        val dismissedWarningsView: View[DismissedWarnings] =
+          props.detailsUndoSetter.model
+            .zoom(ProgramDetails.dismissedWarnings)
+            .withOnMod(dw => odbApi.updateProgramDismissedWarnings(props.programId, dw).runAsync)
+
         val warningsAndErrorsTile = SimpleTile(
           OverviewTabTileIds.WarningsAndErrorsId.id,
           "Warnings And Errors",
@@ -116,7 +123,8 @@ object OverviewTabContents
               props.userId,
               props.programId,
               props.observations,
-              props.detailsUndoSetter.get.dismissedWarnings,
+              dismissedWarningsView,
+              props.userVault.isStaffOrAdmin,
               tileState
             ),
             contentHeightPx = AutoHeightTable.heightPx(tileState.get.visibleRowCount).some

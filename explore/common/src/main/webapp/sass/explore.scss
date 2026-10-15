@@ -3094,6 +3094,15 @@ img.partner-split-flag {
   }
 }
 
+// Severity on the left, the staff-only dismiss checkbox on the right.
+.explore-validation-severity-with-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  width: 100%;
+}
+
 // ------
 // Generic table
 // ------

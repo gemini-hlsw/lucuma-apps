@@ -7,6 +7,7 @@ import cats.effect.Resource
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
 import explore.model.ConfigurationRequest
+import explore.model.DismissedWarnings
 import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
 import explore.model.ProgramInfo
@@ -37,6 +38,8 @@ trait OdbProgramApi[F[_]]:
   def updateProgramExplicitStatus(id: Program.Id, status: Option[ProgramStatus]): F[Unit]
 
   def updateProgramTooActivationCeiling(id: Program.Id, ceiling: Option[TooActivation]): F[Unit]
+
+  def updateProgramDismissedWarnings(id: Program.Id, warnings: DismissedWarnings): F[Unit]
 
   def updateGoaShouldNotify(id: Program.Id, shouldNotify: Boolean): F[Unit]
 
