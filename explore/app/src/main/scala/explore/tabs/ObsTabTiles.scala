@@ -18,6 +18,7 @@ import explore.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationTile
+import explore.config.DaytimeConfigurationTile
 import explore.config.MosMaskContext
 import explore.config.sequence.SequenceTile
 import explore.findercharts.FinderChartsTile
@@ -895,6 +896,7 @@ object ObsTabTiles:
             constraintsTile.some,
             schedulingWindowsTile.some,
             configurationTile.some,
+            DaytimeConfigurationTile().some,
             itcTile
           ).flattenOption
 

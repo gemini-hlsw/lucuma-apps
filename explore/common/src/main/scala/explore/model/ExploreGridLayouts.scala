@@ -250,6 +250,14 @@ object ExploreGridLayouts:
         LayoutItem(
           x = 0,
           y =
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight).value,
+          w = DefaultWidth.value,
+          h = ConfigurationMaxHeight.value,
+          i = ObsTabTileIds.DaytimeConfigurationId.id.value
+        ),
+        LayoutItem(
+          x = 0,
+          y =
             (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight).value,
           w = DefaultWidth.value,
           h = ItcMaxHeight.value,
@@ -258,6 +266,9 @@ object ExploreGridLayouts:
       )
     )
 
+    // Only daytime calibrations show the daytime configuration tile
+    lazy val DaytimeOnlyIds = List(ObsTabTileIds.DaytimeConfigurationId.id.value)
+
     lazy val TwilightRemovedIds =
       List(
         ObsTabTileIds.FinderChartsId,
@@ -265,7 +276,7 @@ object ExploreGridLayouts:
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
-      ).map(_.id.value)
+      ).map(_.id.value) ++ DaytimeOnlyIds
 
     lazy val twilightMedium =
       layoutMedium.asList
@@ -278,7 +289,7 @@ object ExploreGridLayouts:
            ObsTabTileIds.TimingWindowsId
       ).map(
         _.id.value
-      )
+      ) ++ DaytimeOnlyIds
 
     lazy val specPhotoMedium =
       layoutMedium.asList
@@ -303,7 +314,7 @@ object ExploreGridLayouts:
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
-      ).map(_.id.value)
+      ).map(_.id.value) ++ DaytimeOnlyIds
 
     // Pinhole observations have no targets and can't be edited, so only Configuration
     // (and the separately rendered Sequence tile) are shown.
@@ -311,6 +322,18 @@ object ExploreGridLayouts:
       List(
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
+        ObsTabTileIds.TargetId,
+        ObsTabTileIds.FinderChartsId,
+        ObsTabTileIds.PlotId,
+        ObsTabTileIds.ConstraintsId,
+        ObsTabTileIds.TimingWindowsId,
+        ObsTabTileIds.ItcId
+      ).map(_.id.value) ++ DaytimeOnlyIds
+
+    lazy val DaytimeCalibrationRemovedIds =
+      List(
+        ObsTabTileIds.DetailsId,
+        ObsTabTileIds.ConfigurationId,
         ObsTabTileIds.TargetId,
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.PlotId,
@@ -325,7 +348,8 @@ object ExploreGridLayouts:
         case Some(CalibrationRole.SpectroPhotometric) => SpecPhotoRemovedIds
         case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
         case Some(CalibrationRole.DaytimePinhole)     => DaytimePinholeRemovedIds
-        case _                                        => Nil
+        case Some(CalibrationRole.DaytimeCalibration) => DaytimeCalibrationRemovedIds
+        case _                                        => DaytimeOnlyIds
 
     lazy val defaultObsLayouts: LayoutsMap =
       defineStdLayouts(

@@ -8,20 +8,21 @@ import lucuma.refined.*
 
 enum ObsTabTileIds:
   case NotesId, DetailsId, TargetSummaryId, TargetId, PlotId, ConstraintsId, ConfigurationId,
-    ItcId, TimingWindowsId, FinderChartsId, SequenceId
+    DaytimeConfigurationId, ItcId, TimingWindowsId, FinderChartsId, SequenceId
 
   def id: NonEmptyString = this match
-    case NotesId         => "notes".refined
-    case DetailsId       => "observationDetails".refined
-    case TargetSummaryId => "targetSummary".refined
-    case TargetId        => "target".refined
-    case PlotId          => "elevationPlot".refined
-    case ConstraintsId   => "constraints".refined
-    case ConfigurationId => "configuration".refined
-    case ItcId           => "itc".refined
-    case TimingWindowsId => "timingWindows".refined
-    case FinderChartsId  => "finderCharts".refined
-    case SequenceId      => "sequence".refined
+    case NotesId                => "notes".refined
+    case DetailsId              => "observationDetails".refined
+    case TargetSummaryId        => "targetSummary".refined
+    case TargetId               => "target".refined
+    case PlotId                 => "elevationPlot".refined
+    case ConstraintsId          => "constraints".refined
+    case ConfigurationId        => "configuration".refined
+    case DaytimeConfigurationId => "daytimeConfiguration".refined
+    case ItcId                  => "itc".refined
+    case TimingWindowsId        => "timingWindows".refined
+    case FinderChartsId         => "finderCharts".refined
+    case SequenceId             => "sequence".refined
 
 enum ObsSummaryTabTileIds:
   case SummaryId, PlotId
