@@ -3,8 +3,8 @@
 SCRIPTS_DIR=~/observe
 
 # Check if an argument was received
-if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-    echo "ERROR: You must provide one of the following arguments: start, stop, restart, update <tag>, version or help."
+if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
+    echo "ERROR: You must provide one of the following arguments: start, stop, restart, update <tag> [--force], version or help."
     exit 1
 fi
 
@@ -33,7 +33,7 @@ case "$option" in
             exit 1
         fi
         echo "Updating Observe"
-        $SCRIPTS_DIR/update.sh "$2" || exit 1
+        $SCRIPTS_DIR/update.sh "${@:2}" || exit 1
         ;;
     version)
         if [ ! -s $SCRIPTS_DIR/deployed-version ]; then
@@ -44,11 +44,11 @@ case "$option" in
         ;;
     help)
         echo "To run Observe you should provide a valid agument"
-        echo "Possible argument options are 'start', 'stop', 'restart', 'update <tag>', 'version' and 'help'"
+        echo "Possible argument options are 'start', 'stop', 'restart', 'update <tag> [--force]', 'version' and 'help'"
         echo -e "  ${bold}start${normal}: Will start Observe containers"
         echo -e "  ${bold}stop${normal}: Will stop Observe containers"
         echo -e "  ${bold}restart${normal}: Will restart Observe containers"
-        echo -e "  ${bold}update <tag>${normal}: Will pull the given noirlab/gpp-obs tag, record it in deployed-version, and recreate the Observe container with it"
+        echo -e "  ${bold}update <tag> [--force]${normal}: Will pull the given noirlab/gpp-obs tag, record it in deployed-version, and recreate the Observe container with it. Deploying 'latest' requires --force"
         echo -e "  ${bold}version${normal}: Will show the currently deployed tag"
         echo -e "  ${bold}help${normal}: Will show this message"
         ;;
