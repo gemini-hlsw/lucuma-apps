@@ -266,9 +266,6 @@ object ExploreGridLayouts:
       )
     )
 
-    // Only daytime calibrations show the daytime configuration tile
-    lazy val DaytimeOnlyIds = List(ObsTabTileIds.DaytimeConfigurationId.id.value)
-
     lazy val TwilightRemovedIds =
       List(
         ObsTabTileIds.FinderChartsId,
@@ -276,7 +273,7 @@ object ExploreGridLayouts:
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
-      ).map(_.id.value) ++ DaytimeOnlyIds
+      ).map(_.id.value)
 
     lazy val twilightMedium =
       layoutMedium.asList
@@ -289,7 +286,7 @@ object ExploreGridLayouts:
            ObsTabTileIds.TimingWindowsId
       ).map(
         _.id.value
-      ) ++ DaytimeOnlyIds
+      )
 
     lazy val specPhotoMedium =
       layoutMedium.asList
@@ -314,7 +311,7 @@ object ExploreGridLayouts:
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
-      ).map(_.id.value) ++ DaytimeOnlyIds
+      ).map(_.id.value)
 
     // Pinhole observations have no targets and can't be edited, so only Configuration
     // (and the separately rendered Sequence tile) are shown.
@@ -328,7 +325,7 @@ object ExploreGridLayouts:
         ObsTabTileIds.ConstraintsId,
         ObsTabTileIds.TimingWindowsId,
         ObsTabTileIds.ItcId
-      ).map(_.id.value) ++ DaytimeOnlyIds
+      ).map(_.id.value)
 
     lazy val DaytimeCalibrationRemovedIds =
       List(
@@ -349,7 +346,7 @@ object ExploreGridLayouts:
         case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
         case Some(CalibrationRole.DaytimePinhole)     => DaytimePinholeRemovedIds
         case Some(CalibrationRole.DaytimeCalibration) => DaytimeCalibrationRemovedIds
-        case _                                        => DaytimeOnlyIds
+        case _                                        => Nil
 
     lazy val defaultObsLayouts: LayoutsMap =
       defineStdLayouts(

@@ -896,7 +896,9 @@ object ObsTabTiles:
             constraintsTile.some,
             schedulingWindowsTile.some,
             configurationTile.some,
-            DaytimeConfigurationTile().some,
+            Option.when(props.calibrationRole.contains(CalibrationRole.DaytimeCalibration))(
+              DaytimeConfigurationTile()
+            ),
             itcTile
           ).flattenOption
 
