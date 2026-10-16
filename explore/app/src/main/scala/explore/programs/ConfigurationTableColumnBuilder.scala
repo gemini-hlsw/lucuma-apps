@@ -12,7 +12,7 @@ import explore.model.TargetList
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.DayCalObservingModeType
+import lucuma.core.enums.DaytimeCalibrationObservingModeType
 import lucuma.core.enums.ExchangeObservingModeType
 import lucuma.core.enums.FacilityObservingModeType
 import lucuma.core.enums.ObservingModeType
@@ -31,10 +31,10 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
   extension (o: ObservingModeType)
     // We won't have exchange observing modes
     private def instrumentName: String = o match
-      case f: FacilityObservingModeType => f.instrument.shortName
-      case v: VisitorObservingModeType  => v.instrument.shortName
-      case _: ExchangeObservingModeType => ""
-      case _: DayCalObservingModeType   => ""
+      case f: FacilityObservingModeType           => f.instrument.shortName
+      case v: VisitorObservingModeType            => v.instrument.shortName
+      case _: ExchangeObservingModeType           => ""
+      case _: DaytimeCalibrationObservingModeType => ""
 
   def configurationColumns(getConfiguration: D => Configuration) =
     def configurationColumn[V](
