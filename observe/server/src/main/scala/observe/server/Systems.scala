@@ -162,11 +162,12 @@ object Systems {
                                               WsReconnectStrategy
                                             )
         tracingWS                       = Otel4sMiddleware(innerClient)
-        _                              <- Resource.eval:
+        _                              <- Resource.make(
                                             tracingWS.connect:
                                               Map(
                                                 Authorization.name.toString -> authHeader.credentials.renderString.asJson
                                               ).pure[F]
+                                          )(_ => tracingWS.disconnect())
         idTracker                      <- Resource.eval(Ref.of[F, ObsRecordedIds](ObsRecordedIds.Empty))
         eventSender                    <- OdbEventSender[F]
         stepSpans                      <- Resource.eval(StepSpans[F])
