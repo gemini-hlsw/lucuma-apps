@@ -1165,16 +1165,25 @@ body {
 
   .observe-obs-summary-subsystems {
     display: flex;
-    align-items: center;
     justify-content: start;
     gap: 0.8em;
     white-space: nowrap;
 
+    .observe-subsystem-toggle .pl-checkbox-with-label {
+      display: flex;
+      align-items: center;
+
+      &:has(.p-checkbox.p-disabled) label {
+        opacity: var(--site-disabled-opacity);
+      }
+    }
+
     .observe-subsystem-sim-tag {
-      margin-left: 0.3em;
-      padding: 0 0.3em;
+      margin-left: 0.8em;
+      padding: 0 0.25em;
       border-radius: 3px;
-      font-size: smaller;
+      font-size: 0.6em;
+      line-height: 1;
       background: var(--red-500);
       color: hsl(0deg 0% 100%);
     }

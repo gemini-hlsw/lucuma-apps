@@ -55,7 +55,7 @@ object SubsystemOverrides
               value = enabled,
               label = TagMod(
                 label.value,
-                <.span(ObserveStyles.SubsystemSimTag)("SIM").when(simulated)
+                <.sup(ObserveStyles.SubsystemSimTag)("SIM").when(simulated)
               ),
               disabled = !editable || simulated
             )
