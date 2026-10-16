@@ -10,7 +10,9 @@ import observe.model.Observation
 import observe.ui.model.ObservationRequests
 
 extension (requests: View[Map[Observation.Id, ObservationRequests]])
-  def modObservation(obsId: Observation.Id)(f: ObservationRequests => ObservationRequests): IO[Unit] =
+  def modObservation(
+    obsId: Observation.Id
+  )(f: ObservationRequests => ObservationRequests): IO[Unit] =
     requests
       .mod: r =>
         r + (obsId -> f(r.getOrElse(obsId, ObservationRequests.Idle)))

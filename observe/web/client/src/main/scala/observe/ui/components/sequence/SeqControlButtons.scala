@@ -145,22 +145,16 @@ object SeqControlButtons
             disabled =
               !props.isIdleOrError || props.isRefreshing || props.isResetAcquisitionInFlight
           ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science),
-          React
-            .Fragment(
-              Button(
-                clazz = ObserveStyles.InsertCalibrationButton |+| ObserveStyles.ObsSummaryButton,
-                loading = props.isInsertSmartGcalInFlight,
-                icon = Icons.Plus.withFixedWidth().withSize(IconSize.LG),
-                loadingIcon =
-                  LucumaIcons.CircleNotch.withFixedWidth().withSize(IconSize.LG).withSpin(),
-                tooltip = "Insert calibration after the current step",
-                tooltipOptions = tooltipOptions,
-                onClickE = menuRef.toggle,
-                disabled =
-                  props.isCompleted || props.isRefreshing || props.isInsertSmartGcalInFlight
-              ),
-              PopupMenu(model = insertItems).withRef(menuRef.ref)
-            )
-            .when(props.sequenceType === SequenceType.Science)
+          Button(
+            clazz = ObserveStyles.InsertCalibrationButton |+| ObserveStyles.ObsSummaryButton,
+            loading = props.isInsertSmartGcalInFlight,
+            icon = Icons.Plus.withFixedWidth().withSize(IconSize.LG),
+            loadingIcon = LucumaIcons.CircleNotch.withFixedWidth().withSize(IconSize.LG).withSpin(),
+            tooltip = "Insert calibration into the science sequence after the current step",
+            tooltipOptions = tooltipOptions,
+            onClickE = menuRef.toggle,
+            disabled = props.isCompleted || props.isRefreshing || props.isInsertSmartGcalInFlight
+          ),
+          PopupMenu(model = insertItems).withRef(menuRef.ref)
         )
     )
