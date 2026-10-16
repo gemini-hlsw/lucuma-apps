@@ -611,7 +611,7 @@ object ObsTree:
                       Button(
                         severity = Button.Severity.Success,
                         icon = Icons.New,
-                        label = "Group",
+                        label = "Grp",
                         disabled = adding.get.value || isSystemGroupFocused,
                         loading = adding.get.value,
                         tooltip = "Add a new Group",
@@ -626,7 +626,7 @@ object ObsTree:
                       ).mini.compact,
                       Button(
                         severity = Button.Severity.Success,
-                        icon = ThemeIcons.SunBright,
+                        icon = Icons.New,
                         disabled = adding.get.value || isSystemGroupFocused,
                         loading = adding.get.value,
                         tooltip = "Add a new Daytime Calibration",
@@ -638,7 +638,7 @@ object ObsTree:
                           adding,
                           ctx
                         ).runAsync *> expandFocusedGroup
-                      ).withMods(testId := "explore-obs-tree-add-daytime-cal")
+                      ).withMods(testId := "explore-obs-tree-add-daytime-cal", ThemeIcons.SunBright)
                         .mini
                         .compact
                         .when(props.isStaffOrAdmin)

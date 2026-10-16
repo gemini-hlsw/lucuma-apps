@@ -10,7 +10,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 final case class DaytimeConfigurationTile()
     extends Tile[DaytimeConfigurationTile](
       ObsTabTileIds.DaytimeConfigurationId.id,
-      "Configuration"
+      "Daytime Calibration"
     )(DaytimeConfigurationTile)
 
 object DaytimeConfigurationTile

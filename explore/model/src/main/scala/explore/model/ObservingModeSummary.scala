@@ -507,7 +507,7 @@ enum ObservingModeSummary derives Order:
       case SubaruExchange(subaruInstrument)                                                  =>
         s"Subaru Exchange: ${subaruInstrument.longName}"
       case DaytimeCalibration(instrument)                                                    =>
-        s"Daytime Calibration (${instrument.shortName})"
+        s"${instrument.shortName}"
 
 object ObservingModeSummary:
   // These are needed for derviving ObservingModeSummary's Order instance, but actual order is immaterial
@@ -718,7 +718,7 @@ object ObservingModeSummary:
     case SubaruExchange(subaruInstrument)                                                =>
       s"Subaru Exchange: ${subaruInstrument.longName}"
     case DaytimeCalibration(instrument)                                                  =>
-      s"Daytime Calibration (${instrument.shortName})"
+      s"${instrument.shortName}"
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =

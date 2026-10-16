@@ -629,6 +629,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           ObservingModeType.ZorroWideField =>
         ModeViewFlags(visitor = true)
       case ObservingModeType.DaytimeCalibration                              =>
+        // TODO. Add the mode specific switch
         ModeViewFlags()
 
   private def fetchObservingModes(
