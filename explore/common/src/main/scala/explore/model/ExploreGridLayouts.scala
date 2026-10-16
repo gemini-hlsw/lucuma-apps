@@ -250,18 +250,19 @@ object ExploreGridLayouts:
         LayoutItem(
           x = 0,
           y =
-            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight).value,
-          w = DefaultWidth.value,
-          h = ConfigurationMaxHeight.value,
-          i = ObsTabTileIds.DaytimeConfigurationId.id.value
-        ),
-        LayoutItem(
-          x = 0,
-          y =
             (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight).value,
           w = DefaultWidth.value,
           h = ItcMaxHeight.value,
           i = ObsTabTileIds.ItcId.id.value
+        ),
+        // Last, so stored layouts that predate it keep their arrangement when it is merged in.
+        LayoutItem(
+          x = 0,
+          y =
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight |+| ItcMaxHeight).value,
+          w = DefaultWidth.value,
+          h = ConfigurationMaxHeight.value,
+          i = ObsTabTileIds.DaytimeConfigurationId.id.value
         )
       )
     )
