@@ -19,12 +19,14 @@ import explore.model.enums.AppTab
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CloneSequenceMode
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.toast.*
+import lucuma.ui.undo.AsyncAction
 import lucuma.ui.undo.UndoSetter
 
 def focusObs[F[_]](
@@ -124,17 +126,45 @@ def insertObs(
   ctx:          AppContext[IO]
 ): IO[Unit] =
   import ctx.given
+  insertWith(ObsActions.insertObservation(programId, parentId, _, _), "Creating observation")(
+    programId,
+    observations,
+    adding,
+    ctx
+  )
 
-  ObsActions
-    .insertObservation(
-      programId,
-      parentId,
-      focusObs = obsId => focusObs(programId, obsId.some, ctx),
-      postMessage = ToastCtx[IO].showToast(_)
-    )(observations)
-    .void
+def insertDaytimeCalibration(
+  programId:    Program.Id,
+  parentId:     Option[Group.Id],
+  observations: UndoSetter[ObservationList],
+  adding:       View[AddingObservation],
+  ctx:          AppContext[IO]
+): IO[Unit] =
+  import ctx.given
+  insertWith(
+    ObsActions.insertDaytimeCalibration(programId, parentId, Instrument.GmosNorth, _, _),
+    "Creating daytime calibration"
+  )(programId, observations, adding, ctx)
+
+private def insertWith(
+  action:       (
+    Observation.Id => Callback,
+    String => IO[Unit]
+  ) => AsyncAction[ObservationList, Observation.Id, Option[Observation]],
+  toastMessage: String
+)(
+  programId:    Program.Id,
+  observations: UndoSetter[ObservationList],
+  adding:       View[AddingObservation],
+  ctx:          AppContext[IO]
+): IO[Unit] =
+  import ctx.given
+
+  action(obsId => focusObs(programId, obsId.some, ctx), ToastCtx[IO].showToast(_))(
+    observations
+  ).void
     .switching(adding.as(AddingObservation.Value).async)
-    .withToastDuring("Creating observation")
+    .withToastDuring(toastMessage)
 
 def insertGroup(
   programId: Program.Id,

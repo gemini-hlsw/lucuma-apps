@@ -124,6 +124,8 @@ case class ObsSummary(
           keckInstrument.longName.some
         case BasicConfiguration.SubaruExchange(subaruInstrument, _)   =>
           subaruInstrument.longName.some
+        case BasicConfiguration.DaytimeCalibration(_)                 =>
+          "Daytime Calibration".some
 
   lazy val instrumentConfigurationSummary: String =
     s"${instrument.shortName} ${configurationSummary.orEmpty}"

@@ -72,8 +72,15 @@ class ObsLayoutMergeSuite extends FunSuite:
   test("a stored layout that knows every tile is returned untouched"):
     val complete =
       Layout(
-        storedBeforeDetails.asList.map(i => i.copy(y = i.y + 4)) :+
-          LayoutItem(x = 0, y = 0, w = 16, h = 4, i = ObsTabTileIds.DetailsId.id.value)
+        storedBeforeDetails.asList.map(i => i.copy(y = i.y + 4)) ++ List(
+          LayoutItem(x = 0, y = 0, w = 16, h = 4, i = ObsTabTileIds.DetailsId.id.value),
+          LayoutItem(x = 0,
+                     y = 83,
+                     w = 16,
+                     h = 10,
+                     i = ObsTabTileIds.DaytimeConfigurationId.id.value
+          )
+        )
       )
     val items    = merged(complete)
     assertEquals(
@@ -108,8 +115,28 @@ class ObsLayoutMergeSuite extends FunSuite:
     val details   = items.find(_.i === ObsTabTileIds.DetailsId.id.value).get
     assertEquals(details.y, notes.y + notes.h, clue = items.map(i => (i.i, i.y, i.h)))
     // the scrambled order itself survives, everything below notes just shifts down
+    val added     =
+      Set(ObsTabTileIds.DetailsId, ObsTabTileIds.DaytimeConfigurationId).map(_.id.value)
     assertEquals(
-      items.sortBy(_.y).map(_.i).filterNot(_ === ObsTabTileIds.DetailsId.id.value),
+      items.sortBy(_.y).map(_.i).filterNot(added.contains),
       order,
       clue = items.map(i => (i.i, i.y, i.h))
     )
+
+  // Only daytime calibrations show it, so it must not displace the tiles of a stored layout.
+  test("the daytime configuration tile is added below every stored tile"):
+    val complete =
+      Layout(
+        storedBeforeDetails.asList.map(i => i.copy(y = i.y + 4)) :+
+          LayoutItem(x = 0, y = 0, w = 16, h = 4, i = ObsTabTileIds.DetailsId.id.value)
+      )
+    val items    = merged(complete)
+    val daytime  = items.find(_.i === ObsTabTileIds.DaytimeConfigurationId.id.value)
+    val others   = items.filterNot(_.i === ObsTabTileIds.DaytimeConfigurationId.id.value)
+    assertEquals(
+      others.map(i => (i.i, i.y)).toSet,
+      complete.asList.map(i => (i.i, i.y)).toSet,
+      clue = items.map(i => (i.i, i.y, i.h))
+    )
+    val bottom   = others.map(i => i.y + i.h).max
+    assert(daytime.exists(_.y >= bottom), clue = items.map(i => (i.i, i.y, i.h)))

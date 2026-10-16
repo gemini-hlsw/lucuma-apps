@@ -233,7 +233,8 @@ object ObsTabContents extends TwoPanels:
               props.programSummaries.get.allocatedScienceBands,
               props.programSummaries.get.dismissedWarnings,
               addingObservation,
-              props.readonly
+              props.readonly,
+              props.vault.isStaffOrAdmin
             )
           } else
             <.div(ExploreStyles.TreeToolbar)(

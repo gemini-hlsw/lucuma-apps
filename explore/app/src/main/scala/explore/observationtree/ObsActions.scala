@@ -18,6 +18,7 @@ import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CloneSequenceMode
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
@@ -303,8 +304,32 @@ object ObsActions:
   )(using
     odbApi:        OdbObservationApi[IO]
   ): AsyncAction[ObservationList, Observation.Id, Option[Observation]] =
+    insertCreated(odbApi.createObservation(programId, parentGroupId), focusObs, postMessage)
+
+  def insertDaytimeCalibration(
+    programId:     Program.Id,
+    parentGroupId: Option[Group.Id],
+    instrument:    Instrument,
+    focusObs:      Observation.Id => Callback = _ => Callback.empty,
+    postMessage:   String => IO[Unit] = _ => IO.unit
+  )(using
+    odbApi:        OdbObservationApi[IO]
+  ): AsyncAction[ObservationList, Observation.Id, Option[Observation]] =
+    insertCreated(
+      odbApi.createDaytimeCalibration(programId, parentGroupId, instrument),
+      focusObs,
+      postMessage
+    )
+
+  private def insertCreated(
+    create:      IO[Observation],
+    focusObs:    Observation.Id => Callback,
+    postMessage: String => IO[Unit]
+  )(using
+    odbApi:      OdbObservationApi[IO]
+  ): AsyncAction[ObservationList, Observation.Id, Option[Observation]] =
     AsyncAction(
-      asyncGet = odbApi.createObservation(programId, parentGroupId).map(o => (o.id, o.some)),
+      asyncGet = create.map(o => (o.id, o.some)),
       getter = singleObsGetter,
       setter = singleObsSetter,
       onSet = obsId =>

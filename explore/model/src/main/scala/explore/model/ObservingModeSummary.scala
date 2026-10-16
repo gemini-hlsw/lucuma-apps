@@ -31,6 +31,7 @@ import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsGrating
 import lucuma.core.enums.GnirsPrism
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.KeckInstrument
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.SubaruInstrument
@@ -43,6 +44,7 @@ import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.ObservationDB.Types.DaytimeCalibrationInput
 import lucuma.schemas.ObservationDB.Types.ExchangeInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2CustomMaskInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
@@ -184,6 +186,9 @@ enum ObservingModeSummary derives Order:
   case SubaruExchange(
     subaruInstrument: SubaruInstrument
   )                                                        extends ObservingModeSummary
+  case DaytimeCalibration(
+    instrument: Instrument
+  )                                                        extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
     case GmosNorthLongSlit(_, _, _, _, _, _, _)                 => ObservingModeType.GmosNorthLongSlit
@@ -205,6 +210,7 @@ enum ObservingModeSummary derives Order:
     case Visitor(mode, _, _, _)                                 => mode
     case KeckExchange(_)                                        => ObservingModeType.ExchangeKeck
     case SubaruExchange(_)                                      => ObservingModeType.ExchangeSubaru
+    case DaytimeCalibration(_)                                  => ObservingModeType.DaytimeCalibration
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
@@ -389,6 +395,8 @@ enum ObservingModeSummary derives Order:
           totalRequestTime = TimeSpan.Zero.toInput.assign
         )
       )
+    case DaytimeCalibration(instrument)                                                    =>
+      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(instrument))
 
   // For the dropdown for selecting an existing configuration. The line breaks will be a single space in the dropdown,
   // but will be rendered with line breaks in the dropdown panel.
@@ -498,6 +506,8 @@ enum ObservingModeSummary derives Order:
         s"Keck Exchange: ${keckInstrument.longName}"
       case SubaruExchange(subaruInstrument)                                                  =>
         s"Subaru Exchange: ${subaruInstrument.longName}"
+      case DaytimeCalibration(instrument)                                                    =>
+        s"${instrument.shortName}"
 
 object ObservingModeSummary:
   // These are needed for derviving ObservingModeSummary's Order instance, but actual order is immaterial
@@ -636,6 +646,8 @@ object ObservingModeSummary:
         KeckExchange(k.keckInstrument)
       case s: ObservingMode.SubaruExchange     =>
         SubaruExchange(s.subaruInstrument)
+      case d: ObservingMode.DaytimeCalibration =>
+        DaytimeCalibration(d.calibrationInstrument)
 
   // TODO Can we unify this logic with the one in explore/model/src/main/scala/explore/model/display.scala
   // and/or observe/web/client-model/src/main/scala/observe/ui/model/ObsSummary.scala?
@@ -705,6 +717,8 @@ object ObservingModeSummary:
       s"Keck Exchange: ${keckInstrument.longName}"
     case SubaruExchange(subaruInstrument)                                                =>
       s"Subaru Exchange: ${subaruInstrument.longName}"
+    case DaytimeCalibration(instrument)                                                  =>
+      s"${instrument.shortName}"
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =

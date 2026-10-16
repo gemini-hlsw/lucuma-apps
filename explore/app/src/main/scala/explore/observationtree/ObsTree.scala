@@ -49,6 +49,7 @@ import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.Tree
 import lucuma.react.primereact.Tree.Node
 import lucuma.schemas.model.ObservingMode
+import lucuma.ui.components.ThemeIcons
 import lucuma.ui.dnd.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
@@ -82,7 +83,8 @@ case class ObsTree(
   allocatedScienceBands: SortedSet[ScienceBand],
   dismissedWarnings:     DismissedWarnings,
   addingObservation:     View[AddingObservation],
-  readonly:              Boolean
+  readonly:              Boolean,
+  isStaffOrAdmin:        Boolean
 ) extends ReactFnProps(ObsTree.component)
     with ObsGroupHelper:
   private val selectedObsIdSet: Option[ObsIdSet] =
@@ -118,7 +120,7 @@ case class ObsTree(
 
   private val isCalibObsSelected: Boolean                               =
     selectedObsIdSet
-      .map(_.idSet.exists(observations.get.get(_).exists(_.isCalibration)))
+      .map(_.idSet.exists(observations.get.get(_).exists(_.isOdbCalibration)))
       .getOrElse(false)
   private val copyDisabled: Boolean                                     = selectedObsIdSet.isEmpty || isCalibObsSelected
   private val pasteDisabled: Boolean                                    = clipboardObsContents.isEmpty
@@ -609,7 +611,7 @@ object ObsTree:
                       Button(
                         severity = Button.Severity.Success,
                         icon = Icons.New,
-                        label = "Group",
+                        label = "Grp",
                         disabled = adding.get.value || isSystemGroupFocused,
                         loading = adding.get.value,
                         tooltip = "Add a new Group",
@@ -621,7 +623,25 @@ object ObsTree:
                           adding,
                           ctx
                         ).runAsync *> expandFocusedGroup
-                      ).mini.compact
+                      ).mini.compact,
+                      Button(
+                        severity = Button.Severity.Success,
+                        icon = Icons.New,
+                        disabled = adding.get.value || isSystemGroupFocused,
+                        loading = adding.get.value,
+                        tooltip = "Add a new Daytime Calibration",
+                        tooltipOptions = DefaultTooltipOptions,
+                        onClick = insertDaytimeCalibration(
+                          props.programId,
+                          props.resolvedActiveGroupId,
+                          props.observations,
+                          adding,
+                          ctx
+                        ).runAsync *> expandFocusedGroup
+                      ).withMods(testId := "explore-obs-tree-add-daytime-cal", ThemeIcons.SunBright)
+                        .mini
+                        .compact
+                        .when(props.isStaffOrAdmin)
                     ),
                     UndoButtons(props.undoer, size = PlSize.Mini, disabled = adding.get.value),
                     ActionButtons(

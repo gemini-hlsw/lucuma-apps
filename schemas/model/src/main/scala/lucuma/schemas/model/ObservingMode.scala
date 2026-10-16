@@ -76,6 +76,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case v: ObservingMode.Visitor            => v.mode
     case _: ObservingMode.KeckExchange       => ObservingModeType.ExchangeKeck
     case _: ObservingMode.SubaruExchange     => ObservingModeType.ExchangeSubaru
+    case _: ObservingMode.DaytimeCalibration => ObservingModeType.DaytimeCalibration
 
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case o: ObservingMode.GmosNorthLongSlit => o.fpu.asLeft.some
@@ -102,6 +103,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
     case _: ObservingMode.KeckExchange       => none
     case _: ObservingMode.SubaruExchange     => none
+    case d: ObservingMode.DaytimeCalibration => d.toBasicConfiguration.siteFor
 
   def toBasicConfiguration: BasicConfiguration = this match
     case n: ObservingMode.GmosNorthLongSlit                        =>
@@ -179,6 +181,8 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
       BasicConfiguration.KeckExchange(keckInstrument, requested)
     case ObservingMode.SubaruExchange(subaruInstrument, requested) =>
       BasicConfiguration.SubaruExchange(subaruInstrument, requested)
+    case ObservingMode.DaytimeCalibration(calibrationInstrument)   =>
+      BasicConfiguration.DaytimeCalibration(calibrationInstrument)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -234,6 +238,8 @@ object ObservingMode:
             c.downField("exchange").as[ObservingMode.KeckExchange]
           .orElse:
             c.downField("exchange").as[ObservingMode.SubaruExchange]
+          .orElse:
+            c.downField("daytimeCalibration").as[ObservingMode.DaytimeCalibration]
           .orElse:
             DecodingFailure("Could not decode ObservingMode", c.history).asLeft
 
@@ -2314,6 +2320,14 @@ object ObservingMode:
         totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
       yield SubaruExchange(subaruInstrument, totalRequestTime)
 
+  case class DaytimeCalibration(calibrationInstrument: Instrument)
+      extends ObservingMode(calibrationInstrument.some) derives Eq:
+    val isCustomized: Boolean = false
+
+  object DaytimeCalibration:
+    given Decoder[DaytimeCalibration] = Decoder.instance: c =>
+      c.downField("instrument").as[Instrument].map(DaytimeCalibration(_))
+
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
 
@@ -2370,6 +2384,9 @@ object ObservingMode:
 
   val subaruExchange: Prism[ObservingMode, SubaruExchange] =
     GenPrism[ObservingMode, SubaruExchange]
+
+  val daytimeCalibration: Prism[ObservingMode, DaytimeCalibration] =
+    GenPrism[ObservingMode, DaytimeCalibration]
 
   // Present only for the modes that generate telluric calibrations.
   val telluricType: Optional[ObservingMode, TelluricType] =

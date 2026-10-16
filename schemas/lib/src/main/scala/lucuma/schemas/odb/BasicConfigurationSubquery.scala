@@ -134,5 +134,8 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             subaruInstrument
             totalRequestTime $TimeSpanSubquery
           }
+          daytimeCalibration {
+            instrument
+          }
         }
       """

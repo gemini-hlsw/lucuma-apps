@@ -18,6 +18,7 @@ import explore.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationTile
+import explore.config.DaytimeConfigurationTile
 import explore.config.MosMaskContext
 import explore.config.sequence.SequenceTile
 import explore.findercharts.FinderChartsTile
@@ -610,9 +611,10 @@ object ObsTabTiles:
                 awaitingAltairGuideStar,
                 globalPreferences
               ).some
-            // Visitor & exchange instruments have no ITC, hide the itc tile.
+            // Visitor, exchange and daytime calibration modes have no ITC, hide the itc tile.
             case Some(_: BasicConfiguration.Visitor) | Some(_: BasicConfiguration.KeckExchange) |
-                Some(_: BasicConfiguration.SubaruExchange) =>
+                Some(_: BasicConfiguration.SubaruExchange) |
+                Some(_: BasicConfiguration.DaytimeCalibration) =>
               none
             case None => ItcEmptyTile().some
 
@@ -894,6 +896,9 @@ object ObsTabTiles:
             constraintsTile.some,
             schedulingWindowsTile.some,
             configurationTile.some,
+            Option.when(props.calibrationRole.contains(CalibrationRole.DaytimeCalibration))(
+              DaytimeConfigurationTile()
+            ),
             itcTile
           ).flattenOption
 

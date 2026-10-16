@@ -42,6 +42,7 @@ import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.ui.components.ThemeIcons
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -72,7 +73,7 @@ final case class ObsBadge(
   val executionTime: CalculatedValue[Option[TimeSpan]] = obs.execution.digest.programTimeEstimate
   val estimateDisplay: EstimateDisplay                 =
     EstimateDisplay(obs.execution.originalEstimate.map(_.value), obs.workflow.value.state)
-  val isDisabled: Boolean                              = readonly || obs.isCalibration
+  val isDisabled: Boolean                              = readonly || obs.isOdbCalibration
   val isDisabledExecuted: Boolean                      = isDisabled || obs.isExecuted
   val nonEmptyAllocatedBands                           = NonEmptySet.fromSet(allocatedScienceBands)
   val scienceBandIsInvalid                             = obs.scienceBand.exists(b => !allocatedScienceBands.contains(b))
@@ -163,11 +164,13 @@ object ObsBadge:
       )
     ).withTooltip(content = state.shortName)
 
-  // Daytime pinhole calibrations have no meaningful target, so we label them by role.
-  private def badgeTitle(obs: Observation): String =
+  // Daytime calibrations have no meaningful target, so we label them by role.
+  private def badgeTitle(obs: Observation): VdomNode =
     obs.calibrationRole match
-      case Some(CalibrationRole.DaytimePinhole) => "Daytime Pinhole"
-      case _                                    => obs.title
+      case Some(CalibrationRole.DaytimePinhole)     => "Daytime Pinhole"
+      case Some(CalibrationRole.DaytimeCalibration) =>
+        <.span(ThemeIcons.SunBright, " Daytime Calibration")
+      case _                                        => obs.title
 
   private val component = ScalaFnComponent[Props]: props =>
     for

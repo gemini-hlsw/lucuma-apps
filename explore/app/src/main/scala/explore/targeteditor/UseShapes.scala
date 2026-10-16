@@ -21,6 +21,7 @@ import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsVisualization
 import lucuma.ags.DebugShape
 import lucuma.ags.PatrolFieldVisualization
+import lucuma.core.enums.DaytimeCalibrationObservingModeType
 import lucuma.core.enums.ExchangeObservingModeType
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
@@ -196,8 +197,8 @@ def usePatrolFieldShapes(
             agsParams.patrolFieldShape.some
           case _: VisitorObservingModeType                                               =>
             pwfs.patrolField.patrolField.some
-          case _: ExchangeObservingModeType                                              =>
-            none // We won't get this far for exchange observations, anyway
+          case _: ExchangeObservingModeType | _: DaytimeCalibrationObservingModeType     =>
+            none // We won't get this far for exchange or daytime observations, anyway
 
       SortedMap.from(
         anchor.map((VisualizationStyles.Anchor, _)).toList ++ (individualFields ++ intersections)
@@ -516,6 +517,6 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
-          case _: ExchangeObservingModeType                                              =>
+          case _: ExchangeObservingModeType | _: DaytimeCalibrationObservingModeType     =>
             none
   }.map(_.value)

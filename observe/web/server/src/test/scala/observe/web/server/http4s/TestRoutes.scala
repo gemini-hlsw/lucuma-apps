@@ -40,9 +40,9 @@ trait TestRoutes {
 
   val sso = new AbstractSsoClient[IO, User] {
 
-    override def get(authorization: Authorization): IO[Option[User]] = IO(Some(user))
+    override def get(authorization: Authorization): IO[Either[String, User]] = IO(Right(user))
 
-    override def find(req: Request[IO]): IO[Option[User]] = IO(Some(user))
+    override def find(req: Request[IO]): IO[Either[String, User]] = IO(Right(user))
 
   }
 

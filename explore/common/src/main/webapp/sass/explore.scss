@@ -3489,6 +3489,13 @@ input[type='file'].explore-fileupload {
     }
   }
 
+  .p-tooltip-target-wrapper {
+    /* stylelint-disable-next-line selector-class-pattern */
+    .p-component.p-button > svg.svg-inline--fa {
+      width: 1.35em;
+    }
+  }
+
   .p-treenode-content {
     width: 100%;
     position: relative; // Needed for drag and drop indicator.

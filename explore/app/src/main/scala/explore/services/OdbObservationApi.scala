@@ -15,6 +15,7 @@ import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import lucuma.core.enums.CloneSequenceMode
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
@@ -77,6 +78,11 @@ trait OdbObservationApi[F[_]]:
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]
   def createObservation(programId:            Program.Id, parentId:        Option[Group.Id]): F[Observation]
   def createObservationWithTargets(programId: Program.Id, targetIds:       Set[Target.Id]): F[Observation]
+  def createDaytimeCalibration(
+    programId:  Program.Id,
+    parentId:   Option[Group.Id],
+    instrument: Instrument
+  ): F[Observation]
   def cloneObservation(
     obsId:        Observation.Id,
     newGroupId:   Option[Group.Id],

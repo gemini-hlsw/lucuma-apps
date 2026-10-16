@@ -254,6 +254,15 @@ object ExploreGridLayouts:
           w = DefaultWidth.value,
           h = ItcMaxHeight.value,
           i = ObsTabTileIds.ItcId.id.value
+        ),
+        // Last, so stored layouts that predate it keep their arrangement when it is merged in.
+        LayoutItem(
+          x = 0,
+          y =
+            (NotesMaxHeight |+| DetailsMinHeight |+| TargetHeight |+| FinderChartHeight |+| SkyPlotHeight |+| ConstraintsMaxHeight |+| TimingWindowsMaxHeight |+| ConfigurationMaxHeight |+| ItcMaxHeight).value,
+          w = DefaultWidth.value,
+          h = ConfigurationMaxHeight.value,
+          i = ObsTabTileIds.DaytimeConfigurationId.id.value
         )
       )
     )
@@ -319,12 +328,25 @@ object ExploreGridLayouts:
         ObsTabTileIds.ItcId
       ).map(_.id.value)
 
+    lazy val DaytimeCalibrationRemovedIds =
+      List(
+        ObsTabTileIds.DetailsId,
+        ObsTabTileIds.ConfigurationId,
+        ObsTabTileIds.TargetId,
+        ObsTabTileIds.FinderChartsId,
+        ObsTabTileIds.PlotId,
+        ObsTabTileIds.ConstraintsId,
+        ObsTabTileIds.TimingWindowsId,
+        ObsTabTileIds.ItcId
+      ).map(_.id.value)
+
     def removedTiles(role: Option[CalibrationRole]) =
       role match
         case Some(CalibrationRole.Twilight)           => TwilightRemovedIds
         case Some(CalibrationRole.SpectroPhotometric) => SpecPhotoRemovedIds
         case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
         case Some(CalibrationRole.DaytimePinhole)     => DaytimePinholeRemovedIds
+        case Some(CalibrationRole.DaytimeCalibration) => DaytimeCalibrationRemovedIds
         case _                                        => Nil
 
     lazy val defaultObsLayouts: LayoutsMap =
