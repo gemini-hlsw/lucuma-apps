@@ -53,7 +53,10 @@ object OdbProxy {
             .raiseGraphQLErrors
             .map(_.observation.flatMap(_.calibrationRole))
             .flatMap: calibrationRole =>
-              val skipTargets: Boolean = calibrationRole.contains_(CalibrationRole.DaytimePinhole)
+              val skipTargets: Boolean =
+                calibrationRole.exists:
+                  case CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeCalibration => true
+                  case _                                                                   => false
               ObsQuery[F]
                 .query(oid, skipTargets)
                 .raiseGraphQLErrors

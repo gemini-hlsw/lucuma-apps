@@ -43,7 +43,8 @@ object ObservationSyncer
           .get(obsId)
           .flatMap(_.calibrationRole)
           .forall: role =>
-            role != CalibrationRole.Twilight && role != CalibrationRole.DaytimePinhole
+            role != CalibrationRole.Twilight && role != CalibrationRole.DaytimePinhole &&
+              role != CalibrationRole.DaytimeCalibration
 
       def updateSequence(
         obsId:       Observation.Id,
