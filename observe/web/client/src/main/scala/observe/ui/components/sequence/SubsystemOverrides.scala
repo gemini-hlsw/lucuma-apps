@@ -10,22 +10,20 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.react.common.*
-import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
+import lucuma.ui.primereact.CheckboxView
+import lucuma.ui.primereact.given
 import observe.model.Server
 import observe.model.SubsystemEnabled
 import observe.model.SubsystemOrServer
 import observe.model.SystemOverrides
 import observe.model.enums.ControlStrategy
 import observe.model.enums.Resource
-import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
 import observe.ui.services.ConfigApi
-
-import scalajs.js
 
 case class SubsystemOverrides(
   obsId:             Observation.Id,
@@ -42,30 +40,24 @@ object SubsystemOverrides
       yield
         import ctx.given
 
-        // Each subsystem renders as a button labeled with the subsystem name.
-        // Only controllable buttons show a checkbox icon indicating their on/off state.
-        // checked is solid green, unchecked outlined.
-        // Non-controllable buttons and simulated ones are gray, disabled, and with a "SIM" badge
         def renderToggle(
           label:           NonEmptyString,
-          checked:         Boolean,
-          onChange:        js.UndefOr[Boolean => Callback],
+          enabled:         View[Boolean],
+          editable:        Boolean,
           controlStrategy: Option[ControlStrategy]
         ): VdomNode =
           val simulated = controlStrategy.contains(ControlStrategy.Simulated)
-          val disabled  = onChange.isEmpty || simulated
-          <.span(ObserveStyles.SubsystemToggle)(
-            Button(
-              label = label.value,
-              icon =
-                if (disabled) js.undefined else if (checked) Icons.SquareCheck else Icons.Square,
-              severity =
-                if (checked && !simulated) Button.Severity.Success
-                else Button.Severity.Secondary,
-              outlined = !checked,
-              disabled = disabled,
-              badge = if (simulated) "SIM" else js.undefined,
-              onClick = onChange.toOption.fold(Callback.empty)(f => f(!checked))
+          <.div(ObserveStyles.SubsystemToggle)(
+            CheckboxView(
+              id = NonEmptyString.unsafeFrom(
+                s"subsystem-${props.obsId}-${label.value.replaceAll("\\s+", "-")}"
+              ),
+              value = enabled,
+              label = TagMod(
+                label.value,
+                <.span(ObserveStyles.SubsystemSimTag)("SIM").when(simulated)
+              ),
+              disabled = !editable || simulated
             )
           ).withTooltip(
             content = if (simulated) "Simulated" else "",
@@ -77,8 +69,7 @@ object SubsystemOverrides
           enabled:         View[SubsystemEnabled],
           controlStrategy: Option[ControlStrategy]
         ): VdomNode =
-          val boolView = enabled.as(SubsystemEnabled.Value)
-          renderToggle(label, boolView.get, boolView.set, controlStrategy)
+          renderToggle(label, enabled.as(SubsystemEnabled.Value), true, controlStrategy)
 
         <.span(ObserveStyles.ObsSummarySubsystems)(
           renderOverrideControl(
@@ -102,7 +93,12 @@ object SubsystemOverrides
               .withOnMod(configApi.setDhsEnabled(props.obsId, _).runAsync),
             props.controlStrategies.get(Server.Dhs)
           ),
-          renderToggle("GWS".refined, true, js.undefined, props.controlStrategies.get(Server.Gws)),
+          renderToggle(
+            "GWS".refined,
+            View[Boolean](true, (_, _) => Callback.empty),
+            false,
+            props.controlStrategies.get(Server.Gws)
+          ),
           renderOverrideControl(
             NonEmptyString.unsafeFrom(props.instrument.longName),
             props.overrides

@@ -130,6 +130,7 @@ object ObserveStyles:
   val ObsSummaryDetails: Css    = Css("observe-obs-summary-details")
   val ObsSummarySubsystems: Css = Css("observe-obs-summary-subsystems")
   val SubsystemToggle: Css      = Css("observe-subsystem-toggle")
+  val SubsystemSimTag: Css      = Css("observe-subsystem-sim-tag")
   val ObsSummaryButton: Css     = Css("observe-obs-summary-button")
   val ObsLoadSection: Css       = Css("observe-obs-load-section")
 

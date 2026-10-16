@@ -1165,21 +1165,16 @@ body {
 
   .observe-obs-summary-subsystems {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: start;
     gap: 0.8em;
     white-space: nowrap;
 
-    .observe-subsystem-toggle {
-      min-width: 0;
-
-      .p-button {
-        width: 100%;
-        padding: 0.3em 0.8em;
-      }
-    }
-
-    .observe-subsystem-toggle .p-badge {
+    .observe-subsystem-sim-tag {
+      margin-left: 0.3em;
+      padding: 0 0.3em;
+      border-radius: 3px;
+      font-size: smaller;
       background: var(--red-500);
       color: hsl(0deg 0% 100%);
     }
