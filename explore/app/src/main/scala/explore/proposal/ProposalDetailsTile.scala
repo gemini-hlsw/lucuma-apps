@@ -71,14 +71,15 @@ import spire.std.any.*
 import scalajs.js.JSConverters.*
 
 case class ProposalDetailsBody(
-  detailsAligner:  Aligner[ProgramDetails, ProgramPropertiesInput],
-  proposalAligner: Aligner[Proposal, ProposalPropertiesInput],
-  cfps:            List[CallForProposal],
-  users:           List[ProgramUser],
-  setReviewer:     Option[ProgramUser] => Callback,
-  setMentor:       Option[ProgramUser] => Callback,
-  readonly:        Boolean,
-  aeonInstruments: Map[Instrument, Site]
+  detailsAligner:   Aligner[ProgramDetails, ProgramPropertiesInput],
+  proposalAligner:  Aligner[Proposal, ProposalPropertiesInput],
+  cfps:             List[CallForProposal],
+  users:            List[ProgramUser],
+  setReviewer:      Option[ProgramUser] => Callback,
+  setMentor:        Option[ProgramUser] => Callback,
+  readonly:         Boolean,
+  aeonInstruments:  Map[Instrument, Site],
+  maxTooActivation: TooActivation
 ) extends ReactFnProps(ProposalDetailsBody.component):
   val proposal: Proposal                                           = proposalAligner.get
   val timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]] =
@@ -347,7 +348,8 @@ object ProposalDetailsBody:
     readonly:          Boolean,
     showDialog:        View[Visible],
     openSplitsEditor:  Callback,
-    aeonInstruments:   Map[Instrument, Site]
+    aeonInstruments:   Map[Instrument, Site],
+    maxTooActivation:  TooActivation
   ): VdomNode =
     val aeonMultiFacilityView: Option[View[Option[AeonMultiFacility]]] =
       gemini.zoom(GeminiProposalType.aeonMultiFacility).toOptionView
@@ -396,6 +398,11 @@ object ProposalDetailsBody:
       }
 
     React.Fragment(
+      FormInfo(
+        maxTooActivation.label,
+        "ToO Activation",
+        tooltip = "The most disruptive ToO activation among the program's observations"
+      ),
       considerForBand3View.map: v =>
         FormEnumDropdownView(
           id = "consider-for-band3".refined,
@@ -706,7 +713,8 @@ object ProposalDetailsBody:
               props.readonly,
               showDialog,
               openSplitsEditor,
-              props.aeonInstruments
+              props.aeonInstruments,
+              props.maxTooActivation
             )
           ),
           optKeckView.map(keck =>
