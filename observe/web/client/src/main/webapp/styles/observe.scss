@@ -1152,8 +1152,26 @@ body {
   }
 
   .observe-obs-summary-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.5em;
     font-size: x-large;
     font-weight: bold;
+    white-space: nowrap;
+
+    .observe-obs-summary-title-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .observe-obs-summary-title-ref {
+      flex-shrink: 0;
+      font-size: large;
+      font-weight: normal;
+      color: var(--text-color-secondary);
+    }
   }
 
   .observe-obs-summary-details {

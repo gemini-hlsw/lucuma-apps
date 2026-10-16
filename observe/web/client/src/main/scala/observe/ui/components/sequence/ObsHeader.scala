@@ -34,10 +34,13 @@ object ObsHeader
       <.div(ObserveStyles.ObsHeader)(
         <.div(ObserveStyles.ObsSummary)(
           <.div(ObserveStyles.ObsSummaryTitle)(
-            s"${props.observation.title} [${props.observation.refAndId}]",
-            props.linkToExploreObs:
-              props.observation.obsReference
-                .toRight((props.observation.programId, props.observation.obsId))
+            <.span(ObserveStyles.ObsSummaryTitleText)(props.observation.title),
+            <.span(ObserveStyles.ObsSummaryTitleRef)(
+              s"[${props.observation.refAndId}]",
+              props.linkToExploreObs:
+                props.observation.obsReference
+                  .toRight((props.observation.programId, props.observation.obsId))
+            )
           ),
           <.div(ObserveStyles.ObsSummaryDetails)(
             <.span(props.observation.instrumentConfigurationSummary),
