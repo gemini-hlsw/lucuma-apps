@@ -11,6 +11,7 @@ import clue.data.syntax.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Attachment
 import explore.model.ConfigurationRequest
+import explore.model.DismissedWarnings
 import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
 import explore.model.ProgramInfo
@@ -92,6 +93,16 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
       UpdateProgramsInput(
         WHERE = id.toWhereProgram.assign,
         SET = ProgramPropertiesInput(tooActivationCeiling = ceiling.orUnassign)
+      )
+
+  // The ODB replaces the dismissed warnings wholesale, so the full set is always sent.
+  def updateProgramDismissedWarnings(id: Program.Id, warnings: DismissedWarnings): F[Unit] =
+    updateProgram:
+      UpdateProgramsInput(
+        WHERE = id.toWhereProgram.assign,
+        SET = ProgramPropertiesInput(
+          dismissedWarnings = warnings.toList.sortBy(_.tag).widen[ObservationValidationCode].assign
+        )
       )
 
   def updateGoaShouldNotify(id: Program.Id, shouldNotify: Boolean): F[Unit] =

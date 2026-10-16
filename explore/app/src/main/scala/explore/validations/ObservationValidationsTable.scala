@@ -21,6 +21,7 @@ import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import explore.observationtree.focusObs
 import explore.render.given
+import explore.render.validationSeverityIcon
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.ImplicitsFromRaw.vdomNodeFromRawReactNode
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -57,7 +58,8 @@ case class ObservationValidationsTableBody(
   userId:            Option[User.Id],
   programId:         Program.Id,
   observations:      View[ObservationList],
-  dismissedWarnings: DismissedWarnings,
+  dismissedWarnings: View[DismissedWarnings],
+  isStaff:           Boolean,
   tileState:         View[ObservationValidationsTableTileState]
 ) extends ReactFnProps(ObservationValidationsTableBody.component)
 
@@ -68,7 +70,7 @@ object ObservationValidationsTableBody {
 
   // The dismissed warnings change while the table is mounted, so they travel as table metadata
   // rather than being captured by the column closures.
-  private case class TableMeta(dismissedWarnings: DismissedWarnings)
+  private case class TableMeta(dismissedWarnings: View[DismissedWarnings], isStaff: Boolean)
 
   private val ColDef =
     ColumnDef[Expandable[ValidationsTableRow]].WithTableMeta[TableMeta]
@@ -141,12 +143,14 @@ object ObservationValidationsTableBody {
         ColDef(
           ValidationSeverityColumnId,
           cell = cell =>
-            cell.row.original.value.severity(
-              cell.row.getIsExpanded(),
-              cell.table.options.meta.foldMap(_.dismissedWarnings)
-            ),
+            cell.table.options.meta.map: meta =>
+              cell.row.original.value.severity(
+                cell.row.getIsExpanded(),
+                meta.dismissedWarnings,
+                meta.isStaff
+              ),
           header = columnNames(ValidationSeverityColumnId)
-        ).withSize(180.toPx),
+        ).withSize(200.toPx),
         ColDef(
           ValidationMessageColumnId,
           cell = cell => cell.row.original.value.message(cell.row.getIsExpanded()),
@@ -185,7 +189,7 @@ object ObservationValidationsTableBody {
           initialState = TableState(expanded = Expanded.AllRows),
           getSubRows = (row, _) => row.subRows,
           getRowId = (row, _, _) => RowId(row.value.rowId),
-          meta = TableMeta(props.dismissedWarnings)
+          meta = TableMeta(props.dismissedWarnings, props.isStaff)
         ),
         TableStore(props.userId, TableId.ObservationValidations)
       )
@@ -278,20 +282,49 @@ object ObservationValidationsTableBody {
     private def severityCell(severity: ObsValidationSeverity): VdomElement =
       <.span(severity.renderVdom)
 
+    // Staff can dismiss a warning, which dismisses that code for the whole program.
+    private def codeSeverityCell(
+      obs:               Observation,
+      code:              ObservationValidationCode,
+      dismissedWarnings: View[DismissedWarnings],
+      isStaff:           Boolean
+    ): VdomElement =
+      val severity = obs.severityOf(code, dismissedWarnings.get)
+      code.asWarning
+        .filter(_ => isStaff)
+        .fold(severityCell(severity)): warning =>
+          val id = s"${obs.id}-${warning.tag}-dismissed"
+          <.div(ExploreStyles.ValidationSeverityWithDismiss)(
+            <.span(validationSeverityIcon(severity), " ", severity.label),
+            <.span(LucumaPrimeStyles.CheckboxWithLabel)(
+              Checkbox(
+                id = id,
+                checked = severity === ObsValidationSeverity.DismissedWarning,
+                onChange = dismiss =>
+                  dismissedWarnings.mod(ws => if dismiss then ws + warning else ws - warning)
+              ),
+              <.label(^.htmlFor := id, "Dismissed")
+            )
+          )
+
     def severity(
       isExpanded:        Boolean,
-      dismissedWarnings: DismissedWarnings
+      dismissedWarnings: View[DismissedWarnings],
+      isStaff:           Boolean
     ): VdomElement =
       fold(
         r =>
           // Collapsed observation rows aggregate all of the observation's validations, so they
           // show the observation-level (most severe) severity. Expanded ones show only the head,
-          // mirroring the category and message cells.
-          if (isExpanded)
-            r.obs.workflow.value.validationErrors.headOption
-              .fold(<.span())(ov => severityCell(r.obs.severityOf(ov.code, dismissedWarnings)))
-          else r.obs.validationSeverity(dismissedWarnings).fold(<.span())(severityCell),
-        r => severityCell(r.obs.severityOf(r.validation.code, dismissedWarnings)),
+          // mirroring the category and message cells. Only rows for a single validation can be
+          // dismissed.
+          val validations = r.obs.workflow.value.validationErrors
+          if (isExpanded || validations.size === 1)
+            validations.headOption
+              .fold(<.span())(ov => codeSeverityCell(r.obs, ov.code, dismissedWarnings, isStaff))
+          else r.obs.validationSeverity(dismissedWarnings.get).fold(<.span())(severityCell)
+        ,
+        r => codeSeverityCell(r.obs, r.validation.code, dismissedWarnings, isStaff),
         _ => <.span()
       )
 

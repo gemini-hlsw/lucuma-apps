@@ -379,6 +379,8 @@ object ExploreStyles:
   val IndentLabel: Css          = Css("explore-indent-label")
   val RequiredForItcText: Css   = Css("required-for-itc-text")
 
+  val ValidationSeverityWithDismiss: Css = Css("explore-validation-severity-with-dismiss")
+
   val BrightnessesTableWrapper: Css            = Css("explore-brightnesses-wrapper")
   val BrightnessesContainer: Css               = Css("explore-brightnesses-container")
   val BrightnessesTableFooter: Css             = Css("explore-brightnesses-footer")
