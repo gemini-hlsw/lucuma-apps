@@ -13,10 +13,16 @@ import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.SmartGcalType
 import lucuma.core.model.sequence.*
+import lucuma.core.syntax.display.*
+import lucuma.core.util.Enumerated
 import lucuma.react.SizePx
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.MenuItem
+import lucuma.react.primereact.PopupMenu
+import lucuma.react.primereact.hooks.all.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.table.*
 import lucuma.schemas.model.enums.StepExecutionState
@@ -34,18 +40,23 @@ import observe.model.StepState
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.components.sequence.steps.*
+import observe.ui.display.given
 import observe.ui.model.AppContext
+import observe.ui.model.enums.OperationRequest
 import observe.ui.model.reusability.given
 import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 
 import scala.collection.immutable.HashSet
+import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
 
 // Helper to build component objects for instrument sequence tables.
 private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrument)
     extends SequenceTableDefs[D]:
   private type Props = SequenceTable[S, D]
+
+  private val InsertedStepFlashDuration: FiniteDuration = 2.seconds
 
   private val ScrollOptions =
     rawVirtual.mod
@@ -190,6 +201,16 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)
+        smartGcalMenuRef         <- usePopupMenuRef
+        smartGcalItems           <-
+          useMemo(props.obsId): obsId =>
+            import ctx.given
+
+            Enumerated[SmartGcalType].all.map: smartGcalType =>
+              MenuItem.Item(
+                label = smartGcalType.shortName,
+                command = odbQueryApi.insertSmartGcal(obsId, smartGcalType).runAsync
+              )
         virtualizerRef           <- useRef(none[HTMLTableVirtualizer])
         _                        <-
           useEffectOnMount: // If sequence is not running, auto select next step.
@@ -224,6 +245,18 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 case Expanded.AllRows    => Expanded.AllRows
                 case Expanded.Rows(rows) => Expanded.Rows(rows + (getRowId(sequence.last) -> true))
             case _                        => Callback.empty
+        renderedInsertedSteps     =
+          props.scienceRows
+            .flatMap(_.id.right)
+            .filter(props.requests.insertedSteps.contains)
+            .sortBy(_.toString)
+        _                        <- // Inserted steps are flashed once their rows render, then forgotten.
+          useEffectWithDeps(renderedInsertedSteps): stepIds =>
+            import ctx.given
+
+            Callback.when(stepIds.nonEmpty):
+              (IO.sleep(InsertedStepFlashDuration) >>
+                odbQueryApi.clearInsertedSteps(props.obsId, stepIds.toSet)).runAsync
       yield
         extension (step: SequenceRow[D]) {
           def isSelected: Boolean =
@@ -247,6 +280,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 selectableRowIdOpt
                   .exists: selectedRowId =>
                     props.executionState.breakpoints.contains_(selectedRowId.stepId)
+              val stepWasInserted: Boolean                  =
+                selectableRowIdOpt
+                  .exists: selectedRowId =>
+                    props.requests.insertedSteps.contains_(selectedRowId.stepId)
 
               TagMod(
                 selectableRowIdOpt
@@ -272,6 +309,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                   .when_(step.isSelected || step.isLoaded || step.isFinished),
                 ObserveStyles.RowIdle.unless_(step.isSelected || step.isLoaded),
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
+                ObserveStyles.StepRowInserted.when_(stepWasInserted),
                 ObserveStyles.StepRowFirstInAtom.when_(step.isFirstInAtom),
                 step.stepState match
                   case s if s.hasError                      => ObserveStyles.StepRowError
@@ -341,7 +379,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             if visitIds.contains(row.id) then onContains(row) else true
 
         val allVisitsAreCollapsed: Boolean = forAllVisits(!_.getIsExpanded())
-        val allVisitsAreExpanded: Boolean  = forAllVisits(_.getIsExpanded())
+
+        val isInsertSmartGcalInFlight: Boolean =
+          props.requests.insertSmartGcal === OperationRequest.InFlight
+        val allVisitsAreExpanded: Boolean      = forAllVisits(_.getIsExpanded())
 
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
@@ -356,19 +397,33 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           <.div(ObserveStyles.SequenceTableToolbar)(
             props.sequenceControls,
             <.div(ObserveStyles.SequenceTableVisitButtons)(
-              Button(
-                icon = Icons.Minus,
-                label = "Collapse all visits",
-                disabled = allVisitsAreCollapsed,
-                onClick = collapseVisits
-              ).mini.compact,
+              React
+                .Fragment(
+                  Button(
+                    icon = Icons.Minus,
+                    label = "Collapse all visits",
+                    disabled = allVisitsAreCollapsed,
+                    onClick = collapseVisits
+                  ).mini.compact,
+                  Button(
+                    icon = Icons.Plus,
+                    label = "Expand all visits",
+                    disabled = allVisitsAreExpanded,
+                    onClick = expandVisits
+                  ).mini.compact
+                )
+                .when(visitIds.nonEmpty),
               Button(
                 icon = Icons.Plus,
-                label = "Expand all visits",
-                disabled = allVisitsAreExpanded,
-                onClick = expandVisits
-              ).mini.compact
-            ).when(visitIds.nonEmpty)
+                label = "SmartGcal",
+                severity = Button.Severity.Success,
+                loading = isInsertSmartGcalInFlight,
+                onClickE = smartGcalMenuRef.toggle,
+                disabled =
+                  props.executionState.sequenceStatus.isCompleted || isInsertSmartGcalInFlight
+              ).mini.compact.unless(props.isPreview),
+              PopupMenu(model = smartGcalItems).withRef(smartGcalMenuRef.ref)
+            )
           ),
           PrimeAutoHeightVirtualizedTable(
             table,

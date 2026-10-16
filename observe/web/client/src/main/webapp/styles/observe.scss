@@ -469,6 +469,11 @@ body {
       background-color: var(--active-row-background);
     }
 
+    // Flash twice the steps just inserted by this client.
+    tr.observe-step-row-inserted {
+      animation: observe-step-row-flash 0.6s ease-in-out 2;
+    }
+
     tr.observe-step-row-error {
       background-color: var(--negative-row-background);
       color: var(--negative-row-color);
@@ -1243,5 +1248,16 @@ body {
     height: 90vh;
     width: 90vw !important;
     top: 30px;
+  }
+}
+
+@keyframes observe-step-row-flash {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+
+  50% {
+    background-color: color-mix(in srgb, var(--green-500) 75%, transparent);
   }
 }
