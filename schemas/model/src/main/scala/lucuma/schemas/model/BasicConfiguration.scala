@@ -73,7 +73,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case v: BasicConfiguration.Visitor            => v.site.some
     case _: BasicConfiguration.KeckExchange       => none
     case _: BasicConfiguration.SubaruExchange     => none
-    case _: BasicConfiguration.DaytimeCalibration => none
+    case d: BasicConfiguration.DaytimeCalibration => d.site
 
   def obsModeType: ObservingModeType = this match
     case _: BasicConfiguration.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
@@ -632,7 +632,11 @@ object BasicConfiguration:
       yield SubaruExchange(subaruInstrument, totalRequestTime)
 
   case class DaytimeCalibration(calibrationInstrument: Instrument) extends BasicConfiguration
-      derives Eq
+      derives Eq:
+    def site: Option[Site] = calibrationInstrument match
+      case Instrument.GmosNorth | Instrument.Gnirs | Instrument.Igrins2 => Site.GN.some
+      case Instrument.GmosSouth | Instrument.Flamingos2                 => Site.GS.some
+      case _                                                            => none
 
   object DaytimeCalibration:
     given Decoder[DaytimeCalibration] = Decoder.instance: c =>

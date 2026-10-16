@@ -505,8 +505,11 @@ final case class Observation(
   val isInactive = workflow.value.state === ObservationWorkflowState.Inactive
 
   inline def isCalibration: Boolean      = calibrationRole.isDefined
+  // Daytime calibrations are created and edited by staff, not by the ODB.
+  lazy val isOdbCalibration: Boolean     =
+    isCalibration && !calibrationRole.contains(CalibrationRole.DaytimeCalibration)
   // A user-defined telluric is edited like a science observation.
-  lazy val isLockedCalibration: Boolean  = isCalibration && !isUserDefinedTelluric.value
+  lazy val isLockedCalibration: Boolean  = isOdbCalibration && !isUserDefinedTelluric.value
   lazy val isOngoing                     =
     workflow.value.state === ObservationWorkflowState.Ongoing ||
       (workflow.value.state === ObservationWorkflowState.Inactive &&

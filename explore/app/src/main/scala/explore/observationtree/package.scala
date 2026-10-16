@@ -26,6 +26,7 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.toast.*
+import lucuma.ui.undo.AsyncAction
 import lucuma.ui.undo.UndoSetter
 
 def focusObs[F[_]](
@@ -125,17 +126,12 @@ def insertObs(
   ctx:          AppContext[IO]
 ): IO[Unit] =
   import ctx.given
-
-  ObsActions
-    .insertObservation(
-      programId,
-      parentId,
-      focusObs = obsId => focusObs(programId, obsId.some, ctx),
-      postMessage = ToastCtx[IO].showToast(_)
-    )(observations)
-    .void
-    .switching(adding.as(AddingObservation.Value).async)
-    .withToastDuring("Creating observation")
+  insertWith(ObsActions.insertObservation(programId, parentId, _, _), "Creating observation")(
+    programId,
+    observations,
+    adding,
+    ctx
+  )
 
 def insertDaytimeCalibration(
   programId:    Program.Id,
@@ -145,18 +141,30 @@ def insertDaytimeCalibration(
   ctx:          AppContext[IO]
 ): IO[Unit] =
   import ctx.given
+  insertWith(
+    ObsActions.insertDaytimeCalibration(programId, parentId, Instrument.GmosNorth, _, _),
+    "Creating daytime calibration"
+  )(programId, observations, adding, ctx)
 
-  ObsActions
-    .insertDaytimeCalibration(
-      programId,
-      parentId,
-      Instrument.GmosNorth,
-      focusObs = obsId => focusObs(programId, obsId.some, ctx),
-      postMessage = ToastCtx[IO].showToast(_)
-    )(observations)
-    .void
+private def insertWith(
+  action:       (
+    Observation.Id => Callback,
+    String => IO[Unit]
+  ) => AsyncAction[ObservationList, Observation.Id, Option[Observation]],
+  toastMessage: String
+)(
+  programId:    Program.Id,
+  observations: UndoSetter[ObservationList],
+  adding:       View[AddingObservation],
+  ctx:          AppContext[IO]
+): IO[Unit] =
+  import ctx.given
+
+  action(obsId => focusObs(programId, obsId.some, ctx), ToastCtx[IO].showToast(_))(
+    observations
+  ).void
     .switching(adding.as(AddingObservation.Value).async)
-    .withToastDuring("Creating daytime calibration")
+    .withToastDuring(toastMessage)
 
 def insertGroup(
   programId: Program.Id,

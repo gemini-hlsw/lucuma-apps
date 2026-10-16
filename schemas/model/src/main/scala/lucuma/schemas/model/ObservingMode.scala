@@ -103,7 +103,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
     case _: ObservingMode.KeckExchange       => none
     case _: ObservingMode.SubaruExchange     => none
-    case _: ObservingMode.DaytimeCalibration => none
+    case d: ObservingMode.DaytimeCalibration => d.toBasicConfiguration.siteFor
 
   def toBasicConfiguration: BasicConfiguration = this match
     case n: ObservingMode.GmosNorthLongSlit                        =>

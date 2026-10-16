@@ -73,7 +73,7 @@ final case class ObsBadge(
   val executionTime: CalculatedValue[Option[TimeSpan]] = obs.execution.digest.programTimeEstimate
   val estimateDisplay: EstimateDisplay                 =
     EstimateDisplay(obs.execution.originalEstimate.map(_.value), obs.workflow.value.state)
-  val isDisabled: Boolean                              = readonly || obs.isCalibration
+  val isDisabled: Boolean                              = readonly || obs.isOdbCalibration
   val isDisabledExecuted: Boolean                      = isDisabled || obs.isExecuted
   val nonEmptyAllocatedBands                           = NonEmptySet.fromSet(allocatedScienceBands)
   val scienceBandIsInvalid                             = obs.scienceBand.exists(b => !allocatedScienceBands.contains(b))

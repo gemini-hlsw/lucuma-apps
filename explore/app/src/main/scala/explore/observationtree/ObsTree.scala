@@ -120,7 +120,7 @@ case class ObsTree(
 
   private val isCalibObsSelected: Boolean                               =
     selectedObsIdSet
-      .map(_.idSet.exists(observations.get.get(_).exists(_.isCalibration)))
+      .map(_.idSet.exists(observations.get.get(_).exists(_.isOdbCalibration)))
       .getOrElse(false)
   private val copyDisabled: Boolean                                     = selectedObsIdSet.isEmpty || isCalibObsSelected
   private val pasteDisabled: Boolean                                    = clipboardObsContents.isEmpty
