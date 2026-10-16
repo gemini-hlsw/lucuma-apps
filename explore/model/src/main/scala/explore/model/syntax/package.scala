@@ -179,17 +179,20 @@ object all:
     def needsAGS: Boolean = cr match
       case CalibrationRole.SpectroPhotometric => true
       case CalibrationRole.Twilight           => false
+      case CalibrationRole.DaytimeCalibration => false
       case _                                  => true
 
     def needsITC: Boolean = cr match
-      case CalibrationRole.Twilight       => false
-      case CalibrationRole.DaytimePinhole => false
-      case _                              => true
+      case CalibrationRole.Twilight           => false
+      case CalibrationRole.DaytimePinhole     => false
+      case CalibrationRole.DaytimeCalibration => false
+      case _                                  => true
 
     def needsAcquisitionConfig: Boolean = cr match
-      case CalibrationRole.Twilight       => false
-      case CalibrationRole.DaytimePinhole => false
-      case _                              => true
+      case CalibrationRole.Twilight           => false
+      case CalibrationRole.DaytimePinhole     => false
+      case CalibrationRole.DaytimeCalibration => false
+      case _                                  => true
 
   extension (cr: Option[CalibrationRole])
     def needsITC: Boolean               = cr.forall(_.needsITC)
