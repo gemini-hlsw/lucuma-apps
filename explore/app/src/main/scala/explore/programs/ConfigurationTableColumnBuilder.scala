@@ -12,29 +12,17 @@ import explore.model.TargetList
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.DaytimeCalibrationObservingModeType
-import lucuma.core.enums.ExchangeObservingModeType
-import lucuma.core.enums.FacilityObservingModeType
-import lucuma.core.enums.ObservingModeType
-import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.Configuration
 import lucuma.core.model.Configuration.ObservingMode.*
 import lucuma.core.model.Program
 import lucuma.core.syntax.display.*
+import lucuma.odb.syntax.observingModeType.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 
 case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Applied[D, TM, CM, TF]):
   import ConfigurationTableColumnBuilder.*
-
-  extension (o: ObservingModeType)
-    // We won't have exchange observing modes
-    private def instrumentName: String = o match
-      case f: FacilityObservingModeType           => f.instrument.shortName
-      case v: VisitorObservingModeType            => v.instrument.shortName
-      case _: ExchangeObservingModeType           => ""
-      case _: DaytimeCalibrationObservingModeType => ""
 
   def configurationColumns(getConfiguration: D => Configuration) =
     def configurationColumn[V](
@@ -54,7 +42,8 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
         .withCell(_.value.fold(decFormat(_), _.format(decFormat)))
         .withSize(110.toPx)
         .sortable,
-      configurationColumn(InstrumentColumnId, _.observingMode.tpe.instrumentName)
+      configurationColumn(InstrumentColumnId, _.observingMode.tpe.instrumentOption.map(_.shortName))
+        .withCell(_.value.orEmpty)
         .withSize(110.toPx)
         .sortable,
       configurationColumn(FPUColumnId, _.observingMode.fpu).withSize(110.toPx).sortable,
