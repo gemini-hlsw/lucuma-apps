@@ -469,9 +469,9 @@ body {
       background-color: var(--active-row-background);
     }
 
-    // Subtle one-shot flash for steps just inserted by this client.
+    // Flash twice the steps just inserted by this client.
     tr.observe-step-row-inserted {
-      animation: observe-step-row-flash 0.5s ease-out;
+      animation: observe-step-row-flash 0.6s ease-in-out 2;
     }
 
     tr.observe-step-row-error {
@@ -936,16 +936,6 @@ body {
     }
   }
 
-  &.observe-insert-calibration-button {
-    @include control-button;
-
-    background-color: var(--teal-500);
-
-    &:enabled:hover {
-      background-color: var(--teal-600);
-    }
-  }
-
   &.observe-abort-button {
     @include control-button;
 
@@ -1268,6 +1258,6 @@ body {
   }
 
   50% {
-    background-color: color-mix(in srgb, var(--teal-500) 40%, transparent);
+    background-color: color-mix(in srgb, var(--green-500) 75%, transparent);
   }
 }

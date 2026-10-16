@@ -89,7 +89,6 @@ object ObserveStyles:
   val PlayButton: Css                 = Css("observe-play-button")
   val AbortButton: Css                = Css("observe-abort-button")
   val ReloadButton: Css               = Css("observe-reload-button")
-  val InsertCalibrationButton: Css    = Css("observe-insert-calibration-button")
   val SingleButton: Css               = Css("observe-single-button")
   val IconSoft: Css                   = Css("observe-icon-soft")
 
