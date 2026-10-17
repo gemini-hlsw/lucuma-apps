@@ -56,9 +56,78 @@
       border-color: var(--button-active-background-color);
     }
 
+    .p-button.p-button-secondary.explore-button-summary {
+      background: hsl(0deg 0% 100%);
+      border-color: var(--site-solid-border-color);
+    }
+
+    .p-button.p-button-secondary.explore-button-summary:not(:disabled):hover {
+      background: var(--hover-background-color);
+      border-color: var(--site-solid-border-color);
+    }
+
     .p-button.p-button-secondary.p-button-text,
     .p-button.p-button-secondary.p-button-outlined {
       color: var(--text-color);
+    }
+
+    .p-selectbutton .p-button.p-highlight,
+    .p-togglebutton.p-highlight .p-button {
+      color: var(--primary-color-text);
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .p-selectbutton .p-button.p-highlight:hover,
+    .p-togglebutton.p-highlight:hover .p-button {
+      color: var(--primary-color-text);
+      background: var(--primary-color-hover);
+      border-color: var(--primary-color-hover);
+    }
+
+    .p-checkbox.p-highlight .p-checkbox-box,
+    .p-checkbox.p-variant-filled.p-highlight .p-checkbox-box,
+    .p-input-filled .p-checkbox.p-highlight .p-checkbox-box,
+    .p-tristatecheckbox.p-variant-filled.p-highlight .p-checkbox-box,
+    .p-radiobutton.p-highlight .p-radiobutton-box,
+    .p-radiobutton.p-variant-filled.p-highlight .p-radiobutton-box,
+    .p-input-filled .p-radiobutton.p-highlight .p-radiobutton-box {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight .p-checkbox-box,
+    .p-checkbox.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
+      .p-checkbox-box,
+    .p-input-filled
+      .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
+      .p-checkbox-box,
+    .p-tristatecheckbox.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
+      .p-checkbox-box,
+    .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight .p-radiobutton-box,
+    .p-radiobutton.p-variant-filled:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight
+      .p-radiobutton-box,
+    .p-input-filled
+      .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight
+      .p-radiobutton-box {
+      background: var(--primary-color-hover);
+      border-color: var(--primary-color-hover);
+    }
+
+    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box,
+    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box,
+    .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover) .p-radiobutton-box,
+    .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:focus-visible) .p-radiobutton-box {
+      border-color: var(--primary-color);
+    }
+
+    .p-inputswitch.p-highlight .p-inputswitch-slider {
+      background: var(--primary-color);
+    }
+
+    .p-inputswitch:not(.p-disabled):has(.p-inputswitch-input:hover).p-highlight
+      .p-inputswitch-slider {
+      background: var(--primary-color-hover);
     }
 
     .p-badge,

@@ -149,6 +149,7 @@
   --negative-icon-color: var(--negative-color);
   --warning-text-color: hsl(0deg 0% 100%);
   --warning-background-color: hsl(35deg 95% 50%);
+  --warning-glow: 0 0 2px 2px hsl(28deg 100% 48%);
   --error-background-color: hsl(0deg 100% 50%);
   --primary-color: var(--gray-dark);
   --primary-color-hover: hsl(var(--gray-dark-h) var(--gray-dark-s) calc(var(--gray-dark-l) + 8%));
@@ -163,6 +164,7 @@
   --accent-color: hsl(41deg 89.5% 51.4%);
   --explore-accent-color-darken-5: hsl(41deg 89.5% 46.4%);
   --explore-accent-color-lighten-5: hsl(41deg 89.5% 56.4%);
+  --explore-accent-color-strong: hsl(36deg 90% 38%);
   --explore-selected-box-color: slateblue;
   --sidetab-background: var(--color-background-light-5);
   --explore-group-hover: var(--hover-background-color);

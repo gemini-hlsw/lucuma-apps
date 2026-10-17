@@ -290,6 +290,10 @@ tfoot {
   user-select: none;
 }
 
+.light-theme .obs-tree-group {
+  color: var(--site-text-color);
+}
+
 .eraser-icon,
 .trash-icon {
   color: var(--negative-icon-color);
@@ -398,7 +402,7 @@ div.p-dropdown.explore-warning-input,
 div.p-form-field.explore-warning-input,
 div.field.explore-warning-input,
 div.inline.field.explore-warning-input {
-  box-shadow: -0 0 2px 1px var(--warning-background-color);
+  box-shadow: var(--warning-glow);
 }
 
 label.explore-indent-label {
@@ -812,7 +816,7 @@ thead tr th.sticky-header {
 
 .target-sed-type-dropdown.explore-warning-input,
 .p-inputgroup.explore-warning-input {
-  box-shadow: -0 0 2px 1px var(--warning-background-color);
+  box-shadow: var(--warning-glow);
 }
 
 // -----
@@ -1650,6 +1654,30 @@ svg.fa-check.explore-success-icon {
   white-space: nowrap;
   font-size: smaller;
   margin-left: 0.4em;
+}
+
+.light-theme {
+  .aladin-detail-text {
+    color: var(--text-color);
+  }
+
+  .aladin-status-fov,
+  .aladin-status-current-coordinates,
+  .aladin-status-center-button {
+    background-color: hsl(0deg 0% 100%);
+    outline-color: var(--site-solid-border-color);
+  }
+
+  .aladin-status-center-button:focus,
+  .aladin-status-center-button:active,
+  .aladin-status-center-button:hover {
+    outline-color: var(--primary-color);
+  }
+
+  .aladin-status-fov .explore-accented,
+  .aladin-status-center-button .explore-accented {
+    color: var(--explore-accent-color-strong);
+  }
 }
 
 .aladin-container-column {
