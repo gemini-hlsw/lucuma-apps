@@ -16,6 +16,8 @@ import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.TooltipOptions
 import lucuma.ui.input.AuditResult
 import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.hooks.useInputmask
+import lucuma.ui.input.facade.InputmaskOptions
 import org.scalajs.dom.Element
 import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.KeyCode
@@ -52,6 +54,7 @@ final case class FormInputTextView[V[_], A](
   onBlur:          FormInputTextView.ChangeCallback[EitherErrors[A]] = (_: EitherErrors[A]) =>
     Callback.empty,
   validateOnPaste: Boolean = true,
+  mask:            js.UndefOr[InputmaskOptions] = js.undefined,
   modifiers:       Seq[TagMod] = Seq.empty
 )(using val eq: Eq[A], val vl: ViewLike[V])
     extends ReactFnProps(FormInputTextView.component):
@@ -120,45 +123,42 @@ object FormInputTextView {
       onValidChange(validated.isRight) >> cb(validated)
     }
 
-    ScalaFnComponent
-      .withHooks[Props[V, A]]
-      .useStateBy(props => props.stringValue) // displayValue
-      .useState(none[(Int, Int)])                    // cursor
-      .useRef(0)                                     // lastKeyCode
-      .useRef(none[html.Input])                      // inputElement
-      .useState(none[NonEmptyChain[NonEmptyString]]) // errors
-      .useEffectWithDepsBy((props, _, _, _, _, _) => props.stringValue)(
-        (props, displayValue, _, _, _, errors) =>
-          newValue =>
-            import props.given
-            val displayMatchesExternal =
-              props.validFormat.getValid(displayValue.value).toOption ===
-                props.validFormat.getValid(newValue).toOption
-            (if (displayMatchesExternal) Callback.empty else displayValue.setState(newValue)) >>
-              errors.setState(none)
-      )
-      .useEffectOnMountBy((props, displayValue, cursor, lastKeyCode, inputElement, _) =>
-        getInputElement(props.id) >>= (element =>
-          inputElement.set(element) >>
-            audit(
-              props.changeAuditor,
-              props.stringValue,
-              displayValue.setState,
-              element,
-              cursor.setState,
-              lastKeyCode.value
-            )
-        ) >>= (value => validate(value, props.validFormat, props.onValidChange))
-      )
-      .useEffectBy((_, _, cursor, _, inputElement, _) =>
-        (for {
-          i <- inputElement.value
-          c <- cursor.value
-        } yield Callback(i.setSelectionRange(c._1, c._2))).orEmpty
-      )
-      .render { (props, displayValue, cursor, lastKeyCode, inputElement, errors) =>
-        import props.given
+    ScalaFnComponent[Props[V, A]]: props =>
+      import props.given
 
+      for
+        displayValue <- useState(props.stringValue)
+        cursor       <- useState(none[(Int, Int)])
+        lastKeyCode  <- useRef(0)
+        inputElement <- useRef(none[html.Input])
+        errors       <- useState(none[NonEmptyChain[NonEmptyString]])
+        _            <- useEffectWithDeps(props.stringValue): newValue =>
+                          val displayMatchesExternal: Boolean =
+                            props.validFormat.getValid(displayValue.value).toOption ===
+                              props.validFormat.getValid(newValue).toOption
+                          (if (displayMatchesExternal) Callback.empty
+                           else displayValue.setState(newValue)) >>
+                            errors.setState(none)
+        _            <- useEffectOnMount:
+                          getInputElement(props.id) >>= (element =>
+                            inputElement.set(element) >>
+                              audit(
+                                props.changeAuditor,
+                                props.stringValue,
+                                displayValue.setState,
+                                element,
+                                cursor.setState,
+                                lastKeyCode.value
+                              )
+                          ) >>= (value => validate(value, props.validFormat, props.onValidChange))
+        // Evaluation of Inputmask: when a mask is given it owns the text while typing.
+        _            <- useInputmask(props.id, props.mask.toOption)
+        _            <- useEffect:
+                          (for
+                            i <- inputElement.value
+                            c <- cursor.value
+                          yield Callback(i.setSelectionRange(c._1, c._2))).orEmpty
+      yield
         val errorChain: Option[NonEmptyChain[NonEmptyString]] =
           (props.error.toOption, errors.value) match {
             case (Some(a), Some(b)) => (a +: b).some
@@ -195,11 +195,10 @@ object FormInputTextView {
             { validated =>
               val validatedCB = validated match {
                 case Right(a) =>
-                  // Only set if resulting A changed.
-                  if (props.value.get.exists(_ =!= a))
-                    props.value.set(a)
-                  else // A didn't change, but redisplay formatted string.
-                    displayValue.setState(props.stringValue)
+                  // Only set if resulting A changed. Always redisplay the formatted string, since
+                  // the external update is skipped when the typed text parses to the same value.
+                  Option.when(props.value.get.exists(_ =!= a))(props.value.set(a)).orEmpty >>
+                    displayValue.setState(props.validFormat.reverseGet(a))
                 case Left(e)  =>
                   errors.setState(e.some)
               }
@@ -257,7 +256,6 @@ object FormInputTextView {
           value = displayValue.value,
           modifiers = allModifiers
         )
-      }
   }
 
   protected val component = buildComponent[AnyF, Any]
