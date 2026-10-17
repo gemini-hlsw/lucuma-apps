@@ -207,21 +207,58 @@ body {
 }
 
 .observe-config-section {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 1em;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: center;
+  align-items: baseline;
+  gap: 5px 15px;
 
   @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-    align-items: stretch;
-    gap: 5px 15px;
+    grid-template-columns: repeat(2, 1fr);
+    justify-content: stretch;
+  }
+
+  .observe-conditions-section,
+  .observe-names-section {
+    display: contents;
   }
 
   .observe-conditions-label {
     @include lucumaUICommon.text-ellipsis;
 
+    grid-row: 1 / span 2;
+    align-self: center;
     font-weight: bold;
+
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      grid-row: auto;
+      grid-column: 1 / -1;
+      text-align: center;
+    }
+  }
+
+  .observe-image-quality-area,
+  .observe-cloud-extinction-area,
+  .observe-water-vapor-area,
+  .observe-sky-background-area,
+  .observe-operator-area,
+  .observe-observer-area {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 5px;
+
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      justify-content: flex-start;
+    }
+  }
+
+  .observe-operator-area {
+    grid-column: 2;
+
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      grid-column: 1;
+    }
   }
 
   label {
@@ -238,81 +275,19 @@ body {
     font-size: smaller;
   }
 
-  .observe-conditions-section {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    align-items: baseline;
-    gap: 15px;
-
-    .p-component {
-      width: 7em;
-    }
+  .p-inputgroup,
+  .p-dropdown {
+    width: 10em;
 
     @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 5px 15px;
-
-      .observe-conditions-label {
-        grid-column: 1 / -1;
-        text-align: center;
-      }
-
-      .p-component {
-        width: 100%;
-      }
-    }
-
-    .observe-image-quality-area {
-      display: flex;
-      gap: 5px;
-      align-items: baseline;
-    }
-
-    .observe-cloud-extinction-area {
-      display: flex;
-      gap: 5px;
-      align-items: baseline;
-    }
-
-    .observe-water-vapor-area {
-      display: flex;
-      gap: 5px;
-      align-items: baseline;
-    }
-
-    .observe-sky-background-area {
-      display: flex;
-      gap: 5px;
-      align-items: baseline;
+      width: 100%;
     }
   }
 
-  .observe-names-section {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    align-items: center;
-    gap: 15px;
-
-    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 5px 15px;
-    }
-
-    .observe-observer-area {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .observe-operator-area {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
+  .p-inputgroup .p-inputtext {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
   }
 }
 
@@ -1152,8 +1127,26 @@ body {
   }
 
   .observe-obs-summary-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.5em;
     font-size: x-large;
     font-weight: bold;
+    white-space: nowrap;
+
+    .observe-obs-summary-title-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .observe-obs-summary-title-ref {
+      flex-shrink: 0;
+      font-size: large;
+      font-weight: normal;
+      color: var(--text-color-secondary);
+    }
   }
 
   .observe-obs-summary-details {
@@ -1165,21 +1158,25 @@ body {
 
   .observe-obs-summary-subsystems {
     display: flex;
-    align-items: baseline;
     justify-content: start;
     gap: 0.8em;
     white-space: nowrap;
 
-    .observe-subsystem-toggle {
-      min-width: 0;
+    .observe-subsystem-toggle .pl-checkbox-with-label {
+      display: flex;
+      align-items: center;
 
-      .p-button {
-        width: 100%;
-        padding: 0.3em 0.8em;
+      &:has(.p-checkbox.p-disabled) label {
+        opacity: var(--site-disabled-opacity);
       }
     }
 
-    .observe-subsystem-toggle .p-badge {
+    .observe-subsystem-sim-tag {
+      margin-left: 0.8em;
+      padding: 0 0.25em;
+      border-radius: 3px;
+      font-size: 0.6em;
+      line-height: 1;
       background: var(--red-500);
       color: hsl(0deg 0% 100%);
     }
