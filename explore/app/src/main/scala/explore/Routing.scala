@@ -194,7 +194,8 @@ object Routing:
                 model.userIsReadonlyCoi,
                 programSummaries.get.hasDefinedObservations,
                 programSummaries.get.hasUndefinedObservations,
-                programSummaries.get.aeonEligibleInstruments
+                programSummaries.get.aeonEligibleInstruments,
+                programSummaries.get.maxTooActivation
               )
       .orEmpty
 

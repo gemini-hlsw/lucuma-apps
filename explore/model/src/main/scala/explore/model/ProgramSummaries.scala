@@ -18,6 +18,7 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.Site
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Configuration
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.PartnerLink
@@ -106,6 +107,9 @@ case class ProgramSummaries(
         .filter(_.workflow.value.state >= ObservationWorkflowState.Defined)
         .flatMap: obs =>
           obs.basicConfiguration.flatMap(bc => (bc.instrument, bc.siteFor).tupled)
+
+  lazy val maxTooActivation: TooActivation =
+    observations.values.map(_.tooActivation).maxOption.getOrElse(TooActivation.None)
 
   lazy val obsAttachmentAssignments: ObsAttachmentAssignmentMap =
     observations.toList

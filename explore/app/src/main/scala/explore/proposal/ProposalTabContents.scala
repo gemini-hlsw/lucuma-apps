@@ -24,6 +24,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.enums.Site
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.model.StandardUser
 import lucuma.core.util.Timestamp
@@ -54,7 +55,8 @@ case class ProposalTabContents(
   userIsReadonlyCoi:        Boolean,
   hasDefinedObservations:   Boolean,
   hasUndefinedObservations: Boolean,
-  aeonInstruments:          Map[Instrument, Site]
+  aeonInstruments:          Map[Instrument, Site],
+  maxTooActivation:         TooActivation
 ) extends ReactFnProps(ProposalTabContents.component):
   val proposalStatus: ProposalStatus = programDetails.get.proposalStatus
   val proposalIsReadonly: Boolean    = proposalStatus =!= ProposalStatus.NotSubmitted
@@ -151,7 +153,8 @@ object ProposalTabContents:
                 props.layout,
                 props.proposalIsReadonly,
                 props.userIsReadonlyCoi,
-                props.aeonInstruments
+                props.aeonInstruments,
+                props.maxTooActivation
               ),
               ProposalSubmissionBar(
                 props.programId,
