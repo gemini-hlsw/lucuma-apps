@@ -319,6 +319,14 @@ lazy val ui_tests =
     .dependsOn(ui_testkit)
     .enablePlugins(ScalaJSPlugin)
     .settings(
+      // Inputmask needs a DOM, so the tests run with jsdom installed as the Node globals.
+      Test / jsEnv := new NodeJSEnv(
+        NodeJSEnv
+          .Config()
+          .withArgs(
+            List("--require", (baseDirectory.value / "src/test/js/jsdom-globals.cjs").toString)
+          )
+      ),
       libraryDependencies ++=
         In(Test)(
           LucumaCoreTestkit.value ++
@@ -465,10 +473,23 @@ lazy val explore_modelTestkit = project
 lazy val explore_modelTests = project
   .in(file("explore/model-tests"))
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(explore_modelTestkit)
+  .dependsOn(explore_modelTestkit, ui_testkit % Test)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
   .settings(commonModuleTest: _*)
+  .settings(
+    // The InputCodec laws run Inputmask, which needs a DOM: jsdom is installed as the Node globals.
+    Test / jsEnv := new NodeJSEnv(
+      NodeJSEnv
+        .Config()
+        .withArgs(
+          List(
+            "--require",
+            ((ThisBuild / baseDirectory).value / "ui/tests/src/test/js/jsdom-globals.cjs").toString
+          )
+        )
+    )
+  )
 
 lazy val explore_common = project
   .in(file("explore/common"))

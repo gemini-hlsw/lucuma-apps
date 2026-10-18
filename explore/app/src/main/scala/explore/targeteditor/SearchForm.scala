@@ -15,12 +15,12 @@ import explore.Icons
 import explore.components.HelpIcon
 import explore.model.*
 import explore.model.enums.TargetType
+import explore.model.inputCodecs
 import explore.targets.TargetSelectionPopup
 import explore.targets.TargetSource
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Target
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
@@ -123,7 +123,7 @@ object SearchForm
                 .runAsync
             ),
             label = React.Fragment("Name", HelpIcon("target/main/search-target.md".refined)),
-            validFormat = InputValidSplitEpi.nonEmptyString,
+            codec = inputCodecs.NonEmptyText,
             error = error.value.orUndefined,
             disabled = disabled,
             postAddons = List(searchIcon).filterNot(_ => props.readonly || props.disableSearch),

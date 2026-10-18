@@ -15,6 +15,7 @@ import explore.model.Focused
 import explore.model.IsActive
 import explore.model.RedeemInvitationResult
 import explore.model.enums.AppTab
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -135,6 +136,7 @@ object RedeemInvitationsPopup:
               id = "email-invite".refined,
               value = key,
               label = "Key:",
+              codec = inputCodecs.Text,
               onTextChange = validateKey,
               disabled = process.get === RedeemInviteProcess.Running
             )(^.autoComplete := "off")

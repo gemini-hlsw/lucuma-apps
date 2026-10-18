@@ -21,7 +21,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.ui.display.given
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.toCodec
 import lucuma.ui.reusability.given
 import lucuma.ui.utils.*
 
@@ -74,8 +74,7 @@ object FormTimeSpanInput:
                 id = NonEmptyString.unsafeFrom(s"${props.id.value}-${unitName}-input"),
                 disabled = props.disabled,
                 value = valueView,
-                validFormat = InputValidSplitEpi.nonNegLong,
-                changeAuditor = ChangeAuditor.int,
+                codec = InputValidSplitEpi.nonNegLong.toCodec.withIntegerMask(allowMinus = false),
                 units = unitName,
                 error = props.error
               ).withMods(^.size := Math.max(valueView.get.toString.length, 2))

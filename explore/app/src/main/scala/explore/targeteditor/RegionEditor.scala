@@ -8,6 +8,7 @@ import crystal.react.hooks.*
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.display.given
+import explore.model.inputCodecs
 import explore.model.reusability.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
@@ -18,11 +19,9 @@ import lucuma.core.math.Declination
 import lucuma.core.math.HourAngle
 import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
-import lucuma.core.math.validation.MathValidators
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormEnumDropdownView
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
@@ -72,9 +71,7 @@ object RegionEditor
               value = v,
               label = "start",
               labelClass = ExploreStyles.IndentLabel,
-              validFormat = MathValidators.truncatedRA,
-              changeAuditor = ChangeAuditor.accept,
-              validateOnPaste = false,
+              codec = inputCodecs.Ra,
               disabled = props.readonly
             )
           ),
@@ -84,9 +81,7 @@ object RegionEditor
               value = v,
               label = "end",
               labelClass = ExploreStyles.IndentLabel,
-              validFormat = MathValidators.truncatedRA,
-              changeAuditor = ChangeAuditor.accept,
-              validateOnPaste = false,
+              codec = inputCodecs.Ra,
               disabled = props.readonly
             )
           ),
@@ -102,9 +97,7 @@ object RegionEditor
               value = v,
               label = "start",
               labelClass = ExploreStyles.IndentLabel,
-              validFormat = MathValidators.truncatedDec,
-              changeAuditor = ChangeAuditor.accept,
-              validateOnPaste = false,
+              codec = inputCodecs.Dec,
               disabled = props.readonly
             )
           ),
@@ -114,9 +107,7 @@ object RegionEditor
               value = v,
               label = "end",
               labelClass = ExploreStyles.IndentLabel,
-              validFormat = MathValidators.truncatedDec,
-              changeAuditor = ChangeAuditor.accept,
-              validateOnPaste = false,
+              codec = inputCodecs.Dec,
               disabled = props.readonly
             )
           )

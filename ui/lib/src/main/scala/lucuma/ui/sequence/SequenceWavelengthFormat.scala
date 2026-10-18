@@ -7,20 +7,19 @@ import eu.timepit.refined.collection.NonEmpty
 import lucuma.core.math.Wavelength
 import lucuma.core.optics.ValidWedge
 import lucuma.core.syntax.validation.*
-import lucuma.core.validation.InputValidFormat
 import lucuma.core.validation.InputValidWedge
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.InputCodec
+import lucuma.ui.input.toCodec
 
 /**
  * How the sequence table shows and edits wavelengths, so apps with a units preference can override
  * the nm default.
  */
 case class SequenceWavelengthFormat(
-  symbol:        String,
-  display:       Wavelength => String,
-  validFormat:   InputValidFormat[Wavelength],
-  changeAuditor: ChangeAuditor
+  symbol:  String,
+  display: Wavelength => String,
+  codec:   InputCodec[Wavelength]
 )
 
 object SequenceWavelengthFormat:
@@ -34,6 +33,7 @@ object SequenceWavelengthFormat:
           ValidWedge
             .fromFormat(Wavelength.decimalNanometers, _ => "Invalid Wavelength".refined[NonEmpty])
             .toErrorsValidWedge
-        ),
-      ChangeAuditor.posBigDecimal(1.refined)
+        )
+        .toCodec
+        .withDecimalMask(1, allowMinus = false)
     )

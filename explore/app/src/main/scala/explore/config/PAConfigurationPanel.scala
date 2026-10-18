@@ -11,6 +11,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AveragePABasis
 import explore.model.Observation
 import explore.model.enums.PosAngleOptions
+import explore.model.inputCodecs
 import explore.model.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -25,7 +26,6 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tooltip
 import lucuma.refined.*
 import lucuma.ui.components.TimeSpanView
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.FormEnumDropdownView
 import lucuma.ui.primereact.FormInputTextView
@@ -162,8 +162,7 @@ object PAConfigurationPanel:
             units = "° E of N",
             postAddons = spinnerButtons,
             disabled = finalReadOnly,
-            validFormat = MathValidators.truncatedAngleDegrees,
-            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+            codec = inputCodecs.PositionAngleDegrees,
             onTextChange = text =>
               MathValidators.truncatedAngleDegrees
                 .getValid(text)

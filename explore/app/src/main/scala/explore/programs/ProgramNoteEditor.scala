@@ -11,9 +11,9 @@ import explore.components.MarkdownEditor
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ProgramNote
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -75,7 +75,7 @@ object ProgramNoteEditor
                 id = "title".refined,
                 label = "Title",
                 value = titleView,
-                validFormat = InputValidSplitEpi.nonEmptyString,
+                codec = inputCodecs.NonEmptyText,
                 disabled = props.userIsReadonlyCoi
               ).withMods(^.untypedRef := inputRef)
             ),

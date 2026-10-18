@@ -6,7 +6,6 @@ package explore.config
 import cats.implicits.*
 import crystal.react.View
 import explore.components.HelpIcon
-import explore.config.ConfigurationFormats.*
 import explore.model.BroadBand
 import explore.model.Combination
 import explore.model.NarrowBand
@@ -14,6 +13,7 @@ import explore.model.ScienceRequirements
 import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -56,8 +56,7 @@ object ImagingConfigurationPanel
           value = fov,
           label = React.Fragment("Minimum FoV", HelpIcon("configuration/fov.md".refined)),
           units = "arcsec",
-          validFormat = angleArcsecsFormat,
-          changeAuditor = angleArcsecondsChangeAuditor,
+          codec = inputCodecs.SignedArcsecondsOptional,
           disabled = p.readonly
         ).clearable,
         <.label(

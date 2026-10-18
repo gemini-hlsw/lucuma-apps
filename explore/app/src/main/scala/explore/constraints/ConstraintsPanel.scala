@@ -14,6 +14,7 @@ import explore.model.AppContext
 import explore.model.Help
 import explore.model.ObsIdSet
 import explore.model.formats.formatPercentile
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.ConstraintSet
@@ -29,7 +30,6 @@ import lucuma.react.primereact.PrimeStyles
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.CentralWavelength
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.EnumDropdownView
 import lucuma.ui.primereact.FormEnumDropdownView
 import lucuma.ui.primereact.FormInputTextView
@@ -217,13 +217,15 @@ object ConstraintsPanel:
                 FormInputTextView(
                   id = "minam".refined,
                   value = airMassView.zoom(ElevationRange.ByAirMass.min),
-                  validFormat = ModelValidators.AirMassElevationRangeValidWedge.andThen(
-                    ValidSplitEpiNec.lte(
-                      elevationRangeOptions.value.airMass.max,
-                      "Must be <= Max".refined
-                    )
+                  codec = inputCodecs.elevationRange(
+                    ModelValidators.AirMassElevationRangeValidWedge
+                      .andThen(
+                        ValidSplitEpiNec.lte(
+                          elevationRangeOptions.value.airMass.max,
+                          "Must be <= Max".refined
+                        )
+                      )
                   ),
-                  changeAuditor = ChangeAuditor.accept.decimal(1.refined),
                   groupClass = ExploreStyles.ElevationRangeEntry,
                   disabled = props.readonly
                 ),
@@ -231,12 +233,14 @@ object ConstraintsPanel:
                 FormInputTextView(
                   id = "maxam".refined,
                   value = airMassView.zoom(ElevationRange.ByAirMass.max),
-                  validFormat = ModelValidators.AirMassElevationRangeValidWedge.andThen(
-                    ValidSplitEpiNec.gte(elevationRangeOptions.value.airMass.min,
-                                         "Must be >= Min".refined
-                    )
+                  codec = inputCodecs.elevationRange(
+                    ModelValidators.AirMassElevationRangeValidWedge
+                      .andThen(
+                        ValidSplitEpiNec.gte(elevationRangeOptions.value.airMass.min,
+                                             "Must be >= Min".refined
+                        )
+                      )
                   ),
-                  changeAuditor = ChangeAuditor.accept.decimal(1.refined),
                   groupClass = ExploreStyles.ElevationRangeEntry,
                   disabled = props.readonly
                 )
@@ -248,13 +252,15 @@ object ConstraintsPanel:
                 FormInputTextView(
                   id = "minha".refined,
                   value = hourAngleView.zoom(ElevationRange.ByHourAngle.minHours),
-                  validFormat = ModelValidators.HourAngleElevationRangeValidWedge.andThen(
-                    ValidSplitEpiNec.lte(
-                      elevationRangeOptions.value.hourAngle.maxHours,
-                      "Must be <= Max".refined
-                    )
+                  codec = inputCodecs.elevationRange(
+                    ModelValidators.HourAngleElevationRangeValidWedge
+                      .andThen(
+                        ValidSplitEpiNec.lte(
+                          elevationRangeOptions.value.hourAngle.maxHours,
+                          "Must be <= Max".refined
+                        )
+                      )
                   ),
-                  changeAuditor = ChangeAuditor.accept.decimal(1.refined),
                   groupClass = ExploreStyles.ElevationRangeEntry,
                   disabled = props.readonly
                 ),
@@ -262,13 +268,15 @@ object ConstraintsPanel:
                 FormInputTextView(
                   id = "maxha".refined,
                   value = hourAngleView.zoom(ElevationRange.ByHourAngle.maxHours),
-                  validFormat = ModelValidators.HourAngleElevationRangeValidWedge.andThen(
-                    ValidSplitEpiNec.gte(
-                      elevationRangeOptions.value.hourAngle.minHours,
-                      "Must be >= Min".refined
-                    )
+                  codec = inputCodecs.elevationRange(
+                    ModelValidators.HourAngleElevationRangeValidWedge
+                      .andThen(
+                        ValidSplitEpiNec.gte(
+                          elevationRangeOptions.value.hourAngle.minHours,
+                          "Must be >= Min".refined
+                        )
+                      )
                   ),
-                  changeAuditor = ChangeAuditor.accept.decimal(1.refined),
                   groupClass = ExploreStyles.ElevationRangeEntry,
                   disabled = props.readonly
                 ),

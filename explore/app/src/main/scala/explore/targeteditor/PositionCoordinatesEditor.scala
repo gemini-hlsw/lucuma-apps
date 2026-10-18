@@ -6,18 +6,17 @@ package explore.targeteditor
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.React
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
 import lucuma.core.math.RightAscension
-import lucuma.core.math.validation.MathValidators
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.model.SlotId
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.*
@@ -46,18 +45,14 @@ object PositionCoordinatesEditor
           id = inputId("ra"),
           value = coordsRAView,
           label = React.Fragment("RA", HelpIcon("target/main/coordinates.md".refined)),
-          validFormat = MathValidators.truncatedRA,
-          changeAuditor = ChangeAuditor.accept,
-          validateOnPaste = false,
+          codec = inputCodecs.Ra,
           disabled = props.readonly
         ),
         FormInputTextView(
           id = inputId("dec"),
           value = coordsDecView,
           label = React.Fragment("Dec", HelpIcon("target/main/coordinates.md".refined)),
-          validFormat = MathValidators.truncatedDec,
-          changeAuditor = ChangeAuditor.accept,
-          validateOnPaste = false,
+          codec = inputCodecs.Dec,
           disabled = props.readonly
         )
       )

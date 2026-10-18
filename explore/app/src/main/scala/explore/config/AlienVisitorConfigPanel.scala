@@ -13,13 +13,11 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
-import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
-import explore.model.formats.durationHM
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
@@ -28,7 +26,6 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Program
 import lucuma.core.util.TimeSpan
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -36,7 +33,6 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
@@ -123,15 +119,14 @@ object AlienVisitorConfigPanel
               id = "visitor-name".refined,
               value = nameView,
               label = "Name",
-              validFormat = InputValidSplitEpi.nonEmptyString.optional,
+              codec = inputCodecs.NonEmptyTextOptional,
               disabled = disableEdit
             ).clearable(^.autoComplete.off),
             FormInputTextView(
               id = "visitor-central-wavelength".refined,
               value = centralWavelengthView,
               label = "Central Wavelength",
-              validFormat = props.units.toInputFormat,
-              changeAuditor = props.units.toAuditor,
+              codec = inputCodecs.wavelength(props.units),
               units = props.units.symbol,
               disabled = disableEdit
             )(^.autoComplete.off),
@@ -141,8 +136,7 @@ object AlienVisitorConfigPanel
               label = React.Fragment("AGS Diameter",
                                      HelpIcon("configuration/visitor/ags-diameter.md".refined)
               ),
-              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-              changeAuditor = ChangeAuditor.posBigDecimal(2.refined),
+              codec = inputCodecs.NonNegativeArcseconds,
               units = "arcsec",
               disabled = disableEdit
             )(^.autoComplete.off),
@@ -153,8 +147,7 @@ object AlienVisitorConfigPanel
                 React.Fragment("Science FoV Diameter",
                                HelpIcon("configuration/visitor/science-fov-diameter.md".refined)
                 ),
-              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-              changeAuditor = ChangeAuditor.posBigDecimal(2.refined),
+              codec = inputCodecs.NonNegativeArcseconds,
               units = "arcsec",
               disabled = disableEdit
             )(^.autoComplete.off),
@@ -162,7 +155,7 @@ object AlienVisitorConfigPanel
               id = "visitor-total-time".refined,
               value = totalRequestTimeView,
               label = "Total Req. Time",
-              validFormat = durationHM.optional,
+              codec = inputCodecs.DurationHmOptional,
               units = "h:mm",
               disabled = disableEdit
             ).clearable(^.autoComplete.off)

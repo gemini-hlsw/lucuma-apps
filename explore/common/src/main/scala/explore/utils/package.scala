@@ -31,7 +31,6 @@ import lucuma.core.util.NewBoolean
 import lucuma.core.util.TimeSpan
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.format.versionDateFormatter
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.syntax.all.given
 
 import java.time.Instant
@@ -110,12 +109,6 @@ def forceAssign[T, S](mod: Endo[Input[S]] => Endo[T])(base: S): Endo[S] => Endo[
     mod:
       case Assign(edit) => modS(edit).assign
       case _            => modS(base).assign
-
-// TODO Should we move this to lucuma-ui?
-val HMPartialRegEx                  = "\\d*(:\\d{0,2})?".r
-val hmChangeAuditor: ChangeAuditor  = ChangeAuditor.accept.allow(HMPartialRegEx.matches)
-val HMSPartialRegEx                 = "\\d*(:\\d{0,2}(:\\d{0,2})?)?".r
-val hmsChangeAuditor: ChangeAuditor = ChangeAuditor.accept.allow(HMSPartialRegEx.matches)
 
 object IsExpanded extends NewBoolean
 type IsExpanded = IsExpanded.Type

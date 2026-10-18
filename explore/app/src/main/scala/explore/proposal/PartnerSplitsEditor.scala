@@ -12,19 +12,17 @@ import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.PartnerSplit
 import explore.model.enums.Visible
+import explore.model.inputCodecs
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Partner
-import lucuma.core.model.ZeroTo100
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Message
 import lucuma.react.table.*
 import lucuma.refined.*
-import lucuma.ui.input.*
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -78,8 +76,7 @@ object PartnerSplitsEditor:
       FormInputTextView(
         id = NonEmptyString.from(makeId(split.get.partner)).getOrElse("SPLIT_ID".refined),
         value = split.zoom(PartnerSplit.percent),
-        validFormat = InputValidSplitEpi.refinedInt[ZeroTo100],
-        changeAuditor = ChangeAuditor.refinedInt[ZeroTo100]()
+        codec = inputCodecs.Percent
       ).withMods(
         ^.autoFocus := split.get.partner === Partner.AR
       )
@@ -108,32 +105,31 @@ object PartnerSplitsEditor:
         )
       )
 
-  protected val component = ScalaFnComponent
-    .withHooks[Props]
-    .useMemoBy(props => props.splits.reuseByValue)(_ => _.value.toListOfViews) // rows
-    .useReactTableBy: (_, rows) =>
-      TableOptions(
-        columns,
-        rows,
-        getRowId = (row, _, _) => RowId(row.get.partner.tag),
-        enableSorting = false,
-        enableColumnResizing = false
+  protected val component = ScalaFnComponent[Props]: props =>
+    for
+      rows  <- useMemo(props.splits.reuseByValue)(_.value.toListOfViews)
+      table <- useReactTable:
+                 TableOptions(
+                   columns,
+                   rows,
+                   getRowId = (row, _, _) => RowId(row.get.partner.tag),
+                   enableSorting = false,
+                   enableColumnResizing = false
+                 )
+    yield Dialog(
+      visible = props.show.value,
+      onHide = props.closeMe,
+      header = "PartnerSplits",
+      footer = footer(props),
+      closable = false,
+      resizable = false,
+      focusOnShow = true,
+      clazz = ExploreStyles.PartnerSplitsEditorDialog
+    )(
+      PrimeTable(
+        table,
+        striped = true,
+        compact = Compact.Very,
+        tableMod = ExploreStyles.ExploreBorderTable
       )
-    .render: (props, _, table) =>
-      Dialog(
-        visible = props.show.value,
-        onHide = props.closeMe,
-        header = "PartnerSplits",
-        footer = footer(props),
-        closable = false,
-        resizable = false,
-        focusOnShow = true,
-        clazz = ExploreStyles.PartnerSplitsEditorDialog
-      )(
-        PrimeTable(
-          table,
-          striped = true,
-          compact = Compact.Very,
-          tableMod = ExploreStyles.ExploreBorderTable
-        )
-      )
+    )

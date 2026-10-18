@@ -26,6 +26,7 @@
     "@tanstack/table-core": "9.3.1",
     "aladin-lite": "3.8.2",
     "highcharts": "12.6.2",
+    "inputmask": "5.0.10",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
     "primereact": "10.9.9",

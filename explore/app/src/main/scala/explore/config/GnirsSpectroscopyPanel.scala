@@ -17,9 +17,9 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.offsets.OffsetInput
 import explore.model.AppContext
-import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.model.syntax.all.*
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
@@ -392,7 +392,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
                 label = React.Fragment("Focus Motor Steps",
                                        HelpIcon("configuration/gnirs/focus-motor-steps.md".refined)
                 ),
-                validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
+                codec = inputCodecs.GnirsFocusMotorSteps,
                 disabled = disableSimpleEdit || !props.isStaffOrAdmin
               ),
             CustomizableEnumSelect(

@@ -11,8 +11,8 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.components.ui.ExploreStyles
-import explore.model.ExploreModelValidators
 import explore.model.display.given
+import explore.model.inputCodecs
 import explore.utils.IsExpanded
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -27,7 +27,6 @@ import lucuma.react.primereact.Panel
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
@@ -91,8 +90,7 @@ private abstract class BrightnessesEditorBuilder[T, Props <: BrightnessesEditor[
             FormInputTextView(
               id = NonEmptyString.unsafeFrom(s"brightnessValue_${cell.row.id}"),
               value = cell.value,
-              validFormat = ExploreModelValidators.brightnessValidWedge,
-              changeAuditor = ChangeAuditor.bigDecimal(2.refined, 3.refined).allowExp(2.refined),
+              codec = inputCodecs.Brightness,
               disabled = cell.table.options.meta.exists(_.disabled)
             ),
           size = 77.toPx

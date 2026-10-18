@@ -9,10 +9,9 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
-import explore.model.formats.durationHM
+import explore.model.inputCodecs
 import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -20,11 +19,9 @@ import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.util.TimeSpan
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
@@ -95,7 +92,7 @@ object AlienVisitorConfigEditor
           value = name,
           label = "Name",
           groupClass = ExploreStyles.WarningInput.when_(name.get.isEmpty),
-          validFormat = InputValidSplitEpi.nonEmptyString.optional,
+          codec = inputCodecs.NonEmptyTextOptional,
           disabled = props.readonly,
           modifiers = List(testId := "explore-visitor-name")
         ).clearable(^.autoComplete.off),
@@ -104,8 +101,7 @@ object AlienVisitorConfigEditor
           value = centralWavelength,
           label = "Central Wavelength",
           groupClass = ExploreStyles.WarningInput.when_(centralWavelength.get.isEmpty),
-          validFormat = props.units.toInputWedge,
-          changeAuditor = props.units.toAuditor.optional,
+          codec = inputCodecs.wavelengthOptional(props.units),
           units = props.units.symbol,
           disabled = props.readonly,
           modifiers = List(testId := "explore-visitor-central-wavelength")
@@ -117,8 +113,7 @@ object AlienVisitorConfigEditor
                                  HelpIcon("configuration/visitor/ags-diameter.md".refined)
           ),
           groupClass = ExploreStyles.WarningInput.when_(agsDiameter.get.isEmpty),
-          validFormat = angleArcsecsFormat,
-          changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
+          codec = inputCodecs.NonNegativeArcsecondsOptional,
           units = "arcsec",
           disabled = props.readonly,
           modifiers = List(testId := "explore-visitor-ags-diameter")
@@ -130,8 +125,7 @@ object AlienVisitorConfigEditor
                                  HelpIcon("configuration/visitor/science-fov-diameter.md".refined)
           ),
           groupClass = ExploreStyles.WarningInput.when_(scienceFovDiameter.get.isEmpty),
-          validFormat = angleArcsecsFormat,
-          changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
+          codec = inputCodecs.NonNegativeArcsecondsOptional,
           units = "arcsec",
           disabled = props.readonly,
           modifiers = List(testId := "explore-visitor-science-fov-diameter")
@@ -144,7 +138,7 @@ object AlienVisitorConfigEditor
             HelpIcon("configuration/visitor/total-request-time.md".refined)
           ),
           groupClass = ExploreStyles.WarningInput.when_(totalRequestTime.get.isEmpty),
-          validFormat = durationHM.optional,
+          codec = inputCodecs.DurationHmOptional,
           units = "h:mm",
           disabled = props.readonly,
           modifiers = List(testId := "explore-visitor-total-time")

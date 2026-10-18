@@ -15,27 +15,24 @@ import explore.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.utils.IsExpanded
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.math.LineFluxValue
-import lucuma.core.math.LineFluxValueRefinement
 import lucuma.core.math.LineWidthValue
-import lucuma.core.math.LineWidthValueRefinement
 import lucuma.core.math.Wavelength
 import lucuma.core.math.dimensional.*
 import lucuma.core.math.units.*
 import lucuma.core.model.EmissionLine
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Of
-import lucuma.core.validation.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Panel
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
@@ -84,10 +81,7 @@ private abstract class EmissionLineEditorBuilder[T, Props <: EmissionLineEditor[
             FormInputTextView(
               id = NonEmptyString.unsafeFrom(s"lineWidth_${cell.row.id}"),
               value = cell.value,
-              validFormat = InputValidSplitEpi
-                .refinedBigDecimal[LineWidthValueRefinement]
-                .andThen(LineWidthValue.Value.reverse),
-              changeAuditor = ChangeAuditor.posBigDecimal(3.refined).allowEmpty,
+              codec = inputCodecs.LineWidth,
               disabled = cell.table.options.meta.exists(_.disabled)
             ),
           size = 116.toPx
@@ -100,10 +94,7 @@ private abstract class EmissionLineEditorBuilder[T, Props <: EmissionLineEditor[
             FormInputTextView(
               id = NonEmptyString.unsafeFrom(s"lineValue_${cell.row.id}"),
               value = cell.value,
-              validFormat = InputValidSplitEpi
-                .refinedBigDecimalWithScientificNotation[LineFluxValueRefinement]
-                .andThen(LineFluxValue.Value.reverse),
-              changeAuditor = ChangeAuditor.posScientificNotation(),
+              codec = inputCodecs.LineFlux,
               disabled = cell.table.options.meta.exists(_.disabled)
             ),
           size = 102.toPx
@@ -183,8 +174,7 @@ private abstract class EmissionLineEditorBuilder[T, Props <: EmissionLineEditor[
               id = "newWavelength".refined,
               value = newWavelength,
               label = "New line λ:",
-              validFormat = wavelengthUnits.toInputWedge,
-              changeAuditor = wavelengthUnits.toAuditor,
+              codec = inputCodecs.wavelengthOptional(wavelengthUnits),
               onTextChange = (s: String) => addDisabled.set(AddDisabled(s.isEmpty)),
               units = wavelengthUnits.symbol
             ),

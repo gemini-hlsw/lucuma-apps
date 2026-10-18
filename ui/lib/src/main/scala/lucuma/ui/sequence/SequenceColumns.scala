@@ -47,7 +47,7 @@ import lucuma.schemas.model.PeakPixel
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.formatSN
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.toCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.*
@@ -251,8 +251,8 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               val newAngle: Angle = mod(angle)
               handleRowValueEdit(c)(replace)(newAngle.some) >> cb(angle, newAngle)
           ),
-          validFormat = SequenceColumns.DecimalArcsecondsValidWedge,
-          changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+          codec = SequenceColumns.DecimalArcsecondsValidWedge.toCodec
+            .withDecimalMask(2, integerDigits = 3.some),
           groupClass = SequenceStyles.SequenceInput,
           inputClass = SequenceStyles.OffsetInput
         )
@@ -284,8 +284,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
                   val newWv: Wavelength = mod(wv)
                   handleRowValueEdit(c)(gmosWavelengthReplace)(newWv.some) >> cb(wv, newWv)
               ),
-              validFormat = wvFormat.validFormat,
-              changeAuditor = wvFormat.changeAuditor,
+              codec = wvFormat.codec,
               groupClass = SequenceStyles.SequenceInput,
               inputClass = SequenceStyles.OffsetInput
             ): VdomNode

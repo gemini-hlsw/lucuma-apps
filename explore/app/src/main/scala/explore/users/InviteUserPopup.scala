@@ -12,8 +12,8 @@ import eu.timepit.refined.cats.given
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.ExploreModelValidators
 import explore.model.ProgramUser
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.data.EmailAddress
@@ -103,7 +103,7 @@ object InviteUserPopup:
                 value = emailView,
                 label = "Email",
                 disabled = createInviteStatus.get === CreateInviteStatus.Running,
-                validFormat = ExploreModelValidators.MailValidator.optional,
+                codec = inputCodecs.EmailOptional,
                 onValidChange = v => validEmail.setState(v)
               )(^.autoComplete := "off")
             ).when(key.get.isEmpty),

@@ -8,7 +8,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
-import explore.model.ExploreModelValidators
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -17,7 +17,6 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -45,9 +44,8 @@ object SignalToNoiseInput
             React.Fragment("Signal / Noise", HelpIcon("configuration/signal_to_noise.md".refined)),
           labelClass = props.labelClass,
           groupClass = groupClass,
-          validFormat = ExploreModelValidators.signalToNoiseValidSplitEpi.optional,
+          codec = inputCodecs.SignalToNoiseOptional,
           postAddons = postAddons,
-          changeAuditor = ChangeAuditor.posBigDecimal(1.refined).optional,
           disabled = props.readonly
         ).withMods(^.autoComplete.off),
         ExploreStyles.ExposureTimeModeSignalToNoise

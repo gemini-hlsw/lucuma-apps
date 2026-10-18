@@ -12,6 +12,7 @@ import explore.model.Attachment
 import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.modes.ModeCommonWavelengths
 import explore.modes.ModeWavelength
 import explore.modes.SpectroscopyModeRow
@@ -22,48 +23,16 @@ import lucuma.core.math.WavelengthDelta
 import lucuma.core.optics.Format
 import lucuma.core.syntax.string.parseBigDecimalOption
 import lucuma.core.validation.*
-import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.sequence.SequenceWavelengthFormat
 
 import scala.collection.immutable.SortedSet
 
 trait ConfigurationFormats:
-  private lazy val angleArcsecondsBaseAuditor = ChangeAuditor
-    .fromInputValidWedge(ExploreModelValidators.decimalArcsecondsValidWedge)
-    .allow(s => s === "0" || s === "0.")
-
-  lazy val angleArcsecondsChangeAuditor = angleArcsecondsBaseAuditor
-    .decimal(2.refined)
-    .optional
-
-  lazy val angleArcsecsFormat   = ExploreModelValidators.decimalArcsecondsValidWedge.optional
-  lazy val wvMicroInput         = ExploreModelValidators.wavelengthMicroValidWedge.optional
-  lazy val wvNanoInput          = ExploreModelValidators.wavelengthNanoValidWedge.optional
-  lazy val wvAngstromInput      = ExploreModelValidators.wavelengthAngstromValidWedge.optional
-  lazy val wvDeltaMicroInput    = ExploreModelValidators.wavelengthMicroDeltaValidWedge.optional
-  lazy val wvDeltaNanoInput     = ExploreModelValidators.wavelengthNanoDeltaValidWedge.optional
-  lazy val wvDeltaAngstromInput = ExploreModelValidators.wavelengthAngstromDeltaValidWedge.optional
-
   private def bdFormat(scale: Int): Format[String, BigDecimal] =
     Format[String, BigDecimal](parseBigDecimalOption, _.setScale(scale).toString)
 
   extension (u: WavelengthUnits)
-    def toAuditor: ChangeAuditor =
-      u match
-        case WavelengthUnits.Micrometers => ChangeAuditor.posBigDecimal(3.refined)
-        case WavelengthUnits.Nanometers  => ChangeAuditor.posBigDecimal(1.refined)
-        case WavelengthUnits.Angstroms   => ChangeAuditor.posInt
-
-    def toSNAuditor: ChangeAuditor = toAuditor
-
-    def toInputWedge: InputValidWedge[Option[Wavelength]] =
-      u match
-        case WavelengthUnits.Micrometers => wvMicroInput
-        case WavelengthUnits.Nanometers  => wvNanoInput
-        case WavelengthUnits.Angstroms   => wvAngstromInput
-
     def toInputFormat: InputValidFormat[Wavelength] =
       u match
         case WavelengthUnits.Micrometers => ExploreModelValidators.wavelengthMicroValidWedge
@@ -78,23 +47,12 @@ trait ConfigurationFormats:
 
     def toSequenceWavelengthFormat: SequenceWavelengthFormat =
       u match
-        case WavelengthUnits.Nanometers  => SequenceWavelengthFormat.Nanometers
-        // Step wavelengths keep 0.1 nm precision, so μm needs four decimals.
-        case WavelengthUnits.Micrometers =>
-          SequenceWavelengthFormat(
-            u.symbol,
-            toInputFormat.reverseGet,
-            toInputFormat,
-            ChangeAuditor.posBigDecimal(4.refined)
+        case WavelengthUnits.Nanometers => SequenceWavelengthFormat.Nanometers
+        case _                          =>
+          SequenceWavelengthFormat(u.symbol,
+                                   toInputFormat.reverseGet,
+                                   inputCodecs.sequenceWavelength(u)
           )
-        case WavelengthUnits.Angstroms   =>
-          SequenceWavelengthFormat(u.symbol, toInputFormat.reverseGet, toInputFormat, toAuditor)
-
-    def toDeltaInputWedge: InputValidWedge[Option[WavelengthDelta]] =
-      u match
-        case WavelengthUnits.Micrometers => wvDeltaMicroInput
-        case WavelengthUnits.Nanometers  => wvDeltaNanoInput
-        case WavelengthUnits.Angstroms   => wvDeltaAngstromInput
 
 object ConfigurationFormats extends ConfigurationFormats
 

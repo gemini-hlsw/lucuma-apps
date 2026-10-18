@@ -10,9 +10,8 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.syntax.ui.*
 import japgolly.scalajs.react.ScalaFnComponent
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.validation.InputValidFormat
 import lucuma.react.common.ReactFnProps
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.InputCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -28,8 +27,7 @@ import scalajs.js.JSConverters.*
 final case class CustomizableInputTextOptional[A](
   id:                       NonEmptyString,
   value:                    View[Option[A]],
-  validFormat:              InputValidFormat[Option[A]],
-  changeAuditor:            ChangeAuditor,
+  codec:                    InputCodec[Option[A]],
   label:                    TagMod,
   defaultValue:             A,
   units:                    Option[String],
@@ -43,14 +41,15 @@ object CustomizableInputTextOptional:
   private def buildComponent[A] = ScalaFnComponent[CustomizableInputTextOptional[A]](props =>
     import props.given
 
-    val originalText = props.validFormat.reverseGet(props.defaultValue.some)
+    val originalText = props.codec.valid.reverseGet(props.defaultValue.some)
     val customAddon  =
       props.value.get
         .filter(_ => props.showCustomization)
         .map(_ =>
-          CustomizedGroupAddon(originalText,
-                               props.value.set(none),
-                               props.allowRevertCustomization
+          CustomizedGroupAddon(
+            originalText,
+            props.value.set(none),
+            props.allowRevertCustomization
           ): TagMod
         )
 
@@ -60,8 +59,7 @@ object CustomizableInputTextOptional:
       label = props.label,
       units = props.units.orUndefined,
       postAddons = customAddon.toList,
-      validFormat = props.validFormat,
-      changeAuditor = props.changeAuditor,
+      codec = props.codec,
       disabled = props.disabled
     ).clearable(^.autoComplete.off)
   )

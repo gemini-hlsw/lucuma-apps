@@ -21,6 +21,7 @@ import explore.model.AppContext
 import explore.model.Constants
 import explore.model.PopupState
 import explore.model.enums.TargetType
+import explore.model.inputCodecs
 import explore.render.given
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -237,6 +238,7 @@ object TargetSelectionPopup:
                 id = "target-search-name".refined,
                 placeholder = "Name",
                 value = inputValue,
+                codec = inputCodecs.Text,
                 preAddons =
                   List(if (searching.get.value) Icons.Spinner.withSpin(true) else Icons.Search),
                 onTextChange = (t: String) =>

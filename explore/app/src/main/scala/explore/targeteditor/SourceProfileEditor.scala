@@ -13,11 +13,11 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.enums.SourceProfileType
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.Program
 import lucuma.core.model.SourceProfile
@@ -26,7 +26,6 @@ import lucuma.react.common.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.odb.input.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.EnumDropdown
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.FormLabel
@@ -113,17 +112,13 @@ object SourceProfileEditor
           gaussianAlignerOpt
             .map(gaussianAligner =>
               React.Fragment(
-                FormInputTextView(                          // FWHM is positive arcsec accepting decimals
+                FormInputTextView( // FWHM is positive arcsec accepting decimals
                   id = "fwhm".refined,
                   value = gaussianAligner
                     .zoom(Gaussian.fwhm, GaussianInput.fwhm.modify)
                     .view(_.toInput.assign),
                   label = "FWHM",
-                  validFormat = MathValidators.angleArcSec, // THIS IS ARCSEC AND NOT SIGNED!
-                  changeAuditor = ChangeAuditor
-                    .fromInputValidSplitEpi(MathValidators.angleArcSec)
-                    .denyNeg
-                    .allowEmpty,
+                  codec = inputCodecs.Fwhm,
                   units = "arcsec",
                   disabled = props.disabled
                 ),

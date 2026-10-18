@@ -19,7 +19,7 @@ import lucuma.core.validation.*
 import lucuma.react.common.*
 import lucuma.react.primereact.TooltipOptions
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.toCodec
 import lucuma.ui.optics.*
 import lucuma.ui.primereact.FormEnumDropdownOptionalView
 import lucuma.ui.primereact.FormInputTextView
@@ -75,9 +75,10 @@ object ConfigPanel
                 id = "imageQuality".refined,
                 label = "IQ",
                 value = iq,
-                validFormat = ModelValidators.ImageQualityValidWedge.optional
-                  .nonEmpty("Must not be empty".toEitherErrorsUnsafe),
-                changeAuditor = ChangeAuditor.accept.decimal(2.refined).denyNeg,
+                codec = ModelValidators.ImageQualityValidWedge.optional
+                  .nonEmpty("Must not be empty".toEitherErrorsUnsafe)
+                  .toCodec
+                  .withDecimalMask(2, allowMinus = false),
                 tooltipOptions = TooltipOptions.Top,
                 units = "arcsec"
               )
@@ -87,9 +88,10 @@ object ConfigPanel
                 id = "cloudExtinction".refined,
                 label = "CE",
                 value = ce,
-                validFormat = ModelValidators.CloudExtinctionValidWedge.optional
-                  .nonEmpty("Must not be empty".toEitherErrorsUnsafe),
-                changeAuditor = ChangeAuditor.accept.decimal(2.refined).denyNeg,
+                codec = ModelValidators.CloudExtinctionValidWedge.optional
+                  .nonEmpty("Must not be empty".toEitherErrorsUnsafe)
+                  .toCodec
+                  .withDecimalMask(2, allowMinus = false),
                 tooltipOptions = TooltipOptions.Top,
                 units = "mags"
               )
@@ -120,9 +122,10 @@ object ConfigPanel
                   <.span(ObserveStyles.OnlySmallScreens)("Op")
                 ),
                 value = op,
-                validFormat = InputValidSplitEpi
+                codec = InputValidSplitEpi
                   .fromIso(OptionNonEmptyStringIso.reverse)
                   .andThen(Operator.Value.reverse.option)
+                  .toCodec
               )
             ),
             <.div(ObserveStyles.ObserverArea)(
@@ -137,9 +140,10 @@ object ConfigPanel
                     <.span(ObserveStyles.OnlySmallScreens)("Obs")
                   ),
                   value = obs,
-                  validFormat = InputValidSplitEpi
+                  codec = InputValidSplitEpi
                     .fromIso(OptionNonEmptyStringIso.reverse)
                     .andThen(Observer.Value.reverse.option)
+                    .toCodec
                 )
             )
           )

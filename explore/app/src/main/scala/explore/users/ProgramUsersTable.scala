@@ -16,7 +16,6 @@ import explore.components.deleteConfirmation
 import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.AppContext
-import explore.model.ExploreModelValidators
 import explore.model.IsActive
 import explore.model.ProgramUser
 import explore.model.ProgramUser.Status.*
@@ -24,6 +23,7 @@ import explore.model.User
 import explore.model.UserInvitation
 import explore.model.UserInvitation.DeliveryStatus.*
 import explore.model.display.given
+import explore.model.inputCodecs
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -35,7 +35,6 @@ import lucuma.core.enums.ProgramUserRole
 import lucuma.core.model.PartnerLink
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Enumerated
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.syntax.*
@@ -421,7 +420,7 @@ object ProgramUsersTable:
                 id = NonEmptyString.unsafeFrom(s"${programUserId}-name"),
                 value = view,
                 disabled = meta.isActive.get.value,
-                validFormat = InputValidSplitEpi.nonEmptyString.optional,
+                codec = inputCodecs.NonEmptyTextOptional,
                 placeholder = pu.name,
                 groupClass = warnIfEmpty(pu, pu.name.trim.isEmpty, meta.isActive.get.value)
               ).clearable: VdomNode
@@ -446,7 +445,7 @@ object ProgramUsersTable:
                 id = NonEmptyString.unsafeFrom(s"${programUserId}-email"),
                 value = view,
                 disabled = meta.isActive.get.value,
-                validFormat = ExploreModelValidators.MailValidator.optional,
+                codec = inputCodecs.EmailOptional,
                 validateOnPaste = false,
                 placeholder = pu.email.orUndefined,
                 groupClass = warnIfEmpty(pu, pu.email.isEmpty, meta.isActive.get.value)
@@ -556,7 +555,7 @@ object ProgramUsersTable:
               id = NonEmptyString.unsafeFrom(s"$programUserId-affiliation"),
               value = view,
               disabled = !canEdit || meta.isActive.get.value,
-              validFormat = InputValidSplitEpi.nonEmptyString.optional,
+              codec = inputCodecs.NonEmptyTextOptional,
               groupClass =
                 warnIfEmpty(cell.get, view.get.isEmpty, !canEdit || meta.isActive.get.value)
             ): VdomNode
