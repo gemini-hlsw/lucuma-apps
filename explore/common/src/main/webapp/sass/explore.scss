@@ -1671,13 +1671,13 @@ svg.fa-check.explore-success-icon {
   .p-dropdown {
     min-height: 0;
     align-items: center;
-    background: var(--button-background-color-semi);
-    border-color: var(--gray-500);
+    background: var(--aladin-button-background);
+    border-color: var(--aladin-button-border-color);
 
     &:not(.p-disabled):hover,
     &:not(.p-disabled).p-focus {
-      border-color: var(--gray-200);
-      box-shadow: 0 0 0 0.5px var(--gray-200);
+      border-color: var(--aladin-button-hover-border-color);
+      box-shadow: 0 0 0 0.5px var(--aladin-button-hover-border-color);
     }
 
     .p-dropdown-label,

@@ -84,26 +84,26 @@ $brightness: var(--aladin-image-brightness);
     // MOS mask outline and slit placement styling.
     .mos-mask-outline {
       display: inline;
-      stroke: hsl(180deg 100% 45% / 85%);
+      stroke: var(--viz-mos-outline-stroke);
       stroke-width: 1.2px;
-      fill: hsl(180deg 100% 45% / 8%);
+      fill: var(--viz-mos-outline-fill);
       vector-effect: non-scaling-stroke;
     }
 
     .mos-mask-slit {
       display: inline;
-      stroke: hsl(210deg 100% 75%);
+      stroke: var(--viz-mos-slit-stroke);
       stroke-width: 2px;
-      fill: hsl(210deg 100% 60% / 25%);
+      fill: var(--viz-mos-slit-fill);
       vector-effect: non-scaling-stroke;
       pointer-events: all;
     }
 
     .mos-mask-acq-box {
       display: inline;
-      stroke: hsl(300deg 100% 75%);
+      stroke: var(--viz-mos-acq-box-stroke);
       stroke-width: 2px;
-      fill: hsl(300deg 100% 60% / 25%);
+      fill: var(--viz-mos-acq-box-fill);
       vector-effect: non-scaling-stroke;
       pointer-events: all;
     }
@@ -184,8 +184,9 @@ $brightness: var(--aladin-image-brightness);
 
   .p-button.p-button-icon-only.explore-aladin-button,
   .p-button.explore-aladin-button {
-    background: var(--button-background-color-semi);
-    border-color: var(--gray-500);
+    color: var(--aladin-button-color);
+    background: var(--aladin-button-background);
+    border-color: var(--aladin-button-border-color);
     padding: 0.3em;
     margin-right: 0;
     aspect-ratio: 1;
@@ -194,9 +195,9 @@ $brightness: var(--aladin-image-brightness);
 
     &:enabled:focus-visible,
     &:enabled:hover {
-      background: var(--gray-700);
-      border-color: var(--gray-200);
-      box-shadow: 0 0 0 0.5px var(--gray-200);
+      background: var(--aladin-button-hover-background);
+      border-color: var(--aladin-button-hover-border-color);
+      box-shadow: 0 0 0 0.5px var(--aladin-button-hover-border-color);
     }
   }
 
@@ -280,7 +281,7 @@ $brightness: var(--aladin-image-brightness);
 
     // Explore-only; .science-selected-target is owned by lucuma-css.
     .blind-offset-selected-target {
-      stroke: hsl(33deg 100% 50%);
+      stroke: var(--viz-selected-target-color);
       stroke-width: 2px;
     }
 

@@ -231,6 +231,34 @@
   --extended-vignetting-area-fill-color: orange;
   --extended-vignetting-area-fill-opacity: 0.05;
 
+  // Overlay colors on the sky image
+  --viz-vignetting-stroke: hsl(60deg 100% 80% / 70%);
+  --viz-vignetting-fill: hsl(60deg 100% 80% / 5%);
+  --viz-gmos-patrol-field-color: hsl(120deg 100% 50%);
+  --viz-altair-patrol-field-color: hsl(280deg 100% 75%);
+  --viz-ccd-offset-color: yellow;
+  --viz-science-fov-color: cyan;
+  --viz-candidates-area-color: lightgreen;
+  --viz-border-color: yellow;
+  --viz-selected-target-color: hsl(33deg 100% 50%);
+  --viz-sky-position-fill: hsl(40deg 90% 60% / 40%);
+  --viz-sky-position-stroke: hsl(40deg 90% 60%);
+  --viz-target-arrow-color: hsl(195deg 100% 50%);
+  --viz-ephemeris-in-observation-color: hsl(120deg 100% 40%);
+  --viz-acquisition-offset-color: hsl(9deg 70% 63.9%);
+  --viz-science-offset-color: lightgreen;
+  --viz-unguided-offset-color: hsl(181deg 100% 41%);
+  --viz-guide-star-candidate-color: hsl(9deg 100% 83.9% / 80%);
+  --viz-guide-star-crowded-fill: hsl(9deg 100% 63.9% / 50%);
+  --viz-guide-star-medium-color: hsl(43deg 74.4% 69%);
+  --viz-guide-star-slow-color: hsl(39deg 100% 50%);
+  --viz-mos-outline-stroke: hsl(180deg 100% 45% / 85%);
+  --viz-mos-outline-fill: hsl(180deg 100% 45% / 8%);
+  --viz-mos-slit-stroke: hsl(210deg 100% 75%);
+  --viz-mos-slit-fill: hsl(210deg 100% 60% / 25%);
+  --viz-mos-acq-box-stroke: hsl(300deg 100% 75%);
+  --viz-mos-acq-box-fill: hsl(300deg 100% 60% / 25%);
+
   // Tooltip colors
   --tooltip-background-color: var(--color-background-light-3);
   --tooltip-viz-background-color: var(--color-background-light-3-a);
@@ -469,6 +497,11 @@
   --aladin-image-tone: invert(0);
   --aladin-saturation-control-opacity: 1;
   --aladin-saturation-control-pointer-events: auto;
+  --aladin-button-color: hsl(0deg 0% 100% / 87%);
+  --aladin-button-background: var(--button-background-color-semi);
+  --aladin-button-border-color: var(--gray-500);
+  --aladin-button-hover-background: var(--gray-700);
+  --aladin-button-hover-border-color: var(--gray-200);
 }
 
 @mixin custom-dark {

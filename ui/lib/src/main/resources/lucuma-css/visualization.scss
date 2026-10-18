@@ -92,9 +92,9 @@
   .pwfs-probe-arm-vignetting,
   .pwfs-mirror-vignetting {
     display: none;
-    stroke: hsl(60deg 100% 80% / 70%);
+    stroke: var(--viz-vignetting-stroke);
     stroke-width: 0.2px;
-    fill: hsl(60deg 100% 80% / 5%);
+    fill: var(--viz-vignetting-fill);
   }
 
   &.flamingos2-patrol-field-visible .flamingos2-patrol-field,
@@ -104,7 +104,7 @@
 
   .flamingos2-patrol-field,
   .gmos-patrol-field {
-    stroke: hsl(120deg 100% 50%);
+    stroke: var(--viz-gmos-patrol-field-color);
     display: none;
     stroke-width: 1px;
     stroke-dasharray: 10;
@@ -114,7 +114,7 @@
   .altair-patrol-field {
     display: none;
     fill: none;
-    stroke: hsl(280deg 100% 75%);
+    stroke: var(--viz-altair-patrol-field-color);
     stroke-width: 1px;
     stroke-dasharray: 4;
 
@@ -231,19 +231,19 @@
   .flamingos2-science-ccd-offset polygon,
   .gmos-science-ccd-offset polygon {
     display: none;
-    stroke: yellow;
+    stroke: var(--viz-ccd-offset-color);
     fill-opacity: 0.1;
   }
 
   polygon.flamingos2-science-ccd,
   .gmos-science-ccd {
     display: none;
-    stroke: cyan;
+    stroke: var(--viz-science-fov-color);
     fill-opacity: 0.1;
   }
 
   .igrins2-svc-fov {
-    stroke: cyan;
+    stroke: var(--viz-science-fov-color);
     stroke-width: 0.8px;
   }
 
@@ -293,13 +293,13 @@
   .gmos-candidates-area {
     display: none;
     fill-opacity: 0;
-    stroke: lightgreen;
+    stroke: var(--viz-candidates-area-color);
     stroke-width: 0.4px;
     stroke-dasharray: 1.5;
   }
 
   .ghost-science-area {
-    stroke: cyan;
+    stroke: var(--viz-science-fov-color);
     stroke-width: 0.8px;
     stroke-dasharray: 3 3;
   }
@@ -376,7 +376,7 @@
   }
 
   .viz-svg-border {
-    stroke: yellow;
+    stroke: var(--viz-border-color);
     stroke-width: 2px;
     vector-effect: non-scaling-stroke;
     stroke-dasharray: 1;
@@ -427,18 +427,18 @@
 
   .science-selected-target {
     fill: none;
-    stroke: hsl(33deg 100% 50%);
+    stroke: var(--viz-selected-target-color);
     stroke-width: 2px;
   }
 
   .sky-position-target {
-    fill: hsl(40deg 90% 60% / 40%);
-    stroke: hsl(40deg 90% 60%);
+    fill: var(--viz-sky-position-fill);
+    stroke: var(--viz-sky-position-stroke);
     stroke-width: 1px;
   }
 
   .arrow-between-targets {
-    stroke: hsl(195deg 100% 50%);
+    stroke: var(--viz-target-arrow-color);
     stroke-width: 1px;
     stroke-dasharray: 1.5;
   }
@@ -456,7 +456,7 @@
   }
 
   .ephemeris-track-in-observation {
-    stroke: hsl(120deg 100% 40%);
+    stroke: var(--viz-ephemeris-in-observation-color);
   }
 
   .overlay-all-targets {
@@ -473,30 +473,30 @@
 
   .acquisition-offset-position {
     // tomato color for acq offets
-    stroke: hsl(9deg 70% 63.9%);
+    stroke: var(--viz-acquisition-offset-color);
   }
 
   .science-offset-position {
     // light green for guided science offsets (same color as guided icon)
-    stroke: lightgreen;
+    stroke: var(--viz-science-offset-color);
   }
 
   .science-unguided-offset-position {
     // dark turqoise for unguided science offsets
-    stroke: hsl(181deg 100% 41% / 100%);
+    stroke: var(--viz-unguided-offset-color);
   }
 
   .guide-star-target,
   .guide-star-candidate-target {
     display: none;
     stroke-width: 1px;
-    stroke: hsl(9deg 100% 83.9% / 80%);
+    stroke: var(--viz-guide-star-candidate-color);
     fill: none;
     pointer-events: fill;
 
     &.guide-star-candidate-target-crowded {
       stroke-width: 0.5px;
-      fill: hsl(9deg 100% 63.9% / 50%);
+      fill: var(--viz-guide-star-crowded-fill);
     }
 
     &.guide-star-candidate-target-visible {
@@ -514,7 +514,7 @@
     // medium -> yellow
     &.guide-star-medium {
       stroke-width: 1px;
-      stroke: hsl(43deg 74.4% 69%);
+      stroke: var(--viz-guide-star-medium-color);
       fill: var(--ags-medium-guide-speed-color);
       fill-opacity: 0.8;
     }
@@ -522,7 +522,7 @@
     // slow -> orange
     &.guide-star-slow {
       stroke-width: 1px;
-      stroke: hsl(39deg 100% 50%);
+      stroke: var(--viz-guide-star-slow-color);
       fill: var(--ags-slow-guide-speed-color);
       fill-opacity: 0.8;
     }
@@ -578,8 +578,9 @@
 
 .p-button.p-button-icon-only.gpp-aladin-button,
 .p-button.gpp-aladin-button {
-  background: var(--button-background-color-semi);
-  border-color: var(--gray-500);
+  color: var(--aladin-button-color);
+  background: var(--aladin-button-background);
+  border-color: var(--aladin-button-border-color);
   padding: 0.3em;
   margin-right: 0;
   aspect-ratio: 1;
@@ -588,9 +589,9 @@
 
   &:enabled:focus-visible,
   &:enabled:hover {
-    background: var(--gray-700);
-    border-color: var(--gray-200);
-    box-shadow: 0 0 0 0.5px var(--gray-200);
+    background: var(--aladin-button-hover-background);
+    border-color: var(--aladin-button-hover-border-color);
+    box-shadow: 0 0 0 0.5px var(--aladin-button-hover-border-color);
   }
 }
 

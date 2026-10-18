@@ -193,22 +193,22 @@
   );
 
   // AGS colors
-  --ags-icon-color: hsl(60deg 100% 50% / 80%);
+  --ags-icon-color: hsl(45deg 100% 35% / 90%);
   --ags-fast-guide-speed-color: hsl(120deg 100% 25.1%);
-  --ags-medium-guide-speed-color: hsl(51deg 100% 50%);
-  --ags-slow-guide-speed-color: hsl(33deg 100% 50%);
+  --ags-medium-guide-speed-color: hsl(45deg 100% 33%);
+  --ags-slow-guide-speed-color: hsl(30deg 100% 38%);
 
   // Patrol field colors
   --patrol-field-base-color: hsl(240deg 100% 60.2%);
   --patrol-field-blind-offset-color: hsl(300deg 100% 25%);
-  --patrol-field-acq-offset-color: hsl(9deg 70% 63.9%);
-  --patrol-field-sci-offset-color: hsl(181deg 100% 41%);
-  --patrol-field-intersection-color: hsl(330deg 100% 50%);
-  --patrol-field-no-zones-color: hsl(30deg 100% 50%);
+  --patrol-field-acq-offset-color: hsl(9deg 70% 45%);
+  --patrol-field-sci-offset-color: hsl(181deg 100% 28%);
+  --patrol-field-intersection-color: hsl(330deg 90% 42%);
+  --patrol-field-no-zones-color: hsl(28deg 100% 40%);
 
   // GHOST IFU patrol fields
-  --ghost-ifu1-color: hsl(300deg 80% 70% / 40%);
-  --ghost-ifu2-color: hsl(40deg 90% 60% / 40%);
+  --ghost-ifu1-color: hsl(300deg 70% 40% / 40%);
+  --ghost-ifu2-color: hsl(38deg 90% 38% / 40%);
 
   // Hatch line width in user-space
   --hatch-line-width: 1000;
@@ -217,29 +217,57 @@
   --hatch-line-width-selected: 3000;
 
   // Reachable patrol-field region
-  --reachable-patrol-stroke-color: lightgreen;
+  --reachable-patrol-stroke-color: hsl(125deg 60% 32%);
   --reachable-patrol-stroke-width: 0.4px;
-  --reachable-patrol-fill-color: cyan;
+  --reachable-patrol-fill-color: hsl(190deg 90% 32%);
   --reachable-patrol-fill-opacity: 0.05;
 
   // Visitor science FOV shading
-  --visitor-science-fov-fill-color: cyan;
+  --visitor-science-fov-fill-color: hsl(190deg 90% 32%);
   --visitor-science-fov-fill-opacity: 0.05;
 
   // Science FOV / slit (GMOS, GNIRS, IGRINS2, visitors), cyan like the F2 science area
-  --science-slit-stroke: cyan;
+  --science-slit-stroke: hsl(190deg 90% 32%);
   --science-slit-stroke-width: 0.8px;
   --science-slit-fill-opacity: 0.1;
-  --science-slit-fill: lightgray;
+  --science-slit-fill: hsl(0deg 0% 40%);
 
   // GMOS IFU sky bundle, amber to match the sky position markers
-  --ifu-sky-fov-color: hsl(40deg 90% 60%);
+  --ifu-sky-fov-color: hsl(38deg 90% 38%);
 
   // Extended vignetting area, maroon-x
-  --extended-vignetting-area-stroke-color: orange;
+  --extended-vignetting-area-stroke-color: hsl(28deg 100% 40%);
   --extended-vignetting-area-stroke-width: 0.6px;
-  --extended-vignetting-area-fill-color: orange;
+  --extended-vignetting-area-fill-color: hsl(28deg 100% 40%);
   --extended-vignetting-area-fill-opacity: 0.05;
+
+  // Overlay colors on the sky image
+  --viz-vignetting-stroke: hsl(50deg 100% 32% / 70%);
+  --viz-vignetting-fill: hsl(50deg 100% 32% / 8%);
+  --viz-gmos-patrol-field-color: hsl(120deg 80% 28%);
+  --viz-altair-patrol-field-color: hsl(280deg 60% 45%);
+  --viz-ccd-offset-color: hsl(45deg 100% 35%);
+  --viz-science-fov-color: hsl(190deg 90% 32%);
+  --viz-candidates-area-color: hsl(125deg 60% 32%);
+  --viz-border-color: hsl(45deg 100% 35%);
+  --viz-selected-target-color: hsl(28deg 100% 40%);
+  --viz-sky-position-fill: hsl(38deg 90% 38% / 40%);
+  --viz-sky-position-stroke: hsl(38deg 90% 38%);
+  --viz-target-arrow-color: hsl(195deg 100% 33%);
+  --viz-ephemeris-in-observation-color: hsl(120deg 80% 28%);
+  --viz-acquisition-offset-color: hsl(9deg 70% 45%);
+  --viz-science-offset-color: hsl(125deg 60% 32%);
+  --viz-unguided-offset-color: hsl(181deg 100% 28%);
+  --viz-guide-star-candidate-color: hsl(9deg 80% 45% / 80%);
+  --viz-guide-star-crowded-fill: hsl(9deg 80% 45% / 50%);
+  --viz-guide-star-medium-color: hsl(43deg 90% 35%);
+  --viz-guide-star-slow-color: hsl(33deg 100% 38%);
+  --viz-mos-outline-stroke: hsl(180deg 100% 25% / 85%);
+  --viz-mos-outline-fill: hsl(180deg 100% 25% / 8%);
+  --viz-mos-slit-stroke: hsl(210deg 90% 40%);
+  --viz-mos-slit-fill: hsl(210deg 90% 45% / 25%);
+  --viz-mos-acq-box-stroke: hsl(300deg 70% 40%);
+  --viz-mos-acq-box-fill: hsl(300deg 70% 45% / 25%);
 
   // Tooltip colors
   --tooltip-background-color: var(--color-background-light-3);
@@ -484,6 +512,11 @@
   --aladin-image-tone: grayscale(1) invert(1);
   --aladin-saturation-control-opacity: var(--site-disabled-opacity);
   --aladin-saturation-control-pointer-events: none;
+  --aladin-button-color: var(--text-color);
+  --aladin-button-background: hsl(0deg 0% 100% / 85%);
+  --aladin-button-border-color: var(--site-solid-border-color);
+  --aladin-button-hover-background: hsl(0deg 0% 100%);
+  --aladin-button-hover-border-color: var(--gray);
 }
 
 @mixin custom-light {
