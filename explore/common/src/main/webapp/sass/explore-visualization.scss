@@ -15,7 +15,8 @@ $brightness: var(--aladin-image-brightness);
 .light-theme {
   /* stylelint-disable-next-line selector-class-pattern */
   .aladin-imageCanvas {
-    filter: #{saturate }(string.unquote($saturation)) brightness(string.unquote($brightness));
+    filter: var(--aladin-image-tone) #{saturate }(string.unquote($saturation))
+      brightness(string.unquote($brightness));
   }
 
   .aladin-container {
@@ -172,6 +173,11 @@ $brightness: var(--aladin-image-brightness);
         .p-slider {
           width: 100%;
         }
+      }
+
+      .aladin-saturation-control {
+        opacity: var(--aladin-saturation-control-opacity);
+        pointer-events: var(--aladin-saturation-control-pointer-events);
       }
     }
   }
@@ -435,13 +441,5 @@ $brightness: var(--aladin-image-brightness);
 
   .finder-charts-image-inverted {
     filter: invert(1);
-  }
-}
-
-// Prototype: negative sky in the light theme
-.light-theme {
-  /* stylelint-disable-next-line selector-class-pattern */
-  .aladin-imageCanvas {
-    filter: grayscale(1) invert(1) brightness(string.unquote($brightness));
   }
 }

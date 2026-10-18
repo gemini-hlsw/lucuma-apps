@@ -466,6 +466,9 @@
   --aladin-toolbar-label-background: var(--surface-100);
   --aladin-toolbar-label-outline: var(--surface-200);
   --aladin-toolbar-icon-color: var(--explore-accent-color);
+  --aladin-image-tone: invert(0);
+  --aladin-saturation-control-opacity: 1;
+  --aladin-saturation-control-pointer-events: auto;
 }
 
 @mixin custom-dark {

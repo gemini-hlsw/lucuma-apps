@@ -740,7 +740,7 @@ object AladinContainer extends AladinCommon {
               .SkyPositionTarget(c, css, TargetSize, s"${slot.shortName} sky: $raStr $decStr".some)
 
         <.div.withRef(resize.ref)(
-          ExploreStyles.AladinContainerBody |+| ExploreStyles.AlwaysDarkTheme |+|
+          ExploreStyles.AladinContainerBody |+|
             ExploreStyles.AddPositionInvalidCursor.when_(props.interactiveRegions.nonEmpty) |+|
             ExploreStyles.AddPositionCursor.when_(hoveredSlot.get.isDefined) |+|
             ExploreStyles.AddBasePositionCursor.when_(props.clickAnywhere.isDefined)

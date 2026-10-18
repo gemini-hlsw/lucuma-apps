@@ -408,7 +408,7 @@ object AladinCell extends ModelOptics with AladinCommon:
               .flatMap(_.agsState)
               .map: agsState =>
                 <.div(
-                  ExploreStyles.AgsOverlay |+| ExploreStyles.AlwaysDarkTheme |+| ExploreStyles.VisualizationStale
+                  ExploreStyles.AgsOverlay |+| ExploreStyles.VisualizationStale
                     .when_(agsState.get === AgsState.Calculating),
                   AgsOverlay(
                     props.guideStarSelection,
@@ -427,11 +427,11 @@ object AladinCell extends ModelOptics with AladinCommon:
         // Banner for the shared "click to place" mode.
         props.addSkySlot match
           case Some(SlotId.Base)                    =>
-            <.div(ExploreStyles.AddPositionOverlay |+| ExploreStyles.AlwaysDarkTheme,
+            <.div(ExploreStyles.AddPositionOverlay,
                   "Click anywhere to set the Base Position (Esc to cancel)"
             )
           case Some(_) if props.assignSky.isDefined =>
-            <.div(ExploreStyles.AddPositionOverlay |+| ExploreStyles.AlwaysDarkTheme,
+            <.div(ExploreStyles.AddPositionOverlay,
                   "Click in the shaded area to set the sky position (Esc to cancel)"
             )
           case _                                    =>
@@ -459,12 +459,12 @@ object AladinCell extends ModelOptics with AladinCommon:
                 <.div(
                   ExploreStyles.AladinContainerColumn,
                   <.div(
-                    ExploreStyles.AladinTopRightControls |+| ExploreStyles.AlwaysDarkTheme,
+                    ExploreStyles.AladinTopRightControls,
                     renderGuideProbeControl,
                     AladinFullScreenControl(fullScreenView.zoom(fullScreenIso))
                   ),
                   <.div(
-                    ExploreStyles.AladinToolbox |+| ExploreStyles.AlwaysDarkTheme,
+                    ExploreStyles.AladinToolbox,
                     Button(onClickE = menuRef.toggle).withMods(
                       ExploreStyles.ButtonOnAladin,
                       Icons.ThinSliders
