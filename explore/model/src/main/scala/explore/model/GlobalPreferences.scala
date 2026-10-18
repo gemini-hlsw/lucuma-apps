@@ -14,6 +14,7 @@ import explore.model.itc.PlotDetails
 import io.circe.Decoder
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
+import lucuma.ui.enums.Theme
 import lucuma.itc.GraphType
 import monocle.Focus
 import org.typelevel.log4cats.extras.LogLevel
@@ -51,7 +52,8 @@ case class GlobalPreferences(
   obsTreeWidth:                         Option[Int] = None,
   spectroscopyModesTableFilters:        Visible = Visible.Hidden,
   imagingModesTableFilters:             Visible = Visible.Hidden,
-  archiveDuplicationTableFilters:       Visible = Visible.Hidden
+  archiveDuplicationTableFilters:       Visible = Visible.Hidden,
+  theme:                                Theme = Theme.Dark
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
@@ -95,6 +97,7 @@ object GlobalPreferences:
   val spectroscopyModesTableFilters        =
     Focus[GlobalPreferences](_.spectroscopyModesTableFilters)
   val imagingModesTableFilters             = Focus[GlobalPreferences](_.imagingModesTableFilters)
+  val theme                                = Focus[GlobalPreferences](_.theme)
 
   private val MaxLastOpenPrograms = 6
 

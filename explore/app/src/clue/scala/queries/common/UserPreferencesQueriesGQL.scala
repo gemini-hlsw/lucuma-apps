@@ -244,6 +244,7 @@ object UserPreferencesQueriesGQL {
           obsTreeWidth
           spectroscopyModesTableFilters
           imagingModesTableFilters
+          theme
         }
       }
     """
@@ -282,6 +283,7 @@ object UserPreferencesQueriesGQL {
           obsTreeWidth
           spectroscopyModesTableFilters
           imagingModesTableFilters
+          theme
         }
       }
     """
@@ -329,6 +331,31 @@ object UserPreferencesQueriesGQL {
             constraint: lucuma_user_preferences_pkey,
             update_columns: [
               wavelengthUnits
+            ]
+          }
+        ) {
+          userId
+        }
+      }
+    """
+  }
+
+  @GraphQL
+  trait UserThemeUpdate extends GraphQLOperation[UserPreferencesDB] {
+    val document = gql"""
+      mutation userPreferencesUpsert(
+        $$userId: String = "",
+        $$theme: LucumaThemeEnum = "",
+      ) {
+        insertLucumaUserPreferencesOne(
+          object: {
+            userId: $$userId,
+            theme: $$theme
+          },
+          onConflict: {
+            constraint: lucuma_user_preferences_pkey,
+            update_columns: [
+              theme
             ]
           }
         ) {

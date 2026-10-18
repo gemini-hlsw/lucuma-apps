@@ -83,6 +83,19 @@ object Theme:
     current.flatMap:
       _.fold(mountListener >> default.mount.as(default))(DefaultS.pure(_))
 
+  private val StorageKey = "lucuma-theme"
+
+  // Storage can be unavailable (private mode, blocked site data), so failures fall back silently.
+  lazy val stored: DefaultS[Option[Theme]] =
+    DefaultS.delay:
+      try Option(dom.window.localStorage.getItem(StorageKey)).flatMap(t => values.find(_.tag === t))
+      catch case _: Throwable => none
+
+  def store(theme: Theme): DefaultS[Unit] =
+    DefaultS.delay:
+      try dom.window.localStorage.setItem(StorageKey, theme.tag)
+      catch case _: Throwable => ()
+
   given Display[Theme] = Display.byShortName(_.name)
 
   given Reusability[Theme] = Reusability.byEq

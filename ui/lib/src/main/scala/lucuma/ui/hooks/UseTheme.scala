@@ -9,11 +9,13 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.CustomHook
 import lucuma.ui.enums.Theme
 
+// The stored theme is mounted in a layout effect so the first paint already uses it.
 def useTheme(initial: => Theme = Theme.System): HookResult[View[Theme]] =
   for
     theme <- useStateView(initial)
-    _     <- useEffectOnMount(Theme.init(initial) >>= theme.set)
-  yield theme.withOnMod(_.mount)
+    _     <- useLayoutEffectOnMount:
+               Theme.stored.map(_.getOrElse(initial)).flatMap(Theme.init) >>= theme.set
+  yield theme.withOnMod(t => t.mount >> Theme.store(t))
 
 private object UseTheme:
 

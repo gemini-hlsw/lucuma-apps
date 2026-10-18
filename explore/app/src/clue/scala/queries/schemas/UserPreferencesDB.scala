@@ -48,4 +48,5 @@ trait UserPreferencesDB:
     type ExplorePlotRangeEnum         = explore.model.enums.PlotRange
     type ExplorePlotTimeEnum          = explore.model.enums.TimeDisplay
     type LucumaWavelengthUnitsEnum    = explore.model.enums.WavelengthUnits
+    type LucumaThemeEnum              = lucuma.ui.enums.Theme
     type LucumaLineOfSightMotionEnum  = explore.model.enums.LineOfSightMotion
