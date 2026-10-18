@@ -484,15 +484,15 @@
   --button-success-hover-background: var(--success-color-hover);
   --button-success-active-background: var(--success-color-active);
   --control-selected-text-color: var(--primary-color-text);
-  --control-hover-border-color: var(--primary-color);
-  --checkbox-checked-background: var(--primary-color);
-  --checkbox-checked-border: var(--primary-color);
-  --checkbox-checked-hover-background: var(--primary-color-hover);
-  --checkbox-checked-hover-border: var(--primary-color-hover);
-  --radio-checked-color: var(--primary-color);
-  --radio-checked-hover-color: var(--primary-color-hover);
-  --switch-checked-background: var(--primary-color);
-  --switch-checked-hover-background: var(--primary-color-hover);
+  --control-hover-border-color: var(--control-selected-color);
+  --checkbox-checked-background: var(--control-selected-color);
+  --checkbox-checked-border: var(--control-selected-color);
+  --checkbox-checked-hover-background: var(--control-selected-hover-color);
+  --checkbox-checked-hover-border: var(--control-selected-hover-color);
+  --radio-checked-color: var(--control-selected-color);
+  --radio-checked-hover-color: var(--control-selected-hover-color);
+  --switch-checked-background: var(--control-selected-color);
+  --switch-checked-hover-background: var(--control-selected-hover-color);
   --badge-background: var(--primary-color);
   --badge-color: var(--primary-color-text);
 }
