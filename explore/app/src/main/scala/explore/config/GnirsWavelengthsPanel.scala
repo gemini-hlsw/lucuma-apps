@@ -11,9 +11,9 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.Constants
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -197,8 +197,7 @@ object GnirsWavelengthsPanel:
                               label = "λ Center",
                               labelClass = ExploreStyles.HiddenLabel,
                               units = props.units.symbol,
-                              validFormat = props.units.toInputFormat,
-                              changeAuditor = props.units.toAuditor,
+                              codec = inputCodecs.wavelength(props.units),
                               disabled = props.wavelengthReadonly
                             )
                           ),

@@ -6,8 +6,8 @@ package lucuma.ui.input
 import lucuma.ui.input.facade.Inputmask
 
 /**
- * Coherence laws between the two halves of a [[InputCodec]]. They run Inputmask itself, so the
- * test environment needs a DOM.
+ * Coherence laws between the two halves of a [[InputCodec]]. They run Inputmask itself, so the test
+ * environment needs a DOM.
  */
 final case class InputCodecLaws[A](format: InputCodec[A]):
 
@@ -16,7 +16,9 @@ final case class InputCodecLaws[A](format: InputCodec[A]):
    * the input and Inputmask re-masks it, so a mismatch would mangle the displayed value.
    */
   def canonicalIsValidForMask(a: A): Boolean =
-    format.mask.forall(options => Inputmask.isValid(format.valid.reverseGet(a), options))
+    val canonical: String = format.valid.reverseGet(a)
+    // Inputmask reports the empty text as incomplete, but every mask lets the field be emptied.
+    canonical.isEmpty || format.mask.forall(options => Inputmask.isValid(canonical, options))
 
   /**
    * The canonical text parses back to a value that prints the same, so redisplaying a value never

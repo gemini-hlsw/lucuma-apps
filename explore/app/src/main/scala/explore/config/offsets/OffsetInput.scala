@@ -6,13 +6,11 @@ package explore.config.offsets
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.model.ExploreModelValidators
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Offset
 import lucuma.react.common.*
-import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -38,8 +36,7 @@ object OffsetInput
           label = "p:",
           units = "\"",
           value = props.offset.zoom(Offset.pAngle),
-          validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-          changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+          codec = inputCodecs.OffsetArcseconds,
           placeholder = "0.0",
           disabled = props.readonly || !props.pEnabled,
           inputClass = props.inputClass,
@@ -50,8 +47,7 @@ object OffsetInput
           label = "q:",
           units = "\"",
           value = props.offset.zoom(Offset.qAngle),
-          validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-          changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+          codec = inputCodecs.OffsetArcseconds,
           placeholder = "0.0",
           disabled = props.readonly || !props.qEnabled,
           inputClass = props.inputClass,

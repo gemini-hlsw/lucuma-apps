@@ -8,8 +8,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.*
 import lucuma.ui.input.facade.Inputmask
 import lucuma.ui.input.facade.InputmaskOptions
-import org.scalajs.dom.document
-import org.scalajs.dom.html
 
 /**
  * Keeps an Inputmask attached to the input with the given id while the component is mounted, when a
@@ -20,12 +18,8 @@ def useInputmask(inputId: NonEmptyString, options: Option[InputmaskOptions]): Ho
   useEffectOnMount(UseInputmask.attach(inputId, options))
 
 private object UseInputmask:
-  private def findInput(id: NonEmptyString): CallbackTo[Option[html.Input]] =
-    CallbackTo(Option(document.getElementById(id.value)).map(_.asInstanceOf[html.Input]))
-
   /** Attaches the mask, if any, and returns the callback that removes it. */
   def attach(inputId: NonEmptyString, options: Option[InputmaskOptions]): CallbackTo[Callback] =
     options.fold(CallbackTo(Callback.empty)): opts =>
-      findInput(inputId).map: input =>
-        input.foreach(el => new Inputmask(opts).mask(el))
-        Callback(input.foreach(Inputmask.remove))
+      Callback(new Inputmask(opts).mask(inputId.value))
+        .map(_ => Callback(Inputmask.remove(inputId.value)))

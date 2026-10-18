@@ -24,13 +24,12 @@ import explore.model.ObservationList
 import explore.model.SchedulingConstraints
 import explore.model.display.given
 import explore.model.enums.TileSizeState
-import explore.model.formats.*
+import explore.model.inputCodecs
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.render.*
 import explore.render.given
 import explore.services.OdbObservationApi
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -42,14 +41,12 @@ import lucuma.core.model.TimingWindowRepeat
 import lucuma.core.syntax.display.*
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -388,8 +385,7 @@ object SchedulingWindowsTile
                           FormInputTextView(
                             id = "for-duration".refined,
                             value = endAfter.zoom(TimingWindowEnd.After.duration),
-                            validFormat = durationHM,
-                            changeAuditor = hmChangeAuditor
+                            codec = inputCodecs.DurationHm
                           ),
                           " hours"
                         )
@@ -428,8 +424,7 @@ object SchedulingWindowsTile
                           FormInputTextView(
                             id = "repat-period".refined,
                             value = selectedRepeatPeriod,
-                            validFormat = durationHMS,
-                            changeAuditor = hmsChangeAuditor,
+                            codec = inputCodecs.DurationHms,
                             disabled = selectedRepeat.get.isEmpty
                           ),
                           " hours"
@@ -460,8 +455,7 @@ object SchedulingWindowsTile
                               FormInputTextView(
                                 id = "repeat-n-times-value".refined,
                                 value = selectedRepeatTimes.zoom(Iso.id[Option[PosInt]].some),
-                                validFormat = InputValidSplitEpi.posInt,
-                                changeAuditor = ChangeAuditor.posInt,
+                                codec = inputCodecs.PositiveInt,
                                 disabled = selectedRepeatTimes.get.isEmpty
                               ),
                               <.label("times", ^.htmlFor := "repeat-n-times-value")

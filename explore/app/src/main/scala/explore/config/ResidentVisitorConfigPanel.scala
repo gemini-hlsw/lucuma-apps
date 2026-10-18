@@ -12,12 +12,11 @@ import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
-import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
@@ -85,8 +84,7 @@ object ResidentVisitorConfigPanel
               id = "visitor-central-wavelength".refined,
               value = centralWavelengthView,
               label = "Central Wavelength",
-              validFormat = props.units.toInputFormat,
-              changeAuditor = props.units.toAuditor,
+              codec = inputCodecs.wavelength(props.units),
               units = props.units.symbol,
               disabled = true // the mode defines the central wavelength, so it can't be edited
             )(^.autoComplete.off),
@@ -96,8 +94,7 @@ object ResidentVisitorConfigPanel
               label = React.Fragment("AGS Diameter",
                                      HelpIcon("configuration/visitor/ags-diameter.md".refined)
               ),
-              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-              changeAuditor = angleArcsecondsChangeAuditor,
+              codec = inputCodecs.DecimalArcseconds,
               units = "arcsec",
               // Staff may adjust the resident AGS diameter; PIs may not.
               disabled = !props.isStaffOrAdmin || !props.permissions.isFullEdit

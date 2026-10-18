@@ -14,7 +14,7 @@ import explore.model.AppContext
 import explore.model.UserPreferences
 import explore.model.conversions.*
 import explore.model.enums.LineOfSightMotion
-import explore.model.formats.*
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -25,10 +25,8 @@ import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.EnumDropdownView
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.FormLabel
@@ -104,8 +102,7 @@ object RVInput {
           FormInputTextView(
             id = "los-z".refined,
             value = props.rv.zoom(rvToRedshiftGet)(rvToRedshiftMod),
-            validFormat = InputValidSplitEpi.fromFormat(formatZ, "Must be a number".refined),
-            changeAuditor = ChangeAuditor.fromFormat(formatZ).decimal(9.refined),
+            codec = inputCodecs.RedshiftZ,
             groupClass = baseCss,
             disabled = props.disabled
           )
@@ -113,8 +110,7 @@ object RVInput {
           FormInputTextView(
             id = "los-cz".refined,
             value = props.rv.zoom(rvToARVGet)(rvToARVMod),
-            validFormat = InputValidSplitEpi.fromFormat(formatCZ, "Must be a number".refined),
-            changeAuditor = ChangeAuditor.fromFormat(formatCZ).decimal(10.refined),
+            codec = inputCodecs.ApparentRadialVelocityCz,
             groupClass = baseCss,
             disabled = props.disabled,
             units = "km/s"
@@ -123,8 +119,7 @@ object RVInput {
           FormInputTextView(
             id = "los-rv".refined,
             value = props.rv,
-            validFormat = InputValidSplitEpi.fromFormat(formatRV, "Must be a number".refined),
-            changeAuditor = ChangeAuditor.fromFormat(formatRV).decimal(3.refined),
+            codec = inputCodecs.RadialVelocityKms,
             groupClass = baseCss,
             disabled = props.disabled,
             units = "km/s"

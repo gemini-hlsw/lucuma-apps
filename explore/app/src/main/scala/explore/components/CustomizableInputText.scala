@@ -9,9 +9,8 @@ import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.ScalaFnComponent
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.validation.InputValidFormat
 import lucuma.react.common.ReactFnProps
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.InputCodec
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -27,8 +26,7 @@ import scalajs.js.JSConverters.*
 final case class CustomizableInputText[A](
   id:                       NonEmptyString,
   value:                    View[A],
-  validFormat:              InputValidFormat[A],
-  changeAuditor:            ChangeAuditor,
+  codec:                    InputCodec[A],
   label:                    TagMod,
   defaultValue:             A,
   units:                    Option[String],
@@ -45,9 +43,10 @@ object CustomizableInputText:
     val isCustom                    = props.value.get =!= props.defaultValue
     val customAddon: Option[TagMod] =
       if (props.showCustomization && isCustom)
-        (CustomizedGroupAddon(props.validFormat.reverseGet(props.defaultValue),
-                              props.value.set(props.defaultValue),
-                              props.allowRevertCustomization
+        (CustomizedGroupAddon(
+          props.codec.valid.reverseGet(props.defaultValue),
+          props.value.set(props.defaultValue),
+          props.allowRevertCustomization
         ): TagMod).some
       else none
 
@@ -57,8 +56,7 @@ object CustomizableInputText:
       label = props.label,
       units = props.units.orUndefined,
       postAddons = customAddon.toList,
-      validFormat = props.validFormat,
-      changeAuditor = props.changeAuditor,
+      codec = props.codec,
       disabled = props.disabled
     ).withMods(^.autoComplete.off)
   )

@@ -22,6 +22,7 @@ import explore.model.AppContext
 import explore.model.display.given
 import explore.model.enums.SedType
 import explore.model.enums.SedTypeEnum
+import explore.model.inputCodecs
 import explore.model.syntax.all.*
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -37,8 +38,6 @@ import lucuma.core.enums.PlanetaryNebulaSpectrum
 import lucuma.core.enums.QuasarSpectrum
 import lucuma.core.enums.StellarLibrarySpectrum
 import lucuma.core.math.BrightnessUnits.*
-import lucuma.core.math.FluxDensityContinuumValue
-import lucuma.core.math.FluxDensityContinuumValueRefinement
 import lucuma.core.math.Wavelength
 import lucuma.core.math.dimensional.*
 import lucuma.core.model.Attachment
@@ -49,13 +48,11 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Of
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.SelectItem
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
@@ -266,9 +263,7 @@ private abstract class SpectralDefinitionEditorBuilder[
                     id = "powerLawIndex".refined,
                     value = rsu.view(identity),
                     label = "Index",
-                    validFormat = InputValidSplitEpi.bigDecimal,
-                    changeAuditor =
-                      ChangeAuditor.fromInputValidSplitEpi(InputValidSplitEpi.bigDecimal),
+                    codec = inputCodecs.PowerLawIndex,
                     disabled = props.disabled
                   )
                 ),
@@ -278,10 +273,7 @@ private abstract class SpectralDefinitionEditorBuilder[
                     id = "bbTempK".refined,
                     value = rsu.view(_.value).stripQuantity,
                     label = "Temperature",
-                    validFormat = InputValidSplitEpi.posInt,
-                    changeAuditor = ChangeAuditor
-                      .fromInputValidSplitEpi(InputValidSplitEpi.posInt)
-                      .denyNeg,
+                    codec = inputCodecs.BlackBodyTemperatureK,
                     units = "°K",
                     disabled = props.disabled
                   )
@@ -338,12 +330,7 @@ private abstract class SpectralDefinitionEditorBuilder[
                         FormInputTextView(
                           id = "fluxValue".refined,
                           value = fluxDensityContinuum.zoom(Measure.valueTagged),
-                          validFormat = InputValidSplitEpi
-                            .refinedBigDecimalWithScientificNotation[
-                              FluxDensityContinuumValueRefinement
-                            ]
-                            .andThen(FluxDensityContinuumValue.Value.reverse),
-                          changeAuditor = ChangeAuditor.posScientificNotation(),
+                          codec = inputCodecs.FluxDensityContinuum,
                           disabled = props.disabled
                         ),
                         EnumDropdownView(

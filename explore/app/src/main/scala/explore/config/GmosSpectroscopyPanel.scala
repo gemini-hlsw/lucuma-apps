@@ -10,12 +10,12 @@ import crystal.react.View
 import crystal.react.hooks.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.ExploreModelValidators
 import explore.model.Help
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.model.syntax.all.*
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
@@ -32,7 +32,6 @@ import lucuma.core.util.Enumerated
 import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.utils.given
@@ -170,11 +169,7 @@ abstract class GmosSpectroscopyPanelBuilder[
             defaultValue = props.defaultWavelengthDithers,
             label =
               React.Fragment("λ Dithers", HelpIcon("configuration/gmos/lambda-dithers.md".refined)),
-            validFormat = validDithers,
-            changeAuditor = ChangeAuditor
-              .bigDecimal(integers = 3.refined, decimals = 1.refined)
-              .toSequence()
-              .optional,
+            codec = inputCodecs.wavelengthDithers(validDithers),
             units = "nm".some,
             disabled = disableSimpleEdit,
             showCustomization = showCustomization,
@@ -248,8 +243,7 @@ abstract class GmosSpectroscopyPanelBuilder[
                   HelpIcon("configuration/gmos/central=wavelength.md".refined)
                 ),
                 units = props.units.symbol.some,
-                validFormat = props.units.toInputFormat,
-                changeAuditor = props.units.toAuditor,
+                codec = inputCodecs.wavelength(props.units),
                 defaultValue = props.initialCentralWavelength,
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,

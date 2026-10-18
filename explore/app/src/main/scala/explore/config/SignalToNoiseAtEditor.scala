@@ -7,11 +7,11 @@ import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.itc.renderRequiredForITCIcon
 import explore.model.Constants
 import explore.model.SignalToNoiseModeInfo
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -63,8 +63,7 @@ object SignalToNoiseAtEditor
               )(_ => Nil),
               value = signalToNoiseAt,
               units = props.units.symbol,
-              validFormat = props.units.toInputWedge,
-              changeAuditor = props.units.toSNAuditor,
+              codec = inputCodecs.wavelengthOptional(props.units),
               disabled = props.readonly
             ).clearable(^.autoComplete.off),
             ExploreStyles.ExposureTimeModeSignalToNoiseAt

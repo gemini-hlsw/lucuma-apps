@@ -14,12 +14,12 @@ import explore.config.offsets.OffsetInput
 import explore.config.offsets.TelescopeConfigEditorStyles
 import explore.config.offsets.TelescopeConfigGeneratorEditor
 import explore.model.display.given
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.*
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -128,7 +128,7 @@ object ImagingVariantEditor
               HelpIcon("configuration/imaging/sky-offset.md".refined)
             ),
             value = skyCount,
-            validFormat = InputValidSplitEpi.nonNegInt,
+            codec = inputCodecs.NonNegativeInt,
             placeholder = "0",
             disabled = props.readonly
           ),

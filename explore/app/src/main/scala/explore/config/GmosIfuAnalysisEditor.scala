@@ -9,6 +9,7 @@ import explore.components.CustomizableEnumSelect
 import explore.components.CustomizableInputText
 import explore.components.ui.ExploreStyles
 import explore.model.ExploreModelValidators
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
@@ -18,7 +19,6 @@ import lucuma.core.util.Enumerated
 import lucuma.core.validation.InputValidWedge
 import lucuma.react.common.*
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.syntax.all.given
 import monocle.Lens
 
@@ -124,10 +124,9 @@ object GmosIfuAnalysisEditor
           CustomizableInputText(
             id = "ifu-analysis-angle".refined,
             value = angle,
-            validFormat = angleFormat,
-            // `posBigDecimal` denies the minus sign outright, so neither shape can be typed
+            codec = inputCodecs.ifuArcseconds(angleFormat),
+            // The mask denies the minus sign outright, so neither shape can be typed
             // negative; the validator still rejects a zero radius, which is legal to type.
-            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined).denyNeg,
             // Indented to read as a property of the analysis above rather than its own setting.
             label = angleLabel,
             defaultValue = angleOf(GmosIfuAnalysisKind.defaultFor(props.default)(kind.get)),

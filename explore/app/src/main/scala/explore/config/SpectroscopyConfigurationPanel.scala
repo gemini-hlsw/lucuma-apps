@@ -13,6 +13,7 @@ import explore.model.ScienceRequirements
 import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -21,10 +22,8 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -63,8 +62,7 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
           groupClass = ExploreStyles.WarningInput.when_(wv.get.isEmpty),
           postAddons = wv.get.fold(List(p.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
           units = p.units.symbol,
-          validFormat = p.units.toInputWedge,
-          changeAuditor = p.units.toAuditor,
+          codec = inputCodecs.wavelengthOptional(p.units),
           disabled = p.readonly
         ).clearable(^.autoComplete.off),
         FormInputTextView(
@@ -74,8 +72,7 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
             "Min Resolution",
             HelpIcon("configuration/spectral_resolution.md".refined)
           ),
-          validFormat = InputValidSplitEpi.posInt.optional,
-          changeAuditor = ChangeAuditor.posInt.optional,
+          codec = inputCodecs.ExposureCount,
           disabled = p.readonly
         ).clearable(^.autoComplete.off),
         FormInputTextView(
@@ -86,8 +83,7 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
             "Min λ Coverage",
             HelpIcon("configuration/wavelength_coverage.md".refined)
           ),
-          validFormat = p.units.toDeltaInputWedge,
-          changeAuditor = p.units.toAuditor,
+          codec = inputCodecs.wavelengthDelta(p.units),
           disabled = p.readonly
         ).clearable(^.autoComplete.off),
         ExposureTimeModeEditorOptional(

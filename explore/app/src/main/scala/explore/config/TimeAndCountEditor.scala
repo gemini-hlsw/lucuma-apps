@@ -13,16 +13,15 @@ import explore.itc.renderRequiredForITCIcon
 import explore.model.Constants
 import explore.model.TimeAndCountModeInfo
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
@@ -68,8 +67,7 @@ object TimeAndCountEditor extends ConfigurationFormats:
               value = coaddsView,
               label = "Coadds",
               labelClass = props.labelClass,
-              validFormat = InputValidSplitEpi.posInt,
-              changeAuditor = ChangeAuditor.int,
+              codec = inputCodecs.PositiveInt,
               disabled = props.readonly || props.coaddsReadonly
             )(^.autoComplete.off),
             ExploreStyles.ExposureTimeModeCoadds
@@ -86,8 +84,7 @@ object TimeAndCountEditor extends ConfigurationFormats:
               )(_ => Nil),
               value = signalToNoiseAt,
               units = props.units.symbol,
-              validFormat = props.units.toInputWedge,
-              changeAuditor = props.units.toSNAuditor,
+              codec = inputCodecs.wavelengthOptional(props.units),
               disabled = props.readonly
             ).clearable(^.autoComplete.off),
             ExploreStyles.ExposureTimeModeSignalToNoiseAt

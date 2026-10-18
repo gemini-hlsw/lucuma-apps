@@ -6,8 +6,7 @@ package explore.components
 import crystal.react.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
-import explore.model.formats.*
-import explore.utils.*
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.Css
@@ -42,8 +41,7 @@ object Time24HInputView:
         units = props.units,
         groupClass = props.groupClass,
         inputClass = props.inputClass,
-        validFormat = time24h,
-        changeAuditor = hmChangeAuditor.optional,
+        codec = inputCodecs.Time24h,
         label = props.label,
         placeholder = props.placeholder.getOrElse("HH:mm"),
         disabled = props.disabled

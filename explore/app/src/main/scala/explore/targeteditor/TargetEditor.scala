@@ -20,7 +20,6 @@ import explore.model.AladinFullScreen
 import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
-import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
@@ -31,6 +30,7 @@ import explore.model.TargetEditObsInfo
 import explore.model.UserPreferences
 import explore.model.display.given
 import explore.model.enums.TargetType
+import explore.model.inputCodecs
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
 import explore.services.OdbTargetApi
@@ -43,7 +43,6 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.*
-import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.IsUserDefinedTelluric
@@ -63,8 +62,6 @@ import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
-import lucuma.ui.input.ChangeAuditor
-import lucuma.ui.input.InputCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.FormInputText
 import lucuma.ui.primereact.FormInputTextView
@@ -315,16 +312,14 @@ object TargetEditor:
               value = coordsRAView,
               label = React.Fragment("RA", HelpIcon("target/main/coordinates.md".refined)),
               disabled = disabled,
-              codec = InputCodec.TruncatedRa
+              codec = inputCodecs.Ra
             ),
             FormInputTextView(
               id = "dec".refined,
               value = coordsDecView,
               label = React.Fragment("Dec", HelpIcon("target/main/coordinates.md".refined)),
               disabled = disabled,
-              validFormat = MathValidators.truncatedDec,
-              changeAuditor = ChangeAuditor.accept,
-              validateOnPaste = false
+              codec = inputCodecs.Dec
             )
           )
         }
@@ -404,8 +399,7 @@ object TargetEditor:
               value = epochView,
               label = React.Fragment("Epoch", HelpIcon("target/main/epoch.md".refined)),
               disabled = disabled,
-              validFormat = MathValidators.epochNoScheme,
-              changeAuditor = ChangeAuditor.maxLength(8.refined).decimal(3.refined).denyNeg,
+              codec = inputCodecs.EpochNoScheme,
               units = "years"
             ),
             FormInputTextView(
@@ -413,8 +407,7 @@ object TargetEditor:
               value = properMotionRAView,
               label = "µ RA",
               disabled = disabled,
-              validFormat = ExploreModelValidators.pmRAValidWedge,
-              changeAuditor = ChangeAuditor.bigDecimal(3.refined),
+              codec = inputCodecs.ProperMotionRa,
               units = "mas/y",
               groupClass = ExploreStyles.ZeroValue.when_(
                 properMotionRAView.get === ProperMotion.Zero.ra
@@ -425,8 +418,7 @@ object TargetEditor:
               value = properMotionDecView,
               label = "µ Dec",
               disabled = disabled,
-              validFormat = ExploreModelValidators.pmDecValidWedge,
-              changeAuditor = ChangeAuditor.bigDecimal(3.refined),
+              codec = inputCodecs.ProperMotionDec,
               units = "mas/y",
               groupClass = ExploreStyles.ZeroValue.when_(
                 properMotionDecView.get === ProperMotion.Zero.dec
@@ -437,8 +429,7 @@ object TargetEditor:
               value = parallaxView,
               label = "Parallax",
               disabled = disabled,
-              validFormat = ExploreModelValidators.pxValidWedge,
-              changeAuditor = ChangeAuditor.bigDecimal(3.refined),
+              codec = inputCodecs.ParallaxMas,
               units = "mas",
               groupClass = ExploreStyles.ZeroValue.when_(
                 parallaxView.get === Parallax.Zero

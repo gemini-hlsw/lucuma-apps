@@ -19,10 +19,10 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.syntax.ui.*
 import explore.utils.forceAssign
 import japgolly.scalajs.react.*
@@ -37,7 +37,6 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.sequence.DetectorEstimate
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
@@ -50,7 +49,6 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import monocle.Lens
@@ -299,8 +297,7 @@ object GhostIfuConfigPanel
                 id = "ghost-step-count".refined,
                 value = stepCountView,
                 label = "Number of Steps",
-                validFormat = InputValidSplitEpi.posInt,
-                changeAuditor = ChangeAuditor.int,
+                codec = inputCodecs.PositiveInt,
                 units = "#",
                 disabled = disableEdit
               )(^.autoComplete.off),
@@ -308,8 +305,7 @@ object GhostIfuConfigPanel
                 id = "ghost-sn-wavelength".refined,
                 value = snAtView,
                 label = "λ for S/N",
-                validFormat = props.units.toInputFormat,
-                changeAuditor = props.units.toSNAuditor,
+                codec = inputCodecs.wavelength(props.units),
                 units = props.units.symbol,
                 disabled = disableEdit
               )(^.autoComplete.off),

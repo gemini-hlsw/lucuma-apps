@@ -450,15 +450,24 @@ importers:
       '@fortawesome/pro-light-svg-icons':
         specifier: 7.3.1
         version: 7.3.1
+      '@fortawesome/pro-regular-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
       '@fortawesome/pro-solid-svg-icons':
         specifier: 7.3.1
         version: 7.3.1
       '@fortawesome/pro-thin-svg-icons':
         specifier: 7.3.1
         version: 7.3.1
+      '@fortawesome/sharp-solid-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
       aladin-lite:
         specifier: 3.8.2
         version: 3.8.2
+      inputmask:
+        specifier: 5.0.10
+        version: 5.0.10
     devDependencies:
       '@atlaskit/pragmatic-drag-and-drop':
         specifier: 4.0.0

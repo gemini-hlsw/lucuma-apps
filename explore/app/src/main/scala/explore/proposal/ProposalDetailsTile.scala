@@ -24,7 +24,6 @@ import explore.components.ui.*
 import explore.model.AeonMultiFacility
 import explore.model.AppContext
 import explore.model.CallForProposal
-import explore.model.ExploreModelValidators
 import explore.model.Hours
 import explore.model.PartnerSplit
 import explore.model.ProgramDetails
@@ -36,6 +35,7 @@ import explore.model.ProposalType.*
 import explore.model.display.given
 import explore.model.enums.TileSizeState
 import explore.model.enums.Visible
+import explore.model.inputCodecs
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.utils.testId
@@ -45,13 +45,11 @@ import lucuma.core.enums.*
 import lucuma.core.model.CallForProposals
 import lucuma.core.model.IntPercent
 import lucuma.core.model.SiteCoordinatesLimits
-import lucuma.core.model.ZeroTo100
 import lucuma.core.syntax.all.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.time.format.GppDateFormatter
-import lucuma.core.validation.*
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
@@ -59,7 +57,6 @@ import lucuma.react.primereact.SelectItem
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.display.given
-import lucuma.ui.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -205,8 +202,7 @@ object ProposalDetailsBody:
     def makeMinimumPctInput[A](pctView: View[IntPercent], id: NonEmptyString): TagMod =
       FormInputTextView(
         value = pctView,
-        validFormat = InputValidSplitEpi.refinedInt[ZeroTo100],
-        changeAuditor = ChangeAuditor.refinedInt[ZeroTo100](),
+        codec = inputCodecs.Percent,
         label = React.Fragment("Minimum %", HelpIcon("proposal/main/minimum-pct.md".refined)),
         id = id,
         disabled = readonly,
@@ -314,8 +310,7 @@ object ProposalDetailsBody:
         def totalTimeEntry[A]: VdomNode =
           FormInputTextView(
             value = totalHours.withOnMod(h => totalTimeView.set(fromHours(h))),
-            validFormat = ExploreModelValidators.hoursValidWedge,
-            changeAuditor = ChangeAuditor.accept.decimal(2.refined),
+            codec = inputCodecs.ProposalHours,
             label = React.Fragment("Total", HelpIcon("proposal/main/total-time.md".refined)),
             id = "total-time-entry".refined,
             disabled = readonly,
@@ -680,7 +675,7 @@ object ProposalDetailsBody:
             inputClass = Css("inverse"),
             groupClass = ExploreStyles.WarningInput.when_(titleView.get.isEmpty && !props.readonly),
             value = titleView,
-            validFormat = InputValidSplitEpi.nonEmptyString.optional,
+            codec = inputCodecs.NonEmptyTextOptional,
             label = "Title",
             disabled = props.readonly
           )(^.autoFocus := true, testId := "explore-proposal-title"),

@@ -7,7 +7,7 @@ import cats.data.NonEmptyList
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
-import explore.model.ExploreModelValidators
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.geom.OffsetGenerator
@@ -73,7 +73,7 @@ object TelescopeConfigGeneratorEditor
                 label = "Size:",
                 units = "\"",
                 value = random.zoom(OffsetGenerator.Random.size),
-                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+                codec = inputCodecs.DecimalArcseconds,
                 disabled = props.readonly,
                 placeholder = "0.0"
               ),
@@ -97,7 +97,7 @@ object TelescopeConfigGeneratorEditor
                 label = "Size:",
                 units = "\"",
                 value = spiral.zoom(OffsetGenerator.Spiral.size),
-                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+                codec = inputCodecs.DecimalArcseconds,
                 disabled = props.readonly,
                 placeholder = "0.0"
               ),

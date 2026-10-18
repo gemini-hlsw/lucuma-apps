@@ -9,16 +9,16 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
 import explore.model.TimeAndCountModeInfo
-import explore.model.formats.*
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
-import lucuma.core.validation.*
+import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.*
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
@@ -43,13 +43,13 @@ object TimeAndCountFieldsEditor extends ConfigurationFormats:
       val exposureTime = props.options.zoom(TimeAndCountModeInfo.time)
       val count        = props.options.zoom(TimeAndCountModeInfo.count)
 
-      val (timeFormat, timeAuditor) = props.instrument
+      val timeCodec: InputCodec[Option[TimeSpan]] = props.instrument
         .collect {
           case Instrument.GmosSouth | Instrument.GmosNorth | Instrument.Flamingos2 |
               Instrument.Ghost =>
-            (durationS.optional, ChangeAuditor.int.optional)
+            inputCodecs.ExposureTimeSeconds
         }
-        .getOrElse((durationMs.optional, ChangeAuditor.posBigDecimal(2.refined).optional))
+        .getOrElse(inputCodecs.ExposureTimeMilliseconds)
 
       React.Fragment(
         props.controlsWrapper(
@@ -59,11 +59,10 @@ object TimeAndCountFieldsEditor extends ConfigurationFormats:
             label = "Exp. Time",
             labelClass = props.labelClass,
             groupClass = ExploreStyles.WarningInput.when_(exposureTime.get.isEmpty),
-            validFormat = timeFormat,
+            codec = timeCodec,
             postAddons =
               exposureTime.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
             units = "s",
-            changeAuditor = timeAuditor,
             disabled = props.readonly
           ).clearable(^.autoComplete.off),
           ExploreStyles.ExposureTimeModeTime
@@ -76,10 +75,9 @@ object TimeAndCountFieldsEditor extends ConfigurationFormats:
               label = "Number of Exp.",
               labelClass = props.labelClass,
               groupClass = ExploreStyles.WarningInput.when_(count.get.isEmpty),
-              validFormat = InputValidSplitEpi.posInt.optional,
+              codec = inputCodecs.ExposureCount,
               postAddons =
                 count.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
-              changeAuditor = ChangeAuditor.int.optional,
               units = "#",
               disabled = props.readonly
             ).clearable(^.autoComplete.off),
