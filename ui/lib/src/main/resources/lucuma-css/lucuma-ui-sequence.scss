@@ -60,6 +60,7 @@
 
     .p-dropdown-label {
       padding: 0;
+      font-size: smaller;
       text-align: center;
     }
   }
@@ -291,5 +292,9 @@ table tr {
 }
 
 .lucuma-sequence-saturated-cell {
+  font-size: smaller;
+}
+
+.lucuma-sequence-dropdown-panel .p-dropdown-item {
   font-size: smaller;
 }

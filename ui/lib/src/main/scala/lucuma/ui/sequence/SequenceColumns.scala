@@ -15,6 +15,7 @@ import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
+import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Angle
@@ -389,6 +390,15 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private lazy val gnirsReadModeCol: colDef.TypeFor[Option[GnirsReadMode]] =
+    compactEnumCol(
+      SequenceColumns.ReadModeColumnId,
+      _.gnirsReadMode,
+      "Read Mode",
+      gnirsReadModeReplace,
+      _.shortName
+    )
+
   private lazy val gmosReadModeCol: colDef.TypeFor[Option[(GmosAmpReadMode, GmosAmpGain)]] =
     colDef(
       SequenceColumns.ReadModeColumnId,
@@ -471,8 +481,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               )
             else Instrument.Ghost.formatExposureTime(v).value
       ),
-      ghostEnumCol(readModeId, getter(_).map(_.readMode), "Readmode", readModeReplace, _.shortName),
-      ghostEnumCol(
+      compactEnumCol(readModeId,
+                     getter(_).map(_.readMode),
+                     "Readmode",
+                     readModeReplace,
+                     _.shortName
+      ),
+      compactEnumCol(
         binningId,
         getter(_).map(_.binning),
         "Binning",
@@ -481,9 +496,9 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       )
     )
 
-  // GHOST's enumerated detector settings are rendered compactly, so we don't use the
-  // `Display` labels, which are too wide for these columns.
-  private def ghostEnumCol[A: Enumerated: Display](
+  // Enumerated settings are rendered compactly, so we don't use the `Display` labels, which
+  // are too wide for these columns.
+  private def compactEnumCol[A: Enumerated: Display](
     colId:     ColumnId,
     getter:    SequenceRow[D] => Option[A],
     colHeader: String,
@@ -504,7 +519,8 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               onChange = a => handleRowValueEdit(c)(replace)(a.some),
               itemTemplate = (si: SelectItem[A]) => renderer(si.value),
               valueTemplate = (si: SelectItem[A]) => renderer(si.value),
-              clazz = SequenceStyles.SequenceDropdown
+              clazz = SequenceStyles.SequenceDropdown,
+              panelClass = SequenceStyles.SequenceDropdownPanel
             )
           else renderer(v)
     )
@@ -631,7 +647,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       deckerCol,
       gratingCol,
       filterCol,
-      readModeCol,
+      gnirsReadModeCol,
       gcalCol,
       peakCol,
       snCol
@@ -754,7 +770,7 @@ object SequenceColumns:
         DeckerColumnId   -> Resizable(120.toPx, min = 100.toPx),
         GratingColumnId  -> Resizable(50.toPx, min = 50.toPx, max = 70.toPx),
         FilterColumnId   -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
-        ReadModeColumnId -> Resizable(90.toPx, min = 75.toPx, max = 120.toPx),
+        ReadModeColumnId -> Resizable(120.toPx, min = 100.toPx, max = 160.toPx),
         GCalColumnId     -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx),
         SNColumnId       -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
       )

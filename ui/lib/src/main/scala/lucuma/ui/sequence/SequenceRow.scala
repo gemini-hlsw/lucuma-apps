@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
+import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.Igrins2FowlerSamples
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
@@ -192,6 +193,9 @@ sealed trait SequenceRow[+D]:
   lazy val readMode: Option[String] = instrumentConfig.collect:
     case Flamingos2DynamicConfig(readMode = readMode) => readMode.shortName
     case GnirsDynamicConfig(readMode = readMode)      => readMode.shortName
+
+  lazy val gnirsReadMode: Option[GnirsReadMode] = instrumentConfig.collect:
+    case GnirsDynamicConfig(readMode = readMode) => readMode
 
   lazy val fowlerSamples: Option[String] = instrumentConfig.collect:
     case ig2: Igrins2DynamicConfig =>
