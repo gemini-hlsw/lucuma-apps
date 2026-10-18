@@ -401,6 +401,9 @@ importers:
       '@tanstack/table-core':
         specifier: 9.3.1
         version: 9.3.1
+      inputmask:
+        specifier: 5.0.10
+        version: 5.0.10
       loglevel:
         specifier: 1.9.2
         version: 1.9.2
