@@ -99,7 +99,7 @@ class SubsystemControlModesKeySuite extends munit.FunSuite:
     )
 
   test("a deprecated key overrides the defaults in base.conf"):
-    val config: Config =
+    val config: Config                =
       ConfigSource
         .string("observe-engine.system-control.tcs = full")
         .withFallback(ConfigSource.resources("base.conf"))
