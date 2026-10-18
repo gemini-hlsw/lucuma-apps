@@ -93,7 +93,7 @@
   .pwfs-mirror-vignetting {
     display: none;
     stroke: var(--viz-vignetting-stroke);
-    stroke-width: 0.2px;
+    stroke-width: var(--viz-vignetting-stroke-width);
     fill: var(--viz-vignetting-fill);
   }
 
@@ -294,7 +294,7 @@
     display: none;
     fill-opacity: 0;
     stroke: var(--viz-candidates-area-color);
-    stroke-width: 0.4px;
+    stroke-width: var(--viz-candidates-area-stroke-width);
     stroke-dasharray: 1.5;
   }
 
@@ -312,7 +312,7 @@
   .ghost-ifu1-patrol-field,
   .ghost-ifu2-patrol-field {
     display: none;
-    stroke-width: 0.6px;
+    stroke-width: var(--ghost-ifu-patrol-field-stroke-width);
     stroke-dasharray: 2;
   }
 

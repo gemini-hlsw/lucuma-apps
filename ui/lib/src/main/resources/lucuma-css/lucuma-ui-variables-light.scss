@@ -207,8 +207,9 @@
   --patrol-field-no-zones-color: hsl(28deg 100% 40%);
 
   // GHOST IFU patrol fields
-  --ghost-ifu1-color: hsl(300deg 70% 40% / 40%);
-  --ghost-ifu2-color: hsl(38deg 90% 38% / 40%);
+  --ghost-ifu1-color: hsl(300deg 70% 40% / 55%);
+  --ghost-ifu2-color: hsl(38deg 90% 38% / 55%);
+  --ghost-ifu-patrol-field-stroke-width: 1px;
 
   // Hatch line width in user-space
   --hatch-line-width: 1000;
@@ -218,18 +219,18 @@
 
   // Reachable patrol-field region
   --reachable-patrol-stroke-color: hsl(125deg 60% 32%);
-  --reachable-patrol-stroke-width: 0.4px;
+  --reachable-patrol-stroke-width: 0.8px;
   --reachable-patrol-fill-color: hsl(190deg 90% 32%);
-  --reachable-patrol-fill-opacity: 0.05;
+  --reachable-patrol-fill-opacity: 0.14;
 
   // Visitor science FOV shading
   --visitor-science-fov-fill-color: hsl(190deg 90% 32%);
-  --visitor-science-fov-fill-opacity: 0.05;
+  --visitor-science-fov-fill-opacity: 0.14;
 
   // Science FOV / slit (GMOS, GNIRS, IGRINS2, visitors), cyan like the F2 science area
   --science-slit-stroke: hsl(190deg 90% 32%);
   --science-slit-stroke-width: 0.8px;
-  --science-slit-fill-opacity: 0.1;
+  --science-slit-fill-opacity: 0.2;
   --science-slit-fill: hsl(0deg 0% 40%);
 
   // GMOS IFU sky bundle, amber to match the sky position markers
@@ -237,18 +238,20 @@
 
   // Extended vignetting area, maroon-x
   --extended-vignetting-area-stroke-color: hsl(28deg 100% 40%);
-  --extended-vignetting-area-stroke-width: 0.6px;
+  --extended-vignetting-area-stroke-width: 1px;
   --extended-vignetting-area-fill-color: hsl(28deg 100% 40%);
-  --extended-vignetting-area-fill-opacity: 0.05;
+  --extended-vignetting-area-fill-opacity: 0.14;
 
   // Overlay colors on the sky image
   --viz-vignetting-stroke: hsl(50deg 100% 32% / 70%);
-  --viz-vignetting-fill: hsl(50deg 100% 32% / 8%);
+  --viz-vignetting-stroke-width: 0.5px;
+  --viz-vignetting-fill: hsl(50deg 100% 32% / 18%);
   --viz-gmos-patrol-field-color: hsl(120deg 80% 28%);
   --viz-altair-patrol-field-color: hsl(280deg 60% 45%);
   --viz-ccd-offset-color: hsl(45deg 100% 35%);
   --viz-science-fov-color: hsl(190deg 90% 32%);
   --viz-candidates-area-color: hsl(125deg 60% 32%);
+  --viz-candidates-area-stroke-width: 0.8px;
   --viz-border-color: hsl(45deg 100% 35%);
   --viz-selected-target-color: hsl(28deg 100% 40%);
   --viz-sky-position-fill: hsl(38deg 90% 38% / 40%);
@@ -263,7 +266,7 @@
   --viz-guide-star-medium-color: hsl(43deg 90% 35%);
   --viz-guide-star-slow-color: hsl(33deg 100% 38%);
   --viz-mos-outline-stroke: hsl(180deg 100% 25% / 85%);
-  --viz-mos-outline-fill: hsl(180deg 100% 25% / 8%);
+  --viz-mos-outline-fill: hsl(180deg 100% 25% / 16%);
   --viz-mos-slit-stroke: hsl(210deg 90% 40%);
   --viz-mos-slit-fill: hsl(210deg 90% 45% / 25%);
   --viz-mos-acq-box-stroke: hsl(300deg 70% 40%);
