@@ -64,7 +64,7 @@ import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
-import lucuma.ui.input.facade.InputmaskOptions
+import lucuma.ui.input.InputCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.FormInputText
 import lucuma.ui.primereact.FormInputTextView
@@ -315,16 +315,7 @@ object TargetEditor:
               value = coordsRAView,
               label = React.Fragment("RA", HelpIcon("target/main/coordinates.md".refined)),
               disabled = disabled,
-              validFormat = MathValidators.truncatedRA,
-              changeAuditor = ChangeAuditor.accept,
-              validateOnPaste = false,
-              mask = new InputmaskOptions:
-                regex =
-                  "([0-9]|[01][0-9]|2[0-3]):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9])(\\.[0-9]{1,3})?"
-                placeholder = ""
-                jitMasking = true
-                showMaskOnHover = false
-                clearIncomplete = false
+              codec = InputCodec.TruncatedRa
             ),
             FormInputTextView(
               id = "dec".refined,

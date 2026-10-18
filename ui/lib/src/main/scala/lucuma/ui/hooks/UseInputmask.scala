@@ -12,8 +12,8 @@ import org.scalajs.dom.document
 import org.scalajs.dom.html
 
 /**
- * Keeps an Inputmask attached to the input with the given id while the component is mounted, when
- * a mask is given. The input is located by id, like `FormInputTextView` does, so the id must be
+ * Keeps an Inputmask attached to the input with the given id while the component is mounted, when a
+ * mask is given. The input is located by id, like `FormInputTextView` does, so the id must be
  * unique in the document.
  */
 def useInputmask(inputId: NonEmptyString, options: Option[InputmaskOptions]): HookResult[Unit] =

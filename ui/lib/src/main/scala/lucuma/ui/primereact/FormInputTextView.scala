@@ -15,21 +15,22 @@ import lucuma.react.common.*
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.TooltipOptions
 import lucuma.ui.input.AuditResult
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.hooks.useInputmask
-import lucuma.ui.input.facade.InputmaskOptions
+import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.input.InputCodec
 import org.scalajs.dom.Element
 import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.KeyCode
 import org.scalajs.dom.document
 import org.scalajs.dom.html
 
+import scala.annotation.nowarn
 import scala.scalajs.js
 
 import scalajs.js.JSConverters.*
 
 /**
- * FormInput component that uses a crystal View to share the content of the field
+ * FormInput component that uses a crystal View to share the content of the field.
  */
 final case class FormInputTextView[V[_], A](
   id:              NonEmptyString,
@@ -46,7 +47,10 @@ final case class FormInputTextView[V[_], A](
   placeholder:     js.UndefOr[String] = js.undefined,
   tooltipOptions:  js.UndefOr[TooltipOptions] = js.undefined,
   value:           V[A],
-  validFormat:     InputValidFormat[A] = InputValidSplitEpi.id,
+  codec:           js.UndefOr[InputCodec[A]] = js.undefined,
+  @deprecated("Use codec", "2026-10")
+  validFormat:     js.UndefOr[InputValidFormat[A]] = js.undefined,
+  @deprecated("Use codec", "2026-10")
   changeAuditor:   ChangeAuditor = ChangeAuditor.accept,
   onTextChange:    String => Callback = _ => Callback.empty,
   onValidChange:   FormInputTextView.ChangeCallback[Boolean] = _ => Callback.empty,
@@ -54,11 +58,22 @@ final case class FormInputTextView[V[_], A](
   onBlur:          FormInputTextView.ChangeCallback[EitherErrors[A]] = (_: EitherErrors[A]) =>
     Callback.empty,
   validateOnPaste: Boolean = true,
-  mask:            js.UndefOr[InputmaskOptions] = js.undefined,
   modifiers:       Seq[TagMod] = Seq.empty
 )(using val eq: Eq[A], val vl: ViewLike[V])
     extends ReactFnProps(FormInputTextView.component):
-  def stringValue: String                  = value.get.foldMap(validFormat.reverseGet)
+  @nowarn("cat=deprecation")
+  def inputCodec: InputCodec[A]            =
+    codec.getOrElse(
+      // Without a codec or validFormat the field holds plain text, so A is String.
+      InputCodec(validFormat.getOrElse(InputValidSplitEpi.id.asInstanceOf[InputValidFormat[A]]),
+                 none
+      )
+    )
+  // With a mask, Inputmask owns the text while typing and the auditor has nothing to do.
+  @nowarn("cat=deprecation")
+  def auditor: ChangeAuditor               =
+    if (codec.isDefined) ChangeAuditor.accept else changeAuditor
+  def stringValue: String                  = value.get.foldMap(inputCodec.valid.reverseGet)
   def addModifiers(modifiers: Seq[TagMod]) = copy(modifiers = this.modifiers ++ modifiers)
   def withMods(mods:          TagMod*)     = addModifiers(mods)
   def apply(mods:             TagMod*)     = addModifiers(mods)
@@ -134,8 +149,8 @@ object FormInputTextView {
         errors       <- useState(none[NonEmptyChain[NonEmptyString]])
         _            <- useEffectWithDeps(props.stringValue): newValue =>
                           val displayMatchesExternal: Boolean =
-                            props.validFormat.getValid(displayValue.value).toOption ===
-                              props.validFormat.getValid(newValue).toOption
+                            props.inputCodec.valid.getValid(displayValue.value).toOption ===
+                              props.inputCodec.valid.getValid(newValue).toOption
                           (if (displayMatchesExternal) Callback.empty
                            else displayValue.setState(newValue)) >>
                             errors.setState(none)
@@ -143,16 +158,15 @@ object FormInputTextView {
                           getInputElement(props.id) >>= (element =>
                             inputElement.set(element) >>
                               audit(
-                                props.changeAuditor,
+                                props.auditor,
                                 props.stringValue,
                                 displayValue.setState,
                                 element,
                                 cursor.setState,
                                 lastKeyCode.value
                               )
-                          ) >>= (value => validate(value, props.validFormat, props.onValidChange))
-        // Evaluation of Inputmask: when a mask is given it owns the text while typing.
-        _            <- useInputmask(props.id, props.mask.toOption)
+                          ) >>= (value => validate(value, props.inputCodec.valid, props.onValidChange))
+        _            <- useInputmask(props.id, props.inputCodec.mask)
         _            <- useEffect:
                           (for
                             i <- inputElement.value
@@ -171,7 +185,7 @@ object FormInputTextView {
 
         def handleTextChange(text: String): Callback =
           audit(
-            props.changeAuditor,
+            props.auditor,
             text,
             displayValue.setState,
             inputElement.value,
@@ -181,7 +195,7 @@ object FormInputTextView {
             // First update the internal state, then call the outside listener
             errors.setState(none) >>
               props.onTextChange(newS) >>
-              validate(displayValue.value, props.validFormat, props.onValidChange)
+              validate(displayValue.value, props.inputCodec.valid, props.onValidChange)
           )
 
         val onTextChange: ReactEventFrom[HTMLInputElement & Element] => Callback =
@@ -190,7 +204,7 @@ object FormInputTextView {
         val submit: Callback =
           validate(
             displayValue.value,
-            props.validFormat,
+            props.inputCodec.valid,
             props.onValidChange,
             { validated =>
               val validatedCB = validated match {
@@ -198,7 +212,7 @@ object FormInputTextView {
                   // Only set if resulting A changed. Always redisplay the formatted string, since
                   // the external update is skipped when the typed text parses to the same value.
                   Option.when(props.value.get.exists(_ =!= a))(props.value.set(a)).orEmpty >>
-                    displayValue.setState(props.validFormat.reverseGet(a))
+                    displayValue.setState(props.inputCodec.valid.reverseGet(a))
                 case Left(e)  =>
                   errors.setState(e.some)
               }
@@ -223,7 +237,7 @@ object FormInputTextView {
           val paste      = e.clipboardData.getData("text")
           val result     = s"$prefix$paste$suffix"
           val normalized =
-            props.validFormat.getValid(result).map(props.validFormat.reverseGet).toOption
+            props.inputCodec.valid.getValid(result).map(props.inputCodec.valid.reverseGet).toOption
           val update     = normalized.foldMap(handleTextChange)
           e.preventDefaultCB >> update
 
@@ -231,7 +245,8 @@ object FormInputTextView {
         // However, in some cases we want to allow pasting of anything and just show the error state. See
         // https://app.shortcut.com/lucuma/story/5817/allow-pasting-into-the-invitation-email-field
         val allModifiers =
-          if props.validateOnPaste then (^.onPaste ==> onPaste) +: props.modifiers
+          if props.validateOnPaste && props.inputCodec.mask.isEmpty then
+            (^.onPaste ==> onPaste) +: props.modifiers
           else props.modifiers
 
         FormInputText(

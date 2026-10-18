@@ -319,6 +319,14 @@ lazy val ui_tests =
     .dependsOn(ui_testkit)
     .enablePlugins(ScalaJSPlugin)
     .settings(
+      // Inputmask needs a DOM, so the tests run with jsdom installed as the Node globals.
+      Test / jsEnv := new NodeJSEnv(
+        NodeJSEnv
+          .Config()
+          .withArgs(
+            List("--require", (baseDirectory.value / "src/test/js/jsdom-globals.cjs").toString)
+          )
+      ),
       libraryDependencies ++=
         In(Test)(
           LucumaCoreTestkit.value ++
