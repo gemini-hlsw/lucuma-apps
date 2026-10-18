@@ -79,6 +79,9 @@ object Masks:
       jitMasking = true
       showMaskOnHover = false
       clearIncomplete = false
+      // Inputmask's Escape would restore the pre-focus text without an input event, leaving React's
+      // state on the edited text; the parent component owns the text, so Escape does nothing.
+      undoOnEscape = false
 
   /** Digits used for "unbounded" numeric parts; Inputmask needs a finite quantifier. */
   private val MaxDigits: Int = 20
@@ -139,6 +142,7 @@ object Masks:
       casing = "upper"
       placeholder = ""
       showMaskOnHover = false
+      undoOnEscape = false
 
   private def pow10(n: Int): Int = List.fill(n)(10).product
 

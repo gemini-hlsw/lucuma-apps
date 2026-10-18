@@ -65,6 +65,7 @@ trait InputmaskOptions extends js.Object:
   var showMaskOnHover: js.UndefOr[Boolean]         = js.undefined
   var shiftPositions: js.UndefOr[Boolean]          = js.undefined
   var insertMode: js.UndefOr[Boolean]              = js.undefined
+  var undoOnEscape: js.UndefOr[Boolean]            = js.undefined
   var casing: js.UndefOr[String]                   = js.undefined
   var nullable: js.UndefOr[Boolean]                = js.undefined
   var inputmode: js.UndefOr[String]                = js.undefined
