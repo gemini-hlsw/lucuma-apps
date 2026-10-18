@@ -49,40 +49,47 @@ import java.time.LocalTime
  */
 trait inputCodecs:
   // Coordinates
-  val Ra: InputCodec[RightAscension]            = InputCodec.TruncatedRa
-  val Dec: InputCodec[Declination]              = InputCodec.TruncatedDec
-  val EpochNoScheme: InputCodec[Epoch]          =
-    MathValidators.epochNoScheme.toCodec.withDecimalMask(3, allowMinus = false, integerDigits = 4.some)
+  val Ra: InputCodec[RightAscension]                = InputCodec.TruncatedRa
+  val Dec: InputCodec[Declination]                  = InputCodec.TruncatedDec
+  val EpochNoScheme: InputCodec[Epoch]              =
+    MathValidators.epochNoScheme.toCodec.withDecimalMask(3,
+                                                         allowMinus = false,
+                                                         integerDigits = 4.some
+    )
   val ProperMotionRa: InputCodec[ProperMotion.RA]   =
     ExploreModelValidators.pmRAValidWedge.toCodec.withDecimalMask(3)
   val ProperMotionDec: InputCodec[ProperMotion.Dec] =
     ExploreModelValidators.pmDecValidWedge.toCodec.withDecimalMask(3)
-  val ParallaxMas: InputCodec[Parallax]             = ExploreModelValidators.pxValidWedge.toCodec.withDecimalMask(3)
+  val ParallaxMas: InputCodec[Parallax]             =
+    ExploreModelValidators.pxValidWedge.toCodec.withDecimalMask(3)
 
   // Line of sight motion
-  val RedshiftZ: InputCodec[Redshift]                       =
+  val RedshiftZ: InputCodec[Redshift]                              =
     InputValidSplitEpi.fromFormat(formatZ, "Must be a number".refined).toCodec.withDecimalMask(9)
   val ApparentRadialVelocityCz: InputCodec[ApparentRadialVelocity] =
     InputValidSplitEpi.fromFormat(formatCZ, "Must be a number".refined).toCodec.withDecimalMask(10)
-  val RadialVelocityKms: InputCodec[RadialVelocity]         =
+  val RadialVelocityKms: InputCodec[RadialVelocity]                =
     InputValidSplitEpi.fromFormat(formatRV, "Must be a number".refined).toCodec.withDecimalMask(3)
 
   // Angles
-  val PositionAngleDegrees: InputCodec[Angle] =
+  val PositionAngleDegrees: InputCodec[Angle]                  =
     MathValidators.truncatedAngleDegrees.toCodec.withDecimalMask(2, integerDigits = 3.some)
-  val Fwhm: InputCodec[Angle]                 =
+  val Fwhm: InputCodec[Angle]                                  =
     MathValidators.angleArcSec.toCodec.withUnboundedDecimalMask(allowMinus = false)
-  val DecimalArcseconds: InputCodec[Angle]    =
+  val DecimalArcseconds: InputCodec[Angle]                     =
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec.withDecimalMask(2)
-  val OffsetArcseconds: InputCodec[Angle]     =
-    ExploreModelValidators.decimalArcsecondsValidWedge.toCodec.withDecimalMask(2, integerDigits = 3.some)
-  val NonNegativeArcseconds: InputCodec[Angle] =
-    ExploreModelValidators.decimalArcsecondsValidWedge.toCodec.withDecimalMask(2, allowMinus = false)
+  val OffsetArcseconds: InputCodec[Angle]                      =
+    ExploreModelValidators.decimalArcsecondsValidWedge.toCodec
+      .withDecimalMask(2, integerDigits = 3.some)
+  val NonNegativeArcseconds: InputCodec[Angle]                 =
+    ExploreModelValidators.decimalArcsecondsValidWedge.toCodec
+      .withDecimalMask(2, allowMinus = false)
   val NonNegativeArcsecondsOptional: InputCodec[Option[Angle]] =
     ExploreModelValidators.decimalArcsecondsValidWedge.optional.toCodec
       .withDecimalMask(2, allowMinus = false)
-  val SignedArcsecondsOptional: InputCodec[Option[Angle]] =
+  val SignedArcsecondsOptional: InputCodec[Option[Angle]]      =
     ExploreModelValidators.decimalArcsecondsValidWedge.optional.toCodec.withDecimalMask(2)
+
   /** Finder chart zoom factor. */
   val FinderChartZoom: InputCodec[BigDecimal] =
     InputValidWedge.truncatedBigDecimal(2.refined).toCodec.withDecimalMask(2)
@@ -92,57 +99,58 @@ trait inputCodecs:
     valid.toCodec.withDecimalMask(2, allowMinus = false, integerDigits = 3.some)
 
   /** Air mass and hour angle bounds depend on the other bound, so the parser is supplied. */
-  def elevationRange[A](valid: InputValidFormat[A]): InputCodec[A] = valid.toCodec.withDecimalMask(1)
+  def elevationRange[A](valid: InputValidFormat[A]): InputCodec[A] =
+    valid.toCodec.withDecimalMask(1)
 
   // Time
-  val DurationHm: InputCodec[TimeSpan]                   = durationHM.toCodec.withRegexMask(Masks.DurationHm)
-  val DurationHmOptional: InputCodec[Option[TimeSpan]]   =
+  val DurationHm: InputCodec[TimeSpan]                        = durationHM.toCodec.withRegexMask(Masks.DurationHm)
+  val DurationHmOptional: InputCodec[Option[TimeSpan]]        =
     durationHM.optional.toCodec.withRegexMask(Masks.DurationHm)
-  val DurationHms: InputCodec[TimeSpan]                  = durationHMS.toCodec.withRegexMask(Masks.DurationHms)
-  val Time24h: InputCodec[LocalTime]                     = time24h.toCodec.withRegexMask(Masks.Hm)
-  val ExposureTimeSeconds: InputCodec[Option[TimeSpan]]  =
+  val DurationHms: InputCodec[TimeSpan]                       = durationHMS.toCodec.withRegexMask(Masks.DurationHms)
+  val Time24h: InputCodec[LocalTime]                          = time24h.toCodec.withRegexMask(Masks.Hm)
+  val ExposureTimeSeconds: InputCodec[Option[TimeSpan]]       =
     durationS.optional.toCodec.withIntegerMask(allowMinus = false)
-  val ExposureTimeMilliseconds: InputCodec[Option[TimeSpan]] =
+  val ExposureTimeMilliseconds: InputCodec[Option[TimeSpan]]  =
     durationMs.optional.toCodec.withDecimalMask(2, allowMinus = false)
   val ProposalHours: InputCodec[BigDecimal Refined HourRange] =
     ExploreModelValidators.hoursValidWedge.toCodec.withDecimalMask(2)
 
   // Counts and numbers
-  val Integer: InputCodec[Int]                        = InputValidSplitEpi.int.toCodec.withIntegerMask()
-  val NonNegativeInt: InputCodec[NonNegInt]           =
+  val Integer: InputCodec[Int]                                                    = InputValidSplitEpi.int.toCodec.withIntegerMask()
+  val NonNegativeInt: InputCodec[NonNegInt]                                       =
     InputValidSplitEpi.nonNegInt.toCodec.withIntegerMask(allowMinus = false)
   val GnirsFocusMotorSteps: InputCodec[Int Refined GnirsFocusMotorStepRefinement] =
     ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi.toCodec.withIntegerMask()
-  val PositiveInt: InputCodec[PosInt]                 =
+  val PositiveInt: InputCodec[PosInt]                                             =
     InputValidSplitEpi.posInt.toCodec.withIntegerMask(allowMinus = false)
-  val ExposureCount: InputCodec[Option[PosInt]]       =
+  val ExposureCount: InputCodec[Option[PosInt]]                                   =
     InputValidSplitEpi.posInt.optional.toCodec.withIntegerMask(allowMinus = false)
-  val Percent: InputCodec[Int Refined ZeroTo100]      =
+  val Percent: InputCodec[Int Refined ZeroTo100]                                  =
     InputValidSplitEpi.refinedInt[ZeroTo100].toCodec.withRegexMask(Masks.segment(100, 3))
   // SignalToNoise prints three decimals (milli-S/N), so the mask must accept them.
-  val SignalToNoiseOptional: InputCodec[Option[SignalToNoise]] =
+  val SignalToNoiseOptional: InputCodec[Option[SignalToNoise]]                    =
     ExploreModelValidators.signalToNoiseValidSplitEpi.optional.toCodec
       .withDecimalMask(3, allowMinus = false)
-  val Brightness: InputCodec[BrightnessValue]         =
+  val Brightness: InputCodec[BrightnessValue]                                     =
     ExploreModelValidators.brightnessValidWedge.toCodec
       .withScientificMask(integerDigits = 2, decimals = 3, exponentDigits = 2)
-  val PowerLawIndex: InputCodec[BigDecimal]           =
+  val PowerLawIndex: InputCodec[BigDecimal]                                       =
     InputValidSplitEpi.bigDecimal.toCodec.withUnboundedDecimalMask()
-  val BlackBodyTemperatureK: InputCodec[PosInt]       =
+  val BlackBodyTemperatureK: InputCodec[PosInt]                                   =
     InputValidSplitEpi.posInt.toCodec.withIntegerMask(allowMinus = false)
-  val LineWidth: InputCodec[LineWidthValue]           =
+  val LineWidth: InputCodec[LineWidthValue]                                       =
     InputValidSplitEpi
       .refinedBigDecimal[LineWidthValueRefinement]
       .andThen(LineWidthValue.Value.reverse)
       .toCodec
       .withDecimalMask(3, allowMinus = false)
-  val LineFlux: InputCodec[LineFluxValue]             =
+  val LineFlux: InputCodec[LineFluxValue]                                         =
     InputValidSplitEpi
       .refinedBigDecimalWithScientificNotation[LineFluxValueRefinement]
       .andThen(LineFluxValue.Value.reverse)
       .toCodec
       .withScientificMask(allowMinus = false)
-  val FluxDensityContinuum: InputCodec[FluxDensityContinuumValue] =
+  val FluxDensityContinuum: InputCodec[FluxDensityContinuumValue]                 =
     InputValidSplitEpi
       .refinedBigDecimalWithScientificNotation[FluxDensityContinuumValueRefinement]
       .andThen(FluxDensityContinuumValue.Value.reverse)
@@ -185,11 +193,11 @@ trait inputCodecs:
     valid.toCodec.withRegexMask(Masks.commaList(Masks.decimalPattern(3, 1, allowMinus = true)))
 
   // Text
-  val Text: InputCodec[String]                            = InputCodec.Text
-  val NonEmptyText: InputCodec[NonEmptyString]            = InputValidSplitEpi.nonEmptyString.toCodec
+  val Text: InputCodec[String]                                 = InputCodec.Text
+  val NonEmptyText: InputCodec[NonEmptyString]                 = InputValidSplitEpi.nonEmptyString.toCodec
   val NonEmptyTextOptional: InputCodec[Option[NonEmptyString]] =
     InputValidSplitEpi.nonEmptyString.optional.toCodec
-  val EmailOptional: InputCodec[Option[EmailAddress]]     =
+  val EmailOptional: InputCodec[Option[EmailAddress]]          =
     ExploreModelValidators.MailValidator.optional.toCodec
 
 object inputCodecs extends inputCodecs

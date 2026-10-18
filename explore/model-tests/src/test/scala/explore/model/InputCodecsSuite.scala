@@ -48,7 +48,9 @@ final class InputCodecsSuite extends DisciplineSuite:
     Gen.choose(-10000, 99999).map(milli => BrightnessValue.unsafeFrom(BigDecimal(milli) / 1000))
   )
   private given Arbitrary[SignalToNoise]          = Arbitrary(
-    Gen.choose(0, 999999).map(deci => SignalToNoise.unsafeFromBigDecimalExact(BigDecimal(deci) / 10))
+    Gen
+      .choose(0, 999999)
+      .map(deci => SignalToNoise.unsafeFromBigDecimalExact(BigDecimal(deci) / 10))
   )
   private given Arbitrary[Wavelength]             = Arbitrary(
     Gen.choose(300000, 30000000).map(Wavelength.unsafeFromIntPicometers)
@@ -82,10 +84,14 @@ final class InputCodecsSuite extends DisciplineSuite:
   checkAll("PositionAngleDegrees", InputCodecTests(inputCodecs.PositionAngleDegrees))
   checkAll("Fwhm", InputCodecTests(inputCodecs.Fwhm))
   checkAll("DecimalArcseconds", InputCodecTests(inputCodecs.DecimalArcseconds))
-  checkAll("NonNegativeArcseconds", InputCodecTests(inputCodecs.NonNegativeArcseconds)(using nonNegativeAngles))
+  checkAll("NonNegativeArcseconds",
+           InputCodecTests(inputCodecs.NonNegativeArcseconds)(using nonNegativeAngles)
+  )
   checkAll(
     "NonNegativeArcsecondsOptional",
-    InputCodecTests(inputCodecs.NonNegativeArcsecondsOptional)(using Arbitrary(Gen.option(nonNegativeAngles.arbitrary)))
+    InputCodecTests(inputCodecs.NonNegativeArcsecondsOptional)(using
+      Arbitrary(Gen.option(nonNegativeAngles.arbitrary))
+    )
   )
   checkAll("SignedArcsecondsOptional", InputCodecTests(inputCodecs.SignedArcsecondsOptional))
   checkAll("FinderChartZoom", InputCodecTests(inputCodecs.FinderChartZoom)(using zoomFactors))
