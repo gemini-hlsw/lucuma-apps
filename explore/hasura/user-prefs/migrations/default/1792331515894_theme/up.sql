@@ -1,6 +1,11 @@
-CREATE TABLE "public"."lucumaTheme" ("id" text NOT NULL, PRIMARY KEY ("id"), UNIQUE ("id"));
 
-INSERT INTO "public"."lucumaTheme"("id") VALUES (E'dark'), (E'light'), (E'system');
+CREATE TABLE "public"."lucumaThem" ("id" text NOT NULL, PRIMARY KEY ("id") , UNIQUE ("id"));
+
+INSERT INTO "public"."lucumaThem"("id") VALUES (E'dark');
+
+INSERT INTO "public"."lucumaThem"("id") VALUES (E'light'), (E'system');
+
+alter table "public"."lucumaThem" rename to "lucumaTheme";
 
 alter table "public"."lucumaUserPreferences" add column "theme" text
  not null default 'dark';
