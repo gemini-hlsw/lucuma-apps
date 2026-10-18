@@ -18,7 +18,7 @@ import monocle.syntax.all.*
 import mouse.all.*
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.ObserveFailure.ObserveException
 import org.typelevel.log4cats.Logger
 

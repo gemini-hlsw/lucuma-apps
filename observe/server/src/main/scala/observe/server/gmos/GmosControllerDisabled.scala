@@ -9,7 +9,7 @@ import fs2.Stream
 import lucuma.core.util.TimeSpan
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.Progress
 import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger

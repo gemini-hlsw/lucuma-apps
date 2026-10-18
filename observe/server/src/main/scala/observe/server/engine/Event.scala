@@ -17,7 +17,7 @@ import observe.server.SeqEvent
 
 import java.time.Instant
 
-import SystemEvent.*
+import EngineEvent.*
 import UserEvent.*
 
 /**
@@ -27,7 +27,7 @@ sealed trait Event[F[_]] extends Product with Serializable
 
 object Event {
   case class EventUser[F[_]](ue: UserEvent[F])  extends Event[F]
-  case class EventSystem[F[_]](se: SystemEvent) extends Event[F]
+  case class EventEngine[F[_]](ee: EngineEvent) extends Event[F]
 
   def requestSequenceHold[F[_]](obsId: Observation.Id, user: User): Event[F]       =
     EventUser[F](RequestSequenceHold(obsId, user.some))
@@ -77,57 +77,57 @@ object Event {
   def pure[F[_]](v: SeqEvent): Event[F] = EventUser[F](Pure(v))
 
   def failed[F[_]](obsId: Observation.Id, stepId: Step.Id, i: Int, e: Result.Error): Event[F]  =
-    EventSystem[F](Failed(obsId, stepId, i, e))
+    EventEngine[F](Failed(obsId, stepId, i, e))
   def loadFailed[F[_]](obsId: Observation.Id, i: Int, e: Result.Error): Event[F]               =
-    EventSystem[F](LoadFailed(obsId, i, e))
+    EventEngine[F](LoadFailed(obsId, i, e))
   def completed[F[_], R <: Result.RetVal](
     id:     Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      Result.OK[R]
-  ): Event[F]                                                                                  = EventSystem[F](Completed(id, stepId, i, r))
+  ): Event[F]                                                                                  = EventEngine[F](Completed(id, stepId, i, r))
   def stopCompleted[F[_], R <: Result.RetVal](
     id:     Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      Result.OKStopped[R]
-  ): Event[F]                                                                                  = EventSystem[F](StopCompleted(id, stepId, i, r))
+  ): Event[F]                                                                                  = EventEngine[F](StopCompleted(id, stepId, i, r))
   def aborted[F[_], R <: Result.RetVal](
     id:     Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      Result.OKAborted[R]
-  ): Event[F]                                                                                  = EventSystem[F](Aborted(id, stepId, i, r))
+  ): Event[F]                                                                                  = EventEngine[F](Aborted(id, stepId, i, r))
   def partial[F[_], R <: Result.PartialVal](
     id:     Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      Result.Partial[R]
   ): Event[F]                                                                                  =
-    EventSystem[F](PartialResult(id, stepId, i, r))
+    EventEngine[F](PartialResult(id, stepId, i, r))
   def paused[F[_]](obsId: Observation.Id, stepId: Step.Id, i: Int, c: Result.Paused): Event[F] =
-    EventSystem[F](Paused(obsId, stepId, i, c))
+    EventEngine[F](Paused(obsId, stepId, i, c))
   def breakpointReached[F[_]](obsId: Observation.Id): Event[F]                                 =
-    EventSystem[F](BreakpointReached(obsId))
+    EventEngine[F](BreakpointReached(obsId))
   def sequenceHeld[F[_]](obsId: Observation.Id): Event[F]                                      =
-    EventSystem[F](SequenceHeld(obsId))
+    EventEngine[F](SequenceHeld(obsId))
   def busy[F[_]](obsId: Observation.Id, clientId: ClientId): Event[F]                          =
-    EventSystem[F](Busy(obsId, clientId))
+    EventEngine[F](Busy(obsId, clientId))
   def executed[F[_]](obsId: Observation.Id): Event[F]                                          =
-    EventSystem[F](Executed(obsId))
+    EventEngine[F](Executed(obsId))
   def executing[F[_]](obsId: Observation.Id): Event[F]                                         =
-    EventSystem[F](Executing(obsId))
+    EventEngine[F](Executing(obsId))
   def stepComplete[F[_]](obsId: Observation.Id): Event[F]                                      =
-    EventSystem[F](StepComplete(obsId))
+    EventEngine[F](StepComplete(obsId))
   def sequenceComplete[F[_]](obsId: Observation.Id): Event[F]                                  =
-    EventSystem[F](SequenceComplete(obsId))
-  def nullEvent[F[_]]: Event[F]                                                                = EventSystem[F](Null)
+    EventEngine[F](SequenceComplete(obsId))
+  def nullEvent[F[_]]: Event[F]                                                                = EventEngine[F](Null)
   def singleRunCompleted[F[_], R <: Result.RetVal](
     c: ActionCoords,
     r: Result.OK[R]
   ): Event[F]                                                                                  =
-    EventSystem[F](SingleRunCompleted(c, r))
+    EventEngine[F](SingleRunCompleted(c, r))
   def singleRunFailed[F[_]](c: ActionCoords, e: Result.Error): Event[F]                        =
-    EventSystem[F](SingleRunFailed(c, e))
+    EventEngine[F](SingleRunFailed(c, e))
 
 }

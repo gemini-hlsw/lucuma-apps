@@ -29,16 +29,19 @@ class StepsViewSuite extends TestCommon {
   }
 
   test("StepsView configStatus should be all running if none has a result") {
-    val status                                = List(Resource.TCS -> ActionStatus.Running)
-    val executions: List[ParallelActions[Id]] = List(NonEmptyList.one(running(Resource.TCS)))
+    val status                                = List(ObservatorySubsystem.Tcs -> ActionStatus.Running)
+    val executions: List[ParallelActions[Id]] =
+      List(NonEmptyList.one(running(ObservatorySubsystem.Tcs)))
     assertEquals(StepsView.configStatus(executions), status)
   }
 
   test("StepsView configStatus should be all running if none has a result 2") {
     val status                                =
-      List(Resource.TCS -> ActionStatus.Running, Instrument.GmosNorth -> ActionStatus.Running)
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Running,
+           Instrument.GmosNorth     -> ActionStatus.Running
+      )
     val executions: List[ParallelActions[Id]] =
-      List(NonEmptyList.of(running(Resource.TCS), running(Instrument.GmosNorth)))
+      List(NonEmptyList.of(running(ObservatorySubsystem.Tcs), running(Instrument.GmosNorth)))
     assertEquals(StepsView.configStatus(executions), status)
   }
 
@@ -46,10 +49,12 @@ class StepsViewSuite extends TestCommon {
     "StepsView configStatus should be some complete and some running if none has a result even when the previous execution is complete"
   ) {
     val status                                =
-      List(Resource.TCS -> ActionStatus.Completed, Instrument.GmosNorth -> ActionStatus.Running)
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Completed,
+           Instrument.GmosNorth     -> ActionStatus.Running
+      )
     val executions: List[ParallelActions[Id]] =
-      List(NonEmptyList.one(done(Resource.TCS)),
-           NonEmptyList.of(done(Resource.TCS), running(Instrument.GmosNorth))
+      List(NonEmptyList.one(done(ObservatorySubsystem.Tcs)),
+           NonEmptyList.of(done(ObservatorySubsystem.Tcs), running(Instrument.GmosNorth))
       )
     assertEquals(StepsView.configStatus(executions), status)
   }
@@ -58,10 +63,12 @@ class StepsViewSuite extends TestCommon {
     "StepsView configStatus should be some complete and some pending if one will be done in the future"
   ) {
     val status                                =
-      List(Resource.TCS -> ActionStatus.Completed, Instrument.GmosNorth -> ActionStatus.Running)
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Completed,
+           Instrument.GmosNorth     -> ActionStatus.Running
+      )
     val executions: List[ParallelActions[Id]] = List(
       NonEmptyList.one(running(Instrument.GmosNorth)),
-      NonEmptyList.of(done(Resource.TCS), done(Instrument.GmosNorth))
+      NonEmptyList.of(done(ObservatorySubsystem.Tcs), done(Instrument.GmosNorth))
     )
     assertEquals(StepsView.configStatus(executions), status)
   }
@@ -69,10 +76,12 @@ class StepsViewSuite extends TestCommon {
   test("StepsView configStatus should stop at the first with running steps") {
     val executions: List[ParallelActions[Id]] = List(
       NonEmptyList.one(running(Instrument.GmosNorth)),
-      NonEmptyList.of(running(Instrument.GmosNorth), running(Resource.TCS))
+      NonEmptyList.of(running(Instrument.GmosNorth), running(ObservatorySubsystem.Tcs))
     )
     val status                                =
-      List(Resource.TCS -> ActionStatus.Pending, Instrument.GmosNorth -> ActionStatus.Running)
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Pending,
+           Instrument.GmosNorth     -> ActionStatus.Running
+      )
     assertEquals(StepsView.configStatus(executions), status)
   }
 
@@ -80,17 +89,17 @@ class StepsViewSuite extends TestCommon {
     "StepsView configStatus should stop evaluating where at least one is running even while some are done"
   ) {
     val executions: List[ParallelActions[Id]] = List(
-      NonEmptyList.of(done(Resource.TCS), done(Instrument.GmosNorth)),
-      NonEmptyList.of(done(Resource.TCS), running(Instrument.GmosNorth)),
+      NonEmptyList.of(done(ObservatorySubsystem.Tcs), done(Instrument.GmosNorth)),
+      NonEmptyList.of(done(ObservatorySubsystem.Tcs), running(Instrument.GmosNorth)),
       NonEmptyList.of(
-        pendingAction(Resource.TCS),
+        pendingAction(ObservatorySubsystem.Tcs),
         pendingAction(Instrument.GmosNorth),
-        pendingAction(Resource.Gcal)
+        pendingAction(ObservatorySubsystem.Gcal)
       )
     )
-    val status                                = List(Resource.TCS -> ActionStatus.Completed,
-                      Resource.Gcal        -> ActionStatus.Pending,
-                      Instrument.GmosNorth -> ActionStatus.Running
+    val status                                = List(ObservatorySubsystem.Tcs -> ActionStatus.Completed,
+                      ObservatorySubsystem.Gcal -> ActionStatus.Pending,
+                      Instrument.GmosNorth      -> ActionStatus.Running
     )
     assertEquals(StepsView.configStatus(executions), status)
   }
@@ -100,42 +109,47 @@ class StepsViewSuite extends TestCommon {
   }
 
   test("StepsView pending configStatus should build be all pending while one is running") {
-    val status                                = List(Resource.TCS -> ActionStatus.Pending)
-    val executions: List[ParallelActions[Id]] = List(NonEmptyList.one(pendingAction(Resource.TCS)))
+    val status                                = List(ObservatorySubsystem.Tcs -> ActionStatus.Pending)
+    val executions: List[ParallelActions[Id]] =
+      List(NonEmptyList.one(pendingAction(ObservatorySubsystem.Tcs)))
     assertEquals(StepsView.pendingConfigStatus(executions), status)
   }
 
   test("StepsView pending configStatus should build be all pending with mixed") {
     val status                                =
-      List(Resource.TCS -> ActionStatus.Pending, Instrument.GmosNorth -> ActionStatus.Pending)
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Pending,
+           Instrument.GmosNorth     -> ActionStatus.Pending
+      )
     val executions: List[ParallelActions[Id]] =
-      List(NonEmptyList.of(pendingAction(Resource.TCS), done(Instrument.GmosNorth)))
+      List(NonEmptyList.of(pendingAction(ObservatorySubsystem.Tcs), done(Instrument.GmosNorth)))
     assertEquals(StepsView.pendingConfigStatus(executions), status)
   }
 
   test("StepsView pending configStatus should build be all pending on mixed combinations") {
     val status                                =
-      List(Resource.TCS -> ActionStatus.Pending, Instrument.GmosNorth -> ActionStatus.Pending)
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Pending,
+           Instrument.GmosNorth     -> ActionStatus.Pending
+      )
     val executions: List[ParallelActions[Id]] =
-      List(NonEmptyList.one(done(Resource.TCS)),
-           NonEmptyList.of(done(Resource.TCS), pendingAction(Instrument.GmosNorth))
+      List(NonEmptyList.one(done(ObservatorySubsystem.Tcs)),
+           NonEmptyList.of(done(ObservatorySubsystem.Tcs), pendingAction(Instrument.GmosNorth))
       )
     assertEquals(StepsView.pendingConfigStatus(executions), status)
   }
 
-  test("StepsView pending configStatus should build be all pending with multiple resources") {
+  test("StepsView pending configStatus should build be all pending with multiple subsystems") {
     val executions: List[ParallelActions[Id]] = List(
-      NonEmptyList.of(done(Resource.TCS), pendingAction(Instrument.GmosNorth)),
-      NonEmptyList.of(done(Resource.TCS), pendingAction(Instrument.GmosNorth)),
+      NonEmptyList.of(done(ObservatorySubsystem.Tcs), pendingAction(Instrument.GmosNorth)),
+      NonEmptyList.of(done(ObservatorySubsystem.Tcs), pendingAction(Instrument.GmosNorth)),
       NonEmptyList.of(
-        done(Resource.TCS),
+        done(ObservatorySubsystem.Tcs),
         pendingAction(Instrument.GmosNorth),
-        pendingAction(Resource.Gcal)
+        pendingAction(ObservatorySubsystem.Gcal)
       )
     )
-    val status                                = List(Resource.TCS -> ActionStatus.Pending,
-                      Resource.Gcal        -> ActionStatus.Pending,
-                      Instrument.GmosNorth -> ActionStatus.Pending
+    val status                                = List(ObservatorySubsystem.Tcs -> ActionStatus.Pending,
+                      ObservatorySubsystem.Gcal -> ActionStatus.Pending,
+                      Instrument.GmosNorth      -> ActionStatus.Pending
     )
     assertEquals(StepsView.pendingConfigStatus(executions), status)
   }
@@ -145,23 +159,26 @@ class StepsViewSuite extends TestCommon {
   }
 
   test("StepsView observeStatus should be running if there is an action observe") {
-    val executions: List[ParallelActions[Id]] = List(NonEmptyList.of(done(Resource.TCS), observing))
+    val executions: List[ParallelActions[Id]] =
+      List(NonEmptyList.of(done(ObservatorySubsystem.Tcs), observing))
     assertEquals(StepsView.observeStatus(executions), ActionStatus.Running)
   }
 
   test("StepsView observeStatus should be done if there is a result observe") {
-    val executions: List[ParallelActions[Id]] = List(NonEmptyList.of(done(Resource.TCS), observed))
+    val executions: List[ParallelActions[Id]] =
+      List(NonEmptyList.of(done(ObservatorySubsystem.Tcs), observed))
     assertEquals(StepsView.observeStatus(executions), ActionStatus.Completed)
   }
 
   test("StepsView observeStatus should be running if there is a partial result with the file id") {
     val executions: List[ParallelActions[Id]] =
-      List(NonEmptyList.of(done(Resource.TCS), fileIdReady))
+      List(NonEmptyList.of(done(ObservatorySubsystem.Tcs), fileIdReady))
     assertEquals(StepsView.observeStatus(executions), ActionStatus.Running)
   }
 
   test("StepsView observeStatus should be paused if there is a paused observe") {
-    val executions: List[ParallelActions[Id]] = List(NonEmptyList.of(done(Resource.TCS), paused))
+    val executions: List[ParallelActions[Id]] =
+      List(NonEmptyList.of(done(ObservatorySubsystem.Tcs), paused))
     assertEquals(StepsView.observeStatus(executions), ActionStatus.Paused)
   }
 
@@ -245,15 +262,15 @@ class StepsViewSuite extends TestCommon {
   //     }).unsafeRunSync()
   // }
 
-//   "StepsView" should "not run 2nd sequence because it's using the same resource" in {
+//   "StepsView" should "not run 2nd sequence because it's using the same subsystem" in {
 //     val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
 //       seqObsId1,
-//       sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
+//       sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
 //       executeEngine
 //     ) >>>
 //       ODBSequencesLoader.loadSequenceEndo[IO](
 //         seqObsId2,
-//         sequenceWithResources(seqObsId2, Instrument.F2, Set(Instrument.F2)),
+//         sequenceWithSubsystems(seqObsId2, Instrument.F2, Set(Instrument.F2)),
 //         executeEngine
 //       ) >>>
 //       EngineState
@@ -280,15 +297,15 @@ class StepsViewSuite extends TestCommon {
 //
 //   }
 //
-//   it should "run 2nd sequence when there are no shared resources" in {
+//   it should "run 2nd sequence when there are no shared subsystems" in {
 //     val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
 //       seqObsId1,
-//       sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
+//       sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
 //       executeEngine
 //     ) >>>
 //       ODBSequencesLoader.loadSequenceEndo[IO](
 //         seqObsId2,
-//         sequenceWithResources(seqObsId2, Instrument.GmosS, Set(Instrument.GmosS)),
+//         sequenceWithSubsystems(seqObsId2, Instrument.GmosS, Set(Instrument.GmosS)),
 //         executeEngine
 //       ) >>>
 //       EngineState
@@ -315,11 +332,11 @@ class StepsViewSuite extends TestCommon {
 //     }).unsafeRunSync()
 //   }
 //
-//   "StepsView configSystem" should "run a system configuration" in {
+//   "StepsView configureSubsystem" should "run a system configuration" in {
 //     val s0 = ODBSequencesLoader
 //       .loadSequenceEndo[IO](
 //         seqObsId1,
-//         sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
+//         sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
 //         executeEngine
 //       )
 //       .apply(EngineState.default[IO])
@@ -329,7 +346,7 @@ class StepsViewSuite extends TestCommon {
 //       sf <-
 //         advanceN(q,
 //                  s0,
-//                  observeEngine.configSystem(q,
+//                  observeEngine.configureSubsystem(q,
 //                                             seqObsId1,
 //                                             Observer(""),
 //                                             user,
@@ -356,7 +373,7 @@ class StepsViewSuite extends TestCommon {
 //   it should "not run a system configuration if sequence is running" in {
 //     val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
 //       seqObsId1,
-//       sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
+//       sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
 //       executeEngine
 //     ) >>>
 //       EngineState
@@ -369,7 +386,7 @@ class StepsViewSuite extends TestCommon {
 //       sf <-
 //         advanceOne(q,
 //                    s0,
-//                    observeEngine.configSystem(q,
+//                    observeEngine.configureSubsystem(q,
 //                                               seqObsId1,
 //                                               Observer(""),
 //                                               user,
@@ -395,12 +412,12 @@ class StepsViewSuite extends TestCommon {
 //   it should "not run a system configuration if system is in use" in {
 //     val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
 //       seqObsId1,
-//       sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
+//       sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
 //       executeEngine
 //     ) >>>
 //       ODBSequencesLoader.loadSequenceEndo[IO](
 //         seqObsId2,
-//         sequenceWithResources(seqObsId2, Instrument.F2, Set(Instrument.F2)),
+//         sequenceWithSubsystems(seqObsId2, Instrument.F2, Set(Instrument.F2)),
 //         executeEngine
 //       ) >>>
 //       EngineState
@@ -414,7 +431,7 @@ class StepsViewSuite extends TestCommon {
 //         advanceOne(
 //           q,
 //           s0,
-//           observeEngine.configSystem(q,
+//           observeEngine.configureSubsystem(q,
 //                                      seqObsId2,
 //                                      Observer(""),
 //                                      user,
@@ -437,15 +454,15 @@ class StepsViewSuite extends TestCommon {
 //     }).unsafeRunSync()
 //   }
 //
-//   it should "run a system configuration when other sequence is running with other systems" in {
+//   it should "run a system configuration when other sequence is running with other subsystems" in {
 //     val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
 //       seqObsId1,
-//       sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.GmosS, TCS)),
+//       sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.GmosS, TCS)),
 //       executeEngine
 //     ) >>>
 //       ODBSequencesLoader.loadSequenceEndo[IO](
 //         seqObsId2,
-//         sequenceWithResources(seqObsId2, Instrument.F2, Set(Instrument.F2)),
+//         sequenceWithSubsystems(seqObsId2, Instrument.F2, Set(Instrument.F2)),
 //         executeEngine
 //       ) >>>
 //       EngineState
@@ -460,7 +477,7 @@ class StepsViewSuite extends TestCommon {
 //           q,
 //           s0,
 //           observeEngine
-//             .configSystem(q,
+//             .configureSubsystem(q,
 //                           seqObsId2,
 //                           Observer(""),
 //                           user,
@@ -514,15 +531,15 @@ class StepsViewSuite extends TestCommon {
 //     }).unsafeRunSync()
 //   }
 //
-//   "StepsView startFrom" should "not start the sequence if there is a resource conflict" in {
+//   "StepsView startFrom" should "not start the sequence if there is a subsystem conflict" in {
 //     val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
 //       seqObsId1,
-//       sequenceWithResources(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
+//       sequenceWithSubsystems(seqObsId1, Instrument.F2, Set(Instrument.F2, TCS)),
 //       executeEngine
 //     ) >>>
 //       ODBSequencesLoader.loadSequenceEndo[IO](
 //         seqObsId2,
-//         sequenceWithResources(seqObsId2, Instrument.F2, Set(Instrument.F2)),
+//         sequenceWithSubsystems(seqObsId2, Instrument.F2, Set(Instrument.F2)),
 //         executeEngine
 //       ) >>>
 //       EngineState

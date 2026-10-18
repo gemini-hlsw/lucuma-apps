@@ -16,7 +16,7 @@ import observe.model.enums.NodAndShuffleStage.*
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
 import observe.server.InstrumentActions.*
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.ObserveActions.*
 import observe.server.engine.ParallelActions
 import observe.server.engine.Response
@@ -297,9 +297,9 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
     env:    ObserveEnvironment[F]
   ): List[ParallelActions[F]] =
     env.stepType match
-      case StepKind.NodAndShuffle(i) if i === inst.resource =>
+      case StepKind.NodAndShuffle(i) if i === inst.subsystem =>
         defaultObserveActions(launchObserve(stepId, env))
-      case StepKind.DarkOrBiasNS(i) if i === inst.resource  =>
+      case StepKind.DarkOrBiasNS(i) if i === inst.subsystem  =>
         defaultObserveActions(launchObserve(stepId, env))
 
       case _ =>

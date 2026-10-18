@@ -5,12 +5,12 @@ package observe.web.server.config
 
 import cats.effect.Sync
 import cats.syntax.all.*
+import com.typesafe.config.Config
 import lucuma.core.enums.Site
 import lucuma.core.util.Enumerated
 import lucuma.sso.client.util.GpgPublicKeyReader
 import observe.model.config.*
-import observe.model.config.SystemsControlConfiguration
-import observe.model.enums.ControlStrategy
+import observe.model.enums.SubsystemControlMode
 import org.http4s.Uri
 import pureconfig.*
 import pureconfig.error.*
@@ -27,10 +27,10 @@ case class EnumValueUnknown(value: String, available: List[String]) extends Fail
     s"enumerated value '$value' invalid. Should be one of ${available.mkString("[", ", ", "]")}"
 }
 
-case class StrategyValueUnknown(strategy: String) extends FailureReason {
-  def description: String = s"strategy '$strategy' invalid"
+case class ControlModeValueUnknown(mode: String) extends FailureReason {
+  def description: String = s"subsystem control mode '$mode' invalid"
 }
-case class PublicKeyUnknown(value: String)        extends FailureReason {
+case class PublicKeyUnknown(value: String)       extends FailureReason {
   def description: String = s"publicKey '$value' invalid"
 }
 
@@ -43,12 +43,12 @@ given [A: Enumerated]: ConfigReader[A] = ConfigReader.fromCursor[A]: cf =>
       case Some(x) => x.asRight
       case _       => cf.failed(EnumValueUnknown(c, Enumerated[A].all.map(_.toString)))
 
-given ConfigReader[ControlStrategy] =
-  ConfigReader.fromCursor[ControlStrategy] { cf =>
+given ConfigReader[SubsystemControlMode] =
+  ConfigReader.fromCursor[SubsystemControlMode] { cf =>
     cf.asString.flatMap { c =>
-      ControlStrategy.fromString(c) match {
+      Enumerated[SubsystemControlMode].fromTag(c) match {
         case Some(x) => x.asRight
-        case _       => cf.failed(StrategyValueUnknown(c))
+        case _       => cf.failed(ControlModeValueUnknown(c))
       }
     }
   }
@@ -62,7 +62,7 @@ given ConfigReader[PublicKey] =
     }
   }
 
-given ConfigReader[SystemsControlConfiguration] = ConfigReader.derived
+given ConfigReader[SubsystemControlModes] = ConfigReader.derived
 
 given ConfigReader[GpiUriSettings] = ConfigReader[Uri].map(GpiUriSettings.apply)
 
@@ -84,3 +84,31 @@ given ConfigReader[ObserveConfiguration] = ConfigReader.derived
 
 def loadConfiguration[F[_]: Sync](config: ConfigObjectSource): F[ObserveConfiguration] =
   config.loadF[F, ObserveConfiguration]()
+
+/** Key under which the control mode of each subsystem is configured. */
+val SubsystemControlModesKey: String = "observe-engine.subsystem-control-modes"
+
+/** Former name of [[SubsystemControlModesKey]], still accepted with a warning. */
+val DeprecatedSystemControlKey: String = "observe-engine.system-control"
+
+/** Whether the configuration still uses the deprecated `observe-engine.system-control` key. */
+def hasDeprecatedSystemControl(config: Config): Boolean =
+  config.hasPath(DeprecatedSystemControlKey)
+
+/**
+ * Moves the values under the deprecated `observe-engine.system-control` key to
+ * `observe-engine.subsystem-control-modes`. The deprecated values take precedence over the ones
+ * already under the new key (e.g. the defaults in `base.conf`), as the deprecated key can only come
+ * from a hand-written file that was not migrated.
+ */
+def migrateSystemControl(config: Config): Config =
+  if hasDeprecatedSystemControl(config) then
+    val deprecated: Config = config.getConfig(DeprecatedSystemControlKey)
+    val migrated: Config   =
+      if config.hasPath(SubsystemControlModesKey) then
+        deprecated.withFallback(config.getConfig(SubsystemControlModesKey))
+      else deprecated
+    config
+      .withoutPath(DeprecatedSystemControlKey)
+      .withValue(SubsystemControlModesKey, migrated.root)
+  else config

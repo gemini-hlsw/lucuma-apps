@@ -11,7 +11,7 @@ import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 
 /** All the inputs an [[InstrumentStepBuilder]] needs to translate a single sequence step. */
 final case class StepBuildContext[F[_], S, D](
-  systems:           Systems.OverriddenSystems[F],
+  services:          Services.OverriddenSubsystems[F],
   coreStepType:      CoreStepType,
   targetEnvironment: TargetEnvironment,
   staticConf:        S,

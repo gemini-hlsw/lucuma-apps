@@ -8,7 +8,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.math.Wavelength
 import lucuma.core.util.TimeSpan
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
 
@@ -29,7 +29,7 @@ trait InstrumentStep[F[_]] {
 
   def observeTimeout: TimeSpan = TimeSpan.unsafeFromDuration(1, ChronoUnit.MINUTES)
 
-  def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F]
+  def instrumentHandler(subsystemOverrides: SubsystemOverrides): InstrumentHandler[F]
 
   def instrumentHeader(client: KeywordsClient[F]): Header[F]
 

@@ -23,13 +23,13 @@ import observe.model.Observation.Id
 import observe.model.enums.*
 import observe.server.EngineState
 import observe.server.ObserveEngine
-import observe.server.Systems
+import observe.server.Services
 import observe.server.engine.EventResult
 import observe.server.events.TargetedClientEvent
 import org.typelevel.log4cats.Logger
 
-class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
-  override val systems: Systems[F] = sys
+class TestObserveEngine[F[_]: Sync](sys: Services[F]) extends ObserveEngine[F] {
+  override val services: Services[F] = sys
 
   override def startSequence(
     id:          Id,
@@ -192,7 +192,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
   override def stopQueue(qid: QueueId, clientId: ClientId): F[Unit] =
     Applicative[F].unit
 
-  override def configSystem(
+  override def configureSubsystem(
     sid:      Id,
     observer: Observer,
     user:     User,
@@ -233,5 +233,5 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
 
 object TestObserveEngine {
   def build[F[_]: {Async, Logger}]: F[TestObserveEngine[F]] =
-    Systems.dummy[F].map(TestObserveEngine[F](_))
+    Services.dummy[F].map(TestObserveEngine[F](_))
 }

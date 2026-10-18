@@ -311,11 +311,11 @@ trait ServerEventHandler:
 
         val msgs: IO[List[String]] =
           notification match
-            case Notification.ResourceConflict(obsId)                =>
-              List(s"Error in observation $obsId: Resource already in use").pure[IO]
-            case Notification.InstrumentInUse(obsId, ins)            =>
+            case Notification.SubsystemConflict(obsId)                =>
+              List(s"Error in observation $obsId: Subsystem already in use").pure[IO]
+            case Notification.InstrumentInUse(obsId, ins)             =>
               List(s"Error in observation $obsId: Instrument $ins already in use").pure[IO]
-            case Notification.LoadingFailed(obsId, msgs)             =>
+            case Notification.LoadingFailed(obsId, msgs)              =>
               rootModelDataMod:
                 RootModelData.loadedObservations
                   .andThen(LoadedObservations.Value)
@@ -323,13 +323,15 @@ trait ServerEventHandler:
                   .replace:
                     Pot.error(new RuntimeException(msgs.mkString("; ")))
               .as(msgs)
-            case Notification.SequenceNotIdle(obsId, action)         =>
+            case Notification.SequenceNotIdle(obsId, action)          =>
               clearAcquisitionRequests(obsId).as(List(s"Sequence $obsId must be idle to $action"))
-            case Notification.ActionFailed(obsId, action, msg)       =>
+            case Notification.ActionFailed(obsId, action, msg)        =>
               clearAcquisitionRequests(obsId)
                 .as(List(s"Could not $action for observation $obsId: $msg"))
-            case Notification.SubsystemBusy(obsId, stepId, resource) =>
-              List(s"Error in observation $obsId, step $stepId: Subsystem $resource already in use")
+            case Notification.SubsystemBusy(obsId, stepId, subsystem) =>
+              List(
+                s"Error in observation $obsId, step $stepId: Subsystem $subsystem already in use"
+              )
                 .pure[IO]
 
         msgs.flatMap: ms =>

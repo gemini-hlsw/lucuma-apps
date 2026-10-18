@@ -6,7 +6,7 @@ package observe.model.config
 import cats.Eq
 import cats.derived.*
 import lucuma.core.util.NewType
-import observe.model.config.SystemsControlConfiguration
+import observe.model.config.SubsystemControlModes
 import org.http4s.Uri
 
 import scala.concurrent.duration.FiniteDuration
@@ -30,7 +30,7 @@ type Igrins2UriSettings = Igrins2UriSettings.Type
  *   HTTP GraphQL endpoint of the navigate server, used to configure the telescope for each step
  * @param dhsServer
  *   Location of the dhs server proxy
- * @param systemControl
+ * @param subsystemControlModes
  *   Control of the subsystems
  * @param odbNotifications
  *   Indicates if we notify the odb of sequence events
@@ -68,7 +68,7 @@ case class ObserveEngineConfiguration(
   odbWs:                   Uri,
   navigateHttp:            Uri,
   dhsServer:               Uri,
-  systemControl:           SystemsControlConfiguration,
+  subsystemControlModes:   SubsystemControlModes,
   odbNotifications:        Boolean,
   instForceError:          Boolean,
   failAt:                  Int,

@@ -19,7 +19,7 @@ object CaServiceInit {
       F.delay(CaService.setAddressList(a))
 
     L.info("Init EPICS but all subsystems in simulation")
-      .unlessA(conf.systemControl.connectEpics) *>
+      .unlessA(conf.subsystemControlModes.connectEpics) *>
       conf.epicsCaAddrList.map(setAddressList).getOrElse {
         F.delay(Option(System.getenv("EPICS_CA_ADDR_LIST"))).flatMap {
           case Some(a) => setAddressList(a).void

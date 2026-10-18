@@ -18,10 +18,10 @@ import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.util.TimeSpan
 import monocle.Getter
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.server.InstrumentStaticInfo
 import observe.server.InstrumentStepBuilder
-import observe.server.Systems
+import observe.server.Services
 import observe.server.gmos.GmosController.Config.DTAX
 import observe.server.gmos.GmosController.Config.GratingOrder
 import observe.server.gmos.GmosController.GmosConfig
@@ -44,7 +44,7 @@ final case class GmosNorth[F[_]: {Temporal, Logger}] private (
       nsCmdR,
       cfg
     ) {
-  override val resource: Instrument      = Instrument.GmosNorth
+  override val subsystem: Instrument     = Instrument.GmosNorth
   override val dhsInstrumentName: String = "GMOS-N"
 }
 
@@ -91,12 +91,16 @@ object GmosNorth {
     Gmos.instrumentStepBuilder[F, GmosSite.North.type](
       staticInfo.instrument,
       (
-        syss:   Systems.OverriddenSystems[F],
-        r:      Ref[F, Option[NSObserveCommand]],
-        config: GmosConfig[GmosSite.North.type]
+        services: Services.OverriddenSubsystems[F],
+        r:        Ref[F, Option[NSObserveCommand]],
+        config:   GmosConfig[GmosSite.North.type]
       ) =>
-        (systemOverrides: SystemOverrides) =>
-          new GmosNorth[F](syss.gmosNorth(systemOverrides), syss.dhs(systemOverrides), r, config)
+        (subsystemOverrides: SubsystemOverrides) =>
+          new GmosNorth[F](services.gmosNorth(subsystemOverrides),
+                           services.dhs(subsystemOverrides),
+                           r,
+                           config
+          )
     )
 
 }

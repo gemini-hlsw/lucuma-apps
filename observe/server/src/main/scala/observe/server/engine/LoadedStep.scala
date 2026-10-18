@@ -11,7 +11,7 @@ final case class LoadedStep[F[_]](
   stepGen:         StepGen[F],
   executionZipper: ExecutionZipper[F]
 ):
-  export stepGen.{atomId, generator, obsControl, resources}
+  export stepGen.{atomId, generator, obsControl, subsystems}
   export executionZipper.{done, focus, hasObserveAhead, hasObservePending, id, pending}
 
   lazy val withNextExecution: Option[LoadedStep[F]] =

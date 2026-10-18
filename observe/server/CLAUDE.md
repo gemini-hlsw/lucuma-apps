@@ -12,7 +12,7 @@ The engine uses a **single-step-at-a-time** execution model. Only one step is lo
 
 1. A step is loaded into `SequenceState.loadedStep` via `withLoadedStepGen`
 2. `Engine.executeLoadedStep` runs all actions in the current execution group in parallel via `parJoin`
-3. Action results map to `SystemEvent`s (Completed, Failed, Paused, etc.)
+3. Action results map to `EngineEvent`s (Completed, Failed, Paused, etc.)
 4. When all actions in an execution group complete, `nextExecution` advances the `ExecutionZipper`
 5. When the zipper is exhausted (step complete), the engine calls `loadNextStep` to fetch the next step from ODB
 6. If no more steps, `SequenceComplete` is emitted
@@ -27,6 +27,6 @@ preStep → preConfig → [parallel config actions] → postConfig → preObserv
 
 ### Wiring
 
-**`Systems[F]`** (`Systems.scala`) aggregates all controllers, keyword readers, ODB proxy, and DHS client. Built via `Systems.build(site, httpClient)` which selects real/sim/disabled implementations based on `ControlStrategy`.
+**`Services[F]`** (`Services.scala`) aggregates all controllers, keyword readers, ODB proxy, and DHS client. Built via `Services.build(site, httpClient)` which selects real/sim/disabled implementations based on `SubsystemControlMode`.
 
-**`ObserveEngine[F]`** (`ObserveEngine.scala`) is the top-level facade, built via `ObserveEngine.build(site, systems, conf, environment)`.
+**`ObserveEngine[F]`** (`ObserveEngine.scala`) is the top-level facade, built via `ObserveEngine.build(site, services, conf, environment)`.

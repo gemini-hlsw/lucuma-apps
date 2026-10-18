@@ -10,7 +10,7 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import monocle.Lens
 import observe.model.Observer
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.server.engine.Breakpoints
 import observe.server.engine.SequenceState
 import observe.server.odb.OdbObservationData
@@ -51,7 +51,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.GmosNorth(ec)  =>
         SequenceData.GmosNorth(
           observer = observer,
-          overrides = SystemOverrides.AllEnabled,
+          overrides = SubsystemOverrides.AllEnabled,
           observation = odbData.observation,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
@@ -62,7 +62,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.GmosSouth(ec)  =>
         SequenceData.GmosSouth(
           observer = observer,
-          overrides = SystemOverrides.AllEnabled,
+          overrides = SubsystemOverrides.AllEnabled,
           observation = odbData.observation,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
@@ -73,7 +73,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.Flamingos2(ec) =>
         SequenceData.Flamingos2(
           observer = observer,
-          overrides = SystemOverrides.AllEnabled,
+          overrides = SubsystemOverrides.AllEnabled,
           observation = odbData.observation,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
@@ -84,7 +84,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.Igrins2(ec)    =>
         SequenceData.Igrins2(
           observer = observer,
-          overrides = SystemOverrides.AllEnabled,
+          overrides = SubsystemOverrides.AllEnabled,
           observation = odbData.observation,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
@@ -95,7 +95,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.Ghost(ec)      =>
         SequenceData.Ghost(
           observer = observer,
-          overrides = SystemOverrides.AllEnabled,
+          overrides = SubsystemOverrides.AllEnabled,
           observation = odbData.observation,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
@@ -106,7 +106,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.Gnirs(ec)      =>
         SequenceData.Gnirs(
           observer = observer,
-          overrides = SystemOverrides.AllEnabled,
+          overrides = SubsystemOverrides.AllEnabled,
           observation = odbData.observation,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,

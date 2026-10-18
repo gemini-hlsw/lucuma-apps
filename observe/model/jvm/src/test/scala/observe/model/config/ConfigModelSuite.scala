@@ -4,12 +4,12 @@
 package observe.model.config
 
 import cats.kernel.laws.discipline.*
-import observe.model.config.SystemsControlConfiguration
-import observe.model.config.arb.ArbSystemsControlConfiguration.given
+import observe.model.config.SubsystemControlModes
+import observe.model.config.arb.ArbSubsystemControlModes.given
 
 /**
  * Tests config classes
  */
 class ConfigModelSuite extends munit.DisciplineSuite {
-  checkAll("Eq[SystemsControlConfiguration]", EqTests[SystemsControlConfiguration].eqv)
+  checkAll("Eq[SubsystemControlModes]", EqTests[SubsystemControlModes].eqv)
 }

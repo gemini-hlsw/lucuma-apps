@@ -14,17 +14,17 @@ import odb.OdbProxy
  * Describes the parameters for an observation
  */
 final case class ObserveEnvironment[F[_]](
-  odb:         OdbProxy[F],
-  dhs:         DhsClientProvider[F],
-  stepType:    StepKind,
-  obsId:       Observation.Id,
-  inst:        InstrumentSystem[F],
-  otherSys:    List[System[F]],
-  headers:     HeaderExtraData => List[Header[F]],
-  ctx:         HeaderExtraData,
-  environment: ExecutionEnvironment
+  odb:             OdbProxy[F],
+  dhs:             DhsClientProvider[F],
+  stepType:        StepKind,
+  obsId:           Observation.Id,
+  inst:            InstrumentHandler[F],
+  otherSubsystems: List[SubsystemHandler[F]],
+  headers:         HeaderExtraData => List[Header[F]],
+  ctx:             HeaderExtraData,
+  environment:     ExecutionEnvironment
 ) {
-  def getTcs: Option[Tcs[F]] = otherSys.collectFirst {
+  def getTcs: Option[Tcs[F]] = otherSubsystems.collectFirst {
     case x if x.isInstanceOf[Tcs[F]] => x.asInstanceOf[Tcs[F]]
   }
 }

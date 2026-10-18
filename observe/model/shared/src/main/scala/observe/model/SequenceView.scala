@@ -11,14 +11,14 @@ import monocle.Focus
 import monocle.Optional
 
 case class SequenceView(
-  obsId:           Observation.Id,
-  metadata:        SequenceMetadata,
-  status:          SequenceStatus,
-  systemOverrides: SystemOverrides,
-  sequenceType:    SequenceType,
-  loadedStep:      Option[ObserveStep],
-  willStopIn:      Option[Int],
-  breakpoints:     Set[Step.Id]
+  obsId:              Observation.Id,
+  metadata:           SequenceMetadata,
+  status:             SequenceStatus,
+  subsystemOverrides: SubsystemOverrides,
+  sequenceType:       SequenceType,
+  loadedStep:         Option[ObserveStep],
+  willStopIn:         Option[Int],
+  breakpoints:        Set[Step.Id]
 ) derives Eq:
   def pausedStep: Option[PausedStep] =
     loadedStep.filter(_.isObservePaused).map(_.id).map(PausedStep(_))

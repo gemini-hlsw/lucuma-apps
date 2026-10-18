@@ -22,7 +22,7 @@ import observe.model.dhs.ImageFileId
 import observe.model.enums.NodAndShuffleStage.*
 import observe.model.enums.ObserveCommandResult
 import observe.server.InstrumentControllerSim
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.ObsProgress
 import observe.server.Progress
 import observe.server.ProgressUtil.countdown

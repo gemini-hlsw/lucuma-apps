@@ -17,7 +17,7 @@ import observe.model.SequenceStatus
 import observe.model.SequenceStatus.*
 import observe.model.SequenceStatus.IsSequenceHoldRequested
 import observe.model.StepState
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.server.EngineState
 import observe.server.SeqEvent
 import observe.server.SequenceData
@@ -101,7 +101,7 @@ class StepSuite extends CatsEffectSuite {
    * Emulates TCS configuration in the real world.
    */
   val configureTcs: Action[IO] = fromF[IO](
-    ActionType.Configure(Resource.TCS),
+    ActionType.Configure(ObservatorySubsystem.Tcs),
     for {
       _ <- L.info("System: Start TCS configuration")
       _ <- IO.sleep(new FiniteDuration(200, MILLISECONDS))
@@ -319,8 +319,8 @@ class StepSuite extends CatsEffectSuite {
     // status is Idle would cut the stream one pull short of observing that event. Instead, keep
     // pulling through the `SequenceHeld`/`SequenceComplete` pair itself.
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
-      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceHeld(_), _)     => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
     val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
@@ -339,18 +339,18 @@ class StepSuite extends CatsEffectSuite {
         val lastSeq = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
 
         val sequencePausedEmitted = results.exists {
-          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceHeld(o), _) => o == obsId
           case _                                                        => false
         }
         // Only the initial `Executing` (config group start) should have happened; neither the
         // post-config group nor the observe group must have been kicked off.
         val executingCount        = results.count {
-          case EventResult.SystemUpdate(SystemEvent.Executing(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.Executing(o), _) => o == obsId
           case _                                                     => false
         }
         // Only the 3 config-group actions should have completed (the observe action never ran).
         val completedCount        = results.count {
-          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.Completed(o, _, _, _), _) => o == obsId
           case _                                                              => false
         }
 
@@ -389,8 +389,8 @@ class StepSuite extends CatsEffectSuite {
     // See the comment in the previous test: keep pulling through the pair that carries the
     // `SequenceHeld` event itself, since the status already reads Idle one pull earlier.
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
-      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceHeld(_), _)     => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
     val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
@@ -409,13 +409,13 @@ class StepSuite extends CatsEffectSuite {
         val lastSeq = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
 
         val sequencePausedCount = results.count {
-          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceHeld(o), _) => o == obsId
           case _                                                        => false
         }
         // All 4 actions (2 config + 1 observe + 1 post-observe marker) must have completed: the
         // post-observe group was not skipped despite stepInterruptRequested being set mid-observe.
         val completedCount      = results.count {
-          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.Completed(o, _, _, _), _) => o == obsId
           case _                                                              => false
         }
 
@@ -452,8 +452,8 @@ class StepSuite extends CatsEffectSuite {
       )
 
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
-      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceHeld(_), _)     => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
     val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
@@ -472,15 +472,15 @@ class StepSuite extends CatsEffectSuite {
         val statuses = events.flatMap(_._2.sequences.get(obsId)).map(_.seq.status)
 
         val sequenceHeldEmitted   = results.exists {
-          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceHeld(o), _) => o == obsId
           case _                                                        => false
         }
         val sequenceCompleteCount = results.count {
-          case EventResult.SystemUpdate(SystemEvent.SequenceComplete(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceComplete(o), _) => o == obsId
           case _                                                            => false
         }
         val completedCount        = results.count {
-          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.Completed(o, _, _, _), _) => o == obsId
           case _                                                              => false
         }
         val rewindWasPending      = statuses.exists: st =>
@@ -525,8 +525,8 @@ class StepSuite extends CatsEffectSuite {
       )
 
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
-      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceHeld(_), _)     => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
     val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
@@ -544,15 +544,15 @@ class StepSuite extends CatsEffectSuite {
         val results = events.map(_._1)
 
         val sequenceHeldEmitted   = results.exists {
-          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceHeld(o), _) => o == obsId
           case _                                                        => false
         }
         val sequenceCompleteCount = results.count {
-          case EventResult.SystemUpdate(SystemEvent.SequenceComplete(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceComplete(o), _) => o == obsId
           case _                                                            => false
         }
         val completedCount        = results.count {
-          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.Completed(o, _, _, _), _) => o == obsId
           case _                                                              => false
         }
         val lastSeq               = events.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
@@ -589,8 +589,8 @@ class StepSuite extends CatsEffectSuite {
       )
 
     def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
-      case EventResult.SystemUpdate(SystemEvent.SequenceHeld(_), _)     => false
-      case EventResult.SystemUpdate(SystemEvent.SequenceComplete(_), _) => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceHeld(_), _)     => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceComplete(_), _) => false
       case _                                                            => true
 
     val m: fs2.Stream[IO, (EventResult, EngineState[IO])] =
@@ -609,15 +609,15 @@ class StepSuite extends CatsEffectSuite {
         val statuses = events.flatMap(_._2.sequences.get(obsId)).map(_.seq.status)
 
         val sequenceHeldEmitted   = results.exists {
-          case EventResult.SystemUpdate(SystemEvent.SequenceHeld(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceHeld(o), _) => o == obsId
           case _                                                        => false
         }
         val sequenceCompleteCount = results.count {
-          case EventResult.SystemUpdate(SystemEvent.SequenceComplete(o), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.SequenceComplete(o), _) => o == obsId
           case _                                                            => false
         }
         val completedCount        = results.count {
-          case EventResult.SystemUpdate(SystemEvent.Completed(o, _, _, _), _) => o == obsId
+          case EventResult.EngineUpdate(EngineEvent.Completed(o, _, _, _), _) => o == obsId
           case _                                                              => false
         }
         val anyFlagSet            = statuses.exists: st =>
@@ -827,14 +827,14 @@ class StepSuite extends CatsEffectSuite {
   //   } yield v
 
   //   qss.map { x =>
-  //     val actionsCompleted = x.map(_._1).collect { case SystemUpdate(x: Completed[?], _) => x }
+  //     val actionsCompleted = x.map(_._1).collect { case EngineUpdate(x: Completed[?], _) => x }
   //     assertEquals(actionsCompleted.length, 4)
 
-  //     val executionsCompleted = x.map(_._1).collect { case SystemUpdate(x: Executed, _) => x }
+  //     val executionsCompleted = x.map(_._1).collect { case EngineUpdate(x: Executed, _) => x }
   //     assertEquals(executionsCompleted.length, 3)
 
   //     val sequencesCompleted =
-  //       x.map(_._1).collect { case SystemUpdate(x: SequenceComplete, _) => x }
+  //       x.map(_._1).collect { case EngineUpdate(x: SequenceComplete, _) => x }
   //     assertEquals(sequencesCompleted.length, 1)
 
   //     x.lastOption

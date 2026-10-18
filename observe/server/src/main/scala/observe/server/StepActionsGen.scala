@@ -7,7 +7,7 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import mouse.all.*
 import observe.model.Subsystem
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.server.engine.Action
 import observe.server.engine.ActionIndex
 import observe.server.engine.ExecutionIndex
@@ -16,14 +16,14 @@ import observe.server.engine.ParallelActions
 case class StepActionsGen[F[_]](
   preStep:     Action[F],
   preConfig:   Action[F],
-  configs:     Map[Subsystem, SystemOverrides => Action[F]],
+  configs:     Map[Subsystem, SubsystemOverrides => Action[F]],
   postConfig:  Action[F],
   preObserve:  Action[F],
-  post:        (HeaderExtraData, SystemOverrides) => List[ParallelActions[F]],
+  post:        (HeaderExtraData, SubsystemOverrides) => List[ParallelActions[F]],
   postObserve: Action[F],
   postStep:    Action[F]
 ):
-  def generate(ctx: HeaderExtraData, overrides: SystemOverrides): List[ParallelActions[F]] =
+  def generate(ctx: HeaderExtraData, overrides: SubsystemOverrides): List[ParallelActions[F]] =
     List(
       NonEmptyList.one(preStep),
       NonEmptyList.one(preConfig)
@@ -46,6 +46,6 @@ case class StepActionsGen[F[_]](
       .option(i)
       .map(i => (ExecutionIndex(ConfigsExecutionIndex), ActionIndex(i.toLong)))
 
-  def resourceAtCoords(ex: ExecutionIndex, ac: ActionIndex): Option[Subsystem] =
+  def subsystemAtCoords(ex: ExecutionIndex, ac: ActionIndex): Option[Subsystem] =
     if (ex.value === ConfigsExecutionIndex) configs.keys.toList.get(ac.value)
     else None

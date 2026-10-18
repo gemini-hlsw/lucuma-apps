@@ -11,7 +11,7 @@ import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import observe.model.enums.NodAndShuffleStage
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.server.ConfigResult
 import observe.server.Length
 import observe.server.tcs.TcsController.*
@@ -26,7 +26,7 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
 
   val Log: Logger[F] = Logger[F]
 
-  override val resource: Resource = Resource.TCS
+  override val subsystem: ObservatorySubsystem = ObservatorySubsystem.Tcs
 
   // Helper function to output the part of the TCS configuration that is actually applied.
   private def subsystemConfig(tcs: TcsNorthConfig, subsystem: Subsystem): String =

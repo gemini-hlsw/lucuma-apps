@@ -44,23 +44,23 @@ import observe.model.Operator
 import observe.model.SequenceStatus
 import observe.model.UserPrompt
 import observe.model.config.ObserveEngineConfiguration
-import observe.model.enums.ControlStrategy
-import observe.model.enums.Resource.Gcal
-import observe.model.enums.Resource.TCS
+import observe.model.enums.SubsystemControlMode
+import observe.model.enums.ObservatorySubsystem.Gcal
+import observe.model.enums.ObservatorySubsystem.Tcs
 import observe.model.enums.RunOverride
 import observe.server.SeqEvent.RequestConfirmation
 import observe.server.engine.Breakpoints
 import observe.server.engine.DummyExecutionZipper
 import observe.server.engine.DummyStepGen
+import observe.server.engine.EngineEvent
+import observe.server.engine.EngineEvent.SequenceComplete
 import observe.server.engine.EngineHandle
 import observe.server.engine.Event
 import observe.server.engine.EventResult
+import observe.server.engine.EventResult.EngineUpdate
 import observe.server.engine.EventResult.Outcome
-import observe.server.engine.EventResult.SystemUpdate
 import observe.server.engine.LoadedStep
 import observe.server.engine.SequenceState
-import observe.server.engine.SystemEvent
-import observe.server.engine.SystemEvent.SequenceComplete
 import observe.server.engine.user
 import observe.server.odb.OdbObservationData
 import observe.server.odb.TestOdbProxy
@@ -216,7 +216,7 @@ class ObserveEngineSuite extends TestCommon {
       }).assert
   }
 
-  test("ObserveEngine should not run 2nd sequence because it's using the same resource") {
+  test("ObserveEngine should not run 2nd sequence because it's using the same subsystem") {
     for {
       odb                  <-
         TestOdbProxy.build[IO](
@@ -249,7 +249,7 @@ class ObserveEngineSuite extends TestCommon {
             )
           )
         )
-      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      (eng, observeEngine) <- bothEngines(defaultServices.map(_.copy(odb = odb)))
       eo                    = EngineObserver(observeEngine)
       _                    <-
         eo.executeAndWaitResult(
@@ -296,17 +296,17 @@ class ObserveEngineSuite extends TestCommon {
                   state
                 ) => // Loaded step should have been cleared
               state.selected.gmosNorth.exists(_.loadedStep.isEmpty)
-            case (SystemUpdate(SequenceComplete(seqObsId1), Outcome.Ok), _) => true
+            case (EngineUpdate(SequenceComplete(seqObsId1), Outcome.Ok), _) => true
           }
         )
     } yield res._1 match {
-      case SystemUpdate(SequenceComplete(_), Outcome.Ok) =>
+      case EngineUpdate(SequenceComplete(_), Outcome.Ok) =>
         fail("Sequence completed when it should not have even started.")
       case _                                             => ()
     }
   }
 
-  test("ObserveEngine should run 2nd sequence when there are no shared resources") {
+  test("ObserveEngine should run 2nd sequence when there are no shared subsystems") {
     for {
       odb                  <-
         TestOdbProxy.build[IO](
@@ -339,7 +339,7 @@ class ObserveEngineSuite extends TestCommon {
             )
           )
         )
-      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      (eng, observeEngine) <- bothEngines(defaultServices.map(_.copy(odb = odb)))
       eo                    = EngineObserver(observeEngine)
       _                    <-
         eo.executeAndWaitResult(
@@ -373,7 +373,7 @@ class ObserveEngineSuite extends TestCommon {
                 SequenceState.status.replace(SequenceStatus.Running.Init) >>>
                   SequenceState.loadedStep.replace:
                     LoadedStep(
-                      DummyStepGen.copy(resources = Set(Instrument.GmosSouth)),
+                      DummyStepGen.copy(subsystems = Set(Instrument.GmosSouth)),
                       DummyExecutionZipper
                     ).some
               .as(SeqEvent.NullSeqEvent)
@@ -392,10 +392,10 @@ class ObserveEngineSuite extends TestCommon {
     } yield () // If the test completes, it's correct.
   }
 
-  test("ObserveEngine configSystem should run a system configuration") {
-    val s0 = loadSequenceWithResources(
+  test("ObserveEngine configureSubsystem should run a system configuration") {
+    val s0 = loadSequenceWithSubsystems(
       seqObsId1,
-      Set(Instrument.GmosNorth, TCS),
+      Set(Instrument.GmosNorth, Tcs),
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     )
       .apply(EngineState.default[IO])
@@ -422,26 +422,26 @@ class ObserveEngineSuite extends TestCommon {
       sf  <- advanceN(
                oe,
                s0,
-               oe.configSystem(
+               oe.configureSubsystem(
                  seqObsId1,
                  observer,
                  user,
                  stepId(1),
-                 TCS,
+                 Tcs,
                  clientId
                ),
                2
              )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId1).getOption)
-      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .flatMap(s => s.configActionCoord(stepId(1), Tcs).map(s.seq.getSingleState))
       .exists(_.started)).assert
   }
 
-  test("ObserveEngine configSystem for a science step should not switch the sequence type") {
-    val s0 = (loadSequenceWithResources(
+  test("ObserveEngine configureSubsystem for a science step should not switch the sequence type") {
+    val s0 = (loadSequenceWithSubsystems(
       seqObsId1,
-      Set(Instrument.GmosNorth, TCS),
+      Set(Instrument.GmosNorth, Tcs),
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState
@@ -476,7 +476,7 @@ class ObserveEngineSuite extends TestCommon {
       sf        <- advanceN(
                      oe,
                      s0,
-                     oe.configSystem(seqObsId1, observer, user, stepId(2), TCS, clientId),
+                     oe.configureSubsystem(seqObsId1, observer, user, stepId(2), Tcs, clientId),
                      2
                    )
     } yield {
@@ -485,7 +485,7 @@ class ObserveEngineSuite extends TestCommon {
       assertEquals(seq.flatMap(_.seq.loadedStep.map(_.id)), stepId(2).some)
       assert(
         seq
-          .flatMap(s => s.configActionCoord(stepId(2), TCS).map(s.seq.getSingleState))
+          .flatMap(s => s.configActionCoord(stepId(2), Tcs).map(s.seq.getSingleState))
           .exists(_.started)
       )
       // ...but the sequence is still in acquisition, so the pending acquisition stays visible.
@@ -497,9 +497,9 @@ class ObserveEngineSuite extends TestCommon {
     seqType: SequenceType,
     status:  SequenceStatus
   ): EngineState[IO] =
-    (loadSequenceWithResources(
+    (loadSequenceWithSubsystems(
       seqObsId1,
-      Set(Instrument.GmosNorth, TCS),
+      Set(Instrument.GmosNorth, Tcs),
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState
@@ -671,9 +671,9 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine should not run a system configuration if sequence is running") {
-    val s0 = (loadSequenceWithResources(
+    val s0 = (loadSequenceWithSubsystems(
       seqObsId1,
-      Set(Instrument.GmosNorth, TCS),
+      Set(Instrument.GmosNorth, Tcs),
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState
@@ -703,30 +703,30 @@ class ObserveEngineSuite extends TestCommon {
       sf  <- advanceOne(
                oe,
                s0,
-               oe.configSystem(
+               oe.configureSubsystem(
                  seqObsId1,
                  observer,
                  user,
                  stepId(1),
-                 TCS,
+                 Tcs,
                  clientId
                )
              )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId1).getOption)
-      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .flatMap(s => s.configActionCoord(stepId(1), Tcs).map(s.seq.getSingleState))
       .exists(_.isIdle)).assert
   }
 
   test("ObserveEngine should not run a system configuration if system is in use") {
-    val s0 = (loadSequenceWithResources(
+    val s0 = (loadSequenceWithSubsystems(
       seqObsId1,
-      Set(Instrument.GmosNorth, TCS),
+      Set(Instrument.GmosNorth, Tcs),
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
-      loadSequenceWithResources(
+      loadSequenceWithSubsystems(
         seqObsId2,
-        Set(Instrument.GmosSouth, TCS),
+        Set(Instrument.GmosSouth, Tcs),
         EngineState.instrumentLoaded(Instrument.GmosSouth)
       ) >>>
       EngineState
@@ -740,7 +740,7 @@ class ObserveEngineSuite extends TestCommon {
         advanceN(
           oe,
           s0,
-          oe.configSystem(seqObsId2, observer, user, stepId(1), TCS, clientId),
+          oe.configureSubsystem(seqObsId2, observer, user, stepId(1), Tcs, clientId),
           2
         )
     } yield sf
@@ -749,19 +749,19 @@ class ObserveEngineSuite extends TestCommon {
           .atSequence(seqObsId2)
           .getOption
       )
-      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .flatMap(s => s.configActionCoord(stepId(1), Tcs).map(s.seq.getSingleState))
       .exists(_.isIdle)).assert
   }
 
   test(
-    "ObserveEngine should run a system configuration when other sequence is running with other systems"
+    "ObserveEngine should run a system configuration when other sequence is running with other subsystems"
   ) {
-    val s0 = (loadSequenceWithResources(
+    val s0 = (loadSequenceWithSubsystems(
       seqObsId1,
-      Set(Instrument.GmosNorth, TCS),
+      Set(Instrument.GmosNorth, Tcs),
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
-      loadSequenceWithResources(
+      loadSequenceWithSubsystems(
         seqObsId2,
         Set(Instrument.GmosNorth, Gcal),
         EngineState.instrumentLoaded(Instrument.GmosSouth)
@@ -793,7 +793,7 @@ class ObserveEngineSuite extends TestCommon {
       sf  <- advanceN(
                oe,
                s0,
-               oe.configSystem(seqObsId2, observer, user, stepId(1), Gcal, clientId),
+               oe.configureSubsystem(seqObsId2, observer, user, stepId(1), Gcal, clientId),
                2
              )
     } yield sf
@@ -849,14 +849,14 @@ class ObserveEngineSuite extends TestCommon {
     (obs, stepList)
   }
 
-  // The target check only runs against a real TCS, so these tests pretend to read its keywords.
+  // The target check only runs against a real Tcs, so these tests pretend to read its keywords.
   private val settingsWithRealTcs: ObserveEngineConfiguration =
-    defaultSettings.copy(systemControl =
-      defaultSettings.systemControl.copy(tcs = ControlStrategy.ReadOnly)
+    defaultSettings.copy(subsystemControlModes =
+      defaultSettings.subsystemControlModes.copy(tcs = SubsystemControlMode.ReadOnly)
     )
 
-  private def systemsWithTargetName(name: String): IO[Systems[IO]] =
-    defaultSystems.map:
+  private def servicesWithTargetName(name: String): IO[Services[IO]] =
+    defaultServices.map:
       _.copy(tcsKeywordReader = new DummyTcsKeywordsReader.DummyTcsKeywordReaderImpl[IO] {
         override def sourceATarget: TargetKeywordsReader[IO] =
           new DummyTargetKeywordsReader.DummyTargetKeywordsReaderImpl[IO] {
@@ -865,7 +865,7 @@ class ObserveEngineSuite extends TestCommon {
       })
 
   /**
-   * Starts a sequence with the TCS pointing at `tcsTarget` and returns the resulting status.
+   * Starts a sequence with the Tcs pointing at `tcsTarget` and returns the resulting status.
    * Exactly one of the acquisition or science atoms is expected to be defined.
    */
   private def startWithTcsTarget(
@@ -900,7 +900,7 @@ class ObserveEngineSuite extends TestCommon {
                if isScience then none else atom.some,
                if isScience then List(atom) else List.empty
              )
-      oe  <- observeEngineWithODB(odb, systemsWithTargetName(tcsTarget), settings)
+      oe  <- observeEngineWithODB(odb, servicesWithTargetName(tcsTarget), settings)
       sf  <- advanceOne(
                oe,
                s0,
@@ -960,7 +960,7 @@ class ObserveEngineSuite extends TestCommon {
     startWithTcsTarget(obs, steps, isScience = false, "proof  ").map: status =>
       assert(status.exists(_.isRunning))
 
-  test("ObserveEngine start should not check the target when the TCS is simulated"):
+  test("ObserveEngine start should not check the target when the Tcs is simulated"):
     val (obs, steps) = testTargetSequenceData("proof".refined)
     startWithTcsTarget(obs, steps, isScience = true, "proof1", settings = defaultSettings).map:
       status => assert(status.exists(_.isRunning))
@@ -1024,7 +1024,7 @@ class ObserveEngineSuite extends TestCommon {
         .apply(EngineState.default[IO])
     for
       odb    <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(sciAtom))
-      oe     <- observeEngineWithODB(odb, systemsWithTargetName(tcsTarget), settingsWithRealTcs)
+      oe     <- observeEngineWithODB(odb, servicesWithTargetName(tcsTarget), settingsWithRealTcs)
       _      <- oe.proceedAfterPrompt(
                   seqObsId1,
                   user,
@@ -1321,7 +1321,7 @@ class ObserveEngineSuite extends TestCommon {
                                 Atom[DynamicConfig.GmosNorth](acqAtomId, none, acquisitionSteps).some,
                                 atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, scienceSteps))
                               )
-      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      (eng, observeEngine) <- bothEngines(defaultServices.map(_.copy(odb = odb)))
       eo                    = EngineObserver(observeEngine)
       _                    <-
         eo.executeAndWaitResult(
@@ -1465,7 +1465,7 @@ class ObserveEngineSuite extends TestCommon {
                                 Atom[DynamicConfig.GmosNorth](acqAtomId, none, acquisitionSteps).some,
                                 atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, scienceSteps))
                               )
-      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      (eng, observeEngine) <- bothEngines(defaultServices.map(_.copy(odb = odb)))
       eo                    = EngineObserver(observeEngine)
       _                    <-
         eo.executeAndWaitResult(
@@ -1554,9 +1554,9 @@ class ObserveEngineSuite extends TestCommon {
                           none,
                           atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, steps))
                         )
-      systems        <- defaultSystems.map(_.copy(odb = odb))
+      services       <- defaultServices.map(_.copy(odb = odb))
       observeEngine  <-
-        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
+        ObserveEngine.build(Site.GS, services, defaultSettings, ExecutionEnvironment.Development)
       eo              = EngineObserver(observeEngine)
       _              <-
         eo.executeAndWaitResult(
@@ -1578,7 +1578,7 @@ class ObserveEngineSuite extends TestCommon {
             true
           },
           tap = {
-            case (EventResult.SystemUpdate(SystemEvent.StepComplete(obsId), Outcome.Ok), _)
+            case (EventResult.EngineUpdate(EngineEvent.StepComplete(obsId), Outcome.Ok), _)
                 if obsId == seqObsId1 =>
               executedSteps.update(_ + 1).void
           }
@@ -1671,9 +1671,9 @@ class ObserveEngineSuite extends TestCommon {
           none,
           atomIds.zipWithIndex.map((i, k) => Atom[DynamicConfig.GmosNorth](i, none, steps(2 * k)))
         )
-      systems       <- defaultSystems.map(_.copy(odb = odb))
+      services      <- defaultServices.map(_.copy(odb = odb))
       oseq          <- odb.read(seqObsId1)
-      seqo          <- generateStepGen(oseq, systems)
+      seqo          <- generateStepGen(oseq, services)
       s0             = ODBSequencesLoader
                          .loadSequenceMod[IO](
                            None,
@@ -1682,7 +1682,7 @@ class ObserveEngineSuite extends TestCommon {
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-
-        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
+        ObserveEngine.build(Site.GS, services, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       _             <- eo.executeAndWaitState(
                          _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),
@@ -1763,9 +1763,9 @@ class ObserveEngineSuite extends TestCommon {
               )
             } else s
         )
-      systems       <- defaultSystems.map(_.copy(odb = odb))
+      services      <- defaultServices.map(_.copy(odb = odb))
       oseq          <- odb.read(seqObsId1)
-      seqo          <- generateStepGen(oseq, systems)
+      seqo          <- generateStepGen(oseq, services)
       s0             = ODBSequencesLoader
                          .loadSequenceMod[IO](
                            None,
@@ -1774,7 +1774,7 @@ class ObserveEngineSuite extends TestCommon {
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-
-        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
+        ObserveEngine.build(Site.GS, services, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       _             <- eo.executeAndWaitState(
                          _.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),

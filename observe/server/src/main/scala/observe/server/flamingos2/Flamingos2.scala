@@ -19,7 +19,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.util.TimeSpan
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
@@ -36,8 +36,8 @@ final case class Flamingos2[F[_]: {Async, Logger}](
   dhsClientProvider: DhsClientProvider[F],
   config:            Flamingos2Controller.Flamingos2Config
 ) extends DhsInstrument[F]
-    with InstrumentSystem[F] {
-  override val resource: Instrument = Instrument.Flamingos2
+    with InstrumentHandler[F] {
+  override val subsystem: Instrument = Instrument.Flamingos2
 
   override val contributorName: String = "flamingos2"
 
@@ -47,8 +47,8 @@ final case class Flamingos2[F[_]: {Async, Logger}](
 
   override val keywordsClient: KeywordsClient[F] = this
 
-  override def observeControl: InstrumentSystem.ObserveControl[F] =
-    InstrumentSystem.Uncontrollable
+  override def observeControl: InstrumentHandler.ObserveControl[F] =
+    InstrumentHandler.Uncontrollable
 
   // FLAMINGOS-2 does not support abort or stop.
   override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =
@@ -71,7 +71,7 @@ final case class Flamingos2[F[_]: {Async, Logger}](
 
   override def observeProgress(
     total:   TimeSpan,
-    elapsed: InstrumentSystem.ElapsedTime
+    elapsed: InstrumentHandler.ElapsedTime
   ): Stream[F, Progress] =
     controller.observeProgress(total)
 
@@ -171,10 +171,12 @@ object Flamingos2 {
 
           override def sfName: LightSinkName = LightSinkName.Flamingos2
 
-          override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+          override def instrumentHandler(
+            subsystemOverrides: SubsystemOverrides
+          ): InstrumentHandler[F] =
             Flamingos2(
-              systems.flamingos2(sysOverrides),
-              systems.dhs(sysOverrides),
+              services.flamingos2(subsystemOverrides),
+              services.dhs(subsystemOverrides),
               config
             )
 
@@ -185,7 +187,7 @@ object Flamingos2 {
                 staticConf,
                 step.instrumentConfig
               ),
-              systems.systems.tcsKeywordReader
+              services.services.tcsKeywordReader
             )
 
           override def instrument: Instrument = Instrument.Flamingos2

@@ -27,7 +27,7 @@ import observe.model.config.*
 import observe.model.events.*
 import observe.server.CaServiceInit
 import observe.server.ObserveEngine
-import observe.server.Systems
+import observe.server.Services
 import observe.server.tcs.GuideConfigDb
 import observe.web.server.OcsBuildInfo
 import observe.web.server.config.*
@@ -72,25 +72,51 @@ object WebServerLauncher extends IOApp with LogInitialization {
   // Try to load configs for deployment and staging and fall back to the common one in the class path
   private def config[F[_]: {Sync, Logger}]: F[ConfigObjectSource] =
     for
-      confDir    <- baseDir[F].map(_.resolve("conf"))
-      secretsConf = confDir.resolve("local").resolve("secrets.conf")
-      systemsConf = confDir.resolve("local").resolve("systems.conf")
-      site        = sys.env.get("SITE").getOrElse(sys.error("SITE environment variable not set"))
-      siteConf    = confDir.resolve(site).resolve("site.conf")
-      _          <- info"Loading configuration:"
-      _          <- info" - $systemsConf (present: ${JavaFiles.exists(systemsConf)}), with fallback:"
-      _          <- info" - $secretsConf (present: ${JavaFiles.exists(secretsConf)}), with fallback:"
-      _          <- info" - $siteConf (present: ${JavaFiles.exists(siteConf)}), with fallback:"
-      _          <- info" - <resources>/base.conf"
-    yield ConfigSource
-      .file(systemsConf)
-      .optional
-      .withFallback:
-        ConfigSource
-          .file(secretsConf)
-          .optional
-          .withFallback:
-            ConfigSource.file(siteConf).optional.withFallback(ConfigSource.resources("base.conf"))
+      confDir          <- baseDir[F].map(_.resolve("conf"))
+      localDir          = confDir.resolve("local")
+      subsystemsConf    = localDir.resolve("subsystems.conf")
+      deprecatedConf    = localDir.resolve("systems.conf")
+      subsystemsPresent = JavaFiles.exists(subsystemsConf)
+      deprecatedPresent = JavaFiles.exists(deprecatedConf)
+      _                <- warn"systems.conf is deprecated, rename it to subsystems.conf: $deprecatedConf"
+                            .whenA(!subsystemsPresent && deprecatedPresent)
+      overridesConf     =
+        if !subsystemsPresent && deprecatedPresent then deprecatedConf
+        else subsystemsConf
+      secretsConf       = localDir.resolve("secrets.conf")
+      site              = sys.env.get("SITE").getOrElse(sys.error("SITE environment variable not set"))
+      siteConf          = confDir.resolve(site).resolve("site.conf")
+      _                <- info"Loading configuration:"
+      _                <- info" - $overridesConf (present: ${JavaFiles.exists(overridesConf)}), with fallback:"
+      _                <- info" - $secretsConf (present: ${JavaFiles.exists(secretsConf)}), with fallback:"
+      _                <- info" - $siteConf (present: ${JavaFiles.exists(siteConf)}), with fallback:"
+      _                <- info" - <resources>/base.conf"
+      source            = ConfigSource
+                            .file(overridesConf)
+                            .optional
+                            .withFallback:
+                              ConfigSource
+                                .file(secretsConf)
+                                .optional
+                                .withFallback:
+                                  ConfigSource
+                                    .file(siteConf)
+                                    .optional
+                                    .withFallback(ConfigSource.resources("base.conf"))
+      migrated         <- migrateDeprecatedKeys(source)
+    yield migrated
+
+  // Accept the deprecated observe-engine.system-control key, with a warning
+  private def migrateDeprecatedKeys[F[_]: {Sync, Logger}](
+    source: ConfigObjectSource
+  ): F[ConfigObjectSource] =
+    Sync[F]
+      .delay(source.config())
+      .flatMap:
+        case Right(c) if hasDeprecatedSystemControl(c) =>
+          warn"$DeprecatedSystemControlKey is deprecated, rename it to $SubsystemControlModesKey"
+            .as(ConfigSource.fromConfig(migrateSystemControl(c)))
+        case _                                         => source.pure[F]
 
   private def makeContext[F[_]: Sync](tls: TLSConfig): F[SSLContext] = Sync[F].delay {
     val ksStream   = new FileInputStream(tls.keyStore.toFile.getAbsolutePath)
@@ -196,7 +222,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
     ): HttpRoutes[F] =
       Router[F](
         "/"                   -> StaticRoutes().service,
-        "/api/observe/guide"  -> GuideConfigDbRoutes(oe.systems.guideDb).service,
+        "/api/observe/guide"  -> GuideConfigDbRoutes(oe.services.guideDb).service,
         "/api/observe"        -> commandRoutes.service,
         "/api/observe/ping"   -> PingRoutes(ssoClient).service,
         "/api/observe/events" -> ObserveEventRoutes(
@@ -209,7 +235,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
           oe,
           events,
           wsb,
-          conf.observeEngine.systemControl.toMap,
+          conf.observeEngine.subsystemControlModes.toMap,
           conf.otel.effectiveClientEndpoint
         ).service
       )
@@ -327,7 +353,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       s"""
       | Start web server for site ${conf.site} on ${conf.environment} environment, version ${OcsBuildInfo.version}
       | Connected to odb by HTTP at ${conf.observeEngine.odbHttp} and by WS at ${conf.observeEngine.odbWs}
-      | Navigate at ${conf.observeEngine.navigateHttp} (TCS control: ${conf.observeEngine.systemControl.tcs})
+      | Navigate at ${conf.observeEngine.navigateHttp} (TCS control: ${conf.observeEngine.subsystemControlModes.tcs})
       |
       | cores              : ${runtime.availableProcessors()}
       | current JVM memory : ${runtime.totalMemory() / 1024 / 1024} MB
@@ -367,12 +393,12 @@ object WebServerLauncher extends IOApp with LogInitialization {
     for {
       client <- Resource.eval(tracedClient(httpClient))
       caS    <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
-      sys    <- Systems.build(conf.site,
-                              client,
-                              conf.observeEngine,
-                              conf.lucumaSSO,
-                              caS,
-                              conf.webServer.externalBaseUrl
+      sys    <- Services.build(conf.site,
+                               client,
+                               conf.observeEngine,
+                               conf.lucumaSSO,
+                               caS,
+                               conf.webServer.externalBaseUrl
                 )
       seqE   <-
         Resource.eval(ObserveEngine.build(conf.site, sys, conf.observeEngine, conf.environment))
@@ -404,7 +430,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
                                      Ref.of[IO, ClientsSetDb.ClientsSet](Map.empty).map(ClientsSetDb.apply[IO](_))
         _                       <- Resource.eval(publishStats(cs).compile.drain.start)
         engine                  <- engineIO(conf, cli)
-        _                       <- redirectWebServer(conf.webServer, engine.systems.guideDb)
+        _                       <- redirectWebServer(conf.webServer, engine.services.guideDb)
         sso                     <- ssoClient(cli, conf.lucumaSSO)
         _                       <- webServer(conf, cs, sso, engine)
       yield ()

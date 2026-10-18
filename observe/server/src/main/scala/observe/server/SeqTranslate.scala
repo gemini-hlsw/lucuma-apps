@@ -39,11 +39,11 @@ import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
 import observe.model.dhs.*
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.model.extensions.*
-import observe.server.InstrumentSystem.*
+import observe.server.InstrumentHandler.*
 import observe.server.ObserveFailure.Unexpected
-import observe.server.Systems.OverriddenSystems
+import observe.server.Services.OverriddenSubsystems
 import observe.server.engine.*
 import observe.server.engine.Action.ActionState
 import observe.server.flamingos2.Flamingos2
@@ -88,12 +88,12 @@ object SeqTranslate {
 
   class SeqTranslateImpl[F[_]: {Async, Logger}](
     site:                   Site,
-    systemss:               Systems[F],
+    services:               Services[F],
     environment:            ExecutionEnvironment,
     instrumentStepBuilders: InstrumentStepBuilders[F]
   ) extends SeqTranslate[F] {
 
-    private val overriddenSystems = new Systems.OverriddenSystems[F](systemss)
+    private val overriddenSubsystems = new Services.OverriddenSubsystems[F](services)
 
     private def translateStep[S, D](
       observation:  OdbObservation,
@@ -106,34 +106,36 @@ object SeqTranslate {
     ): StepGen[F] = {
 
       def buildStep(
-        dataId:    DataId,
-        otherSysf: Map[Resource, SystemOverrides => System[F]],
-        headers:   SystemOverrides => HeaderExtraData => List[Header[F]]
+        dataId:                 DataId,
+        otherSubsystemHandlers: Map[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[
+          F
+        ]],
+        headers:                SubsystemOverrides => HeaderExtraData => List[Header[F]]
       ): StepGen[F] = {
 
-        val configs: Map[Subsystem, SystemOverrides => Action[F]] =
-          otherSysf.map { case (r, sf) =>
+        val configs: Map[Subsystem, SubsystemOverrides => Action[F]] =
+          otherSubsystemHandlers.map { case (r, sf) =>
             val kind = ActionType.Configure(r)
-            r -> { (ov: SystemOverrides) =>
+            r -> { (ov: SubsystemOverrides) =>
               sf(ov).configure.as(Response.Configured(r)).toAction(kind)
             }
-          } + (insStep.instrument -> { (ov: SystemOverrides) =>
+          } + (insStep.instrument -> { (ov: SubsystemOverrides) =>
             insStep
-              .instrumentSystem(ov)
+              .instrumentHandler(ov)
               .configure
               .as(Response.Configured(insStep.instrument))
               .toAction(ActionType.Configure(insStep.instrument))
           })
 
-        def rest(ctx: HeaderExtraData, ov: SystemOverrides): List[ParallelActions[F]] = {
-          val inst = insStep.instrumentSystem(ov)
+        def rest(ctx: HeaderExtraData, ov: SubsystemOverrides): List[ParallelActions[F]] = {
+          val inst = insStep.instrumentHandler(ov)
           val env  = ObserveEnvironment(
-            systemss.odb,
-            overriddenSystems.dhs(ov),
+            services.odb,
+            overriddenSubsystems.dhs(ov),
             insStep.stepType,
             observation.id,
             inst,
-            otherSysf.values.toList.map(_(ov)),
+            otherSubsystemHandlers.values.toList.map(_(ov)),
             headers(ov),
             ctx,
             environment
@@ -146,33 +148,33 @@ object SeqTranslate {
           sequenceType = sequenceType,
           id = step.id,
           dataId = dataId,
-          resources = otherSysf.keys.toSet + insStep.instrument,
-          obsControl = (ov: SystemOverrides) => insStep.instrumentSystem(ov).observeControl,
+          subsystems = otherSubsystemHandlers.keys.toSet + insStep.instrument,
+          obsControl = (ov: SubsystemOverrides) => insStep.instrumentHandler(ov).observeControl,
           generator = StepActionsGen(
-            systemss.odb
+            services.odb
               .stepStartStep(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
-            systemss.odb
+            services.odb
               .stepStartConfigure(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
             configs,
-            systemss.odb
+            services.odb
               .stepEndConfigure(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
-            systemss.odb
+            services.odb
               .stepStartObserve(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
             rest,
-            systemss.odb
+            services.odb
               .stepEndObserve(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent)
               .makeUninterruptible,
-            systemss.odb
+            services.odb
               .stepEndStep(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent)
@@ -188,10 +190,10 @@ object SeqTranslate {
 
       buildStep(
         DataId(s"${observation.title}-$dataIdx"),
-        calcSystems(step.telescopeConfig, insStep),
-        (ov: SystemOverrides) =>
+        calcSubsystems(step.telescopeConfig, insStep),
+        (ov: SubsystemOverrides) =>
           calcHeaders(observation, step, insStep.stepType, insStep.instrumentHeader)(
-            insStep.instrumentSystem(ov).keywordsClient
+            insStep.instrumentHandler(ov).keywordsClient
           )
       )
     }
@@ -255,7 +257,7 @@ object SeqTranslate {
           insStepBuilder
             .build(
               StepBuildContext(
-                overriddenSystems,
+                overriddenSubsystems,
                 step.stepConfig.stepType,
                 observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
                 executionConfig.static,
@@ -427,112 +429,113 @@ object SeqTranslate {
       inst:            InstrumentStep[F],
       lsource:         LightSource,
       telescopeConfig: TelescopeConfig
-    ): SystemOverrides => System[F] = site match {
+    ): SubsystemOverrides => SubsystemHandler[F] = site match {
       case Site.GS =>
-        (ov: SystemOverrides) =>
-          TcsSouth.fromConfig[F](overriddenSystems.tcsSouth(ov), subs, inst.instrument)(
+        (ov: SubsystemOverrides) =>
+          TcsSouth.fromConfig[F](overriddenSubsystems.tcsSouth(ov), subs, inst.instrument)(
             telescopeConfig,
             LightPath(lsource, inst.sfName),
             inst.centralWavelength,
             inst.defocusB
-          ): System[F]
+          ): SubsystemHandler[F]
 
       case Site.GN =>
-        (ov: SystemOverrides) =>
-          TcsNorth.fromConfig[F](overriddenSystems.tcsNorth(ov), subs, inst.instrument)(
+        (ov: SubsystemOverrides) =>
+          TcsNorth.fromConfig[F](overriddenSubsystems.tcsNorth(ov), subs, inst.instrument)(
             telescopeConfig,
             LightPath(lsource, inst.sfName),
             inst.centralWavelength,
             inst.defocusB
-          ): System[F]
+          ): SubsystemHandler[F]
     }
 
-    private def calcSystems[S](
+    private def calcSubsystems[S](
       telescopeConfig: TelescopeConfig,
       insStep:         InstrumentStep[F]
-    ): Map[Resource, SystemOverrides => System[F]] = {
+    ): Map[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]] = {
 
-      def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SystemOverrides): Gcal[F] =
-        b(overriddenSystems.gcal(ov))
+      def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SubsystemOverrides): Gcal[F] =
+        b(overriddenSubsystems.gcal(ov))
 
-      def defaultGcal: SystemOverrides => Gcal[F] = adaptGcal(Gcal.defaultGcal)
+      def defaultGcal: SubsystemOverrides => Gcal[F] = adaptGcal(Gcal.defaultGcal)
 
       insStep.stepType match {
         case StepKind.CelestialObject(inst) =>
           Map(
-            Resource.TCS  -> getTcs(
+            ObservatorySubsystem.Tcs  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
               insStep,
               LightSource.Sky,
               telescopeConfig
             ),
-            Resource.Gcal -> defaultGcal
+            ObservatorySubsystem.Gcal -> defaultGcal
           )
 
         case StepKind.NodAndShuffle(inst) =>
           Map(
-            Resource.TCS  -> getTcs(
+            ObservatorySubsystem.Tcs  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
               insStep,
               LightSource.Sky,
               telescopeConfig
             ),
-            Resource.Gcal -> defaultGcal
+            ObservatorySubsystem.Gcal -> defaultGcal
           )
 
         case StepKind.FlatOrArc(inst, gcalCfg) =>
           Map(
-            Resource.TCS  -> getTcs(
+            ObservatorySubsystem.Tcs  -> getTcs(
               flatOrArcTcsSubsystems(inst),
               insStep,
               LightSource.GCAL,
               telescopeConfig
             ),
-            Resource.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
+            ObservatorySubsystem.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
           )
 
         case StepKind.NightFlatOrArc(_, gcalCfg) =>
           Map(
-            Resource.TCS  -> getTcs(
+            ObservatorySubsystem.Tcs  -> getTcs(
               NonEmptySet.of(AGUnit, OIWFS, M2, M1, Mount),
               insStep,
               LightSource.GCAL,
               telescopeConfig
             ),
-            Resource.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
+            ObservatorySubsystem.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
           )
 
-        case StepKind.DarkOrBias(_) => Map.empty[Resource, SystemOverrides => System[F]]
+        case StepKind.DarkOrBias(_) =>
+          Map.empty[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]]
 
         case StepKind.ExclusiveDarkOrBias(_) | StepKind.DarkOrBiasNS(_) =>
-          Map[Resource, SystemOverrides => System[F]](
-            Resource.Gcal -> defaultGcal
+          Map[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]](
+            ObservatorySubsystem.Gcal -> defaultGcal
           )
 
         // Only the telescope is configured for AO steps, with the light coming from the AO system.
         // The AO systems themselves are not configured, until they are supported through Navigate.
         case StepKind.AltairObs(inst) =>
           Map(
-            Resource.TCS  -> getTcs(
+            ObservatorySubsystem.Tcs  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
               insStep,
               LightSource.AO,
               telescopeConfig
             ),
-            Resource.Gcal -> defaultGcal
+            ObservatorySubsystem.Gcal -> defaultGcal
           )
 
-        // case StepType.AlignAndCalib => Map.empty[Resource, SystemOverrides => System[F]]
+        // case StepType.AlignAndCalib => Map.empty[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]]
 
         case StepKind.Gems(inst) =>
           Map(
-            Resource.TCS  -> getTcs(
+            ObservatorySubsystem.Tcs  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
               insStep,
               LightSource.AO,
               telescopeConfig
             ),
-            Resource.Gcal -> defaultGcal
+            ObservatorySubsystem.Gcal -> defaultGcal
           )
       }
     }
@@ -545,10 +548,10 @@ object SeqTranslate {
     )(ctx: HeaderExtraData): Header[F] =
       new StandardHeader(
         kwClient,
-        ObsKeywordReader[F, D](obsCfg, stepCfg, site, systemss),
-        systemss.tcsKeywordReader,
+        ObsKeywordReader[F, D](obsCfg, stepCfg, site, services),
+        services.tcsKeywordReader,
         StateKeywordsReader[F](
-          systemss.conditionSetReader(ctx.conditions),
+          services.conditionSetReader(ctx.conditions),
           ctx.operator,
           ctx.observer,
           site
@@ -557,21 +560,21 @@ object SeqTranslate {
       )
 
     private def gwsHeaders(kwClient: KeywordsClient[F]): Header[F] =
-      GwsHeader.header(kwClient, systemss.gwsKeywordReader)
+      GwsHeader.header(kwClient, services.gwsKeywordReader)
 
     private def gcalHeader(kwClient: KeywordsClient[F]): Header[F] =
-      GcalHeader.header(kwClient, systemss.gcalKeywordReader)
+      GcalHeader.header(kwClient, services.gcalKeywordReader)
 
 //    private def altairHeader(kwClient: KeywordsClient[F]): Header[F] =
 //      AltairHeader.header[F](
 //        kwClient,
-//        systemss.altairKeywordReader,
-//        systemss.tcsKeywordReader
+//        services.altairKeywordReader,
+//        services.tcsKeywordReader
 //      )
 //
 //    private def altairLgsHeader(guideStar: GuideStarType, kwClient: KeywordsClient[F]): Header[F] =
 //      if (guideStar === GuideStarType.LGS) {
-//        AltairLgsHeader.header(kwClient, systemss.altairKeywordReader)
+//        AltairLgsHeader.header(kwClient, services.altairKeywordReader)
 //      } else {
 //        dummyHeader[F]
 //      }
@@ -642,7 +645,7 @@ object SeqTranslate {
             List(
               commonHeaders(obsCfg, stepCfg, allButGaos.toList, kwClient)(ctx),
               gwsHeaders(kwClient),
-//            gemsHeaders(kwClient, ObsKeywordReader[F](config, site), systemss.tcsKeywordReader),
+//            gemsHeaders(kwClient, ObsKeywordReader[F](config, site), services.tcsKeywordReader),
               instHeader(kwClient)
             )
     }
@@ -708,7 +711,7 @@ object SeqTranslate {
 
   def apply[F[_]: {Async, Logger}](
     site:          Site,
-    systems:       Systems[F],
+    services:      Services[F],
     conditionsRef: Ref[F, CurrentConditions],
     environment:   ExecutionEnvironment
   ): F[SeqTranslate[F]] = (
@@ -727,7 +730,7 @@ object SeqTranslate {
       igrins2,
       gnirs
     )
-  ).map(x => new SeqTranslateImpl(site, systems, environment, x))
+  ).map(x => new SeqTranslateImpl(site, services, environment, x))
 
   def calcStepType(
     inst:       Instrument,

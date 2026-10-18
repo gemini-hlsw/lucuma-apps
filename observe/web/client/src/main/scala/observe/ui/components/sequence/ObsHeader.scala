@@ -13,20 +13,20 @@ import lucuma.core.model.ObservationReference
 import lucuma.core.model.Program
 import lucuma.react.common.*
 import observe.model.*
-import observe.model.enums.ControlStrategy
+import observe.model.enums.SubsystemControlMode
 import observe.ui.ObserveStyles
 import observe.ui.components.ConfigPanel
 import observe.ui.model.ObsSummary
 
 case class ObsHeader(
-  observation:                ObsSummary,
-  loadedObsId:                Option[Pot[Observation.Id]],
-  overrides:                  Option[View[SystemOverrides]],
-  observer:                   View[Option[Observer]],
-  operator:                   View[Option[Operator]],
-  conditions:                 View[CurrentConditions],
-  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
-  linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+  observation:           ObsSummary,
+  loadedObsId:           Option[Pot[Observation.Id]],
+  overrides:             Option[View[SubsystemOverrides]],
+  observer:              View[Option[Observer]],
+  operator:              View[Option[Operator]],
+  conditions:            View[CurrentConditions],
+  subsystemControlModes: Map[Subsystem, SubsystemControlMode],
+  linkToExploreObs:      Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObsHeader)
 
 object ObsHeader
@@ -48,11 +48,11 @@ object ObsHeader
           ),
           props.overrides
             .map: overrides =>
-              SubsystemOverrides(
+              SubsystemOverridesPanel(
                 props.observation.obsId,
                 props.observation.instrument,
                 overrides,
-                props.subsystemControlStrategies
+                props.subsystemControlModes
               )
                 .when(props.loadedObsId.contains_(props.observation.obsId.ready))
             .whenDefined

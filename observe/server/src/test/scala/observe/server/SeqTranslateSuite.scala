@@ -18,7 +18,7 @@ import observe.common.test.*
 import observe.model.ActionType
 import observe.model.CurrentConditions
 import observe.model.SequenceStatus
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.*
 import observe.server.TestCommon.*
 import observe.server.engine.Action
@@ -49,8 +49,8 @@ class SeqTranslateSuite extends TestCommon {
       sequenceType = SequenceType.Science,
       id = stepId(1),
       dataId = Monoid.empty[DataId],
-      resources = Set(Instrument.GmosNorth),
-      obsControl = _ => InstrumentSystem.Uncontrollable,
+      subsystems = Set(Instrument.GmosNorth),
+      obsControl = _ => InstrumentHandler.Uncontrollable,
       generator = StepActionsGen(
         odbAction[IO],
         odbAction[IO],
@@ -129,7 +129,10 @@ class SeqTranslateSuite extends TestCommon {
         .some
         .andThen(SequenceData.seq)
         .modify(
-          _.withLoadedStepGen(testStepGen.some, SystemOverrides.AllEnabled, HeaderExtraData.Default)
+          _.withLoadedStepGen(testStepGen.some,
+                              SubsystemOverrides.AllEnabled,
+                              HeaderExtraData.Default
+          )
         ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
@@ -195,9 +198,9 @@ class SeqTranslateSuite extends TestCommon {
     .modify(_.mark(0)(Result.OKAborted(Response.Aborted(ImageFileId(fileId)))))(baseState)
 
   private val translator: IO[SeqTranslate[IO]] = for {
-    systems <- defaultSystems
-    c       <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
-    st      <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
+    services <- defaultServices
+    c        <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
+    st       <- SeqTranslate(Site.GS, services, c, ExecutionEnvironment.Development)
   } yield st
 
   test("SeqTranslate trigger stopExposure command only if exposure is in progress") {

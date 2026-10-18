@@ -10,9 +10,9 @@ import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.GcalShutter
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.StepConfig.Gcal.Lamp.*
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.server.ConfigResult
-import observe.server.System
+import observe.server.SubsystemHandler
 import observe.server.gcal.GcalController.*
 
 import scala.Function.const
@@ -21,9 +21,9 @@ import scala.Function.const
  * Created by jluhrs on 3/21/17.
  */
 final case class Gcal[F[_]: Sync] private (controller: GcalController[F], cfg: GcalConfig)
-    extends System[F] {
+    extends SubsystemHandler[F] {
 
-  override val resource: Resource = Resource.Gcal
+  override val subsystem: ObservatorySubsystem = ObservatorySubsystem.Gcal
 
   /**
    * Called to configure a system, returns a F[ConfigResult[F]]

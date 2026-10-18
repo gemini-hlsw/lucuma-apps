@@ -15,7 +15,7 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
 import observe.model.ObserveStage
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
@@ -30,13 +30,13 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   controller: Igrins2Controller[F],
   config:     Igrins2Config
 ) extends GdsInstrument[F]
-    with InstrumentSystem[F] { self =>
+    with InstrumentHandler[F] { self =>
 
   override val gdsClient: GdsClient[F] = controller.gdsClient
 
   override val keywordsClient: KeywordsClient[F] = this
 
-  override val resource: Instrument = Instrument.Igrins2
+  override val subsystem: Instrument = Instrument.Igrins2
 
   override val contributorName: String = "igrins2"
 
@@ -49,9 +49,9 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
       controller.sequenceComplete.handleErrorWith: e =>
         L.error(e)("Error in sequence complete")
 
-  override def observeControl: InstrumentSystem.ObserveControl[F] =
-    InstrumentSystem.UnpausableControl(InstrumentSystem.StopObserveCmd(_ => F.unit),
-                                       InstrumentSystem.AbortObserveCmd(abort)
+  override def observeControl: InstrumentHandler.ObserveControl[F] =
+    InstrumentHandler.UnpausableControl(InstrumentHandler.StopObserveCmd(_ => F.unit),
+                                        InstrumentHandler.AbortObserveCmd(abort)
     )
 
   override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =
@@ -76,7 +76,7 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 
   override def observeProgress(
     total:   TimeSpan,
-    elapsed: InstrumentSystem.ElapsedTime
+    elapsed: InstrumentHandler.ElapsedTime
   ): Stream[F, Progress] =
     val step = TimeSpan.fromSeconds(1.5).get
 
@@ -122,11 +122,13 @@ object Igrins2:
 
             override def sfName: LightSinkName = LightSinkName.Igrins2
 
-            override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-              Igrins2(systems.igrins2(sysOverrides), config)
+            override def instrumentHandler(
+              subsystemOverrides: SubsystemOverrides
+            ): InstrumentHandler[F] =
+              Igrins2(services.igrins2(subsystemOverrides), config)
 
             override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-              Igrins2Header.header(client, systems.systems.tcsKeywordReader)
+              Igrins2Header.header(client, services.services.tcsKeywordReader)
 
             override def instrument: Instrument = Instrument.Igrins2
 

@@ -88,7 +88,7 @@ trait SequenceApi[F[_]: MonadThrow]:
   /** Resume the current exposure if it was paused mid-exposure */
   def resumeExposure(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
 
-  /** Runs a resource or instrument */
+  /** Runs a subsystem */
   def execute(
     @unused obsId:     Observation.Id,
     @unused stepId:    Step.Id,

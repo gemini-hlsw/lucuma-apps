@@ -9,5 +9,5 @@ import cats.kernel.Order
 enum ActionType derives Order:
   case Observe
   case Undefined // Used in tests
-  case Configure(sys: Subsystem)
+  case Configure(subsystem: Subsystem)
   case OdbEvent

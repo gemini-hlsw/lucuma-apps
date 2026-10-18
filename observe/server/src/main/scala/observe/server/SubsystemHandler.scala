@@ -5,11 +5,11 @@ package observe.server
 
 import observe.model.Subsystem
 
-trait System[F[_]] {
-  val resource: Subsystem
+trait SubsystemHandler[F[_]] {
+  val subsystem: Subsystem
 
   /**
-   * Called to configure a system
+   * Called to configure a subsystem
    */
   def configure: F[ConfigResult[F]]
 
@@ -19,4 +19,4 @@ trait System[F[_]] {
 }
 
 //Placeholder for config response
-final case class ConfigResult[F[_]](sys: System[F])
+final case class ConfigResult[F[_]](handler: SubsystemHandler[F])

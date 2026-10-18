@@ -51,7 +51,7 @@ import scala.concurrent.duration.*
 
 trait ObserveEngine[F[_]] {
 
-  val systems: Systems[F]
+  val services: Services[F]
 
   def startSequence(
     obsId:       Observation.Id,
@@ -131,7 +131,7 @@ trait ObserveEngine[F[_]] {
     name:  Observer
   ): F[Unit]
 
-  // Systems overrides
+  // Subsystem overrides
   def setTcsEnabled(
     obsId:    Observation.Id,
     user:     User,
@@ -237,13 +237,13 @@ trait ObserveEngine[F[_]] {
   /**
    * Triggers the application of a specific step configuration to a system
    */
-  def configSystem(
-    obsId:    Observation.Id,
-    observer: Observer,
-    user:     User,
-    stepId:   Step.Id,
-    sys:      Subsystem,
-    clientID: ClientId
+  def configureSubsystem(
+    obsId:     Observation.Id,
+    observer:  Observer,
+    user:      User,
+    stepId:    Step.Id,
+    subsystem: Subsystem,
+    clientID:  ClientId
   ): F[Unit]
 
   def clientEventStream: Stream[F, TargetedClientEvent]
@@ -265,11 +265,11 @@ object ObserveEngine {
 
   def createTranslator[F[_]: {Async, Logger}](
     site:          Site,
-    systems:       Systems[F],
+    services:      Services[F],
     conditionsRef: Ref[F, CurrentConditions],
     environment:   ExecutionEnvironment
   ): F[SeqTranslate[F]] =
-    SeqTranslate(site, systems, conditionsRef, environment)
+    SeqTranslate(site, services, conditionsRef, environment)
 
   private def observations[F[_]](st: EngineState[F]): List[SequenceData[F]] =
     List(
@@ -281,7 +281,7 @@ object ObserveEngine {
       st.selected.ghost
     ).flattenOption
 
-  private def systemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
+  private def subsystemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
     observations(st)
       .filter(d => d.seq.status.isError || d.seq.status.isIdle)
       .flatMap(s =>
@@ -289,31 +289,31 @@ object ObserveEngine {
           .filter(_._2.started)
           .keys
           .toList
-          .mapFilter(s.resourceAtCoords)
+          .mapFilter(s.subsystemAtCoords)
       )
       .toSet
 
   /**
-   * Resource in use = Resources used by running sequences, plus the systems that are being
+   * Subsystems in use = Subsystems used by running sequences, plus the subsystems that are being
    * configured because a user commanded a manual configuration apply.
    */
-  def resourcesInUse[F[_]](
+  def subsystemsInUse[F[_]](
     st:         EngineState[F],
     excludeObs: Option[Observation.Id] = none
   ): Set[Subsystem] =
     observations(st)
       .mapFilter(s =>
-        s.resources.some
+        s.subsystems.some
           .filterNot(_ => excludeObs.contains_(s.obsId))
           .filter(_ => s.seq.status.isRunning)
       )
       .foldK ++
-      systemsBeingConfigured(st)
+      subsystemsBeingConfigured(st)
 
   /**
-   * Resources reserved by running queues.
+   * Subsystems reserved by running queues.
    */
-  def resourcesReserved[F[_]](st: EngineState[F]): Set[Subsystem] = {
+  def subsystemsReserved[F[_]](st: EngineState[F]): Set[Subsystem] = {
     def reserved(q: ExecutionQueue): Set[Subsystem] = q.queue.collect {
       case s if !s.state.isCompleted => s.subsystems
     }.foldK
@@ -358,7 +358,7 @@ object ObserveEngine {
 
   /**
    * Find the observations in an execution queue that would be run next, taking into account the
-   * resources required by each observation and the resources currently in use. The order in the
+   * subsystems required by each observation and the subsystems currently in use. The order in the
    * queue defines the priority of the observations. Failed or stopped sequences in the queue keep
    * their instruments taken, preventing that the queue starts other sequences for those
    * instruments.
@@ -371,9 +371,9 @@ object ObserveEngine {
    *   parallel.
    */
   def findRunnableObservations[F[_]](qid: QueueId)(st: EngineState[F]): Set[Observation.Id] = {
-    // Set of all resources in use
-    val used = resourcesInUse(st)
-    // For each observation in the queue that is not yet run, retrieve the required resources
+    // Set of all subsystems in use
+    val used = subsystemsInUse(st)
+    // For each observation in the queue that is not yet run, retrieve the required subsystems
     val obs  = st.queues
       .get(qid)
       .map(_.queue.collect {
@@ -392,13 +392,13 @@ object ObserveEngine {
   }
 
   /**
-   * Find next runnable observations given that a set of resources has just being released
+   * Find next runnable observations given that a set of subsystems has just being released
    * @param qid
    *   The execution queue id
    * @param st
    *   The current engine state
    * @param freed
-   *   Resources that were freed
+   *   Subsystems that were freed
    * @return
    *   The set of all observations in the execution queue `qid` that can be started to run in
    *   parallel.
@@ -407,9 +407,9 @@ object ObserveEngine {
   private def nextRunnableObservations[F[_]](qid: QueueId, freed: Set[Subsystem])(
     st: EngineState[F]
   ): Set[Observation.Id] = {
-    // Set of all resources in use
-    val used = resourcesInUse(st)
-    // For each observation in the queue that is not yet run, retrieve the required resources
+    // Set of all subsystems in use
+    val used = subsystemsInUse(st)
+    // For each observation in the queue that is not yet run, retrieve the required subsystems
     val obs  = st.queues
       .get(qid)
       .map(_.queue.collect {
@@ -643,13 +643,13 @@ object ObserveEngine {
    */
   def build[F[_]: {Async, Logger, Tracer}](
     site:        Site,
-    systems:     Systems[F],
+    services:    Services[F],
     conf:        ObserveEngineConfiguration,
     environment: ExecutionEnvironment
   ): F[ObserveEngine[F]] =
     for
       rc  <- Ref.of[F, CurrentConditions](CurrentConditions.Default)
-      tr  <- createTranslator(site, systems, rc, environment)
-      eng <- Engine.build[F](onStepComplete[F](systems.odb, tr))
-    yield new ObserveEngineImpl[F](eng, systems, conf, tr, rc)
+      tr  <- createTranslator(site, services, rc, environment)
+      eng <- Engine.build[F](onStepComplete[F](services.odb, tr))
+    yield new ObserveEngineImpl[F](eng, services, conf, tr, rc)
 }

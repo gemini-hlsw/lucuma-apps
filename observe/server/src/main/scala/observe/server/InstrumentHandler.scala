@@ -14,12 +14,12 @@ import observe.server.keywords.KeywordsClient
 
 import java.time.temporal.ChronoUnit
 
-trait InstrumentSystem[F[_]] extends System[F] {
-  override val resource: Instrument
+trait InstrumentHandler[F[_]] extends SubsystemHandler[F] {
+  override val subsystem: Instrument
 
   val contributorName: String
 
-  def observeControl: InstrumentSystem.ObserveControl[F]
+  def observeControl: InstrumentHandler.ObserveControl[F]
 
   def observe: Kleisli[F, ImageFileId, ObserveCommandResult]
 
@@ -27,7 +27,7 @@ trait InstrumentSystem[F[_]] extends System[F] {
 
   def observeProgress(
     total:   TimeSpan,
-    elapsed: InstrumentSystem.ElapsedTime
+    elapsed: InstrumentHandler.ElapsedTime
   ): Stream[F, Progress]
 
   def instrumentActions: InstrumentActions[F]
@@ -36,7 +36,7 @@ trait InstrumentSystem[F[_]] extends System[F] {
 
 }
 
-object InstrumentSystem {
+object InstrumentHandler {
   val ObserveOperationsTimeout: TimeSpan = TimeSpan.unsafeFromDuration(1, ChronoUnit.MINUTES)
 
   final case class StopObserveCmd[+F[_]](self: Boolean => F[Unit])

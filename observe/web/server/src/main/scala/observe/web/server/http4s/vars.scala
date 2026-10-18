@@ -16,7 +16,7 @@ import observe.model.Observer
 import observe.model.Operator
 import observe.model.Subsystem
 import observe.model.SubsystemEnabled
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.model.enums.RunOverride
 import observe.model.given
 import org.http4s.QueryParamDecoder
@@ -31,8 +31,8 @@ trait EnumeratedVar[A: Enumerated]:
     Enumerated[A].fromTag(str)
 
 object InstrumentVar           extends EnumeratedVar[Instrument]
-object ResourceVar             extends EnumeratedVar[Resource]
-object ResourceOrInstrumentVar extends EnumeratedVar[Subsystem]
+object ObservatorySubsystemVar extends EnumeratedVar[ObservatorySubsystem]
+object SubsystemVar            extends EnumeratedVar[Subsystem]
 
 object ObsIdVar:
   def unapply(str: String): Option[Observation.Id] =

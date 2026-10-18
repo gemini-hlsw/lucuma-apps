@@ -95,9 +95,9 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
           NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / StepIdVar(stepId) / ClientIDVar(clientId) /
-        "execute" / ResourceOrInstrumentVar(resource) / ObserverVar(obs) =>
+        "execute" / SubsystemVar(subsystem) / ObserverVar(obs) =>
       ssoClient.require(req): user =>
-        oe.configSystem(obsId, obs, user, stepId, resource, clientId) *> NoContent()
+        oe.configureSubsystem(obsId, obs, user, stepId, subsystem, clientId) *> NoContent()
 
     // In a number of endpoints, clientId is not used but we keep it anyway so that it's logged.
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "holdSequence" /

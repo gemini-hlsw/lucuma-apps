@@ -16,7 +16,7 @@ import lucuma.ui.sequence.StepTypeDisplay
 import observe.model.SequenceStatus
 import observe.model.StepProgress
 import observe.model.Subsystem
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ActionStatus
 import observe.ui.ObserveStyles
@@ -24,22 +24,22 @@ import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 
 case class StepProgressCell(
-  clientMode:      ClientMode,
-  instrument:      Instrument,
-  stepId:          Step.Id,
-  stepType:        StepTypeDisplay,
-  isFinished:      Boolean,
-  obsId:           Observation.Id,
-  requests:        ObservationRequests,
-  loadedStepId:    Option[Step.Id],
-  fileIds:         Option[NonEmptyChain[ImageFileId]],
-  sequenceStatus:  SequenceStatus,
-  isPausedInStep:  Boolean,
-  subsystemStatus: Map[Subsystem, ActionStatus],
-  systemOverrides: SystemOverrides,
-  exposureTime:    TimeSpan,
-  progress:        Option[StepProgress],
-  isPreview:       Boolean
+  clientMode:         ClientMode,
+  instrument:         Instrument,
+  stepId:             Step.Id,
+  stepType:           StepTypeDisplay,
+  isFinished:         Boolean,
+  obsId:              Observation.Id,
+  requests:           ObservationRequests,
+  loadedStepId:       Option[Step.Id],
+  fileIds:            Option[NonEmptyChain[ImageFileId]],
+  sequenceStatus:     SequenceStatus,
+  isPausedInStep:     Boolean,
+  subsystemStatus:    Map[Subsystem, ActionStatus],
+  subsystemOverrides: SubsystemOverrides,
+  exposureTime:       TimeSpan,
+  progress:           Option[StepProgress],
+  isPreview:          Boolean
 ) extends ReactFnProps(StepProgressCell):
   // def stepSelected(i: Step.Id): Boolean =
   //   selectedStep.exists(_ === i) && !isPreview &&
@@ -142,7 +142,7 @@ object StepProgressCell
           props.subsystemStatus,
           props.requests.subsystemRun.getOrElse(props.stepId, Map.empty),
           props.sequenceStatus,
-          props.systemOverrides,
+          props.subsystemOverrides,
           props.clientMode,
           props.isLoadedStep
         ),

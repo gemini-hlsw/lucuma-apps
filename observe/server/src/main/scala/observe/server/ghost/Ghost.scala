@@ -23,11 +23,11 @@ import lucuma.schemas.ObservationDB.Scalars.Timestamp
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.CurrentConditions
 import observe.model.Observation
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
-import observe.server.InstrumentSystem.*
+import observe.server.InstrumentHandler.*
 import observe.server.keywords.GdsClient
 import observe.server.keywords.GdsInstrument
 import observe.server.keywords.Header
@@ -40,7 +40,7 @@ final case class Ghost[F[_]: {Logger, Async}](
   conditions: Ref[F, CurrentConditions],
   config:     GhostConfig
 ) extends GdsInstrument[F]
-    with InstrumentSystem[F]
+    with InstrumentHandler[F]
     with GhostLUT { self =>
 
   val readOutTimeExtra: TimeSpan = 420.secondTimeSpan
@@ -52,11 +52,11 @@ final case class Ghost[F[_]: {Logger, Async}](
 
   override val keywordsClient: KeywordsClient[F] = this
 
-  override val resource: Instrument = Instrument.Ghost
+  override val subsystem: Instrument = Instrument.Ghost
 
   override val contributorName: String = "ghost"
 
-  override def observeControl: InstrumentSystem.ObserveControl[F] =
+  override def observeControl: InstrumentHandler.ObserveControl[F] =
     Uncontrollable
 
   override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =
@@ -85,7 +85,7 @@ final case class Ghost[F[_]: {Logger, Async}](
 
   override def observeProgress(
     total:   TimeSpan,
-    elapsed: InstrumentSystem.ElapsedTime
+    elapsed: InstrumentHandler.ElapsedTime
   ): Stream[F, Progress] =
     ProgressUtil.obsCountdown[F](total, elapsed.value)
 
@@ -135,12 +135,14 @@ object Ghost {
 
           override def defocusB: Option[Length] = cfg.defocusOffset
 
-          override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-            Ghost(systems.ghost(sysOverrides), conditionsRef, cfg)
+          override def instrumentHandler(
+            subsystemOverrides: SubsystemOverrides
+          ): InstrumentHandler[F] =
+            Ghost(services.ghost(subsystemOverrides), conditionsRef, cfg)
 
           override def instrumentHeader(client: KeywordsClient[F]): Header[F] = GhostHeader.header(
             client,
-            systems.systems.tcsKeywordReader,
+            services.services.tcsKeywordReader,
             GhostKeywordsReader(cfg, conditionsRef),
             step
           )

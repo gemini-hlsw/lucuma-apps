@@ -13,7 +13,7 @@ import lucuma.core.util.TimeSpan
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.InstrumentControllerSim
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.ObserveFailure.Execution
 import observe.server.Progress
 import observe.server.flamingos2.Flamingos2Controller.Flamingos2Config

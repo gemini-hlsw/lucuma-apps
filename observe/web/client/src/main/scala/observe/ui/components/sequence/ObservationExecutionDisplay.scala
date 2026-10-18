@@ -20,18 +20,18 @@ import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
 import observe.model.StepProgress
-import observe.model.SubsystemOrServer
-import observe.model.enums.ControlStrategy
+import observe.model.Subsystem
+import observe.model.enums.SubsystemControlMode
 import observe.model.odb.RecordedVisit
 import observe.ui.ObserveStyles
 import observe.ui.components.ObservationSequence
 import observe.ui.model.*
 
 case class ObservationExecutionDisplay(
-  selectedObs:                ObsSummary,
-  rootModelData:              View[RootModelData],
-  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
-  linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+  selectedObs:           ObsSummary,
+  rootModelData:         View[RootModelData],
+  subsystemControlModes: Map[Subsystem, SubsystemControlMode],
+  linkToExploreObs:      Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObservationExecutionDisplay)
 
 object ObservationExecutionDisplay
@@ -81,11 +81,11 @@ object ObservationExecutionDisplay
           props.selectedObs,
           executionStateAndConfig.map(_.map(_._1)),
           executionStateAndConfig
-            .flatMap(_.toOption.map(_._4.zoom(ExecutionState.systemOverrides))),
+            .flatMap(_.toOption.map(_._4.zoom(ExecutionState.subsystemOverrides))),
           props.rootModelData.zoom(RootModelData.observer),
           props.rootModelData.zoom(RootModelData.operator),
           props.rootModelData.zoom(RootModelData.conditions),
-          props.subsystemControlStrategies,
+          props.subsystemControlModes,
           props.linkToExploreObs
         ),
         executionStateAndConfig.map(

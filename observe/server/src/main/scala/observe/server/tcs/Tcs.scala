@@ -5,9 +5,9 @@ package observe.server.tcs
 
 import observe.model.enums.NodAndShuffleStage
 import observe.server.ConfigResult
-import observe.server.System
+import observe.server.SubsystemHandler
 import observe.server.tcs.TcsController.*
 
-trait Tcs[F[_]] extends System[F] {
+trait Tcs[F[_]] extends SubsystemHandler[F] {
   def nod(stage: NodAndShuffleStage, offset: InstrumentOffset, guided: Boolean): F[ConfigResult[F]]
 }

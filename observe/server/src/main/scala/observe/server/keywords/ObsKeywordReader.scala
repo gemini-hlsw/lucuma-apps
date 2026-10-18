@@ -20,7 +20,7 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.util.TimeSpan
 import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation
-import observe.server.Systems
+import observe.server.Services
 
 import java.time.LocalDate
 import java.time.ZoneId
@@ -76,7 +76,7 @@ object ObsKeywordReader {
     obsCfg: Observation,
     step:   OcsStep[D],
     site:   Site,
-    sys:    Systems[F]
+    sys:    Services[F]
   ): ObsKeywordsReader[F] =
     new ObsKeywordsReader[F] {
       // Format used on FITS keywords

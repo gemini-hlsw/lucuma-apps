@@ -82,4 +82,4 @@ extension [F[_]: ApplicativeThrow, A <: Response](x: F[A])
 
 extension [F[_]: Functor](x: F[ConfigResult[F]])
   def toAction(kind: ActionType): Action[F] =
-    fromF[F](kind, x.map(r => Result.OK(Response.Configured(r.sys.resource))))
+    fromF[F](kind, x.map(r => Result.OK(Response.Configured(r.handler.subsystem))))

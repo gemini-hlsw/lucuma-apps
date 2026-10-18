@@ -56,7 +56,7 @@ object ObserveFailure {
   final case class ObsTimeout(fileId: ImageFileId) extends ObserveFailure
 
   /** Observation system timeout, e.g. TCS/GCAL */
-  final case class ObsSystemTimeout(fileId: ImageFileId) extends ObserveFailure
+  final case class ObsSubsystemTimeout(fileId: ImageFileId) extends ObserveFailure
 
   /** Observation command timeout */
   final case class ObsCommandTimeout(obsIdName: Observation.Id) extends ObserveFailure
@@ -83,7 +83,7 @@ object ObserveFailure {
     case FailedSimulation             => s"Failed to simulate"
     case NullEpicsError(channel)      => s"Failed to read epics channel: $channel"
     case ObsTimeout(fileId)           => s"Observation of $fileId timed out"
-    case ObsSystemTimeout(fileId)     => s"Observation of $fileId timed out on a subsystem"
+    case ObsSubsystemTimeout(fileId)  => s"Observation of $fileId timed out on a subsystem"
     case ObsCommandTimeout(obsId)     => s"Observation command on ${obsId} timed out"
   }
 

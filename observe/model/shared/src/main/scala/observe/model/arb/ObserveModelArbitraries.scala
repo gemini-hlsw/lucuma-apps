@@ -57,7 +57,7 @@ trait ObserveModelArbitraries {
 
   given Arbitrary[ActionType] = Arbitrary[ActionType] {
     for {
-      c <- arbitrary[Resource].map(ActionType.Configure.apply)
+      c <- arbitrary[ObservatorySubsystem].map(ActionType.Configure.apply)
       a <- Gen.oneOf(ActionType.Observe, ActionType.Undefined)
       b <- Gen.oneOf(c, a)
     } yield b
@@ -93,13 +93,13 @@ trait ObserveModelArbitraries {
     } yield s
   }
 
-  given Arbitrary[SystemOverrides] = Arbitrary[SystemOverrides] {
+  given Arbitrary[SubsystemOverrides] = Arbitrary[SubsystemOverrides] {
     for {
       tcs  <- arbitrary[SubsystemEnabled]
       inst <- arbitrary[SubsystemEnabled]
       gcal <- arbitrary[SubsystemEnabled]
       dhs  <- arbitrary[SubsystemEnabled]
-    } yield SystemOverrides(tcs, inst, gcal, dhs)
+    } yield SubsystemOverrides(tcs, inst, gcal, dhs)
   }
 
   given Arbitrary[SequenceView]                 = Arbitrary[SequenceView] {
@@ -107,7 +107,7 @@ trait ObserveModelArbitraries {
       id <- arbitrary[Observation.Id]
       m  <- arbitrary[SequenceMetadata]
       s  <- arbitrary[SequenceStatus]
-      o  <- arbitrary[SystemOverrides]
+      o  <- arbitrary[SubsystemOverrides]
       st <- arbitrary[SequenceType]
       t  <- arbitrary[Option[ObserveStep]]
       i  <- arbitrary[Option[Int]]
@@ -128,7 +128,7 @@ trait ObserveModelArbitraries {
       (s.instrument, s.observer) // , s.name.value)
     )
 
-  given Cogen[SystemOverrides] =
+  given Cogen[SubsystemOverrides] =
     Cogen[(SubsystemEnabled, SubsystemEnabled, SubsystemEnabled, SubsystemEnabled)].contramap(x =>
       (x.isTcsEnabled, x.isInstrumentEnabled, x.isGcalEnabled, x.isDhsEnabled)
     )
@@ -139,7 +139,7 @@ trait ObserveModelArbitraries {
         Observation.Id,
         SequenceMetadata,
         SequenceStatus,
-        SystemOverrides,
+        SubsystemOverrides,
         SequenceType,
         Option[ObserveStep],
         Option[Int],
@@ -150,7 +150,7 @@ trait ObserveModelArbitraries {
         (s.obsId,
          s.metadata,
          s.status,
-         s.systemOverrides,
+         s.subsystemOverrides,
          s.sequenceType,
          s.loadedStep,
          s.willStopIn,

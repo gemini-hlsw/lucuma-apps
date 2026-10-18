@@ -7,21 +7,14 @@ import io.circe.KeyDecoder
 import io.circe.KeyEncoder
 import lucuma.core.enums.Instrument
 import lucuma.core.util.Enumerated
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 
 import java.util.UUID
 
 type ObservationName = String
 type TargetName      = String
 
-enum Server(val tag: String) derives Enumerated:
-  case Dhs extends Server("Dhs")
-  case Gws extends Server("Gws")
-
-type Subsystem         = Resource | Instrument
-type SubsystemOrServer = Subsystem | Server
-object SubsystemOrServer:
-  def fromSubsystem(s: Subsystem): SubsystemOrServer = s
+type Subsystem = Instrument | ObservatorySubsystem
 
 val UnknownTargetName = "None"
 
@@ -30,40 +23,18 @@ val CalibrationQueueId: QueueId  =
   QueueId(UUID.fromString("7156fa7e-48a6-49d1-a267-dbf3bbaa7577"))
 
 given KeyEncoder[Subsystem] = KeyEncoder.instance:
-  case r: Resource   => r.tag
-  case i: Instrument => i.tag
+  case i: Instrument           => i.tag
+  case o: ObservatorySubsystem => o.tag
 
 given KeyDecoder[Subsystem] = KeyDecoder.instance: tag =>
-  Enumerated[Resource].fromTag(tag).orElse(Enumerated[Instrument].fromTag(tag))
+  Enumerated[Instrument].fromTag(tag).orElse(Enumerated[ObservatorySubsystem].fromTag(tag))
 
-// Resources come before Instruments
+// Observatory subsystems come before instruments
 given Enumerated[Subsystem] = Enumerated
   .from(
-    Enumerated[Resource].all.head,
-    (Enumerated[Resource].all.tail ++ Enumerated[Instrument].all)*
+    Enumerated[ObservatorySubsystem].all.head,
+    (Enumerated[ObservatorySubsystem].all.tail ++ Enumerated[Instrument].all)*
   )
   .withTag:
-    case r: Resource   => r.tag
-    case i: Instrument => i.tag
-
-given KeyEncoder[SubsystemOrServer] = KeyEncoder.instance:
-  case r: Resource   => r.tag
-  case i: Instrument => i.tag
-  case s: Server     => s.tag
-
-given KeyDecoder[SubsystemOrServer] = KeyDecoder.instance: tag =>
-  Enumerated[Resource]
-    .fromTag(tag)
-    .orElse(Enumerated[Instrument].fromTag(tag))
-    .orElse(Enumerated[Server].fromTag(tag))
-
-// Resources come before Instruments before Servers
-given Enumerated[SubsystemOrServer] = Enumerated
-  .from(
-    Enumerated[Subsystem].all.head,
-    (Enumerated[Subsystem].all.tail ++ Enumerated[Server].all)*
-  )
-  .withTag:
-    case r: Resource   => r.tag
-    case i: Instrument => i.tag
-    case s: Server     => s.tag
+    case i: Instrument           => i.tag
+    case o: ObservatorySubsystem => o.tag

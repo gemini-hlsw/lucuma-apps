@@ -15,7 +15,7 @@ import observe.model.NsRunningState
 import observe.model.ObserveStep
 import observe.model.Observer
 import observe.model.SequenceStatus
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.arb.ArbNsRunningState.given
 import observe.model.arb.ObserveModelArbitraries.given
 import org.scalacheck.Arbitrary
@@ -27,20 +27,20 @@ import ArbObserveStep.given
 trait ArbExecutionState:
   given Arbitrary[ExecutionState] = Arbitrary:
     for
-      sequenceStatus  <- arbitrary[SequenceStatus]
-      observer        <- arbitrary[Option[Observer]]
-      sequenceType    <- arbitrary[SequenceType]
-      step            <- arbitrary[Option[ObserveStep]]
-      nsState         <- arbitrary[Option[NsRunningState]]
-      systemOverrides <- arbitrary[SystemOverrides]
-      breakpoints     <- arbitrary[Set[Step.Id]]
+      sequenceStatus     <- arbitrary[SequenceStatus]
+      observer           <- arbitrary[Option[Observer]]
+      sequenceType       <- arbitrary[SequenceType]
+      step               <- arbitrary[Option[ObserveStep]]
+      nsState            <- arbitrary[Option[NsRunningState]]
+      subsystemOverrides <- arbitrary[SubsystemOverrides]
+      breakpoints        <- arbitrary[Set[Step.Id]]
     yield ExecutionState(
       sequenceStatus,
       observer,
       sequenceType,
       step,
       nsState,
-      systemOverrides,
+      subsystemOverrides,
       breakpoints
     )
 
@@ -52,7 +52,7 @@ trait ArbExecutionState:
         SequenceType,
         Option[ObserveStep],
         Option[NsRunningState],
-        SystemOverrides,
+        SubsystemOverrides,
         List[Step.Id]
       )
     ].contramap: x =>
@@ -61,7 +61,7 @@ trait ArbExecutionState:
        x.sequenceType,
        x.loadedStep,
        x.nsState,
-       x.systemOverrides,
+       x.subsystemOverrides,
        x.breakpoints.toList
       )
 

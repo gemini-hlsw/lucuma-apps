@@ -24,7 +24,7 @@ import monocle.macros.GenPrism
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.Observer
 import observe.model.Subsystem
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.enums.PendingObserveCmd
 import observe.server.engine.ActionCoordsInSeq
 import observe.server.engine.LoadedStep
@@ -37,7 +37,7 @@ sealed trait SequenceData[F[_]]:
   def instrument: Instrument
 
   def observer: Option[Observer]
-  def overrides: SystemOverrides
+  def overrides: SubsystemOverrides
   def observation: OdbObservation
   def targetEnvironment: TargetEnvironment =
     observation.targetEnvironment.getOrElse(EmptyTargetEnvironment)
@@ -52,8 +52,8 @@ sealed trait SequenceData[F[_]]:
 
   def withCompleteVisitStart: SequenceData[F] = SequenceData.visitStartDone.replace(true)(this)
 
-  lazy val resources: Set[Subsystem] =
-    loadedStep.map(_.resources).getOrElse(Set.empty)
+  lazy val subsystems: Set[Subsystem] =
+    loadedStep.map(_.subsystems).getOrElse(Set.empty)
 
   def configActionCoord(
     stepId: Step.Id,
@@ -64,10 +64,10 @@ sealed trait SequenceData[F[_]]:
       .flatMap(_.generator.configActionCoord(r))
       .map { case (ex, ac) => ActionCoordsInSeq(stepId, ex, ac) }
 
-  def resourceAtCoords(c: ActionCoordsInSeq): Option[Subsystem] =
+  def subsystemAtCoords(c: ActionCoordsInSeq): Option[Subsystem] =
     loadedStep
       .filter(_.id === c.stepId)
-      .flatMap(_.generator.resourceAtCoords(c.execIdx, c.actIdx))
+      .flatMap(_.generator.subsystemAtCoords(c.execIdx, c.actIdx))
 
 object SequenceData:
   type Aux[F[_], S0, D0] = SequenceData[F] { type S = S0; type D = D0 }
@@ -96,8 +96,8 @@ object SequenceData:
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
-  def overrides[F[_]]: Lens[SequenceData[F], SystemOverrides] =
-    Lens[SequenceData[F], SystemOverrides](_.overrides)(overrides => {
+  def overrides[F[_]]: Lens[SequenceData[F], SubsystemOverrides] =
+    Lens[SequenceData[F], SubsystemOverrides](_.overrides)(overrides => {
       case gmosNorth(s)  => s.copy(overrides = overrides)
       case gmosSouth(s)  => s.copy(overrides = overrides)
       case flamingos2(s) => s.copy(overrides = overrides)
@@ -155,7 +155,7 @@ object SequenceData:
 
   case class GmosNorth[F[_]](
     observer:       Option[Observer],
-    overrides:      SystemOverrides,
+    overrides:      SubsystemOverrides,
     observation:    OdbObservation,
     constraintSet:  ConstraintSet,
     staticCfg:      gmos.StaticConfig.GmosNorth,
@@ -168,7 +168,7 @@ object SequenceData:
 
   case class GmosSouth[F[_]](
     observer:       Option[Observer],
-    overrides:      SystemOverrides,
+    overrides:      SubsystemOverrides,
     observation:    OdbObservation,
     constraintSet:  ConstraintSet,
     staticCfg:      gmos.StaticConfig.GmosSouth,
@@ -181,7 +181,7 @@ object SequenceData:
 
   case class Flamingos2[F[_]](
     observer:       Option[Observer],
-    overrides:      SystemOverrides,
+    overrides:      SubsystemOverrides,
     observation:    OdbObservation,
     constraintSet:  ConstraintSet,
     staticCfg:      Flamingos2StaticConfig,
@@ -194,7 +194,7 @@ object SequenceData:
 
   case class Igrins2[F[_]](
     observer:       Option[Observer],
-    overrides:      SystemOverrides,
+    overrides:      SubsystemOverrides,
     observation:    OdbObservation,
     constraintSet:  ConstraintSet,
     staticCfg:      Igrins2StaticConfig,
@@ -207,7 +207,7 @@ object SequenceData:
 
   case class Gnirs[F[_]](
     observer:       Option[Observer],
-    overrides:      SystemOverrides,
+    overrides:      SubsystemOverrides,
     observation:    OdbObservation,
     constraintSet:  ConstraintSet,
     staticCfg:      GnirsStaticConfig,
@@ -220,7 +220,7 @@ object SequenceData:
 
   case class Ghost[F[_]](
     observer:       Option[Observer],
-    overrides:      SystemOverrides,
+    overrides:      SubsystemOverrides,
     observation:    OdbObservation,
     constraintSet:  ConstraintSet,
     staticCfg:      GhostStaticConfig,

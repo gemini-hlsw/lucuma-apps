@@ -30,7 +30,7 @@ It can be stopped by executing
 
 ## Connecting to Navigate
 
-When the TCS is under full control (`system-control.tcs = full`), Observe configures the telescope for each step through Navigate's GraphQL API, at the `observe-engine.navigate-http` URL. In `base.conf` it points to a Navigate server started for development, which serves plain HTTP:
+When the TCS is under full control (`subsystem-control-modes.tcs = full`), Observe configures the telescope for each step through Navigate's GraphQL API, at the `observe-engine.navigate-http` URL. In `base.conf` it points to a Navigate server started for development, which serves plain HTTP:
 
 ```
 http://localhost:9090/navigate/graphql
@@ -118,7 +118,7 @@ web-server {
 }
 ```
 
-Furthermore, observe will also read a `~/observe/conf/systems.conf`, which should be used to provide frequently changing overrides. The more permanent configurations should be in `site.conf`. In particular all the systems that are to be set to `full` should be done there. Otherwise, they will remain `simulated`.
+Furthermore, observe will also read a `~/observe/conf/subsystems.conf` (the former `systems.conf` is still read, with a warning), which should be used to provide frequently changing overrides. The more permanent configurations should be in `site.conf`. In particular all the subsystems that are to be set to `full` should be done there. Otherwise, they will remain `simulated`.
 
 NOTE:
 

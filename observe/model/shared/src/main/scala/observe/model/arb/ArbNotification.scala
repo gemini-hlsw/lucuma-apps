@@ -12,7 +12,7 @@ import observe.model.Notification
 import observe.model.Notification.*
 import observe.model.Observation
 import observe.model.Subsystem
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.model.given
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
@@ -21,13 +21,13 @@ import org.scalacheck.Gen
 
 trait ArbNotification {
 
-  given rcArb: Arbitrary[ResourceConflict] = Arbitrary[ResourceConflict] {
+  given rcArb: Arbitrary[SubsystemConflict] = Arbitrary[SubsystemConflict] {
     for {
       obsId <- arbitrary[Observation.Id]
-    } yield ResourceConflict(obsId)
+    } yield SubsystemConflict(obsId)
   }
 
-  given rcCogen: Cogen[ResourceConflict] =
+  given rcCogen: Cogen[SubsystemConflict] =
     Cogen[Observation.Id].contramap(_.obsId)
 
   given rfArb: Arbitrary[LoadingFailed] = Arbitrary[LoadingFailed] {
@@ -54,12 +54,12 @@ trait ArbNotification {
     for {
       id <- arbitrary[Observation.Id]
       i  <- arbitrary[Step.Id]
-      r  <- arbitrary[Resource]
+      r  <- arbitrary[ObservatorySubsystem]
     } yield SubsystemBusy(id, i, r)
   }
 
   given subsCogen: Cogen[SubsystemBusy] =
-    Cogen[(Observation.Id, Step.Id, Subsystem)].contramap(x => (x.obsId, x.stepId, x.resource))
+    Cogen[(Observation.Id, Step.Id, Subsystem)].contramap(x => (x.obsId, x.stepId, x.subsystem))
 
   given snArb: Arbitrary[SequenceNotIdle] = Arbitrary[SequenceNotIdle] {
     for
@@ -84,7 +84,7 @@ trait ArbNotification {
 
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {
-      r <- arbitrary[ResourceConflict]
+      r <- arbitrary[SubsystemConflict]
       a <- arbitrary[InstrumentInUse]
       f <- arbitrary[LoadingFailed]
       b <- arbitrary[SubsystemBusy]
@@ -97,7 +97,7 @@ trait ArbNotification {
   given notCogen: Cogen[Notification] =
     Cogen[
       Either[
-        ResourceConflict,
+        SubsystemConflict,
         Either[
           InstrumentInUse,
           Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle, ActionFailed]]]
@@ -105,12 +105,12 @@ trait ArbNotification {
       ]
     ]
       .contramap {
-        case r: ResourceConflict => Left(r)
-        case i: InstrumentInUse  => Right(Left(i))
-        case f: LoadingFailed    => Right(Right(Left(f)))
-        case b: SubsystemBusy    => Right(Right(Right(Left(b))))
-        case n: SequenceNotIdle  => Right(Right(Right(Right(Left(n)))))
-        case x: ActionFailed     => Right(Right(Right(Right(Right(x)))))
+        case r: SubsystemConflict => Left(r)
+        case i: InstrumentInUse   => Right(Left(i))
+        case f: LoadingFailed     => Right(Right(Left(f)))
+        case b: SubsystemBusy     => Right(Right(Right(Left(b))))
+        case n: SequenceNotIdle   => Right(Right(Right(Right(Left(n)))))
+        case x: ActionFailed      => Right(Right(Right(Right(Right(x)))))
       }
 
 }

@@ -11,46 +11,46 @@ import observe.server.engine.Result.*
 /**
  * Events generated internally by the Engine.
  */
-sealed trait SystemEvent extends Product with Serializable
+sealed trait EngineEvent extends Product with Serializable
 
-object SystemEvent {
+object EngineEvent {
   case class Completed[R <: RetVal](id: Observation.Id, stepId: Step.Id, i: Int, r: OK[R])
-      extends SystemEvent
+      extends EngineEvent
   case class StopCompleted[R <: RetVal](
     id:     Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      OKStopped[R]
-  ) extends SystemEvent
+  ) extends EngineEvent
   case class Aborted[R <: RetVal](
     id:     Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      OKAborted[R]
-  ) extends SystemEvent
+  ) extends EngineEvent
   case class PartialResult[R <: PartialVal](
     sid:    Observation.Id,
     stepId: Step.Id,
     i:      Int,
     r:      Partial[R]
-  ) extends SystemEvent
+  ) extends EngineEvent
   case class Paused(id: Observation.Id, stepId: Step.Id, i: Int, r: Result.Paused)
-      extends SystemEvent
+      extends EngineEvent
   case class Failed(id: Observation.Id, stepId: Step.Id, i: Int, e: Result.Error)
-      extends SystemEvent
-  case class LoadFailed(id: Observation.Id, i: Int, e: Result.Error) extends SystemEvent
-  case class Busy(id: Observation.Id, clientId: ClientId)            extends SystemEvent
-  case class BreakpointReached(id: Observation.Id)                   extends SystemEvent
-  case class Executed(id: Observation.Id)                            extends SystemEvent
-  case class Executing(id: Observation.Id)                           extends SystemEvent
-  case class StepComplete(id: Observation.Id)                        extends SystemEvent
-  case class SequenceHeld(id: Observation.Id)                        extends SystemEvent
-  case class SequenceComplete(id: Observation.Id)                    extends SystemEvent
-  case object Null                                                   extends SystemEvent
+      extends EngineEvent
+  case class LoadFailed(id: Observation.Id, i: Int, e: Result.Error) extends EngineEvent
+  case class Busy(id: Observation.Id, clientId: ClientId)            extends EngineEvent
+  case class BreakpointReached(id: Observation.Id)                   extends EngineEvent
+  case class Executed(id: Observation.Id)                            extends EngineEvent
+  case class Executing(id: Observation.Id)                           extends EngineEvent
+  case class StepComplete(id: Observation.Id)                        extends EngineEvent
+  case class SequenceHeld(id: Observation.Id)                        extends EngineEvent
+  case class SequenceComplete(id: Observation.Id)                    extends EngineEvent
+  case object Null                                                   extends EngineEvent
 
   // Single action commands
   case class SingleRunCompleted[R <: RetVal](actionCoords: ActionCoords, r: OK[R])
-      extends SystemEvent
-  case class SingleRunFailed(actionCoords: ActionCoords, e: Result.Error) extends SystemEvent
+      extends EngineEvent
+  case class SingleRunFailed(actionCoords: ActionCoords, e: Result.Error) extends EngineEvent
 
 }

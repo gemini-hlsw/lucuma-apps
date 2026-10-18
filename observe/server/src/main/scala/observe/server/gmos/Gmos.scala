@@ -27,7 +27,7 @@ import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.util.TimeSpan
 import monocle.Getter
 import observe.model.GmosParameters.*
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.Guiding
 import observe.model.enums.NodAndShuffleStage
@@ -54,9 +54,9 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
   nsCmdR:            Ref[F, Option[NSObserveCommand]],
   val config:        GmosController.GmosConfig[T]
 ) extends DhsInstrument[F]
-    with InstrumentSystem[F] {
+    with InstrumentHandler[F] {
 
-  import InstrumentSystem._
+  import InstrumentHandler._
 
   override val contributorName: String = "gmosdc"
 
@@ -66,7 +66,7 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
 
   val nsCount: F[Int] = controller.nsCount
 
-  override def observeControl: InstrumentSystem.CompleteControl[F] =
+  override def observeControl: InstrumentHandler.CompleteControl[F] =
     if (isNodAndShuffle)
       CompleteControl(
         StopObserveCmd(stopNS),
@@ -317,10 +317,10 @@ object Gmos {
   def instrumentStepBuilder[F[_]: {Async, Logger}, T <: GmosSite](
     gmosInstrument: Instrument,
     sysBuilder:     (
-      Systems.OverriddenSystems[F],
+      Services.OverriddenSubsystems[F],
       Ref[F, Option[NSObserveCommand]],
       GmosController.GmosConfig[T]
-    ) => SystemOverrides => Gmos[F, T]
+    ) => SubsystemOverrides => Gmos[F, T]
   )(using
     getters:        ParamGetters[T]
   ): F[InstrumentStepBuilder[F, GmosSite.StaticConfig[T], GmosSite.DynamicConfig[T]]] = {
@@ -349,16 +349,16 @@ object Gmos {
 
               override def sfName: LightSinkName = LightSinkName.Gmos
 
-              override def instrumentSystem(
-                sysOverrides: SystemOverrides
-              ): InstrumentSystem[F] = sysBuilder(systems, r, config)(sysOverrides)
+              override def instrumentHandler(
+                subsystemOverrides: SubsystemOverrides
+              ): InstrumentHandler[F] = sysBuilder(services, r, config)(subsystemOverrides)
 
               override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
                 GmosHeader.header[F, T](
                   kwClient,
                   GmosObsKeywordsReader(staticConf, step.instrumentConfig),
-                  systems.systems.gmosKeywordReader,
-                  systems.systems.tcsKeywordReader
+                  services.services.gmosKeywordReader,
+                  services.services.tcsKeywordReader
                 )
 
               override def instrument: Instrument = gmosInstrument

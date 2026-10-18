@@ -15,25 +15,24 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.ui.primereact.CheckboxView
 import lucuma.ui.primereact.given
-import observe.model.Server
+import observe.model.Subsystem
 import observe.model.SubsystemEnabled
-import observe.model.SubsystemOrServer
-import observe.model.SystemOverrides
-import observe.model.enums.ControlStrategy
-import observe.model.enums.Resource
+import observe.model.SubsystemOverrides
+import observe.model.enums.ObservatorySubsystem
+import observe.model.enums.SubsystemControlMode
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
 import observe.ui.services.ConfigApi
 
-case class SubsystemOverrides(
-  obsId:             Observation.Id,
-  instrument:        Instrument,
-  overrides:         View[SystemOverrides],
-  controlStrategies: Map[SubsystemOrServer, ControlStrategy]
-) extends ReactFnProps(SubsystemOverrides)
+case class SubsystemOverridesPanel(
+  obsId:        Observation.Id,
+  instrument:   Instrument,
+  overrides:    View[SubsystemOverrides],
+  controlModes: Map[Subsystem, SubsystemControlMode]
+) extends ReactFnProps(SubsystemOverridesPanel)
 
-object SubsystemOverrides
-    extends ReactFnComponent[SubsystemOverrides](props =>
+object SubsystemOverridesPanel
+    extends ReactFnComponent[SubsystemOverridesPanel](props =>
       for
         ctx       <- useContext(AppContext.ctx)
         configApi <- useContext(ConfigApi.ctx)
@@ -41,12 +40,12 @@ object SubsystemOverrides
         import ctx.given
 
         def renderToggle(
-          label:           NonEmptyString,
-          enabled:         View[Boolean],
-          editable:        Boolean,
-          controlStrategy: Option[ControlStrategy]
+          label:       NonEmptyString,
+          enabled:     View[Boolean],
+          editable:    Boolean,
+          controlMode: Option[SubsystemControlMode]
         ): VdomNode =
-          val simulated = controlStrategy.contains(ControlStrategy.Simulated)
+          val simulated = controlMode.contains(SubsystemControlMode.Simulated)
           <.div(ObserveStyles.SubsystemToggle)(
             CheckboxView(
               id = NonEmptyString.unsafeFrom(
@@ -65,46 +64,46 @@ object SubsystemOverrides
           )
 
         def renderOverrideControl(
-          label:           NonEmptyString,
-          enabled:         View[SubsystemEnabled],
-          controlStrategy: Option[ControlStrategy]
+          label:       NonEmptyString,
+          enabled:     View[SubsystemEnabled],
+          controlMode: Option[SubsystemControlMode]
         ): VdomNode =
-          renderToggle(label, enabled.as(SubsystemEnabled.Value), true, controlStrategy)
+          renderToggle(label, enabled.as(SubsystemEnabled.Value), true, controlMode)
 
         <.span(ObserveStyles.ObsSummarySubsystems)(
           renderOverrideControl(
             "TCS".refined,
             props.overrides
-              .zoom(SystemOverrides.isTcsEnabled)
+              .zoom(SubsystemOverrides.isTcsEnabled)
               .withOnMod(configApi.setTcsEnabled(props.obsId, _).runAsync),
-            props.controlStrategies.get(Resource.TCS)
+            props.controlModes.get(ObservatorySubsystem.Tcs)
           ),
           renderOverrideControl(
             "GCAL".refined,
             props.overrides
-              .zoom(SystemOverrides.isGcalEnabled)
+              .zoom(SubsystemOverrides.isGcalEnabled)
               .withOnMod(configApi.setGcalEnabled(props.obsId, _).runAsync),
-            props.controlStrategies.get(Resource.Gcal)
+            props.controlModes.get(ObservatorySubsystem.Gcal)
           ),
           renderOverrideControl(
             "DHS".refined,
             props.overrides
-              .zoom(SystemOverrides.isDhsEnabled)
+              .zoom(SubsystemOverrides.isDhsEnabled)
               .withOnMod(configApi.setDhsEnabled(props.obsId, _).runAsync),
-            props.controlStrategies.get(Server.Dhs)
+            props.controlModes.get(ObservatorySubsystem.Dhs)
           ),
           renderToggle(
             "GWS".refined,
             View[Boolean](true, (_, _) => Callback.empty),
             false,
-            props.controlStrategies.get(Server.Gws)
+            props.controlModes.get(ObservatorySubsystem.Gws)
           ),
           renderOverrideControl(
             NonEmptyString.unsafeFrom(props.instrument.longName),
             props.overrides
-              .zoom(SystemOverrides.isInstrumentEnabled)
+              .zoom(SubsystemOverrides.isInstrumentEnabled)
               .withOnMod(configApi.setInstrumentEnabled(props.obsId, _).runAsync),
-            props.controlStrategies.get(props.instrument)
+            props.controlModes.get(props.instrument)
           )
         )
     )
