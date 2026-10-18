@@ -150,11 +150,18 @@
   --warning-text-color: hsl(0deg 0% 100%);
   --warning-background-color: hsl(35deg 95% 50%);
   --warning-glow: 0 0 2px 2px hsl(28deg 100% 48%);
+  --warning-soft-background-color: hsl(40deg 100% 90%);
+  --warning-soft-border-color: hsl(38deg 90% 60%);
   --error-background-color: hsl(0deg 100% 50%);
   --primary-color: var(--gray-dark);
   --primary-color-hover: hsl(var(--gray-dark-h) var(--gray-dark-s) calc(var(--gray-dark-l) + 8%));
   --primary-color-active: hsl(var(--gray-dark-h) var(--gray-dark-s) calc(var(--gray-dark-l) - 6%));
   --primary-color-text: hsl(0deg 0% 100%);
+  --control-selected-color: hsl(210deg 6% 40%);
+  --control-selected-color-hover: hsl(210deg 6% 46%);
+  --success-color: hsl(122deg 45% 33%);
+  --success-color-hover: hsl(122deg 45% 28%);
+  --success-color-active: hsl(122deg 45% 24%);
   --under-tab-background-color: var(--color-background-light-3);
   --under-tab-background-focus-color: var(--color-background-light-6);
   --under-tab-border-color: var(--gray);
@@ -339,8 +346,10 @@
 
 @mixin obs-badge-light {
   --obs-badge-color: var(--site-text-color);
-  --obs-badge-background: #{color.adjust(#d4d4d5, $lightness: -2%)};
-  --obs-selected-badge-background: #{color.adjust(#d4d4d5, $lightness: -15%)};
+  --obs-badge-background: hsl(0deg 0% 96%);
+  --obs-selected-badge-background: hsl(0deg 0% 90%);
+  --obs-badge-nested-background: hsl(0deg 0% 92%);
+  --obs-badge-secondary-color: hsl(0deg 0% 45%);
 }
 
 @mixin menu-light {

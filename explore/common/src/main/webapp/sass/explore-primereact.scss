@@ -40,19 +40,25 @@
         border-color: var(--primary-color);
       }
 
-      .p-button.p-button-secondary {
+      .p-button.p-button-secondary,
+      .p-button-group.p-button-secondary > .p-button,
+      .p-splitbutton.p-button-secondary > .p-button {
         color: var(--text-color);
         background: var(--button-background-color);
         border-color: var(--button-background-color);
       }
 
-      .p-button.p-button-secondary:not(:disabled):hover {
+      .p-button.p-button-secondary:not(:disabled):hover,
+      .p-button-group.p-button-secondary > .p-button:not(:disabled):hover,
+      .p-splitbutton.p-button-secondary > .p-button:not(:disabled):hover {
         color: var(--text-color);
         background: var(--button-hover-background-color);
         border-color: var(--button-hover-background-color);
       }
 
-      .p-button.p-button-secondary:not(:disabled):active {
+      .p-button.p-button-secondary:not(:disabled):active,
+      .p-button-group.p-button-secondary > .p-button:not(:disabled):active,
+      .p-splitbutton.p-button-secondary > .p-button:not(:disabled):active {
         color: var(--text-color);
         background: var(--button-active-background-color);
         border-color: var(--button-active-background-color);
@@ -68,6 +74,27 @@
         border-color: var(--site-solid-border-color);
       }
 
+      .p-button.p-button-success,
+      .p-button-group.p-button-success > .p-button,
+      .p-splitbutton.p-button-success > .p-button {
+        background: var(--success-color);
+        border-color: var(--success-color);
+      }
+
+      .p-button.p-button-success:not(:disabled):hover,
+      .p-button-group.p-button-success > .p-button:not(:disabled):hover,
+      .p-splitbutton.p-button-success > .p-button:not(:disabled):hover {
+        background: var(--success-color-hover);
+        border-color: var(--success-color-hover);
+      }
+
+      .p-button.p-button-success:not(:disabled):active,
+      .p-button-group.p-button-success > .p-button:not(:disabled):active,
+      .p-splitbutton.p-button-success > .p-button:not(:disabled):active {
+        background: var(--success-color-active);
+        border-color: var(--success-color-active);
+      }
+
       .p-button.p-button-secondary.p-button-text,
       .p-button.p-button-secondary.p-button-outlined {
         color: var(--text-color);
@@ -76,15 +103,15 @@
       .p-selectbutton .p-button.p-highlight,
       .p-togglebutton.p-highlight .p-button {
         color: var(--primary-color-text);
-        background: var(--primary-color);
-        border-color: var(--primary-color);
+        background: var(--control-selected-color);
+        border-color: var(--control-selected-color);
       }
 
       .p-selectbutton .p-button.p-highlight:hover,
       .p-togglebutton.p-highlight:hover .p-button {
         color: var(--primary-color-text);
-        background: var(--primary-color-hover);
-        border-color: var(--primary-color-hover);
+        background: var(--control-selected-color-hover);
+        border-color: var(--control-selected-color-hover);
       }
 
       .p-checkbox.p-highlight .p-checkbox-box,

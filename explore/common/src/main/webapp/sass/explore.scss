@@ -1311,6 +1311,12 @@ thead tr th.sticky-header {
   }
 }
 
+.light-theme .explore-shared-edit-warning {
+  color: var(--text-color);
+  background-color: var(--warning-soft-background-color);
+  border: 1px solid var(--warning-soft-border-color);
+}
+
 // ------
 // Spectroscopy table
 // ------
@@ -1987,6 +1993,43 @@ svg.fa-check.explore-success-icon {
 .p-treenode:has(.selected-group-item) {
   background-color: var(--obs-selected-badge-background);
   box-shadow: 0 0 0 1.5px var(--site-solid-border-color);
+}
+
+.light-theme {
+  .obs-badge {
+    border-color: var(--site-solid-border-color);
+
+    progress {
+      accent-color: var(--primary-color);
+    }
+
+    .obs-badge-id {
+      opacity: 1;
+      color: var(--obs-badge-secondary-color);
+    }
+
+    .obs-state-select,
+    .obs-badge-extra .obs-badge-extra-associated .obs-badge-telluric-select.p-dropdown {
+      background-color: var(--form-input-background);
+      border-color: var(--site-solid-border-color);
+    }
+
+    .obs-badge-extra .obs-badge-extra-associated .obs-badge-telluric-section {
+      background-color: var(--obs-badge-nested-background);
+    }
+  }
+
+  .obs-state-select-panel.p-dropdown-panel {
+    background-color: var(--form-input-background);
+  }
+
+  .selected-obs-item .obs-badge,
+  .obs-tree-item .obs-badge.obs-badge-selected,
+  .p-treenode:has(.selected-group-item) {
+    box-shadow:
+      inset 3px 0 0 var(--accent-color),
+      0 0 0 1px var(--gray);
+  }
 }
 
 .p-menu.p-component.science-band-popup-menu {
@@ -3608,6 +3651,10 @@ input[type='file'].explore-fileupload {
   margin-left: 0.5em;
   cursor: pointer;
   color: var(--site-text-color);
+}
+
+.light-theme .explore-help-icon {
+  color: var(--control-selected-color);
 }
 
 // Keep the help icon on the same row as its label text
