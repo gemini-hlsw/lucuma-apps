@@ -8,6 +8,8 @@ import cats.effect.Ref
 import cats.syntax.all.*
 import fs2.concurrent.Topic
 import lucuma.core.enums.Site
+import lucuma.core.model.StandardRole
+import lucuma.core.model.StandardUser
 import lucuma.core.model.User
 import lucuma.sso.client.SsoClient
 import observe.model.ClientId
@@ -50,13 +52,25 @@ class SubsystemControlModesRoutes[F[_]: {Async, Logger}](
         .map((field, from, to) => s"${field.label}: ${from.tag} -> ${to.tag}")
     if changes.isEmpty then "no changes" else changes.mkString(", ")
 
+  private def isStaff(user: User): Boolean = user match
+    case StandardUser(_, StandardRole.Staff(_), _, _) => true
+    case _                                            => false
+
+  /** Like `ssoClient.require`, but also demands the staff role. */
+  private def requireStaff(req: Request[F])(f: User => F[Response[F]]): F[Response[F]] =
+    ssoClient.require(req): user =>
+      if isStaff(user) then f(user)
+      else
+        Logger[F].warn(s"${user.displayName} is not staff, request to ${req.uri.path} refused") *>
+          Forbidden("Staff role required")
+
   val service: HttpRoutes[F] = HttpRoutes.of[F]:
     case req @ GET -> Root =>
-      ssoClient.require(req): _ =>
+      requireStaff(req): _ =>
         savedSubsystemControlModes.get.flatMap(Ok(_))
 
     case req @ POST -> Root =>
-      ssoClient.require(req): user =>
+      requireStaff(req): user =>
         req.decode[SubsystemControlModes]: config =>
           for
             _        <- SubsystemControlModesFile.write[F](filePath, site, config, user.displayName)
@@ -69,5 +83,5 @@ class SubsystemControlModesRoutes[F[_]: {Async, Logger}](
           yield resp
 
     case req @ POST -> Root / ClientIDVar(clientId) / "restart" =>
-      ssoClient.require(req): user =>
+      requireStaff(req): user =>
         oe.requestRestart(user, clientId, shutdown) *> NoContent()

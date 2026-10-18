@@ -9,7 +9,10 @@ import cats.syntax.all.*
 import fs2.concurrent.Topic
 import io.circe.syntax.*
 import lucuma.core.enums.Site
+import lucuma.core.model.StandardRole
+import lucuma.core.model.StandardUser
 import lucuma.core.model.User
+import lucuma.refined.*
 import lucuma.sso.client.SsoClient.AbstractSsoClient
 import observe.model.ClientId
 import observe.model.config.SubsystemControlModes
@@ -52,6 +55,17 @@ class SubsystemControlModesRoutesSuite extends munit.CatsEffectSuite with TestRo
       IO.pure("not logged in".asLeft)
     override def find(req: Request[IO]): IO[Either[String, User]]            =
       IO.pure("not logged in".asLeft)
+
+  private val NonStaffUser: User =
+    user match
+      case StandardUser(id, _, _, profile) =>
+        StandardUser(id, StandardRole.Pi(StandardRole.Id(2.refined)), Nil, profile)
+
+  private val NonStaff: AbstractSsoClient[IO, User] = new AbstractSsoClient[IO, User]:
+    override def get(authorization: Authorization): IO[Either[String, User]] =
+      IO.pure(NonStaffUser.asRight)
+    override def find(req: Request[IO]): IO[Either[String, User]]            =
+      IO.pure(NonStaffUser.asRight)
 
   private case class Env(
     routes: HttpRoutes[IO],
@@ -98,6 +112,24 @@ class SubsystemControlModesRoutesSuite extends munit.CatsEffectSuite with TestRo
       d <- e.shut.get
     yield
       assertEquals(List(g, p, r).map(_.status.responseClass), List.fill(3)(Status.ClientError))
+      assertEquals(s, Initial)
+      assert(!d)
+      assert(!Files.exists(e.file))
+
+  test("all endpoints require the staff role"):
+    for
+      e <- env(NonStaff)
+      g <- e.routes.orNotFound.run(Request[IO](Method.GET, uri"/"))
+      p <- e.routes.orNotFound.run(
+             Request[IO](Method.POST, uri"/").withEntity(Initial.asJson)
+           )
+      r <- e.routes.orNotFound.run(
+             Request[IO](Method.POST, Uri.unsafeFromString(s"/${clientId.value}/restart"))
+           )
+      s <- e.saved.get
+      d <- e.shut.get
+    yield
+      assertEquals(List(g, p, r).map(_.status), List.fill(3)(Status.Forbidden))
       assertEquals(s, Initial)
       assert(!d)
       assert(!Files.exists(e.file))

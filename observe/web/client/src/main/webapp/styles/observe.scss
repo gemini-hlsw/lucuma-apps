@@ -1293,15 +1293,14 @@ body {
 
   .observe-systems-control-row {
     display: grid;
-    grid-template-columns: 8em 1fr auto;
+    grid-template-columns: 8em 1fr;
     align-items: center;
     gap: 0.5em;
     margin-bottom: 0.4em;
   }
 
   .observe-systems-control-active {
-    color: var(--gray-500);
-    font-size: 0.85em;
+    color: var(--warning-background-color);
   }
 
   .observe-systems-control-restart {

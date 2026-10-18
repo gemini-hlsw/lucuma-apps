@@ -118,6 +118,10 @@ object Icons:
   private val faTriangleExclamation: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faDiamondExclamation")
+  private val faDiamondExclamation: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faMinus")
   private val faMinus: FAIcon = js.native
 
@@ -215,7 +219,8 @@ object Icons:
     faSun,
     faTriangleExclamation,
     faVolume,
-    faVolumeSlash
+    faVolumeSlash,
+    faDiamondExclamation
   )
 
   inline def ArrowsRotate        = FontAwesomeIcon(faArrowsRotate)
@@ -258,6 +263,7 @@ object Icons:
   inline def Sun                 = FontAwesomeIcon(faSun)
   inline def TriangleExclamation = FontAwesomeIcon(faTriangleExclamation)
   inline def Volume              = FontAwesomeIcon(faVolume)
+  inline def DiamondExclamation  = FontAwesomeIcon(faDiamondExclamation)
   inline def VolumeSlash         = FontAwesomeIcon(faVolumeSlash)
 
   val CancelSequenceHold =

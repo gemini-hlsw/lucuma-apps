@@ -10,6 +10,8 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.model.StandardRole
+import lucuma.core.model.StandardUser
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
@@ -46,6 +48,11 @@ object TopBar
       object IsAboutOpen   extends NewBoolean
       object IsSystemsOpen extends NewBoolean
 
+      // Only staff may change subsystem control modes or restart the server.
+      val isStaff: Boolean = props.vault.get.user match
+        case StandardUser(_, StandardRole.Staff(_), _, _) => true
+        case _                                            => false
+
       for
         ctx           <- useContext(AppContext.ctx)
         isAboutOpen   <- useStateView(IsAboutOpen(false))
@@ -53,7 +60,7 @@ object TopBar
         menuRef       <- usePopupMenuRef
         // Rebuild the menu when the theme or audio activation change.
         menuItems     <-
-          useMemo((props.theme.get, props.isAudioActivated.get)): (_, _) =>
+          useMemo((props.theme.get, props.isAudioActivated.get, isStaff)): (_, _, _) =>
             import ctx.given
 
             def logout: IO[Unit] = ctx.ssoClient.logout >> props.onLogout
@@ -83,12 +90,14 @@ object TopBar
               ThemeSubMenu(props.theme)
             )
 
-            val lastItems = List(
+            val subsystemsItem: Option[MenuItem] = Option.when(isStaff):
               MenuItem.Item(
                 label = "Subsystems...",
                 icon = Icons.Gears.withFixedWidth(),
                 command = isSystemsOpen.set(IsSystemsOpen(true))
-              ),
+              )
+
+            val lastItems = subsystemsItem.toList ::: List(
               MenuItem.Item(
                 label = "About Observe",
                 icon = Icons.CircleInfo.withFixedWidth(),
@@ -111,7 +120,7 @@ object TopBar
             left = <.span(LayoutStyles.MainTitle, "Observe"),
             right = React.Fragment(
               if (
-                props.clientConfig.subsystemControlModes =!= props.clientConfig.savedSubsystemControlModes
+                isStaff && props.clientConfig.subsystemControlModes =!= props.clientConfig.savedSubsystemControlModes
               )
                 <.span(
                   ObserveStyles.RestartPending,
@@ -134,7 +143,7 @@ object TopBar
           SubsystemControlModesDialog(
             props.clientConfig,
             props.isServerBusy,
-            isSystemsOpen.get.value,
+            isStaff && isSystemsOpen.get.value,
             isSystemsOpen.set(IsSystemsOpen(false))
           ),
           if (isAboutOpen.get.value)

@@ -12,11 +12,17 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
 import lucuma.core.util.Display
 import lucuma.react.common.*
+import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.ConfirmDialog
 import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.DialogPosition
-import lucuma.ui.primereact.FormEnumDropdownView
+import lucuma.react.primereact.PrimeStyles
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.tooltip.*
+import lucuma.ui.primereact.EnumDropdownView
+import lucuma.ui.primereact.FormLabel
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import observe.model.ClientConfig
@@ -63,7 +69,7 @@ object SubsystemControlModesDialog
         val restart: Callback =
           ConfirmDialog.confirmDialog(
             message = <.div(
-              "Running sequences will be aborted and all clients will reconnect. Restart the server now?"
+              "All clients will disconnect and reconnect once the server is back. Restart the server now?"
             ),
             header = "Restart server",
             acceptLabel = "Yes, restart",
@@ -83,15 +89,27 @@ object SubsystemControlModesDialog
             fields.map { field =>
               val row: View[SubsystemControlMode] = edited.zoom(field.mode)
               val active: SubsystemControlMode    = field.mode.get(config.subsystemControlModes)
+              val id: NonEmptyString              =
+                NonEmptyString.unsafeFrom(s"subsystems-${field.configKey}")
+              // Same marker Explore puts next to a customized value, as an input group addon.
+              val activeAddon: VdomNode           =
+                if active =!= row.get then
+                  <.span(
+                    PrimeStyles.InputGroupAddon,
+                    Icons.DiamondExclamation
+                      .withClass(ObserveStyles.SystemsControlActive)
+                      .withSize(IconSize.X1)
+                  ).withTooltip(
+                    content = s"Active: ${label(active)}",
+                    position = Tooltip.Position.Left
+                  )
+                else EmptyVdom
               <.div(ObserveStyles.SystemsControlRow)(
-                <.span(field.label),
-                FormEnumDropdownView(
-                  id = NonEmptyString.unsafeFrom(s"systems-${field.configKey}"),
-                  value = row
-                ),
-                <.span(ObserveStyles.SystemsControlActive)(
-                  s"Active: ${label(active)}"
-                ).when(active =!= row.get)
+                FormLabel(htmlFor = id)(field.label),
+                <.div(PrimeStyles.InputGroup |+| LucumaPrimeStyles.FormField)(
+                  EnumDropdownView(id = id, value = row, clazz = LucumaPrimeStyles.FormField),
+                  activeAddon
+                )
               )
             }.toTagMod,
             <.div(ObserveStyles.SystemsControlActions)(
@@ -101,32 +119,34 @@ object SubsystemControlModesDialog
                 onClick = configApi.saveSystemControl(edited.get).runAsync
               )
             ),
-            if (restartRequired)
-              <.div(ObserveStyles.SystemsControlRestart)(
-                <.h4(ObserveStyles.SystemsControlWarning)(
-                  Icons.TriangleExclamation,
-                  " Restart required"
-                ),
-                <.ul(
-                  pendingChanges
-                    .map: (f, from, to) =>
-                      <.li(s"${f.label}: ${label(from)} → ${label(to)}")
-                    .toTagMod
-                ),
-                <.p(
-                  "Restarting the server aborts running sequences and all clients will reconnect."
-                ),
-                <.div(ObserveStyles.SystemsControlActions)(
-                  Button(
-                    label = "Restart server",
-                    severity = Button.Severity.Danger,
-                    disabled = props.isServerBusy,
-                    tooltip = if (props.isServerBusy) "A sequence is running" else "",
-                    onClick = restart
+            <.div(ObserveStyles.SystemsControlRestart)(
+              if (restartRequired)
+                React.Fragment(
+                  <.h4(ObserveStyles.SystemsControlWarning)(
+                    Icons.TriangleExclamation,
+                    " Restart required"
+                  ),
+                  <.ul(
+                    pendingChanges
+                      .map: (f, from, to) =>
+                        <.li(s"${f.label}: ${label(from)} → ${label(to)}")
+                      .toTagMod
                   )
                 )
+              else <.h4("Restart server"),
+              <.p(
+                "The restart is refused while a sequence is running. All clients disconnect and reconnect once the server is back."
+              ),
+              <.div(ObserveStyles.SystemsControlActions)(
+                Button(
+                  label = "Restart server",
+                  severity = Button.Severity.Danger,
+                  disabled = props.isServerBusy,
+                  tooltip = if (props.isServerBusy) "A sequence is running" else "",
+                  onClick = restart
+                )
               )
-            else EmptyVdom,
+            ),
             ConfirmDialog()
           )
         )
