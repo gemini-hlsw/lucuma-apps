@@ -4,7 +4,7 @@
     "environment": "DEVELOPMENT",
     "odbURI": "wss://odb-dev.gpp.gemini.edu/ws",
     "odbRestURI": "https://odb-dev.gpp.gemini.edu",
-    "preferencesDBURI": "wss://user-prefs-master.herokuapp.com/v1/graphql",
+    "preferencesDBURI": "wss://prefs-dev.gpp.gemini.edu/v1/graphql",
     "itcURI": "https://itc-dev.gpp.gemini.edu/itc",
     "sso": {
       "uri": "https://sso-dev.gpp.gemini.edu",
