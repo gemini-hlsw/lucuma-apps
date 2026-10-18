@@ -245,7 +245,7 @@ object ExploreStyles:
 
   val AladinContainerColumn: Css  = Css("aladin-container-column")
   // The sky image is always dark, so its area keeps the dark theme in either app theme.
-  val AlwaysDarkTheme: Css        = Css("dark-theme")
+  val AlwaysDarkTheme: Css        = Css("negative-sky-prototype")
   val AladinContainerBody: Css    = Css("aladin-container-body")
   val AladinFOV: Css              = Css("aladin-status-fov")
   val AladinGuideStarLoading: Css = Css("aladin-status-gs-loading")

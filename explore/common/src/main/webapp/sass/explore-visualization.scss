@@ -437,3 +437,11 @@ $brightness: var(--aladin-image-brightness);
     filter: invert(1);
   }
 }
+
+// Prototype: negative sky in the light theme
+.light-theme {
+  /* stylelint-disable-next-line selector-class-pattern */
+  .aladin-imageCanvas {
+    filter: grayscale(1) invert(1) brightness(string.unquote($brightness));
+  }
+}
