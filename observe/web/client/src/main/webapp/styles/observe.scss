@@ -1287,3 +1287,43 @@ body {
     background-color: color-mix(in srgb, var(--green-500) 75%, transparent);
   }
 }
+
+.observe-systems-control-dialog {
+  min-width: 32em;
+
+  .observe-systems-control-row {
+    display: grid;
+    grid-template-columns: 8em 1fr auto;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.4em;
+  }
+
+  .observe-systems-control-active {
+    color: var(--gray-500);
+    font-size: 0.85em;
+  }
+
+  .observe-systems-control-restart {
+    margin-top: 1em;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--surface-border);
+  }
+
+  .observe-systems-control-warning {
+    color: var(--orange-500);
+  }
+
+  .observe-systems-control-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5em;
+    margin-top: 1em;
+  }
+}
+
+.observe-restart-pending {
+  color: var(--orange-500);
+  cursor: pointer;
+  margin-right: 0.5em;
+}

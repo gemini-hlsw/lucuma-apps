@@ -125,7 +125,14 @@ object ObserveStyles:
 
   val SyncingPanel: Css = Css("observe-syncing-panel")
 
-  val ChecksOverrideDialog: Css = Css("observe-checks-override-dialog")
+  val ChecksOverrideDialog: Css        = Css("observe-checks-override-dialog")
+  val SubsystemControlModesDialog: Css = Css("observe-systems-control-dialog")
+  val SystemsControlRow: Css           = Css("observe-systems-control-row")
+  val SystemsControlActive: Css        = Css("observe-systems-control-active")
+  val SystemsControlRestart: Css       = Css("observe-systems-control-restart")
+  val SystemsControlWarning: Css       = Css("observe-systems-control-warning")
+  val SystemsControlActions: Css       = Css("observe-systems-control-actions")
+  val RestartPending: Css              = Css("observe-restart-pending")
 
   val ObsHeader: Css            = Css("observe-obs-header")
   val ObsSummary: Css           = Css("observe-obs-summary")

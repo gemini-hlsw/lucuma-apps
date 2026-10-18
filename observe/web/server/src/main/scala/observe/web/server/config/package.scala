@@ -6,6 +6,7 @@ package observe.web.server.config
 import cats.effect.Sync
 import cats.syntax.all.*
 import com.typesafe.config.Config
+import com.typesafe.config.ConfigValueFactory
 import lucuma.core.enums.Site
 import lucuma.core.util.Enumerated
 import lucuma.sso.client.util.GpgPublicKeyReader
@@ -21,6 +22,7 @@ import pureconfig.module.ip4s.*
 import java.nio.file.Path
 import java.security.PublicKey
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters.*
 
 case class EnumValueUnknown(value: String, available: List[String]) extends FailureReason {
   def description: String =
@@ -63,6 +65,19 @@ given ConfigReader[PublicKey] =
   }
 
 given ConfigReader[SubsystemControlModes] = ConfigReader.derived
+
+given ConfigWriter[SubsystemControlMode] = ConfigWriter[String].contramap(_.tag)
+
+// pureconfig has no Scala 3 derivation of writers for case classes. Keys come from the fields of
+// SubsystemControlModes (kebab case, as the derived reader expects); GPI is in no site.
+given ConfigWriter[SubsystemControlModes] =
+  ConfigWriter.fromFunction: modes =>
+    val fields: List[(String, SubsystemControlMode)] =
+      (SubsystemControlModes.CommonFields ++
+        SubsystemControlModes.NorthFields ++
+        SubsystemControlModes.SouthFields).map(f => f.configKey -> f.mode.get(modes)) :+
+        ("gpi" -> modes.gpi)
+    ConfigValueFactory.fromMap(fields.map((k, v) => k -> v.tag).toMap.asJava)
 
 given ConfigReader[GpiUriSettings] = ConfigReader[Uri].map(GpiUriSettings.apply)
 

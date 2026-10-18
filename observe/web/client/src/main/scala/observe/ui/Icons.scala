@@ -114,6 +114,10 @@ object Icons:
   private val faGears: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faTriangleExclamation")
+  private val faTriangleExclamation: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faMinus")
   private val faMinus: FAIcon = js.native
 
@@ -209,50 +213,52 @@ object Icons:
     faSquarePlus,
     faStop,
     faSun,
+    faTriangleExclamation,
     faVolume,
     faVolumeSlash
   )
 
-  inline def ArrowsRotate      = FontAwesomeIcon(faArrowsRotate)
-  inline def ArrowsRetweet     = FontAwesomeIcon(faArrowsRetweet)
-  inline def ArrowUpFromLine   = FontAwesomeIcon(faArrowUpFromLine)
-  inline def Backward          = FontAwesomeIcon(faBackward)
-  inline def BackwardStep      = FontAwesomeIcon(faBackwardStep)
-  inline def Ban               = FontAwesomeIcon(faBan)
-  inline def Bars              = FontAwesomeIcon(faBars)
-  inline def Calendar          = FontAwesomeIcon(faCalendar)
-  inline def CaretRight        = FontAwesomeIcon(faCaretRight)
-  inline def ChevronRight      = FontAwesomeIcon(faChevronRight)
-  inline def Circle            = FontAwesomeIcon(faCircle)
-  inline def CircleCheck       = FontAwesomeIcon(faCircleCheck)
-  inline def CircleDot         = FontAwesomeIcon(faCircleDot)
-  inline def CircleExclamation = FontAwesomeIcon(faCircleExclamation)
-  inline def CircleInfo        = FontAwesomeIcon(faCircleInfo)
-  inline def CircleMinus       = FontAwesomeIcon(faCircleMinus)
-  inline def CircleQuestion    = FontAwesomeIcon(faCircleQuestion)
-  inline def CircleSolid       = FontAwesomeIcon(faCircleSolid)
-  inline def Clock             = FontAwesomeIcon(faClock)
-  inline def Crosshairs        = FontAwesomeIcon(faCrosshairs)
-  inline def ExternalLink      = FontAwesomeIcon(faExternalLink)
-  inline def FileArrowUp       = FontAwesomeIcon(faFileArrowUp)
-  inline def FileCheck         = FontAwesomeIcon(faFileCheck)
-  inline def FileCross         = FontAwesomeIcon(faFileCross)
-  inline def Forward           = FontAwesomeIcon(faForward)
-  inline def Gears             = FontAwesomeIcon(faGears)
-  inline def Minus             = FontAwesomeIcon(faMinus)
-  inline def Logout            = FontAwesomeIcon(faSignOutAlt)
-  inline def Moon              = FontAwesomeIcon(faMoon)
-  inline def Pause             = FontAwesomeIcon(faPause)
-  inline def Play              = FontAwesomeIcon(faPlay)
-  inline def PlayPause         = FontAwesomeIcon(faPlayPause)
-  inline def Plus              = FontAwesomeIcon(faPlus)
-  inline def RectangleList     = FontAwesomeIcon(faRectangleList)
-  inline def Reply             = FontAwesomeIcon(faReply)
-  inline def SquarePlus        = FontAwesomeIcon(faSquarePlus)
-  inline def Stop              = FontAwesomeIcon(faStop)
-  inline def Sun               = FontAwesomeIcon(faSun)
-  inline def Volume            = FontAwesomeIcon(faVolume)
-  inline def VolumeSlash       = FontAwesomeIcon(faVolumeSlash)
+  inline def ArrowsRotate        = FontAwesomeIcon(faArrowsRotate)
+  inline def ArrowsRetweet       = FontAwesomeIcon(faArrowsRetweet)
+  inline def ArrowUpFromLine     = FontAwesomeIcon(faArrowUpFromLine)
+  inline def Backward            = FontAwesomeIcon(faBackward)
+  inline def BackwardStep        = FontAwesomeIcon(faBackwardStep)
+  inline def Ban                 = FontAwesomeIcon(faBan)
+  inline def Bars                = FontAwesomeIcon(faBars)
+  inline def Calendar            = FontAwesomeIcon(faCalendar)
+  inline def CaretRight          = FontAwesomeIcon(faCaretRight)
+  inline def ChevronRight        = FontAwesomeIcon(faChevronRight)
+  inline def Circle              = FontAwesomeIcon(faCircle)
+  inline def CircleCheck         = FontAwesomeIcon(faCircleCheck)
+  inline def CircleDot           = FontAwesomeIcon(faCircleDot)
+  inline def CircleExclamation   = FontAwesomeIcon(faCircleExclamation)
+  inline def CircleInfo          = FontAwesomeIcon(faCircleInfo)
+  inline def CircleMinus         = FontAwesomeIcon(faCircleMinus)
+  inline def CircleQuestion      = FontAwesomeIcon(faCircleQuestion)
+  inline def CircleSolid         = FontAwesomeIcon(faCircleSolid)
+  inline def Clock               = FontAwesomeIcon(faClock)
+  inline def Crosshairs          = FontAwesomeIcon(faCrosshairs)
+  inline def ExternalLink        = FontAwesomeIcon(faExternalLink)
+  inline def FileArrowUp         = FontAwesomeIcon(faFileArrowUp)
+  inline def FileCheck           = FontAwesomeIcon(faFileCheck)
+  inline def FileCross           = FontAwesomeIcon(faFileCross)
+  inline def Forward             = FontAwesomeIcon(faForward)
+  inline def Gears               = FontAwesomeIcon(faGears)
+  inline def Minus               = FontAwesomeIcon(faMinus)
+  inline def Logout              = FontAwesomeIcon(faSignOutAlt)
+  inline def Moon                = FontAwesomeIcon(faMoon)
+  inline def Pause               = FontAwesomeIcon(faPause)
+  inline def Play                = FontAwesomeIcon(faPlay)
+  inline def PlayPause           = FontAwesomeIcon(faPlayPause)
+  inline def Plus                = FontAwesomeIcon(faPlus)
+  inline def RectangleList       = FontAwesomeIcon(faRectangleList)
+  inline def Reply               = FontAwesomeIcon(faReply)
+  inline def SquarePlus          = FontAwesomeIcon(faSquarePlus)
+  inline def Stop                = FontAwesomeIcon(faStop)
+  inline def Sun                 = FontAwesomeIcon(faSun)
+  inline def TriangleExclamation = FontAwesomeIcon(faTriangleExclamation)
+  inline def Volume              = FontAwesomeIcon(faVolume)
+  inline def VolumeSlash         = FontAwesomeIcon(faVolumeSlash)
 
   val CancelSequenceHold =
     LayeredIcon()(

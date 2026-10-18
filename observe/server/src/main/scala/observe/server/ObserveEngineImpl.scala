@@ -717,6 +717,23 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   private def logDebugEvent(msg: String, user: User, clientId: ClientId): F[Unit] =
     L.debug(s"$msg, by ${user.displayName} from client $clientId")
 
+  override def requestRestart(user: User, clientId: ClientId, shutdown: F[Unit]): F[Unit] =
+    logInfoEvent(s"Restart requested by ${user.displayName}") *>
+      executeEngine.offer:
+        Event.modifyState[F]:
+          EngineHandle.getState.flatMap: st =>
+            ObserveEngine.restartBlockers(st) match
+              case None          =>
+                EngineHandle.liftF[F, Unit](logInfoEvent("Restarting the server")) >>
+                  EngineHandle.liftF[F, Unit](shutdown).as(SeqEvent.NullSeqEvent)
+              case Some(reasons) =>
+                EngineHandle.liftF[F, Unit](
+                  L.warn:
+                    s"Restart requested by ${user.displayName} refused: ${reasons.mkString_(", ")}"
+                ) >>
+                  EngineHandle.pure[F, SeqEvent]:
+                    SeqEvent.NotifyUser(Notification.RestartRefused(reasons), clientId)
+
   override def clearLoadedSequences(user: User): F[Unit] =
     logDebugEvent("ObserveEngine: Updating loaded sequences") *>
       executeEngine.offer:

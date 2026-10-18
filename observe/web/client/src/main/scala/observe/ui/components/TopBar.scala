@@ -4,6 +4,7 @@
 package observe.ui.components
 
 import cats.effect.IO
+import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -33,6 +34,7 @@ import observe.ui.utils.Audio
 
 case class TopBar(
   clientConfig:     ClientConfig,
+  isServerBusy:     Boolean,
   vault:            View[UserVault],
   theme:            View[Theme],
   isAudioActivated: View[IsAudioActivated],
@@ -41,14 +43,16 @@ case class TopBar(
 
 object TopBar
     extends ReactFnComponent[TopBar](props =>
-      object IsAboutOpen extends NewBoolean
+      object IsAboutOpen   extends NewBoolean
+      object IsSystemsOpen extends NewBoolean
 
       for
-        ctx         <- useContext(AppContext.ctx)
-        isAboutOpen <- useStateView(IsAboutOpen(false))
-        menuRef     <- usePopupMenuRef
+        ctx           <- useContext(AppContext.ctx)
+        isAboutOpen   <- useStateView(IsAboutOpen(false))
+        isSystemsOpen <- useStateView(IsSystemsOpen(false))
+        menuRef       <- usePopupMenuRef
         // Rebuild the menu when the theme or audio activation change.
-        menuItems   <-
+        menuItems     <-
           useMemo((props.theme.get, props.isAudioActivated.get)): (_, _) =>
             import ctx.given
 
@@ -81,6 +85,11 @@ object TopBar
 
             val lastItems = List(
               MenuItem.Item(
+                label = "Subsystems...",
+                icon = Icons.Gears.withFixedWidth(),
+                command = isSystemsOpen.set(IsSystemsOpen(true))
+              ),
+              MenuItem.Item(
                 label = "About Observe",
                 icon = Icons.CircleInfo.withFixedWidth(),
                 command = isAboutOpen.set(IsAboutOpen(true))
@@ -101,6 +110,15 @@ object TopBar
             clazz = LayoutStyles.MainHeader,
             left = <.span(LayoutStyles.MainTitle, "Observe"),
             right = React.Fragment(
+              if (
+                props.clientConfig.subsystemControlModes =!= props.clientConfig.savedSubsystemControlModes
+              )
+                <.span(
+                  ObserveStyles.RestartPending,
+                  ^.title := "Restart pending: subsystem control changes are saved but not applied",
+                  ^.onClick --> isSystemsOpen.set(IsSystemsOpen(true))
+                )(Icons.TriangleExclamation, " Restart pending")
+              else EmptyVdom,
               <.span(props.clientConfig.site.shortName),
               " - ",
               <.span(LayoutStyles.MainUserName)(user.displayName),
@@ -113,6 +131,12 @@ object TopBar
             )
           ),
           PopupTieredMenu(model = menuItems).withRef(menuRef.ref),
+          SubsystemControlModesDialog(
+            props.clientConfig,
+            props.isServerBusy,
+            isSystemsOpen.get.value,
+            isSystemsOpen.set(IsSystemsOpen(false))
+          ),
           if (isAboutOpen.get.value)
             About(
               "Observe".refined,

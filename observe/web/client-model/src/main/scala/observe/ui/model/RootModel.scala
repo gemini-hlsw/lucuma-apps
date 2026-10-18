@@ -91,6 +91,10 @@ case class RootModelData(
       )
     )
 
+  // UX hint only, the server check is authoritative.
+  lazy val isServerBusy: Boolean =
+    executionState.values.exists(_.isLocked)
+
   def isObsLocked(obsId: Observation.Id): Boolean =
     executionState.get(obsId).exists(_.isLocked)
 

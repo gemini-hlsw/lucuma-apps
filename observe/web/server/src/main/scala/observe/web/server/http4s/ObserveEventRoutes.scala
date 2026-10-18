@@ -4,6 +4,7 @@
 package observe.web.server.http4s
 
 import cats.effect.Async
+import cats.effect.Ref
 import cats.effect.std.SecureRandom
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
@@ -17,7 +18,7 @@ import io.circe.syntax.*
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Site
 import observe.model.*
-import observe.model.enums.SubsystemControlMode
+import observe.model.config.SubsystemControlModes
 import observe.model.events.*
 import observe.model.events.ClientEvent.GuideConfigEvent
 import observe.model.events.ClientEvent.InitialEvent
@@ -41,19 +42,20 @@ import scala.concurrent.duration.*
  * Rest Endpoints under the /api route
  */
 class ObserveEventRoutes[F[_]: {Async, Compression}](
-  site:                  Site,
-  environment:           ExecutionEnvironment,
-  odbWsUri:              Uri,
-  ssoUri:                Uri,
-  exploreBaseUri:        Uri,
-  clientsDb:             ClientsSetDb[F],
-  engine:                ObserveEngine[F],
-  engineOutput:          Topic[F, (Option[ClientId], ClientEvent)],
-  webSocketBuilder:      WebSocketBuilder2[F],
-  subsystemControlModes: Map[Subsystem, SubsystemControlMode],
-  otelEndpoint:          Option[Uri]
+  site:                       Site,
+  environment:                ExecutionEnvironment,
+  odbWsUri:                   Uri,
+  ssoUri:                     Uri,
+  exploreBaseUri:             Uri,
+  clientsDb:                  ClientsSetDb[F],
+  engine:                     ObserveEngine[F],
+  engineOutput:               Topic[F, (Option[ClientId], ClientEvent)],
+  webSocketBuilder:           WebSocketBuilder2[F],
+  subsystemControlModes:      SubsystemControlModes,
+  savedSubsystemControlModes: Ref[F, SubsystemControlModes],
+  otelEndpoint:               Option[Uri]
 )(using
-  L:                     Logger[F]
+  L:                          Logger[F]
 ) extends ModelLenses
     with Http4sDsl[F] {
 
@@ -72,23 +74,27 @@ class ObserveEventRoutes[F[_]: {Async, Compression}](
       //
 
       def initialEvent(clientId: ClientId): Stream[F, WebSocketFrame] =
-        Stream.emit(
-          toFrame[ClientEvent](
-            InitialEvent(
-              ClientConfig(
-                site,
-                environment,
-                odbWsUri,
-                ssoUri,
-                exploreBaseUri,
-                clientId,
-                Version(NonEmptyString.unsafeFrom(OcsBuildInfo.version)),
-                subsystemControlModes,
-                otelEndpoint
+        val config: Stream[F, WebSocketFrame] =
+          Stream
+            .eval(savedSubsystemControlModes.get)
+            .map: saved =>
+              toFrame[ClientEvent](
+                InitialEvent(
+                  ClientConfig(
+                    site,
+                    environment,
+                    odbWsUri,
+                    ssoUri,
+                    exploreBaseUri,
+                    clientId,
+                    Version(NonEmptyString.unsafeFrom(OcsBuildInfo.version)),
+                    subsystemControlModes,
+                    saved,
+                    otelEndpoint
+                  )
+                )
               )
-            )
-          )
-        ) ++
+        config ++
           // Send the current guide value to each client as part of the connection handshake.
           Stream
             .eval(engine.services.guideDb.value)

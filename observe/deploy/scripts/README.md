@@ -11,6 +11,12 @@ prints a `curl` command to run elsewhere that looks the promoted tag up in the G
 records. The current tag is stored in `~/observe/deployed-version` (written only by `update`) and
 shown by `observe version`. `observe start` and `observe restart` reuse it.
 
+The per-subsystem control strategies (`observe-engine.subsystem-control-modes`) live in
+`~/observe/conf/subsystems.conf`, which is now written by the Observe UI (Subsystems dialog) for the
+subsystems of the running site. The UI can also restart the server for the new strategies to take
+effect, when nothing is running: the server exits cleanly and the container's
+`--restart unless-stopped` policy brings it back.
+
 You can use the commands in `install.sh` to copy the latest version of the scripts:
 
 ```

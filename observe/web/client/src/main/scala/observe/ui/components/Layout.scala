@@ -84,6 +84,7 @@ object Layout
                     props.rootModel.clientConfig.toOption.map: clientConfig =>
                       TopBar(
                         clientConfig,
+                        props.rootModel.data.get.isServerBusy,
                         userVault,
                         theme,
                         props.rootModel.data.zoom(RootModelData.isAudioActivated),

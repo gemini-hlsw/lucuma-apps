@@ -15,6 +15,7 @@ import lucuma.core.model.Observation
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.SubsystemEnabled
+import observe.model.config.SubsystemControlModes
 
 import scala.annotation.unused
 
@@ -39,6 +40,9 @@ trait ConfigApi[F[_]: MonadThrow]:
     NotAuthorized
   def setDhsEnabled(@unused obsId: Observation.Id, @unused enabled: SubsystemEnabled): F[Unit]  =
     NotAuthorized
+
+  def saveSystemControl(@unused config: SubsystemControlModes): F[Unit] = NotAuthorized
+  def restartServer: F[Unit]                                            = NotAuthorized
 
   def isBusy: Boolean = false
 

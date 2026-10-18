@@ -65,6 +65,7 @@ trait ArbSubsystemControlModes {
         SubsystemControlMode,
         SubsystemControlMode,
         SubsystemControlMode,
+        SubsystemControlMode,
         SubsystemControlMode
       )
     ].contramap(x =>
@@ -77,6 +78,7 @@ trait ArbSubsystemControlModes {
        x.gnirs,
        x.gpi,
        x.ghost,
+       x.igrins2,
        x.gsaoi,
        x.gws,
        x.nifs,

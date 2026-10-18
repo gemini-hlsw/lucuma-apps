@@ -59,6 +59,7 @@ import pureconfig.*
 
 import java.io.FileInputStream
 import java.nio.file.Files as JavaFiles
+import java.nio.file.Path
 import java.security.KeyStore
 import java.security.Security
 import javax.net.ssl.KeyManagerFactory
@@ -74,7 +75,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
     for
       confDir          <- baseDir[F].map(_.resolve("conf"))
       localDir          = confDir.resolve("local")
-      subsystemsConf    = localDir.resolve("subsystems.conf")
+      subsystemsConf   <- SubsystemControlModesFile.path[F]
       deprecatedConf    = localDir.resolve("systems.conf")
       subsystemsPresent = JavaFiles.exists(subsystemsConf)
       deprecatedPresent = JavaFiles.exists(deprecatedConf)
@@ -208,24 +209,36 @@ object WebServerLauncher extends IOApp with LogInitialization {
   private def webServer[F[
     _
   ]: {Async, Tracer, TracerProvider, MeterProvider, Logger, Files, Network, Compression}](
-    conf:      ObserveConfiguration,
-    clientsDb: ClientsSetDb[F],
-    ssoClient: SsoClient[F, User],
-    oe:        ObserveEngine[F]
+    conf:                       ObserveConfiguration,
+    clientsDb:                  ClientsSetDb[F],
+    ssoClient:                  SsoClient[F, User],
+    oe:                         ObserveEngine[F],
+    savedSubsystemControlModes: Ref[F, SubsystemControlModes],
+    subsystemsFile:             Path,
+    shutdown:                   F[Unit]
   ): Resource[F, Server] = {
 
     val commandRoutes: ObserveCommandRoutes[F] = ObserveCommandRoutes(ssoClient, oe)
 
     def router(
-      wsb:                      WebSocketBuilder2[F],
-      events:                   Topic[F, (Option[ClientId], ClientEvent)]
+      wsb:                          WebSocketBuilder2[F],
+      events:                       Topic[F, (Option[ClientId], ClientEvent)]
     ): HttpRoutes[F] =
       Router[F](
-        "/"                   -> StaticRoutes().service,
-        "/api/observe/guide"  -> GuideConfigDbRoutes(oe.services.guideDb).service,
-        "/api/observe"        -> commandRoutes.service,
-        "/api/observe/ping"   -> PingRoutes(ssoClient).service,
-        "/api/observe/events" -> ObserveEventRoutes(
+        "/"                       -> StaticRoutes().service,
+        "/api/observe/guide"      -> GuideConfigDbRoutes(oe.services.guideDb).service,
+        "/api/observe"            -> commandRoutes.service,
+        "/api/observe/ping"       -> PingRoutes(ssoClient).service,
+        "/api/observe/subsystems" -> SubsystemControlModesRoutes(
+          ssoClient,
+          oe,
+          conf.site,
+          savedSubsystemControlModes,
+          subsystemsFile,
+          events,
+          shutdown
+        ).service,
+        "/api/observe/events"     -> ObserveEventRoutes(
           conf.site,
           conf.environment,
           conf.observeEngine.odbWs,
@@ -235,7 +248,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
           oe,
           events,
           wsb,
-          conf.observeEngine.subsystemControlModes.toMap,
+          conf.observeEngine.subsystemControlModes,
+          savedSubsystemControlModes,
           conf.otel.effectiveClientEndpoint
         ).service
       )
@@ -410,7 +424,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
   /** Reads the configuration and launches the observe engine and web server */
   def observe: IO[ExitCode] = {
 
-    val observe: Resource[IO, Unit] =
+    val observe: Resource[IO, IO[Unit]] =
       for // Initialize log before the engine is setup
         given Logger[IO]        <- Resource.eval(setupLogger[IO])
         conf                    <- Resource.eval(config[IO].flatMap(loadConfiguration[IO]))
@@ -432,10 +446,17 @@ object WebServerLauncher extends IOApp with LogInitialization {
         engine                  <- engineIO(conf, cli)
         _                       <- redirectWebServer(conf.webServer, engine.services.guideDb)
         sso                     <- ssoClient(cli, conf.lucumaSSO)
-        _                       <- webServer(conf, cs, sso, engine)
-      yield ()
+        subsystemsFile          <- Resource.eval(SubsystemControlModesFile.path[IO])
+        saved                   <- Resource.eval:
+                                     Ref.of[IO, SubsystemControlModes](conf.observeEngine.subsystemControlModes)
+        restartSignal           <- Resource.eval(Deferred[IO, Unit])
+        _                       <-
+          webServer(conf, cs, sso, engine, saved, subsystemsFile, restartSignal.complete(()).void)
+      yield restartSignal.get *> Logger[IO].info("Restarting on user request")
 
-    observe.useForever.as(ExitCode.Success)
+    // Completing the signal releases every resource, which ends the process cleanly so that the
+    // container's restart policy starts it again.
+    observe.use(identity).as(ExitCode.Success)
   }
 
   /** Reads the configuration and launches the observe */
