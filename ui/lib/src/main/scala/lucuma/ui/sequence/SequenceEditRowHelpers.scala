@@ -12,6 +12,7 @@ import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
+import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
@@ -104,20 +105,31 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
     (c.getFutureStep, value).tupled.foldMap: (futureStep, v) =>
       handleSeqTypeRowEdit(c, futureStep.seqType)(rowEdit(futureStep.stepId)(v))
 
+  // GNIRS derives the read mode from the exposure time. A read mode still matching the old
+  // exposure follows the new one.
+  private def gnirsExposureReplace(exposure: TimeSpan): Endo[GnirsDynamicConfig] = cfg =>
+    val readMode: GnirsReadMode =
+      if cfg.readMode === GnirsReadMode.forExposureTime(cfg.exposure)
+      then GnirsReadMode.forExposureTime(exposure)
+      else cfg.readMode
+    cfg.copy(exposure = exposure, readMode = readMode)
+
   // Follow this template for other fields
   protected val exposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]] =
-    modifyStep:
+    modifyStep: exposure =>
       combineOptionalsReplace(
         gmosNorth.andThen(gmos.DynamicConfig.GmosNorth.exposure),
         gmosSouth.andThen(gmos.DynamicConfig.GmosSouth.exposure),
         flamingos2.andThen(Flamingos2DynamicConfig.exposure),
-        igrins2.andThen(Igrins2DynamicConfig.exposure),
-        gnirs.andThen(GnirsDynamicConfig.exposure)
-      )
+        igrins2.andThen(Igrins2DynamicConfig.exposure)
+      )(exposure).andThen(gnirs.modify(gnirsExposureReplace(exposure)))
 
   // Coadds for GNIRS.
   protected val coaddsReplace: Step.Id => PosInt => Endo[List[Atom[D]]] =
     modifyStep(gnirs.andThen(GnirsDynamicConfig.coadds).replace)
+
+  protected val gnirsReadModeReplace: Step.Id => GnirsReadMode => Endo[List[Atom[D]]] =
+    modifyStep(gnirs.andThen(GnirsDynamicConfig.readMode).replace)
 
   protected val gmosWavelengthReplace: Step.Id => Wavelength => Endo[List[Atom[D]]] =
     modifyStep:

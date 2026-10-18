@@ -26,11 +26,12 @@ object SequenceStyles:
   val VisitStepExtraDatasetItem     = Css("lucuma-sequence-visit-extra-row-dataset-item")
   val VisitStepExtraDatasetQAStatus = Css("lucuma-sequence-visit-extra-row-dataset-qa-status")
 
-  val SequenceInput    = Css("lucuma-sequence-input")
-  val SequenceDropdown = Css("lucuma-sequence-dropdown")
-  val OffsetInput      = Css("lucuma-sequence-offset-input")
-  val GuidingToggle    = Css("lucuma-sequence-guiding-toggle")
-  val SaturatedCell    = Css("lucuma-sequence-saturated-cell")
+  val SequenceInput         = Css("lucuma-sequence-input")
+  val SequenceDropdown      = Css("lucuma-sequence-dropdown")
+  val SequenceDropdownPanel = Css("lucuma-sequence-dropdown-panel")
+  val OffsetInput           = Css("lucuma-sequence-offset-input")
+  val GuidingToggle         = Css("lucuma-sequence-guiding-toggle")
+  val SaturatedCell         = Css("lucuma-sequence-saturated-cell")
 
   val CurrentHeader = Css("lucuma-sequence-current-header")
 
