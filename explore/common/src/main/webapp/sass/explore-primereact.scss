@@ -11,160 +11,166 @@
 
 @include meta.load-css('/lucuma-css/lucuma-ui-prime');
 
-// Inside PrimeReact's layer so its button variants still win by specificity. The scope stops at
-// nested `.dark-theme` areas, such as the Aladin sky view, which stay dark in the light theme.
+// Inside PrimeReact's layer so its other variants still win by specificity. Each theme sets the
+// colors in lucuma-ui-variables-{light,dark}.scss.
 @layer primereact {
-  @scope (.light-theme) to (.dark-theme) {
-    :scope {
-      .p-button {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-      }
+  .dark-theme,
+  .light-theme {
+    .p-button {
+      background: var(--button-primary-background);
+      border-color: var(--button-primary-background);
+    }
 
-      .p-button:enabled:hover {
-        background: var(--primary-color-hover);
-        border-color: var(--primary-color-hover);
-      }
+    .p-button:not(:disabled):hover {
+      background: var(--button-primary-hover-background);
+      border-color: var(--button-primary-hover-background);
+    }
 
-      .p-button:enabled:active {
-        background: var(--primary-color-active);
-        border-color: var(--primary-color-active);
-      }
+    .p-button:not(:disabled):active {
+      background: var(--button-primary-active-background);
+      border-color: var(--button-primary-active-background);
+    }
 
-      .p-button.p-button-text,
-      .p-button.p-button-outlined {
-        color: var(--primary-color);
-      }
+    .p-button.p-button-text,
+    .p-button.p-button-outlined {
+      color: var(--button-flat-color);
+    }
 
-      .p-button.p-button-outlined {
-        border-color: var(--primary-color);
-      }
+    .p-button.p-button-outlined {
+      border-color: var(--button-flat-color);
+    }
 
-      .p-button.p-button-secondary,
-      .p-button-group.p-button-secondary > .p-button,
-      .p-splitbutton.p-button-secondary > .p-button {
-        color: var(--text-color);
-        background: var(--button-background-color);
-        border-color: var(--button-background-color);
-      }
+    .p-button.p-button-secondary,
+    .p-button-group.p-button-secondary > .p-button,
+    .p-splitbutton.p-button-secondary > .p-button {
+      color: var(--button-secondary-color);
+      background: var(--button-secondary-background);
+      border-color: var(--button-secondary-background);
+    }
 
-      .p-button.p-button-secondary:not(:disabled):hover,
-      .p-button-group.p-button-secondary > .p-button:not(:disabled):hover,
-      .p-splitbutton.p-button-secondary > .p-button:not(:disabled):hover {
-        color: var(--text-color);
-        background: var(--button-hover-background-color);
-        border-color: var(--button-hover-background-color);
-      }
+    .p-button.p-button-secondary:not(:disabled):hover,
+    .p-button-group.p-button-secondary > .p-button:not(:disabled):hover,
+    .p-splitbutton.p-button-secondary > .p-button:not(:disabled):hover {
+      color: var(--button-secondary-color);
+      background: var(--button-secondary-hover-background);
+      border-color: var(--button-secondary-hover-border);
+    }
 
-      .p-button.p-button-secondary:not(:disabled):active,
-      .p-button-group.p-button-secondary > .p-button:not(:disabled):active,
-      .p-splitbutton.p-button-secondary > .p-button:not(:disabled):active {
-        color: var(--text-color);
-        background: var(--button-active-background-color);
-        border-color: var(--button-active-background-color);
-      }
+    .p-button.p-button-secondary:not(:disabled):active,
+    .p-button-group.p-button-secondary > .p-button:not(:disabled):active,
+    .p-splitbutton.p-button-secondary > .p-button:not(:disabled):active {
+      color: var(--button-secondary-color);
+      background: var(--button-secondary-active-background);
+      border-color: var(--button-secondary-active-border);
+    }
 
-      .p-button.p-button-secondary.explore-button-summary {
-        background: hsl(0deg 0% 100%);
-        border-color: var(--site-solid-border-color);
-      }
+    .p-button.p-button-secondary.explore-button-summary {
+      background: var(--button-summary-background);
+      border-color: var(--button-summary-border);
+    }
 
-      .p-button.p-button-secondary.explore-button-summary:not(:disabled):hover {
-        background: var(--hover-background-color);
-        border-color: var(--site-solid-border-color);
-      }
+    .p-button.p-button-secondary.explore-button-summary:not(:disabled):hover {
+      background: var(--button-summary-hover-background);
+      border-color: var(--button-summary-hover-border);
+    }
 
-      .p-button.p-button-success,
-      .p-button-group.p-button-success > .p-button,
-      .p-splitbutton.p-button-success > .p-button {
-        background: var(--success-color);
-        border-color: var(--success-color);
-      }
+    .p-button.p-button-success,
+    .p-button-group.p-button-success > .p-button,
+    .p-splitbutton.p-button-success > .p-button {
+      background: var(--button-success-background);
+      border-color: var(--button-success-background);
+    }
 
-      .p-button.p-button-success:not(:disabled):hover,
-      .p-button-group.p-button-success > .p-button:not(:disabled):hover,
-      .p-splitbutton.p-button-success > .p-button:not(:disabled):hover {
-        background: var(--success-color-hover);
-        border-color: var(--success-color-hover);
-      }
+    .p-button.p-button-success:not(:disabled):hover,
+    .p-button-group.p-button-success > .p-button:not(:disabled):hover,
+    .p-splitbutton.p-button-success > .p-button:not(:disabled):hover {
+      background: var(--button-success-hover-background);
+      border-color: var(--button-success-hover-background);
+    }
 
-      .p-button.p-button-success:not(:disabled):active,
-      .p-button-group.p-button-success > .p-button:not(:disabled):active,
-      .p-splitbutton.p-button-success > .p-button:not(:disabled):active {
-        background: var(--success-color-active);
-        border-color: var(--success-color-active);
-      }
+    .p-button.p-button-success:not(:disabled):active,
+    .p-button-group.p-button-success > .p-button:not(:disabled):active,
+    .p-splitbutton.p-button-success > .p-button:not(:disabled):active {
+      background: var(--button-success-active-background);
+      border-color: var(--button-success-active-background);
+    }
 
-      .p-button.p-button-secondary.p-button-text,
-      .p-button.p-button-secondary.p-button-outlined {
-        color: var(--text-color);
-      }
+    .p-button.p-button-secondary.p-button-text,
+    .p-button.p-button-secondary.p-button-outlined {
+      color: var(--button-secondary-flat-color);
+    }
 
-      .p-selectbutton .p-button.p-highlight,
-      .p-togglebutton.p-highlight .p-button {
-        color: var(--primary-color-text);
-        background: var(--control-selected-color);
-        border-color: var(--control-selected-color);
-      }
+    .p-selectbutton .p-button.p-highlight,
+    .p-togglebutton.p-highlight .p-button {
+      color: var(--control-selected-text-color);
+      background: var(--control-selected-color);
+      border-color: var(--control-selected-color);
+    }
 
-      .p-selectbutton .p-button.p-highlight:hover,
-      .p-togglebutton.p-highlight:hover .p-button {
-        color: var(--primary-color-text);
-        background: var(--control-selected-color-hover);
-        border-color: var(--control-selected-color-hover);
-      }
+    .p-selectbutton .p-button.p-highlight:hover,
+    .p-togglebutton.p-highlight:hover .p-button {
+      color: var(--control-selected-text-color);
+      background: var(--control-selected-hover-color);
+      border-color: var(--control-selected-hover-color);
+    }
 
-      .p-checkbox.p-highlight .p-checkbox-box,
-      .p-checkbox.p-variant-filled.p-highlight .p-checkbox-box,
-      .p-input-filled .p-checkbox.p-highlight .p-checkbox-box,
-      .p-tristatecheckbox.p-variant-filled.p-highlight .p-checkbox-box,
-      .p-radiobutton.p-highlight .p-radiobutton-box,
-      .p-radiobutton.p-variant-filled.p-highlight .p-radiobutton-box,
-      .p-input-filled .p-radiobutton.p-highlight .p-radiobutton-box {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-      }
+    .p-checkbox.p-highlight .p-checkbox-box,
+    .p-checkbox.p-variant-filled.p-highlight .p-checkbox-box,
+    .p-input-filled .p-checkbox.p-highlight .p-checkbox-box,
+    .p-tristatecheckbox.p-variant-filled.p-highlight .p-checkbox-box {
+      background: var(--checkbox-checked-background);
+      border-color: var(--checkbox-checked-border);
+    }
 
-      .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight .p-checkbox-box,
-      .p-checkbox.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
-        .p-checkbox-box,
-      .p-input-filled
-        .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
-        .p-checkbox-box,
-      .p-tristatecheckbox.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
-        .p-checkbox-box,
+    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight .p-checkbox-box,
+    .p-checkbox.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
+      .p-checkbox-box,
+    .p-input-filled
+      .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
+      .p-checkbox-box,
+    .p-tristatecheckbox.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover).p-highlight
+      .p-checkbox-box {
+      background: var(--checkbox-checked-hover-background);
+      border-color: var(--checkbox-checked-hover-border);
+    }
+
+    .p-radiobutton.p-highlight .p-radiobutton-box,
+    .p-radiobutton.p-variant-filled.p-highlight .p-radiobutton-box,
+    .p-input-filled .p-radiobutton.p-highlight .p-radiobutton-box {
+      background: var(--radio-checked-color);
+      border-color: var(--radio-checked-color);
+    }
+
+    .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight .p-radiobutton-box,
+    .p-radiobutton.p-variant-filled:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight
+      .p-radiobutton-box,
+    .p-input-filled
       .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight
-        .p-radiobutton-box,
-      .p-radiobutton.p-variant-filled:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight
-        .p-radiobutton-box,
-      .p-input-filled
-        .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover).p-highlight
-        .p-radiobutton-box {
-        background: var(--primary-color-hover);
-        border-color: var(--primary-color-hover);
-      }
+      .p-radiobutton-box {
+      background: var(--radio-checked-hover-color);
+      border-color: var(--radio-checked-hover-color);
+    }
 
-      .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box,
-      .p-checkbox:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box,
-      .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover) .p-radiobutton-box,
-      .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:focus-visible) .p-radiobutton-box {
-        border-color: var(--primary-color);
-      }
+    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box,
+    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box,
+    .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:hover) .p-radiobutton-box,
+    .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:focus-visible) .p-radiobutton-box {
+      border-color: var(--control-hover-border-color);
+    }
 
-      .p-inputswitch.p-highlight .p-inputswitch-slider {
-        background: var(--primary-color);
-      }
+    .p-inputswitch.p-highlight .p-inputswitch-slider {
+      background: var(--switch-checked-background);
+    }
 
-      .p-inputswitch:not(.p-disabled):has(.p-inputswitch-input:hover).p-highlight
-        .p-inputswitch-slider {
-        background: var(--primary-color-hover);
-      }
+    .p-inputswitch:not(.p-disabled):has(.p-inputswitch-input:hover).p-highlight
+      .p-inputswitch-slider {
+      background: var(--switch-checked-hover-background);
+    }
 
-      .p-badge,
-      .p-tag {
-        background: var(--primary-color);
-        color: var(--primary-color-text);
-      }
+    .p-badge,
+    .p-tag {
+      background: var(--badge-background);
+      color: var(--badge-color);
     }
   }
 }

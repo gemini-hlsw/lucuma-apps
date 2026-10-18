@@ -21,14 +21,6 @@
   background: var(--control-background-color);
 }
 
-.dark-theme {
-  color-scheme: dark;
-}
-
-.light-theme {
-  color-scheme: light;
-}
-
 // Full viewport settings taken from https://dev.to/lennythedev/css-gotcha-how-to-fill-page-with-a-div-270j
 
 html,
@@ -283,15 +275,11 @@ tfoot {
 
 .obs-tree-group {
   display: block;
-  color: var(--primary-color-text);
+  color: var(--obs-tree-group-color);
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 5px;
   user-select: none;
-}
-
-.light-theme .obs-tree-group {
-  color: var(--site-text-color);
 }
 
 .eraser-icon,
@@ -808,12 +796,6 @@ thead tr th.sticky-header {
   text-align: right;
 }
 
-// There is still an analog to this in style.less
-@mixin warning-label-mixin {
-  color: var(--warning-text-color);
-  background-color: var(--warning-background-color);
-}
-
 .target-sed-type-dropdown.explore-warning-input,
 .p-inputgroup.explore-warning-input {
   box-shadow: var(--warning-glow);
@@ -1297,8 +1279,9 @@ thead tr th.sticky-header {
 // ------
 
 .explore-shared-edit-warning {
-  @include warning-label-mixin;
-
+  color: var(--shared-edit-warning-color);
+  background-color: var(--shared-edit-warning-background);
+  border: var(--shared-edit-warning-border);
   padding: 0.4em;
 
   .pl-radiobutton-with-label {
@@ -1309,12 +1292,6 @@ thead tr th.sticky-header {
       background-color: black;
     }
   }
-}
-
-.light-theme .explore-shared-edit-warning {
-  color: var(--text-color);
-  background-color: var(--warning-soft-background-color);
-  border: 1px solid var(--warning-soft-border-color);
 }
 
 // ------
@@ -1507,18 +1484,13 @@ $search-preview-margin: 5px;
 
 .explore-sequence-tile-customized {
   margin-left: 0.75em;
-  color: var(--warning-background-color);
+  color: var(--sequence-customized-color);
   font-weight: normal;
   font-style: italic;
   letter-spacing: normal;
 
   svg {
     margin-left: 0.25em;
-  }
-
-  // The warning orange is too light to read as text on the light title bar
-  .light-theme & {
-    color: var(--orange-700);
   }
 }
 
@@ -1565,9 +1537,9 @@ $search-preview-margin: 5px;
 // -------------
 @mixin aladin-toolbar-labels {
   padding: 0 0.6em;
-  background-color: var(--surface-100);
+  background-color: var(--aladin-toolbar-label-background);
   border-radius: 0.2em;
-  outline: solid 1px var(--surface-200);
+  outline: solid 1px var(--aladin-toolbar-label-outline);
 }
 
 .aladin-status-fov {
@@ -1656,34 +1628,15 @@ svg.fa-check.explore-success-icon {
 }
 
 .aladin-detail-text {
-  color: white;
+  color: var(--aladin-detail-text-color);
   white-space: nowrap;
   font-size: smaller;
   margin-left: 0.4em;
 }
 
-.light-theme {
-  .aladin-detail-text {
-    color: var(--text-color);
-  }
-
-  .aladin-status-fov,
-  .aladin-status-current-coordinates,
-  .aladin-status-center-button {
-    background-color: hsl(0deg 0% 100%);
-    outline-color: var(--site-solid-border-color);
-  }
-
-  .aladin-status-center-button:focus,
-  .aladin-status-center-button:active,
-  .aladin-status-center-button:hover {
-    outline-color: var(--primary-color);
-  }
-
-  .aladin-status-fov .explore-accented,
-  .aladin-status-center-button .explore-accented {
-    color: var(--explore-accent-color-strong);
-  }
+.aladin-status-fov .explore-accented,
+.aladin-status-center-button .explore-accented {
+  color: var(--aladin-toolbar-icon-color);
 }
 
 .aladin-container-column {
@@ -1752,9 +1705,13 @@ svg.fa-check.explore-success-icon {
 .obs-badge {
   padding: 0.7em;
   background-color: var(--obs-badge-background);
-  border: solid 1px var(--site-border-color);
+  border: solid 1px var(--obs-badge-border-color);
   border-radius: 3px;
   font-size: var(--pl-mini-font-size);
+
+  progress {
+    accent-color: var(--obs-badge-progress-color);
+  }
 
   .p-component.p-button {
     color: var(--site-text-color) !important;
@@ -1804,7 +1761,8 @@ svg.fa-check.explore-success-icon {
     align-items: center;
     font-weight: normal;
     font-size: small;
-    opacity: 0.5;
+    color: var(--obs-badge-secondary-color);
+    opacity: var(--obs-badge-id-opacity);
     margin-bottom: 0.2em;
     word-break: normal;
   }
@@ -1901,7 +1859,7 @@ svg.fa-check.explore-success-icon {
         // Sized to its content: compact label padding and a slim chevron
         .obs-badge-telluric-select.p-dropdown {
           width: auto;
-          background-color: var(--obs-selected-badge-background);
+          background-color: var(--obs-badge-input-background);
 
           .p-dropdown-label {
             padding: 0.15em 0.4em;
@@ -1922,7 +1880,7 @@ svg.fa-check.explore-success-icon {
         row-gap: 0.4em;
         padding: 0.3em 0.4em;
         border-radius: 3px;
-        background-color: var(--obs-selected-badge-background);
+        background-color: var(--obs-badge-nested-background);
 
         // Heads the rows with the science observation's telluric type; not clickable
         .obs-badge-telluric-header {
@@ -1979,57 +1937,20 @@ svg.fa-check.explore-success-icon {
 
   .obs-state-select {
     width: 100%;
-    background-color: var(--obs-selected-badge-background);
+    background-color: var(--obs-badge-input-background);
   }
 }
 
 // The panel is not nested in the obs badge
 .obs-state-select-panel.p-dropdown-panel {
-  background-color: var(--obs-selected-badge-background);
+  background-color: var(--obs-badge-input-background);
 }
 
 .selected-obs-item .obs-badge,
 .obs-tree-item .obs-badge.obs-badge-selected,
 .p-treenode:has(.selected-group-item) {
   background-color: var(--obs-selected-badge-background);
-  box-shadow: 0 0 0 1.5px var(--site-solid-border-color);
-}
-
-.light-theme {
-  .obs-badge {
-    border-color: var(--site-solid-border-color);
-
-    progress {
-      accent-color: var(--primary-color);
-    }
-
-    .obs-badge-id {
-      opacity: 1;
-      color: var(--obs-badge-secondary-color);
-    }
-
-    .obs-state-select,
-    .obs-badge-extra .obs-badge-extra-associated .obs-badge-telluric-select.p-dropdown {
-      background-color: var(--form-input-background);
-      border-color: var(--site-solid-border-color);
-    }
-
-    .obs-badge-extra .obs-badge-extra-associated .obs-badge-telluric-section {
-      background-color: var(--obs-badge-nested-background);
-    }
-  }
-
-  .obs-state-select-panel.p-dropdown-panel {
-    background-color: var(--form-input-background);
-  }
-
-  .selected-obs-item .obs-badge,
-  .obs-tree-item .obs-badge.obs-badge-selected,
-  .p-treenode:has(.selected-group-item) {
-    box-shadow:
-      inset 3px 0 0 var(--accent-color),
-      0 0 0 1px var(--gray);
-  }
+  box-shadow: var(--obs-selected-badge-shadow);
 }
 
 .p-menu.p-component.science-band-popup-menu {
@@ -2240,11 +2161,7 @@ svg.fa-check.explore-success-icon {
 // Configuration Tile
 // ------
 .explore-configuration-tile-body {
-  background-color: var(--surface-card);
-}
-
-.light-theme .explore-configuration-tile-body {
-  background-color: var(--tile-background);
+  background-color: var(--configuration-tile-background);
 }
 
 .explore-configuration-grid {
@@ -3650,11 +3567,7 @@ input[type='file'].explore-fileupload {
 .explore-help-icon {
   margin-left: 0.5em;
   cursor: pointer;
-  color: var(--site-text-color);
-}
-
-.light-theme .explore-help-icon {
-  color: var(--control-selected-color);
+  color: var(--help-icon-color);
 }
 
 // Keep the help icon on the same row as its label text

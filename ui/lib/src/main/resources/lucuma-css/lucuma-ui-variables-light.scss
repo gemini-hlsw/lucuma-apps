@@ -158,7 +158,7 @@
   --primary-color-active: hsl(var(--gray-dark-h) var(--gray-dark-s) calc(var(--gray-dark-l) - 6%));
   --primary-color-text: hsl(0deg 0% 100%);
   --control-selected-color: hsl(210deg 6% 40%);
-  --control-selected-color-hover: hsl(210deg 6% 46%);
+  --control-selected-hover-color: hsl(210deg 6% 46%);
   --success-color: hsl(122deg 45% 33%);
   --success-color-hover: hsl(122deg 45% 28%);
   --success-color-active: hsl(122deg 45% 24%);
@@ -171,7 +171,6 @@
   --accent-color: hsl(41deg 89.5% 51.4%);
   --explore-accent-color-darken-5: hsl(41deg 89.5% 46.4%);
   --explore-accent-color-lighten-5: hsl(41deg 89.5% 56.4%);
-  --explore-accent-color-strong: hsl(36deg 90% 38%);
   --explore-selected-box-color: slateblue;
   --sidetab-background: var(--color-background-light-5);
   --explore-group-hover: var(--hover-background-color);
@@ -350,6 +349,11 @@
   --obs-selected-badge-background: hsl(0deg 0% 90%);
   --obs-badge-nested-background: hsl(0deg 0% 92%);
   --obs-badge-secondary-color: hsl(0deg 0% 45%);
+  --obs-badge-border-color: var(--site-solid-border-color);
+  --obs-badge-progress-color: var(--primary-color);
+  --obs-badge-id-opacity: 1;
+  --obs-badge-input-background: var(--form-input-background);
+  --obs-selected-badge-shadow: inset 3px 0 0 var(--accent-color), 0 0 0 1px var(--gray);
 }
 
 @mixin menu-light {
@@ -432,6 +436,53 @@
   --plot-plot-band-exclude-window-opacity: 0.2;
 }
 
+@mixin prime-controls-light {
+  --button-primary-background: var(--primary-color);
+  --button-primary-hover-background: var(--primary-color-hover);
+  --button-primary-active-background: var(--primary-color-active);
+  --button-flat-color: var(--primary-color);
+  --button-secondary-color: var(--text-color);
+  --button-secondary-background: var(--button-background-color);
+  --button-secondary-hover-background: var(--button-hover-background-color);
+  --button-secondary-hover-border: var(--button-hover-background-color);
+  --button-secondary-active-background: var(--button-active-background-color);
+  --button-secondary-active-border: var(--button-active-background-color);
+  --button-secondary-flat-color: var(--text-color);
+  --button-summary-background: hsl(0deg 0% 100%);
+  --button-summary-border: var(--site-solid-border-color);
+  --button-summary-hover-background: var(--hover-background-color);
+  --button-summary-hover-border: var(--site-solid-border-color);
+  --button-success-background: var(--success-color);
+  --button-success-hover-background: var(--success-color-hover);
+  --button-success-active-background: var(--success-color-active);
+  --control-selected-text-color: var(--primary-color-text);
+  --control-hover-border-color: var(--primary-color);
+  --checkbox-checked-background: var(--primary-color);
+  --checkbox-checked-border: var(--primary-color);
+  --checkbox-checked-hover-background: var(--primary-color-hover);
+  --checkbox-checked-hover-border: var(--primary-color-hover);
+  --radio-checked-color: var(--primary-color);
+  --radio-checked-hover-color: var(--primary-color-hover);
+  --switch-checked-background: var(--primary-color);
+  --switch-checked-hover-background: var(--primary-color-hover);
+  --badge-background: var(--primary-color);
+  --badge-color: var(--primary-color-text);
+}
+
+@mixin explore-components-light {
+  --obs-tree-group-color: var(--site-text-color);
+  --configuration-tile-background: var(--tile-background);
+  --help-icon-color: var(--control-selected-color);
+  --sequence-customized-color: var(--orange-700);
+  --shared-edit-warning-color: var(--text-color);
+  --shared-edit-warning-background: var(--warning-soft-background-color);
+  --shared-edit-warning-border: 1px solid var(--warning-soft-border-color);
+  --aladin-detail-text-color: var(--text-color);
+  --aladin-toolbar-label-background: hsl(0deg 0% 100%);
+  --aladin-toolbar-label-outline: var(--site-solid-border-color);
+  --aladin-toolbar-icon-color: hsl(36deg 90% 38%);
+}
+
 @mixin custom-light {
   --active-row-background: var(--orange-50);
   --disabled-row-background: var(--bluegray-50);
@@ -465,4 +516,8 @@
   @include plot-light;
   @include datepicker-light;
   @include custom-light;
+  @include prime-controls-light;
+  @include explore-components-light;
+
+  color-scheme: light;
 }

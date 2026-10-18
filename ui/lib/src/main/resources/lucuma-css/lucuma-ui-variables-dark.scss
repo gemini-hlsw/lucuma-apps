@@ -333,6 +333,13 @@
   --obs-badge-color: var(--text-color);
   --obs-badge-background: var(--color-background-light-8);
   --obs-selected-badge-background: var(--color-background-light-20);
+  --obs-badge-nested-background: var(--obs-selected-badge-background);
+  --obs-badge-secondary-color: var(--obs-badge-color);
+  --obs-badge-border-color: var(--site-border-color);
+  --obs-badge-progress-color: auto;
+  --obs-badge-id-opacity: 0.5;
+  --obs-badge-input-background: var(--obs-selected-badge-background);
+  --obs-selected-badge-shadow: 0 0 0 1.5px var(--site-solid-border-color);
 }
 
 @mixin menu-dark {
@@ -411,6 +418,56 @@
   --plot-plot-band-exclude-window-opacity: 0.25;
 }
 
+// Mirrors the PrimeReact dark theme so these controls keep their stock look
+@mixin prime-controls-dark {
+  --button-primary-background: hsl(206deg 66.7% 38.8%);
+  --button-primary-hover-background: hsl(205.9deg 66.3% 34.9%);
+  --button-primary-active-background: hsl(206deg 67.1% 31%);
+  --button-flat-color: hsl(206deg 66.7% 38.8%);
+  --button-secondary-color: hsl(0deg 0% 100%);
+  --button-secondary-background: hsl(210deg 7.9% 45%);
+  --button-secondary-hover-background: hsl(210deg 7.9% 50.6%);
+  --button-secondary-hover-border: hsl(210deg 7.8% 40.4%);
+  --button-secondary-active-background: hsl(210deg 8% 56.1%);
+  --button-secondary-active-border: hsl(210deg 7.6% 36.1%);
+  --button-secondary-flat-color: hsl(210deg 7.9% 45%);
+  --button-summary-background: var(--button-secondary-background);
+  --button-summary-border: var(--button-secondary-background);
+  --button-summary-hover-background: var(--button-secondary-hover-background);
+  --button-summary-hover-border: var(--button-secondary-hover-border);
+  --button-success-background: hsl(122.4deg 39.4% 49.2%);
+  --button-success-hover-background: hsl(122.7deg 39.8% 44.3%);
+  --button-success-active-background: hsl(122.3deg 39.3% 39.4%);
+  --control-selected-color: hsl(206deg 66.7% 38.8%);
+  --control-selected-hover-color: hsl(205.9deg 66.3% 34.9%);
+  --control-selected-text-color: hsl(0deg 0% 100% / 87%);
+  --control-hover-border-color: hsl(206deg 66.7% 38.8%);
+  --checkbox-checked-background: transparent;
+  --checkbox-checked-border: currentcolor;
+  --checkbox-checked-hover-background: transparent;
+  --checkbox-checked-hover-border: hsl(206deg 67.1% 31%);
+  --radio-checked-color: hsl(206deg 66.7% 38.8%);
+  --radio-checked-hover-color: hsl(206deg 67.1% 31%);
+  --switch-checked-background: hsl(206deg 66.7% 38.8%);
+  --switch-checked-hover-background: hsl(205.9deg 66.3% 34.9%);
+  --badge-background: hsl(206deg 66.7% 38.8%);
+  --badge-color: hsl(0deg 0% 100% / 87%);
+}
+
+@mixin explore-components-dark {
+  --obs-tree-group-color: var(--primary-color-text);
+  --configuration-tile-background: var(--surface-card);
+  --help-icon-color: var(--site-text-color);
+  --sequence-customized-color: var(--warning-background-color);
+  --shared-edit-warning-color: var(--warning-text-color);
+  --shared-edit-warning-background: var(--warning-background-color);
+  --shared-edit-warning-border: none;
+  --aladin-detail-text-color: hsl(0deg 0% 100%);
+  --aladin-toolbar-label-background: var(--surface-100);
+  --aladin-toolbar-label-outline: var(--surface-200);
+  --aladin-toolbar-icon-color: var(--explore-accent-color);
+}
+
 @mixin custom-dark {
   --active-row-background: var(--orange-900);
   --disabled-row-background: var(--bluegray-800);
@@ -444,4 +501,8 @@
   @include plot-dark;
   @include datepicker-dark;
   @include custom-dark;
+  @include prime-controls-dark;
+  @include explore-components-dark;
+
+  color-scheme: dark;
 }
