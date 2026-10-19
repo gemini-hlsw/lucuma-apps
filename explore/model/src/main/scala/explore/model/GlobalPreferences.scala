@@ -14,8 +14,8 @@ import explore.model.itc.PlotDetails
 import io.circe.Decoder
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
-import lucuma.ui.enums.Theme
 import lucuma.itc.GraphType
+import lucuma.ui.enums.Theme
 import monocle.Focus
 import org.typelevel.log4cats.extras.LogLevel
 

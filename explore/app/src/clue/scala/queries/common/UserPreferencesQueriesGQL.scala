@@ -341,7 +341,7 @@ object UserPreferencesQueriesGQL {
   }
 
   @GraphQL
-  trait UserThemeUpdate extends GraphQLOperation[UserPreferencesDB] {
+  trait UserThemeUpdate extends GraphQLOperation[UserPreferencesDB]:
     val document = gql"""
       mutation userPreferencesUpsert(
         $$userId: String = "",
@@ -363,7 +363,6 @@ object UserPreferencesQueriesGQL {
         }
       }
     """
-  }
 
   @GraphQL
   trait UserLogLevelUpdate extends GraphQLOperation[UserPreferencesDB] {
