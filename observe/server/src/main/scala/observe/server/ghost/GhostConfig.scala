@@ -628,6 +628,9 @@ object GhostConfig {
                             .asRight[String]
                       }
                   }
+                case GhostIfuMapping.NoTarget                  =>
+                  s"IFU mapping ${staticConfig.ifuMapping} has no target for a science step"
+                    .asLeft[GhostConfig]
               }
             case GhostResolutionMode.High     =>
               // Target and Sky
