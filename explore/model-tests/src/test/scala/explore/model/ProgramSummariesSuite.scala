@@ -10,6 +10,7 @@ import explore.model.arb.ArbExecution.given
 import explore.model.arb.ArbObservation.given
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.arb.ArbObservationWorkflow.given
 import lucuma.core.util.CalculatedValue
@@ -128,3 +129,38 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
       val ps =
         emptyPS.upsertObs(obsWith(obs, none, ObservationWorkflowState.Ready, isCalibration = false))
       assert(ps.aeonEligibleInstruments.isEmpty)
+
+  def obsWithToo(obs: Observation, too: TooActivation, isCalibration: Boolean): Observation =
+    Observation.tooActivation
+      .replace(too)
+      .andThen(
+        Observation.calibrationRole.replace(Option.when(isCalibration)(CalibrationRole.Twilight))
+      )(obs)
+
+  test("maxTooActivation: an empty program is None"):
+    assertEquals(emptyPS.maxTooActivation, TooActivation.None)
+
+  test("maxTooActivation: every non-calibration observation counts, whatever its state"):
+    forAll: (obs: Observation, too: TooActivation, state: ObservationWorkflowState) =>
+      val ps = emptyPS.upsertObs(
+        Observation.workflowState.replace(state)(obsWithToo(obs, too, isCalibration = false))
+      )
+      assertEquals(ps.maxTooActivation, too)
+
+  test("maxTooActivation: calibrations never contribute"):
+    forAll: (obs: Observation, too: TooActivation) =>
+      val ps = emptyPS.upsertObs(obsWithToo(obs, too, isCalibration = true))
+      assertEquals(ps.maxTooActivation, TooActivation.None)
+
+  test("maxTooActivation: the most disruptive activation wins"):
+    forAll: (obs1: Observation, obs2: Observation, too1: TooActivation, too2: TooActivation) =>
+      (obs1.id =!= obs2.id) ==> {
+        val ps = emptyPS
+          .upsertObs(obsWithToo(obs1, too1, isCalibration = false))
+          .upsertObs(obsWithToo(obs2, too2, isCalibration = false))
+        assertEquals(ps.maxTooActivation, too1.max(too2))
+      }
+
+  test("maxTooActivation: Interrupting is above Rapid, which is above None"):
+    assert(TooActivation.None < TooActivation.Rapid)
+    assert(TooActivation.Rapid < TooActivation.Interrupting)

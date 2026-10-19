@@ -108,8 +108,13 @@ case class ProgramSummaries(
         .flatMap: obs =>
           obs.basicConfiguration.flatMap(bc => (bc.instrument, bc.siteFor).tupled)
 
+  // Mirrors the ODB's Program.maxTooActivation, which also counts Inactive and Undefined.
   lazy val maxTooActivation: TooActivation =
-    observations.values.map(_.tooActivation).maxOption.getOrElse(TooActivation.None)
+    observations.values
+      .filterNot(_.isCalibration)
+      .map(_.tooActivation)
+      .maxOption
+      .getOrElse(TooActivation.None)
 
   lazy val obsAttachmentAssignments: ObsAttachmentAssignmentMap =
     observations.toList
