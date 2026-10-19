@@ -63,8 +63,10 @@ final class MasksSuite extends FunSuite:
   }
 
   test("Ra rejects out of range and too many decimals") {
-    List("24:00:00", "12:60:00", "12:30:60", "12:30:45.1234", "12:30").foreach: s =>
+    List("24:00:00", "12:60:00", "12:30:45.1234", "12:30").foreach: s =>
       assert(!matches(Masks.Ra, s), s)
+    // Seconds are validated on blur by the parser, not by the mask.
+    assert(matches(Masks.Ra, "12:30:60"))
   }
 
   test("Dec accepts signed and unsigned forms") {

@@ -13,9 +13,11 @@ import lucuma.ui.input.facade.InputmaskOptions
  * The helpers below always emit the parentheses; keep them when writing a fragment by hand.
  *
  * Inputmask has its own regex engine, and its alternation is weaker than a real regex engine's:
- * literal digits must be written as one-character classes (`[9][0]`, not `90`) and shorter
- * alternatives must use a quantifier (`[0-9]{1,2}`, not `[0-9]|[0-9][0-9]`), otherwise valid text
- * is rejected. The helpers follow these rules; `MasksSuite` checks them against Inputmask itself.
+ * literal digits must be written as one-character classes (`[9][0]`, not `90`), shorter
+ * alternatives must use a quantifier (`[0-9]{1,2}`, not `[0-9]|[0-9][0-9]`), an alternation must
+ * not follow a quantifier, and an alternation must not precede an optional group, otherwise valid
+ * text is rejected or cannot be edited. The helpers follow these rules; `MasksSuite` checks them
+ * against Inputmask itself.
  */
 object Masks:
 
@@ -54,16 +56,23 @@ object Masks:
   val DurationHm: String  = "[0-9]{1,5}:[0-9][0-9]?"
   val DurationHms: String = s"$DurationHm:[0-9][0-9]?${decimals(3)}"
 
-  def seconds(decimalDigits: Int): String = segment(59, 2) + decimals(decimalDigits)
+  /**
+   * Seconds are two loose digits, validated on blur by the parser: Inputmask cannot edit a range
+   * alternation that sits right before an optional group (the decimals). Deleting a leading digit
+   * then shifts every later character left through the decimals, and when the result is invalid the
+   * edit is refused, so the hours of a coordinate could not be edited at all.
+   */
+  def seconds(decimalDigits: Int): String = "[0-9]{1,2}" + decimals(decimalDigits)
 
   val Hm: String  = s"$Hours:$Minutes"
   val Hms: String = s"$Hours:$Minutes:${seconds(3)}"
 
   /**
-   * Coordinates keep their live range limits (hours ≤ 23, degrees ≤ 90, minutes and seconds ≤ 59).
-   * Shortcut story 7027 asked for less obstructive coordinate entry; the mask answers it without
-   * dropping the limits: separators are inserted as you type, Backspace works across them, pasting
-   * a full value works, and single-digit segments like "3:9:5" are accepted and padded on blur.
+   * Coordinates keep their live range limits for hours, degrees and minutes (seconds are validated
+   * on blur, see `seconds`). Shortcut story 7027 asked for less obstructive coordinate entry; the
+   * mask answers it without dropping the limits: separators are inserted as you type, Backspace
+   * works across them, pasting a full value works, and single-digit segments like "3:9:5" are
+   * accepted and padded on blur.
    */
   val Ra: String  = Hms
   val Dec: String = s"[+-]?$Degrees:$Minutes:${seconds(2)}"
