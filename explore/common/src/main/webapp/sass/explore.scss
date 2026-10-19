@@ -712,24 +712,26 @@ thead tr th.sticky-header {
   }
 }
 
-.p-button.p-button-text.explore-tile-state-button {
-  color: var(--site-text-color);
-  filter: brightness(70%);
-  margin-right: 0.5em;
-  transform-origin: center center;
-  transition:
-    transform 0.25s,
-    filter 0.25s ease-in;
+// Scoped to the theme classes to outrank the flat-button color in explore-primereact.scss
+.dark-theme,
+.light-theme {
+  .p-button.p-button-text.explore-tile-state-button {
+    color: var(--tile-control-color);
+    margin-right: 0.5em;
+    transform-origin: center center;
+    transition:
+      transform 0.25s,
+      color 0.25s ease-in;
 
-  &:enabled:focus,
-  &:enabled:focus-visible {
-    border: none;
-    box-shadow: none;
-  }
+    &:enabled:focus,
+    &:enabled:focus-visible {
+      border: none;
+      box-shadow: none;
+    }
 
-  &:enabled:hover {
-    color: var(--site-text-color);
-    filter: brightness(100%);
+    &:enabled:hover {
+      color: var(--tile-control-hover-color);
+    }
   }
 }
 
@@ -741,8 +743,7 @@ thead tr th.sticky-header {
   margin-right: 1em;
 
   .explore-tile-height-preset-label {
-    color: var(--site-text-color);
-    filter: brightness(70%);
+    color: var(--tile-control-color);
     font-size: smaller;
     min-width: 4em;
     text-align: right;
@@ -759,6 +760,23 @@ thead tr th.sticky-header {
 
     .p-slider {
       width: 100%;
+    }
+
+    // Muted like the other tile controls instead of the primary color
+    .p-slider .p-slider-range {
+      background: var(--tile-control-color);
+    }
+
+    .p-slider .p-slider-handle {
+      border-color: var(--tile-control-color);
+      background: var(--tile-title-background);
+
+      &:hover,
+      &:focus {
+        border-color: var(--tile-control-hover-color);
+        background: var(--tile-title-background);
+        box-shadow: none;
+      }
     }
   }
 
