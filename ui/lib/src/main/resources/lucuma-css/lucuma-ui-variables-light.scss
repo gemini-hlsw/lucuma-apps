@@ -11,9 +11,7 @@
     var(--color-background-base-h), var(--color-background-base-s), var(--color-background-base-l);
   --color-background: hsl(var(--color-background-base-hsl));
 
-  // Variations of the background color
-  // For light theme, "light-N" means N% darker than base (semantically: more visible surface)
-  // This keeps variable names consistent with dark theme so downstream refs work unchanged
+  // light-N is N% darker than base here, so the dark-theme names still apply
   --color-background-light-3: hsl(
     var(--color-background-base-h) var(--color-background-base-s)
       calc(var(--color-background-base-l) - 3%)
@@ -67,7 +65,6 @@
       calc(var(--color-background-base-l) - 75%)
   );
 
-  // Lighter shades (toward white)
   --color-background-dark-5: hsl(
     var(--color-background-base-h) var(--color-background-base-s)
       calc(var(--color-background-base-l) + 3%)
@@ -77,7 +74,6 @@
       calc(var(--color-background-base-l) + 5%)
   );
 
-  // Text color
   --color-text-base-h: 0;
   --color-text-base-s: 0%;
   --color-text-base-l: 0%;
@@ -87,7 +83,6 @@
     var(--color-text-base-a);
   --color-text-base: hsl(var(--color-text-base-hsla));
 
-  // Lighter text shades
   --color-text-light-45: hsl(
     var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) + 45%)
   );
@@ -104,7 +99,6 @@
     var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l), 1;
   --color-text-alt: hsl(var(--color-text-alt-hsla));
 
-  // Darker text shades
   --color-text-dark-8-hsla:
     var(--color-text-base-h), var(--color-text-base-s), calc(var(--color-text-base-l) + 8%),
     calc(var(--color-text-base-a) - 0.1);
@@ -114,7 +108,6 @@
     calc(var(--color-text-base-a) - 0.3);
   --color-text-dark-10: hsl(var(--color-text-dark-10-hsla));
 
-  // Gray system
   --gray-h: 210;
   --gray-s: 5.7%;
   --gray-l: 55%;

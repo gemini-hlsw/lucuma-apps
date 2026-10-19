@@ -44,7 +44,6 @@
     border-bottom: 1px var(--surface-border) solid;
   }
 
-  // Editable cells carry a visible box so they stand apart from the read-only ones.
   .lucuma-sequence-input input,
   .lucuma-sequence-dropdown,
   .lucuma-sequence-offset-input {
@@ -115,7 +114,6 @@
   color: var(--sequence-step-guided-color);
 }
 
-// On the dark highlighted toggle the light green reads better in both themes
 .p-togglebutton.p-highlight .lucuma-sequence-step-guided {
   color: var(--sequence-step-guided-selected-color);
 }

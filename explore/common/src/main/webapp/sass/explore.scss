@@ -762,7 +762,6 @@ thead tr th.sticky-header {
       width: 100%;
     }
 
-    // Muted like the other tile controls instead of the primary color
     .p-slider .p-slider-range {
       background: var(--tile-control-color);
     }
@@ -982,7 +981,6 @@ thead tr th.sticky-header {
       }
     }
 
-    // Same green as the Add buttons, so the title bar reads as one set of controls
     .p-button.target-tile-obs-duration {
       background: var(--button-success-background);
       border-color: var(--button-success-background);

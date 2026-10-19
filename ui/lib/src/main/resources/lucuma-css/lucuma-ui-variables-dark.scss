@@ -451,7 +451,6 @@
   --plot-plot-band-exclude-window-opacity: 0.25;
 }
 
-// Mirrors the PrimeReact dark theme so these controls keep their stock look
 @mixin prime-controls-dark {
   --button-primary-background: hsl(206deg 66.7% 38.8%);
   --button-primary-hover-background: hsl(205.9deg 66.3% 34.9%);

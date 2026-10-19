@@ -33,8 +33,7 @@ $brightness: var(--aladin-image-brightness);
     grid-area: aladin;
     position: relative;
 
-    // Drawn as an overlay: a border would shrink the canvas, and an outline is painted
-    // underneath the positioned aladin canvases.
+    // An overlay: a border would shrink the canvas and an outline paints under it.
     &::after {
       content: '';
       position: absolute;

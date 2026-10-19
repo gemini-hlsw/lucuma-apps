@@ -195,7 +195,6 @@ object ExploreLayout:
                                     RootModel.globalPreferences.andThen(GlobalPreferences.theme)
                                   .asView
         theme                <- useTheme(Theme.Dark)
-        // The saved preference wins once loaded, keeping browsers in sync
         _                    <- useEffectWithDeps(themePref.map(_.get)):
                                   _.filterNot(_ === theme.get).foldMap(theme.set)
         themeView             = theme.withOnMod: t =>

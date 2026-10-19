@@ -11,8 +11,7 @@
 
 @include meta.load-css('/lucuma-css/lucuma-ui-prime');
 
-// Inside PrimeReact's layer so its other variants still win by specificity. Each theme sets the
-// colors in lucuma-ui-variables-{light,dark}.scss.
+// Inside PrimeReact's layer so its other variants still win by specificity.
 @layer primereact {
   .dark-theme,
   .light-theme {
