@@ -5035,7 +5035,7 @@ span.explore-offsets-count {
 }
 
 .telescope-config-unguided {
-  opacity: 0.2;
+  opacity: var(--sequence-step-unguided-opacity);
 }
 
 .telescope-config-remove-offset-hidden {

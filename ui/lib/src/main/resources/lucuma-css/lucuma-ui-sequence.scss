@@ -108,11 +108,16 @@
 }
 
 .lucuma-sequence-step-unguided {
-  opacity: 0.2;
+  opacity: var(--sequence-step-unguided-opacity);
 }
 
 .lucuma-sequence-step-guided {
-  color: lightgreen;
+  color: var(--sequence-step-guided-color);
+}
+
+// On the dark highlighted toggle the light green reads better in both themes
+.p-togglebutton.p-highlight .lucuma-sequence-step-guided {
+  color: var(--sequence-step-guided-selected-color);
 }
 
 .lucuma-sequence-step-type-object {

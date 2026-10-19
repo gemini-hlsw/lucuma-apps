@@ -146,7 +146,7 @@
   --control-background-color: var(--color-background-light-20);
   --negative-text-color: hsl(0deg 80% 43%);
   --negative-background-color: hsl(0deg 93% 95%);
-  --negative-icon-color: var(--negative-color);
+  --negative-icon-color: hsl(2deg 72% 48%);
   --warning-text-color: hsl(0deg 0% 100%);
   --warning-background-color: hsl(35deg 95% 50%);
   --warning-glow: 0 0 2px 2px hsl(28deg 100% 48%);
@@ -508,6 +508,9 @@
   --help-icon-color: var(--control-selected-color);
   --sequence-edit-border-color: hsl(210deg 14% 62%);
   --sequence-edit-background: hsl(210deg 10% 92%);
+  --sequence-step-unguided-opacity: 0.45;
+  --sequence-step-guided-color: hsl(122deg 40% 34%);
+  --sequence-step-guided-selected-color: lightgreen;
   --sequence-customized-color: var(--orange-700);
   --shared-edit-warning-color: var(--text-color);
   --shared-edit-warning-background: var(--warning-soft-background-color);
