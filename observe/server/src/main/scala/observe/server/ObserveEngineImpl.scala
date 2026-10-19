@@ -21,6 +21,7 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.Observation
 import lucuma.core.model.User
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig as OcsStepConfig
 import lucuma.core.refined.given
@@ -390,37 +391,45 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
               SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
 
             // A reset regenerates the acquisition steps with new ids, so their breakpoints are not
-            // in the sequence's set yet (which is only built on load): read the whole regenerated
-            // acquisition and register them.
-            val registerAcquisitionBreakpoints: EngineHandle[F, Unit] =
-              EngineHandle
-                .liftF(
-                  systems.odb.readExecutionConfig(obsId, seqData.instrument, OdbProxy.FullFuture)
-                )
-                .flatMap: config =>
-                  EngineHandle.modifySequenceState[F](obsId): s =>
-                    s.copy(
-                      breakpoints =
-                        s.breakpoints ++ Breakpoints.fromInstrumentExecutionConfig(config)
+            // in the sequence's set yet (which is only built on load). The regenerated acquisition
+            // is read in the same round trip as the step to load, and its breakpoints are
+            // registered only once that step is known, so a failure leaves the sequence as it was.
+            val read: EngineHandle[F, (Option[StepGen[F]], Option[InstrumentExecutionConfig])] =
+              if resetAcquisition then
+                EngineHandle.liftF(systems.odb.resetAcquisition(obsId)) >>
+                  ObserveEngine
+                    .readConfigAndStep(
+                      systems.odb,
+                      translator,
+                      obsId,
+                      seqType.asLeft,
+                      OdbProxy.FullFuture
                     )
-
-            (
-              (if resetAcquisition then
-                 EngineHandle.liftF(systems.odb.resetAcquisition(obsId)) >>
-                   registerAcquisitionBreakpoints
-               else EngineHandle.unit[F]) >>
+                    .map(_.fold((none, none))((config, stepGen) => (stepGen, config.some)))
+              else
                 // `readStep` (unlike `retrieveStep`) neither swallows errors nor touches the state,
                 // so a failure can be reported without having changed anything.
-                ObserveEngine.readStep(systems.odb, translator, obsId, seqType.asLeft)
-            ).flatMap:
-              // The translator falls back to science when there's no acquisition; that's no reset.
-              case Some(stepGen) if stepGen.sequenceType === seqType =>
-                EngineHandle
-                  .modifyState_(ObserveEngine.updateStep(obsId, stepGen.some, seqType.asLeft))
-                  .as[SeqEvent](SeqEvent.SequenceTypeChanged(obsId))
-              case _                                                 =>
-                EngineHandle.pure[F, SeqEvent](failed(s"There is no ${seqType.tag} step to load"))
-            .handleErrorWith: e =>
+                ObserveEngine
+                  .readStep(systems.odb, translator, obsId, seqType.asLeft)
+                  .map((_, none))
+
+            read
+              .flatMap:
+                // The translator falls back to science when there's no acquisition; that's no reset.
+                case (Some(stepGen), config) if stepGen.sequenceType === seqType =>
+                  for
+                    _ <- EngineHandle.modifyState_(
+                           ObserveEngine.updateStep(obsId, stepGen.some, seqType.asLeft)
+                         )
+                    _ <- config.traverse_ { c =>
+                           EngineHandle.modifySequenceState[F](obsId) { s =>
+                             s.copy(breakpoints = Breakpoints.withAcquisitionFrom(s.breakpoints, c))
+                           }
+                         }
+                  yield SeqEvent.SequenceTypeChanged(obsId): SeqEvent
+                case _                                                           =>
+                  EngineHandle.pure[F, SeqEvent](failed(s"There is no ${seqType.tag} step to load"))
+              .handleErrorWith: e =>
                 EngineHandle.pure[F, SeqEvent](failed(e.getMessage))
         .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
 
@@ -605,6 +614,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                              )(_ =>
                                ODBSequencesLoader.reloadSequenceMod(
                                  stepGen,
+                                 Breakpoints.fromInstrumentExecutionConfig(odbData.executionConfig),
                                  instrumentSequenceLens
                                )
                              )(st),

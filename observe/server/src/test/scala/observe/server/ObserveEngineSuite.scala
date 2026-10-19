@@ -44,6 +44,7 @@ import observe.model.enums.Resource.Gcal
 import observe.model.enums.Resource.TCS
 import observe.model.enums.RunOverride
 import observe.server.SeqEvent.RequestConfirmation
+import observe.server.engine.Breakpoints
 import observe.server.engine.DummyExecutionZipper
 import observe.server.engine.DummyStepGen
 import observe.server.engine.EngineHandle
@@ -498,7 +499,15 @@ class ObserveEngineSuite extends TestCommon {
     ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .modify(_.copy(currentSequenceType = seqType, status = status)))
+        .modify(
+          _.copy(
+            currentSequenceType = seqType,
+            status = status,
+            // Toggled in Observe: science step 4 enabled (disabled in the ODB) and science step 2
+            // disabled (enabled in the ODB). The ODB never learns about these.
+            breakpoints = Breakpoints(Set(stepId(4)))
+          )
+        ))
       .apply(EngineState.default[IO])
 
   private def acquisitionCommandStep(
@@ -542,7 +551,10 @@ class ObserveEngineSuite extends TestCommon {
                    )
                  )
       sciAtom <- acquisitionCommandAtom(
-                   NonEmptyList.one(acquisitionCommandStep(2, ObserveClass.Science))
+                   NonEmptyList.of(
+                     acquisitionCommandStep(2, ObserveClass.Science, Breakpoint.Enabled),
+                     acquisitionCommandStep(4, ObserveClass.Science)
+                   )
                  )
       odb     <- TestOdbProxy.buildGmosNorth[IO](
                    seqObsId1,
@@ -606,8 +618,9 @@ class ObserveEngineSuite extends TestCommon {
         assertEquals(seq.map(_.seq.status), SequenceStatus.Idle.some)
         assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
         assertEquals(loadedStepId(sf), stepId(1).some)
-        // The breakpoint of the regenerated (not yet loaded) acquisition step is registered.
-        assert(seq.exists(_.seq.breakpoints.contains(stepId(3))))
+        // The breakpoint of the regenerated (not yet loaded) acquisition step is registered, while
+        // the science ones stay as toggled in Observe, whatever the ODB says.
+        assertEquals(seq.map(_.seq.breakpoints.value), Set(stepId(3), stepId(4)).some)
         assertEquals(events, List(TestOdbProxy.ResetAcquisition(seqObsId1)))
   }
 
@@ -633,6 +646,7 @@ class ObserveEngineSuite extends TestCommon {
       assertEquals(after.map(_.seq.status), SequenceStatus.Idle.some)
       assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Science.some)
       assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+      assertEquals(after.map(_.seq.breakpoints.value), Set(stepId(4)).some)
   }
 
   test(
@@ -648,6 +662,7 @@ class ObserveEngineSuite extends TestCommon {
       assertEquals(after.map(_.seq.status), SequenceStatus.Idle.some)
       assertEquals(after.map(_.seq.currentSequenceType), SequenceType.Science.some)
       assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+      assertEquals(after.map(_.seq.breakpoints.value), Set(stepId(4)).some)
   }
 
   test("ObserveEngine should not run a system configuration if sequence is running") {
