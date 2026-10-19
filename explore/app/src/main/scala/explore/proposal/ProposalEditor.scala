@@ -45,6 +45,7 @@ import lucuma.core.enums.ProgramUserRole
 import lucuma.core.enums.ProposalSubmissionError
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.Site
+import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnComponent
@@ -79,7 +80,8 @@ case class ProposalEditor(
   layout:             LayoutsMap,
   proposalIsReadonly: Boolean,
   userIsReadonlyCoi:  Boolean,
-  aeonInstruments:    Map[Instrument, Site]
+  aeonInstruments:    Map[Instrument, Site],
+  maxTooActivation:   TooActivation
 ) extends ReactFnProps(ProposalEditor):
   val optUserId: Option[User.Id]        = userVault.map(_.user.id)
   val proposalOrUserIsReadonly: Boolean = proposalIsReadonly || userIsReadonlyCoi
@@ -352,7 +354,8 @@ object ProposalEditor
                   setFastTurnaroundReviewer,
                   setFastTurnaroundMentorOnly,
                   props.proposalOrUserIsReadonly,
-                  props.aeonInstruments
+                  props.aeonInstruments,
+                  props.maxTooActivation
                 )
               )
             )
