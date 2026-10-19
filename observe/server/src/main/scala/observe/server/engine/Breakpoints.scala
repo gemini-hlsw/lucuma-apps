@@ -8,6 +8,7 @@ import lucuma.core.enums.Breakpoint
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.ExecutionSequence
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 
 import scala.collection.immutable.HashSet
@@ -42,8 +43,19 @@ object Breakpoints:
     executionConfig.acquisition.foldMap(fromExecutionSequence) ++
       executionConfig.science.foldMap(fromExecutionSequence)
 
+  def fromInstrumentExecutionConfig(config: InstrumentExecutionConfig): Breakpoints =
+    config match
+      case InstrumentExecutionConfig.GmosNorth(ec)  => fromExecutionConfig(ec)
+      case InstrumentExecutionConfig.GmosSouth(ec)  => fromExecutionConfig(ec)
+      case InstrumentExecutionConfig.Flamingos2(ec) => fromExecutionConfig(ec)
+      case InstrumentExecutionConfig.Igrins2(ec)    => fromExecutionConfig(ec)
+      case InstrumentExecutionConfig.Ghost(ec)      => fromExecutionConfig(ec)
+      case InstrumentExecutionConfig.Gnirs(ec)      => fromExecutionConfig(ec)
+      case _                                        => empty
+
   extension (breakpoints: Breakpoints)
     def value: Set[Step.Id]                                    = breakpoints
+    def ++(other:        Breakpoints): Breakpoints             = breakpoints ++ other
     def contains(stepId: Step.Id): Boolean                     = breakpoints.contains_(stepId)
     def +(stepId:        Step.Id): Breakpoints                 = breakpoints + stepId
     def -(stepId:        Step.Id): Breakpoints                 = breakpoints - stepId

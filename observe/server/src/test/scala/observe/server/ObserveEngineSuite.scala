@@ -502,8 +502,9 @@ class ObserveEngineSuite extends TestCommon {
       .apply(EngineState.default[IO])
 
   private def acquisitionCommandStep(
-    idx:      Int,
-    obsClass: ObserveClass
+    idx:        Int,
+    obsClass:   ObserveClass,
+    breakpoint: Breakpoint = Breakpoint.Disabled
   ): Step[DynamicConfig.GmosNorth] =
     Step[DynamicConfig.GmosNorth](
       stepId(idx),
@@ -512,23 +513,19 @@ class ObserveEngineSuite extends TestCommon {
       telescopeCfg1,
       StepEstimate.Zero,
       obsClass,
-      Breakpoint.Disabled
+      breakpoint
     )
 
   private def acquisitionCommandAtom(
-    idx:      Int,
-    obsClass: ObserveClass
+    steps: NonEmptyList[Step[DynamicConfig.GmosNorth]]
   ): IO[Atom[DynamicConfig.GmosNorth]] =
     IO.randomUUID.map: uuid =>
-      Atom[DynamicConfig.GmosNorth](
-        Atom.Id.fromUuid(uuid),
-        none,
-        NonEmptyList.one(acquisitionCommandStep(idx, obsClass))
-      )
+      Atom[DynamicConfig.GmosNorth](Atom.Id.fromUuid(uuid), none, steps)
 
   /**
-   * Runs `command` on an engine whose ODB has the acquisition step 1 and the science step 2 (either
-   * may be omitted), returning the final engine state and the ODB events.
+   * Runs `command` on an engine whose ODB has the acquisition steps 1 and 3 (the latter with a
+   * breakpoint) and the science step 2 (acquisition and science may be omitted), returning the
+   * final engine state and the ODB events.
    */
   private def runAcquisitionCommand(
     s0:                      EngineState[IO],
@@ -538,8 +535,15 @@ class ObserveEngineSuite extends TestCommon {
     resetAcquisitionFailure: Option[Throwable] = None
   ): IO[(Option[EngineState[IO]], List[TestOdbProxy.OdbEvent])] =
     for
-      acqAtom <- acquisitionCommandAtom(1, ObserveClass.Acquisition)
-      sciAtom <- acquisitionCommandAtom(2, ObserveClass.Science)
+      acqAtom <- acquisitionCommandAtom(
+                   NonEmptyList.of(
+                     acquisitionCommandStep(1, ObserveClass.Acquisition),
+                     acquisitionCommandStep(3, ObserveClass.Acquisition, Breakpoint.Enabled)
+                   )
+                 )
+      sciAtom <- acquisitionCommandAtom(
+                   NonEmptyList.one(acquisitionCommandStep(2, ObserveClass.Science))
+                 )
       odb     <- TestOdbProxy.buildGmosNorth[IO](
                    seqObsId1,
                    staticCfg1,
@@ -602,6 +606,8 @@ class ObserveEngineSuite extends TestCommon {
         assertEquals(seq.map(_.seq.status), SequenceStatus.Idle.some)
         assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
         assertEquals(loadedStepId(sf), stepId(1).some)
+        // The breakpoint of the regenerated (not yet loaded) acquisition step is registered.
+        assert(seq.exists(_.seq.breakpoints.contains(stepId(3))))
         assertEquals(events, List(TestOdbProxy.ResetAcquisition(seqObsId1)))
   }
 

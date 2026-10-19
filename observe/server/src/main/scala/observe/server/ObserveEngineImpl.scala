@@ -389,8 +389,25 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             def failed(msg: String): SeqEvent =
               SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
 
+            // A reset regenerates the acquisition steps with new ids, so their breakpoints are not
+            // in the sequence's set yet (which is only built on load): read the whole regenerated
+            // acquisition and register them.
+            val registerAcquisitionBreakpoints: EngineHandle[F, Unit] =
+              EngineHandle
+                .liftF(
+                  systems.odb.readExecutionConfig(obsId, seqData.instrument, OdbProxy.FullFuture)
+                )
+                .flatMap: config =>
+                  EngineHandle.modifySequenceState[F](obsId): s =>
+                    s.copy(
+                      breakpoints =
+                        s.breakpoints ++ Breakpoints.fromInstrumentExecutionConfig(config)
+                    )
+
             (
-              (if resetAcquisition then EngineHandle.liftF(systems.odb.resetAcquisition(obsId))
+              (if resetAcquisition then
+                 EngineHandle.liftF(systems.odb.resetAcquisition(obsId)) >>
+                   registerAcquisitionBreakpoints
                else EngineHandle.unit[F]) >>
                 // `readStep` (unlike `retrieveStep`) neither swallows errors nor touches the state,
                 // so a failure can be reported without having changed anything.
