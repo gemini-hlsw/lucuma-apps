@@ -50,6 +50,14 @@ object SequenceIcons:
   @JSImport("@fortawesome/sharp-solid-svg-icons", "faXmark")
   private val faXMark: FAIcon = js.native
 
+  @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faPlus")
+  private val faPlus: FAIcon = js.native
+
+  @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faMinus")
+  private val faMinus: FAIcon = js.native
+
   // This is tedious but lets us do proper tree-shaking
   FontAwesome.library.add(
     faCheck,
@@ -57,7 +65,9 @@ object SequenceIcons:
     faCircle,
     faClone,
     faCrosshairs,
+    faMinus,
     faPencil,
+    faPlus,
     faSquare,
     faTrash,
     faXMark
@@ -76,7 +86,9 @@ object SequenceIcons:
   inline def Clone            = FontAwesomeIcon(faClone)
   inline def Crosshairs       = FontAwesomeIcon(faCrosshairs)
   inline def GripDotsVertical = FontAwesomeIcon(faGripDotsVertical)
+  inline def Minus            = FontAwesomeIcon(faMinus)
   inline def Pencil           = FontAwesomeIcon(faPencil)
+  inline def Plus             = FontAwesomeIcon(faPlus)
   inline def Square           = FontAwesomeIcon(faSquare)
   inline def Trash            = FontAwesomeIcon(faTrash)
   inline def XMark            = FontAwesomeIcon(faXMark)

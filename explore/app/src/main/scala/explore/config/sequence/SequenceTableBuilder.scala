@@ -44,7 +44,7 @@ private type SequenceColumnsType[D] =
   SequenceColumns[D, SequenceIndexedRow[D], SequenceRow[D], Nothing, Nothing, Nothing]
 private type ColumnType[D]          =
   ColumnDef[
-    Expandable[HeaderOrRow[SequenceEditContexts[D], SequenceIndexedRow[D]]],
+    Expandable[HeaderOrRow[SequenceHeaderContext[D], SequenceIndexedRow[D]]],
     ?,
     Nothing,
     Nothing,
@@ -130,8 +130,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     ScalaFnComponent[Props]: props =>
       for
         ctx                           <- useContext(AppContext.ctx)
-        visitsData                    <- useMemo(props.instrumentVisits):
-                                           visitsSequences(_, none)
+        visitsData                    <- useMemo((props.instrumentVisits, props.currentVisitId)):
+                                           visitsSequences(_, none, _)
         resize                        <- useResizeDetector
         given Logger[IO]               = ctx.logger
         given ToastCtx[IO]             = ctx.toastCtx
@@ -172,6 +172,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               enableSorting = false,
               enableColumnResizing = true,
               enableExpanding = true,
+              // Otherwise every data change resets the expanded state to the initial one.
+              autoResetExpanded = false,
               getRowId = (row, _, _) => getRowId(row),
               getSubRows = (row, _) => row.subRows,
               columnResizeMode = ColumnResizeMode.OnChange,
@@ -192,6 +194,20 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         _                             <-
           useEffectWithDeps(editContexts.isEditing): isEditing =>
             dynTable.modCollapsedCols(_ => !isEditing)
+        _                             <- // The current visit's group and runs start expanded.
+          useEffectWithDeps(
+            currentVisitRowIds(
+              visitsData.value._1,
+              props.currentVisitId,
+              acquisitionRows.nonEmpty
+            ).map(_.value)
+          ): rowIds =>
+            table.modExpanded:
+              case Expanded.AllRows    => Expanded.AllRows
+              case Expanded.Rows(rows) =>
+                Expanded.Rows(
+                  rows ++ rowIds.map(RowId(_)).filterNot(rows.contains).map(_ -> true)
+                )
         tableDnd                      <- useVirtualizedTableDragAndDrop(
                                            table,
                                            DragHandleColumnId,

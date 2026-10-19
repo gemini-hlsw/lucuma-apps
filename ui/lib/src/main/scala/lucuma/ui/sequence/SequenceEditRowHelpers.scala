@@ -41,9 +41,9 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
 ) extends SequenceEditOptics[D]:
 
   protected type CellContextType[A] =
-    CellContext[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], A, TM, ?, TF, ?, ?]
+    CellContext[Expandable[HeaderOrRow[SequenceHeaderContext[D], T]], A, TM, ?, TF, ?, ?]
 
-  extension (row: Expandable[HeaderOrRow[SequenceEditContexts[D], T]])
+  extension (row: Expandable[HeaderOrRow[SequenceHeaderContext[D], T]])
     protected def getStep: Option[R] =
       row.value.toOption.flatMap(row => getStepFromRow(row))
 

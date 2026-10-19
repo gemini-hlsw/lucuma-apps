@@ -16,6 +16,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import lucuma.core.syntax.all.*
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.core.util.time.format.UtcFormatter
 import lucuma.react.primereact.Button
@@ -44,55 +45,158 @@ import scala.collection.immutable.HashSet
 // Methods for building visits rows on the sequence table
 trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected type SequenceTableRowType =
-    Expandable[HeaderOrRow[SequenceEditContexts[D], SequenceIndexedRow[D]]]
+    Expandable[HeaderOrRow[SequenceHeaderContext[D], SequenceIndexedRow[D]]]
 
   protected def getRowId(row: SequenceTableRowType): RowId =
     row.value match
-      case Left(HeaderRow(rowId, _)) => rowId
-      case Right(stepRow)            => stepRow.step.rowId
+      case Left(HeaderRow(rowId = rowId)) => rowId
+      case Right(stepRow)                 => stepRow.step.rowId
+
+  /**
+   * Row id of the group holding the live sections, whether it's the current visit, a visit that
+   * just started or the remaining sequence: one stable id, so that switching between those doesn't
+   * recreate the row (which would show it collapsed until expanded again).
+   */
+  protected val CurrentGroupRowId: RowId = RowId("current")
 
   protected val CurrentExpandedState =
     Expanded.fromExpandedRows(
+      CurrentGroupRowId,
       RowId(SequenceType.Acquisition.toString),
       RowId(SequenceType.Science.toString)
     )
 
+  /**
+   * A run of consecutive steps of one sequence type within a visit.
+   *
+   *   - `datasetRange` is the lowest and highest file number (`Dataset.Filename.index`) over the
+   *     run's steps' datasets; the visit header shows it aggregated over all runs as "Files min -
+   *     max".
+   *   - `runIndex` is the run's position within the visit, which only serves to give each run
+   *     separator row a distinct row id.
+   */
+  protected case class VisitRun(
+    sequenceType: SequenceType,
+    stepRows:     NonEmptyList[SequenceIndexedRow[D]],
+    datasetRange: Option[(Int, Int)],
+    runIndex:     Int
+  ):
+    lazy val exposureTime: TimeSpan =
+      stepRows.toList.map(row => recordedExposureTime(row.step)).combineAll
+
+  /**
+   * A visit's executed steps, as runs in execution order. Step numbering is on each row
+   * (`SequenceIndexedRow.index`), assigned when the runs are built.
+   */
   protected case class VisitData(
     visitId:       Visit.Id,
     effectiveTime: Timestamp,
-    sequenceType:  SequenceType,
-    stepRows:      NonEmptyList[SequenceIndexedRow[D]],
-    datasetRange:  Option[(Short, Short)]
+    runs:          List[VisitRun] // Empty only for the current visit, before a step completes
   ):
-    val rowId: RowId = RowId(s"$visitId-$sequenceType")
+    val rowId: RowId = RowId(visitId.toString)
 
-  protected def renderVisitHeader(visit: VisitData): VdomNode =
+    def runRowId(run: VisitRun): RowId = VisitRunRowId(visitId, run.runIndex, run.sequenceType)
+
+    lazy val stepRows: List[SequenceIndexedRow[D]] = runs.flatMap(_.stepRows.toList)
+
+    def exposureTime(sequenceType: SequenceType): TimeSpan =
+      runs.filter(_.sequenceType === sequenceType).map(_.exposureTime).combineAll
+
+    lazy val exposureTime: TimeSpan = runs.map(_.exposureTime).combineAll
+
+    lazy val datasetRange: Option[(Int, Int)] =
+      runs
+        .flatMap(_.datasetRange)
+        .reduceOption: (a, b) =>
+          (a._1.min(b._1), a._2.max(b._2))
+
+  /**
+   * The time a recorded step exposed, as far as the visit data tells: the configured exposure time
+   * for a completed step, nothing for an abandoned or never started one, and for a stopped or
+   * aborted one the time its datasets took, from the first one starting to the last one ending (an
+   * overestimate, as it includes readout and write; datasets may be concurrent, e.g. GHOST's two
+   * cameras, so they're not summed), capped at the configured exposure time. Rows that are not
+   * recorded steps contribute their configured exposure time.
+   */
+  private def recordedExposureTime(step: SequenceRow[D]): TimeSpan =
+    val configured: TimeSpan = step.exposureTime.orEmpty
+    step match
+      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _, _) =>
+        stepRecord.executionState match
+          case StepExecutionState.Completed                                 => configured
+          case StepExecutionState.Abandoned | StepExecutionState.NotStarted => TimeSpan.Zero
+          case _                                                            =>
+            stepRecord.datasets
+              .flatMap(_.interval)
+              .reduceOption(_.span(_))
+              .map(_.timeSpan)
+              .orEmpty
+              .min(configured)
+      case _                                                      => configured
+
+  private def renderFiles(datasetRange: Option[(Int, Int)]): String =
+    "Files: " + datasetRange.map((min, max) => s"$min - $max").getOrElse("---")
+
+  protected def renderVisitHeader(
+    visit:      VisitData,
+    isCurrent:  Boolean,
+    runButtons: TagMod
+  ): VdomNode =
     val visitTime: String = UtcFormatter.format(visit.effectiveTime.toInstant)
 
     <.div(SequenceStyles.VisitHeader)(
+      <.span(s"Visit on $visitTime" + (if isCurrent then " (Current)" else "")),
+      <.span(s"Steps: ${visit.stepRows.size}"),
+      <.span(renderFiles(visit.datasetRange)),
+      runButtons,
       <.span(
-        s"${visit.sequenceType.shortName} Visit on $visitTime"
-      ), // Steps is non-empty => head and last are safe
-      <.span(s"Steps: ${visit.stepRows.head.index} - ${visit.stepRows.last.index}"),
-      <.span(
-        "Files: " + visit.datasetRange
-          .map((min, max) => s"$min - $max")
-          .getOrElse("---")
-      ),
-      <.span(
-        DurationFormatter(
-          visit.stepRows
-            .map(_.step.exposureTime.orEmpty.toDuration)
-            .reduce(using _.plus(_))
-        )
+        ^.title := SequenceType.values
+          .map: sequenceType =>
+            s"${sequenceType.shortName}: " +
+              DurationFormatter(visit.exposureTime(sequenceType).toDuration)
+          .mkString(", "),
+        DurationFormatter(visit.exposureTime.toDuration)
       )
     )
 
+  // Heads the runs within a visit. Steps is non-empty => head and last are safe.
+  protected def renderVisitRunHeader(run: VisitRun): VdomNode =
+    <.div(SequenceStyles.VisitRunHeader)(
+      <.span(run.sequenceType.shortName),
+      <.span(s"Steps: ${run.stepRows.head.index} - ${run.stepRows.last.index}"),
+      <.span(renderFiles(run.datasetRange)),
+      <.span(DurationFormatter(run.exposureTime.toDuration))
+    )
+
+  /** The row ids of every run within `visits`, e.g. to expand them. */
+  protected def visitRunRowIds(visits: List[VisitData]): List[RowId] =
+    visits.flatMap(visit => visit.runs.map(visit.runRowId))
+
+  /**
+   * The row ids of the current visit's runs shown within its group (see `currentVisitRuns`). Runs
+   * start collapsed, except for the current visit's, so the table expands these as they appear.
+   */
+  protected def currentVisitRowIds(
+    visits:                List[VisitData],
+    currentVisitId:        Option[Visit.Id],
+    hasPendingAcquisition: Boolean
+  ): List[RowId] =
+    currentVisitRuns(visits, currentVisitId, hasPendingAcquisition).earlier.toList
+      .flatMap(visit => visitRunRowIds(List(visit)))
+
+  protected def renderRemainingHeader: VdomNode =
+    <.div(SequenceStyles.RemainingHeader)("Remaining sequence")
+
+  // Shown for the current visit until the ODB reports it.
+  protected def renderStartingVisitHeader: VdomNode =
+    <.div(SequenceStyles.RemainingHeader)("Visit starting...")
+
   protected def renderCurrentHeader(
     sequenceType: SequenceType
-  )(using Logger[IO]): SequenceEditContexts[D] => VdomNode =
-    ctxs =>
-      val ctx: SequenceEditContext[D] = ctxs.forSequenceType(sequenceType)
+  )(using Logger[IO]): SequenceHeaderContext[D] => VdomNode =
+    headerCtx =>
+      val ctxs: SequenceEditContexts[D] = headerCtx.editContexts
+      val ctx: SequenceEditContext[D]   = ctxs.forSequenceType(sequenceType)
 
       <.span(
         SequenceStyles.CurrentHeader,
@@ -190,40 +294,37 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       )
     )
 
-  private def buildVisitRows(
+  private def buildVisitRun(
     visitId:       Visit.Id,
-    effectiveTime: Timestamp,
     atoms:         List[AtomRecord[D]],
     sequenceType:  SequenceType,
     currentStepId: Option[Step.Id], // Will be removed from visit rows
-    startIndex:    StepIndex = StepIndex.One
-  ): (Option[VisitData], StepIndex) =
+    startIndex:    StepIndex,
+    runIndex:      Int
+  ): (Option[VisitRun], StepIndex) =
     atoms
       .flatMap(_.steps)
       .filterNot(step => currentStepId.contains_(step.id))
       .some
       .filter(_.nonEmpty)
       .map: steps =>
-        val datasetIndices = steps.flatMap(_.datasets).map(_.index.value)
+        val datasetIndices = steps.flatMap(_.datasets).map(_.filename.index.value)
 
         (
-          effectiveTime,
           steps
-            .map(
+            .map:
               SequenceRow.Executed.ExecutedStep(visitId, _, none, none)
-            )
             .zipWithStepIndex(startIndex),
           datasetIndices.minOption.map(min => (min, datasetIndices.max))
         )
-      .map: (effectiveTime, zipResult, datasetRange) =>
+      .map: (zipResult, datasetRange) =>
         val (rows, nextIndex) = zipResult
 
-        (VisitData(
-           visitId,
-           effectiveTime,
+        (VisitRun(
            sequenceType,
            NonEmptyList.fromListUnsafe(rows.map(SequenceIndexedRow(_, _))),
-           datasetRange
+           datasetRange,
+           runIndex
          ).some,
          nextIndex
         )
@@ -234,42 +335,102 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
    * Returns a streamlined list of visits, splitting them into acquisition and science, followed by
    * the next science index.
    */
+  // Groups consecutive atoms of the same sequence type, keeping their order.
+  private def consecutiveRuns(
+    atoms: List[AtomRecord[D]]
+  ): List[(SequenceType, List[AtomRecord[D]])] =
+    atoms.foldRight(List.empty[(SequenceType, List[AtomRecord[D]])]):
+      case (atom, (seqType, run) :: rest) if seqType === atom.sequenceType =>
+        (seqType, atom :: run) :: rest
+      case (atom, runs)                                                    =>
+        (atom.sequenceType, List(atom)) :: runs
+
+  /**
+   * Builds the visit rows: one `VisitData` per visit, holding one run per group of consecutive
+   * atoms of the same sequence type, in execution order (so that an acquisition reinserted in the
+   * middle of science is shown where it ran).
+   *
+   * Acquisition indices restart at 1 in each visit. Science indices continue from one visit to the
+   * next.
+   */
   def visitsSequences(
-    visits:        List[Visit[D]],
-    currentStepId: Option[Step.Id] // Will be removed from visits
+    visits:         List[Visit[D]],
+    currentStepId:  Option[Step.Id], // Will be removed from visits
+    currentVisitId: Option[Visit.Id] // Kept even before any of its steps completes
   ): (List[VisitData], StepIndex) =
     visits
-      .foldLeft((List.empty[VisitData], StepIndex.One))((accum, visit) =>
+      .foldLeft((List.empty[VisitData], StepIndex.One)): (accum, visit) =>
         val (seqs, scienceIndex) = accum
 
-        // Acquisition indices restart at 1 in each visit.
-        // Science indices continue from one visit to the next.
-        val (acquisition, nextAcquisitionIndex) =
-          buildVisitRows(
-            visit.id,
-            visit.effectiveTime,
-            visit.acquisitionAtoms,
-            SequenceType.Acquisition,
-            currentStepId
-          )
+        val (runs, _, nextScienceIndex, _) =
+          consecutiveRuns(visit.atoms)
+            .foldLeft((List.empty[VisitRun], StepIndex.One, scienceIndex, 0)):
+              case ((acc, acquisitionIndex, scienceIndex, runIndex), (seqType, atoms)) =>
+                val startIndex: StepIndex = seqType match
+                  case SequenceType.Acquisition => acquisitionIndex
+                  case SequenceType.Science     => scienceIndex
 
-        val (science, nextScienceIndex) =
-          buildVisitRows(
-            visit.id,
-            visit.effectiveTime,
-            visit.scienceAtoms,
-            SequenceType.Science,
-            currentStepId,
-            scienceIndex
-          )
+                val (run, nextIndex) =
+                  buildVisitRun(visit.id, atoms, seqType, currentStepId, startIndex, runIndex)
 
-        (
-          seqs ++ List(acquisition, science).flattenOption,
-          nextScienceIndex
-        )
-      )
+                seqType match
+                  case SequenceType.Acquisition =>
+                    (acc ++ run.toList, nextIndex, scienceIndex, runIndex + 1)
+                  case SequenceType.Science     =>
+                    (acc ++ run.toList, acquisitionIndex, nextIndex, runIndex + 1)
+
+        // The current visit is kept even without completed steps, so that it's shown as soon as
+        // it starts (its running step is not among the visit rows).
+        val visitData: Option[VisitData] =
+          Option.when(runs.nonEmpty || currentVisitId.contains_(visit.id)):
+            VisitData(visit.id, visit.effectiveTime, runs)
+
+        (seqs ++ visitData.toList, nextScienceIndex)
 
   protected val AlertRowId: RowId = RowId("alert")
+
+  /**
+   * How the current visit's runs are shown: `earlier` ones (if any) as a visit of their own, in
+   * execution order; the others merged into the live Acquisition and Science sections.
+   */
+  protected case class CurrentVisitRuns(
+    earlier:         Option[VisitData],
+    liveAcquisition: Option[VisitRun],
+    liveScience:     Option[VisitRun]
+  )
+
+  /**
+   * The live Science section takes the trailing science run, unless pending acquisition steps come
+   * between them. The live Acquisition section takes the trailing acquisition run left after that.
+   * Everything earlier goes to a visit of its own, so that an acquisition reinserted in the middle
+   * of science (possibly more than once) reads in the order it ran. In the usual flow (acquisition,
+   * then science) nothing is moved.
+   */
+  protected def currentVisitRuns(
+    visits:                List[VisitData],
+    currentVisitId:        Option[Visit.Id],
+    hasPendingAcquisition: Boolean
+  ): CurrentVisitRuns =
+    val currentVisit: Option[VisitData] =
+      visits.find(visit => currentVisitId.contains_(visit.visitId))
+    val runs: List[VisitRun]            = currentVisit.foldMap(_.runs)
+
+    val (liveScience: Option[VisitRun], rest: List[VisitRun]) =
+      if !hasPendingAcquisition && runs.lastOption.exists(_.sequenceType === SequenceType.Science)
+      then (runs.lastOption, runs.dropRight(1))
+      else (none, runs)
+
+    val (liveAcquisition: Option[VisitRun], earlier: List[VisitRun]) =
+      if rest.lastOption.exists(_.sequenceType === SequenceType.Acquisition)
+      then (rest.lastOption, rest.dropRight(1))
+      else (none, rest)
+
+    CurrentVisitRuns(
+      (currentVisit, NonEmptyList.fromList(earlier))
+        .mapN((visit, runs) => visit.copy(runs = runs.toList)),
+      liveAcquisition,
+      liveScience
+    )
 
   protected case class AlertRow(sequenceType: SequenceType, position: NonNegInt, content: VdomNode)
 
@@ -285,24 +446,52 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       visits.partition: visitData =>
         !currentVisitId.contains_(visitData.visitId)
 
-    val pastVisitsRows: List[SequenceTableRowType] =
-      pastVisits.map: visit =>
+    val currentRuns: CurrentVisitRuns =
+      currentVisitRuns(visits, currentVisitId, acquisitionRows.nonEmpty)
+
+    // A visit is an expandable group of expandable runs. Runs are not expanded by default, so the
+    // table has to expand them as they appear (see `visitRunRowIds`).
+    def runRows(visit: VisitData): List[SequenceTableRowType] =
+      visit.runs.map: run =>
         Expandable(
-          HeaderRow(visit.rowId, renderVisitHeader(visit)).toHeaderOrRow,
-          visit.stepRows.toList.map(step => Expandable(step.toHeaderOrRow))
+          HeaderRow(visit.runRowId(run), renderVisitRunHeader(run)).toHeaderOrRow,
+          run.stepRows.toList.map(step => Expandable(step.toHeaderOrRow))
         )
 
-    def currentVisitsRows(sequenceType: SequenceType): List[SequenceTableRowType] =
-      currentVisits
-        .filter(_.sequenceType === sequenceType)
-        .flatMap(_.stepRows.toList)
-        .map(step => Expandable(step.toHeaderOrRow))
+    def visitGroup(
+      visit:     VisitData,
+      isCurrent: Boolean,
+      children:  List[SequenceTableRowType]
+    ): SequenceTableRowType =
+      Expandable(
+        HeaderRow(
+          if isCurrent then CurrentGroupRowId else visit.rowId,
+          (ctx: SequenceHeaderContext[D]) =>
+            renderVisitHeader(visit, isCurrent, ctx.visitRunButtons),
+          collapsible = !isCurrent // The current visit holds the live sections.
+        ).toHeaderOrRow,
+        children
+      )
+
+    val pastVisitsRows: List[SequenceTableRowType] =
+      pastVisits.map(visit => visitGroup(visit, false, runRows(visit)))
+
+    def liveRows(run: Option[VisitRun]): List[SequenceTableRowType] =
+      run.toList.flatMap(_.stepRows.toList).map(step => Expandable(step.toHeaderOrRow))
 
     val currentVisitAcquisitionRows: List[SequenceTableRowType] =
-      currentVisitsRows(SequenceType.Acquisition)
+      liveRows(currentRuns.liveAcquisition)
 
     val currentVisitScienceRows: List[SequenceTableRowType] =
-      currentVisitsRows(SequenceType.Science)
+      liveRows(currentRuns.liveScience)
+
+    // Acquisition numbering continues after every acquisition step executed in the current visit.
+    val executedAcquisitionCount: Int =
+      currentVisits
+        .flatMap(_.runs)
+        .filter(_.sequenceType === SequenceType.Acquisition)
+        .map(_.stepRows.size)
+        .sum
 
     def insertAlertRow(
       sequenceType: SequenceType,
@@ -340,7 +529,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         .toList
 
     val nextAcquisitionIndex: StepIndex =
-      StepIndex(PosInt.unsafeFrom(currentVisitAcquisitionRows.size + 1))
+      StepIndex(PosInt.unsafeFrom(executedAcquisitionCount + 1))
 
     val acquisitionTableRows: List[SequenceTableRowType] =
       buildSequenceRows(
@@ -358,5 +547,30 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         nextScienceIndex
       )
 
-    pastVisitsRows ++ acquisitionTableRows ++ scienceTableRows
+    // The live sections (trailing executed runs and pending steps) are nested in the current
+    // visit's group, after its earlier runs, so that the group doesn't come and go as the
+    // acquisition is skipped or reinserted. Before a visit starts (or between visits), they are
+    // nested in a "Remaining sequence" group instead.
+    val liveSections: List[SequenceTableRowType] = acquisitionTableRows ++ scienceTableRows
+
+    def liveGroup(header: VdomNode): SequenceTableRowType =
+      Expandable(
+        HeaderRow(CurrentGroupRowId, header, collapsible = false).toHeaderOrRow,
+        liveSections
+      )
+
+    val currentGroupRows: List[SequenceTableRowType] =
+      (currentVisits.headOption, currentVisitId) match
+        case (Some(visit), _)                         =>
+          List(
+            visitGroup(visit, true, currentRuns.earlier.toList.flatMap(runRows) ++ liveSections)
+          )
+        // The visit has started but the ODB hasn't reported it yet.
+        case (None, Some(_)) if liveSections.nonEmpty =>
+          List(liveGroup(renderStartingVisitHeader))
+        case (None, None) if liveSections.nonEmpty    =>
+          List(liveGroup(renderRemainingHeader))
+        case _                                        => Nil
+
+    pastVisitsRows ++ currentGroupRows
   }
