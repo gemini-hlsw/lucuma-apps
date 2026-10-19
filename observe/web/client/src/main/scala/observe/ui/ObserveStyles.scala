@@ -31,6 +31,7 @@ object ObserveStyles:
   val ObservationAreaError: Css      = Css("observe-observation-area-error")
   val SequenceTableToolbar: Css      = Css("observation-area-sequence-table-toolbar")
   val SequenceTableVisitButtons: Css = Css("observation-area-sequence-table-visit-buttons")
+  val SequenceTableToolbarEnd: Css   = Css("observation-area-sequence-table-toolbar-end")
 
   val ObserveTable: Css = Css("observe-observe-table")
 

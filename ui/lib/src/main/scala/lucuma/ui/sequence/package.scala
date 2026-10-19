@@ -15,6 +15,7 @@ import lucuma.core.enums.GnirsDecker
 import lucuma.core.enums.GnirsFpuOther
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
+import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
@@ -32,6 +33,7 @@ import lucuma.react.primereact.Tag
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.react.syntax.*
+import lucuma.react.table.RowId
 import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
@@ -48,6 +50,28 @@ object SelectedRowId:
 object SequenceRowHeight:
   val Regular: SizePx   = 25.toPx
   val WithExtra: SizePx = 60.toPx
+
+/**
+ * What a header row's content is rendered with: the sequence edit contexts and, for an expanded
+ * visit, the buttons acting on its runs (empty otherwise).
+ */
+case class SequenceHeaderContext[D](editContexts: SequenceEditContexts[D], visitRunButtons: TagMod)
+
+/**
+ * Row id of a visit's run (a header row grouping its steps): `run:<visit id>:<run index>:<type>`.
+ * The type lets the table header cell tell acquisition runs from science ones; the `run:` prefix
+ * and the strict parsing keep any other row id from being mistaken for a run.
+ */
+object VisitRunRowId:
+  private val Prefix: String = "run"
+
+  def apply(visitId: Visit.Id, runIndex: Int, sequenceType: SequenceType): RowId =
+    RowId(s"$Prefix:$visitId:$runIndex:${sequenceType.tag}")
+
+  def sequenceType(rowId: RowId): Option[SequenceType] =
+    rowId.value.split(':') match
+      case Array(Prefix, _, _, tag) => SequenceType.values.find(_.tag === tag)
+      case _                        => none
 
 object StepIndex extends NewType[PosInt]:
   val One: StepIndex = StepIndex(PosInt.unsafeFrom(1))

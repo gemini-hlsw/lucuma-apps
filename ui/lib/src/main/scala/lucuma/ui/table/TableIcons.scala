@@ -14,6 +14,10 @@ object TableIcons:
   val faChevronRight: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-light-svg-icons", "faAsterisk")
+  val faAsterisk: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faSort")
   val faSort: FAIcon = js.native
 
@@ -27,12 +31,14 @@ object TableIcons:
 
   // This is tedious but lets us do proper tree-shaking
   FontAwesome.library.add(
+    faAsterisk,
     faChevronRight,
     faSort,
     faSortDown,
     faSortUp
   )
 
+  val Asterisk     = FontAwesomeIcon(faAsterisk)
   val ChevronRight = FontAwesomeIcon(faChevronRight)
   val Sort         = FontAwesomeIcon(faSort)
   val SortDown     = FontAwesomeIcon(faSortDown)

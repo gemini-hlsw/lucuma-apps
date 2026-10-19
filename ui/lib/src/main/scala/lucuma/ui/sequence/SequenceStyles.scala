@@ -12,6 +12,7 @@ object SequenceStyles:
 
   val TableHeader           = Css("lucuma-sequence-header")
   val TableHeaderExpandable = Css("lucuma-sequence-header-expandable")
+  val TableHeaderNested     = Css("lucuma-sequence-header-nested")
   val TableHeaderContent    = Css("lucuma-sequence-header-content")
 
   val HiddenColTableHeader: Css = Css("lucuma-sequence-hidden-col-table-header")
@@ -19,6 +20,9 @@ object SequenceStyles:
   val ExtraRowShown: Css        = Css("lucuma-sequence-extra-row-shown")
 
   val VisitHeader                   = Css("lucuma-sequence-visit-header")
+  val VisitRunHeader                = Css("lucuma-sequence-visit-run-header")
+  val VisitRunButtons               = Css("lucuma-sequence-visit-run-buttons")
+  val RemainingHeader               = Css("lucuma-sequence-remaining-header")
   val VisitStepExtra                = Css("lucuma-sequence-visit-extra-row")
   val VisitStepExtraDatetime        = Css("lucuma-sequence-visit-extra-row-datetime")
   val VisitStepExtraStatus          = Css("lucuma-sequence-visit-extra-row-status")

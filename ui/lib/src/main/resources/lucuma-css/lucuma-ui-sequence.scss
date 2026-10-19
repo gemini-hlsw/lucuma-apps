@@ -146,6 +146,17 @@
     cursor: pointer;
   }
 
+  // The chevron glyph's mass sits right of its box center; the always-open marker is nudged to
+  // look centered with it.
+  .expander-chevron svg[data-icon='asterisk'] {
+    transform: translateX(0.07em);
+  }
+
+  // Header rows nested in a group (e.g. a visit's runs), chevron included.
+  &.lucuma-sequence-header-nested {
+    padding-left: 1.5em;
+  }
+
   .lucuma-sequence-header-content {
     flex-grow: 1;
     padding: 0 10px;
@@ -167,25 +178,72 @@
   }
 }
 
-.lucuma-sequence-visit-header {
+// Visit and run headers share fixed column widths (in em, so both must use the same font size)
+// so that their columns line up: title, steps, files (visits only), duration at the right edge.
+// Flex items otherwise refuse to shrink below their content, which would push the next column.
+@mixin visit-header-columns {
   display: flex;
-  justify-content: space-between;
+  gap: 2em;
   color: var(--gray-600);
 
-  span {
+  // Direct children only: buttons placed in the header have spans of their own, and the buttons'
+  // own span is not a text column (the ellipsis' overflow would clip their focus ring).
+  > span:not(.lucuma-sequence-visit-run-buttons) {
     @include lucumaUICommon.text-ellipsis;
 
-    &:first-child {
-      text-align: left;
-    }
+    flex: 0 0 auto;
+    min-width: 0;
+    text-align: left;
+  }
 
-    &:not(:last-child) {
-      width: 23%;
-    }
+  > span:nth-child(2) {
+    width: 9em;
+  }
 
-    &:last-child {
-      width: 8%;
-      text-align: right;
+  > span:nth-child(3) {
+    width: 10em;
+  }
+
+  // Fixed width so that what's centered before it (the run buttons) doesn't shift with it.
+  > span:last-child {
+    width: 5em;
+    margin-left: auto;
+    text-align: right;
+  }
+}
+
+.lucuma-sequence-visit-run-header {
+  @include visit-header-columns;
+
+  font-weight: normal;
+
+  // The nested header is indented by 1.5em (see .lucuma-sequence-header-nested); the label is
+  // sized so that the run's columns sit 1em to the right of the visit's.
+  > span:first-child {
+    width: 21.5em;
+  }
+}
+
+.lucuma-sequence-remaining-header {
+  color: var(--gray-600);
+  text-align: left;
+}
+
+.lucuma-sequence-visit-header {
+  @include visit-header-columns;
+
+  > span:first-child {
+    width: 22em;
+  }
+
+  // Run buttons of an expanded visit are centered between the files and the duration.
+  > .lucuma-sequence-visit-run-buttons {
+    display: flex;
+    gap: 0.3em;
+    margin: 0 auto;
+
+    + span {
+      margin-left: 0;
     }
   }
 }

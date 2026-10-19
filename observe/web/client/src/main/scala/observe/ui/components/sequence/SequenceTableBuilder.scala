@@ -94,8 +94,13 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             import ctx.given
             columnDefs(_, _, _, _)
         visitsData               <-
-          useMemo((props.instrumentVisits, props.currentRecordedStepId)):
-            visitsSequences(_, _)
+          useMemo(
+            (props.instrumentVisits,
+             props.currentRecordedStepId,
+             props.currentRecordedVisit.map(_.visitId)
+            )
+          ):
+            visitsSequences(_, _, _)
         visits                    = visitsData.map(_._1)
         nextScienceIndex          = visitsData.map(_._2)
         acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
@@ -182,6 +187,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               sequence,
               enableColumnResizing = true,
               enableExpanding = true,
+              // Otherwise every data change resets the expanded state to the initial one.
+              autoResetExpanded = false,
               getRowId = (row, _, _) => getRowId(row),
               getSubRows = (row, _) => row.subRows,
               columnResizeMode = ColumnResizeMode.OnChange,
@@ -238,13 +245,23 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               AlertRowId.toString +: loadedStepId.map(_.toString).toList
 
             scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
-        _                        <- // If sequence completes, expand last visit.
+        _                        <- // If sequence completes, show the last visit whole.
           useEffectWithDeps(props.executionState.sequenceStatus):
             case SequenceStatus.Completed =>
-              table.modExpanded:
-                case Expanded.AllRows    => Expanded.AllRows
-                case Expanded.Rows(rows) => Expanded.Rows(rows + (getRowId(sequence.last) -> true))
+              setRowsExpanded(table, getRowId(sequence.last) :: lastVisitRowIds(visits.value), true)
             case _                        => Callback.empty
+        _                        <- // The current visit's runs start expanded.
+          useEffectWithDeps(
+            currentVisitRowIds(
+              visits.value,
+              props.currentRecordedVisit.map(_.visitId),
+              props.acquisitionRows.nonEmpty
+            ).map(_.value)
+          ): rowIds =>
+            expandNewRows(table, rowIds.map(RowId(_)))
+        _                        <- // Runs of past visits start collapsed.
+          useEffectWithDeps(props.currentRecordedVisit.map(_.visitId)): currentVisitId =>
+            setRowsExpanded(table, pastVisitRunRowIds(visits.value, currentVisitId), false)
         renderedInsertedSteps     =
           props.scienceRows
             .flatMap(_.id.right)
@@ -361,13 +378,36 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 case _                              =>
                   TagMod.empty
 
-        val visitIds: Set[RowId]     = visits.value.map(_.rowId).toSet
-        val collapseVisits: Callback = table.modExpanded:
-          case Expanded.AllRows    => Expanded.fromCollapsedRows(visitIds.toList*)
-          case Expanded.Rows(rows) => Expanded.Rows(rows ++ (visitIds.map(_ -> false)))
-        val expandVisits: Callback   = table.modExpanded:
+        // The current visit holds the live sections, so it's never collapsed.
+        val pastVisits: List[VisitData]         =
+          visits.value.filterNot: visit =>
+            props.currentRecordedVisit.map(_.visitId).contains_(visit.visitId)
+        val visitIds: Set[RowId]                = pastVisits.map(_.rowId).toSet
+        val runIds: List[(RowId, SequenceType)] =
+          pastVisits.flatMap: visit =>
+            visit.runs.map(run => visit.runRowId(run) -> run.sequenceType)
+        // Collapses every visit and, so that they start afresh when reopened, their runs.
+        val collapseVisits: Callback            = table.modExpanded:
+          case Expanded.AllRows    =>
+            Expanded.Rows(
+              (CurrentExpandedRowIds.map(_ -> true) ++ visitIds.map(_ -> false) ++
+                runIds.map(_._1 -> false)).toMap
+            )
+          case Expanded.Rows(rows) =>
+            Expanded.Rows(rows ++ visitIds.map(_ -> false) ++ runIds.map(_._1 -> false))
+
+        // Expands the visits having runs of `sequenceType`, and those runs. Nothing is collapsed.
+        def expandVisits(sequenceType: SequenceType): Callback = table.modExpanded:
           case Expanded.AllRows    => Expanded.AllRows
-          case Expanded.Rows(rows) => Expanded.Rows(rows ++ (visitIds.map(_ -> true)))
+          case Expanded.Rows(rows) =>
+            Expanded.Rows(
+              rows ++
+                pastVisits
+                  .filter(_.runs.exists(_.sequenceType === sequenceType))
+                  .map(_.rowId -> true) ++
+                runIds.collect:
+                  case (rowId, runType) if runType === sequenceType => rowId -> true
+            )
 
         val rows: List[Row[SequenceTableRowType, TableMeta, Nothing, Nothing]] =
           table.getExpandedRowModel().rows
@@ -382,7 +422,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
         val isInsertSmartGcalInFlight: Boolean =
           props.requests.insertSmartGcal === OperationRequest.InFlight
-        val allVisitsAreExpanded: Boolean      = forAllVisits(_.getIsExpanded())
 
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
@@ -400,19 +439,27 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               React
                 .Fragment(
                   Button(
+                    icon = Icons.Plus,
+                    label = "Expand all acquisitions",
+                    disabled = !runIds.exists(_._2 === SequenceType.Acquisition),
+                    onClick = expandVisits(SequenceType.Acquisition)
+                  ).mini.compact,
+                  Button(
+                    icon = Icons.Plus,
+                    label = "Expand all science",
+                    disabled = !runIds.exists(_._2 === SequenceType.Science),
+                    onClick = expandVisits(SequenceType.Science)
+                  ).mini.compact,
+                  Button(
                     icon = Icons.Minus,
                     label = "Collapse all visits",
                     disabled = allVisitsAreCollapsed,
                     onClick = collapseVisits
-                  ).mini.compact,
-                  Button(
-                    icon = Icons.Plus,
-                    label = "Expand all visits",
-                    disabled = allVisitsAreExpanded,
-                    onClick = expandVisits
                   ).mini.compact
                 )
-                .when(visitIds.nonEmpty),
+                .when(visitIds.nonEmpty)
+            ),
+            <.div(ObserveStyles.SequenceTableToolbarEnd)(
               Button(
                 icon = Icons.Plus,
                 label = "SmartGcal",

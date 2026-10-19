@@ -17,6 +17,7 @@ import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
@@ -64,7 +65,7 @@ import SequenceRowFormatters.*
 // `CM` is the type of the column meta.
 // `TF` is the type of the global filter.
 class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM, TF](
-  colDef:          ColumnDef.Applied[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], TM, CM, TF],
+  colDef:          ColumnDef.Applied[Expandable[HeaderOrRow[SequenceHeaderContext[D], T]], TM, CM, TF],
   getStepFromRow:  T => Option[R],
   getIndexFromRow: T => Option[StepIndex]
 ) extends SequenceEditRowHelpers[D, T, R, TM, CM, TF](getStepFromRow):
@@ -873,17 +874,18 @@ object SequenceColumns:
 
   def headerCell[D, T, R, TM <: SequenceTableMeta[D], CM, TF](
     colId:  ColumnId,
-    colDef: ColumnDef.Applied[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], TM, CM, TF]
-  ): colDef.TypeFor[Option[SequenceEditContexts[D] => VdomNode]] =
+    colDef: ColumnDef.Applied[Expandable[HeaderOrRow[SequenceHeaderContext[D], T]], TM, CM, TF]
+  ): colDef.TypeFor[Option[HeaderRow[SequenceHeaderContext[D]]]] =
     colDef(
       colId,
-      _.value.left.toOption.map(_.content),
+      _.value.left.toOption,
       header = "",
       cell = cell =>
         (cell.value, cell.table.options.meta.map(_.editContexts))
-          .mapN: (renderHeader, editContexts) =>
+          .mapN: (headerRow, editContexts) =>
             <.span(
               SequenceStyles.TableHeader,
+              SequenceStyles.TableHeaderNested.when(cell.row.depth > 0),
               TagMod(
                 SequenceStyles.TableHeaderExpandable,
                 ^.onClick ==>
@@ -891,9 +893,59 @@ object SequenceColumns:
                 <.span(
                   TableStyles.ExpanderChevron,
                   TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded())
-                )(TableIcons.ChevronRight.withFixedWidth())
-              ).when(cell.row.getCanExpand()),
-              <.span(SequenceStyles.TableHeaderContent)(renderHeader(editContexts))
+                )(TableIcons.ChevronRight)
+              ).when(cell.row.getCanExpand() && headerRow.collapsible),
+              // A static "always open" marker in place of the chevron, keeping the content aligned.
+              <.span(TableStyles.ExpanderChevron)(TableIcons.Asterisk)
+                .when(cell.row.getCanExpand() && !headerRow.collapsible),
+              <.span(SequenceStyles.TableHeaderContent)(
+                headerRow.content(
+                  SequenceHeaderContext(
+                    editContexts,
+                    visitRunButtons(cell.row, cell.table).when(cell.row.getIsExpanded())
+                  )
+                )
+              )
             ),
       enableResizing = false
     )
+
+  // Buttons to expand or collapse the runs of a visit, for header rows whose sub-rows are runs.
+  private def visitRunButtons[T, TM, CM, TF](
+    row:   Row[T, TM, CM, TF],
+    table: Table[T, TM, CM, TF]
+  ): TagMod =
+    val runRows: List[(Row[T, TM, CM, TF], SequenceType)] =
+      row.subRows.flatMap(subRow => VisitRunRowId.sequenceType(subRow.id).tupleLeft(subRow))
+
+    val runs: List[(RowId, SequenceType)] = runRows.map((runRow, runType) => runRow.id -> runType)
+
+    val allRunsCollapsed: Boolean = runRows.forall(!_._1.getIsExpanded())
+
+    def setRuns(sequenceType: Option[SequenceType], expanded: Boolean): Callback =
+      table.modExpanded:
+        case Expanded.AllRows    => Expanded.AllRows
+        case Expanded.Rows(rows) =>
+          Expanded.Rows(
+            rows ++ runs.collect:
+              case (rowId, runType) if sequenceType.forall(_ === runType) => rowId -> expanded
+          )
+
+    <.span(SequenceStyles.VisitRunButtons)(
+      Button(
+        icon = SequenceIcons.Plus,
+        label = "Acq",
+        onClickE = _.stopPropagationCB >> setRuns(SequenceType.Acquisition.some, true)
+      ).mini.veryCompact,
+      Button(
+        icon = SequenceIcons.Plus,
+        label = "Sci",
+        onClickE = _.stopPropagationCB >> setRuns(SequenceType.Science.some, true)
+      ).mini.veryCompact,
+      Button(
+        icon = SequenceIcons.Minus,
+        label = "All",
+        disabled = allRunsCollapsed,
+        onClickE = _.stopPropagationCB >> setRuns(none, false)
+      ).mini.veryCompact
+    ).when(runs.nonEmpty)
