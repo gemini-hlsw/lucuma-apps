@@ -12,6 +12,7 @@ import cats.effect.Sync
 import cats.effect.Temporal
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.NonNegInt
 import fs2.Pipe
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
@@ -25,7 +26,6 @@ import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.Observation
 import lucuma.core.model.User
-import eu.timepit.refined.types.numeric.NonNegInt
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
