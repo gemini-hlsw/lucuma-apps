@@ -358,7 +358,9 @@ object SchedulingGroupObsList:
               (schedulingModeBadge(s.schedulingMode)
                 .map(badge => <.li(badge): VdomNode)
                 .toList ++
-                timingWindows.map(tw => <.li(tw.renderVdom))).toTagMod
+                timingWindows.map(tw => <.li(tw.renderVdom))) match
+                case Nil   => <.li(ExploreStyles.ObsGroupTitleEmpty, "No scheduling windows")
+                case items => items.toTagMod
             ),
             <.span(ExploreStyles.ObsCount, s"${obsIds.size} Obs")
           )

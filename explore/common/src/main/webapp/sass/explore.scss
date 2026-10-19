@@ -4588,6 +4588,11 @@ a.explore-upgrade-link {
   list-style: none;
   padding-left: 0;
   margin: 0;
+
+  .obs-group-title-empty {
+    font-style: italic;
+    opacity: 0.7;
+  }
 }
 
 .finder-charts-background {
