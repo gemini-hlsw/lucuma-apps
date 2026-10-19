@@ -371,6 +371,8 @@
   --tile-background: var(--color-background-dark-5);
   --tile-title-background: var(--color-background-light-8);
   --tile-title-color: var(--color-text-full);
+  --tile-control-color: hsl(0deg 0% 42%);
+  --tile-control-hover-color: var(--text-color);
   --tile-resize-handle-brightness: 0;
 }
 
@@ -504,6 +506,8 @@
   --obs-tree-group-color: var(--site-text-color);
   --configuration-tile-background: var(--tile-background);
   --help-icon-color: var(--control-selected-color);
+  --sequence-edit-border-color: hsl(210deg 14% 62%);
+  --sequence-edit-background: hsl(210deg 10% 92%);
   --sequence-customized-color: var(--orange-700);
   --shared-edit-warning-color: var(--text-color);
   --shared-edit-warning-background: var(--warning-soft-background-color);

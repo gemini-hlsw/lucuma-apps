@@ -44,19 +44,26 @@
     border-bottom: 1px var(--surface-border) solid;
   }
 
+  // Editable cells carry a visible box so they stand apart from the read-only ones.
+  .lucuma-sequence-input input,
+  .lucuma-sequence-dropdown,
+  .lucuma-sequence-offset-input {
+    border: 1px solid var(--sequence-edit-border-color);
+    border-radius: var(--border-radius);
+    background: var(--sequence-edit-background);
+  }
+
   .lucuma-sequence-input input {
     // The rows are too short to afford any vertical padding.
     box-sizing: border-box;
     width: 100%;
     padding-top: 0;
     padding-bottom: 0;
-    border: inherit;
     text-align: center;
   }
 
   .lucuma-sequence-dropdown {
     width: 100%;
-    border: inherit;
 
     .p-dropdown-label {
       padding: 0;
@@ -67,7 +74,6 @@
   .lucuma-sequence-offset-input {
     width: 100%;
     padding: 0;
-    border: inherit;
     text-align: center;
   }
 
@@ -85,9 +91,9 @@
       align-items: center;
       justify-content: center;
       line-height: 1;
-      border: 1px solid var(--prime-input-border-color);
+      border: 1px solid var(--sequence-edit-border-color);
       border-radius: var(--border-radius);
-      background: var(--prime-input-background);
+      background: var(--sequence-edit-background);
     }
 
     // PrimeReact still emits a `&nbsp;` label for an icon-only button.
