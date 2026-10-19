@@ -12,6 +12,7 @@ import cats.effect.Sync
 import cats.effect.Temporal
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.NonNegInt
 import fs2.Pipe
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
@@ -26,6 +27,7 @@ import lucuma.core.model.ImageQuality
 import lucuma.core.model.Observation
 import lucuma.core.model.User
 import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import monocle.Lens
 import mouse.all.*
@@ -566,15 +568,29 @@ object ObserveEngine {
   ): EngineHandle[F, Option[StepGen[F]]] =
     // Jumping to a chosen step needs the future atoms, moving on to the next one does not.
     val limit = stepIdFrom.fold(_ => OdbProxy.NextAtomOnly, _ => OdbProxy.FullFuture)
+    readConfigAndStep(odb, translator, obsId, stepIdFrom, limit).map(_.flatMap(_._2))
+
+  /**
+   * Reads the execution config, with `futureLimit` atoms beyond the next one, and translates the
+   * step at `stepIdFrom` within it, without touching the engine state. Errors propagate to the
+   * caller. None if the observation isn't loaded.
+   */
+  def readConfigAndStep[F[_]: MonadCancelThrow](
+    odb:         OdbProxy[F],
+    translator:  SeqTranslate[F],
+    obsId:       Observation.Id,
+    stepIdFrom:  Either[SequenceType, Step.Id],
+    futureLimit: NonNegInt
+  ): EngineHandle[F, Option[(InstrumentExecutionConfig, Option[StepGen[F]])]] =
     EngineHandle
       .inspectState[F, Option[SequenceData[F]]](EngineState.sequenceDataAt(obsId).getOption)
       .flatMap:
-        _.flatTraverse: sd =>
+        _.traverse: sd =>
           EngineHandle
-            .liftF(odb.readExecutionConfig(obsId, sd.instrument, limit))
+            .liftF(odb.readExecutionConfig(obsId, sd.instrument, futureLimit))
             .map: odbEx =>
               // TODO Do something with warnings? (_1)
-              translator.nextStep(OdbObservationData(sd.observation, odbEx), stepIdFrom)._2
+              (odbEx, translator.nextStep(OdbObservationData(sd.observation, odbEx), stepIdFrom)._2)
 
   private def loadStep[F[_]: {MonadCancelThrow, Logger}](
     odb:        OdbProxy[F],

@@ -28,24 +28,21 @@ object ODBSequencesLoader {
     odbData:                OdbObservationData,
     instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>
-    val (initialBreakpoints: Breakpoints, seqType: SequenceType) =
+    val seqType: SequenceType =
       odbData.executionConfig match
-        case InstrumentExecutionConfig.GmosNorth(ec)  =>
-          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.GmosSouth(ec)  =>
-          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.Flamingos2(ec) =>
-          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.Igrins2(ec)    =>
-          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.Ghost(ec)      =>
-          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.Gnirs(ec)      =>
-          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
+        case InstrumentExecutionConfig.GmosNorth(ec)  => initialSequenceType(ec)
+        case InstrumentExecutionConfig.GmosSouth(ec)  => initialSequenceType(ec)
+        case InstrumentExecutionConfig.Flamingos2(ec) => initialSequenceType(ec)
+        case InstrumentExecutionConfig.Igrins2(ec)    => initialSequenceType(ec)
+        case InstrumentExecutionConfig.Ghost(ec)      => initialSequenceType(ec)
+        case InstrumentExecutionConfig.Gnirs(ec)      => initialSequenceType(ec)
         case InstrumentExecutionConfig.Visitor(_)     =>
           throw new NotImplementedError("Visitor instrument not supported")
         case InstrumentExecutionConfig.Exchange       =>
           throw new NotImplementedError("Exchange instrument not supported")
+
+    val initialBreakpoints: Breakpoints =
+      Breakpoints.fromInstrumentExecutionConfig(odbData.executionConfig)
 
     val seqState: SequenceState[F] =
       SequenceState.init(odbData.observation.id, seqType, initialBreakpoints)
@@ -126,14 +123,20 @@ object ODBSequencesLoader {
   /**
    * Reload the step definition for an existing sequence. Preserves observer, overrides, etc.
    */
+  /**
+   * Reloads an already loaded observation. The breakpoints are those of the newly read config (the
+   * sequence may have been edited in Explore, so step ids and breakpoints may have changed).
+   */
   private[server] def reloadSequenceMod[F[_]](
-    stepGen: Option[StepGen[F]],
-    l:       Lens[EngineState[F], Option[SequenceData[F]]]
+    stepGen:     Option[StepGen[F]],
+    breakpoints: Breakpoints,
+    l:           Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>
     l.some
       .modify { sd =>
         val headerExtra = HeaderExtraData(st.conditions, st.operator, sd.observer)
-        val newSeqState = SequenceState.reload(stepGen, sd.overrides, headerExtra, sd.seq)
+        val newSeqState =
+          SequenceState.reload(stepGen, sd.overrides, headerExtra, sd.seq, breakpoints)
         SequenceData.seq.replace(newSeqState)(sd)
       }(st)
 

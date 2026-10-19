@@ -203,8 +203,12 @@ object SequenceState:
     stepGenOpt:  Option[StepGen[F]],
     overrides:   SystemOverrides,
     headerExtra: HeaderExtraData,
-    oldState:    SequenceState[F]
+    oldState:    SequenceState[F],
+    breakpoints: Breakpoints
   ): SequenceState[F] =
     if oldState.status.isRunning
     then oldState
-    else oldState.withLoadedStepGen(stepGenOpt, overrides, headerExtra)
+    else
+      oldState
+        .copy(breakpoints = breakpoints)
+        .withLoadedStepGen(stepGenOpt, overrides, headerExtra)
