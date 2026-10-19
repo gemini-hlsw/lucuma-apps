@@ -159,9 +159,9 @@
   --primary-color-text: hsl(0deg 0% 100%);
   --control-selected-color: hsl(210deg 6% 40%);
   --control-selected-hover-color: hsl(210deg 6% 46%);
-  --success-color: hsl(122deg 45% 33%);
-  --success-color-hover: hsl(122deg 45% 28%);
-  --success-color-active: hsl(122deg 45% 24%);
+  --success-color: hsl(122deg 32% 47%);
+  --success-color-hover: hsl(122deg 32% 42%);
+  --success-color-active: hsl(122deg 32% 37%);
   --under-tab-background-color: var(--color-background-light-3);
   --under-tab-background-focus-color: var(--color-background-light-6);
   --under-tab-border-color: var(--gray);
@@ -516,6 +516,7 @@
   --aladin-toolbar-label-background: hsl(0deg 0% 100%);
   --aladin-toolbar-label-outline: var(--site-solid-border-color);
   --aladin-toolbar-icon-color: hsl(36deg 90% 38%);
+  --aladin-image-outline: 1px solid hsl(240deg 1% 70%);
   --aladin-image-tone: grayscale(1) invert(1);
   --aladin-saturation-control-opacity: var(--site-disabled-opacity);
   --aladin-saturation-control-pointer-events: none;

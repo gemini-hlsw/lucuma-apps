@@ -32,6 +32,17 @@ $brightness: var(--aladin-image-brightness);
   .aladin-container-body {
     grid-area: aladin;
     position: relative;
+
+    // Drawn as an overlay: a border would shrink the canvas, and an outline is painted
+    // underneath the positioned aladin canvases.
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: var(--aladin-image-outline);
+      pointer-events: none;
+      z-index: 50;
+    }
   }
 
   .aladin-container-body.add-position-invalid-cursor canvas {

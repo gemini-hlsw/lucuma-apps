@@ -981,6 +981,30 @@ thead tr th.sticky-header {
         margin-left: 0.5em;
       }
     }
+
+    // Same green as the Add buttons, so the title bar reads as one set of controls
+    .p-button.target-tile-obs-duration {
+      background: var(--button-success-background);
+      border-color: var(--button-success-background);
+
+      &:not(:disabled):hover {
+        background: var(--button-success-hover-background);
+        border-color: var(--button-success-hover-background);
+      }
+
+      &:not(:disabled):active {
+        background: var(--button-success-active-background);
+        border-color: var(--button-success-active-background);
+      }
+    }
+
+    .target-tile-obs-duration > .p-button.p-button-text {
+      color: var(--button-success-background);
+
+      &:not(:disabled):hover {
+        color: var(--button-success-hover-background);
+      }
+    }
   }
 
   @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
