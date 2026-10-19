@@ -194,7 +194,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         _                             <-
           useEffectWithDeps(editContexts.isEditing): isEditing =>
             dynTable.modCollapsedCols(_ => !isEditing)
-        _                             <- // The current visit's group and runs start expanded.
+        _                             <- // The current visit's runs start expanded.
           useEffectWithDeps(
             currentVisitRowIds(
               visitsData.value._1,
@@ -202,12 +202,10 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               acquisitionRows.nonEmpty
             ).map(_.value)
           ): rowIds =>
-            table.modExpanded:
-              case Expanded.AllRows    => Expanded.AllRows
-              case Expanded.Rows(rows) =>
-                Expanded.Rows(
-                  rows ++ rowIds.map(RowId(_)).filterNot(rows.contains).map(_ -> true)
-                )
+            expandNewRows(table, rowIds.map(RowId(_)))
+        _                             <- // Runs of past visits start collapsed.
+          useEffectWithDeps(props.currentVisitId): currentVisitId =>
+            setRowsExpanded(table, pastVisitRunRowIds(visitsData.value._1, currentVisitId), false)
         tableDnd                      <- useVirtualizedTableDragAndDrop(
                                            table,
                                            DragHandleColumnId,

@@ -186,8 +186,9 @@
   gap: 2em;
   color: var(--gray-600);
 
-  // Direct children only: buttons placed in the header have spans of their own.
-  > span {
+  // Direct children only: buttons placed in the header have spans of their own, and the buttons'
+  // own span is not a text column (the ellipsis' overflow would clip their focus ring).
+  > span:not(.lucuma-sequence-visit-run-buttons) {
     @include lucumaUICommon.text-ellipsis;
 
     flex: 0 0 auto;

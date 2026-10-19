@@ -24,6 +24,7 @@ import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.Expandable
 import lucuma.react.table.Expanded
 import lucuma.react.table.RowId
+import lucuma.react.table.Table
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.AtomRecord
 import lucuma.schemas.model.Dataset
@@ -59,12 +60,38 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
    */
   protected val CurrentGroupRowId: RowId = RowId("current")
 
-  protected val CurrentExpandedState =
-    Expanded.fromExpandedRows(
+  /** The rows expanded from the start: the live group and its two sections. */
+  protected val CurrentExpandedRowIds: List[RowId] =
+    List(
       CurrentGroupRowId,
       RowId(SequenceType.Acquisition.toString),
       RowId(SequenceType.Science.toString)
     )
+
+  protected val CurrentExpandedState: Expanded =
+    Expanded.fromExpandedRows(CurrentExpandedRowIds*)
+
+  /** Expands or collapses `rowIds`, leaving the other rows as they are. */
+  protected def setRowsExpanded[T, TM, CM, TF](
+    table:    Table[T, TM, CM, TF],
+    rowIds:   List[RowId],
+    expanded: Boolean
+  ): Callback =
+    table.modExpanded:
+      case Expanded.AllRows    => Expanded.AllRows
+      case Expanded.Rows(rows) => Expanded.Rows(rows ++ rowIds.map(_ -> expanded))
+
+  /**
+   * Expands the rows among `rowIds` the table has no state for yet (e.g. rows that just appeared).
+   */
+  protected def expandNewRows[T, TM, CM, TF](
+    table:  Table[T, TM, CM, TF],
+    rowIds: List[RowId]
+  ): Callback =
+    table.modExpanded:
+      case Expanded.AllRows    => Expanded.AllRows
+      case Expanded.Rows(rows) =>
+        Expanded.Rows(rows ++ rowIds.filterNot(rows.contains).map(_ -> true))
 
   /**
    * A run of consecutive steps of one sequence type within a visit.
@@ -181,8 +208,24 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     currentVisitId:        Option[Visit.Id],
     hasPendingAcquisition: Boolean
   ): List[RowId] =
-    currentVisitRuns(visits, currentVisitId, hasPendingAcquisition).earlier.toList
-      .flatMap(visit => visitRunRowIds(List(visit)))
+    currentVisitRuns(visits, currentVisitId, hasPendingAcquisition).earlier
+      .foldMap(visit => visit.runs.map(visit.runRowId))
+
+  /**
+   * The row ids of the runs of every visit but the current one. Collapsing them when the current
+   * visit changes keeps the runs expanded while it was current from staying so once it's past.
+   */
+  protected def pastVisitRunRowIds(
+    visits:         List[VisitData],
+    currentVisitId: Option[Visit.Id]
+  ): List[RowId] =
+    visitRunRowIds(visits.filterNot(visit => currentVisitId.contains_(visit.visitId)))
+
+  /**
+   * The row ids of the last visit's group and runs, e.g. to show it whole once the sequence ends.
+   */
+  protected def lastVisitRowIds(visits: List[VisitData]): List[RowId] =
+    visits.lastOption.foldMap(visit => visit.rowId :: visit.runs.map(visit.runRowId))
 
   protected def renderRemainingHeader: VdomNode =
     <.div(SequenceStyles.RemainingHeader)("Remaining sequence")
@@ -331,10 +374,6 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       .getOrElse:
         (none, startIndex)
 
-  /**
-   * Returns a streamlined list of visits, splitting them into acquisition and science, followed by
-   * the next science index.
-   */
   // Groups consecutive atoms of the same sequence type, keeping their order.
   private def consecutiveRuns(
     atoms: List[AtomRecord[D]]
@@ -449,8 +488,8 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     val currentRuns: CurrentVisitRuns =
       currentVisitRuns(visits, currentVisitId, acquisitionRows.nonEmpty)
 
-    // A visit is an expandable group of expandable runs. Runs are not expanded by default, so the
-    // table has to expand them as they appear (see `visitRunRowIds`).
+    // A visit is an expandable group of expandable runs. Runs start collapsed, except for the
+    // current visit's (see `currentVisitRowIds`).
     def runRows(visit: VisitData): List[SequenceTableRowType] =
       visit.runs.map: run =>
         Expandable(

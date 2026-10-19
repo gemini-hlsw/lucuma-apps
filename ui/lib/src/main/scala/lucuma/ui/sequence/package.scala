@@ -58,15 +58,20 @@ object SequenceRowHeight:
 case class SequenceHeaderContext[D](editContexts: SequenceEditContexts[D], visitRunButtons: TagMod)
 
 /**
- * Row id of a visit's run (a header row grouping its steps). It encodes the run's sequence type so
- * that the table header cell can tell acquisition runs from science ones.
+ * Row id of a visit's run (a header row grouping its steps): `run:<visit id>:<run index>:<type>`.
+ * The type lets the table header cell tell acquisition runs from science ones; the `run:` prefix
+ * and the strict parsing keep any other row id from being mistaken for a run.
  */
 object VisitRunRowId:
+  private val Prefix: String = "run"
+
   def apply(visitId: Visit.Id, runIndex: Int, sequenceType: SequenceType): RowId =
-    RowId(s"$visitId-$runIndex-${sequenceType.tag}")
+    RowId(s"$Prefix:$visitId:$runIndex:${sequenceType.tag}")
 
   def sequenceType(rowId: RowId): Option[SequenceType] =
-    SequenceType.values.find(sequenceType => rowId.value.endsWith(s"-${sequenceType.tag}"))
+    rowId.value.split(':') match
+      case Array(Prefix, _, _, tag) => SequenceType.values.find(_.tag === tag)
+      case _                        => none
 
 object StepIndex extends NewType[PosInt]:
   val One: StepIndex = StepIndex(PosInt.unsafeFrom(1))
