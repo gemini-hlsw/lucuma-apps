@@ -64,7 +64,6 @@
     var(--color-background-base-h) var(--color-background-base-s)
       calc(var(--color-background-base-l) - 75%)
   );
-
   --color-background-dark-5: hsl(
     var(--color-background-base-h) var(--color-background-base-s)
       calc(var(--color-background-base-l) + 3%)
@@ -73,7 +72,6 @@
     var(--color-background-base-h) var(--color-background-base-s)
       calc(var(--color-background-base-l) + 5%)
   );
-
   --color-text-base-h: 0;
   --color-text-base-s: 0%;
   --color-text-base-l: 0%;
@@ -82,7 +80,6 @@
     var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l),
     var(--color-text-base-a);
   --color-text-base: hsl(var(--color-text-base-hsla));
-
   --color-text-light-45: hsl(
     var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) + 45%)
   );
@@ -98,7 +95,6 @@
   --color-text-alt-hsla:
     var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l), 1;
   --color-text-alt: hsl(var(--color-text-alt-hsla));
-
   --color-text-dark-8-hsla:
     var(--color-text-base-h), var(--color-text-base-s), calc(var(--color-text-base-l) + 8%),
     calc(var(--color-text-base-a) - 0.1);
@@ -107,7 +103,6 @@
     var(--color-text-base-h), var(--color-text-base-s), calc(var(--color-text-base-l) + 10%),
     calc(var(--color-text-base-a) - 0.3);
   --color-text-dark-10: hsl(var(--color-text-dark-10-hsla));
-
   --gray-h: 210;
   --gray-s: 5.7%;
   --gray-l: 55%;
@@ -463,6 +458,7 @@
 }
 
 @mixin prime-controls-light {
+  --overlay-mask-background: rgb(0 0 0 / 15%);
   --button-primary-background: var(--control-selected-color);
   --button-primary-hover-background: var(--control-selected-hover-color);
   --button-primary-active-background: var(--control-selected-color);

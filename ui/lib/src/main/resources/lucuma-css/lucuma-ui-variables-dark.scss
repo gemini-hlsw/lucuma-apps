@@ -452,6 +452,7 @@
 }
 
 @mixin prime-controls-dark {
+  --overlay-mask-background: rgb(0 0 0 / 40%);
   --button-primary-background: hsl(206deg 66.7% 38.8%);
   --button-primary-hover-background: hsl(205.9deg 66.3% 34.9%);
   --button-primary-active-background: hsl(206deg 67.1% 31%);

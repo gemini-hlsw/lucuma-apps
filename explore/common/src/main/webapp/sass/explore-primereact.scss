@@ -15,6 +15,10 @@
 @layer primereact {
   .dark-theme,
   .light-theme {
+    .p-component-overlay {
+      background-color: var(--overlay-mask-background);
+    }
+
     .p-button {
       background: var(--button-primary-background);
       border-color: var(--button-primary-background);
