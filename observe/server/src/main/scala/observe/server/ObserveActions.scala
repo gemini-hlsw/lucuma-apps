@@ -55,40 +55,21 @@ trait ObserveActions {
     odb.datasetStartExposure(obsId, stepId, fileId)
 
   /**
-   * Send the datasetEnd command to the odb
+   * Send the datasetEndWrite command to the odb. Instruments block on the observe command until the
+   * exposure, readout and write are all complete, so this is the only dataset stage whose time can
+   * be measured here.
    */
   private def sendDataEnd[F[_]: MonadThrow](
     odb:    OdbProxy[F],
     obsId:  Observation.Id,
     fileId: ImageFileId
   ): F[Unit] =
-    // TODO: link dataset events to instrument statuses
     odb
-      .datasetEndExposure(obsId, fileId)
+      .datasetEndWrite(obsId, fileId)
       .ensure(
-        ObserveFailure.Unexpected("Unable to send datasetEndExposure message to ODB.")
-      )(identity) >>
-      odb
-        .datasetStartReadout(obsId, fileId)
-        .ensure(
-          ObserveFailure.Unexpected("Unable to send datasetStartReadout message to ODB.")
-        )(identity) >>
-      odb
-        .datasetEndReadout(obsId, fileId)
-        .ensure(
-          ObserveFailure.Unexpected("Unable to send datasetEndReadout message to ODB.")
-        )(identity) >>
-      odb
-        .datasetStartWrite(obsId, fileId)
-        .ensure(
-          ObserveFailure.Unexpected("Unable to send datasetStartWrite message to ODB.")
-        )(identity) >>
-      odb
-        .datasetEndWrite(obsId, fileId)
-        .ensure(
-          ObserveFailure.Unexpected("Unable to send datasetEndWrite message to ODB.")
-        )(identity)
-        .void
+        ObserveFailure.Unexpected("Unable to send datasetEndWrite message to ODB.")
+      )(identity)
+      .void
 
   /**
    * Standard progress stream for an observation

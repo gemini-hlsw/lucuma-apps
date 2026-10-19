@@ -1428,26 +1428,6 @@ class ObserveEngineSuite extends TestCommon {
       case _                                           => false
     }
 
-    def isDatasetEndExposure(ev: TestOdbProxy.OdbEvent): Boolean = ev match {
-      case TestOdbProxy.DatasetEndExposure(obsId, _) => obsId === seqObsId1
-      case _                                         => false
-    }
-
-    def isDatasetStartReadout(ev: TestOdbProxy.OdbEvent): Boolean = ev match {
-      case TestOdbProxy.DatasetStartReadout(obsId, _) => obsId === seqObsId1
-      case _                                          => false
-    }
-
-    def isDatasetEndReadout(ev: TestOdbProxy.OdbEvent): Boolean = ev match {
-      case TestOdbProxy.DatasetEndReadout(obsId, _) => obsId === seqObsId1
-      case _                                        => false
-    }
-
-    def isDatasetStartWrite(ev: TestOdbProxy.OdbEvent): Boolean = ev match {
-      case TestOdbProxy.DatasetStartWrite(obsId, _) => obsId === seqObsId1
-      case _                                        => false
-    }
-
     def isDatasetEndWrite(ev: TestOdbProxy.OdbEvent): Boolean = ev match {
       case TestOdbProxy.DatasetEndWrite(obsId, _) => obsId === seqObsId1
       case _                                      => false
@@ -1459,10 +1439,6 @@ class ObserveEngineSuite extends TestCommon {
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepEndConfigure(seqObsId1)),
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepStartObserve(seqObsId1)),
       (ev: TestOdbProxy.OdbEvent) => assert(isDatasetStartExposure(ev)),
-      (ev: TestOdbProxy.OdbEvent) => assert(isDatasetEndExposure(ev)),
-      (ev: TestOdbProxy.OdbEvent) => assert(isDatasetStartReadout(ev)),
-      (ev: TestOdbProxy.OdbEvent) => assert(isDatasetEndReadout(ev)),
-      (ev: TestOdbProxy.OdbEvent) => assert(isDatasetStartWrite(ev)),
       (ev: TestOdbProxy.OdbEvent) => assert(isDatasetEndWrite(ev)),
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepEndObserve(seqObsId1)),
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepEndStep(seqObsId1))
