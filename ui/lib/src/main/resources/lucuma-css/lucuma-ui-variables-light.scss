@@ -458,7 +458,7 @@
 }
 
 @mixin prime-controls-light {
-  --overlay-mask-background: rgb(0 0 0 / 15%);
+  --overlay-mask-background: rgb(0 0 0 / 10%);
   --button-primary-background: var(--control-selected-color);
   --button-primary-hover-background: var(--control-selected-hover-color);
   --button-primary-active-background: var(--control-selected-color);

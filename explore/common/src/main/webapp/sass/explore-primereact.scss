@@ -11,12 +11,16 @@
 
 @include meta.load-css('/lucuma-css/lucuma-ui-prime');
 
+// Unlayered on purpose: the theme sets --maskbg on the theme class outside the layer.
+.dark-theme,
+.light-theme {
+  --maskbg: var(--overlay-mask-background);
+}
+
 // Inside PrimeReact's layer so its other variants still win by specificity.
 @layer primereact {
   .dark-theme,
   .light-theme {
-    --maskbg: var(--overlay-mask-background);
-
     .p-component-overlay {
       background-color: var(--overlay-mask-background);
     }
