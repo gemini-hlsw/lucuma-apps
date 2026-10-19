@@ -226,8 +226,7 @@ object TopBar:
                    icon = Icons.PencilSolid
                  )
                )
-               .some,
-             ThemeSubMenu(props.theme).some
+               .some
            ).flattenOption
          else List.empty)
 
@@ -273,6 +272,7 @@ object TopBar:
               icon = Icons.UserGears,
               command = openUserPrefs
             ),
+          ThemeSubMenu(props.theme),
           MenuItem
             .Item(
               label = "Redeem invitations",
@@ -280,7 +280,7 @@ object TopBar:
               command = openRedeem
             )
         ) ::: helpItems ::: lastItems
-    else firstItems ::: helpItems ::: lastItems
+    else firstItems ::: List(ThemeSubMenu(props.theme)) ::: helpItems ::: lastItems
 
   private val component =
     ScalaFnComponent[Props]: props =>
