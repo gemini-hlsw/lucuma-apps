@@ -59,18 +59,22 @@ object Theme:
       else
         none
 
+  private val ListenerAttr = "data-lucuma-theme-listener"
+
   private lazy val mountListener: DefaultS[Unit] =
     preferredLightQuery.flatMap: query =>
       DefaultS.delay:
-        query.addEventListener(
-          "change",
-          (e: dom.MediaQueryList) =>
-            DefaultS.runSync:
-              currentClasses.flatMap:
-                case Some((_, isSystem)) =>
-                  isSystem.fold(e.matches.fold(mountLight(true), mountDark(true)), DefaultS.empty)
-                case _                   => DefaultS.empty
-        )
+        if (!dom.document.body.hasAttribute(ListenerAttr))
+          dom.document.body.setAttribute(ListenerAttr, "")
+          query.addEventListener(
+            "change",
+            (e: dom.MediaQueryList) =>
+              DefaultS.runSync:
+                currentClasses.flatMap:
+                  case Some((_, isSystem)) =>
+                    isSystem.fold(e.matches.fold(mountLight(true), mountDark(true)), DefaultS.empty)
+                  case _                   => DefaultS.empty
+          )
 
   lazy val current: DefaultS[Option[Theme]] =
     currentClasses.map:
@@ -80,8 +84,20 @@ object Theme:
         else Theme.Dark
 
   def init(default: Theme = Theme.System): DefaultS[Theme] =
-    current.flatMap:
-      _.fold(mountListener >> default.mount.as(default))(DefaultS.pure(_))
+    mountListener >> current.flatMap(_.fold(default.mount.as(default))(DefaultS.pure(_)))
+
+  private val StorageKey = "lucuma-theme"
+
+  // Storage can be unavailable (private mode, blocked site data), so failures fall back silently.
+  lazy val stored: DefaultS[Option[Theme]] =
+    DefaultS.delay:
+      try Option(dom.window.localStorage.getItem(StorageKey)).flatMap(t => values.find(_.tag === t))
+      catch case _: Throwable => none
+
+  def store(theme: Theme): DefaultS[Unit] =
+    DefaultS.delay:
+      try dom.window.localStorage.setItem(StorageKey, theme.tag)
+      catch case _: Throwable => ()
 
   given Display[Theme] = Display.byShortName(_.name)
 

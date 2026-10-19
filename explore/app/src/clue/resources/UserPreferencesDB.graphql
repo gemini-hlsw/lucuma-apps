@@ -2946,6 +2946,7 @@ enum LucumaTableIdsEnum {
   REQUESTED_CONFIGS
   SPECTROSCOPY_MODES
   TARGETS_SUMMARY
+  TIME_CHARGES
   UNREQUESTED_CONFIGS
 }
 
@@ -3447,6 +3448,143 @@ input LucumaTargetUpdates {
 }
 
 """
+columns and relationships of "lucumaTheme"
+"""
+type LucumaTheme {
+  id: String!
+}
+
+"""
+aggregated selection of "lucumaTheme"
+"""
+type LucumaThemeAggregate {
+  aggregate: LucumaThemeAggregateFields
+  nodes: [LucumaTheme!]!
+}
+
+"""
+aggregate fields of "lucumaTheme"
+"""
+type LucumaThemeAggregateFields {
+  count(columns: [LucumaThemeSelectColumn!], distinct: Boolean): Int!
+  max: LucumaThemeMaxFields
+  min: LucumaThemeMinFields
+}
+
+"""
+Boolean expression to filter rows from the table "lucumaTheme". All fields are combined with a logical 'AND'.
+"""
+input LucumaThemeBoolExp {
+  _and: [LucumaThemeBoolExp!]
+  _not: LucumaThemeBoolExp
+  _or: [LucumaThemeBoolExp!]
+  id: StringComparisonExp
+}
+
+"""
+unique or primary key constraints on table "lucumaTheme"
+"""
+enum LucumaThemeConstraint {
+  """
+  unique or primary key constraint on columns "id"
+  """
+  lucumaThem_pkey
+}
+
+enum LucumaThemeEnum {
+  DARK
+  LIGHT
+  SYSTEM
+}
+
+"""
+Boolean expression to compare columns of type "LucumaThemeEnum". All fields are combined with logical 'AND'.
+"""
+input LucumaThemeEnumComparisonExp {
+  _eq: LucumaThemeEnum
+  _in: [LucumaThemeEnum!]
+  _isNull: Boolean
+  _neq: LucumaThemeEnum
+  _nin: [LucumaThemeEnum!]
+}
+
+"""
+input type for inserting data into table "lucumaTheme"
+"""
+input LucumaThemeInsertInput {
+  id: String
+}
+
+"""aggregate max on columns"""
+type LucumaThemeMaxFields {
+  id: String
+}
+
+"""aggregate min on columns"""
+type LucumaThemeMinFields {
+  id: String
+}
+
+"""
+response of any mutation on the table "lucumaTheme"
+"""
+type LucumaThemeMutationResponse {
+  """number of rows affected by the mutation"""
+  affected_rows: Int!
+
+  """data from the rows affected by the mutation"""
+  returning: [LucumaTheme!]!
+}
+
+"""
+on_conflict condition type for table "lucumaTheme"
+"""
+input LucumaThemeOnConflict {
+  constraint: LucumaThemeConstraint!
+  update_columns: [LucumaThemeUpdateColumn!]! = []
+  where: LucumaThemeBoolExp
+}
+
+"""Ordering options when selecting data from "lucumaTheme"."""
+input LucumaThemeOrderBy {
+  id: OrderBy
+}
+
+"""primary key columns input for table: lucumaTheme"""
+input LucumaThemePkColumnsInput {
+  id: String!
+}
+
+"""
+select columns of table "lucumaTheme"
+"""
+enum LucumaThemeSelectColumn {
+  """column name"""
+  id
+}
+
+"""
+input type for updating data in table "lucumaTheme"
+"""
+input LucumaThemeSetInput {
+  id: String
+}
+
+"""
+update columns of table "lucumaTheme"
+"""
+enum LucumaThemeUpdateColumn {
+  """column name"""
+  id
+}
+
+input LucumaThemeUpdates {
+  """sets the columns of the filtered rows to the given values"""
+  _set: LucumaThemeSetInput
+  where: LucumaThemeBoolExp!
+}
+
+"""
 columns and relationships of "lucumaUser"
 """
 type LucumaUser {
@@ -3715,6 +3853,7 @@ type LucumaUserPreferences {
   scienceOffsets: Boolean!
   showCatalog: Boolean!
   spectroscopyModesTableFilters: Boolean!
+  theme: LucumaThemeEnum!
   updatedAt: timestamptz
   userId: String!
   wavelengthUnits: LucumaWavelengthUnitsEnum!
@@ -3819,6 +3958,7 @@ input LucumaUserPreferencesBoolExp {
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
   spectroscopyModesTableFilters: BooleanComparisonExp
+  theme: LucumaThemeEnumComparisonExp
   updatedAt: TimestamptzComparisonExp
   userId: StringComparisonExp
   wavelengthUnits: LucumaWavelengthUnitsEnumComparisonExp
@@ -3896,6 +4036,7 @@ input LucumaUserPreferencesInsertInput {
   scienceOffsets: Boolean
   showCatalog: Boolean
   spectroscopyModesTableFilters: Boolean
+  theme: LucumaThemeEnum
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
@@ -3981,6 +4122,7 @@ input LucumaUserPreferencesOrderBy {
   scienceOffsets: OrderBy
   showCatalog: OrderBy
   spectroscopyModesTableFilters: OrderBy
+  theme: OrderBy
   updatedAt: OrderBy
   userId: OrderBy
   wavelengthUnits: OrderBy
@@ -4076,6 +4218,9 @@ enum LucumaUserPreferencesSelectColumn {
   spectroscopyModesTableFilters
 
   """column name"""
+  theme
+
+  """column name"""
   updatedAt
 
   """column name"""
@@ -4114,6 +4259,7 @@ input LucumaUserPreferencesSetInput {
   scienceOffsets: Boolean
   showCatalog: Boolean
   spectroscopyModesTableFilters: Boolean
+  theme: LucumaThemeEnum
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
@@ -4217,6 +4363,9 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   spectroscopyModesTableFilters
+
+  """column name"""
+  theme
 
   """column name"""
   updatedAt
@@ -5286,6 +5435,22 @@ input lucumaTarget_streamCursorValueInput {
 }
 
 """
+Streaming cursor of the table "lucumaTheme"
+"""
+input lucumaTheme_streamCursorInput {
+  """Stream column input with initial value"""
+  initialValue: lucumaTheme_streamCursorValueInput!
+
+  """cursor ordering"""
+  ordering: CursorOrdering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input lucumaTheme_streamCursorValueInput {
+  id: String
+}
+
+"""
 order by avg() on columns of table "lucumaUserPreferences"
 """
 input lucumaUserPreferences_avg_order_by {
@@ -5373,6 +5538,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   scienceOffsets: Boolean
   showCatalog: Boolean
   spectroscopyModesTableFilters: Boolean
+  theme: LucumaThemeEnum
   updatedAt: timestamptz
   userId: String
   wavelengthUnits: LucumaWavelengthUnitsEnum
@@ -5634,6 +5800,19 @@ type Mutation {
   delete single row from the table: "lucumaTarget"
   """
   deleteLucumaTargetByPk(targetId: String!, userId: String!): LucumaTarget
+
+  """
+  delete data from the table: "lucumaTheme"
+  """
+  deleteLucumaTheme(
+    """filter the rows which have to be deleted"""
+    where: LucumaThemeBoolExp!
+  ): LucumaThemeMutationResponse
+
+  """
+  delete single row from the table: "lucumaTheme"
+  """
+  deleteLucumaThemeByPk(id: String!): LucumaTheme
 
   """
   delete data from the table: "lucumaUser"
@@ -6003,6 +6182,28 @@ type Mutation {
     """upsert condition"""
     onConflict: LucumaTargetOnConflict
   ): LucumaTarget
+
+  """
+  insert data into the table: "lucumaTheme"
+  """
+  insertLucumaTheme(
+    """the rows to be inserted"""
+    objects: [LucumaThemeInsertInput!]!
+
+    """upsert condition"""
+    onConflict: LucumaThemeOnConflict
+  ): LucumaThemeMutationResponse
+
+  """
+  insert a single row into the table: "lucumaTheme"
+  """
+  insertLucumaThemeOne(
+    """the row to be inserted"""
+    object: LucumaThemeInsertInput!
+
+    """upsert condition"""
+    onConflict: LucumaThemeOnConflict
+  ): LucumaTheme
 
   """
   insert data into the table: "lucumaUser"
@@ -6555,6 +6756,34 @@ type Mutation {
     """updates to execute, in order"""
     updates: [LucumaTargetUpdates!]!
   ): [LucumaTargetMutationResponse]
+
+  """
+  update data of the table: "lucumaTheme"
+  """
+  updateLucumaTheme(
+    """sets the columns of the filtered rows to the given values"""
+    _set: LucumaThemeSetInput
+
+    """filter the rows which have to be updated"""
+    where: LucumaThemeBoolExp!
+  ): LucumaThemeMutationResponse
+
+  """
+  update single row of the table: "lucumaTheme"
+  """
+  updateLucumaThemeByPk(
+    """sets the columns of the filtered rows to the given values"""
+    _set: LucumaThemeSetInput
+    pk_columns: LucumaThemePkColumnsInput!
+  ): LucumaTheme
+
+  """
+  update multiples rows of table: "lucumaTheme"
+  """
+  updateLucumaThemeMany(
+    """updates to execute, in order"""
+    updates: [LucumaThemeUpdates!]!
+  ): [LucumaThemeMutationResponse]
 
   """
   update data of the table: "lucumaUser"
@@ -7340,6 +7569,49 @@ type Query {
 
   """fetch data from the table: "lucumaTarget" using primary key columns"""
   lucumaTargetByPk(targetId: String!, userId: String!): LucumaTarget
+
+  """
+  fetch data from the table: "lucumaTheme"
+  """
+  lucumaTheme(
+    """distinct select on columns"""
+    distinctOn: [LucumaThemeSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaThemeOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaThemeBoolExp
+  ): [LucumaTheme!]!
+
+  """
+  fetch aggregated fields from the table: "lucumaTheme"
+  """
+  lucumaThemeAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaThemeSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaThemeOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaThemeBoolExp
+  ): LucumaThemeAggregate!
+
+  """fetch data from the table: "lucumaTheme" using primary key columns"""
+  lucumaThemeByPk(id: String!): LucumaTheme
 
   """
   fetch data from the table: "lucumaUser"
@@ -8332,6 +8604,63 @@ type Subscription {
     """filter the rows returned"""
     where: LucumaTargetBoolExp
   ): [LucumaTarget!]!
+
+  """
+  fetch data from the table: "lucumaTheme"
+  """
+  lucumaTheme(
+    """distinct select on columns"""
+    distinctOn: [LucumaThemeSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaThemeOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaThemeBoolExp
+  ): [LucumaTheme!]!
+
+  """
+  fetch aggregated fields from the table: "lucumaTheme"
+  """
+  lucumaThemeAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaThemeSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaThemeOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaThemeBoolExp
+  ): LucumaThemeAggregate!
+
+  """fetch data from the table: "lucumaTheme" using primary key columns"""
+  lucumaThemeByPk(id: String!): LucumaTheme
+
+  """
+  fetch data from the table in a streaming manner : "lucumaTheme"
+  """
+  lucumaThemeStream(
+    """maximum number of rows returned in a single batch"""
+    batchSize: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [lucumaTheme_streamCursorInput]!
+
+    """filter the rows returned"""
+    where: LucumaThemeBoolExp
+  ): [LucumaTheme!]!
 
   """
   fetch data from the table: "lucumaUser"

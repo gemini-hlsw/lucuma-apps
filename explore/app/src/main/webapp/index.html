@@ -7,7 +7,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1.0,user-scalable=0"
     />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/images/favicon.png" />
     <link
       rel="preload"
@@ -29,6 +29,17 @@
   </script>
 
   <body>
+    <script>
+      // Applies the stored theme before first paint; Theme.init reads these classes back
+      try {
+        var theme = localStorage.getItem('lucuma-theme') || 'dark';
+        var light =
+          theme === 'light' ||
+          (theme === 'system' && matchMedia('(prefers-color-scheme: light)').matches);
+        document.body.classList.add(light ? 'light-theme' : 'dark-theme');
+        if (theme === 'system') document.body.classList.add('system-theme');
+      } catch (e) {}
+    </script>
     <script type="module" src="/main.jsx"></script>
   </body>
 </html>

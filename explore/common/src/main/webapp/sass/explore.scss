@@ -21,10 +21,6 @@
   background: var(--control-background-color);
 }
 
-:root {
-  color-scheme: dark;
-}
-
 // Full viewport settings taken from https://dev.to/lennythedev/css-gotcha-how-to-fill-page-with-a-div-270j
 
 html,
@@ -49,6 +45,8 @@ a {
 body {
   overflow: hidden;
   position: fixed;
+  background-color: var(--color-background);
+  color: var(--text-color);
   min-height: 100dvh;
 
   /* mobile viewport bug fix */
@@ -277,7 +275,7 @@ tfoot {
 
 .obs-tree-group {
   display: block;
-  color: var(--primary-color-text);
+  color: var(--obs-tree-group-color);
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 5px;
@@ -392,7 +390,7 @@ div.p-dropdown.explore-warning-input,
 div.p-form-field.explore-warning-input,
 div.field.explore-warning-input,
 div.inline.field.explore-warning-input {
-  box-shadow: -0 0 2px 1px var(--warning-background-color);
+  box-shadow: var(--warning-glow);
 }
 
 label.explore-indent-label {
@@ -714,24 +712,26 @@ thead tr th.sticky-header {
   }
 }
 
-.p-button.p-button-text.explore-tile-state-button {
-  color: var(--site-text-color);
-  filter: brightness(70%);
-  margin-right: 0.5em;
-  transform-origin: center center;
-  transition:
-    transform 0.25s,
-    filter 0.25s ease-in;
+// Scoped to the theme classes to outrank the flat-button color in explore-primereact.scss
+.dark-theme,
+.light-theme {
+  .p-button.p-button-text.explore-tile-state-button {
+    color: var(--tile-control-color);
+    margin-right: 0.5em;
+    transform-origin: center center;
+    transition:
+      transform 0.25s,
+      color 0.25s ease-in;
 
-  &:enabled:focus,
-  &:enabled:focus-visible {
-    border: none;
-    box-shadow: none;
-  }
+    &:enabled:focus,
+    &:enabled:focus-visible {
+      border: none;
+      box-shadow: none;
+    }
 
-  &:enabled:hover {
-    color: var(--site-text-color);
-    filter: brightness(100%);
+    &:enabled:hover {
+      color: var(--tile-control-hover-color);
+    }
   }
 }
 
@@ -743,8 +743,7 @@ thead tr th.sticky-header {
   margin-right: 1em;
 
   .explore-tile-height-preset-label {
-    color: var(--site-text-color);
-    filter: brightness(70%);
+    color: var(--tile-control-color);
     font-size: smaller;
     min-width: 4em;
     text-align: right;
@@ -761,6 +760,22 @@ thead tr th.sticky-header {
 
     .p-slider {
       width: 100%;
+    }
+
+    .p-slider .p-slider-range {
+      background: var(--tile-control-color);
+    }
+
+    .p-slider .p-slider-handle {
+      border-color: var(--tile-control-color);
+      background: var(--tile-title-background);
+
+      &:hover,
+      &:focus {
+        border-color: var(--tile-control-hover-color);
+        background: var(--tile-title-background);
+        box-shadow: none;
+      }
     }
   }
 
@@ -798,15 +813,9 @@ thead tr th.sticky-header {
   text-align: right;
 }
 
-// There is still an analog to this in style.less
-@mixin warning-label-mixin {
-  color: var(--warning-text-color);
-  background-color: var(--warning-background-color);
-}
-
 .target-sed-type-dropdown.explore-warning-input,
 .p-inputgroup.explore-warning-input {
-  box-shadow: -0 0 2px 1px var(--warning-background-color);
+  box-shadow: var(--warning-glow);
 }
 
 // -----
@@ -969,6 +978,29 @@ thead tr th.sticky-header {
 
       > svg.fa-spinner {
         margin-left: 0.5em;
+      }
+    }
+
+    .p-button.target-tile-obs-duration {
+      background: var(--button-success-background);
+      border-color: var(--button-success-background);
+
+      &:not(:disabled):hover {
+        background: var(--button-success-hover-background);
+        border-color: var(--button-success-hover-background);
+      }
+
+      &:not(:disabled):active {
+        background: var(--button-success-active-background);
+        border-color: var(--button-success-active-background);
+      }
+    }
+
+    .target-tile-obs-duration > .p-button.p-button-text {
+      color: var(--button-success-background);
+
+      &:not(:disabled):hover {
+        color: var(--button-success-hover-background);
       }
     }
   }
@@ -1287,8 +1319,9 @@ thead tr th.sticky-header {
 // ------
 
 .explore-shared-edit-warning {
-  @include warning-label-mixin;
-
+  color: var(--shared-edit-warning-color);
+  background-color: var(--shared-edit-warning-background);
+  border: var(--shared-edit-warning-border);
   padding: 0.4em;
 
   .pl-radiobutton-with-label {
@@ -1442,8 +1475,8 @@ $search-preview-margin: 5px;
   align-items: center;
   background: repeating-linear-gradient(
     -45deg,
-    black,
-    black 10px,
+    var(--target-search-preview-background),
+    var(--target-search-preview-background) 10px,
     var(--site-border-color) 10px,
     var(--site-border-color) 11px
   );
@@ -1491,18 +1524,13 @@ $search-preview-margin: 5px;
 
 .explore-sequence-tile-customized {
   margin-left: 0.75em;
-  color: var(--warning-background-color);
+  color: var(--sequence-customized-color);
   font-weight: normal;
   font-style: italic;
   letter-spacing: normal;
 
   svg {
     margin-left: 0.25em;
-  }
-
-  // The warning orange is too light to read as text on the light title bar
-  .light-theme & {
-    color: var(--orange-700);
   }
 }
 
@@ -1549,9 +1577,9 @@ $search-preview-margin: 5px;
 // -------------
 @mixin aladin-toolbar-labels {
   padding: 0 0.6em;
-  background-color: var(--surface-100);
+  background-color: var(--aladin-toolbar-label-background);
   border-radius: 0.2em;
-  outline: solid 1px var(--surface-200);
+  outline: solid 1px var(--aladin-toolbar-label-outline);
 }
 
 .aladin-status-fov {
@@ -1640,10 +1668,15 @@ svg.fa-check.explore-success-icon {
 }
 
 .aladin-detail-text {
-  color: white;
+  color: var(--aladin-detail-text-color);
   white-space: nowrap;
   font-size: smaller;
   margin-left: 0.4em;
+}
+
+.aladin-status-fov .explore-accented,
+.aladin-status-center-button .explore-accented {
+  color: var(--aladin-toolbar-icon-color);
 }
 
 .aladin-container-column {
@@ -1678,13 +1711,13 @@ svg.fa-check.explore-success-icon {
   .p-dropdown {
     min-height: 0;
     align-items: center;
-    background: var(--button-background-color-semi);
-    border-color: var(--gray-500);
+    background: var(--aladin-button-background);
+    border-color: var(--aladin-button-border-color);
 
     &:not(.p-disabled):hover,
     &:not(.p-disabled).p-focus {
-      border-color: var(--gray-200);
-      box-shadow: 0 0 0 0.5px var(--gray-200);
+      border-color: var(--aladin-button-hover-border-color);
+      box-shadow: 0 0 0 0.5px var(--aladin-button-hover-border-color);
     }
 
     .p-dropdown-label,
@@ -1712,9 +1745,13 @@ svg.fa-check.explore-success-icon {
 .obs-badge {
   padding: 0.7em;
   background-color: var(--obs-badge-background);
-  border: solid 1px var(--site-border-color);
+  border: solid 1px var(--obs-badge-border-color);
   border-radius: 3px;
   font-size: var(--pl-mini-font-size);
+
+  progress {
+    accent-color: var(--obs-badge-progress-color);
+  }
 
   .p-component.p-button {
     color: var(--site-text-color) !important;
@@ -1764,7 +1801,8 @@ svg.fa-check.explore-success-icon {
     align-items: center;
     font-weight: normal;
     font-size: small;
-    opacity: 0.5;
+    color: var(--obs-badge-secondary-color);
+    opacity: var(--obs-badge-id-opacity);
     margin-bottom: 0.2em;
     word-break: normal;
   }
@@ -1861,7 +1899,7 @@ svg.fa-check.explore-success-icon {
         // Sized to its content: compact label padding and a slim chevron
         .obs-badge-telluric-select.p-dropdown {
           width: auto;
-          background-color: var(--obs-selected-badge-background);
+          background-color: var(--obs-badge-input-background);
 
           .p-dropdown-label {
             padding: 0.15em 0.4em;
@@ -1882,7 +1920,7 @@ svg.fa-check.explore-success-icon {
         row-gap: 0.4em;
         padding: 0.3em 0.4em;
         border-radius: 3px;
-        background-color: var(--obs-selected-badge-background);
+        background-color: var(--obs-badge-nested-background);
 
         // Heads the rows with the science observation's telluric type; not clickable
         .obs-badge-telluric-header {
@@ -1939,20 +1977,20 @@ svg.fa-check.explore-success-icon {
 
   .obs-state-select {
     width: 100%;
-    background-color: var(--obs-selected-badge-background);
+    background-color: var(--obs-badge-input-background);
   }
 }
 
 // The panel is not nested in the obs badge
 .obs-state-select-panel.p-dropdown-panel {
-  background-color: var(--obs-selected-badge-background);
+  background-color: var(--obs-badge-input-background);
 }
 
 .selected-obs-item .obs-badge,
 .obs-tree-item .obs-badge.obs-badge-selected,
 .p-treenode:has(.selected-group-item) {
   background-color: var(--obs-selected-badge-background);
-  box-shadow: 0 0 0 1.5px var(--site-solid-border-color);
+  box-shadow: var(--obs-selected-badge-shadow);
 }
 
 .p-menu.p-component.science-band-popup-menu {
@@ -2163,7 +2201,7 @@ svg.fa-check.explore-success-icon {
 // Configuration Tile
 // ------
 .explore-configuration-tile-body {
-  background-color: var(--surface-card);
+  background-color: var(--configuration-tile-background);
 }
 
 .explore-configuration-grid {
@@ -3569,7 +3607,7 @@ input[type='file'].explore-fileupload {
 .explore-help-icon {
   margin-left: 0.5em;
   cursor: pointer;
-  color: var(--site-text-color);
+  color: var(--help-icon-color);
 }
 
 // Keep the help icon on the same row as its label text
@@ -3694,7 +3732,8 @@ $help-title-height: 40px;
   }
 }
 
-.dark-theme .p-selectbutton {
+.dark-theme .p-selectbutton,
+.light-theme .p-selectbutton {
   .p-button {
     border-color: var(--site-border-color);
   }
@@ -4547,6 +4586,11 @@ a.explore-upgrade-link {
   list-style: none;
   padding-left: 0;
   margin: 0;
+
+  .obs-group-title-empty {
+    font-style: italic;
+    opacity: 0.7;
+  }
 }
 
 .finder-charts-background {
@@ -4994,7 +5038,7 @@ span.explore-offsets-count {
 }
 
 .telescope-config-unguided {
-  opacity: 0.2;
+  opacity: var(--sequence-step-unguided-opacity);
 }
 
 .telescope-config-remove-offset-hidden {

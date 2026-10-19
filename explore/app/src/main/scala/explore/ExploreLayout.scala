@@ -190,7 +190,20 @@ object ExploreLayout:
         _                    <- useEffectOnMount:
                                   ctx.broadcastChannel.postMessage(ExploreEvent.ExploreUIReady)
         userSelectionMessage <- useStateView(none[NonEmptyString])
+        themePref             = props.model.rootModel
+                                  .zoom:
+                                    RootModel.globalPreferences.andThen(GlobalPreferences.theme)
+                                  .asView
         theme                <- useTheme(Theme.Dark)
+        _                    <- useEffectWithDeps(themePref.map(_.get)):
+                                  _.filterNot(_ === theme.get).foldMap(theme.set)
+        themeView             = theme.withOnMod: t =>
+                                  import ctx.given
+                                  themePref.foldMap(_.set(t)) >>
+                                    props.model.userId.foldMap: uid =>
+                                      UserPreferencesQueries.ThemePreference
+                                        .updateTheme[IO](uid, t)
+                                        .runAsync
         // Indicates whether the current program has errored.
         // We keep a separate state from the Pot in props.model.programSummaries so that we can keep
         // the value there when there's an error, and show the error only as a modal on top.
@@ -488,7 +501,7 @@ object ExploreLayout:
                               props.model.programSummaries.throttlerView
                                 .zoom(Pot.readyPrism)
                                 .zoom(ProgramSummaries.programs),
-                              theme,
+                              themeView,
                               onLogout >> view.zoom(RootModel.vault).set(none).toAsync,
                               _ => ctx.resetProgramCache(none),
                               prefs

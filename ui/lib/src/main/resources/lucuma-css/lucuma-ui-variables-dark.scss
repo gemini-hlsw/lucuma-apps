@@ -150,6 +150,7 @@
   --negative-icon-color: var(--negative-color);
   --warning-text-color: hsl(0deg 0% 100%);
   --warning-background-color: hsl(35deg 75.3% 49.8%);
+  --warning-glow: 0 0 2px 1px var(--warning-background-color);
   --error-background-color: hsl(0deg 100% 50%);
   --explore-accent-color: hsl(120deg 73.4% 74.9% / 80%);
   --accent-color: hsl(120deg 73.4% 74.9% / 80%);
@@ -198,6 +199,7 @@
   // GHOST IFU patrol fields
   --ghost-ifu1-color: hsl(300deg 80% 70% / 40%);
   --ghost-ifu2-color: hsl(40deg 90% 60% / 40%);
+  --ghost-ifu-patrol-field-stroke-width: 0.6px;
 
   // Hatch line width in user-space
   --hatch-line-width: 1000;
@@ -229,6 +231,36 @@
   --extended-vignetting-area-stroke-width: 0.6px;
   --extended-vignetting-area-fill-color: orange;
   --extended-vignetting-area-fill-opacity: 0.05;
+
+  // Overlay colors on the sky image
+  --viz-vignetting-stroke: hsl(60deg 100% 80% / 70%);
+  --viz-vignetting-stroke-width: 0.2px;
+  --viz-vignetting-fill: hsl(60deg 100% 80% / 5%);
+  --viz-gmos-patrol-field-color: hsl(120deg 100% 50%);
+  --viz-altair-patrol-field-color: hsl(280deg 100% 75%);
+  --viz-ccd-offset-color: yellow;
+  --viz-science-fov-color: cyan;
+  --viz-candidates-area-color: lightgreen;
+  --viz-candidates-area-stroke-width: 0.4px;
+  --viz-border-color: yellow;
+  --viz-selected-target-color: hsl(33deg 100% 50%);
+  --viz-sky-position-fill: hsl(40deg 90% 60% / 40%);
+  --viz-sky-position-stroke: hsl(40deg 90% 60%);
+  --viz-target-arrow-color: hsl(195deg 100% 50%);
+  --viz-ephemeris-in-observation-color: hsl(120deg 100% 40%);
+  --viz-acquisition-offset-color: hsl(9deg 70% 63.9%);
+  --viz-science-offset-color: lightgreen;
+  --viz-unguided-offset-color: hsl(181deg 100% 41%);
+  --viz-guide-star-candidate-color: hsl(9deg 100% 83.9% / 80%);
+  --viz-guide-star-crowded-fill: hsl(9deg 100% 63.9% / 50%);
+  --viz-guide-star-medium-color: hsl(43deg 74.4% 69%);
+  --viz-guide-star-slow-color: hsl(39deg 100% 50%);
+  --viz-mos-outline-stroke: hsl(180deg 100% 45% / 85%);
+  --viz-mos-outline-fill: hsl(180deg 100% 45% / 8%);
+  --viz-mos-slit-stroke: hsl(210deg 100% 75%);
+  --viz-mos-slit-fill: hsl(210deg 100% 60% / 25%);
+  --viz-mos-acq-box-stroke: hsl(300deg 100% 75%);
+  --viz-mos-acq-box-fill: hsl(300deg 100% 60% / 25%);
 
   // Tooltip colors
   --tooltip-background-color: var(--color-background-light-3);
@@ -325,6 +357,8 @@
   --tile-background: var(--color-background-light-8);
   --tile-title-background: var(--color-background-light-12);
   --tile-title-color: var(--color-text-full);
+  --tile-control-color: hsl(0deg 0% 62%);
+  --tile-control-hover-color: var(--text-color);
   --tile-resize-handle-brightness: 2;
 }
 
@@ -332,6 +366,13 @@
   --obs-badge-color: var(--text-color);
   --obs-badge-background: var(--color-background-light-8);
   --obs-selected-badge-background: var(--color-background-light-20);
+  --obs-badge-nested-background: var(--obs-selected-badge-background);
+  --obs-badge-secondary-color: var(--obs-badge-color);
+  --obs-badge-border-color: var(--site-border-color);
+  --obs-badge-progress-color: auto;
+  --obs-badge-id-opacity: 0.5;
+  --obs-badge-input-background: var(--obs-selected-badge-background);
+  --obs-selected-badge-shadow: 0 0 0 1.5px var(--site-solid-border-color);
 }
 
 @mixin menu-dark {
@@ -357,16 +398,16 @@
 
 @mixin dropdown-dark {
   --dropdown-selection-background: var(--control-background-color);
-  --dropdown-selection-visible-color: @gray-darker;
+  --dropdown-selection-visible-color: var(--color-text-light-75);
   --dropdown-item-color: var(--site-input-color);
 }
 
 @mixin checkbox-dark {
   --checkbox-background: var(--control-background-color);
-  --checkbox-focus-background: @gray-dark;
+  --checkbox-focus-background: var(--gray-dark);
   --checkbox-active-background: var(--control-background-color);
   --checkbox-active-focus-background: var(--control-background-color);
-  --checkbox-active-focus-check-color: @selectedTextColor;
+  --checkbox-active-focus-check-color: var(--color-text-full);
   --checkbox-border-color: var(--site-border-color);
   --checkbox-active-color: var(--form-input-color);
   --checkbox-hover-color: var(--input-color);
@@ -410,6 +451,71 @@
   --plot-plot-band-exclude-window-opacity: 0.25;
 }
 
+@mixin prime-controls-dark {
+  --overlay-mask-background: rgb(0 0 0 / 40%);
+  --button-primary-background: hsl(206deg 66.7% 38.8%);
+  --button-primary-hover-background: hsl(205.9deg 66.3% 34.9%);
+  --button-primary-active-background: hsl(206deg 67.1% 31%);
+  --button-flat-color: hsl(206deg 66.7% 38.8%);
+  --button-secondary-color: hsl(0deg 0% 100%);
+  --button-secondary-background: hsl(210deg 7.9% 45%);
+  --button-secondary-hover-background: hsl(210deg 7.9% 50.6%);
+  --button-secondary-hover-border: hsl(210deg 7.8% 40.4%);
+  --button-secondary-active-background: hsl(210deg 8% 56.1%);
+  --button-secondary-active-border: hsl(210deg 7.6% 36.1%);
+  --button-secondary-flat-color: hsl(210deg 7.9% 45%);
+  --button-summary-background: var(--button-secondary-background);
+  --button-summary-border: var(--button-secondary-background);
+  --button-summary-hover-background: var(--button-secondary-hover-background);
+  --button-summary-hover-border: var(--button-secondary-hover-border);
+  --button-success-background: hsl(122.4deg 39.4% 49.2%);
+  --button-success-hover-background: hsl(122.7deg 39.8% 44.3%);
+  --button-success-active-background: hsl(122.3deg 39.3% 39.4%);
+  --control-selected-color: hsl(206deg 66.7% 38.8%);
+  --control-selected-hover-color: hsl(205.9deg 66.3% 34.9%);
+  --control-selected-text-color: hsl(0deg 0% 100% / 87%);
+  --control-hover-border-color: hsl(206deg 66.7% 38.8%);
+  --checkbox-checked-background: transparent;
+  --checkbox-checked-border: currentcolor;
+  --checkbox-checked-hover-background: transparent;
+  --checkbox-checked-hover-border: hsl(206deg 67.1% 31%);
+  --radio-checked-color: hsl(206deg 66.7% 38.8%);
+  --radio-checked-hover-color: hsl(206deg 67.1% 31%);
+  --switch-checked-background: hsl(206deg 66.7% 38.8%);
+  --switch-checked-hover-background: hsl(205.9deg 66.3% 34.9%);
+  --badge-background: hsl(206deg 66.7% 38.8%);
+  --badge-color: hsl(0deg 0% 100% / 87%);
+}
+
+@mixin explore-components-dark {
+  --obs-tree-group-color: var(--primary-color-text);
+  --configuration-tile-background: var(--surface-card);
+  --help-icon-color: var(--site-text-color);
+  --sequence-edit-border-color: var(--prime-input-border-color);
+  --sequence-edit-background: var(--prime-input-background);
+  --sequence-step-unguided-opacity: 0.2;
+  --sequence-step-guided-color: lightgreen;
+  --sequence-step-guided-selected-color: lightgreen;
+  --sequence-customized-color: var(--warning-background-color);
+  --shared-edit-warning-color: var(--warning-text-color);
+  --shared-edit-warning-background: var(--warning-background-color);
+  --shared-edit-warning-border: none;
+  --aladin-detail-text-color: hsl(0deg 0% 100%);
+  --aladin-toolbar-label-background: var(--surface-100);
+  --aladin-toolbar-label-outline: var(--surface-200);
+  --aladin-toolbar-icon-color: var(--explore-accent-color);
+  --target-search-preview-background: black;
+  --aladin-image-outline: none;
+  --aladin-image-tone: invert(0);
+  --aladin-saturation-control-opacity: 1;
+  --aladin-saturation-control-pointer-events: auto;
+  --aladin-button-color: hsl(0deg 0% 100% / 87%);
+  --aladin-button-background: var(--button-background-color-semi);
+  --aladin-button-border-color: var(--gray-500);
+  --aladin-button-hover-background: var(--gray-700);
+  --aladin-button-hover-border-color: var(--gray-200);
+}
+
 @mixin custom-dark {
   --active-row-background: var(--orange-900);
   --disabled-row-background: var(--bluegray-800);
@@ -443,4 +549,8 @@
   @include plot-dark;
   @include datepicker-dark;
   @include custom-dark;
+  @include prime-controls-dark;
+  @include explore-components-dark;
+
+  color-scheme: dark;
 }

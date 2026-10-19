@@ -264,7 +264,7 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
           SliderView(
             id = "saturation".refined,
             label = "Saturation",
-            clazz = ExploreStyles.AladinRangeControl,
+            clazz = ExploreStyles.AladinRangeControl |+| ExploreStyles.AladinSaturationControl,
             value = saturationView
               .zoom(unsafeRangeLens)
           )

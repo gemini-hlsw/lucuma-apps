@@ -48,6 +48,7 @@ import lucuma.react.gridlayout.*
 import lucuma.react.table.*
 import lucuma.react.table.facade.compat as raw
 import lucuma.ui.aladin.Fov
+import lucuma.ui.enums.Theme
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.extras.LogLevel
@@ -537,6 +538,20 @@ object UserPreferencesQueries:
         .attempt
         .void
   end WavelengthUnitsPreference
+
+  object ThemePreference:
+    def updateTheme[F[_]: ApplicativeThrow](
+      userId: User.Id,
+      theme:  Theme
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserThemeUpdate[F]
+        .execute(
+          userId = userId.show.assign,
+          theme = theme.assign
+        )
+        .attempt
+        .void
+  end ThemePreference
 
   object LogLevelPreference:
     def updateLogLevel[F[_]: ApplicativeThrow](

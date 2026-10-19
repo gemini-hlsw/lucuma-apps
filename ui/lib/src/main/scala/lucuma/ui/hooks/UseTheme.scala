@@ -12,8 +12,9 @@ import lucuma.ui.enums.Theme
 def useTheme(initial: => Theme = Theme.System): HookResult[View[Theme]] =
   for
     theme <- useStateView(initial)
-    _     <- useEffectOnMount(Theme.init(initial) >>= theme.set)
-  yield theme.withOnMod(_.mount)
+    _     <- useLayoutEffectOnMount:
+               Theme.stored.map(_.getOrElse(initial)).flatMap(Theme.init) >>= theme.set
+  yield theme.withOnMod(t => t.mount >> Theme.store(t))
 
 private object UseTheme:
 

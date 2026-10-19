@@ -13,6 +13,7 @@
 - "!include public_lucumaTableIds.yaml"
 - "!include public_lucumaTablePreferences.yaml"
 - "!include public_lucumaTarget.yaml"
+- "!include public_lucumaTheme.yaml"
 - "!include public_lucumaUser.yaml"
 - "!include public_lucumaUserPreferences.yaml"
 - "!include public_lucumaWavelengthUnits.yaml"
