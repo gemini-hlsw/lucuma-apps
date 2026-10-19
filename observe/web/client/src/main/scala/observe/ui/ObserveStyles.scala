@@ -130,8 +130,8 @@ object ObserveStyles:
   val SystemsControlRow: Css           = Css("observe-systems-control-row")
   val SystemsControlActive: Css        = Css("observe-systems-control-active")
   val SystemsControlRestart: Css       = Css("observe-systems-control-restart")
-  val SystemsControlWarning: Css       = Css("observe-systems-control-warning")
   val SystemsControlActions: Css       = Css("observe-systems-control-actions")
+  val SystemsControlWarning: Css       = Css("observe-systems-control-warning")
   val RestartPending: Css              = Css("observe-restart-pending")
 
   val ObsHeader: Css            = Css("observe-obs-header")

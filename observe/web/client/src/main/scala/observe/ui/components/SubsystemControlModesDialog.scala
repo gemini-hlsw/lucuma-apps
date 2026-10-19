@@ -20,6 +20,7 @@ import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
+import lucuma.ui.primereact.*
 import lucuma.ui.primereact.EnumDropdownView
 import lucuma.ui.primereact.FormLabel
 import lucuma.ui.primereact.LucumaPrimeStyles
@@ -78,12 +79,34 @@ object SubsystemControlModesDialog
             icon = Icons.TriangleExclamation
           )
 
+        // Buttons as in Explore's dialogs: small, compact, with icons.
+        val saveButton: VdomNode =
+          Button(
+            label = "Save",
+            icon = Icons.FloppyDisk,
+            disabled = !hasChanges,
+            onClick = configApi.saveSystemControl(edited.get).runAsync
+          ).small.compact
+
+        val footer: VdomNode =
+          <.div(
+            Button(
+              label = "Restart server",
+              icon = Icons.PowerOff,
+              severity = Button.Severity.Danger,
+              disabled = props.isServerBusy,
+              tooltip = if (props.isServerBusy) "A sequence is running" else "",
+              onClick = restart
+            ).small.compact
+          )
+
         Dialog(
           header = "Subsystems control",
           visible = props.visible,
           onHide = props.onHide,
           position = DialogPosition.Top,
-          clazz = ObserveStyles.SubsystemControlModesDialog
+          clazz = ObserveStyles.SubsystemControlModesDialog,
+          footer = footer
         )(
           <.div(
             fields.map { field =>
@@ -96,11 +119,11 @@ object SubsystemControlModesDialog
                 if active =!= row.get then
                   <.span(
                     PrimeStyles.InputGroupAddon,
-                    Icons.DiamondExclamation
-                      .withClass(ObserveStyles.SystemsControlActive)
-                      .withSize(IconSize.X1)
+                    ObserveStyles.SystemsControlActive,
+                    Icons.DiamondExclamation.withSize(IconSize.X1),
+                    ^.onClick --> row.set(active)
                   ).withTooltip(
-                    content = s"Active: ${label(active)}",
+                    content = <.div(s"Active: ${label(active)}", <.br, "Click to revert"),
                     position = Tooltip.Position.Left
                   )
                 else EmptyVdom
@@ -112,13 +135,7 @@ object SubsystemControlModesDialog
                 )
               )
             }.toTagMod,
-            <.div(ObserveStyles.SystemsControlActions)(
-              Button(
-                label = "Save",
-                disabled = !hasChanges,
-                onClick = configApi.saveSystemControl(edited.get).runAsync
-              )
-            ),
+            <.div(ObserveStyles.SystemsControlActions)(saveButton),
             <.div(ObserveStyles.SystemsControlRestart)(
               if (restartRequired)
                 React.Fragment(
@@ -134,18 +151,7 @@ object SubsystemControlModesDialog
                   )
                 )
               else <.h4("Restart server"),
-              <.p(
-                "The restart is refused while a sequence is running. All clients disconnect and reconnect once the server is back."
-              ),
-              <.div(ObserveStyles.SystemsControlActions)(
-                Button(
-                  label = "Restart server",
-                  severity = Button.Severity.Danger,
-                  disabled = props.isServerBusy,
-                  tooltip = if (props.isServerBusy) "A sequence is running" else "",
-                  onClick = restart
-                )
-              )
+              <.p("Server can only be restarted when idle.")
             ),
             ConfirmDialog()
           )

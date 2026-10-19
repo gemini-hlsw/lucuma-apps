@@ -286,12 +286,14 @@ object WebServerLauncher extends IOApp with LogInitialization {
         .default[F]
         .withHost(conf.webServer.host)
         .withPort(conf.webServer.port)
-        .withHttpWebSocketApp(wsb =>
+        .withHttpWebSocketApp: wsb =>
           mw:
             Http4sLogger
               .httpRoutes(logHeaders = false, logBody = false)(router(wsb, events))
           .orNotFound
-        )
+        // Ember waits for open connections before shutting down (30s by default), and the client
+        // websockets hold it for the whole wait. Clients reconnect on their own.
+        .withShutdownTimeout(2.seconds)
 
     def builderWithTLS(
       events: Topic[F, (Option[ClientId], ClientEvent)],
@@ -422,6 +424,9 @@ object WebServerLauncher extends IOApp with LogInitialization {
     Stream.fixedRate[F](10.minute).flatMap(_ => Stream.eval(cs.report))
 
   /** Reads the configuration and launches the observe engine and web server */
+  /** Exit code used when the server stops on a user's restart request, to tell it from a crash. */
+  val RestartExitCode: ExitCode = ExitCode(3)
+
   def observe: IO[ExitCode] = {
 
     val observe: Resource[IO, IO[Unit]] =
@@ -454,9 +459,11 @@ object WebServerLauncher extends IOApp with LogInitialization {
           webServer(conf, cs, sso, engine, saved, subsystemsFile, restartSignal.complete(()).void)
       yield restartSignal.get *> Logger[IO].info("Restarting on user request")
 
-    // Completing the signal releases every resource, which ends the process cleanly so that the
-    // container's restart policy starts it again.
-    observe.use(identity).as(ExitCode.Success)
+    // Completing the signal releases every resource and the process exits so that the container's
+    // restart policy starts it again. The exit code must be non-zero: on ExitCode.Success IOApp
+    // returns from main without calling System.exit, and the non-daemon threads of the EPICS
+    // libraries keep the JVM alive.
+    observe.use(identity).as(RestartExitCode)
   }
 
   /** Reads the configuration and launches the observe */

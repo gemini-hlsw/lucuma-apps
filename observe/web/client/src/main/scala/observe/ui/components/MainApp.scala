@@ -136,10 +136,13 @@ object MainApp extends ServerEventHandler:
   private val FetchRetryPolicy = // http4s-client middleware
     RetryPolicy[IO](RetryPolicy.exponentialBackoff(15.seconds, Int.MaxValue))
 
+  // Never gives up: `Reconnect` stops reconnecting once a connection attempt fails for good, and a
+  // server restart keeps the server away for longer than a few retries.
   private val WSRetryPolicy = // cats-retry
-    RetryPolicies
-      .limitRetries[Resource[IO, _]](10)
-      .join(RetryPolicies.exponentialBackoff[Resource[IO, _]](10.milliseconds))
+    RetryPolicies.capDelay[Resource[IO, _], Any](
+      5.seconds,
+      RetryPolicies.exponentialBackoff[Resource[IO, _]](100.milliseconds)
+    )
 
   // Build regular HTTP client for invoking backend.
   private val fetchClient: Client[IO] =

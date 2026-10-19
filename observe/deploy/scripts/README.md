@@ -15,7 +15,7 @@ The per-subsystem control strategies (`observe-engine.subsystem-control-modes`) 
 `~/observe/conf/subsystems.conf`, which is now written by the Observe UI (Subsystems dialog) for the
 subsystems of the running site. The UI can also restart the server for the new strategies to take
 effect, when nothing is running: the server exits cleanly and the container's
-`--restart unless-stopped` policy brings it back.
+`--restart unless-stopped` policy brings it back (the server exits with code 3 on such a restart).
 
 You can use the commands in `install.sh` to copy the latest version of the scripts:
 
