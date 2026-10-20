@@ -638,8 +638,10 @@ object ObsTree:
                           adding,
                           ctx
                         ).runAsync *> expandFocusedGroup
-                      ).withMods(testId := "explore-obs-tree-add-daytime-cal", ThemeIcons.SunBright)
-                        .mini
+                      ).withMods(
+                        testId := "explore-obs-tree-add-daytime-cal",
+                        <.span(^.cls := "p-button-label", ThemeIcons.SunBright)
+                      ).mini
                         .compact
                         .when(props.isStaffOrAdmin)
                     ),

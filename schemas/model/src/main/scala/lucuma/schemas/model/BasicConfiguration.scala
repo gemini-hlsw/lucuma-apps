@@ -265,6 +265,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
               List(InstrumentSlot.Sky(sk, GhostIfu1), InstrumentSlot.Science(ifu2, GhostIfu2))
             case Some(GhostIfuMapping.DualTarget(ifu1, ifu2))  =>
               List(InstrumentSlot.Science(ifu1, GhostIfu1), InstrumentSlot.Science(ifu2, GhostIfu2))
+            case Some(GhostIfuMapping.NoTarget)                =>
+              Nil
             case None                                          =>
               val ids = mode match
                 case GhostResolutionMode.Standard => List(GhostIfu1, GhostIfu2)
