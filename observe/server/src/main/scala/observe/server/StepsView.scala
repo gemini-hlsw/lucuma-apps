@@ -52,6 +52,9 @@ object StepsView {
       case _                        => true
     })
 
+  private def doneStatus[F[_]](a: Action[F]): ActionStatus =
+    if (a.state.runState.errored) ActionStatus.Failed else ActionStatus.Completed
+
   def actionsToSubsystems[F[_]](
     s: NonEmptyList[Action[F]]
   ): (List[Subsystem], List[Subsystem]) =
@@ -72,7 +75,7 @@ object StepsView {
     val configStatus = current.foldLeft(Map.empty[Subsystem, ActionStatus]) { case (s, e) =>
       val (a, r) = separateActions(e).bimap(
         _.flatMap(a => kindToSubsystem(a.kind).tupleRight(ActionStatus.Running)).toMap,
-        _.flatMap(r => kindToSubsystem(r.kind).tupleRight(ActionStatus.Completed)).toMap
+        _.flatMap(r => kindToSubsystem(r.kind).tupleRight(doneStatus(r))).toMap
       )
       s ++ a ++ r
     }
@@ -81,9 +84,10 @@ object StepsView {
     val presentSubsystems = configStatus.keys.toList
     // Calculate status of pending items
     val subsystemsPending = pending
-      .map(actionsToSubsystems)
-      .flatMap { case (a, b) =>
-        a.tupleRight(ActionStatus.Pending) ::: b.tupleRight(ActionStatus.Completed)
+      .flatMap { e =>
+        val (a, b) = separateActions(e)
+        a.flatMap(x => kindToSubsystem(x.kind).tupleRight(ActionStatus.Pending)) :::
+          b.flatMap(x => kindToSubsystem(x.kind).tupleRight(doneStatus(x)))
       }
       .filter { case (a, _) =>
         !presentSubsystems.contains(a)
@@ -140,7 +144,7 @@ object StepsView {
     ): ObserveStep = {
       val status       = step.status
       val configStatus =
-        if (status.runningOrComplete) {
+        if (status.runningOrComplete || status.hasError) {
           stepConfigStatus(step)
         } else {
           altCfgStatus

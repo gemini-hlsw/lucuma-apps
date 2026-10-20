@@ -76,6 +76,17 @@ class StepFailureReportingSuite extends TestCommon {
       ): IO[Unit] =
         IO.raiseError(ObserveFailure.Timeout("GMOS configuration"))
 
+  /** GMOS whose configuration fails once, then succeeds: a transient failure. */
+  private def gmosFailingOnce(failed: Ref[IO, Boolean]): GmosNorthController[IO] =
+    new GmosControllerDisabled[IO, GmosController.GmosSite.North.type]("north"):
+      override def applyConfig(
+        config: GmosController.GmosConfig[GmosController.GmosSite.North.type]
+      ): IO[Unit] =
+        failed
+          .getAndSet(true)
+          .flatMap: alreadyFailed =>
+            IO.raiseError(ObserveFailure.Timeout("GMOS configuration")).unlessA(alreadyFailed)
+
   /**
    * GMOS whose exposure blocks until paused, and whose stop-after-pause behaves as `stopPaused`
    * says. This mimics the EPICS stop-and-wait command, which can time out during readout.
@@ -112,31 +123,32 @@ class StepFailureReportingSuite extends TestCommon {
     def sendAndAwait(cmd: ObserveEngine[IO] => IO[Unit])(
       until: EngineState[IO] => Boolean
     ): IO[EngineState[IO]] =
-      cmd(oe) *> states.discrete.unNone.find(until).compile.lastOrError
+      // `discrete` replays the current state first; skip it so a stale match can't satisfy `until`.
+      cmd(oe) *> states.discrete.drop(1).unNone.find(until).compile.lastOrError
 
   private def withRunningEngine[A](
     gmos: GmosNorthController[IO]
   )(body: RunningEngine => IO[A]): IO[A] =
     for
-      odb     <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(singleStep))
-      systems <- defaultSystems.map(_.copy(odb = odb, gmosNorth = gmos))
-      oseq    <- odb.read(seqObsId1)
-      s0       = ODBSequencesLoader
-                   .loadSequenceMod[IO](None, oseq, EngineState.instrumentLoaded(Instrument.GmosNorth))
-                   .apply(EngineState.default[IO])
-      rc      <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
-      tr      <- ObserveEngine.createTranslator(Site.GS, systems, rc, ExecutionEnvironment.Development)
-      eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
-      oe       = new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc)
-      states  <- SignallingRef.of[IO, Option[EngineState[IO]]](none)
-      a       <- oe
-                   .eventResultStream(s0)
-                   .evalTap(oe.notifyODB(_).void)
-                   .evalMap((_, s) => states.set(s.some))
-                   .compile
-                   .drain
-                   .background
-                   .use(_ => body(RunningEngine(odb, oe, states)))
+      odb      <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(singleStep))
+      services <- defaultServices.map(_.copy(odb = odb, gmosNorth = gmos))
+      oseq     <- odb.read(seqObsId1)
+      s0        = ODBSequencesLoader
+                    .loadSequenceMod[IO](None, oseq, EngineState.instrumentLoaded(Instrument.GmosNorth))
+                    .apply(EngineState.default[IO])
+      rc       <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
+      tr       <- ObserveEngine.createTranslator(Site.GS, services, rc, ExecutionEnvironment.Development)
+      eng      <- Engine.build[IO](ObserveEngine.onStepComplete[IO](services.odb, tr))
+      oe        = new ObserveEngineImpl[IO](eng, services, defaultSettings, tr, rc)
+      states   <- SignallingRef.of[IO, Option[EngineState[IO]]](none)
+      a        <- oe
+                    .eventResultStream(s0)
+                    .evalTap(oe.notifyODB(_).void)
+                    .evalMap((_, s) => states.set(s.some))
+                    .compile
+                    .drain
+                    .background
+                    .use(_ => body(RunningEngine(odb, oe, states)))
     yield a
 
   private def start(oe: ObserveEngine[IO]): IO[Unit] =
@@ -150,6 +162,23 @@ class StepFailureReportingSuite extends TestCommon {
       yield
         assert(sequenceStatus(s1).exists(_.isError), s"status was ${sequenceStatus(s1)}")
         assert(!evs.contains(StepAbort(seqObsId1)), s"step abort was sent: $evs")
+  }
+
+  test("pressing play after a transient failure re-runs the same step to completion") {
+    Ref
+      .of[IO, Boolean](false)
+      .flatMap: failed =>
+        withRunningEngine(gmosFailingOnce(failed)): engine =>
+          for
+            s1  <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+            s2  <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+            evs <- engine.odb.outCapture
+          yield
+            assert(sequenceStatus(s1).exists(_.isError), s"status was ${sequenceStatus(s1)}")
+            assertEquals(sequenceStatus(s2), SequenceStatus.Completed.some)
+            assertEquals(evs.count(_ == StepStartStep(seqObsId1)), 2, s"events: $evs")
+            assertEquals(evs.count(_ == StepEndStep(seqObsId1)), 1, s"events: $evs")
+            assert(!evs.contains(StepAbort(seqObsId1)), s"step abort was sent: $evs")
   }
 
   test("pausing an exposure sends a step pause and no step abort") {

@@ -292,6 +292,13 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         val tableStyle: Css =
           ObserveStyles.ObserveTable |+| ObserveStyles.StepTable |+| SequenceStyles.SequenceTable
 
+        // The error of the loaded step, which is the one Play will re-run.
+        val loadedStepError: Option[String] =
+          props.executionState.loadedStep
+            .map(_.status)
+            .collect:
+              case StepState.Failed(msg) => msg
+
         def computeRowMods(row: SequenceTableRowType): TagMod =
           row.value.toOption
             .map(_.step)
@@ -332,6 +339,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
                 ObserveStyles.StepRowInserted.when_(stepWasInserted),
                 ObserveStyles.StepRowFirstInAtom.when_(step.isFirstInAtom),
+                loadedStepError
+                  .filter(_ => step.isLoaded)
+                  .map(msg => TagMod(ObserveStyles.StepRowError, ^.title := msg))
+                  .whenDefined,
                 step.stepState match
                   case s if s.hasError                      => ObserveStyles.StepRowError
                   case StepState.Paused                     => ObserveStyles.StepRowWarning

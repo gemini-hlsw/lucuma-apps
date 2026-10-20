@@ -50,7 +50,7 @@ case class SubsystemControls(
   forceDisabled:      Boolean = false
 ) extends ReactFnProps(SubsystemControls):
   private val canOperate: Boolean =
-    clientMode.canOperate && sequenceStatus.isIdle && !forceDisabled
+    clientMode.canOperate && (sequenceStatus.isIdle || sequenceStatus.isError) && !forceDisabled
 
   private def subsystemState(subsystem: Subsystem): (ActionStatus, OperationRequest) =
     (subsystemStatus.getOrElse(subsystem, ActionStatus.Pending),

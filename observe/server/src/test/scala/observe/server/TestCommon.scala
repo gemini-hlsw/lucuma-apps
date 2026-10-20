@@ -226,6 +226,13 @@ object TestCommon {
         pendingAction(subsystem)
       )
 
+  def failed[F[_]: Applicative](resource: Subsystem): Action[F] =
+    Action
+      .state[F]
+      .replace(Action.State(Action.ActionState.Failed(Result.Error("boom")), Nil))(
+        pendingAction(resource)
+      )
+
   private val fileId = ImageFileId("fileId")
 
   def observing[F[_]: Applicative]: Action[F] =
