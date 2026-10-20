@@ -11,6 +11,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
+import lucuma.ui.primereact.*
 import observe.model.UserPrompt
 import observe.model.enums.RunOverride
 import observe.ui.Icons
@@ -73,11 +74,13 @@ object ChecksOverrideDialog
           footer = <.div(
             Button(
               label = "Stop",
-              severity = Button.Severity.Secondary,
+              icon = Icons.Stop,
+              severity = Button.Severity.Primary,
               onClick = props.prompt.set(none)
-            ),
+            ).compact,
             Button(
               label = "Continue anyway",
+              icon = Icons.Play,
               severity = Button.Severity.Danger,
               onClick = props.prompt.set(none) >>
                 current.foldMap: p =>
@@ -91,7 +94,7 @@ object ChecksOverrideDialog
                         RunOverride.Override
                       )
                   ).runAsync
-            )
+            ).compact
           )
         )(
           <.div(current.map(_.checks.toList.map(renderCheck).toTagMod).getOrElse(TagMod.empty))
