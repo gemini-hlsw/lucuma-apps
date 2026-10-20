@@ -44,10 +44,10 @@ import observe.model.Operator
 import observe.model.SequenceStatus
 import observe.model.UserPrompt
 import observe.model.config.ObserveEngineConfiguration
-import observe.model.enums.SubsystemControlMode
 import observe.model.enums.ObservatorySubsystem.Gcal
 import observe.model.enums.ObservatorySubsystem.Tcs
 import observe.model.enums.RunOverride
+import observe.model.enums.SubsystemControlMode
 import observe.server.SeqEvent.RequestConfirmation
 import observe.server.engine.Breakpoints
 import observe.server.engine.DummyExecutionZipper

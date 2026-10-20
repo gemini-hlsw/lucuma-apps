@@ -116,7 +116,7 @@ trait TestCommon extends munit.CatsEffectSuite {
 
   def observeEngineWithODB(
     odb:      OdbProxy[IO],
-    services:  IO[Services[IO]] = defaultServices,
+    services: IO[Services[IO]] = defaultServices,
     settings: ObserveEngineConfiguration = defaultSettings
   ): IO[ObserveEngine[IO]] =
     services.flatMap(sys =>

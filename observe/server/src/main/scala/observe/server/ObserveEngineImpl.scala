@@ -65,7 +65,7 @@ import ClientEvent.*
 
 private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   executeEngine:         Engine[F],
-  override val services:  Services[F],
+  override val services: Services[F],
   settings:              ObserveEngineConfiguration,
   translator:            SeqTranslate[F],
   @unused conditionsRef: Ref[F, CurrentConditions]
