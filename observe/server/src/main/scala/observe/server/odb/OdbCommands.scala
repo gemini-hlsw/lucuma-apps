@@ -26,6 +26,7 @@ trait OdbCommands[F[_]] private[odb] () {
   def datasetEndReadout(obsId:   Observation.Id, fileId: ImageFileId): F[Boolean]
   def datasetStartWrite(obsId:   Observation.Id, fileId: ImageFileId): F[Boolean]
   def datasetEndWrite(obsId:     Observation.Id, fileId: ImageFileId): F[Boolean]
+  def datasetAbort(obsId:        Observation.Id, fileId: ImageFileId): F[Unit]
   def stepEndObserve(obsId:      Observation.Id, stepId: Step.Id): F[Boolean]
   def stepEndStep(obsId:         Observation.Id, stepId: Step.Id): F[Boolean]
   def stepAbort(obsId:           Observation.Id, stepId: Step.Id): F[Boolean]

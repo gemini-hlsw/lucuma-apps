@@ -79,6 +79,8 @@ class DummyOdbCommands[F[_]: Sync as F] extends OdbCommands[F] {
   override def datasetEndWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
     false.pure
 
+  override def datasetAbort(obsId: Observation.Id, fileId: ImageFileId): F[Unit] = ().pure
+
   override def visitStart(obsId: Observation.Id): F[Unit] =
     F.unit
 

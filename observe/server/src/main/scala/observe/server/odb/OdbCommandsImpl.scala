@@ -207,6 +207,11 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _      <- setCurrentDatasetId(obsId, fileId, none)
     yield result
 
+  // An aborted exposure produces no file, so no dataset event is sent: the ODB reports the dataset
+  // as not written while its end time is unset. Only the local id bookkeeping is released.
+  override def datasetAbort(obsId: Observation.Id, fileId: ImageFileId): F[Unit] =
+    setCurrentDatasetId(obsId, fileId, none)
+
   override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
     recordStepEvent(obsId, stepId, StepStage.EndObserve)
 
