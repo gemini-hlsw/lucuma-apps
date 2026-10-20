@@ -59,7 +59,7 @@ Match is case-sensitive and whole-identifier; adjust casing for the surrounding 
 | `UserEvent.CancelPause` | `UserEvent.CancelSequenceHoldRequest` |
 | `Event.pause(...)` | `Event.requestSequenceHold(...)` |
 | `Event.cancelPause(...)` | `Event.cancelSequenceHoldRequest(...)` |
-| `SystemEvent.SequencePaused` | `SystemEvent.SequenceHeld` |
+| `SystemEvent.SequencePaused` | `EngineEvent.SequenceHeld` |
 | `Event.sequencePaused(...)` | `Event.sequenceHeld(...)` |
 | `Engine.pause` | `Engine.requestSequenceHold` |
 | `Engine.cancelPause` | `Engine.cancelSequenceHoldRequest` |
@@ -131,6 +131,6 @@ Match is case-sensitive and whole-identifier; adjust casing for the surrounding 
 
 - `obsPause` and `stepStop` ODB mutations: ODB vocabulary.
 - `Audio.SequencePaused` and its clips: that is what the recording says.
-- `Result.Paused`, `SystemEvent.Paused`, `actionResume`: engine action-level pause, unrelated
+- `Result.Paused`, `EngineEvent.Paused`, `actionResume`: engine action-level pause, unrelated
   to both sequence hold and exposure pause.
 - `NsCycle` / `NsNod` operation levels.

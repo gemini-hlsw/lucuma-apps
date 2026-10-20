@@ -30,7 +30,7 @@ import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.model.Subsystem
 import observe.model.enums.ActionStatus
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.components.sequence.steps.*
@@ -49,10 +49,11 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   private lazy val isGmos: Boolean =
     List(Instrument.GmosNorth, Instrument.GmosSouth).contains_(instrument)
 
-  private lazy val stepResources: StepConfig => Set[Subsystem] =
-    case StepConfig.Bias | StepConfig.Dark => if isGmos then Set(Resource.Gcal) else Set.empty
-    case StepConfig.Gcal(_, _, _, _)       => Set(Resource.TCS, Resource.Gcal)
-    case StepConfig.Science                => Set(Resource.TCS, Resource.Gcal)
+  private lazy val stepSubsystems: StepConfig => Set[Subsystem] =
+    case StepConfig.Bias | StepConfig.Dark =>
+      if isGmos then Set(ObservatorySubsystem.Gcal) else Set.empty
+    case StepConfig.Gcal(_, _, _, _)       => Set(ObservatorySubsystem.Tcs, ObservatorySubsystem.Gcal)
+    case StepConfig.Science                => Set(ObservatorySubsystem.Tcs, ObservatorySubsystem.Gcal)
     case StepConfig.SmartGcal(_)           => throw new RuntimeException("Smart GCAL is not supported")
 
   protected case class TableMeta(
@@ -225,8 +226,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                         case Some(selRowId) if selRowId === selectableRowId =>
                           val stepId: Step.Id = selRowId.stepId
 
-                          def inactiveStepResourceMap: Map[Subsystem, ActionStatus] =
-                            (stepResources(stepConfig) + instrument)
+                          def inactiveStepSubsystemMap: Map[Subsystem, ActionStatus] =
+                            (stepSubsystems(stepConfig) + instrument)
                               .map(_ -> ActionStatus.Pending)
                               .toMap
 
@@ -243,9 +244,9 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             sequenceStatus = meta.executionState.sequenceStatus,
                             isPausedInStep =
                               meta.executionState.pausedStep.exists(_.value === stepId),
-                            subsystemStatus =
-                              meta.executionState.stepResources.getOrElse(inactiveStepResourceMap),
-                            systemOverrides = meta.executionState.systemOverrides,
+                            subsystemStatus = meta.executionState.stepSubsystems
+                              .getOrElse(inactiveStepSubsystemMap),
+                            subsystemOverrides = meta.executionState.subsystemOverrides,
                             exposureTime = exposureTime,
                             progress = meta.progress,
                             isPreview = isPreview

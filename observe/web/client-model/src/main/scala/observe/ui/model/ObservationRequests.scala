@@ -49,7 +49,7 @@ case class ObservationRequests(
     skipAcquisition === OperationRequest.InFlight ||
     resetAcquisition === OperationRequest.InFlight
 
-    // Indicate if any resource is being executed
+    // Indicate if any subsystem is being executed
   def subsystemInFlight(stepId: Step.Id): Boolean =
     subsystemRun.get(stepId).exists(_.exists(_._2 === OperationRequest.InFlight))
 

@@ -74,11 +74,11 @@ class GnirsSuite extends TestCommon {
 
   test("SeqTranslate builds a GNIRS step from a GNIRS execution config") {
     for {
-      systems <- defaultSystems
-      sg      <- generateStepGen[IO](gnirsOdbData, systems)
+      services <- defaultServices
+      sg       <- generateStepGen[IO](gnirsOdbData, services)
     } yield {
       assert(sg.exists(_.isInstanceOf[StepGen.Gnirs[IO]]), "expected a StepGen.Gnirs")
-      assert(sg.exists(_.resources.contains(Instrument.Gnirs)), "expected GNIRS in resources")
+      assert(sg.exists(_.subsystems.contains(Instrument.Gnirs)), "expected GNIRS in subsystems")
     }
   }
 

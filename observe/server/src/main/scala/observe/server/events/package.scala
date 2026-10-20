@@ -4,7 +4,7 @@
 package observe.server.events
 
 import observe.server.SeqEvent
-import observe.server.engine.SystemEvent
+import observe.server.engine.EngineEvent
 import observe.server.engine.UserEvent
 
 extension (e: SeqEvent)
@@ -32,7 +32,7 @@ extension (e: SeqEvent)
       case UpdateQueueClear(_)           => true
       case StartQueue(_, _, _)           => true
       case StopQueue(_, _)               => true
-      case StartSysConfig(_, _, _)       => true
+      case StartSubsystemConfig(_, _, _) => true
       case SequenceStart(_, _)           => true
       case SequencesStart(_)             => true
       case SequenceTypeChanged(_)        => true
@@ -52,19 +52,19 @@ extension [F[_]](e: UserEvent[F])
       case UserEvent.ActionResume(_, _, _)            => true
       case _                                          => false
 
-extension (e: SystemEvent)
+extension (e: EngineEvent)
   def isModelUpdate: Boolean =
-    import SystemEvent.*
+    import EngineEvent.*
     e match
-      case SystemEvent.Completed(_, _, _, _)      => true
-      case SystemEvent.StopCompleted(id, _, _, _) => true
-      case SystemEvent.Aborted(id, _, _, _)       => true
-      case SystemEvent.PartialResult(_, _, _, _)  => true
-      case SystemEvent.Failed(_, _, _, _)         => true
-      case SystemEvent.LoadFailed(_, _, _)        => true
-      case SystemEvent.Executed(_)                => true
-      case SystemEvent.Executing(_)               => true
-      case SystemEvent.SequenceComplete(_)        => true
-      case SystemEvent.Paused(id, _, _, _)        => true
-      case SystemEvent.BreakpointReached(id)      => true
+      case EngineEvent.Completed(_, _, _, _)      => true
+      case EngineEvent.StopCompleted(id, _, _, _) => true
+      case EngineEvent.Aborted(id, _, _, _)       => true
+      case EngineEvent.PartialResult(_, _, _, _)  => true
+      case EngineEvent.Failed(_, _, _, _)         => true
+      case EngineEvent.LoadFailed(_, _, _)        => true
+      case EngineEvent.Executed(_)                => true
+      case EngineEvent.Executing(_)               => true
+      case EngineEvent.SequenceComplete(_)        => true
+      case EngineEvent.Paused(id, _, _, _)        => true
+      case EngineEvent.BreakpointReached(id)      => true
       case _                                      => false

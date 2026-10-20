@@ -26,7 +26,7 @@ import observe.server.EpicsCodex.*
 import observe.server.EpicsCommandBase
 import observe.server.EpicsUtil
 import observe.server.EpicsUtil.*
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.NsProgress
 import observe.server.ObserveFailure
 import observe.server.Progress

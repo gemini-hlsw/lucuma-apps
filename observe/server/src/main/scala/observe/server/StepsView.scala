@@ -37,7 +37,7 @@ trait StepsView[F[_]] {
 }
 
 object StepsView {
-  private def kindToResource(kind: ActionType): List[Subsystem] = kind match {
+  private def kindToSubsystem(kind: ActionType): List[Subsystem] = kind match {
     case ActionType.Configure(r) => List(r)
     case _                       => Nil
   }
@@ -52,12 +52,12 @@ object StepsView {
       case _                        => true
     })
 
-  def actionsToResources[F[_]](
+  def actionsToSubsystems[F[_]](
     s: NonEmptyList[Action[F]]
   ): (List[Subsystem], List[Subsystem]) =
     separateActions(s).bimap(
-      _.map(_.kind).flatMap(kindToResource),
-      _.map(_.kind).flatMap(kindToResource)
+      _.map(_.kind).flatMap(kindToSubsystem),
+      _.map(_.kind).flatMap(kindToSubsystem)
     )
 
   private[server] def configStatus[F[_]](
@@ -71,26 +71,26 @@ object StepsView {
     // Calculate the state up to the current
     val configStatus = current.foldLeft(Map.empty[Subsystem, ActionStatus]) { case (s, e) =>
       val (a, r) = separateActions(e).bimap(
-        _.flatMap(a => kindToResource(a.kind).tupleRight(ActionStatus.Running)).toMap,
-        _.flatMap(r => kindToResource(r.kind).tupleRight(ActionStatus.Completed)).toMap
+        _.flatMap(a => kindToSubsystem(a.kind).tupleRight(ActionStatus.Running)).toMap,
+        _.flatMap(r => kindToSubsystem(r.kind).tupleRight(ActionStatus.Completed)).toMap
       )
       s ++ a ++ r
     }
 
     // Find out systems in the future
-    val presentSystems = configStatus.keys.toList
+    val presentSubsystems = configStatus.keys.toList
     // Calculate status of pending items
-    val systemsPending = pending
-      .map(actionsToResources)
+    val subsystemsPending = pending
+      .map(actionsToSubsystems)
       .flatMap { case (a, b) =>
         a.tupleRight(ActionStatus.Pending) ::: b.tupleRight(ActionStatus.Completed)
       }
       .filter { case (a, _) =>
-        !presentSystems.contains(a)
+        !presentSubsystems.contains(a)
       }
       .distinct
 
-    (configStatus ++ systemsPending).toList.sortBy(_._1)
+    (configStatus ++ subsystemsPending).toList.sortBy(_._1)
   }
 
   /**
@@ -100,7 +100,7 @@ object StepsView {
     executions: List[ParallelActions[F]]
   ): List[(Subsystem, ActionStatus)] =
     executions
-      .map(actionsToResources)
+      .map(actionsToSubsystems)
       .flatMap { case (a, b) => a ::: b }
       .distinct
       .tupleRight(ActionStatus.Pending)

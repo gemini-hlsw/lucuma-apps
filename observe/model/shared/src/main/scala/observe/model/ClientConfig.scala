@@ -16,20 +16,20 @@ import lucuma.core.model.Program
 import lucuma.core.syntax.display.*
 import monocle.Focus
 import monocle.Lens
-import observe.model.enums.ControlStrategy
+import observe.model.enums.SubsystemControlMode
 import org.http4s.Uri
 import org.http4s.circe.given
 
 case class ClientConfig(
-  site:                       Site,
-  environment:                ExecutionEnvironment,
-  odbUri:                     Uri,
-  ssoUri:                     Uri,
-  exploreBaseUri:             Uri,
-  clientId:                   ClientId,
-  version:                    Version,
-  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
-  otelEndpoint:               Option[Uri]
+  site:                  Site,
+  environment:           ExecutionEnvironment,
+  odbUri:                Uri,
+  ssoUri:                Uri,
+  exploreBaseUri:        Uri,
+  clientId:              ClientId,
+  version:               Version,
+  subsystemControlModes: Map[Subsystem, SubsystemControlMode],
+  otelEndpoint:          Option[Uri]
 ) derives Eq,
       Encoder.AsObject,
       Decoder:

@@ -14,7 +14,7 @@ import observe.model.SequenceStatus
 import observe.model.SequenceStatus.IsRewindRequested
 import observe.model.SequenceStatus.IsSequenceHoldRequested
 import observe.model.SequenceStatus.IsStepInterruptRequested
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.server.HeaderExtraData
 import observe.server.StepGen
 import observe.server.engine.Action.ActionState
@@ -110,7 +110,7 @@ final case class SequenceState[F[_]](
 
   def withLoadedStepGen(
     stepGenOpt:  Option[StepGen[F]],
-    overrides:   SystemOverrides,
+    overrides:   SubsystemOverrides,
     headerExtra: HeaderExtraData
   ): SequenceState[F] =
     stepGenOpt.fold(copy(loadedStep = none)): stepGen =>
@@ -201,7 +201,7 @@ object SequenceState:
    */
   def reload[F[_]](
     stepGenOpt:  Option[StepGen[F]],
-    overrides:   SystemOverrides,
+    overrides:   SubsystemOverrides,
     headerExtra: HeaderExtraData,
     oldState:    SequenceState[F],
     breakpoints: Breakpoints

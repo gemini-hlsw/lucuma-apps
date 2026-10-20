@@ -9,9 +9,7 @@ import lucuma.core.enums.SmartGcalType
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import observe.model.RunningStepProgress
-import observe.model.Server
 import observe.model.Subsystem
-import observe.model.SubsystemOrServer
 import observe.model.enums.*
 
 // private def conditionIntToString(v: Int): String = if (v === 100) "Any" else v.toString
@@ -24,31 +22,14 @@ import observe.model.enums.*
 // given Display[SkyBackground]   = conditionDisplay(_.toInt, _.label)
 // given Display[WaterVapor]      = conditionDisplay(_.toInt, _.label)
 
-given Display[Resource] = Display.byShortName(_.label)
-
-given Display[Server] = Display.byShortName(_.tag)
-
 given Display[Subsystem] = Display.by(
   {
-    case r: Resource   => r.shortName
-    case i: Instrument => i.shortName
+    case i: Instrument           => i.shortName
+    case o: ObservatorySubsystem => o.shortName
   },
   {
-    case r: Resource   => r.longName
-    case i: Instrument => i.longName
-  }
-)
-
-given Display[SubsystemOrServer] = Display.by(
-  {
-    case r: Resource   => r.shortName
-    case i: Instrument => i.shortName
-    case s: Server     => s.tag
-  },
-  {
-    case r: Resource   => r.longName
-    case i: Instrument => i.longName
-    case s: Server     => s.tag
+    case i: Instrument           => i.longName
+    case o: ObservatorySubsystem => o.longName
   }
 )
 

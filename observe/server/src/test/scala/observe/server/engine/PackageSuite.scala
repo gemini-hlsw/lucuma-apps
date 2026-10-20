@@ -24,8 +24,8 @@ import observe.common.test.stepId
 import observe.model.ActionType
 import observe.model.Observation
 import observe.model.SequenceStatus
-import observe.model.enums.Resource
-import observe.model.enums.Resource.TCS
+import observe.model.enums.ObservatorySubsystem
+import observe.model.enums.ObservatorySubsystem.Tcs
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
@@ -57,7 +57,7 @@ class PackageSuite extends munit.CatsEffectSuite {
    * Emulates TCS configuration in the real world.
    */
   val configureTcs: Action[IO] = fromF[IO](
-    ActionType.Configure(TCS),
+    ActionType.Configure(Tcs),
     for {
       _ <- IO.sleep(200.milliseconds)
     } yield Result.OK(DummyResult)
@@ -249,7 +249,7 @@ class PackageSuite extends munit.CatsEffectSuite {
               executions = List(
                 NonEmptyList.one(
                   fromF[IO](
-                    ActionType.Configure(TCS),
+                    ActionType.Configure(Tcs),
                     startedFlag.release *> finishFlag.acquire *>
                       IO.pure(Result.OK(DummyResult))
                   )
@@ -326,7 +326,7 @@ class PackageSuite extends munit.CatsEffectSuite {
             executions = List(
               NonEmptyList.one(
                 fromF[IO](
-                  ActionType.Configure(Resource.TCS),
+                  ActionType.Configure(ObservatorySubsystem.Tcs),
                   IO {
                     dummy.set(markVal)
                     Result.OK(DummyResult)

@@ -14,7 +14,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.util.TimeSpan
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
@@ -31,9 +31,9 @@ final case class Gnirs[F[_]: {Async, Logger}](
   dhsClientProvider: DhsClientProvider[F],
   config:            GnirsConfig
 ) extends DhsInstrument[F]
-    with InstrumentSystem[F] {
+    with InstrumentHandler[F] {
 
-  override val resource: Instrument = Instrument.Gnirs
+  override val subsystem: Instrument = Instrument.Gnirs
 
   override val contributorName: String = "ngnirsdc1"
 
@@ -43,10 +43,10 @@ final case class Gnirs[F[_]: {Async, Logger}](
 
   override val keywordsClient: KeywordsClient[F] = this
 
-  override def observeControl: InstrumentSystem.ObserveControl[F] =
-    InstrumentSystem.UnpausableControl(
-      InstrumentSystem.StopObserveCmd(_ => controller.stopExposure),
-      InstrumentSystem.AbortObserveCmd(controller.abortExposure)
+  override def observeControl: InstrumentHandler.ObserveControl[F] =
+    InstrumentHandler.UnpausableControl(
+      InstrumentHandler.StopObserveCmd(_ => controller.stopExposure),
+      InstrumentHandler.AbortObserveCmd(controller.abortExposure)
     )
 
   override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =
@@ -66,7 +66,7 @@ final case class Gnirs[F[_]: {Async, Logger}](
 
   override def observeProgress(
     total:   TimeSpan,
-    elapsed: InstrumentSystem.ElapsedTime
+    elapsed: InstrumentHandler.ElapsedTime
   ): Stream[F, Progress] =
     controller.observeProgress(total)
 
@@ -99,14 +99,16 @@ object Gnirs {
 
             override def instrument: Instrument = Instrument.Gnirs
 
-            override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-              Gnirs(systems.gnirs(sysOverrides), systems.dhs(sysOverrides), config)
+            override def instrumentHandler(
+              subsystemOverrides: SubsystemOverrides
+            ): InstrumentHandler[F] =
+              Gnirs(services.gnirs(subsystemOverrides), services.dhs(subsystemOverrides), config)
 
             override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
               GnirsHeader.header(
                 client,
-                systems.systems.gnirsKeywordReader,
-                systems.systems.tcsKeywordReader
+                services.services.gnirsKeywordReader,
+                services.services.tcsKeywordReader
               )
     }.pure
 }

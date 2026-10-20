@@ -16,13 +16,13 @@ class StepsViewNSSuite extends munit.FunSuite {
 
   test("running after the first observe") {
     val executions: List[ParallelActions[IO]] =
-      List(NonEmptyList.one(running(Resource.TCS)), NonEmptyList.one(observePartial))
+      List(NonEmptyList.one(running(ObservatorySubsystem.Tcs)), NonEmptyList.one(observePartial))
     assert(StepsView.observeStatus(executions) === ActionStatus.Running)
   }
 
   test("running after the observe and configure") {
     val executions: List[ParallelActions[Id]] = List(
-      NonEmptyList.one(running(Resource.TCS)),
+      NonEmptyList.one(running(ObservatorySubsystem.Tcs)),
       NonEmptyList.one(observePartial),
       NonEmptyList.one(done(Instrument.GmosNorth))
     )
@@ -31,7 +31,7 @@ class StepsViewNSSuite extends munit.FunSuite {
 
   test("running after the observe/configure/continue/complete") {
     val executions: List[ParallelActions[Id]] = List(
-      NonEmptyList.one(running(Resource.TCS)),
+      NonEmptyList.one(running(ObservatorySubsystem.Tcs)),
       NonEmptyList.one(observePartial),
       NonEmptyList.one(done(Instrument.GmosNorth)),
       NonEmptyList.one(observed)

@@ -7,7 +7,7 @@ import cats.effect.IO
 import cats.syntax.option.*
 import observe.model.CurrentConditions
 import observe.model.Observation
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.server.EngineState
 import observe.server.Selected
 import observe.server.SequenceData
@@ -25,7 +25,7 @@ object TestUtil {
         gmosNorth = SequenceData
           .GmosNorth[IO](
             observer = none,
-            overrides = SystemOverrides.AllEnabled,
+            overrides = SubsystemOverrides.AllEnabled,
             observation = odbObs,
             constraintSet = odbObs.constraintSet,
             staticCfg = staticCfg1,

@@ -15,7 +15,7 @@ enum BatchExecState(val tag: String) derives Enumerated {
   case Waiting
       extends BatchExecState(
         "Waiting"
-      ) // Queue was commanded to run, but it is waiting for resources.
+      ) // Queue was commanded to run, but it is waiting for subsystems.
   case Stopping
       extends BatchExecState(
         "Stopping"

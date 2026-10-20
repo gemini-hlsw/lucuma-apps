@@ -68,12 +68,12 @@ import observe.model.CurrentConditions
 import observe.model.Observation
 import observe.model.SequenceStatus
 import observe.model.Subsystem
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.config.*
-import observe.model.config.SystemsControlConfiguration
+import observe.model.config.SubsystemControlModes
 import observe.model.dhs.*
-import observe.model.enums.ControlStrategy
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
+import observe.model.enums.SubsystemControlMode
 import observe.server.ODBSequencesLoader
 import observe.server.engine.Action
 import observe.server.engine.Engine
@@ -98,26 +98,28 @@ trait TestCommon extends munit.CatsEffectSuite {
   given Logger[IO] = NoOpLogger.impl[IO]
   given Tracer[IO] = Tracer.noop[IO]
 
-  val defaultSystems: IO[Systems[IO]] = Systems.dummy[IO]
+  val defaultServices: IO[Services[IO]] = Services.dummy[IO]
 
   val observeEngine: IO[ObserveEngine[IO]] =
-    defaultSystems.flatMap:
+    defaultServices.flatMap:
       ObserveEngine.build(Site.GS, _, defaultSettings, ExecutionEnvironment.Development)
 
-  def bothEngines(systems: IO[Systems[IO]] = defaultSystems): IO[(Engine[IO], ObserveEngine[IO])] =
+  def bothEngines(
+    services: IO[Services[IO]] = defaultServices
+  ): IO[(Engine[IO], ObserveEngine[IO])] =
     for
-      systems <- systems
-      rc      <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
-      tr      <- ObserveEngine.createTranslator(Site.GS, systems, rc, ExecutionEnvironment.Development)
-      eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
-    yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
+      services <- services
+      rc       <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
+      tr       <- ObserveEngine.createTranslator(Site.GS, services, rc, ExecutionEnvironment.Development)
+      eng      <- Engine.build[IO](ObserveEngine.onStepComplete[IO](services.odb, tr))
+    yield (eng, new ObserveEngineImpl[IO](eng, services, defaultSettings, tr, rc))
 
   def observeEngineWithODB(
     odb:      OdbProxy[IO],
-    systems:  IO[Systems[IO]] = defaultSystems,
+    services: IO[Services[IO]] = defaultServices,
     settings: ObserveEngineConfiguration = defaultSettings
   ): IO[ObserveEngine[IO]] =
-    systems.flatMap(sys =>
+    services.flatMap(sys =>
       ObserveEngine.build(
         Site.GN,
         sys.copy(odb = odb),
@@ -166,22 +168,22 @@ object TestCommon {
     odbWs = uri"localhost",
     navigateHttp = uri"localhost",
     dhsServer = uri"http://localhost/",
-    systemControl = SystemsControlConfiguration(
-      altair = ControlStrategy.Simulated,
-      gems = ControlStrategy.Simulated,
-      dhs = ControlStrategy.Simulated,
-      flamingos2 = ControlStrategy.Simulated,
-      gcal = ControlStrategy.Simulated,
-      gmos = ControlStrategy.Simulated,
-      gnirs = ControlStrategy.Simulated,
-      gpi = ControlStrategy.Simulated,
-      ghost = ControlStrategy.Simulated,
-      igrins2 = ControlStrategy.Simulated,
-      gsaoi = ControlStrategy.Simulated,
-      gws = ControlStrategy.Simulated,
-      nifs = ControlStrategy.Simulated,
-      niri = ControlStrategy.Simulated,
-      tcs = ControlStrategy.Simulated
+    subsystemControlModes = SubsystemControlModes(
+      altair = SubsystemControlMode.Simulated,
+      gems = SubsystemControlMode.Simulated,
+      dhs = SubsystemControlMode.Simulated,
+      flamingos2 = SubsystemControlMode.Simulated,
+      gcal = SubsystemControlMode.Simulated,
+      gmos = SubsystemControlMode.Simulated,
+      gnirs = SubsystemControlMode.Simulated,
+      gpi = SubsystemControlMode.Simulated,
+      ghost = SubsystemControlMode.Simulated,
+      igrins2 = SubsystemControlMode.Simulated,
+      gsaoi = SubsystemControlMode.Simulated,
+      gws = SubsystemControlMode.Simulated,
+      nifs = SubsystemControlMode.Simulated,
+      niri = SubsystemControlMode.Simulated,
+      tcs = SubsystemControlMode.Simulated
     ),
     odbNotifications = false,
     instForceError = false,
@@ -201,27 +203,27 @@ object TestCommon {
     32
   )
 
-  def configure[F[_]: Applicative](resource: Subsystem): F[Result] =
-    Result.OK(Response.Configured(resource)).pure[F].widen
+  def configure[F[_]: Applicative](subsystem: Subsystem): F[Result] =
+    Result.OK(Response.Configured(subsystem)).pure[F].widen
 
-  def pendingAction[F[_]: Applicative](resource: Subsystem): Action[F] =
-    engine.fromF[F](ActionType.Configure(resource), configure(resource))
+  def pendingAction[F[_]: Applicative](subsystem: Subsystem): Action[F] =
+    engine.fromF[F](ActionType.Configure(subsystem), configure(subsystem))
 
   def odbAction[F[_]: Applicative]: Action[F] =
     engine.fromF(ActionType.OdbEvent, Result.OK(Response.Ignored).pure[F])
 
-  def running[F[_]: Applicative](resource: Subsystem): Action[F] =
+  def running[F[_]: Applicative](subsystem: Subsystem): Action[F] =
     Action
       .state[F]
       .replace(Action.State(Action.ActionState.Started, Nil))(
-        pendingAction(resource)
+        pendingAction(subsystem)
       )
 
-  def done[F[_]: Applicative](resource: Subsystem): Action[F] =
+  def done[F[_]: Applicative](subsystem: Subsystem): Action[F] =
     Action
       .state[F]
-      .replace(Action.State(Action.ActionState.Completed(Response.Configured(resource)), Nil))(
-        pendingAction(resource)
+      .replace(Action.State(Action.ActionState.Completed(Response.Configured(subsystem)), Nil))(
+        pendingAction(subsystem)
       )
 
   private val fileId = ImageFileId("fileId")
@@ -418,8 +420,8 @@ object TestCommon {
       sequenceType = SequenceType.Science,
       id = stepId(1),
       dataId = Monoid.empty[DataId],
-      resources = Set(Instrument.GmosNorth, Resource.TCS),
-      obsControl = _ => InstrumentSystem.Uncontrollable,
+      subsystems = Set(Instrument.GmosNorth, ObservatorySubsystem.Tcs),
+      obsControl = _ => InstrumentHandler.Uncontrollable,
       generator = StepActionsGen(
         odbAction[IO],
         odbAction[IO],
@@ -436,21 +438,22 @@ object TestCommon {
       breakpoint = Breakpoint.Disabled
     )
 
-  def stepGenWithResources(
-    stepIdx:   Int,
-    resources: Set[Subsystem]
+  def stepGenWithSubsystems(
+    stepIdx:    Int,
+    subsystems: Set[Subsystem]
   ): StepGen.GmosNorth[IO] =
     StepGen.GmosNorth[IO](
       atomId = atomId1,
       sequenceType = SequenceType.Science,
       id = stepId(stepIdx),
       dataId = Monoid.empty[DataId],
-      resources = resources,
-      obsControl = _ => InstrumentSystem.Uncontrollable,
+      subsystems = subsystems,
+      obsControl = _ => InstrumentHandler.Uncontrollable,
       generator = StepActionsGen(
         odbAction[IO],
         odbAction[IO],
-        configs = resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
+        configs =
+          subsystems.map(r => r -> { (_: SubsystemOverrides) => pendingAction[IO](r) }).toMap,
         odbAction[IO],
         odbAction[IO],
         post = (_, _) => Nil,
@@ -465,10 +468,10 @@ object TestCommon {
 
   def generateStepGen[F[_]: {Async, Logger}](
     odbObsData: OdbObservationData,
-    systems:    Systems[F]
+    services:   Services[F]
   ): F[Option[StepGen[F]]] = for {
     c  <- Ref.of[F, CurrentConditions](CurrentConditions.Default)
-    st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
+    st <- SeqTranslate(Site.GS, services, c, ExecutionEnvironment.Development)
   } yield st.nextStep(odbObsData, SequenceType.Acquisition.asLeft)._2
 
   def loadSequence(
@@ -480,10 +483,10 @@ object TestCommon {
       lens.some
         .andThen(SequenceData.seq)
         .modify:
-          _.withLoadedStepGen(sg, SystemOverrides.AllEnabled, HeaderExtraData.Default)
+          _.withLoadedStepGen(sg, SubsystemOverrides.AllEnabled, HeaderExtraData.Default)
 
   /**
-   * Convenience: build a GmosNorth sequence with a single step and default resources. Replaces the
+   * Convenience: build a GmosNorth sequence with a single step and default subsystems. Replaces the
    * old `sequence(obsId)` helper.
    */
   def loadDefaultSequence(
@@ -492,12 +495,12 @@ object TestCommon {
     loadSequence(id, stepGen.some, EngineState.instrumentLoaded(Instrument.GmosNorth))
 
   /**
-   * Convenience: build a GmosNorth sequence with a single step and configurable resources.
+   * Convenience: build a GmosNorth sequence with a single step and configurable subsystems.
    */
-  def loadSequenceWithResources(
-    id:        Observation.Id,
-    resources: Set[Subsystem],
-    lens:      monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
+  def loadSequenceWithSubsystems(
+    id:         Observation.Id,
+    subsystems: Set[Subsystem],
+    lens:       monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
-    loadSequence(id, stepGenWithResources(1, resources).some, lens)
+    loadSequence(id, stepGenWithSubsystems(1, subsystems).some, lens)
 }

@@ -20,7 +20,7 @@ import lucuma.ui.sequence.SequenceIcons
 import observe.model.SequenceStatus
 import observe.model.Subsystem
 import observe.model.SubsystemEnabled
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.enums.*
 import observe.model.given
 import observe.ui.Icons
@@ -38,16 +38,16 @@ import scala.scalajs.js.JSConverters.*
  * Contains the control buttons for each subsystem
  */
 case class SubsystemControls(
-  obsId:             Observation.Id,
-  stepId:            Step.Id,
-  subsystems:        List[Subsystem],
-  subsystemStatus:   Map[Subsystem, ActionStatus],
-  subsystemRequests: Map[Subsystem, OperationRequest],
-  sequenceStatus:    SequenceStatus,
-  systemOverrides:   SystemOverrides,
-  clientMode:        ClientMode,
-  isLoadedStep:      Boolean,
-  forceDisabled:     Boolean = false
+  obsId:              Observation.Id,
+  stepId:             Step.Id,
+  subsystems:         List[Subsystem],
+  subsystemStatus:    Map[Subsystem, ActionStatus],
+  subsystemRequests:  Map[Subsystem, OperationRequest],
+  sequenceStatus:     SequenceStatus,
+  subsystemOverrides: SubsystemOverrides,
+  clientMode:         ClientMode,
+  isLoadedStep:       Boolean,
+  forceDisabled:      Boolean = false
 ) extends ReactFnProps(SubsystemControls):
   private val canOperate: Boolean =
     clientMode.canOperate && sequenceStatus.isIdle && !forceDisabled
@@ -59,12 +59,12 @@ case class SubsystemControls(
 
   private def isSubsystemEnabled(subsystem: Subsystem): SubsystemEnabled =
     subsystem match
-      case Resource.TCS  => systemOverrides.isTcsEnabled
-      case Resource.Gcal => systemOverrides.isGcalEnabled
-      case _: Instrument => systemOverrides.isInstrumentEnabled
-      case _             => SubsystemEnabled.Enabled
+      case ObservatorySubsystem.Tcs  => subsystemOverrides.isTcsEnabled
+      case ObservatorySubsystem.Gcal => subsystemOverrides.isGcalEnabled
+      case _: Instrument             => subsystemOverrides.isInstrumentEnabled
+      case _                         => SubsystemEnabled.Enabled
 
-  // We want blue if the resource operation is idle or does not exist: these are equivalent cases.
+  // We want blue if the subsystem operation is idle or does not exist: these are equivalent cases.
   // If we are running, we want a circular spinning icon.
   // If we are completed, we want a checkmark.
   // Otherwise, no icon.
@@ -91,14 +91,14 @@ case class SubsystemControls(
 
 object SubsystemControls
     extends ReactFnComponent[SubsystemControls](props =>
-      // def requestResourceCall(
+      // def requestSubsystemCall(
       //   id:       Observation.Id,
       //   stepId:   Step.Id,
-      //   resource: Resource
+      //   subsystem: Subsystem
       // ): (ReactMouseEvent, Button.ButtonProps) => Callback =
       //   (e: ReactMouseEvent, _: Button.ButtonProps) =>
       //     (e.preventDefaultCB >> e.stopPropagationCB >>
-      //       ObserveCircuit.dispatchCB(RequestResourceRun(id, stepId, resource)))
+      //       ObserveCircuit.dispatchCB(RequestSubsystemRun(id, stepId, subsystem)))
       //       .unless_(e.altKey || e.button === StepsTable.MiddleButton)
 
       for

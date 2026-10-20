@@ -23,8 +23,8 @@ import observe.model.CurrentConditions
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.QueueId
-import observe.model.SystemOverrides
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.model.SubsystemOverrides
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.engine.Event
 import observe.server.engine.Result
 import observe.server.engine.Result.PauseContext
@@ -69,7 +69,7 @@ type EventQueue[F[_]] = Queue[F, Event[F]]
 
 def generateStep[F[_]](
   step:        StepGen[F],
-  overrides:   SystemOverrides,
+  overrides:   SubsystemOverrides,
   headerExtra: HeaderExtraData
 ): (engine.EngineStep[F], Breakpoint) =
   StepGen.generate(step, overrides, headerExtra)
@@ -89,8 +89,8 @@ def catchObsErrors[F[_]](t: Throwable)(using L: Logger[F]): Stream[F, Result] = 
       Stream.emit(Result.Error(ObserveFailure.explain(ObserveFailure.ObserveException(e))))
 }
 
-def overrideLogMessage[F[_]: Logger](systemName: String, op: String): F[Unit] =
-  Logger[F].info(s"System $systemName overridden. Operation $op skipped.")
+def overrideLogMessage[F[_]: Logger](subsystemName: String, op: String): F[Unit] =
+  Logger[F].info(s"Subsystem $subsystemName overridden. Operation $op skipped.")
 
 opaque type Length = Quantity[Long, Micrometer]
 

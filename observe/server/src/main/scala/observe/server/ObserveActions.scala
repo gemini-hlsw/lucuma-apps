@@ -14,7 +14,7 @@ import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation
 import observe.model.dhs.*
 import observe.model.enums.ObserveCommandResult
-import observe.server.InstrumentSystem.*
+import observe.server.InstrumentHandler.*
 import observe.server.engine.*
 import org.typelevel.log4cats.Logger
 
@@ -92,14 +92,14 @@ trait ObserveActions {
   def notifyObserveStart[F[_]: Applicative](
     env: ObserveEnvironment[F]
   ): F[Unit] =
-    env.otherSys.traverse_(_.notifyObserveStart)
+    env.otherSubsystems.traverse_(_.notifyObserveStart)
 
   /**
    * Tell each subsystem that an observe will end Unlike observe start we also tell the instrumetn
    * about it
    */
   def notifyObserveEnd[F[_]: Applicative](env: ObserveEnvironment[F]): F[Unit] =
-    (env.inst +: env.otherSys).traverse_(_.notifyObserveEnd)
+    (env.inst +: env.otherSubsystems).traverse_(_.notifyObserveEnd)
 
   /**
    * Close the image, telling either DHS or GDS as it correspond
@@ -125,12 +125,12 @@ trait ObserveActions {
              .traverse(_.sendBefore(obsEnv.obsId, fileId, d.reference, obsEnv.environment))
       _ <-
         info(
-          s"Start ${obsEnv.inst.resource.longName} observation ${obsEnv.obsId} with label $fileId"
+          s"Start ${obsEnv.inst.subsystem.longName} observation ${obsEnv.obsId} with label $fileId"
         )
       r <- obsEnv.inst.observe(fileId)
       _ <-
         info(
-          s"Completed ${obsEnv.inst.resource.longName} observation ${obsEnv.obsId} with label $fileId"
+          s"Completed ${obsEnv.inst.subsystem.longName} observation ${obsEnv.obsId} with label $fileId"
         )
     } yield r
 

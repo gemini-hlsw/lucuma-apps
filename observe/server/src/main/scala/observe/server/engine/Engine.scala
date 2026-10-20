@@ -24,7 +24,7 @@ import org.typelevel.otel4s.trace.SpanContext
 import org.typelevel.otel4s.trace.Tracer
 
 import EventResult.Outcome
-import EventResult.SystemUpdate
+import EventResult.EngineUpdate
 import EventResult.UserCommandResponse
 import Result.PartialVal
 import Result.RetVal
@@ -503,81 +503,81 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
       EngineHandle.pure(UserCommandResponse(ue, Outcome.Ok, v.some))
   }
 
-  private def handleSystemEvent(
-    se: SystemEvent
+  private def handleEngineEvent(
+    ee: EngineEvent
   )(using Concurrent[F]): EngineHandle[F, EventResult] =
-    import SystemEvent.*
-    se match {
+    import EngineEvent.*
+    ee match {
       case Completed(obsId, _, i, r)     =>
         debug(s"Engine: From sequence $obsId: Action completed ($r)") *>
           complete(obsId, i, r) *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case StopCompleted(obsId, _, i, r) =>
         debug(s"Engine: From sequence $obsId: Action completed with stop ($r)") *>
           stopComplete(obsId, i, r) *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case Aborted(obsId, _, i, r)       =>
         debug(s"Engine: From sequence $obsId: Action completed with abort ($r)") *>
           abort(obsId, i, r) *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case PartialResult(obsId, _, i, r) =>
         debug(s"Engine: From sequence $obsId: Partial result ($r)") *>
           partialResult(obsId, i, r) *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case Paused(obsId, _, i, r)        =>
         debug("Engine: Action paused") *>
-          actionPause(obsId, i, r) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          actionPause(obsId, i, r) *> EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case Failed(obsId, _, i, e)        =>
         logError(e) *> fail(obsId)(i, e) *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case LoadFailed(obsId, i, e)       =>
         logError(e) *> fail(obsId)(i, e) *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case Busy(obsId, _)                =>
         warning(
           s"Cannot run sequence $obsId " +
             s"because " +
-            s"required systems are in use."
-        ) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+            s"required subsystems are in use."
+        ) *> EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case BreakpointReached(obsId)      =>
         debug(s"Engine: Breakpoint reached in observation [$obsId]") *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case Executed(obsId)               =>
         debug(s"Engine: Execution $obsId completed") *>
-          nextExecution(obsId) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          nextExecution(obsId) *> EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case Executing(obsId)              =>
         debug("Engine: Executing") *>
-          executeLoadedStep(obsId) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          executeLoadedStep(obsId) *> EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case StepComplete(obsId)           =>
         debug(s"Engine: Step completed for observation [$obsId]") *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case SequenceHeld(obsId)           =>
         debug(s"Engine: Sequence held for observation [$obsId]") *>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case SequenceComplete(obsId)       =>
         debug("Engine: Finished") *>
           setObsStatus(obsId)(SequenceStatus.Completed) >>
-          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case SingleRunCompleted(c, r)      =>
         debug(s"Engine: single action $c completed with result $r") *>
-          completeSingleRun(c, r.response) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          completeSingleRun(c, r.response) *> EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
       case SingleRunFailed(c, e)         =>
         debug(s"Engine: single action $c failed with error $e") *>
-          failSingleRun(c, e) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
-      case Null                          => EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          failSingleRun(c, e) *> EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
+      case Null                          => EngineHandle.pure(EngineUpdate(ee, Outcome.Ok))
     }
 
   /**
    * Main logical thread to handle events and produce output.
    */
   private def run(
-    onSystemEvent: PartialFunction[SystemEvent, EngineHandle[F, Unit]]
+    onEngineEvent: PartialFunction[EngineEvent, EngineHandle[F, Unit]]
   )(ev: Event[F])(using Concurrent[F]): EngineHandle[F, EventResult] =
     ev match
       case Event.EventUser(ue)   => handleUserEvent(ue)
-      case Event.EventSystem(se) =>
-        handleSystemEvent(se).flatMap: (r: EventResult) =>
-          onSystemEvent.applyOrElse(se, (_: SystemEvent) => EngineHandle.unit).as(r)
+      case Event.EventEngine(ee) =>
+        handleEngineEvent(ee).flatMap: (r: EventResult) =>
+          onEngineEvent.applyOrElse(ee, (_: EngineEvent) => EngineHandle.unit).as(r)
 
   private def spanForEvent[A](ev: Event[F])(fa: F[A]): F[A] =
     ev match
@@ -619,21 +619,21 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         .map(_._2)
 
   private def runE(
-    onSystemEvent: PartialFunction[SystemEvent, EngineHandle[F, Unit]]
+    onEngineEvent: PartialFunction[EngineEvent, EngineHandle[F, Unit]]
   )(ev: Event[F], s: EngineState[F])(using
     ci:            Concurrent[F]
   ): F[(EngineState[F], (EventResult, EngineState[F]), Stream[F, Event[F]])] =
-    run(onSystemEvent)(ev).stateT.run(s).map { case (si, (r, p)) =>
+    run(onEngineEvent)(ev).stateT.run(s).map { case (si, (r, p)) =>
       (si, (r, si), p)
     }
 
   // Only used for testing.
   def process(
-    onSystemEvent: PartialFunction[SystemEvent, EngineHandle[F, Unit]]
+    onEngineEvent: PartialFunction[EngineEvent, EngineHandle[F, Unit]]
   )(s0: EngineState[F])(using
     ev:            Concurrent[F]
   ): Stream[F, (EventResult, EngineState[F])] =
-    mapEvalState(s0, runE(onSystemEvent)(_, _))
+    mapEvalState(s0, runE(onEngineEvent)(_, _))
 
   def offer(in: Event[F]): F[Unit] =
     T.currentSpanContext.flatMap(ctx => inputQueue.offer(TracedEvent(ctx, in)))

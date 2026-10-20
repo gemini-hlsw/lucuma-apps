@@ -13,7 +13,7 @@ import observe.common.test.stepId
 import observe.model.ActionType
 import observe.model.SequenceStatus
 import observe.model.dhs.DataId
-import observe.model.enums.Resource
+import observe.model.enums.ObservatorySubsystem
 import observe.server.StepGen
 import observe.server.engine.Action.ActionState
 
@@ -25,7 +25,7 @@ val DummyStepGen = StepGen.GmosNorth[IO](
   sequenceType = null,
   id = null,
   dataId = DataId(""),
-  resources = Set(Resource.TCS, Resource.Gcal, Instrument.GmosNorth),
+  subsystems = Set(ObservatorySubsystem.Tcs, ObservatorySubsystem.Gcal, Instrument.GmosNorth),
   obsControl = null,
   generator = null,
   instConfig = null,

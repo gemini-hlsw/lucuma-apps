@@ -23,7 +23,7 @@ import observe.model.enums.Guiding
 import observe.model.enums.NodAndShuffleStage
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
-import observe.server.InstrumentSystem.ElapsedTime
+import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.gmos.GmosController.Config.DCConfig
 import observe.server.gmos.GmosController.Config.NsConfig
 

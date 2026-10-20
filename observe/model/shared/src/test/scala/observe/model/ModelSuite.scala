@@ -28,10 +28,9 @@ import org.scalacheck.Test as ScalaCheckTest
 class ModelSuite extends munit.DisciplineSuite:
   override def scalaCheckTestParameters = ScalaCheckTest.Parameters.default.withMaxSize(10)
 
-  checkAll("Eq[SystemName]", EqTests[SystemName].eqv)
-  checkAll("Order[Resource]", OrderTests[Resource].order)
-  checkAll("Eq[Resource]", EqTests[Resource].eqv)
-  checkAll("Eq[List]", EqTests[List[(Resource, ActionStatus)]].eqv)
+  checkAll("Order[ObservatorySubsystem]", OrderTests[ObservatorySubsystem].order)
+  checkAll("Eq[ObservatorySubsystem]", EqTests[ObservatorySubsystem].eqv)
+  checkAll("Eq[List]", EqTests[List[(ObservatorySubsystem, ActionStatus)]].eqv)
   checkAll("Eq[Operator]", EqTests[Operator].eqv)
   checkAll("Eq[StepState]", EqTests[StepState].eqv)
   checkAll("Eq[ActionStatus]", EqTests[ActionStatus].eqv)

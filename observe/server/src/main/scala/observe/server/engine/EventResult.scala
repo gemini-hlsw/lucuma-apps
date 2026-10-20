@@ -19,4 +19,4 @@ object EventResult:
     ud:        Option[SeqEvent]
   ) extends EventResult
 
-  case class SystemUpdate[F[_]](se: SystemEvent, outcome: Outcome) extends EventResult
+  case class EngineUpdate[F[_]](ee: EngineEvent, outcome: Outcome) extends EventResult

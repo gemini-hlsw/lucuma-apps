@@ -108,7 +108,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
-  test("execute sequence step/resource"):
+  test("execute sequence step/subsystem"):
     val r = for
       engine <- TestObserveEngine.build[IO]
       s      <- commandRoutes(engine)
@@ -117,7 +117,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
                   Request[IO](
                     method = Method.POST,
                     uri = Uri.unsafeFromString(
-                      s"/${obsId.show}/${stepId.show}/${clientId.value}/execute/TCS/observer"
+                      s"/${obsId.show}/${stepId.show}/${clientId.value}/execute/Tcs/observer"
                     )
                   )
                 ).value

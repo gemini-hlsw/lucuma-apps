@@ -16,7 +16,7 @@ import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import observe.model.Subsystem
-import observe.model.SystemOverrides
+import observe.model.SubsystemOverrides
 import observe.model.dhs.DataId
 import observe.server.engine.EngineStep
 
@@ -26,8 +26,8 @@ sealed trait StepGen[F[_]]:
   def sequenceType: SequenceType
   def id: Step.Id
   def dataId: DataId
-  def resources: Set[Subsystem]
-  def obsControl: SystemOverrides => InstrumentSystem.ObserveControl[F]
+  def subsystems: Set[Subsystem]
+  def obsControl: SubsystemOverrides => InstrumentHandler.ObserveControl[F]
   def generator: StepActionsGen[F]
   def instConfig: D
   def config: StepConfig
@@ -36,7 +36,7 @@ sealed trait StepGen[F[_]]:
   def statusGen: StepStatusGen = StepStatusGen.Null
 
   def isSameAs(other: StepGen[F]): Boolean =
-    atomId === other.atomId && sequenceType === other.sequenceType && id === other.id && dataId === other.dataId && resources === other.resources &&
+    atomId === other.atomId && sequenceType === other.sequenceType && id === other.id && dataId === other.dataId && subsystems === other.subsystems &&
       config === other.config && telescopeConfig === other.telescopeConfig &&
       ((this, other) match
         case (a: StepGen.GmosNorth[F], b: StepGen.GmosNorth[F])   =>
@@ -60,8 +60,8 @@ object StepGen:
     sequenceType: SequenceType,
     id: Step.Id,
     dataId: DataId,
-    resources: Set[Subsystem],
-    obsControl: SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems: Set[Subsystem],
+    obsControl: SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator: StepActionsGen[F],
     instConfig: D,
     config: StepConfig,
@@ -70,19 +70,19 @@ object StepGen:
   ) => Aux[F, D]
 
   def generate[F[_]](
-    step:            StepGen[F],
-    systemOverrides: SystemOverrides,
-    ctx:             HeaderExtraData
+    step:               StepGen[F],
+    subsystemOverrides: SubsystemOverrides,
+    ctx:                HeaderExtraData
   ): (EngineStep[F], Breakpoint) =
-    (EngineStep[F](step.id, step.generator.generate(ctx, systemOverrides)), step.breakpoint)
+    (EngineStep[F](step.id, step.generator.generate(ctx, subsystemOverrides)), step.breakpoint)
 
   case class GmosNorth[F[_]](
     atomId:          Atom.Id,
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Subsystem],
-    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems:      Set[Subsystem],
+    obsControl:      SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      gmos.DynamicConfig.GmosNorth,
     config:          StepConfig,
@@ -96,8 +96,8 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Subsystem],
-    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems:      Set[Subsystem],
+    obsControl:      SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      gmos.DynamicConfig.GmosSouth,
     config:          StepConfig,
@@ -111,8 +111,8 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Subsystem],
-    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems:      Set[Subsystem],
+    obsControl:      SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      Flamingos2DynamicConfig,
     config:          StepConfig,
@@ -126,8 +126,8 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Subsystem],
-    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems:      Set[Subsystem],
+    obsControl:      SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      Igrins2DynamicConfig,
     config:          StepConfig,
@@ -141,8 +141,8 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Subsystem],
-    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems:      Set[Subsystem],
+    obsControl:      SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      GnirsDynamicConfig,
     config:          StepConfig,
@@ -156,8 +156,8 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Subsystem],
-    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    subsystems:      Set[Subsystem],
+    obsControl:      SubsystemOverrides => InstrumentHandler.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      GhostDynamicConfig,
     config:          StepConfig,
