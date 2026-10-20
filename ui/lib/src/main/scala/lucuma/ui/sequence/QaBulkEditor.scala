@@ -14,11 +14,6 @@ import lucuma.react.primereact.hooks.all.*
 import lucuma.schemas.model.Dataset
 import lucuma.ui.primereact.*
 
-/**
- * A button opening a panel to set one QA state on every one of `datasets` (see
- * `DatasetQaBulkEdit.targets`). Saving is disabled until a state is picked, since the targets have
- * none to begin with.
- */
 case class QaBulkEditor(
   datasets: NonEmptyList[Dataset],
   inFlight: Boolean,
@@ -41,7 +36,8 @@ object QaBulkEditor
             label = "Set QA",
             loading = props.inFlight,
             tooltip = "Set the QA state of the datasets that have none yet",
-            onClickE = e => e.stopPropagationCB >> panelRef.toggle(e)
+            // preventDefault rather than stopPropagation: see the header cell in SequenceColumns.
+            onClickE = e => e.preventDefaultCB >> panelRef.toggle(e)
           ).mini.veryCompact,
           OverlayPanel(onHide = reset)(
             QaFieldsForm(

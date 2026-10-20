@@ -888,8 +888,10 @@ object SequenceColumns:
               SequenceStyles.TableHeaderNested.when(cell.row.depth > 0),
               TagMod(
                 SequenceStyles.TableHeaderExpandable,
-                ^.onClick ==>
-                  (_.stopPropagationCB >> cell.row.getToggleExpandedHandler()),
+                ^.onClick ==> { e =>
+                  Callback.unless(e.defaultPrevented):
+                    e.stopPropagationCB >> cell.row.getToggleExpandedHandler()
+                },
                 <.span(
                   TableStyles.ExpanderChevron,
                   TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded())
@@ -936,17 +938,17 @@ object SequenceColumns:
       Button(
         icon = SequenceIcons.Plus,
         label = "Acq",
-        onClickE = _.stopPropagationCB >> setRuns(SequenceType.Acquisition.some, true)
+        onClickE = e => e.preventDefaultCB >> setRuns(SequenceType.Acquisition.some, true)
       ).mini.veryCompact,
       Button(
         icon = SequenceIcons.Plus,
         label = "Sci",
-        onClickE = _.stopPropagationCB >> setRuns(SequenceType.Science.some, true)
+        onClickE = e => e.preventDefaultCB >> setRuns(SequenceType.Science.some, true)
       ).mini.veryCompact,
       Button(
         icon = SequenceIcons.Minus,
         label = "All",
         disabled = allRunsCollapsed,
-        onClickE = _.stopPropagationCB >> setRuns(none, false)
+        onClickE = e => e.preventDefaultCB >> setRuns(none, false)
       ).mini.veryCompact
     ).when(runs.nonEmpty)

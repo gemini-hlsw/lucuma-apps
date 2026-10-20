@@ -10,10 +10,6 @@ import lucuma.schemas.model.enums.StepExecutionState
 
 import scala.collection.immutable.HashSet
 
-/**
- * What a table provides to set one QA state on many datasets at once, shown as a button on the
- * visit and run headers. `onChange` receives the targeted dataset ids and the fields to set.
- */
 case class DatasetQaBulkEdit(
   datasetIdsInFlight: HashSet[Dataset.Id],
   onChange:           NonEmptyList[Dataset.Id] => EditableQaFields => Callback

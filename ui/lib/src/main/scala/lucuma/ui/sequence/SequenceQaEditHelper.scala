@@ -153,8 +153,6 @@ trait SequenceQaEditHelper:
 
   /**
    * Sets `qaFields` on the datasets among `datasetIds` that have no QA state yet, in one mutation.
-   * An empty comment leaves the existing ones alone. The local visits are patched from what the
-   * server reports as changed.
    */
   protected def onDatasetsQaChange(
     visits:             View[Option[ExecutionVisits]],

@@ -20,10 +20,6 @@ import lucuma.ui.sequence.given
 import lucuma.ui.syntax.render.*
 import org.scalajs.dom.KeyCode
 
-/**
- * The QA state and comment form shared by the dataset and bulk QA editors. `submit` is also
- * triggered by the Enter key, so both it and `cancel` should hide the panel showing the form.
- */
 case class QaFieldsForm(
   qaFields:       View[EditableQaFields],
   submit:         Callback,
