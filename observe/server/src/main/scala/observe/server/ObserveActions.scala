@@ -60,7 +60,10 @@ trait ObserveActions {
   /**
    * Send the datasetEndWrite command to the odb. Instruments block on the observe command until the
    * exposure, readout and write are all complete, so this is the only dataset stage whose time can
-   * be measured here.
+   * be measured here. It is sent from okTail after the trailing keywords are sent and the image is
+   * closed, so the timestamp marks the end of the DHS write, which is intended. The other dataset
+   * stage commands in OdbCommands have no caller for now; they are kept for instruments that can
+   * report end of exposure or readout from their own status channels.
    */
   private def sendDataEnd[F[_]: MonadThrow](
     odb:    OdbProxy[F],
