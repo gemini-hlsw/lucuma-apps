@@ -3,6 +3,7 @@
 
 package lucuma.ui.sequence
 
+import cats.Applicative
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
@@ -29,7 +30,6 @@ import lucuma.schemas.odb.VisitQueriesGQL.UpdateDatasetsQa
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
-import monocle.Optional
 import monocle.Traversal
 import org.typelevel.log4cats.Logger
 
@@ -110,30 +110,37 @@ trait SequenceQaEditHelper:
       .each
       .andThen(StepRecord.Gnirs.datasets)
 
-  // This is only lawful if the traverse returns 0 or 1 instances of A.
-  private def unsafeHeadOption[T, A](traversal: Traversal[T, A]): Optional[T, A] =
-    Optional[T, A](traversal.getAll(_).headOption)(traversal.replace)
-
-  private def instrumentDatasetWithId(traversal: Traversal[ExecutionVisits, List[Dataset]])(
-    datasetId: Dataset.Id
-  ): Optional[ExecutionVisits, Dataset] =
-    unsafeHeadOption(traversal.each.filter(dataset => dataset.id === datasetId))
-
-  private def datasetWithId(datasetId: Dataset.Id): Traversal[ExecutionVisits, Dataset] =
-    Traversal.applyN(
-      instrumentDatasetWithId(gmosNorthDatasets)(datasetId),
-      instrumentDatasetWithId(gmosSouthDatasets)(datasetId),
-      instrumentDatasetWithId(flamingos2Datasets)(datasetId),
-      instrumentDatasetWithId(igrins2Datasets)(datasetId),
-      instrumentDatasetWithId(ghostDatasets)(datasetId),
-      instrumentDatasetWithId(gnirsDatasets)(datasetId)
-    )
+  // Every dataset of the visits, whichever the instrument.
+  private val allDatasets: Traversal[ExecutionVisits, Dataset] =
+    new Traversal[ExecutionVisits, Dataset]:
+      def modifyA[F[_]: Applicative](f: Dataset => F[Dataset])(
+        visits: ExecutionVisits
+      ): F[ExecutionVisits] =
+        val datasets: Traversal[ExecutionVisits, List[Dataset]] = visits match
+          case _: ExecutionVisits.GmosNorth  => gmosNorthDatasets
+          case _: ExecutionVisits.GmosSouth  => gmosSouthDatasets
+          case _: ExecutionVisits.Flamingos2 => flamingos2Datasets
+          case _: ExecutionVisits.Igrins2    => igrins2Datasets
+          case _: ExecutionVisits.Ghost      => ghostDatasets
+          case _: ExecutionVisits.Gnirs      => gnirsDatasets
+        datasets.each.modifyA(f)(visits)
 
   private def datasetQaView(
     visits:    View[ExecutionVisits],
     datasetId: Dataset.Id
   ): ViewList[EditableQaFields] =
-    visits.zoom(datasetWithId(datasetId).andThen(EditableQaFields.fromDataset))
+    visits.zoom:
+      allDatasets.filter(_.id === datasetId).andThen(EditableQaFields.fromDataset)
+
+  // Applies the QA fields the server reports for each dataset, in one pass over the visits.
+  private def patchDatasets(updated: List[UpdateDatasetsQa.Data.UpdateDatasets.Datasets])(
+    visits: ExecutionVisits
+  ): ExecutionVisits =
+    val fieldsById: Map[Dataset.Id, EditableQaFields] =
+      updated.map(d => d.id -> EditableQaFields(d.qaState, d.comment)).toMap
+    allDatasets.modify(dataset =>
+      fieldsById.get(dataset.id).fold(dataset)(EditableQaFields.fromDataset.replace(_)(dataset))
+    )(visits)
 
   private def updateDatasetsQa(
     datasetIds: NonEmptyList[Dataset.Id],
@@ -170,11 +177,7 @@ trait SequenceQaEditHelper:
           datasetIdsInFlight.mod(_ ++ ids) >>
             updateDatasetsQa(datasetIds, qaState, qaFields.comment)
               .flatMap: updated =>
-                (updated.traverse_ { dataset =>
-                  datasetQaView(visits, dataset.id).set(
-                    EditableQaFields(dataset.qaState, dataset.comment)
-                  )
-                } >> datasetIdsInFlight.mod(_ -- ids)).to[IO]
+                (visits.mod(patchDatasets(updated)) >> datasetIdsInFlight.mod(_ -- ids)).to[IO]
               .handleErrorWith: e =>
                 datasetIdsInFlight.async.mod(_ -- ids) >>
                   ToastCtx[IO].showToast(

@@ -18,6 +18,7 @@ import lucuma.react.primereact.SelectItem
 import lucuma.ui.primereact.*
 import lucuma.ui.sequence.given
 import lucuma.ui.syntax.render.*
+import org.scalajs.dom
 import org.scalajs.dom.KeyCode
 
 case class QaFieldsForm(
@@ -34,10 +35,13 @@ object QaFieldsForm
 
       <.form(SequenceStyles.QaEditorPanel)(
         ^.onSubmit ==> (e => e.preventDefaultCB >> submit),
-        ^.onKeyDown ==> { e =>
-          e.keyCode match // Enter submits even from the status buttons. preventDefault keeps the
-            case KeyCode.Enter => e.preventDefaultCB >> submit // comment input from submitting too.
-            case _             => Callback.empty
+        // Enter submits from the status strip or the comment input (preventDefault keeps the input
+        // from submitting again). A focused button keeps its own Enter, so Cancel cancels.
+        ^.onKeyDown ==> { (e: ReactKeyboardEventFromHtml) =>
+          e.keyCode match
+            case KeyCode.Enter if !e.target.isInstanceOf[dom.HTMLButtonElement] =>
+              e.preventDefaultCB >> submit
+            case _                                                              => Callback.empty
         },
         ^.onClick ==> (_.stopPropagationCB)
       )(

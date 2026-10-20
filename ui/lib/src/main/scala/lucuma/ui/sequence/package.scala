@@ -59,7 +59,7 @@ object SequenceRowHeight:
 case class SequenceHeaderContext[D](
   editContexts:      SequenceEditContexts[D],
   visitRunButtons:   TagMod,
-  datasetQaBulkEdit: Option[DatasetQaBulkEdit] = None
+  datasetQaBulkEdit: Option[DatasetQaBulkEdit]
 )
 
 /**

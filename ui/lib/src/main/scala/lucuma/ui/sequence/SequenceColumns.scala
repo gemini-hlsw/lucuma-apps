@@ -56,6 +56,7 @@ import lucuma.ui.syntax.all.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 import monocle.Prism
+import org.scalajs.dom
 
 import SequenceRowFormatters.*
 
@@ -888,8 +889,12 @@ object SequenceColumns:
               SequenceStyles.TableHeaderNested.when(cell.row.depth > 0),
               TagMod(
                 SequenceStyles.TableHeaderExpandable,
-                ^.onClick ==> { e =>
-                  Callback.unless(e.defaultPrevented):
+                // Ignores clicks from header buttons (marked with preventDefault so they still
+                // reach the window and dismiss overlay panels) and from a panel's portal.
+                ^.onClick ==> { (e: ReactMouseEventFromHtml) =>
+                  val isOwnClick: Boolean =
+                    !e.defaultPrevented && e.currentTarget.contains(e.target.asInstanceOf[dom.Node])
+                  Callback.when(isOwnClick):
                     e.stopPropagationCB >> cell.row.getToggleExpandedHandler()
                 },
                 <.span(
