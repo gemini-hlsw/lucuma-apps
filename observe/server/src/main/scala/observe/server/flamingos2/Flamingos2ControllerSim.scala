@@ -41,7 +41,8 @@ object Flamingos2ControllerSim {
 }
 
 /**
- * This controller will run correctly but fail at step `failAt`
+ * This controller runs correctly except for configuration call number `failAt`, which fails once.
+ * Later calls, such as a retry of the failed step, succeed: a transient failure.
  */
 final case class Flamingos2ControllerSimBad[F[_]: {MonadThrow, Logger}] private (
   failAt:  Int,
@@ -57,8 +58,7 @@ final case class Flamingos2ControllerSimBad[F[_]: {MonadThrow, Logger}] private 
     L.info(s"Simulate applying Flamingos-2 configuration $config") *>
       (counter.modify(x => (x + 1, x + 1)) >>= { c =>
         {
-          counter.set(0) *>
-            L.error(s"Error applying Flamingos-2 configuration") *>
+          L.error(s"Error applying Flamingos-2 configuration") *>
             MonadError[F, Throwable].raiseError(Execution("simulated error"))
         }.whenA(c === failAt)
       }) <*
