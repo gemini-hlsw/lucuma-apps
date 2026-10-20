@@ -57,6 +57,10 @@ case class SequenceApiImpl(
       stepIds
     )
 
+  private def overrideQuery(runOverride: RunOverride): Query =
+    if (runOverride === RunOverride.Override) Query.fromPairs("overrideTargetCheck" -> "true")
+    else Query.empty
+
   override def startSequence(
     obsId:       Observation.Id,
     runOverride: RunOverride = RunOverride.Default
@@ -64,8 +68,7 @@ case class SequenceApiImpl(
     setInFlight(obsId, ObservationRequests.startSequence) >>
       client.postNoData(
         Uri.Path.empty / obsId.toString / client.clientId.value / "startSequence" / observer.toString,
-        if (runOverride === RunOverride.Override) Query.fromPairs("overrideTargetCheck" -> "true")
-        else Query.empty
+        overrideQuery(runOverride)
       )
 
   override def startSequenceFrom(
@@ -76,8 +79,7 @@ case class SequenceApiImpl(
     setInFlight(obsId, ObservationRequests.startSequenceFrom) >>
       client.postNoData(
         Uri.Path.empty / obsId.toString / stepId.toString / client.clientId.value / "startSequenceFrom" / observer.toString,
-        if (runOverride === RunOverride.Override) Query.fromPairs("overrideTargetCheck" -> "true")
-        else Query.empty
+        overrideQuery(runOverride)
       )
 
   override def requestSequenceHold(obsId: Observation.Id): IO[Unit] =
@@ -169,7 +171,13 @@ case class SequenceApiImpl(
         Uri.Path.empty / obsId.toString / stepId.toString / client.clientId.value / "execute" /
           Enumerated[Subsystem].tag(subsystem) / observer.toString
 
-  override def proceedAfterPrompt(obsId: Observation.Id, sequenceType: SequenceType): IO[Unit] =
+  override def proceedAfterPrompt(
+    obsId:        Observation.Id,
+    sequenceType: SequenceType,
+    runOverride:  RunOverride = RunOverride.Default
+  ): IO[Unit] =
     setInFlight(obsId, ObservationRequests.acquisitionPrompt) >>
-      client.postNoData:
-        Uri.Path.empty / obsId.toString / client.clientId.value / "proceedAfterPrompt" / observer.toString / sequenceType.tag
+      client.postNoData(
+        Uri.Path.empty / obsId.toString / client.clientId.value / "proceedAfterPrompt" / observer.toString / sequenceType.tag,
+        overrideQuery(runOverride)
+      )

@@ -113,14 +113,15 @@ trait TestCommon extends munit.CatsEffectSuite {
     yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
 
   def observeEngineWithODB(
-    odb:     OdbProxy[IO],
-    systems: IO[Systems[IO]] = defaultSystems
+    odb:      OdbProxy[IO],
+    systems:  IO[Systems[IO]] = defaultSystems,
+    settings: ObserveEngineConfiguration = defaultSettings
   ): IO[ObserveEngine[IO]] =
     systems.flatMap(sys =>
       ObserveEngine.build(
         Site.GN,
         sys.copy(odb = odb),
-        defaultSettings,
+        settings,
         ExecutionEnvironment.Development
       )
     )
@@ -349,7 +350,14 @@ object TestCommon {
     CoreTelescopeConfig(Offset.Zero, StepGuideState.Enabled)
 
   val defaultTargetEnvironment: TargetEnvironment =
-    TargetEnvironment(List.empty, None, None, GuideEnvironment(List.empty))
+    TargetEnvironment(
+      asterism = List.empty,
+      firstScienceTarget = None,
+      useBlindOffset = false,
+      blindOffsetTarget = None,
+      basePosition = None,
+      guideEnvironment = GuideEnvironment(List.empty)
+    )
 
   def odbObservation(id: Observation.Id): ODBObservation =
     ODBObservation(

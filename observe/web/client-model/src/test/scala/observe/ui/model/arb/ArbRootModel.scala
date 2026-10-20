@@ -29,10 +29,12 @@ import observe.model.LogMessage
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.StepProgress
+import observe.model.UserPrompt
 import observe.model.arb.ArbExecutionState.given
 import observe.model.arb.ArbLogMessage.given
 import observe.model.arb.ArbObsRecordedIds.given
 import observe.model.arb.ArbStepProgress.given
+import observe.model.arb.ArbUserPrompt.given
 import observe.model.arb.ObserveModelArbitraries.given
 import observe.model.enums.ObserveLogLevel
 import observe.model.odb.ObsRecordedIds
@@ -96,6 +98,7 @@ trait ArbRootModel:
       usm <- arbitrary[Option[NonEmptyString]]
       log <- arbitrary[FixedLengthBuffer[LogMessage]]
       up  <- arbitrary[UserPreferences]
+      cop <- arbitrary[List[UserPrompt.ChecksOverride]]
     yield RootModelData(
       uv,
       ros,
@@ -111,7 +114,8 @@ trait ArbRootModel:
       op,
       usm,
       log,
-      up
+      up,
+      cop
     )
 
   given Cogen[RootModelData] = Cogen[
@@ -130,7 +134,8 @@ trait ArbRootModel:
       Option[Operator],
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
-      UserPreferences
+      UserPreferences,
+      List[UserPrompt.ChecksOverride]
     )
   ].contramap: x =>
     (x.userVault,
@@ -147,7 +152,8 @@ trait ArbRootModel:
      x.operator,
      x.userSelectionMessage,
      x.globalLog,
-     x.userPreferences
+     x.userPreferences,
+     x.checksOverridePrompts
     )
 
 object ArbRootModel extends ArbRootModel

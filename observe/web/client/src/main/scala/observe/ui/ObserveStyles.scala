@@ -125,6 +125,8 @@ object ObserveStyles:
 
   val SyncingPanel: Css = Css("observe-syncing-panel")
 
+  val ChecksOverrideDialog: Css = Css("observe-checks-override-dialog")
+
   val ObsHeader: Css            = Css("observe-obs-header")
   val ObsSummary: Css           = Css("observe-obs-summary")
   val ObsSummaryTitle: Css      = Css("observe-obs-summary-title")

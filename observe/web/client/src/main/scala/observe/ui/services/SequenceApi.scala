@@ -99,7 +99,8 @@ trait SequenceApi[F[_]: MonadThrow]:
   /** Loads next atom of specified sequence type and resumes execution */
   def proceedAfterPrompt(
     @unused obsId:        Observation.Id,
-    @unused sequenceType: SequenceType
+    @unused sequenceType: SequenceType,
+    @unused runOverride:  RunOverride = RunOverride.Default
   ): F[Unit] =
     NotAuthorized
 

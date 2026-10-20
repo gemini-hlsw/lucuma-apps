@@ -111,9 +111,16 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.cancelSequenceHoldRequest(obsId, obs, user) *> NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "proceedAfterPrompt" /
-        ObserverVar(obs) / SequenceTypeVar(seqType) =>
+        ObserverVar(obs) / SequenceTypeVar(seqType) :? OptionalRunOverride(runOverride) =>
       ssoClient.require(req): user =>
-        oe.proceedAfterPrompt(obsId, user, obs, seqType) *>
+        oe.proceedAfterPrompt(
+          obsId,
+          user,
+          obs,
+          seqType,
+          clientId,
+          runOverride.getOrElse(RunOverride.Default)
+        ) *>
           NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "skipAcquisition" /

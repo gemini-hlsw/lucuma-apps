@@ -62,10 +62,12 @@ trait ObserveEngine[F[_]] {
   ): F[Unit]
 
   def proceedAfterPrompt(
-    obsId:    Observation.Id,
-    user:     User,
-    observer: Observer,
-    seqType:  SequenceType
+    obsId:       Observation.Id,
+    user:        User,
+    observer:    Observer,
+    seqType:     SequenceType,
+    clientId:    ClientId,
+    runOverride: RunOverride
   ): F[Unit]
 
   /**

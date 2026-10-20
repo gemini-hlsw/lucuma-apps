@@ -208,10 +208,12 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
   ): fs2.Stream[F, (EventResult, EngineState[F])] = Stream.empty
 
   override def proceedAfterPrompt(
-    id:       Observation.Id,
-    user:     User,
-    observer: Observer,
-    atomType: SequenceType
+    id:          Observation.Id,
+    user:        User,
+    observer:    Observer,
+    atomType:    SequenceType,
+    clientId:    ClientId,
+    runOverride: RunOverride
   ): F[Unit] = Applicative[F].unit
 
   override def skipAcquisition(

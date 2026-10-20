@@ -26,25 +26,27 @@ import observe.model.LogMessage
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.StepProgress
+import observe.model.UserPrompt
 import observe.model.odb.ObsRecordedIds
 import observe.ui.model.enums.ClientMode
 
 case class RootModelData(
-  userVault:            Pot[Option[UserVault]],
-  obsList:              Pot[List[ObsSummary]],
-  loadedObservations:   LoadedObservations,
-  executionState:       Map[Observation.Id, ExecutionState], // Execution state on the server
-  recordedIds:          ObsRecordedIds,                      // Map[Observation.Id, RecordedVisit]
-  obsProgress:          Map[Observation.Id, StepProgress],
-  userSelectedRow:      Map[Observation.Id, SelectedRowId],
-  obsRequests:          Map[Observation.Id, ObservationRequests],
-  conditions:           CurrentConditions,
-  guideConfig:          GuideConfig,
-  observer:             Option[Observer],
-  operator:             Option[Operator],
-  userSelectionMessage: Option[NonEmptyString],
-  globalLog:            FixedLengthBuffer[LogMessage],
-  userPreferences:      UserPreferences
+  userVault:             Pot[Option[UserVault]],
+  obsList:               Pot[List[ObsSummary]],
+  loadedObservations:    LoadedObservations,
+  executionState:        Map[Observation.Id, ExecutionState], // Execution state on the server
+  recordedIds:           ObsRecordedIds,                      // Map[Observation.Id, RecordedVisit]
+  obsProgress:           Map[Observation.Id, StepProgress],
+  userSelectedRow:       Map[Observation.Id, SelectedRowId],
+  obsRequests:           Map[Observation.Id, ObservationRequests],
+  conditions:            CurrentConditions,
+  guideConfig:           GuideConfig,
+  observer:              Option[Observer],
+  operator:              Option[Operator],
+  userSelectionMessage:  Option[NonEmptyString],
+  globalLog:             FixedLengthBuffer[LogMessage],
+  userPreferences:       UserPreferences,
+  checksOverridePrompts: List[UserPrompt.ChecksOverride]      // Pending, oldest first
 ) derives Eq:
   // TODO Readonly mode won't depend on user logged or not, but on their permissions.
   // For the moment we are requiring the STAFF role, so all logged users can operate.
@@ -132,44 +134,47 @@ object RootModelData:
       operator = none,
       userSelectionMessage = none,
       globalLog = FixedLengthBuffer.unsafe(MaxGlobalLogEntries),
-      userPreferences = UserPreferences.Default
+      userPreferences = UserPreferences.Default,
+      checksOverridePrompts = List.empty
     )
 
-  val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     =
+  val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                      =
     Focus[RootModelData](_.userVault)
-  val obsList: Lens[RootModelData, Pot[List[ObsSummary]]]                        =
+  val obsList: Lens[RootModelData, Pot[List[ObsSummary]]]                         =
     Focus[RootModelData](_.obsList)
-  val loadedObservations: Lens[RootModelData, LoadedObservations]                =
+  val loadedObservations: Lens[RootModelData, LoadedObservations]                 =
     Focus[RootModelData](_.loadedObservations)
-  val executionState: Lens[RootModelData, Map[Observation.Id, ExecutionState]]   =
+  val executionState: Lens[RootModelData, Map[Observation.Id, ExecutionState]]    =
     Focus[RootModelData](_.executionState)
-  val recordedIds: Lens[RootModelData, ObsRecordedIds]                           =
+  val recordedIds: Lens[RootModelData, ObsRecordedIds]                            =
     Focus[RootModelData](_.recordedIds)
-  val obsProgress: Lens[RootModelData, Map[Observation.Id, StepProgress]]        =
+  val obsProgress: Lens[RootModelData, Map[Observation.Id, StepProgress]]         =
     Focus[RootModelData](_.obsProgress)
-  val userSelectedRow: Lens[RootModelData, Map[Observation.Id, SelectedRowId]]   =
+  val userSelectedRow: Lens[RootModelData, Map[Observation.Id, SelectedRowId]]    =
     Focus[RootModelData](_.userSelectedRow)
-  val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]] =
+  val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]]  =
     Focus[RootModelData](_.obsRequests)
-  val conditions: Lens[RootModelData, CurrentConditions]                         =
+  val conditions: Lens[RootModelData, CurrentConditions]                          =
     Focus[RootModelData](_.conditions)
-  val guideConfig: Lens[RootModelData, GuideConfig]                              =
+  val guideConfig: Lens[RootModelData, GuideConfig]                               =
     Focus[RootModelData](_.guideConfig)
-  val observer: Lens[RootModelData, Option[Observer]]                            =
+  val observer: Lens[RootModelData, Option[Observer]]                             =
     Focus[RootModelData](_.observer)
-  val operator: Lens[RootModelData, Option[Operator]]                            =
+  val operator: Lens[RootModelData, Option[Operator]]                             =
     Focus[RootModelData](_.operator)
-  val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]          =
+  val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]           =
     Focus[RootModelData](_.userSelectionMessage)
-  val globalLog: Lens[RootModelData, FixedLengthBuffer[LogMessage]]              =
+  val globalLog: Lens[RootModelData, FixedLengthBuffer[LogMessage]]               =
     Focus[RootModelData](_.globalLog)
-  val userPreferences: Lens[RootModelData, UserPreferences]                      =
+  val userPreferences: Lens[RootModelData, UserPreferences]                       =
     Focus[RootModelData](_.userPreferences)
-  val isAudioActivated: Lens[RootModelData, IsAudioActivated]                    =
+  val checksOverridePrompts: Lens[RootModelData, List[UserPrompt.ChecksOverride]] =
+    Focus[RootModelData](_.checksOverridePrompts)
+  val isAudioActivated: Lens[RootModelData, IsAudioActivated]                     =
     userPreferences.andThen(UserPreferences.isAudioActivated)
-  val obsListGlobalFilter: Lens[RootModelData, String]                           =
+  val obsListGlobalFilter: Lens[RootModelData, String]                            =
     userPreferences.andThen(UserPreferences.obsListGlobalFilter)
-  val obsListColumnFilters: Lens[RootModelData, ColumnFilters]                   =
+  val obsListColumnFilters: Lens[RootModelData, ColumnFilters]                    =
     userPreferences.andThen(UserPreferences.obsListColumnFilters)
 
 case class RootModel(clientConfig: Pot[ClientConfig], data: View[RootModelData])

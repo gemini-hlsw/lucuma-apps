@@ -468,6 +468,10 @@ object MainApp extends ServerEventHandler:
                 )(_ =>
                   provideApiCtx(
                     ResyncingPopup,
+                    ChecksOverrideDialog(
+                      rootModelData.zoom(RootModelData.checksOverridePrompts),
+                      rootModelData.zoom(RootModelData.loadedObservations)
+                    ),
                     ObservationSyncer(
                       rootModelData.zoom(RootModelData.loadedObservations),
                       rootModelData.get.readyObservationsMap
