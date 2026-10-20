@@ -28,7 +28,9 @@ trait ObserveActions {
   private def info[F[_]: Logger](msg: => String): F[Unit] = Logger[F].info(msg)
 
   /**
-   * Actions to perform when an observe is aborted
+   * Actions to perform when an observe is aborted. No dataset end event is sent on purpose: an
+   * aborted exposure writes no file, and the ODB already reports a dataset with a start but no end
+   * as not written. The dataset only needs to be forgotten locally.
    */
   def abortTail[F[_]: MonadThrow](
     odb:         OdbProxy[F],
@@ -36,12 +38,13 @@ trait ObserveActions {
     stepId:      Step.Id,
     imageFileId: ImageFileId
   ): F[Result] =
-    odb
-      .stepAbort(obsId, stepId)
-      .ensure(
-        ObserveFailure.Unexpected("Unable to send ObservationAborted message to ODB.")
-      )(identity)
-      .as(Result.OKAborted(Response.Aborted(imageFileId)))
+    odb.datasetAbort(obsId, imageFileId) *>
+      odb
+        .stepAbort(obsId, stepId)
+        .ensure(
+          ObserveFailure.Unexpected("Unable to send ObservationAborted message to ODB.")
+        )(identity)
+        .as(Result.OKAborted(Response.Aborted(imageFileId)))
 
   /**
    * Send the datasetStart command to the odb

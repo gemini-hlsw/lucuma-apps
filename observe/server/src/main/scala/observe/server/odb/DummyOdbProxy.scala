@@ -31,6 +31,7 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.resetAcquisition: Not implemented."))
 
   export evCmds.{
+    datasetAbort,
     datasetEndExposure,
     datasetEndReadout,
     datasetEndWrite,
