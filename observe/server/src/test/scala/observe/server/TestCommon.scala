@@ -113,14 +113,15 @@ trait TestCommon extends munit.CatsEffectSuite {
     yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
 
   def observeEngineWithODB(
-    odb:     OdbProxy[IO],
-    systems: IO[Systems[IO]] = defaultSystems
+    odb:      OdbProxy[IO],
+    systems:  IO[Systems[IO]] = defaultSystems,
+    settings: ObserveEngineConfiguration = defaultSettings
   ): IO[ObserveEngine[IO]] =
     systems.flatMap(sys =>
       ObserveEngine.build(
         Site.GN,
         sys.copy(odb = odb),
-        defaultSettings,
+        settings,
         ExecutionEnvironment.Development
       )
     )

@@ -98,7 +98,7 @@ trait ArbRootModel:
       usm <- arbitrary[Option[NonEmptyString]]
       log <- arbitrary[FixedLengthBuffer[LogMessage]]
       up  <- arbitrary[UserPreferences]
-      cop <- arbitrary[Option[UserPrompt.ChecksOverride]]
+      cop <- arbitrary[List[UserPrompt.ChecksOverride]]
     yield RootModelData(
       uv,
       ros,
@@ -135,7 +135,7 @@ trait ArbRootModel:
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
       UserPreferences,
-      Option[UserPrompt.ChecksOverride]
+      List[UserPrompt.ChecksOverride]
     )
   ].contramap: x =>
     (x.userVault,
@@ -153,7 +153,7 @@ trait ArbRootModel:
      x.userSelectionMessage,
      x.globalLog,
      x.userPreferences,
-     x.checksOverridePrompt
+     x.checksOverridePrompts
     )
 
 object ArbRootModel extends ArbRootModel

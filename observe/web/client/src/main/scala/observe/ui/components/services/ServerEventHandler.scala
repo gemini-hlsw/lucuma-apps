@@ -217,7 +217,7 @@ trait ServerEventHandler:
           >> error.map(logMessage(rootModelDataMod, ObserveLogLevel.Error, _)).orEmpty
       case ClientEvent.ChecksOverrideEvent(prompt)                                        =>
         rootModelDataMod(
-          RootModelData.checksOverridePrompt.replace(prompt.some) >>>
+          RootModelData.checksOverridePrompts.modify(_ :+ prompt) >>>
             RootModelData.obsRequests
               .index(prompt.obsId)
               .modify(

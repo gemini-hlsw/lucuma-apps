@@ -73,7 +73,9 @@ case class ObservationRequests(
         if (!status.isRewindRequested || !status.isRunning) OperationRequest.Idle
         else cancelRewind,
       skipAcquisition = if (status.isRunning) OperationRequest.Idle else skipAcquisition,
-      resetAcquisition = if (status.isRunning) OperationRequest.Idle else resetAcquisition
+      resetAcquisition = if (status.isRunning) OperationRequest.Idle else resetAcquisition,
+      acquisitionPrompt =
+        if (!status.isWaitingUserPrompt) OperationRequest.Idle else acquisitionPrompt
     )
 
   // Skipping or resetting the acquisition leaves the sequence idle, so the status alone never

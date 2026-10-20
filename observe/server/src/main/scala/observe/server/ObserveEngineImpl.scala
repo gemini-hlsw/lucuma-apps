@@ -52,7 +52,6 @@ import observe.server.engine.Result.Partial
 import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
 import observe.server.odb.OdbProxy
-import observe.server.tcs.TargetKeywordsReader
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -67,7 +66,7 @@ import ClientEvent.*
 private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   executeEngine:         Engine[F],
   override val systems:  Systems[F],
-  @unused settings:      ObserveEngineConfiguration,
+  settings:              ObserveEngineConfiguration,
   translator:            SeqTranslate[F],
   @unused conditionsRef: Ref[F, CurrentConditions]
 ) extends ObserveEngine[F] {
@@ -103,6 +102,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
    * to the TCS, and for multi-target asterisms that name is a composite of the target names. The
    * first science target is only a fallback for when the ODB cannot compute the base.
    *
+   * Names are compared trimmed, since the TCS record may pad them. With a simulated TCS there is no
+   * real target to compare against, so the check is skipped.
+   *
    * @return
    *   an F that returns an optional TargetCheckOverride if the targets don't match
    */
@@ -121,10 +123,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         blindOffsetTarget.orElse(scienceTarget)
       else scienceTarget
     expectedTarget
+      .filter(_ => settings.systemControl.tcs.realKeywords)
       .map: seqTarget =>
         systems.tcsKeywordReader.sourceATarget.objectName.map: tcsTarget =>
-          val isSimulated: Boolean = tcsTarget === TargetKeywordsReader.SimulatedObjectName
-          (!isSimulated && seqTarget =!= tcsTarget).option:
+          (seqTarget.trim =!= tcsTarget.trim).option:
             TargetCheckOverride(UserPrompt.Discrepancy(tcsTarget, seqTarget))
       .getOrElse(none.pure[F])
 
@@ -373,8 +375,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   /**
    * Proceeds from the user prompt (typically after the acquisition). When going on to science the
    * target is checked first, since for blind-offset observations the observer must have moved to
-   * the science target by then. If the check fails the sequence keeps waiting at the prompt and the
-   * client is asked for confirmation.
+   * the science target by then. As in `startChecks`, only steps that require checks are checked, so
+   * a science sequence opening with a flat or arc proceeds without a prompt. If the check fails the
+   * sequence keeps waiting at the prompt and the client is asked for confirmation.
    */
   def userNextStep(
     obsId:       Observation.Id,
@@ -389,9 +392,18 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         .map: seqData => // Sequence exists in memory, proceed
           // Without the prompt check, proceedAfterPrompt from Idle silently reloads the step.
           if seqData.seq.status.isWaitingUserPrompt then
+            // The step is only peeked at here; tryNewStep loads it for real.
+            val nextStepRequiresChecks: EngineHandle[F, Boolean]          =
+              ObserveEngine
+                .readStep(systems.odb, translator, obsId, SequenceType.Science.asLeft)
+                .map(_.exists(step => stepRequiresChecks(step.config)))
+                .handleErrorWith(_ => EngineHandle.pure(false))
             val targetCheck: EngineHandle[F, Option[TargetCheckOverride]] =
               if seqType === SequenceType.Science && runOverride === RunOverride.Default then
-                EngineHandle.liftF(sequenceTcsTargetMatch(seqData, SequenceType.Science))
+                nextStepRequiresChecks.flatMap: requiresChecks =>
+                  if requiresChecks then
+                    EngineHandle.liftF(sequenceTcsTargetMatch(seqData, SequenceType.Science))
+                  else EngineHandle.pure(none[TargetCheckOverride])
               else EngineHandle.pure(none[TargetCheckOverride])
             targetCheck.flatMap:
               case Some(check) =>
@@ -867,12 +879,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): Stream[F, TargetedClientEvent] =
     v match
       case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), clientId) =>
-        // The state event lets clients clear their in-flight flags, since the sequence went
-        // Starting -> Idle within one handle and no other state event is sent.
-        Stream.emit[F, TargetedClientEvent](
-          ClientEvent.ChecksOverrideEvent(c).forClient(clientId)
-        ) ++
-          buildObserveStateStream(svs, odbProxy)
+        Stream.emit(ClientEvent.ChecksOverrideEvent(c).forClient(clientId))
       // case RequestConfirmation(m, clientId)        => Stream.emit(UserPromptNotification(m, clientId))
       case StartSysConfig(oid, stepId, res)                                      =>
         Stream.emit[F, TargetedClientEvent](

@@ -4,10 +4,12 @@
 package observe.ui.components
 
 import cats.syntax.all.*
+import crystal.*
 import crystal.react.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SequenceType
+import lucuma.core.model.Observation
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
@@ -17,14 +19,19 @@ import observe.model.enums.RunOverride
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
+import observe.ui.model.LoadedObservation
+import observe.ui.model.LoadedObservations
 import observe.ui.services.SequenceApi
 
 /**
  * Warns the user that the start checks failed and lets them stop or continue anyway. Continuing
- * repeats the action that was refused, this time overriding the checks.
+ * repeats the action that was refused, this time overriding the checks. Prompts are shown one at a
+ * time, oldest first, so none is lost if several observations fail their checks close together.
  */
-case class ChecksOverrideDialog(prompt: View[Option[UserPrompt.ChecksOverride]])
-    extends ReactFnProps(ChecksOverrideDialog)
+case class ChecksOverrideDialog(
+  prompts:            View[List[UserPrompt.ChecksOverride]],
+  loadedObservations: View[LoadedObservations]
+) extends ReactFnProps(ChecksOverrideDialog)
 
 private val TargetWarning: String =
   "Target in TCS does not match target in Explore. Verify the telescope is pointing at the correct target and the correct sequence is loaded in Observe."
@@ -62,7 +69,18 @@ object ChecksOverrideDialog
       yield
         import ctx.given
 
-        val current: Option[UserPrompt.ChecksOverride] = props.prompt.get
+        val current: Option[UserPrompt.ChecksOverride] = props.prompts.get.headOption
+
+        val dismiss: Callback = props.prompts.mod(_.drop(1))
+
+        // Mirrors what the Play button does, so it shows busy until the next state arrives.
+        def setRefreshing(obsId: Observation.Id): Callback =
+          props.loadedObservations.mod:
+            LoadedObservations.Value
+              .index(obsId)
+              .andThen(Pot.readyPrism)
+              .andThen(LoadedObservation.isRefreshing)
+              .replace(true)
 
         Dialog(
           header = <.span(Icons.CircleExclamation.withFixedWidth(), " Warning"),
@@ -76,24 +94,22 @@ object ChecksOverrideDialog
               label = "Stop",
               icon = Icons.Stop,
               severity = Button.Severity.Primary,
-              onClick = props.prompt.set(none)
+              onClick = dismiss
             ).compact,
             Button(
               label = "Continue anyway",
               icon = Icons.Play,
               severity = Button.Severity.Danger,
-              onClick = props.prompt.set(none) >>
+              onClick = dismiss >>
                 current.foldMap: p =>
-                  (p.action match
+                  p.action match
                     case UserPrompt.ChecksOverride.Action.StartSequence    =>
-                      sequenceApi.startSequence(p.obsId, RunOverride.Override)
+                      setRefreshing(p.obsId) >>
+                        sequenceApi.startSequence(p.obsId, RunOverride.Override).runAsync
                     case UserPrompt.ChecksOverride.Action.ProceedToScience =>
-                      sequenceApi.proceedAfterPrompt(
-                        p.obsId,
-                        SequenceType.Science,
-                        RunOverride.Override
-                      )
-                  ).runAsync
+                      sequenceApi
+                        .proceedAfterPrompt(p.obsId, SequenceType.Science, RunOverride.Override)
+                        .runAsync
             ).compact
           )
         )(

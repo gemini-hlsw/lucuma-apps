@@ -106,10 +106,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
         _                        <-
           // The request is also watched because a failed target check keeps the sequence waiting.
+          // It only clears on Idle, so the click (Idle -> InFlight) keeps the busy state.
           useEffectWithDeps(
             (props.executionState.isWaitingAcquisitionPrompt, props.requests.acquisitionPrompt)
-          ): _ =>
-            acquisitionPromptClicked.set(none)
+          ): (_, request) =>
+            acquisitionPromptClicked.set(none).when_(request === OperationRequest.Idle)
         sequence                 <-
           useMemo(
             (visits,

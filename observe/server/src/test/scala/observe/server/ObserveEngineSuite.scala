@@ -43,6 +43,8 @@ import observe.model.Observer
 import observe.model.Operator
 import observe.model.SequenceStatus
 import observe.model.UserPrompt
+import observe.model.config.ObserveEngineConfiguration
+import observe.model.enums.ControlStrategy
 import observe.model.enums.Resource.Gcal
 import observe.model.enums.Resource.TCS
 import observe.model.enums.RunOverride
@@ -847,6 +849,12 @@ class ObserveEngineSuite extends TestCommon {
     (obs, stepList)
   }
 
+  // The target check only runs against a real TCS, so these tests pretend to read its keywords.
+  private val settingsWithRealTcs: ObserveEngineConfiguration =
+    defaultSettings.copy(systemControl =
+      defaultSettings.systemControl.copy(tcs = ControlStrategy.ReadOnly)
+    )
+
   private def systemsWithTargetName(name: String): IO[Systems[IO]] =
     defaultSystems.map:
       _.copy(tcsKeywordReader = new DummyTcsKeywordsReader.DummyTcsKeywordReaderImpl[IO] {
@@ -856,111 +864,17 @@ class ObserveEngineSuite extends TestCommon {
           }
       })
 
-  test("ObserveEngine start should start the sequence if it passes the target check") {
-    val (obs, steps) = testTargetSequenceData("proof".refined)
-
-    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
-
-    val s0 = ODBSequencesLoader
-      .loadSequenceMod[IO](
-        none,
-        OdbObservationData(
-          obs,
-          InstrumentExecutionConfig.GmosNorth(
-            ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
-          )
-        ),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)
-      )
-      .apply(EngineState.default[IO])
-
-    (for {
-      acqAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
-      odb       <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      oe        <- observeEngineWithODB(odb, systemsWithTargetName("proof"))
-      sf        <- advanceOne(oe,
-                              s0,
-                              oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default)
-                   )
-    } yield sf
-      .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
-      .exists(_.status.isRunning)).assert
-  }
-
-  test(
-    "ObserveEngine start should not start the sequence if it fails the target check for science observations"
-  ) {
-    val (obs, steps) = testTargetSequenceData("proof".refined)
-
-    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
-
-    val s0 = ODBSequencesLoader
-      .loadSequenceMod[IO](
-        none,
-        OdbObservationData(
-          obs,
-          InstrumentExecutionConfig.GmosNorth(
-            ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
-          )
-        ),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)
-      )
-      .apply(EngineState.default[IO])
-
-    (for {
-      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      oe  <- observeEngineWithODB(odb, systemsWithTargetName("proof1"))
-      sf  <- advanceOne(oe,
-                        s0,
-                        oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default)
-             )
-    } yield sf
-      .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
-      .exists(_.status.isIdle)).assert
-  }
-
-  test(
-    "ObserveEngine start should start the sequence that fails the target check if forced"
-  ) {
-    val (obs, steps) = testTargetSequenceData("proof".refined)
-
-    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
-
-    val s0 = ODBSequencesLoader
-      .loadSequenceMod[IO](
-        none,
-        OdbObservationData(
-          obs,
-          InstrumentExecutionConfig.GmosNorth(
-            ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
-          )
-        ),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)
-      )
-      .apply(EngineState.default[IO])
-
-    (for {
-      systems = systemsWithTargetName("proof1")
-      odb    <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      oe     <- observeEngineWithODB(odb, systems)
-      sf     <- advanceOne(oe,
-                           s0,
-                           oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Override)
-                )
-    } yield sf
-      .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
-      .exists(_.status.isRunning)).assert
-  }
-
   /**
    * Starts a sequence with the TCS pointing at `tcsTarget` and returns the resulting status.
    * Exactly one of the acquisition or science atoms is expected to be defined.
    */
   private def startWithTcsTarget(
-    obs:       ODBObservation,
-    steps:     NonEmptyList[Step[DynamicConfig.GmosNorth]],
-    isScience: Boolean,
-    tcsTarget: String
+    obs:         ODBObservation,
+    steps:       NonEmptyList[Step[DynamicConfig.GmosNorth]],
+    isScience:   Boolean,
+    tcsTarget:   String,
+    runOverride: RunOverride = RunOverride.Default,
+    settings:    ObserveEngineConfiguration = settingsWithRealTcs
   ): IO[Option[SequenceStatus]] =
     val atom: Atom[DynamicConfig.GmosNorth]                     = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
     val seq: Option[ExecutionSequence[DynamicConfig.GmosNorth]] =
@@ -986,11 +900,11 @@ class ObserveEngineSuite extends TestCommon {
                if isScience then none else atom.some,
                if isScience then List(atom) else List.empty
              )
-      oe  <- observeEngineWithODB(odb, systemsWithTargetName(tcsTarget))
+      oe  <- observeEngineWithODB(odb, systemsWithTargetName(tcsTarget), settings)
       sf  <- advanceOne(
                oe,
                s0,
-               oe.startSequence(seqObsId1, user, observer, clientId, RunOverride.Default)
+               oe.startSequence(seqObsId1, user, observer, clientId, runOverride)
              )
     yield sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption).map(_.status)
 
@@ -1026,27 +940,48 @@ class ObserveEngineSuite extends TestCommon {
       assert(atBase.exists(_.isRunning))
       assert(atScience.exists(_.isIdle))
 
+  test("ObserveEngine start should start the sequence if it passes the target check"):
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+    startWithTcsTarget(obs, steps, isScience = false, "proof").map: status =>
+      assert(status.exists(_.isRunning))
+
+  test("ObserveEngine start should not start the sequence if it fails the target check"):
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+    startWithTcsTarget(obs, steps, isScience = false, "proof1").map: status =>
+      assert(status.exists(_.isIdle))
+
+  test("ObserveEngine start should start the sequence that fails the target check if forced"):
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+    startWithTcsTarget(obs, steps, isScience = false, "proof1", RunOverride.Override).map: status =>
+      assert(status.exists(_.isRunning))
+
+  test("ObserveEngine start should compare the target names trimmed"):
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+    startWithTcsTarget(obs, steps, isScience = false, "proof  ").map: status =>
+      assert(status.exists(_.isRunning))
+
   test("ObserveEngine start should not check the target when the TCS is simulated"):
     val (obs, steps) = testTargetSequenceData("proof".refined)
-    startWithTcsTarget(obs, steps, isScience = true, TargetKeywordsReader.SimulatedObjectName)
-      .map: status =>
-        assert(status.exists(_.isRunning))
+    startWithTcsTarget(obs, steps, isScience = true, "proof1", settings = defaultSettings).map:
+      status => assert(status.exists(_.isRunning))
+
+  private val GcalStepConfig: StepConfig =
+    StepConfig.Gcal(
+      StepConfig.Gcal.Lamp.fromContinuum(GcalContinuum.QuartzHalogen5W),
+      GcalFilter.None,
+      GcalDiffuser.Visible,
+      GcalShutter.Open
+    )
 
   test("ObserveEngine start should not check the target for gcal steps"):
-    val gcal: StepConfig =
-      StepConfig.Gcal(
-        StepConfig.Gcal.Lamp.fromContinuum(GcalContinuum.QuartzHalogen5W),
-        GcalFilter.None,
-        GcalDiffuser.Visible,
-        GcalShutter.Open
-      )
-    val (obs, steps)     = testTargetSequenceData("proof".refined, none, gcal)
+    val (obs, steps) = testTargetSequenceData("proof".refined, none, GcalStepConfig)
     startWithTcsTarget(obs, steps, isScience = false, "proof1").map: status =>
       assert(status.exists(_.isRunning))
 
   private def proceedToScienceWithTcsTarget(
-    tcsTarget:   String,
-    runOverride: RunOverride
+    tcsTarget:         String,
+    runOverride:       RunOverride,
+    scienceStepConfig: StepConfig = StepConfig.Science
   ): IO[(Option[EventResult], Option[SequenceState[IO]])] =
     val (obs, acqSteps)                        = testTargetSequenceData("proof".refined)
     val acqAtom: Atom[DynamicConfig.GmosNorth] =
@@ -1059,7 +994,7 @@ class ObserveEngineSuite extends TestCommon {
           Step[DynamicConfig.GmosNorth](
             stepId(2),
             dynamicCfg1,
-            StepConfig.Science,
+            scienceStepConfig,
             telescopeCfg1,
             StepEstimate.Zero,
             ObserveClass.Science,
@@ -1089,7 +1024,7 @@ class ObserveEngineSuite extends TestCommon {
         .apply(EngineState.default[IO])
     for
       odb    <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(sciAtom))
-      oe     <- observeEngineWithODB(odb, systemsWithTargetName(tcsTarget))
+      oe     <- observeEngineWithODB(odb, systemsWithTargetName(tcsTarget), settingsWithRealTcs)
       _      <- oe.proceedAfterPrompt(
                   seqObsId1,
                   user,
@@ -1116,6 +1051,10 @@ class ObserveEngineSuite extends TestCommon {
             ) =>
           action === UserPrompt.ChecksOverride.Action.ProceedToScience
         case _ => false)
+
+  test("ObserveEngine proceedAfterPrompt should not check the target if science opens with gcal"):
+    proceedToScienceWithTcsTarget("proof1", RunOverride.Default, GcalStepConfig).map: (_, seq) =>
+      assert(seq.exists(!_.status.isWaitingUserPrompt))
 
   test("ObserveEngine proceedAfterPrompt should proceed if the target check passes"):
     proceedToScienceWithTcsTarget("proof", RunOverride.Default).map: (_, seq) =>
