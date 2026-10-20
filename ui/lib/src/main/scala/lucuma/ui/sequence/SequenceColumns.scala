@@ -881,8 +881,8 @@ object SequenceColumns:
       _.value.left.toOption,
       header = "",
       cell = cell =>
-        (cell.value, cell.table.options.meta.map(_.editContexts))
-          .mapN: (headerRow, editContexts) =>
+        (cell.value, cell.table.options.meta)
+          .mapN: (headerRow, meta) =>
             <.span(
               SequenceStyles.TableHeader,
               SequenceStyles.TableHeaderNested.when(cell.row.depth > 0),
@@ -901,8 +901,9 @@ object SequenceColumns:
               <.span(SequenceStyles.TableHeaderContent)(
                 headerRow.content(
                   SequenceHeaderContext(
-                    editContexts,
-                    visitRunButtons(cell.row, cell.table).when(cell.row.getIsExpanded())
+                    meta.editContexts,
+                    visitRunButtons(cell.row, cell.table).when(cell.row.getIsExpanded()),
+                    meta.datasetQaBulkEdit
                   )
                 )
               )

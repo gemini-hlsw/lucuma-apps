@@ -135,10 +135,37 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   private def renderFiles(datasetRange: Option[(Int, Int)]): String =
     "Files: " + datasetRange.map((min, max) => s"$min - $max").getOrElse("---")
 
+  // The bulk QA button of a visit or run header, when the table supports it and the header has
+  // datasets to target. Once every dataset has a QA state the button goes away.
+  private def renderBulkQaButton(
+    bulkEdit: Option[DatasetQaBulkEdit],
+    stepRows: List[SequenceIndexedRow[D]]
+  ): TagMod =
+    bulkEdit
+      .flatMap: bulkEdit =>
+        val targets: List[Dataset] =
+          DatasetQaBulkEdit.targets:
+            stepRows
+              .map(_.step)
+              .collect:
+                case step: SequenceRow.Executed.ExecutedStep[D] =>
+                  step.executionState -> step.datasets
+
+        NonEmptyList
+          .fromList(targets)
+          .map: targets =>
+            QaBulkEditor(
+              targets,
+              inFlight =
+                targets.exists(dataset => bulkEdit.datasetIdsInFlight.contains(dataset.id)),
+              bulkEdit.onChange
+            )
+      .whenDefined
+
   protected def renderVisitHeader(
-    visit:      VisitData,
-    isCurrent:  Boolean,
-    runButtons: TagMod
+    visit:     VisitData,
+    isCurrent: Boolean,
+    ctx:       SequenceHeaderContext[D]
   ): VdomNode =
     val visitTime: String = UtcFormatter.format(visit.effectiveTime.toInstant)
 
@@ -146,7 +173,8 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       <.span(s"Visit on $visitTime" + (if isCurrent then " (Current)" else "")),
       <.span(s"Steps: ${visit.stepRows.size}"),
       <.span(renderFiles(visit.datasetRange)),
-      runButtons,
+      renderBulkQaButton(ctx.datasetQaBulkEdit, visit.stepRows),
+      ctx.visitRunButtons,
       // The visit's wall-clock duration, once it's over.
       visit.interval
         .filterNot(_ => isCurrent)
@@ -157,11 +185,12 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     )
 
   // Heads the runs within a visit. Steps is non-empty => head and last are safe.
-  protected def renderVisitRunHeader(run: VisitRun): VdomNode =
+  protected def renderVisitRunHeader(run: VisitRun, ctx: SequenceHeaderContext[D]): VdomNode =
     <.div(SequenceStyles.VisitRunHeader)(
       <.span(run.sequenceType.shortName),
       <.span(s"Steps: ${run.stepRows.head.index} - ${run.stepRows.last.index}"),
-      <.span(renderFiles(run.datasetRange))
+      <.span(renderFiles(run.datasetRange)),
+      renderBulkQaButton(ctx.datasetQaBulkEdit, run.stepRows.toList)
     )
 
   /** The row ids of every run within `visits`, e.g. to expand them. */
@@ -462,7 +491,10 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     def runRows(visit: VisitData): List[SequenceTableRowType] =
       visit.runs.map: run =>
         Expandable(
-          HeaderRow(visit.runRowId(run), renderVisitRunHeader(run)).toHeaderOrRow,
+          HeaderRow(
+            visit.runRowId(run),
+            (ctx: SequenceHeaderContext[D]) => renderVisitRunHeader(run, ctx)
+          ).toHeaderOrRow,
           run.stepRows.toList.map(step => Expandable(step.toHeaderOrRow))
         )
 
@@ -474,8 +506,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       Expandable(
         HeaderRow(
           if isCurrent then CurrentGroupRowId else visit.rowId,
-          (ctx: SequenceHeaderContext[D]) =>
-            renderVisitHeader(visit, isCurrent, ctx.visitRunButtons),
+          (ctx: SequenceHeaderContext[D]) => renderVisitHeader(visit, isCurrent, ctx),
           collapsible = !isCurrent // The current visit holds the live sections.
         ).toHeaderOrRow,
         children

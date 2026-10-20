@@ -3,25 +3,13 @@
 
 package lucuma.ui.sequence
 
-import cats.syntax.all.*
 import crystal.react.hooks.*
-import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.DatasetQaState
-import lucuma.core.util.Enumerated
 import lucuma.react.common.*
-import lucuma.react.primereact.Button
-import lucuma.react.primereact.InputText
 import lucuma.react.primereact.OverlayPanel
-import lucuma.react.primereact.SelectButtonOptional
-import lucuma.react.primereact.SelectItem
 import lucuma.react.primereact.hooks.all.*
 import lucuma.schemas.model.Dataset
-import lucuma.ui.primereact.*
-import lucuma.ui.sequence.given
-import lucuma.ui.syntax.render.*
-import org.scalajs.dom.KeyCode
 
 case class QaEditor(
   dataset:    Dataset,
@@ -36,55 +24,14 @@ object QaEditor
         qaFields <- useStateView(props.editableQaFields)
         panelRef <- useOverlayPanelRef
       yield
-        val submit: Callback = props.onChange(props.dataset.id)(qaFields.get)
+        val submit: Callback = props.onChange(props.dataset.id)(qaFields.get) >> panelRef.hide
         val reset: Callback  = qaFields.set(props.editableQaFields)
 
         <.span(SequenceStyles.QaStatusEditable, ^.onClick ==> panelRef.toggle)(
           props.renderIcon,
           <.span(SequenceStyles.QaStatusSelect)(SequenceIcons.ChevronDown),
-          OverlayPanel(onHide = reset)(
-            <.form(SequenceStyles.QaEditorPanel)(
-              ^.onSubmit ==> { e => e.preventDefaultCB >> submit },
-              ^.onKeyDown ==> { e =>
-                e.keyCode match // Allows submitting by pressing enter after changing the status.
-                  case KeyCode.Enter => submit >> panelRef.hide
-                  case _             => Callback.empty
-              }
-            )(
-              SelectButtonOptional[DatasetQaState](
-                clazz = SequenceStyles.QaStatusButtonStrip,
-                value = qaFields.get.qaState,
-                options = Enumerated[DatasetQaState].all.map: qaState =>
-                  SelectItem(qaState, qaState.tag),
-                onChange = value => qaFields.mod(EditableQaFields.qaState.replace(value)),
-                itemTemplate = qaState =>
-                  React.Fragment(
-                    qaState.value.some.renderVdom,
-                    qaState.value.tag
-                  )
-              ).withMods(
-                ^.onClick ==> (_.stopPropagationCB)
-              ).compact,
-              InputText(
-                id = "qaComment",
-                value = qaFields.get.comment.map(_.value).orEmpty,
-                placeholder = "Comment",
-                onChange = e =>
-                  qaFields.mod:
-                    EditableQaFields.comment.replace(NonEmptyString.from(e.target.value).toOption)
-              ).withMods(
-                ^.autoComplete.off,
-                ^.onClick ==> (_.stopPropagationCB)
-              ),
-              <.div(SequenceStyles.QaEditorPanelButtons)(
-                Button(icon = SequenceIcons.XMark, severity = Button.Severity.Danger)
-                  .compact("Cancel"),
-                Button(icon = SequenceIcons.Check, severity = Button.Severity.Success).compact
-                  .withMods(^.`type` := "submit")( // This way it works with "Enter" key.
-                    "Save"
-                  )
-              )
-            )
-          ).withMods(SequenceStyles.QaEditorOverlay).withRef(panelRef.ref)
+          OverlayPanel(onHide = reset)(QaFieldsForm(qaFields, submit, cancel = panelRef.hide))
+            .withMods(SequenceStyles.QaEditorOverlay)
+            .withRef(panelRef.ref)
         )
     )

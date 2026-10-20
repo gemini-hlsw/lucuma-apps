@@ -3,6 +3,7 @@
 
 package lucuma.ui.sequence
 
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.*
@@ -24,6 +25,7 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
 import lucuma.schemas.odb.VisitQueriesGQL
+import lucuma.schemas.odb.VisitQueriesGQL.UpdateDatasetsQa
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
@@ -78,6 +80,36 @@ trait SequenceQaEditHelper:
       .each
       .andThen(StepRecord.Flamingos2.datasets)
 
+  private val igrins2Datasets: Traversal[ExecutionVisits, List[Dataset]] =
+    ExecutionVisits.igrins2
+      .andThen(ExecutionVisits.Igrins2.visits)
+      .each
+      .andThen(Visit.Igrins2.atoms)
+      .each
+      .andThen(AtomRecord.Igrins2.steps)
+      .each
+      .andThen(StepRecord.Igrins2.datasets)
+
+  private val ghostDatasets: Traversal[ExecutionVisits, List[Dataset]] =
+    ExecutionVisits.ghost
+      .andThen(ExecutionVisits.Ghost.visits)
+      .each
+      .andThen(Visit.Ghost.atoms)
+      .each
+      .andThen(AtomRecord.Ghost.steps)
+      .each
+      .andThen(StepRecord.Ghost.datasets)
+
+  private val gnirsDatasets: Traversal[ExecutionVisits, List[Dataset]] =
+    ExecutionVisits.gnirs
+      .andThen(ExecutionVisits.Gnirs.visits)
+      .each
+      .andThen(Visit.Gnirs.atoms)
+      .each
+      .andThen(AtomRecord.Gnirs.steps)
+      .each
+      .andThen(StepRecord.Gnirs.datasets)
+
   // This is only lawful if the traverse returns 0 or 1 instances of A.
   private def unsafeHeadOption[T, A](traversal: Traversal[T, A]): Optional[T, A] =
     Optional[T, A](traversal.getAll(_).headOption)(traversal.replace)
@@ -91,8 +123,69 @@ trait SequenceQaEditHelper:
     Traversal.applyN(
       instrumentDatasetWithId(gmosNorthDatasets)(datasetId),
       instrumentDatasetWithId(gmosSouthDatasets)(datasetId),
-      instrumentDatasetWithId(flamingos2Datasets)(datasetId)
+      instrumentDatasetWithId(flamingos2Datasets)(datasetId),
+      instrumentDatasetWithId(igrins2Datasets)(datasetId),
+      instrumentDatasetWithId(ghostDatasets)(datasetId),
+      instrumentDatasetWithId(gnirsDatasets)(datasetId)
     )
+
+  private def datasetQaView(
+    visits:    View[ExecutionVisits],
+    datasetId: Dataset.Id
+  ): ViewList[EditableQaFields] =
+    visits.zoom(datasetWithId(datasetId).andThen(EditableQaFields.fromDataset))
+
+  private def updateDatasetsQa(
+    datasetIds: NonEmptyList[Dataset.Id],
+    qaState:    DatasetQaState,
+    comment:    Option[NonEmptyString]
+  )(using
+    FetchClient[IO, ObservationDB],
+    Logger[IO]
+  ): IO[List[UpdateDatasetsQa.Data.UpdateDatasets.Datasets]] =
+    VisitQueriesGQL
+      .UpdateDatasetsQa[IO]
+      .execute(datasetIds.toList, qaState, comment.orIgnore)
+      .raiseGraphQLErrors
+      .map(_.updateDatasets.datasets)
+      .onError:
+        case e => Logger[IO].error(e)(s"Error updating dataset QA state for $datasetIds")
+
+  /**
+   * Sets `qaFields` on the datasets among `datasetIds` that have no QA state yet, in one mutation.
+   * An empty comment leaves the existing ones alone. The local visits are patched from what the
+   * server reports as changed.
+   */
+  protected def onDatasetsQaChange(
+    visits:             View[Option[ExecutionVisits]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]]
+  )(using
+    FetchClient[IO, ObservationDB],
+    ToastCtx[IO],
+    Logger[IO]
+  ): NonEmptyList[Dataset.Id] => EditableQaFields => Callback =
+    datasetIds =>
+      qaFields =>
+        (visits.toOptionView, qaFields.qaState).mapN { (visits, qaState) =>
+          val ids: Set[Dataset.Id] = datasetIds.toList.toSet
+
+          datasetIdsInFlight.mod(_ ++ ids) >>
+            updateDatasetsQa(datasetIds, qaState, qaFields.comment)
+              .flatMap: updated =>
+                (updated.traverse_ { dataset =>
+                  datasetQaView(visits, dataset.id).set(
+                    EditableQaFields(dataset.qaState, dataset.comment)
+                  )
+                } >> datasetIdsInFlight.mod(_ -- ids)).to[IO]
+              .handleErrorWith: e =>
+                datasetIdsInFlight.async.mod(_ -- ids) >>
+                  ToastCtx[IO].showToast(
+                    s"Error updating the QA state of ${DatasetQaBulkEdit.datasetCount(ids.size)}: ${e.getMessage}",
+                    Message.Severity.Error,
+                    sticky = true
+                  )
+              .runAsync
+        }.orEmpty // Nothing to do without visits or without a state to set.
 
   private def updateDatasetQa(datasetId: Dataset.Id, qaFields: EditableQaFields)(using
     FetchClient[IO, ObservationDB],
@@ -116,14 +209,10 @@ trait SequenceQaEditHelper:
     datasetId =>
       qaFields =>
         visits.toOptionView.map { visits =>
-          def datasetQaView(datasetId: Dataset.Id): ViewList[EditableQaFields] =
-            visits.zoom:
-              datasetWithId(datasetId).andThen(EditableQaFields.fromDataset)
-
           datasetIdsInFlight.mod(_ + datasetId) >>
             updateDatasetQa(datasetId, qaFields)
               .flatMap: _ =>
-                (datasetQaView(datasetId).set(qaFields) >>
+                (datasetQaView(visits, datasetId).set(qaFields) >>
                   datasetIdsInFlight.mod(_ - datasetId))
                   .to[IO]
               .handleErrorWith: e =>
