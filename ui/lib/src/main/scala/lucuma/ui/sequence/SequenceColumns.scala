@@ -56,6 +56,7 @@ import lucuma.ui.syntax.all.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 import monocle.Prism
+import org.scalajs.dom
 
 import SequenceRowFormatters.*
 
@@ -881,15 +882,21 @@ object SequenceColumns:
       _.value.left.toOption,
       header = "",
       cell = cell =>
-        (cell.value, cell.table.options.meta.map(_.editContexts))
-          .mapN: (headerRow, editContexts) =>
+        (cell.value, cell.table.options.meta)
+          .mapN: (headerRow, meta) =>
             <.span(
               SequenceStyles.TableHeader,
               SequenceStyles.TableHeaderNested.when(cell.row.depth > 0),
               TagMod(
                 SequenceStyles.TableHeaderExpandable,
-                ^.onClick ==>
-                  (_.stopPropagationCB >> cell.row.getToggleExpandedHandler()),
+                // Ignores clicks from header buttons (marked with preventDefault so they still
+                // reach the window and dismiss overlay panels) and from a panel's portal.
+                ^.onClick ==> { (e: ReactMouseEventFromHtml) =>
+                  val isOwnClick: Boolean =
+                    !e.defaultPrevented && e.currentTarget.contains(e.target.asInstanceOf[dom.Node])
+                  Callback.when(isOwnClick):
+                    e.stopPropagationCB >> cell.row.getToggleExpandedHandler()
+                },
                 <.span(
                   TableStyles.ExpanderChevron,
                   TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded())
@@ -901,8 +908,9 @@ object SequenceColumns:
               <.span(SequenceStyles.TableHeaderContent)(
                 headerRow.content(
                   SequenceHeaderContext(
-                    editContexts,
-                    visitRunButtons(cell.row, cell.table).when(cell.row.getIsExpanded())
+                    meta.editContexts,
+                    visitRunButtons(cell.row, cell.table).when(cell.row.getIsExpanded()),
+                    meta.datasetQaBulkEdit
                   )
                 )
               )
@@ -935,17 +943,17 @@ object SequenceColumns:
       Button(
         icon = SequenceIcons.Plus,
         label = "Acq",
-        onClickE = _.stopPropagationCB >> setRuns(SequenceType.Acquisition.some, true)
+        onClickE = e => e.preventDefaultCB >> setRuns(SequenceType.Acquisition.some, true)
       ).mini.veryCompact,
       Button(
         icon = SequenceIcons.Plus,
         label = "Sci",
-        onClickE = _.stopPropagationCB >> setRuns(SequenceType.Science.some, true)
+        onClickE = e => e.preventDefaultCB >> setRuns(SequenceType.Science.some, true)
       ).mini.veryCompact,
       Button(
         icon = SequenceIcons.Minus,
         label = "All",
         disabled = allRunsCollapsed,
-        onClickE = _.stopPropagationCB >> setRuns(none, false)
+        onClickE = e => e.preventDefaultCB >> setRuns(none, false)
       ).mini.veryCompact
     ).when(runs.nonEmpty)

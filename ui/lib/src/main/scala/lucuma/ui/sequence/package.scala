@@ -52,10 +52,15 @@ object SequenceRowHeight:
   val WithExtra: SizePx = 60.toPx
 
 /**
- * What a header row's content is rendered with: the sequence edit contexts and, for an expanded
- * visit, the buttons acting on its runs (empty otherwise).
+ * What a header row's content is rendered with: the sequence edit contexts, for an expanded visit
+ * the buttons acting on its runs (empty otherwise) and, when the table supports it, the bulk QA
+ * editing of the header's datasets.
  */
-case class SequenceHeaderContext[D](editContexts: SequenceEditContexts[D], visitRunButtons: TagMod)
+case class SequenceHeaderContext[D](
+  editContexts:      SequenceEditContexts[D],
+  visitRunButtons:   TagMod,
+  datasetQaBulkEdit: Option[DatasetQaBulkEdit]
+)
 
 /**
  * Row id of a visit's run (a header row grouping its steps): `run:<visit id>:<run index>:<type>`.

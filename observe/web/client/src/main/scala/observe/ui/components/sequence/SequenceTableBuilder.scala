@@ -208,7 +208,13 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 datasetIdsInFlight,
                 props.onBreakpointFlip,
                 SequenceEditContexts(IsEditEnabled.False, dummyEditContext, dummyEditContext),
-                props.maskName
+                props.maskName,
+                DatasetQaBulkEdit(
+                  datasetIdsInFlight.get, {
+                    import ctx.given
+                    onDatasetsQaChange(props.visits, datasetIdsInFlight)
+                  }
+                )
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)

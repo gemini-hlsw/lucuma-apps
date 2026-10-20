@@ -12,6 +12,8 @@ import monocle.Lens
 case class EditableQaFields(qaState: Option[DatasetQaState], comment: Option[NonEmptyString])
 
 object EditableQaFields:
+  val Empty: EditableQaFields = EditableQaFields(None, None)
+
   val qaState: Lens[EditableQaFields, Option[DatasetQaState]] = Focus[EditableQaFields](_.qaState)
   val comment: Lens[EditableQaFields, Option[NonEmptyString]] = Focus[EditableQaFields](_.comment)
 

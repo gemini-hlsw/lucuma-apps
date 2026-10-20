@@ -12,3 +12,6 @@ trait SequenceTableMeta[D]:
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
 
   def wavelengthFormat: SequenceWavelengthFormat = SequenceWavelengthFormat.Nanometers
+
+  /** When defined, the visit and run headers offer setting a QA state on their datasets. */
+  def datasetQaBulkEdit: Option[DatasetQaBulkEdit] = None

@@ -65,10 +65,13 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
     editContexts:       SequenceEditContexts[D],
-    getMaskName:        Attachment.Id => Option[NonEmptyString]
+    getMaskName:        Attachment.Id => Option[NonEmptyString],
+    qaBulkEdit:         DatasetQaBulkEdit
   ) extends SequenceTableMeta[D]:
     override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
       getMaskName(attachmentId)
+
+    override def datasetQaBulkEdit: Option[DatasetQaBulkEdit] = qaBulkEdit.some
 
   protected val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]
 

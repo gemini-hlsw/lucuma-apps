@@ -23,6 +23,20 @@ object VisitQueriesGQL:
     """
 
   @GraphQL
+  trait UpdateDatasetsQa extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation($$datasetIds: [DatasetId!]!, $$qaState: DatasetQaState!, $$comment: NonEmptyString) {
+        updateDatasets( input: {WHERE: {id: {IN: $$datasetIds}, qaState: {IS_NULL: true}}, SET: {qaState: $$qaState, comment: $$comment}} ) {
+          datasets {
+            id
+            qaState
+            comment
+          }
+        }
+      }
+    """
+
+  @GraphQL
   trait UpdateDatasetQa extends GraphQLOperation[ObservationDB]:
     val document = gql"""
       mutation($$datasetId: DatasetId!, $$qaState: DatasetQaState, $$comment: NonEmptyString) {

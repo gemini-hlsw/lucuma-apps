@@ -188,7 +188,7 @@
 
   // Direct children only: buttons placed in the header have spans of their own, and the buttons'
   // own span is not a text column (the ellipsis' overflow would clip their focus ring).
-  > span:not(.lucuma-sequence-visit-run-buttons) {
+  > span:not(.lucuma-sequence-visit-run-buttons, .lucuma-sequence-qa-bulk-editor) {
     @include lucumaUICommon.text-ellipsis;
 
     flex: 0 0 auto;
@@ -223,6 +223,10 @@
   > span:first-child {
     width: 21.5em;
   }
+}
+
+.lucuma-sequence-qa-bulk-editor-count {
+  color: var(--gray-600);
 }
 
 .lucuma-sequence-remaining-header {
