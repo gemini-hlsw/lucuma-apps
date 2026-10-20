@@ -61,6 +61,15 @@ trait TargetKeywordsReader[F[_]] {
 
 }
 
+object TargetKeywordsReader {
+
+  /**
+   * Object name reported by the simulated TCS. The target check skips it, so simulated setups
+   * (local, dev) do not prompt on every start.
+   */
+  val SimulatedObjectName: String = "<SIMULATED_TCS_TARGET>"
+}
+
 trait TcsKeywordsReader[F[_]] {
   def hourAngle: F[String]
 
@@ -211,7 +220,7 @@ object DummyTargetKeywordsReader {
 
     override def frame: F[String] = "FK5".pure[F]
 
-    override def objectName: F[String] = "Dummy".pure[F]
+    override def objectName: F[String] = TargetKeywordsReader.SimulatedObjectName.pure[F]
 
     override def properMotionDec: F[Double] = 0.0.pure[F]
 

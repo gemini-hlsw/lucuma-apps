@@ -52,6 +52,7 @@ import observe.server.engine.Result.Partial
 import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
 import observe.server.odb.OdbProxy
+import observe.server.tcs.TargetKeywordsReader
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
@@ -122,7 +123,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     expectedTarget
       .map: seqTarget =>
         systems.tcsKeywordReader.sourceATarget.objectName.map: tcsTarget =>
-          (seqTarget =!= tcsTarget).option:
+          val isSimulated: Boolean = tcsTarget === TargetKeywordsReader.SimulatedObjectName
+          (!isSimulated && seqTarget =!= tcsTarget).option:
             TargetCheckOverride(UserPrompt.Discrepancy(tcsTarget, seqTarget))
       .getOrElse(none.pure[F])
 

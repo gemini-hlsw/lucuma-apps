@@ -1026,6 +1026,12 @@ class ObserveEngineSuite extends TestCommon {
       assert(atBase.exists(_.isRunning))
       assert(atScience.exists(_.isIdle))
 
+  test("ObserveEngine start should not check the target when the TCS is simulated"):
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+    startWithTcsTarget(obs, steps, isScience = true, TargetKeywordsReader.SimulatedObjectName)
+      .map: status =>
+        assert(status.exists(_.isRunning))
+
   test("ObserveEngine start should not check the target for gcal steps"):
     val gcal: StepConfig =
       StepConfig.Gcal(
