@@ -104,6 +104,16 @@ class StepsViewSuite extends TestCommon {
     assertEquals(StepsView.configStatus(executions), status)
   }
 
+  test("StepsView configStatus should report a failed subsystem as failed") {
+    val status                                =
+      List(ObservatorySubsystem.Tcs -> ActionStatus.Completed,
+           Instrument.GmosNorth     -> ActionStatus.Failed
+      )
+    val executions: List[ParallelActions[Id]] =
+      List(NonEmptyList.of(done(ObservatorySubsystem.Tcs), failed(Instrument.GmosNorth)))
+    assertEquals(StepsView.configStatus(executions), status)
+  }
+
   test("StepsView pending configStatus should build empty without tasks") {
     assert(StepsView.configStatus(Nil).isEmpty)
   }

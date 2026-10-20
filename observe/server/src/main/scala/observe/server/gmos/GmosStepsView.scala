@@ -29,7 +29,7 @@ class GmosStepsView[F[_]] extends StepsView[F] {
       .map { e =>
         val status       = step.status
         val configStatus =
-          if (status.runningOrComplete) {
+          if (status.runningOrComplete || status.hasError) {
             stepConfigStatus(step)
           } else {
             altCfgStatus
