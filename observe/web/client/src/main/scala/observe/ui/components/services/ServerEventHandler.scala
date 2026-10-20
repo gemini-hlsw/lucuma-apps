@@ -189,11 +189,11 @@ trait ServerEventHandler:
     def playAudio(sound: Audio): IO[Unit] = sound.play.when(isAudioActivated.map(a => a: Boolean))
 
     event match
-      case ClientEvent.BaDum                                                     =>
+      case ClientEvent.BaDum                                                              =>
         IO.unit
-      case ClientEvent.InitialEvent(cc)                                          =>
+      case ClientEvent.InitialEvent(cc)                                                   =>
         clientConfigMod(_ => cc.ready)
-      case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error) =>
+      case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error)          =>
         rootModelDataMod(
           (RootModelData.executionState
             .at(obsId)
@@ -215,8 +215,25 @@ trait ServerEventHandler:
                 .replace(OperationRequest.Idle))
         )
           >> error.map(logMessage(rootModelDataMod, ObserveLogLevel.Error, _)).orEmpty
-      case ClientEvent.ChecksOverrideEvent(_)                                    =>
-        IO.unit // TODO Update the UI
+      case ClientEvent.ChecksOverrideEvent(prompt)                                        =>
+        rootModelDataMod(
+          RootModelData.checksOverridePrompt.replace(prompt.some) >>>
+            RootModelData.obsRequests
+              .index(prompt.obsId)
+              .modify(
+                _.copy(
+                  startSequence = OperationRequest.Idle,
+                  startSequenceFrom = OperationRequest.Idle,
+                  acquisitionPrompt = OperationRequest.Idle
+                )
+              ) >>>
+            RootModelData.loadedObservations
+              .andThen(LoadedObservations.Value)
+              .index(prompt.obsId)
+              .andThen(Pot.readyPrism)
+              .andThen(LoadedObservation.isRefreshing)
+              .replace(false)
+        ) >> playAudio(Audio.SequenceError)
       case ClientEvent.ObserveState(sequenceExecution, conditions, operator, recordedIds) =>
         rootModelDataMod(
           RootModelData.operator.replace(operator) >>>

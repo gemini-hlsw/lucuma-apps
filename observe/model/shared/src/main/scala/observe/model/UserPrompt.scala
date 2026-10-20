@@ -11,7 +11,7 @@ import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.JsonObject
 import io.circe.syntax.*
-import lucuma.core.model.sequence.Step
+import lucuma.core.util.Enumerated
 
 sealed trait UserPrompt extends Product with Serializable
 
@@ -72,6 +72,14 @@ object UserPrompt:
   // UserPrompt whether to override start checks
   case class ChecksOverride(
     obsId:  Observation.Id,
-    stepId: Step.Id,
+    action: ChecksOverride.Action,
     checks: NonEmptyList[SeqCheck]
   ) extends UserPrompt derives Eq, Encoder.AsObject, Decoder
+
+  object ChecksOverride:
+    /**
+     * The action the client must retry with the override if the user chooses to continue.
+     */
+    enum Action(val tag: String) derives Enumerated:
+      case StartSequence    extends Action("StartSequence")
+      case ProceedToScience extends Action("ProceedToScience")

@@ -17,7 +17,6 @@ import lucuma.react.primereact.TooltipOptions
 import lucuma.ui.LucumaIcons
 import observe.model.Observation
 import observe.model.SequenceStatus
-import observe.model.enums.RunOverride
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
@@ -70,7 +69,7 @@ object SeqControlButtons
             tooltip = "Start/Resume sequence",
             tooltipOptions = tooltipOptions,
             onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
-              sequenceApi.startSequence(props.obsId, RunOverride.Override).runAsync,
+              sequenceApi.startSequence(props.obsId).runAsync,
             disabled = props.isRefreshing || props.isCompleted
           ).when(!props.isRunning),
           Button(

@@ -36,6 +36,11 @@ object ObsQueriesGql:
               targetId: id
               targetName: name
             }
+            useBlindOffset
+            blindOffsetTarget {
+              targetId: id
+              targetName: name
+            }
             basePosition {
               type
               name

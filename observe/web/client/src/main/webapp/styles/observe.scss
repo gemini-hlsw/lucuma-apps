@@ -1095,6 +1095,20 @@ body {
   }
 }
 
+.observe-checks-override-dialog {
+  max-width: 40rem;
+
+  .p-dialog-content p {
+    margin: 0 0 0.75rem;
+  }
+
+  .p-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+}
+
 .observe-obs-header {
   display: flex;
   justify-content: space-between;

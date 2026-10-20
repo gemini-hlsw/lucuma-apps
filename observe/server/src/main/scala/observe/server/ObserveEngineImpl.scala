@@ -31,6 +31,7 @@ import monocle.Optional
 import monocle.function.Index.mapIndex
 import mouse.all.*
 import observe.cats.given
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment as OdbTargetEnvironment
 import observe.model.*
 import observe.model.UserPrompt.Discrepancy
 import observe.model.UserPrompt.ObsConditionsCheckOverride
@@ -92,15 +93,33 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   }
 
   /**
-   * Check if the target on the TCS matches the Observe target
+   * Check if the target on the TCS matches the Observe target.
+   *
+   * For an acquisition sequence of an observation that uses a blind offset the telescope must be
+   * pointing at the blind-offset target, so that is the expected one. Otherwise, including the
+   * science sequence of a blind-offset observation (once the observer has moved to the science
+   * target), the expected target is the ODB base position: Navigate slews to it and writes its name
+   * to the TCS, and for multi-target asterisms that name is a composite of the target names. The
+   * first science target is only a fallback for when the ODB cannot compute the base.
+   *
    * @return
-   *   an F that returns an optional TargetMatchResult if the targets don't match
+   *   an F that returns an optional TargetCheckOverride if the targets don't match
    */
   private def sequenceTcsTargetMatch(
-    seqData: SequenceData[F]
+    seqData: SequenceData[F],
+    seqType: SequenceType
   ): F[Option[TargetCheckOverride]] =
-    seqData.targetEnvironment.firstScienceTarget
-      .map(_.targetName.toString)
+    val targetEnv: OdbTargetEnvironment   = seqData.targetEnvironment
+    val scienceTarget: Option[String]     =
+      targetEnv.basePosition
+        .map(_.name.value)
+        .orElse(targetEnv.firstScienceTarget.map(_.targetName.value))
+    val blindOffsetTarget: Option[String] = targetEnv.blindOffsetTarget.map(_.targetName.value)
+    val expectedTarget: Option[String]    =
+      if seqType === SequenceType.Acquisition && targetEnv.useBlindOffset then
+        blindOffsetTarget.orElse(scienceTarget)
+      else scienceTarget
+    expectedTarget
       .map: seqTarget =>
         systems.tcsKeywordReader.sourceATarget.objectName.map: tcsTarget =>
           (seqTarget =!= tcsTarget).option:
@@ -109,10 +128,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
 
   private def stepRequiresChecks(stepConfig: OcsStepConfig): Boolean =
     stepConfig match
-      case OcsStepConfig.Gcal(_, _, _, _) => true
-      case OcsStepConfig.Science          => true
-      case OcsStepConfig.SmartGcal(_)     => true
-      case _                              => false
+      // Gcal and SmartGcal steps (flats and arcs) are off-sky, so the TCS target is irrelevant.
+      case OcsStepConfig.Science => true
+      case _                     => false
 
   private def checkCloudCover(
     actual:    Option[CloudExtinction],
@@ -265,38 +283,43 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                 seq.currentSequenceType.asLeft
               )
             checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
-            (stpg, checks) <- EngineHandle.liftF:
-                                checkedStepOpt
-                                  .map: checkedStep =>
-                                    sequenceTcsTargetMatch(seq).map: tchk =>
-                                      (checkedStep.some,
-                                       List(
-                                         tchk,
-                                         observingConditionsMatch(st.conditions, seq.constraintSet)
-                                       ).flattenOption
-                                      )
-                                  .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
+            (stpg, checks) <-
+              EngineHandle.liftF:
+                checkedStepOpt
+                  .map: checkedStep =>
+                    sequenceTcsTargetMatch(seq, seq.currentSequenceType).map: tchk =>
+                      (checkedStep.some,
+                       List(
+                         tchk,
+                         observingConditionsMatch(st.conditions, seq.constraintSet)
+                       ).flattenOption
+                      )
+                  .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
             resultEvent    <-
               EngineHandle.getState
                 .flatMap: newState =>
                   (checkResources(obsId)(newState), stpg, checks, runOverride) match
                     // Resource check fails
-                    case (false, _, _, _)                             =>
+                    case (false, _, _, _)                           =>
                       EngineHandle
                         .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
                         .as[SeqEvent](Busy(obsId, clientId))
                     // Target check fails and no override
-                    case (_, Some(stp), x :: xs, RunOverride.Default) =>
+                    case (_, Some(_), x :: xs, RunOverride.Default) =>
                       EngineHandle
                         .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
                         .as[SeqEvent](
                           RequestConfirmation(
-                            UserPrompt.ChecksOverride(obsId, stp.id, NonEmptyList(x, xs)),
+                            UserPrompt.ChecksOverride(
+                              obsId,
+                              UserPrompt.ChecksOverride.Action.StartSequence,
+                              NonEmptyList(x, xs)
+                            ),
                             clientId
                           )
                         )
                     // Allowed to run
-                    case _                                            =>
+                    case _                                          =>
                       startAfterCheck(startAction, obsId)
           } yield resultEvent).handleErrorWith(e =>
             EngineHandle
@@ -332,21 +355,31 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         )
 
   override def proceedAfterPrompt(
-    id:       Observation.Id,
-    user:     User,
-    observer: Observer,
-    seqType:  SequenceType
+    id:          Observation.Id,
+    user:        User,
+    observer:    Observer,
+    seqType:     SequenceType,
+    clientId:    ClientId,
+    runOverride: RunOverride
   ): F[Unit] =
     setObserver(id, user, observer) *>
       executeEngine.offer:
         Event.modifyState[F]:
           clearObsCmd(id) *>
-            userNextStep(id, seqType).as(SeqEvent.NullSeqEvent)
+            userNextStep(id, seqType, clientId, runOverride)
 
+  /**
+   * Proceeds from the user prompt (typically after the acquisition). When going on to science the
+   * target is checked first, since for blind-offset observations the observer must have moved to
+   * the science target by then. If the check fails the sequence keeps waiting at the prompt and the
+   * client is asked for confirmation.
+   */
   def userNextStep(
-    obsId:   Observation.Id,
-    seqType: SequenceType
-  ): EngineHandle[F, Unit] =
+    obsId:       Observation.Id,
+    seqType:     SequenceType,
+    clientId:    ClientId,
+    runOverride: RunOverride
+  ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap: st =>
       EngineState
         .atSequence(obsId)
@@ -354,9 +387,28 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         .map: seqData => // Sequence exists in memory, proceed
           // Without the prompt check, proceedAfterPrompt from Idle silently reloads the step.
           if seqData.seq.status.isWaitingUserPrompt then
-            ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, obsId, seqType)
-          else EngineHandle.unit
-        .getOrElse(EngineHandle.unit)
+            val targetCheck: EngineHandle[F, Option[TargetCheckOverride]] =
+              if seqType === SequenceType.Science && runOverride === RunOverride.Default then
+                EngineHandle.liftF(sequenceTcsTargetMatch(seqData, SequenceType.Science))
+              else EngineHandle.pure(none[TargetCheckOverride])
+            targetCheck.flatMap:
+              case Some(check) =>
+                EngineHandle.pure[F, SeqEvent](
+                  RequestConfirmation(
+                    UserPrompt.ChecksOverride(
+                      obsId,
+                      UserPrompt.ChecksOverride.Action.ProceedToScience,
+                      NonEmptyList.one(check)
+                    ),
+                    clientId
+                  )
+                )
+              case None        =>
+                ObserveEngine
+                  .tryNewStep(systems.odb, translator, executeEngine, obsId, seqType)
+                  .as[SeqEvent](SeqEvent.NullSeqEvent)
+          else EngineHandle.unit.as[SeqEvent](SeqEvent.NullSeqEvent)
+        .getOrElse(EngineHandle.unit.as[SeqEvent](SeqEvent.NullSeqEvent))
 
   /**
    * Replaces the loaded step with the next step of `seqType` without starting it. This is how the
@@ -813,7 +865,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): Stream[F, TargetedClientEvent] =
     v match
       case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), clientId) =>
-        Stream.emit(ClientEvent.ChecksOverrideEvent(c).forClient(clientId))
+        // The state event lets clients clear their in-flight flags, since the sequence went
+        // Starting -> Idle within one handle and no other state event is sent.
+        Stream.emit[F, TargetedClientEvent](
+          ClientEvent.ChecksOverrideEvent(c).forClient(clientId)
+        ) ++
+          buildObserveStateStream(svs, odbProxy)
       // case RequestConfirmation(m, clientId)        => Stream.emit(UserPromptNotification(m, clientId))
       case StartSysConfig(oid, stepId, res)                                      =>
         Stream.emit[F, TargetedClientEvent](

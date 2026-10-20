@@ -105,7 +105,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         nextScienceIndex          = visitsData.map(_._2)
         acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
         _                        <-
-          useEffectWithDeps(props.executionState.isWaitingAcquisitionPrompt): _ =>
+          // The request is also watched because a failed target check keeps the sequence waiting.
+          useEffectWithDeps(
+            (props.executionState.isWaitingAcquisitionPrompt, props.requests.acquisitionPrompt)
+          ): _ =>
             acquisitionPromptClicked.set(none)
         sequence                 <-
           useMemo(

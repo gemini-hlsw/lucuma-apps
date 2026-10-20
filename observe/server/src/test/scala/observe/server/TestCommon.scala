@@ -349,7 +349,14 @@ object TestCommon {
     CoreTelescopeConfig(Offset.Zero, StepGuideState.Enabled)
 
   val defaultTargetEnvironment: TargetEnvironment =
-    TargetEnvironment(List.empty, None, None, GuideEnvironment(List.empty))
+    TargetEnvironment(
+      asterism = List.empty,
+      firstScienceTarget = None,
+      useBlindOffset = false,
+      blindOffsetTarget = None,
+      basePosition = None,
+      guideEnvironment = GuideEnvironment(List.empty)
+    )
 
   def odbObservation(id: Observation.Id): ODBObservation =
     ODBObservation(

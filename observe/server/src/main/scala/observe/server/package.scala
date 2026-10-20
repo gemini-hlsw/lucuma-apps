@@ -119,6 +119,8 @@ object Length {
 val EmptyTargetEnvironment: ObsQuery.Data.Observation.TargetEnvironment =
   ObsQuery.Data.Observation.TargetEnvironment(
     asterism = List.empty,
+    useBlindOffset = false,
+    blindOffsetTarget = None,
     guideEnvironment =
       ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment(guideTargets = List.empty)
   )
