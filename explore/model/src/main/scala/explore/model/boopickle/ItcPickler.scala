@@ -49,6 +49,7 @@ import lucuma.itc.Error
 import lucuma.itc.IntegrationTime
 import lucuma.itc.ItcCcd
 import lucuma.itc.ItcGraph
+import lucuma.itc.ItcResultReadMode
 import lucuma.itc.ItcSeries
 import lucuma.itc.ItcVersions
 import lucuma.itc.ItcWarning
@@ -302,6 +303,13 @@ trait ItcPicklers extends CommonPicklers {
     transformPickler[Zipper[A], (List[A], A, List[A])]((lefts, focus, rights) =>
       Zipper(lefts, focus, rights)
     )(z => (z.lefts, z.focus, z.rights))
+
+  given Pickler[ItcResultReadMode.Gnirs]      = generatePickler
+  given Pickler[ItcResultReadMode.Flamingos2] = generatePickler
+  given Pickler[ItcResultReadMode]            =
+    compositePickler[ItcResultReadMode]
+      .addConcreteType[ItcResultReadMode.Gnirs]
+      .addConcreteType[ItcResultReadMode.Flamingos2]
 
   given Pickler[IntegrationTime] = generatePickler
 
