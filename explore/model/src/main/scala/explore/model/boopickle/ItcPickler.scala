@@ -307,7 +307,9 @@ trait ItcPicklers extends CommonPicklers {
   given Pickler[ItcResultReadMode.Gnirs]      = generatePickler
   given Pickler[ItcResultReadMode.Flamingos2] = generatePickler
   given Pickler[ItcResultReadMode]            =
-    compositePickler[ItcResultReadMode].addConcreteType[ItcResultReadMode.Gnirs].addConcreteType[ItcResultReadMode.Flamingos2]
+    compositePickler[ItcResultReadMode]
+      .addConcreteType[ItcResultReadMode.Gnirs]
+      .addConcreteType[ItcResultReadMode.Flamingos2]
 
   given Pickler[IntegrationTime] = generatePickler
 
