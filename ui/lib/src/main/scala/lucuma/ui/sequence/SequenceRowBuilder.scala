@@ -33,7 +33,7 @@ import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
 import lucuma.ui.display.given
-import lucuma.ui.format.DurationFormatter
+import lucuma.ui.format.DurationPaddedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
@@ -151,7 +151,9 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       visit.interval
         .filterNot(_ => isCurrent)
         .map: interval =>
-          <.span(SequenceStyles.VisitDuration)(DurationFormatter(interval.timeSpan.toDuration))
+          <.span(SequenceStyles.VisitDuration)(
+            DurationPaddedFormatter(interval.timeSpan.toDuration)
+          )
     )
 
   // Heads the runs within a visit. Steps is non-empty => head and last are safe.

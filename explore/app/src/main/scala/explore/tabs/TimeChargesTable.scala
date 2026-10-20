@@ -26,7 +26,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Divider
 import lucuma.react.table.*
-import lucuma.ui.format.DurationSpacedFormatter
+import lucuma.ui.format.DurationSpacedPaddedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.table.*
@@ -54,7 +54,8 @@ object TimeChargesTable:
 
   private def timestamp(t: Timestamp): String = UtcFormatter.format(t.toInstant)
 
-  private def duration(t: TimeSpan): String = DurationSpacedFormatter(t.toDuration)
+  // Padded, as the durations stack in a right-aligned column with a total.
+  private def duration(t: TimeSpan): String = DurationSpacedPaddedFormatter(t.toDuration)
 
   private def correctionText(c: VisitTimeCharge.Correction): String =
     val date   = GppDateFormatter.format(c.created.toInstant.atZone(ZoneOffset.UTC).toLocalDate)
