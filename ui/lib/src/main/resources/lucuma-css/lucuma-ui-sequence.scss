@@ -205,7 +205,8 @@
   }
 
   // Fixed width so that what's centered before it (the run buttons) doesn't shift with it.
-  > span:last-child {
+  // `span.` matches the column rule's specificity, so this one's alignment wins.
+  > span.lucuma-sequence-visit-duration {
     width: 5em;
     margin-left: auto;
     text-align: right;

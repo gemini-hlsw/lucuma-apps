@@ -22,6 +22,7 @@ object SequenceStyles:
   val VisitHeader                   = Css("lucuma-sequence-visit-header")
   val VisitRunHeader                = Css("lucuma-sequence-visit-run-header")
   val VisitRunButtons               = Css("lucuma-sequence-visit-run-buttons")
+  val VisitDuration                 = Css("lucuma-sequence-visit-duration")
   val RemainingHeader               = Css("lucuma-sequence-remaining-header")
   val VisitStepExtra                = Css("lucuma-sequence-visit-extra-row")
   val VisitStepExtraDatetime        = Css("lucuma-sequence-visit-extra-row-datetime")

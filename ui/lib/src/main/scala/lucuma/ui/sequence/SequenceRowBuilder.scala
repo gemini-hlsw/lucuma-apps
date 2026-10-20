@@ -16,8 +16,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import lucuma.core.syntax.all.*
-import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.core.util.TimestampInterval
 import lucuma.core.util.time.format.UtcFormatter
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.TooltipOptions
@@ -33,7 +33,7 @@ import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
 import lucuma.ui.display.given
-import lucuma.ui.format.DurationFormatter
+import lucuma.ui.format.DurationPaddedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
@@ -107,17 +107,17 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     stepRows:     NonEmptyList[SequenceIndexedRow[D]],
     datasetRange: Option[(Int, Int)],
     runIndex:     Int
-  ):
-    lazy val exposureTime: TimeSpan =
-      stepRows.toList.map(row => recordedExposureTime(row.step)).combineAll
+  )
 
   /**
    * A visit's executed steps, as runs in execution order. Step numbering is on each row
-   * (`SequenceIndexedRow.index`), assigned when the runs are built.
+   * (`SequenceIndexedRow.index`), assigned when the runs are built. `interval` spans the visit's
+   * first event to its last, as recorded by the ODB.
    */
   protected case class VisitData(
     visitId:       Visit.Id,
     effectiveTime: Timestamp,
+    interval:      Option[TimestampInterval],
     runs:          List[VisitRun] // Empty only for the current visit, before a step completes
   ):
     val rowId: RowId = RowId(visitId.toString)
@@ -126,40 +126,11 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
 
     lazy val stepRows: List[SequenceIndexedRow[D]] = runs.flatMap(_.stepRows.toList)
 
-    def exposureTime(sequenceType: SequenceType): TimeSpan =
-      runs.filter(_.sequenceType === sequenceType).map(_.exposureTime).combineAll
-
-    lazy val exposureTime: TimeSpan = runs.map(_.exposureTime).combineAll
-
     lazy val datasetRange: Option[(Int, Int)] =
       runs
         .flatMap(_.datasetRange)
         .reduceOption: (a, b) =>
           (a._1.min(b._1), a._2.max(b._2))
-
-  /**
-   * The time a recorded step exposed, as far as the visit data tells: the configured exposure time
-   * for a completed step, nothing for an abandoned or never started one, and for a stopped or
-   * aborted one the time its datasets took, from the first one starting to the last one ending (an
-   * overestimate, as it includes readout and write; datasets may be concurrent, e.g. GHOST's two
-   * cameras, so they're not summed), capped at the configured exposure time. Rows that are not
-   * recorded steps contribute their configured exposure time.
-   */
-  private def recordedExposureTime(step: SequenceRow[D]): TimeSpan =
-    val configured: TimeSpan = step.exposureTime.orEmpty
-    step match
-      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _, _) =>
-        stepRecord.executionState match
-          case StepExecutionState.Completed                                 => configured
-          case StepExecutionState.Abandoned | StepExecutionState.NotStarted => TimeSpan.Zero
-          case _                                                            =>
-            stepRecord.datasets
-              .flatMap(_.interval)
-              .reduceOption(_.span(_))
-              .map(_.timeSpan)
-              .orEmpty
-              .min(configured)
-      case _                                                      => configured
 
   private def renderFiles(datasetRange: Option[(Int, Int)]): String =
     "Files: " + datasetRange.map((min, max) => s"$min - $max").getOrElse("---")
@@ -176,14 +147,13 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       <.span(s"Steps: ${visit.stepRows.size}"),
       <.span(renderFiles(visit.datasetRange)),
       runButtons,
-      <.span(
-        ^.title := SequenceType.values
-          .map: sequenceType =>
-            s"${sequenceType.shortName}: " +
-              DurationFormatter(visit.exposureTime(sequenceType).toDuration)
-          .mkString(", "),
-        DurationFormatter(visit.exposureTime.toDuration)
-      )
+      // The visit's wall-clock duration, once it's over.
+      visit.interval
+        .filterNot(_ => isCurrent)
+        .map: interval =>
+          <.span(SequenceStyles.VisitDuration)(
+            DurationPaddedFormatter(interval.timeSpan.toDuration)
+          )
     )
 
   // Heads the runs within a visit. Steps is non-empty => head and last are safe.
@@ -191,8 +161,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     <.div(SequenceStyles.VisitRunHeader)(
       <.span(run.sequenceType.shortName),
       <.span(s"Steps: ${run.stepRows.head.index} - ${run.stepRows.last.index}"),
-      <.span(renderFiles(run.datasetRange)),
-      <.span(DurationFormatter(run.exposureTime.toDuration))
+      <.span(renderFiles(run.datasetRange))
     )
 
   /** The row ids of every run within `visits`, e.g. to expand them. */
@@ -422,7 +391,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         // it starts (its running step is not among the visit rows).
         val visitData: Option[VisitData] =
           Option.when(runs.nonEmpty || currentVisitId.contains_(visit.id)):
-            VisitData(visit.id, visit.effectiveTime, runs)
+            VisitData(visit.id, visit.effectiveTime, visit.interval, runs)
 
         (seqs ++ visitData.toList, nextScienceIndex)
 

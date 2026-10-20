@@ -13,16 +13,30 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-private def durationFormatter(separator: String): Duration => String = d =>
-  val hours: Option[Long]  = d.toHours.some.filter(_ > 0)
-  val minutes: Option[Int] = d.toMinutesPart.some.filter(_ > 0 || hours.isDefined)
-  val seconds: Int         = d.toSecondsPart
-  (hours.map(h => s"${h}h").toList ++ minutes.map(m => s"${m}m").toList :+ s"${seconds}s")
-    .mkString(separator)
+// With `padded`, minutes and seconds are zero-padded when a larger unit precedes them (never the
+// leading unit), so that durations line up when right-aligned: "1h05m03s", "5m03s", "3s".
+private def durationFormatter(separator: String, padded: Boolean = false): Duration => String =
+  d =>
+    val hours: Option[Long]        = d.toHours.some.filter(_ > 0)
+    val minutes: Option[Int]       = d.toMinutesPart.some.filter(_ > 0 || hours.isDefined)
+    val seconds: Int               = d.toSecondsPart
+    val minutesStr: Option[String] =
+      minutes.map(m => if padded && hours.isDefined then f"$m%02dm" else s"${m}m")
+    val secondsStr: String         =
+      if padded && minutes.isDefined then f"$seconds%02ds" else s"${seconds}s"
+    (hours.map(h => s"${h}h").toList ++ minutesStr.toList :+ secondsStr).mkString(separator)
 
 val DurationFormatter: Duration => String = durationFormatter("")
 
+/** Like `DurationFormatter`, zero-padding the non-leading units, for right-aligned columns. */
+val DurationPaddedFormatter: Duration => String = durationFormatter("", padded = true)
+
 val DurationSpacedFormatter: Duration => String = durationFormatter(" ")
+
+/**
+ * Like `DurationSpacedFormatter`, zero-padding the non-leading units, for right-aligned columns.
+ */
+val DurationSpacedPaddedFormatter: Duration => String = durationFormatter(" ", padded = true)
 
 val DurationLongFormatter: Duration => String = d =>
   val days: Option[Long]   = d.toDays.some.filter(_ > 0)
