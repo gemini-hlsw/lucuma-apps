@@ -22,7 +22,7 @@ import lucuma.core.math.arb.ArbProperMotion.given
 import lucuma.core.math.arb.ArbRadialVelocity.given
 import lucuma.core.math.arb.ArbRedshift.given
 import lucuma.core.math.arb.ArbRightAscension.given
-import lucuma.core.util.arb.ArbTimeSpan.given
+import lucuma.core.util.TimeSpan
 import lucuma.ui.input.InputCodecTests
 import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
@@ -37,6 +37,7 @@ import org.scalacheck.Gen
  *   - `BrightnessValue`, `SignalToNoise`, `Wavelength`, `WavelengthDelta`: domain restrictions. The
  *     core generators cover the whole type (40-decimal brightnesses, picometer wavelengths), whose
  *     canonical text the Explore wedges themselves truncate away.
+ *   - `TimeSpan`: the duration masks accept at most 5 hour digits.
  */
 final class InputCodecsSuite extends DisciplineSuite:
   private given Arbitrary[ApparentRadialVelocity] = Arbitrary(
@@ -52,6 +53,11 @@ final class InputCodecsSuite extends DisciplineSuite:
       .choose(0, 999999)
       .map(deci => SignalToNoise.unsafeFromBigDecimalExact(BigDecimal(deci) / 10))
   )
+
+  private given Arbitrary[TimeSpan] = Arbitrary(
+    Gen.choose(0L, 100000L * 3600 * 1000000 - 1).map(TimeSpan.unsafeFromMicroseconds)
+  )
+
   private given Arbitrary[Wavelength]             = Arbitrary(
     Gen.choose(300000, 30000000).map(Wavelength.unsafeFromIntPicometers)
   )
