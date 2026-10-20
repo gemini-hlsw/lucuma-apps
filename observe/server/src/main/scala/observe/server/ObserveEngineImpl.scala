@@ -1237,14 +1237,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     i: (EventResult, EngineState[F])
   ): F[(EventResult, EngineState[F])] =
     (i match {
-      case (EngineUpdate(EngineEvent.Failed(obsId, stepId, _, e), _), _)         =>
-        Logger[F].error(s"Error executing $obsId due to $e") <*
-          services.odb
-            .stepAbort(obsId, stepId)
-            .ensure(
-              ObserveFailure
-                .Unexpected("Unable to send ObservationAborted message to ODB.")
-            )(identity)
+      // A failure is not an abort. No step event is sent: the ODB abandons the ongoing step
+      // when the next step or visit starts, and only a user abort reports ABORT.
+      case (EngineUpdate(EngineEvent.Failed(obsId, _, _, e), _), _)              =>
+        Logger[F].error(s"Error executing $obsId due to $e")
       case (EngineUpdate(EngineEvent.SequenceHeld(obsId), _), _)                 =>
         notifyOdbSequenceHeld(obsId)
       case (EngineUpdate(EngineEvent.BreakpointReached(obsId), _), _)            =>
