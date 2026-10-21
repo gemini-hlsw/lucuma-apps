@@ -29,6 +29,10 @@
     {
       "groupName": "Fontawesome",
       "matchPackageNames": ["@fortawesome/**"]
+    },
+    {
+      "groupName": "Atlaskit",
+      "matchPackageNames": ["@atlaskit/**"]
     }
   ],
   "ignorePaths": [
