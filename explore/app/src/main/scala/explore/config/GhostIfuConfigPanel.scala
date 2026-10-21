@@ -203,7 +203,8 @@ object GhostIfuConfigPanel
           idPrefix:      NonEmptyString,
           aligner:       Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput],
           estimate:      Pot[Option[DetectorEstimate]],
-          configChanged: Boolean
+          configChanged: Boolean,
+          help:          TagMod = TagMod.empty
         ): VdomNode =
           val timeAndCountView: View[ExposureTimeMode.TimeAndCountMode] =
             aligner
@@ -232,6 +233,7 @@ object GhostIfuConfigPanel
           <.div(
             ExploreStyles.GhostDetectorPanel,
             <.div(ExploreStyles.GhostDetectorHeader |+| colorClazz, label),
+            help,
             <.div(
               LucumaPrimeStyles.FormColumnCompact,
               TimeAndCountModeEditor(
@@ -345,7 +347,11 @@ object GhostIfuConfigPanel
               idPrefix = "ghostRed".refined,
               aligner = detectorAligner(GhostIfu.red, GhostIfuInput.red),
               estimate = detectorEstimate(RedDetector),
-              configChanged = lastEstimatedMode.value.exists(_.red =!= mode.red)
+              configChanged = lastEstimatedMode.value.exists(_.red =!= mode.red),
+              help = HelpIcon(
+                "configuration/ghost/configuration.md".refined,
+                ExploreStyles.GhostCamerasHelp
+              )
             )
           ),
           <.div(

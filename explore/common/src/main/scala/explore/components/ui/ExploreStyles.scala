@@ -455,6 +455,7 @@ object ExploreStyles:
   val GhostDetectorPanel: Css              = Css("explore-ghost-detector-panel")
   val GhostDetectorHeader: Css             = Css("explore-ghost-detector-header")
   val GhostAgitators: Css                  = Css("explore-ghost-agitators")
+  val GhostCamerasHelp: Css                = Css("explore-ghost-cameras-help")
   val GmosSpectroscopyUpperGrid: Css       = Css("explore-gmos-spectroscopy-upper-grid")
   val GmosSpectroscopyLowerGrid: Css       = Css("explore-gmos-spectroscopy-lower-grid")
   val ImagingUpperGrid: Css                = Css("explore-imaging-upper-grid")
