@@ -86,7 +86,6 @@ object TimeChargesTable:
       .map: onCorrect =>
         Button(
           icon = Icons.ClockRotateLeftLight,
-          text = true,
           severity = Button.Severity.Secondary,
           tooltip = "Add a time correction for this visit",
           tooltipOptions = TooltipOptions(position = Tooltip.Position.Left),
