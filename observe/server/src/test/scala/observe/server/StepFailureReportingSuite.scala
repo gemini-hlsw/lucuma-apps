@@ -111,6 +111,12 @@ class StepFailureReportingSuite extends TestCommon {
   private def sequenceStatus(st: EngineState[IO]): Option[SequenceStatus] =
     st.sequences.get(seqObsId1).map(_.seq.status)
 
+  private def gmosSingleRunState(st: EngineState[IO]): Option[ActionState] =
+    st.sequences
+      .get(seqObsId1)
+      .flatMap: sd =>
+        sd.configActionCoord(stepId(1), Instrument.GmosNorth).map(sd.seq.getSingleState)
+
   /**
    * Drives the engine like `clientEventStream` does, including the ODB notification that the plain
    * `eventResultStream` used by other tests leaves out.
@@ -181,6 +187,30 @@ class StepFailureReportingSuite extends TestCommon {
             assert(!evs.contains(StepAbort(seqObsId1)), s"step abort was sent: $evs")
   }
 
+  test("configuring a subsystem after a failure runs it as a fresh step and records the run") {
+    Ref
+      .of[IO, Boolean](false)
+      .flatMap: failed =>
+        withRunningEngine(gmosFailingOnce(failed)): engine =>
+          val configure: ObserveEngine[IO] => IO[Unit] =
+            _.configureSubsystem(seqObsId1,
+                                 observer,
+                                 user,
+                                 stepId(1),
+                                 Instrument.GmosNorth,
+                                 clientId
+            )
+          for
+            s1 <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+            s2 <- engine.sendAndAwait(configure)(gmosSingleRunState(_).exists(_.completed))
+            s3 <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+          yield
+            assert(sequenceStatus(s1).exists(_.isError), s"status was ${sequenceStatus(s1)}")
+            assertEquals(sequenceStatus(s2), SequenceStatus.Idle.some)
+            assert(s2.sequences.get(seqObsId1).exists(_.seq.loadedStep.exists(_.done.isEmpty)))
+            assertEquals(sequenceStatus(s3), SequenceStatus.Completed.some)
+  }
+
   test("pausing an exposure sends a step pause and no step abort") {
     Deferred[IO, Unit].flatMap: pause =>
       withRunningEngine(gmosPausable(pause, ObserveCommandResult.Stopped.pure[IO])): engine =>
@@ -193,6 +223,21 @@ class StepFailureReportingSuite extends TestCommon {
           assert(observeActionState(s2).exists(_.paused))
           assert(evs.contains(StepPause(seqObsId1)), s"step pause was not sent: $evs")
           assert(!evs.contains(StepAbort(seqObsId1)), s"step abort was sent: $evs")
+  }
+
+  test("a subsystem cannot be configured while an exposure is paused") {
+    Deferred[IO, Unit].flatMap: pause =>
+      withRunningEngine(gmosPausable(pause, ObserveCommandResult.Stopped.pure[IO])): engine =>
+        val configure: ObserveEngine[IO] => IO[Unit] =
+          _.configureSubsystem(seqObsId1, observer, user, stepId(1), Instrument.GmosNorth, clientId)
+        for
+          _  <- engine.sendAndAwait(start)(observeActionState(_).exists(_.started))
+          _  <- engine.sendAndAwait(_.pauseExposure(seqObsId1, observer, user, graceful = false)):
+                  observeActionState(_).exists(_.paused)
+          s3 <- engine.sendAndAwait(configure)(_ => true)
+        yield
+          assert(observeActionState(s3).exists(_.paused), "the paused exposure was lost")
+          assertEquals(gmosSingleRunState(s3), ActionState.Idle.some)
   }
 
   test("a timeout while stopping a paused exposure fails the step without a step abort") {
