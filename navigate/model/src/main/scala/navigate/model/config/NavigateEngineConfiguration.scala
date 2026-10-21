@@ -18,7 +18,7 @@ trait GpiSettings
  * Configuration of the Navigate Engine
  * @param odb
  *   Location of the odb server
- * @param systemControl
+ * @param subsystemControlModes
  *   Control of the subsystems
  * @param odbNotifications
  *   Indicates if we notify the odb of sequence events
@@ -39,7 +39,7 @@ case class NavigateEngineConfiguration(
   odb:                     Uri,
   observe:                 Uri,
   ephemerisFolder:         Path,
-  systemControl:           SystemsControlConfiguration,
+  subsystemControlModes:   SubsystemControlModes,
   odbNotifications:        Boolean,
   odbQueuePollingInterval: FiniteDuration,
   tops:                    String,
@@ -53,7 +53,7 @@ object NavigateEngineConfiguration {
     uri"/odb",
     uri"/observe",
     Path("/"),
-    SystemsControlConfiguration.default,
+    SubsystemControlModes.default,
     false,
     FiniteDuration(1, TimeUnit.SECONDS),
     "",
