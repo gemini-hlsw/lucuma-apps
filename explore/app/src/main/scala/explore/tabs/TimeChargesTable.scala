@@ -17,6 +17,7 @@ import explore.model.enums.TableId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.User
+import lucuma.core.model.Visit
 import lucuma.core.model.sequence.TimeChargeCorrection
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
@@ -25,6 +26,8 @@ import lucuma.core.util.time.format.UtcFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Divider
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.*
 import lucuma.ui.format.DurationSpacedPaddedFormatter
 import lucuma.ui.primereact.*
@@ -38,14 +41,17 @@ case class TimeChargesTable(
   userId:     Option[User.Id],
   visits:     Option[List[VisitTimeCharge]],
   refreshing: Boolean,
-  refresh:    Callback
+  refresh:    Callback,
+  onCorrect:  Option[Visit.Id => Callback]
 ) extends ReactFnProps(TimeChargesTable.component)
 
 object TimeChargesTable:
   private given Reusability[List[VisitTimeCharge]] = Reusability.byEq
   private given Reusability[TimeCharges]           = Reusability.byEq
 
-  private val ColDef = ColumnDef[TimeChargeLine].WithTableMeta[Option[TimeSpan]]
+  private case class Meta(total: Option[TimeSpan], onCorrect: Option[Visit.Id => Callback])
+
+  private val ColDef = ColumnDef[TimeChargeLine].WithTableMeta[Meta]
 
   private val VisitColId: ColumnId    = ColumnId("visit")
   private val StartColId: ColumnId    = ColumnId("start")
@@ -68,6 +74,24 @@ object TimeChargesTable:
       case TimeChargeCorrection.Op.Add      => duration(c.amount)
       case TimeChargeCorrection.Op.Subtract => s"-${duration(c.amount)}"
 
+  // Every duration gets the same trailing slot so the amounts stay aligned with the buttons.
+  private def actionSlot(meta: Option[Meta], button: Option[VdomNode] = none): VdomNode =
+    meta
+      .flatMap(_.onCorrect)
+      .fold(EmptyVdom)(_ => <.span(ExploreStyles.TimeChargesAction)(button))
+
+  private def correctButton(meta: Option[Meta], visitId: Visit.Id): Option[VdomNode] =
+    meta
+      .flatMap(_.onCorrect)
+      .map: onCorrect =>
+        Button(
+          icon = Icons.ClockRotateLeftLight,
+          severity = Button.Severity.Secondary,
+          tooltip = "Add a time correction for this visit",
+          tooltipOptions = TooltipOptions(position = Tooltip.Position.Left),
+          onClick = onCorrect(visitId)
+        ).mini.compact
+
   private val Columns: Reusable[List[ColDef.Type]] =
     Reusable.always:
       List(
@@ -79,7 +103,8 @@ object TimeChargesTable:
           _.value match
             case TimeChargeLine.ForVisit(_, interval, _) =>
               interval.fold("-")(i => timestamp(i.start))
-            case TimeChargeLine.ForCorrection(_, _, c)   => correctionText(c)
+            case TimeChargeLine.ForCorrection(_, _, c)   =>
+              <.span(Icons.ClockRotateLeftLight, correctionText(c))
           ,
           enableSorting = true
         ),
@@ -99,11 +124,20 @@ object TimeChargesTable:
           DurationColId,
           identity,
           "Duration",
-          _.value match
-            case TimeChargeLine.ForVisit(_, _, d)      => duration(d)
-            case TimeChargeLine.ForCorrection(_, _, c) => correctionAmount(c)
+          cell =>
+            val meta = cell.table.options.meta
+            cell.value match
+              case TimeChargeLine.ForVisit(v, _, d)      =>
+                React.Fragment(duration(d), actionSlot(meta, correctButton(meta, v)))
+              case TimeChargeLine.ForCorrection(_, _, c) =>
+                React.Fragment(correctionAmount(c), actionSlot(meta))
           ,
-          footer = _.table.options.meta.flatten.fold(EmptyVdom)(t => duration(t)),
+          footer = cell =>
+            val meta = cell.table.options.meta
+            meta
+              .flatMap(_.total)
+              .fold(EmptyVdom)(t => React.Fragment(duration(t), actionSlot(meta)))
+          ,
           enableSorting = true
         )
       )
@@ -150,9 +184,12 @@ object TimeChargesTable:
                           Columns,
                           lines,
                           getRowId = (line, _, _) => lineId(line),
-                          meta = charges.value.collect:
-                            case TimeCharges.Rows(rows) => rows.total
-                          ,
+                          meta = Meta(
+                            charges.value.collect:
+                              case TimeCharges.Rows(rows) => rows.total
+                            ,
+                            props.onCorrect
+                          ),
                           enableSorting = true,
                           manualSorting = true,
                           state = tableState,
@@ -179,6 +216,12 @@ object TimeChargesTable:
               compact = Compact.Very,
               hoverableRows = false,
               tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.TimeChargesTable,
+              rowMod = rowTagMod: row =>
+                row.original match
+                  case TimeChargeLine.ForCorrection(_, _, _) =>
+                    ExploreStyles.TimeChargeCorrectionRow
+                  case _                                     => TagMod.empty
+              ,
               // A correction's description runs across the start and end columns.
               cellMod = (cell, _, render) =>
                 cell.row.original match

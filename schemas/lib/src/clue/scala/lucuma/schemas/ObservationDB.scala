@@ -220,6 +220,7 @@ trait ObservationDB {
     type StepType                            = enums.StepType
     type TacCategory                         = enums.TacCategory
     type TimeAccountingCategory              = enums.TimeAccountingCategory
+    type TimeChargeCorrectionOp              = TimeChargeCorrection.Op
     type TimingWindowInclusion               = enums.TimingWindowInclusion
     type TooActivation                       = enums.TooActivation
     type WaterVapor                          = enums.WaterVapor

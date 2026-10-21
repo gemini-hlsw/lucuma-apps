@@ -676,6 +676,11 @@ object ExploreStyles:
   val ObservationDetailsPriority: Css = Css("observation-details-priority")
   val TimeChargesSection: Css         = Css("time-charges-section")
   val TimeChargesTable: Css           = Css("time-charges-table")
+  val TimeChargeCorrectionRow: Css    = Css("time-charge-correction-row")
+  val TimeChargesAction: Css          = Css("time-charges-action")
+  val TimeCorrectionsForm: Css        = Css("time-corrections-form")
+  val TimeCorrectionsAmount: Css      = Css("time-corrections-amount")
+  val TimeCorrectionsApply: Css       = Css("time-corrections-apply")
   val ObservationDetailsTotal: Css    = Css("observation-details-total")
 
   // Program Tab

@@ -6,6 +6,7 @@ package explore.tabs
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.*
+import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -23,6 +24,7 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.User
+import lucuma.core.model.Visit
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -47,6 +49,7 @@ final case class ObservationDetailsTile(
   timeCharges:           Option[List[VisitTimeCharge]],
   refreshingCharges:     Boolean,
   refreshTimeCharges:    Callback,
+  canCorrectTime:        Boolean,
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
       ObsTabTileIds.DetailsId.id,
@@ -63,7 +66,9 @@ final case class ObservationDetailsTile(
 
 object ObservationDetailsTile
     extends TileComponent[ObservationDetailsTile]((props, _) =>
-      for ctx <- useContext(AppContext.ctx)
+      for
+        ctx           <- useContext(AppContext.ctx)
+        selectedVisit <- useStateView(none[Visit.Id])
       yield
         import ctx.given
 
@@ -231,8 +236,13 @@ object ObservationDetailsTile
             TimeChargesTable(props.userId,
                              props.timeCharges,
                              props.refreshingCharges,
-                             props.refreshTimeCharges
-            )
+                             props.refreshTimeCharges,
+                             Option.when(props.canCorrectTime)(v => selectedVisit.set(v.some))
+            ),
+            props.timeCharges
+              .filter(_ => props.canCorrectTime)
+              .filter(_.exists(_.nightRow.isDefined))
+              .map(TimeCorrectionsForm(_, selectedVisit, props.refreshTimeCharges))
           )
         )
     )

@@ -430,6 +430,10 @@ object Icons {
   val faHourglassClock: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-light-svg-icons", "faClockRotateLeft")
+  val faClockRotateLeftLight: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-regular-svg-icons", "faPlanetRinged")
   val faPlanetRinged: FAIcon = js.native
 
@@ -557,6 +561,7 @@ object Icons {
     faBookOpen,
     faLockKeyhole,
     faHourglassClock,
+    faClockRotateLeftLight,
     faPlanetRinged,
     faLocationDot,
     faObjectIntersect,
@@ -672,6 +677,7 @@ object Icons {
   val BookOpen                    = FontAwesomeIcon(faBookOpen)
   val LockKeyhole                 = FontAwesomeIcon(faLockKeyhole)
   val HourglassClock              = FontAwesomeIcon(faHourglassClock)
+  val ClockRotateLeftLight        = FontAwesomeIcon(faClockRotateLeftLight)
   val PlanetRinged                = FontAwesomeIcon(faPlanetRinged)
   val LocationDot                 = FontAwesomeIcon(faLocationDot)
   val ObjectIntersect             = FontAwesomeIcon(faObjectIntersect)
