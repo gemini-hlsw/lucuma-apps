@@ -54,7 +54,7 @@ object SequenceTab
                     _,
                     props.rootModel.data,
                     props.rootModel.clientConfig.toOption
-                      .map(_.subsystemControlModes)
+                      .map(_.subsystemControlModes.toMap)
                       .getOrElse(Map.empty),
                     renderExploreLinkToObs
                   )

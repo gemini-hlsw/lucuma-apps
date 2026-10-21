@@ -4,16 +4,17 @@
 package observe.model.enums
 
 import cats.syntax.all.*
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 
-enum SubsystemControlMode(val tag: String) derives Enumerated:
+enum SubsystemControlMode(val tag: String, val name: String) derives Enumerated, Display:
 
   // Subsystem will be fully controlled by Observe
-  case Full      extends SubsystemControlMode("full")
+  case Full      extends SubsystemControlMode("full", "Full control")
   // Observe connects to subsystem, but only to read values
-  case ReadOnly  extends SubsystemControlMode("readOnly")
+  case ReadOnly  extends SubsystemControlMode("readOnly", "Read only")
   // All subsystem interactions are internally simulated
-  case Simulated extends SubsystemControlMode("simulated")
+  case Simulated extends SubsystemControlMode("simulated", "Simulated")
 
 object SubsystemControlMode:
   extension (v: SubsystemControlMode)

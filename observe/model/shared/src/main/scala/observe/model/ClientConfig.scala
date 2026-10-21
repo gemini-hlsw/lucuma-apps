@@ -16,20 +16,21 @@ import lucuma.core.model.Program
 import lucuma.core.syntax.display.*
 import monocle.Focus
 import monocle.Lens
-import observe.model.enums.SubsystemControlMode
+import observe.model.config.SubsystemControlModes
 import org.http4s.Uri
 import org.http4s.circe.given
 
 case class ClientConfig(
-  site:                  Site,
-  environment:           ExecutionEnvironment,
-  odbUri:                Uri,
-  ssoUri:                Uri,
-  exploreBaseUri:        Uri,
-  clientId:              ClientId,
-  version:               Version,
-  subsystemControlModes: Map[Subsystem, SubsystemControlMode],
-  otelEndpoint:          Option[Uri]
+  site:                       Site,
+  environment:                ExecutionEnvironment,
+  odbUri:                     Uri,
+  ssoUri:                     Uri,
+  exploreBaseUri:             Uri,
+  clientId:                   ClientId,
+  version:                    Version,
+  subsystemControlModes:      SubsystemControlModes,
+  savedSubsystemControlModes: SubsystemControlModes,
+  otelEndpoint:               Option[Uri]
 ) derives Eq,
       Encoder.AsObject,
       Decoder:
@@ -42,4 +43,8 @@ case class ClientConfig(
     )
 
 object ClientConfig:
-  val clientId: Lens[ClientConfig, ClientId] = Focus[ClientConfig](_.clientId)
+  val clientId: Lens[ClientConfig, ClientId]                                = Focus[ClientConfig](_.clientId)
+  val subsystemControlModes: Lens[ClientConfig, SubsystemControlModes]      =
+    Focus[ClientConfig](_.subsystemControlModes)
+  val savedSubsystemControlModes: Lens[ClientConfig, SubsystemControlModes] =
+    Focus[ClientConfig](_.savedSubsystemControlModes)

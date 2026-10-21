@@ -23,7 +23,6 @@ trait ArbSubsystemControlModes {
         gcal    <- arbitrary[SubsystemControlMode]
         gmos    <- arbitrary[SubsystemControlMode]
         gnirs   <- arbitrary[SubsystemControlMode]
-        gpi     <- arbitrary[SubsystemControlMode]
         ghost   <- arbitrary[SubsystemControlMode]
         igrins2 <- arbitrary[SubsystemControlMode]
         gsaoi   <- arbitrary[SubsystemControlMode]
@@ -38,7 +37,6 @@ trait ArbSubsystemControlModes {
                                     gcal,
                                     gmos,
                                     gnirs,
-                                    gpi,
                                     ghost,
                                     igrins2,
                                     gsaoi,
@@ -75,8 +73,8 @@ trait ArbSubsystemControlModes {
        x.gcal,
        x.gmos,
        x.gnirs,
-       x.gpi,
        x.ghost,
+       x.igrins2,
        x.gsaoi,
        x.gws,
        x.nifs,

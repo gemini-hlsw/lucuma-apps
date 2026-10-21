@@ -5,6 +5,7 @@ package observe.server
 
 import cats.Endo
 import cats.Monad
+import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.effect.MonadCancelThrow
 import cats.effect.Ref
@@ -29,12 +30,14 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
+import lucuma.core.util.Enumerated
 import monocle.Lens
 import mouse.all.*
 import observe.model.*
 import observe.model.config.*
 import observe.model.enums.BatchExecState
 import observe.model.enums.RunOverride
+import observe.model.given
 import observe.server.engine.*
 import observe.server.engine.Event
 import observe.server.engine.Handle.given
@@ -246,6 +249,12 @@ trait ObserveEngine[F[_]] {
     clientID:  ClientId
   ): F[Unit]
 
+  /**
+   * Requests a server restart. `shutdown` is run, inside the engine, only if nothing is running or
+   * reserved; otherwise the client gets a `RestartRefused` notification and nothing happens.
+   */
+  def requestRestart(user: User, clientId: ClientId, shutdown: F[Unit]): F[Unit]
+
   def clientEventStream: Stream[F, TargetedClientEvent]
 
   // Used by tests
@@ -323,6 +332,24 @@ object ObserveEngine {
     runningQs.map(reserved).toList.foldK
 
   }
+
+  /**
+   * Human readable reasons why the server cannot be restarted right now. None if nothing is
+   * running, being configured or reserved by a running queue.
+   */
+  def restartBlockers[F[_]](st: EngineState[F]): Option[NonEmptyList[String]] =
+    val sequences: List[String]   =
+      observations(st).filter(_.seq.status.isRunning).map(s => s"Sequence ${s.obsId} is running")
+    val configuring: List[String] =
+      subsystemsBeingConfigured(st).toList.map: subsystem =>
+        s"${Enumerated[Subsystem].tag(subsystem)} is being configured"
+    val queues: List[String]      =
+      if st.queues.values.exists(_.status.running) then List("A queue is running") else Nil
+    NonEmptyList
+      .fromList(sequences ++ configuring ++ queues)
+      .orElse:
+        Option.when(subsystemsInUse(st).nonEmpty || subsystemsReserved(st).nonEmpty):
+          NonEmptyList.one("The server is busy")
 
   /**
    * Creates a stream that will follow a heartbeat and raise an error if the heartbeat doesn't get

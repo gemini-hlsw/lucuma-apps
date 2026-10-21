@@ -19,6 +19,7 @@ import observe.model.ClientId
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.SubsystemEnabled
+import observe.model.config.SubsystemControlModes
 import observe.ui.model.enums.ApiStatus
 import org.http4s.*
 import org.http4s.Uri.Path
@@ -81,5 +82,11 @@ case class ConfigApiImpl(
       Uri.Path.empty / obsId.toString / client.clientId.value / "dhsEnabled" / enabled.value,
       ""
     )
+
+  override def saveSystemControl(config: SubsystemControlModes): IO[Unit] =
+    request(Uri.Path.empty / "subsystems", config)
+
+  override def restartServer: IO[Unit] =
+    request(Uri.Path.empty / "subsystems" / client.clientId.value / "restart", "")
 
   override def isBusy: Boolean = apiStatus.get == ApiStatus.Busy

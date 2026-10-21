@@ -3,6 +3,7 @@
 
 package observe.model.arb
 
+import cats.data.NonEmptyList
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -82,6 +83,16 @@ trait ArbNotification {
   given afCogen: Cogen[ActionFailed] =
     Cogen[(Observation.Id, String, String)].contramap(x => (x.obsId, x.action, x.msg))
 
+  given rrArb: Arbitrary[RestartRefused] = Arbitrary[RestartRefused] {
+    for
+      head <- arbitrary[String]
+      tail <- arbitrary[List[String]]
+    yield RestartRefused(NonEmptyList(head, tail))
+  }
+
+  given rrCogen: Cogen[RestartRefused] =
+    Cogen[List[String]].contramap(_.reasons.toList)
+
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {
       r <- arbitrary[SubsystemConflict]
@@ -90,7 +101,8 @@ trait ArbNotification {
       b <- arbitrary[SubsystemBusy]
       n <- arbitrary[SequenceNotIdle]
       x <- arbitrary[ActionFailed]
-      s <- Gen.oneOf(r, a, f, b, n, x)
+      y <- arbitrary[RestartRefused]
+      s <- Gen.oneOf(r, a, f, b, n, x, y)
     } yield s
   }
 
@@ -100,7 +112,9 @@ trait ArbNotification {
         SubsystemConflict,
         Either[
           InstrumentInUse,
-          Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle, ActionFailed]]]
+          Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle, Either[ActionFailed,
+                                                                                     RestartRefused
+          ]]]]
         ]
       ]
     ]
@@ -110,7 +124,8 @@ trait ArbNotification {
         case f: LoadingFailed     => Right(Right(Left(f)))
         case b: SubsystemBusy     => Right(Right(Right(Left(b))))
         case n: SequenceNotIdle   => Right(Right(Right(Right(Left(n)))))
-        case x: ActionFailed      => Right(Right(Right(Right(Right(x)))))
+        case x: ActionFailed      => Right(Right(Right(Right(Right(Left(x))))))
+        case y: RestartRefused    => Right(Right(Right(Right(Right(Right(y))))))
       }
 
 }

@@ -11,10 +11,9 @@ import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbNewType.given
 import observe.model.ClientConfig
 import observe.model.ClientId
-import observe.model.Subsystem
 import observe.model.Version
-import observe.model.arb.ArbSubsystem.given
-import observe.model.enums.SubsystemControlMode
+import observe.model.config.SubsystemControlModes
+import observe.model.config.arb.ArbSubsystemControlModes.given
 import org.http4s.Uri
 import org.http4s.laws.discipline.arbitrary.http4sTestingCogenForUri
 import org.scalacheck.Arbitrary
@@ -34,15 +33,16 @@ trait ArbClientConfig:
 
   given Arbitrary[ClientConfig] = Arbitrary:
     for
-      site                  <- arbitrary[Site]
-      environment           <- arbitrary[ExecutionEnvironment]
-      odbUri                <- arbitrary[Uri]
-      ssoUri                <- arbitrary[Uri]
-      exploreBaseUri        <- arbitrary[Uri]
-      clientId              <- arbitrary[ClientId]
-      version               <- arbitrary[Version]
-      subsystemControlModes <- arbitrary[Map[Subsystem, SubsystemControlMode]]
-      otelEndpoint          <- arbitrary[Option[Uri]]
+      site                       <- arbitrary[Site]
+      environment                <- arbitrary[ExecutionEnvironment]
+      odbUri                     <- arbitrary[Uri]
+      ssoUri                     <- arbitrary[Uri]
+      exploreBaseUri             <- arbitrary[Uri]
+      clientId                   <- arbitrary[ClientId]
+      version                    <- arbitrary[Version]
+      subsystemControlModes      <- arbitrary[SubsystemControlModes]
+      savedSubsystemControlModes <- arbitrary[SubsystemControlModes]
+      otelEndpoint               <- arbitrary[Option[Uri]]
     yield ClientConfig(
       site,
       environment,
@@ -52,6 +52,7 @@ trait ArbClientConfig:
       clientId,
       version,
       subsystemControlModes,
+      savedSubsystemControlModes,
       otelEndpoint
     )
 
@@ -64,7 +65,8 @@ trait ArbClientConfig:
        Uri,
        ClientId,
        Version,
-       List[(Subsystem, SubsystemControlMode)],
+       SubsystemControlModes,
+       SubsystemControlModes,
        Option[Uri]
       )
     ].contramap(x =>
@@ -75,7 +77,8 @@ trait ArbClientConfig:
        x.exploreBaseUri,
        x.clientId,
        x.version,
-       x.subsystemControlModes.toList,
+       x.subsystemControlModes,
+       x.savedSubsystemControlModes,
        x.otelEndpoint
       )
     )

@@ -4,6 +4,7 @@
 package observe.model
 
 import cats.Eq
+import cats.data.NonEmptyList
 import cats.derived.*
 import io.circe.Decoder
 import io.circe.Encoder
@@ -24,3 +25,5 @@ enum Notification derives Eq, Encoder, Decoder:
   case SequenceNotIdle(obsId: Observation.Id, action: String)           extends Notification
   // Notification that a command on a loaded sequence failed; the sequence itself stays loaded
   case ActionFailed(obsId: Observation.Id, action: String, msg: String) extends Notification
+  // Notification that a server restart was refused because something is still running
+  case RestartRefused(reasons: NonEmptyList[String])                    extends Notification

@@ -201,6 +201,9 @@ class TestObserveEngine[F[_]: Sync](sys: Services[F]) extends ObserveEngine[F] {
     clientID: ClientId
   ): F[Unit] = Applicative[F].unit
 
+  override def requestRestart(user: User, clientId: ClientId, shutdown: F[Unit]): F[Unit] =
+    shutdown
+
   override def clientEventStream: fs2.Stream[F, TargetedClientEvent] = Stream.empty
 
   override def eventResultStream(

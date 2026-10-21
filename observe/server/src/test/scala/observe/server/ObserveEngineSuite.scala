@@ -39,6 +39,7 @@ import observe.common.test.*
 import observe.model
 import observe.model.ClientId
 import observe.model.CurrentConditions
+import observe.model.Notification
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.SequenceStatus
@@ -1790,5 +1791,47 @@ class ObserveEngineSuite extends TestCommon {
       }
       assertEquals(rest.length, 0)
     }
+  }
+
+  private val restartDone: PartialFunction[(EventResult, EngineState[IO]), Boolean] =
+    case (EventResult.UserCommandResponse(_, _, Some(SeqEvent.NullSeqEvent)), _)     => true
+    case (EventResult.UserCommandResponse(_, _, Some(SeqEvent.NotifyUser(_, _))), _) => true
+
+  test("ObserveEngine requestRestart runs shutdown when the engine is idle") {
+    for
+      (_, oe) <- bothEngines()
+      flag    <- Ref.of[IO, Boolean](false)
+      eo       = EngineObserver(oe)
+      _       <- eo.executeAndWait(_.requestRestart(user, clientId, flag.set(true)), restartDone)
+      ran     <- flag.get
+    yield assert(ran, "shutdown should have run")
+  }
+
+  test("ObserveEngine requestRestart is refused while a sequence is running") {
+    val s0: EngineState[IO] =
+      EngineState
+        .atSequence[IO](seqObsId1)
+        .andThen(SequenceData.seq[IO])
+        .andThen(SequenceState.status[IO])
+        .replace(SequenceStatus.Running.Init)(
+          loadDefaultSequence(seqObsId1).apply(EngineState.default[IO])
+        )
+    for
+      (_, oe) <- bothEngines()
+      flag    <- Ref.of[IO, Boolean](false)
+      eo       = EngineObserver(oe, s0)
+      res     <- eo.executeAndWait(_.requestRestart(user, clientId, flag.set(true)), restartDone)
+      ran     <- flag.get
+    yield
+      assert(!ran, "shutdown must not run while a sequence is running")
+      res._1 match
+        case EventResult.UserCommandResponse(
+              _,
+              _,
+              Some(SeqEvent.NotifyUser(Notification.RestartRefused(reasons), cid))
+            ) =>
+          assertEquals(cid, clientId)
+          assertEquals(reasons, NonEmptyList.one(s"Sequence $seqObsId1 is running"))
+        case other => fail(s"Unexpected result: $other")
   }
 }

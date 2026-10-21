@@ -193,6 +193,8 @@ trait ServerEventHandler:
         IO.unit
       case ClientEvent.InitialEvent(cc)                                                   =>
         clientConfigMod(_ => cc.ready)
+      case ClientEvent.SubsystemControlModesSaved(config)                                 =>
+        clientConfigMod(_.map(ClientConfig.savedSubsystemControlModes.replace(config)))
       case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error)          =>
         rootModelDataMod(
           (RootModelData.executionState
@@ -328,6 +330,8 @@ trait ServerEventHandler:
             case Notification.ActionFailed(obsId, action, msg)        =>
               clearAcquisitionRequests(obsId)
                 .as(List(s"Could not $action for observation $obsId: $msg"))
+            case Notification.RestartRefused(reasons)                 =>
+              ("Restart refused" :: reasons.toList).pure[IO]
             case Notification.SubsystemBusy(obsId, stepId, subsystem) =>
               List(
                 s"Error in observation $obsId, step $stepId: Subsystem $subsystem already in use"

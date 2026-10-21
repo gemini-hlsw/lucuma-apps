@@ -27,6 +27,8 @@ import observe.model.SequencesQueue
 import observe.model.Subsystem
 import observe.model.UserPrompt.ChecksOverride
 import observe.model.arb.ObserveModelArbitraries.given
+import observe.model.config.SubsystemControlModes
+import observe.model.config.arb.ArbSubsystemControlModes.given
 import observe.model.events.*
 import observe.model.events.ClientEvent.SingleActionState
 import observe.model.odb.ObsRecordedIds
@@ -161,6 +163,12 @@ trait ArbClientEvent:
   given Cogen[ClientEvent.GuideConfigEvent] =
     Cogen[GuideConfig].contramap(_.config)
 
+  given Arbitrary[ClientEvent.SubsystemControlModesSaved] = Arbitrary:
+    arbitrary[SubsystemControlModes].map(ClientEvent.SubsystemControlModesSaved(_))
+
+  given Cogen[ClientEvent.SubsystemControlModesSaved] =
+    Cogen[SubsystemControlModes].contramap(_.config)
+
   given Arbitrary[ClientEvent] = Arbitrary:
     Gen.oneOf(
       arbitrary[ClientEvent.InitialEvent],
@@ -177,7 +185,8 @@ trait ArbClientEvent:
       arbitrary[ClientEvent.LogEvent],
       arbitrary[ClientEvent.SequenceComplete],
       arbitrary[ClientEvent.SequenceFailed],
-      arbitrary[ClientEvent.GuideConfigEvent]
+      arbitrary[ClientEvent.GuideConfigEvent],
+      arbitrary[ClientEvent.SubsystemControlModesSaved]
     )
 
   given Cogen[ClientEvent] =
@@ -213,7 +222,10 @@ trait ArbClientEvent:
                                   ClientEvent.SequenceComplete,
                                   Either[
                                     ClientEvent.SequenceFailed,
-                                    ClientEvent.GuideConfigEvent
+                                    Either[
+                                      ClientEvent.GuideConfigEvent,
+                                      ClientEvent.SubsystemControlModesSaved
+                                    ]
                                   ]
                                 ]
                               ]
@@ -279,7 +291,23 @@ trait ArbClientEvent:
             Right(
               Right(
                 Right(
-                  Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(e)))))))))))
+                  Right(
+                    Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e)))))))))))
+                  )
+                )
+              )
+            )
+          )
+        )
+      case e @ ClientEvent.SubsystemControlModesSaved(_)    =>
+        Right(
+          Right(
+            Right(
+              Right(
+                Right(
+                  Right(
+                    Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(e)))))))))))
+                  )
                 )
               )
             )

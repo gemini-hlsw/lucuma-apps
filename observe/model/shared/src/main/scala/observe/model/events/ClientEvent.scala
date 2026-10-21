@@ -28,6 +28,7 @@ import observe.model.SequenceView
 import observe.model.SequencesQueue
 import observe.model.Subsystem
 import observe.model.UserPrompt.ChecksOverride
+import observe.model.config.SubsystemControlModes
 import observe.model.given
 import observe.model.odb.ObsRecordedIds
 
@@ -104,3 +105,6 @@ object ClientEvent:
       derives Eq
 
   case class GuideConfigEvent(config: GuideConfig) extends AllClientEvent derives Eq
+
+  case class SubsystemControlModesSaved(config: SubsystemControlModes) extends AllClientEvent
+      derives Eq
