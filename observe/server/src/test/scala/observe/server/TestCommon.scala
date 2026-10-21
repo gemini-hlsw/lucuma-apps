@@ -176,7 +176,6 @@ object TestCommon {
       gcal = SubsystemControlMode.Simulated,
       gmos = SubsystemControlMode.Simulated,
       gnirs = SubsystemControlMode.Simulated,
-      gpi = SubsystemControlMode.Simulated,
       ghost = SubsystemControlMode.Simulated,
       igrins2 = SubsystemControlMode.Simulated,
       gsaoi = SubsystemControlMode.Simulated,

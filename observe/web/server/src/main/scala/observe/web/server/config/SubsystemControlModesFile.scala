@@ -70,6 +70,9 @@ object SubsystemControlModesFile:
           )
       val content                = header(Instant.now, user) + rendered
       val dir                    = Option(path.getParent).getOrElse(Path.of("."))
+      // Written directly rather than with pureconfig's `saveConfigAsPropertyFileF`: up to 0.17.11 it
+      // leaves trailing NUL bytes in the file, which then fails to parse. Fixed by
+      // https://github.com/pureconfig/pureconfig/pull/2018; we can switch once it is released.
       Files.createDirectories(dir)
       val tmp                    = Files.createTempFile(dir, "subsystems", ".conf.tmp")
       try

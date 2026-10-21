@@ -32,23 +32,8 @@ class SubsystemControlModesRoutesSuite extends munit.CatsEffectSuite with TestRo
   private val clientId: ClientId = ClientId(UUID.randomUUID())
 
   private val Initial: SubsystemControlModes =
-    SubsystemControlModes(
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated,
-      SubsystemControlMode.Simulated
-    )
+    val s: SubsystemControlMode = SubsystemControlMode.Simulated
+    SubsystemControlModes(s, s, s, s, s, s, s, s, s, s, s, s, s, s)
 
   private val NoUser: AbstractSsoClient[IO, User] = new AbstractSsoClient[IO, User]:
     override def get(authorization: Authorization): IO[Either[String, User]] =

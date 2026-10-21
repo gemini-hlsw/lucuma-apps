@@ -69,14 +69,13 @@ given ConfigReader[SubsystemControlModes] = ConfigReader.derived
 given ConfigWriter[SubsystemControlMode] = ConfigWriter[String].contramap(_.tag)
 
 // pureconfig has no Scala 3 derivation of writers for case classes. Keys come from the fields of
-// SubsystemControlModes (kebab case, as the derived reader expects); GPI is in no site.
+// SubsystemControlModes (kebab case, as the derived reader expects).
 given ConfigWriter[SubsystemControlModes] =
   ConfigWriter.fromFunction: modes =>
     val fields: List[(String, SubsystemControlMode)] =
       (SubsystemControlModes.CommonFields ++
         SubsystemControlModes.NorthFields ++
-        SubsystemControlModes.SouthFields).map(f => f.configKey -> f.mode.get(modes)) :+
-        ("gpi" -> modes.gpi)
+        SubsystemControlModes.SouthFields).map(f => f.configKey -> f.mode.get(modes))
     ConfigValueFactory.fromMap(fields.map((k, v) => k -> v.tag).toMap.asJava)
 
 given ConfigReader[GpiUriSettings] = ConfigReader[Uri].map(GpiUriSettings.apply)

@@ -26,7 +26,6 @@ class SubsystemControlModesFileSuite extends munit.CatsEffectSuite:
       gcal = SubsystemControlMode.ReadOnly,
       gmos = SubsystemControlMode.Full,
       gnirs = SubsystemControlMode.Full,
-      gpi = SubsystemControlMode.Full,
       ghost = SubsystemControlMode.Full,
       igrins2 = SubsystemControlMode.ReadOnly,
       gsaoi = SubsystemControlMode.Full,
@@ -73,7 +72,7 @@ class SubsystemControlModesFileSuite extends munit.CatsEffectSuite:
   ): SubsystemControlModes =
     SubsystemControlModes
       .fieldsFor(site)
-      .foldLeft(AllSimulated.copy(gpi = SubsystemControlMode.Simulated)): (c, f) =>
+      .foldLeft(AllSimulated): (c, f) =>
         f.mode.replace(f.mode.get(written))(c)
 
   List(Site.GS, Site.GN).foreach: site =>
@@ -124,6 +123,18 @@ class SubsystemControlModesFileSuite extends munit.CatsEffectSuite:
       assertEquals(parsed.getString(s"$ConfigPath.tcs"), "full")
       assertEquals(writtenKeys(file), expectedKeys(Site.GS))
       assertEquals(second, first)
+
+  TempDir.test("the header is written once, at the top, and replaced on rewrite"): dir =>
+    val file: Path = dir.resolve("subsystems.conf")
+    for
+      _     <- SubsystemControlModesFile.write[IO](file, Site.GS, AllFull, "first")
+      _     <- SubsystemControlModesFile.write[IO](file, Site.GS, AllFull, "second")
+      lines <- IO.delay(Files.readAllLines(file).asScala.toList.map(_.trim))
+    yield
+      val headers: List[String] = lines.filter(_.contains("Written by Observe"))
+      assertEquals(headers.length, 1)
+      assert(headers.head.endsWith("by second."), headers.head)
+      assert(lines.head.startsWith("#"), lines.head)
 
   TempDir.test("creates the parent directory and leaves no temporary files"): dir =>
     val file = dir.resolve("conf").resolve("local").resolve("subsystems.conf")

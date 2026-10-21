@@ -27,7 +27,6 @@ case class SubsystemControlModes(
   gcal:       SubsystemControlMode,
   gmos:       SubsystemControlMode,
   gnirs:      SubsystemControlMode,
-  gpi:        SubsystemControlMode,
   ghost:      SubsystemControlMode,
   igrins2:    SubsystemControlMode,
   gsaoi:      SubsystemControlMode,
@@ -86,8 +85,6 @@ object SubsystemControlModes:
     Focus[SubsystemControlModes](_.gmos)
   val Gnirs: Lens[SubsystemControlModes, SubsystemControlMode]      =
     Focus[SubsystemControlModes](_.gnirs)
-  val Gpi: Lens[SubsystemControlModes, SubsystemControlMode]        =
-    Focus[SubsystemControlModes](_.gpi)
   val Ghost: Lens[SubsystemControlModes, SubsystemControlMode]      =
     Focus[SubsystemControlModes](_.ghost)
   val Igrins2: Lens[SubsystemControlModes, SubsystemControlMode]    =
