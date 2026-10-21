@@ -13,6 +13,7 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.TimeChargeRow
 import explore.model.VisitTimeCharge
 import explore.model.inputCodecs
 import explore.syntax.ui.*
@@ -27,23 +28,23 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Divider
 import lucuma.react.primereact.SelectItem
 import lucuma.refined.*
+import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.effect.*
 
 import java.util.concurrent.TimeUnit
+import scala.scalajs.js.JSConverters.*
 
 case class TimeCorrectionsForm(
   visits:    List[VisitTimeCharge],
   onApplied: Callback
 ) extends ReactFnProps(TimeCorrectionsForm.component):
   // Only visits listed in the time charges table can be corrected, newest first.
-  val visitIds: List[Visit.Id] =
-    visits
-      .filter(_.nightRow.isDefined)
-      .sortBy(_.interval.map(_.start))
-      .reverse
-      .map(_.visitId)
+  val rows: List[TimeChargeRow] =
+    visits.flatMap(_.nightRow).sortBy(_.interval.map(_.start)).reverse
+
+  val visitIds: List[Visit.Id] = rows.map(_.visitId)
 
 object TimeCorrectionsForm:
   private given Display[TimeChargeCorrection.Op] = Display.byShortName(_.name)
@@ -65,9 +66,21 @@ object TimeCorrectionsForm:
       val visit: Option[Visit.Id] =
         selected.get.filter(props.visitIds.contains).orElse(props.visitIds.headOption)
 
+      // The ODB stops a visit's charge at zero but records the full amount, so a subtraction is
+      // capped at what the visit is charged now.
+      val maxAmount: Option[TimeSpan] =
+        Option
+          .when(op.get === TimeChargeCorrection.Op.Subtract)(visit)
+          .flatten
+          .flatMap(v => props.rows.find(_.visitId === v))
+          .map(_.charged)
+
+      val cappedAmount: View[TimeSpan] =
+        amount.zoom(a => maxAmount.fold(a)(a.min))(f => a => f(maxAmount.fold(a)(a.min)))
+
       def apply(visitId: Visit.Id): Callback =
         (ctx.odbApi
-          .addTimeChargeCorrection(visitId, op.get, amount.get, comment.get.map(_.value))
+          .addTimeChargeCorrection(visitId, op.get, cappedAmount.get, comment.get.map(_.value))
           .toastErrors
           .switching(applying.async) >>
           (amount.set(TimeSpan.Zero) >> comment.set(none) >> props.onApplied).toAsync).runAsync
@@ -93,9 +106,13 @@ object TimeCorrectionsForm:
             ),
             FormTimeSpanInput(
               id = "time-correction-amount".refined,
-              value = amount,
+              value = cappedAmount,
               units = AmountUnits,
-              disabled = applying.get
+              max = maxAmount.orUndefined,
+              disabled = applying.get,
+              tooltip = maxAmount
+                .map(m => s"At most ${DurationSpacedFormatter(m.toDuration)} can be subtracted")
+                .orUndefined
             )
           ),
           FormInputTextView(
@@ -109,7 +126,7 @@ object TimeCorrectionsForm:
             label = "Apply",
             severity = Button.Severity.Secondary,
             loading = applying.get,
-            disabled = applying.get || amount.get.isZero || visit.isEmpty,
+            disabled = applying.get || cappedAmount.get.isZero || visit.isEmpty,
             onClick = visit.fold(Callback.empty)(apply),
             clazz = ExploreStyles.TimeCorrectionsApply
           ).mini.compact

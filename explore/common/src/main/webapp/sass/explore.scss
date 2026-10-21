@@ -4700,6 +4700,12 @@ a.explore-upgrade-link {
       align-items: center;
       gap: 0.5em;
 
+      .p-selectbutton {
+        display: flex;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+
       .p-button {
         padding: 0 0.6em;
       }
