@@ -4752,6 +4752,21 @@ a.explore-upgrade-link {
   tfoot td {
     font-weight: bold;
   }
+
+  .time-charges-action {
+    display: inline-block;
+    width: 2em;
+    text-align: center;
+  }
+
+  .time-charge-correction-row td {
+    font-style: italic;
+    color: var(--text-color-secondary);
+
+    svg {
+      margin-right: 0.4em;
+    }
+  }
 }
 
 // Program Tab

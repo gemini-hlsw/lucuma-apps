@@ -37,8 +37,9 @@ import java.util.concurrent.TimeUnit
 import scala.scalajs.js.JSConverters.*
 
 case class TimeCorrectionsForm(
-  visits:    List[VisitTimeCharge],
-  onApplied: Callback
+  visits:        List[VisitTimeCharge],
+  selectedVisit: View[Option[Visit.Id]],
+  onApplied:     Callback
 ) extends ReactFnProps(TimeCorrectionsForm.component):
   // Only visits listed in the time charges table can be corrected, newest first.
   val rows: List[TimeChargeRow] =
@@ -55,7 +56,6 @@ object TimeCorrectionsForm:
   private val component = ScalaFnComponent[TimeCorrectionsForm]: props =>
     for
       ctx      <- useContext(AppContext.ctx)
-      selected <- useStateView(none[Visit.Id])
       op       <- useStateView(TimeChargeCorrection.Op.Subtract)
       amount   <- useStateView(TimeSpan.Zero)
       comment  <- useStateView(none[NonEmptyString])
@@ -64,7 +64,7 @@ object TimeCorrectionsForm:
       import ctx.given
 
       val visit: Option[Visit.Id] =
-        selected.get.filter(props.visitIds.contains).orElse(props.visitIds.headOption)
+        props.selectedVisit.get.filter(props.visitIds.contains).orElse(props.visitIds.headOption)
 
       // The ODB stops a visit's charge at zero but records the full amount, so a subtraction is
       // capped at what the visit is charged now.
@@ -95,7 +95,7 @@ object TimeCorrectionsForm:
             options = props.visitIds.map(v => SelectItem(v, v.show)),
             label = "Visit",
             disabled = applying.get,
-            onChange = selected.set
+            onChange = props.selectedVisit.set
           ),
           FormLabel(htmlFor = "time-correction-amount".refined)("Amount"),
           <.div(ExploreStyles.TimeCorrectionsAmount)(
