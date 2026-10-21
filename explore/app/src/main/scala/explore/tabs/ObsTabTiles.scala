@@ -544,6 +544,7 @@ object ObsTabTiles:
             timeCharges.value.toOption,
             timeCharges.isRunning,
             timeCharges.refresh,
+            props.isStaffOrAdminUser,
             props.obsIsReadonly
           )
 

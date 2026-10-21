@@ -7,13 +7,21 @@ import cats.effect.Resource
 import cats.effect.Sync
 import cats.syntax.all.*
 import clue.StreamingClient
+import clue.data.syntax.*
 import clue.syntax.*
 import explore.model.VisitTimeCharge
+import lucuma.core.enums.ChargeClass
 import lucuma.core.enums.StepStage
 import lucuma.core.model.Observation
+import lucuma.core.model.Visit
+import lucuma.core.model.sequence.TimeChargeCorrection
+import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.ObservationDB.Types.AddTimeChargeCorrectionInput
+import lucuma.schemas.ObservationDB.Types.TimeChargeCorrectionInput
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.odb.VisitQueriesGQL.ObservationVisits
+import lucuma.schemas.odb.input.*
 import queries.common.ObsQueriesGQL.*
 import queries.common.ObsQueriesGQL.StepEventSubscription.Data.ExecutionEventAdded
 
@@ -29,6 +37,21 @@ trait OdbVisitApiImpl[F[_]: Sync](using StreamingClient[F, ObservationDB]) exten
       .query(obsId)
       .raiseGraphQLErrors
       .map(_.observation.foldMap(_.execution.visits.matches))
+
+  def addTimeChargeCorrection(
+    visitId: Visit.Id,
+    op:      TimeChargeCorrection.Op,
+    amount:  TimeSpan,
+    comment: Option[String]
+  ): F[Unit] =
+    AddTimeChargeCorrectionMutation[F]
+      .execute:
+        AddTimeChargeCorrectionInput(
+          visitId,
+          TimeChargeCorrectionInput(ChargeClass.Program, op, amount.toInput, comment.orIgnore)
+        )
+      .raiseGraphQLErrors
+      .void
 
   def stepEventSubscription(
     obsId: Observation.Id

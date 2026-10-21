@@ -6,12 +6,21 @@ package explore.services
 import cats.effect.Resource
 import explore.model.VisitTimeCharge
 import lucuma.core.model.Observation
+import lucuma.core.model.Visit
+import lucuma.core.model.sequence.TimeChargeCorrection
+import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.ExecutionVisits
 import queries.common.ObsQueriesGQL.*
 
 trait OdbVisitApi[F[_]]:
   def observationVisits(obsId:      Observation.Id): F[Option[ExecutionVisits]]
   def observationTimeCharges(obsId: Observation.Id): F[List[VisitTimeCharge]]
+  def addTimeChargeCorrection(
+    visitId: Visit.Id,
+    op:      TimeChargeCorrection.Op,
+    amount:  TimeSpan,
+    comment: Option[String]
+  ): F[Unit]
   def stepEventSubscription(
     obsId: Observation.Id
   ): Resource[F, fs2.Stream[F, StepEventSubscription.Data]]

@@ -4689,8 +4689,34 @@ a.explore-upgrade-link {
     }
   }
 
+  .time-corrections-form {
+    display: grid;
+    grid-template-columns: [label] auto [value] 1fr;
+    gap: 0.25em 1em;
+    align-items: center;
+
+    .time-corrections-amount {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+
+      .p-button {
+        padding: 0 0.6em;
+      }
+    }
+
+    .time-corrections-apply {
+      grid-column: value;
+      justify-self: end;
+    }
+  }
+
   @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
     flex-flow: row wrap;
+
+    .time-corrections-form {
+      max-width: 50%;
+    }
 
     .observation-details-column {
       flex: 1;

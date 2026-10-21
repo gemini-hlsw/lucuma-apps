@@ -206,6 +206,16 @@ object ObsQueriesGQL:
     """
 
   @GraphQL
+  trait AddTimeChargeCorrectionMutation extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation ($$input: AddTimeChargeCorrectionInput!) {
+        addTimeChargeCorrection(input: $$input) {
+          timeChargeInvoice { __typename }
+        }
+      }
+    """
+
+  @GraphQL
   trait SetBlindOffsetMutation extends GraphQLOperation[ObservationDB]:
     val document = gql"""
       mutation(

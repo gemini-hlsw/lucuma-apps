@@ -47,6 +47,7 @@ final case class ObservationDetailsTile(
   timeCharges:           Option[List[VisitTimeCharge]],
   refreshingCharges:     Boolean,
   refreshTimeCharges:    Callback,
+  canCorrectTime:        Boolean,
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
       ObsTabTileIds.DetailsId.id,
@@ -232,7 +233,11 @@ object ObservationDetailsTile
                              props.timeCharges,
                              props.refreshingCharges,
                              props.refreshTimeCharges
-            )
+            ),
+            props.timeCharges
+              .filter(_ => props.canCorrectTime)
+              .filter(_.exists(_.nightRow.isDefined))
+              .map(TimeCorrectionsForm(_, props.refreshTimeCharges))
           )
         )
     )
