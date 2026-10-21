@@ -37,6 +37,8 @@ object SequenceStyles:
   val OffsetInput           = Css("lucuma-sequence-offset-input")
   val GuidingToggle         = Css("lucuma-sequence-guiding-toggle")
   val SaturatedCell         = Css("lucuma-sequence-saturated-cell")
+  val StepIndexCell         = Css("lucuma-sequence-step-index-cell")
+  val StepIndexNumber       = Css("lucuma-sequence-step-index-number")
 
   val CurrentHeader = Css("lucuma-sequence-current-header")
 

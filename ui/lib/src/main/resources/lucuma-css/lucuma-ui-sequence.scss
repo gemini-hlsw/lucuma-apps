@@ -119,6 +119,18 @@
   color: var(--sequence-step-guided-selected-color);
 }
 
+.lucuma-sequence-step-index-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.lucuma-sequence-step-index-number {
+  min-width: 3ch;
+  text-align: right;
+}
+
 .lucuma-sequence-step-type-object {
   color: var(--green-500);
 }
