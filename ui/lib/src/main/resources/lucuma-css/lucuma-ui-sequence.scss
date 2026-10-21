@@ -82,6 +82,12 @@
     border: 0;
     background-color: transparent;
 
+    // Fill the cell instead of shrinking to content, which overflows into an ellipsis.
+    &.p-togglebutton {
+      display: flex;
+      width: 100%;
+    }
+
     // The box carries the affordance, so it reads as editable like the inputs do.
     &.p-button {
       box-sizing: border-box;
@@ -117,6 +123,18 @@
 
 .p-togglebutton.p-highlight .lucuma-sequence-step-guided {
   color: var(--sequence-step-guided-selected-color);
+}
+
+.lucuma-sequence-step-index-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.lucuma-sequence-step-index-number {
+  min-width: 3ch;
+  text-align: right;
 }
 
 .lucuma-sequence-step-type-object {

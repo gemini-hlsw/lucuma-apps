@@ -138,8 +138,8 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         .getOrElse((none, none)),
       header = "Step",
       cell = c =>
-        React.Fragment(
-          c.value._1.map(_.value.value),
+        <.span(SequenceStyles.StepIndexCell)(
+          <.span(SequenceStyles.StepIndexNumber)(c.value._1.map(_.value.value)),
           c.value._2.map(_.renderVdom)
         )
     )
@@ -721,7 +721,7 @@ object SequenceColumns:
 
     // Columns present in every instrument table.
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
-      IndexAndTypeColumnId -> FixedSize(60.toPx),
+      IndexAndTypeColumnId -> FixedSize(70.toPx),
       GuideColumnId        -> FixedSize(36.toPx),
       PColumnId            -> FixedSize(75.toPx),
       QColumnId            -> FixedSize(75.toPx)
@@ -754,7 +754,6 @@ object SequenceColumns:
 
     val ForIgrins2: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ Map(
-        IndexAndTypeColumnId  -> FixedSize(50.toPx),
         ExposureColumnId      -> Resizable(77.toPx, min = 77.toPx),
         FowlerSamplesColumnId -> Resizable(120.toPx, min = 90.toPx),
         PColumnId             -> FixedSize(95.toPx),
