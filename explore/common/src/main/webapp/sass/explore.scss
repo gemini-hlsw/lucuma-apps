@@ -2297,6 +2297,7 @@ svg.fa-check.explore-success-icon {
   }
 
   .explore-ghost-detector-panel {
+    position: relative;
     padding: 0.5em;
 
     > .explore-ghost-detector-header {
@@ -2306,6 +2307,14 @@ svg.fa-check.explore-success-icon {
       padding-bottom: 0.25em;
       border-bottom: 2px solid currentcolor;
     }
+  }
+
+  // Sits in the column gap left of the red panel so it takes no layout space
+  .explore-ghost-cameras-help {
+    position: absolute;
+    top: 0.5em;
+    left: -0.5em;
+    transform: translateX(-50%);
   }
 
   .explore-ghost-agitators {
@@ -2587,6 +2596,12 @@ svg.fa-check.explore-success-icon {
         'blue' auto
         'red' auto
         / auto;
+    }
+
+    .explore-ghost-cameras-help {
+      top: -0.5em;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     .explore-gmos-spectroscopy-lower-grid,
