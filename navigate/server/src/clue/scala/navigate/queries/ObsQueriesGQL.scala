@@ -24,8 +24,9 @@ object ObsQueriesGQL:
   @GraphQL
   trait ActiveNonsiderealTargetsQuery extends GraphQLOperation[ObservationDB] {
     val document = gql"""
-      query($$site: Site!, $$startDate: Date!, $$endDate: Date!) {
+      query($$site: Site!, $$startDate: Date!, $$endDate: Date!, $$OFFSET_AFTER: ObservationId) {
         observations(
+          OFFSET_AFTER: $$OFFSET_AFTER,
           WHERE: {
             site: { EQ: $$site },
             program: {
@@ -61,6 +62,7 @@ object ObsQueriesGQL:
               }
             }
           }
+          hasMore
         }
       }
     """
