@@ -82,6 +82,12 @@
     border: 0;
     background-color: transparent;
 
+    // Fill the cell instead of shrinking to content, which overflows into an ellipsis.
+    &.p-togglebutton {
+      display: flex;
+      width: 100%;
+    }
+
     // The box carries the affordance, so it reads as editable like the inputs do.
     &.p-button {
       box-sizing: border-box;
