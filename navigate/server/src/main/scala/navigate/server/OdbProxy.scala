@@ -8,12 +8,14 @@ import cats.MonadThrow
 import cats.effect.kernel.Clock
 import cats.syntax.all.*
 import clue.FetchClient
+import clue.data.syntax.*
 import clue.syntax.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.SlewStage
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.drain
 import lucuma.schemas.odb.input.clientTimeNow
 import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery
 import navigate.queries.ObsQueriesGQL.AddSlewEventMutation
@@ -74,26 +76,34 @@ object OdbProxy {
             .void
 
     private def extractNonsiderealTargets(
-      data: ActiveNonsiderealTargetsQuery.Data
+      m: ActiveNonsiderealTargetsQuery.Data.Observations.Matches
     ): List[Ephemeris.Key] =
-      data.observations.matches
-        .map(_.targetEnvironment)
-        .flatMap(te =>
-          List(te.firstScienceTarget.flatMap(_.nonsidereal),
-               te.blindOffsetTarget.flatMap(_.nonsidereal)
-          )
-        )
-        .map(_.flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des))))
-        .flattenOption
+      List(m.targetEnvironment.firstScienceTarget.flatMap(_.nonsidereal),
+           m.targetEnvironment.blindOffsetTarget.flatMap(_.nonsidereal)
+      ).flattenOption
+        .flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des)))
 
     // TODO: Query relevant non-sidereal guide targets
     override def queryNonSiderealObs(
       site:  Site,
       start: LocalDate,
       end:   LocalDate
-    ): F[List[Ephemeris.Key]] = ActiveNonsiderealTargetsQuery[F]
-      .query(site, start, end)
-      .raiseGraphQLErrors
-      .map(d => extractNonsiderealTargets(d).distinct)
+    ): F[List[Ephemeris.Key]] =
+      // Keep only the keys of each page, so full observations are not accumulated across pages.
+      drain[F,
+            (Observation.Id, List[Ephemeris.Key]),
+            Observation.Id,
+            (Boolean, List[(Observation.Id, List[Ephemeris.Key])])
+      ](
+        (after: Option[Observation.Id]) =>
+          ActiveNonsiderealTargetsQuery[F]
+            .query(site, start, end, after.orUnassign)
+            .raiseGraphQLErrors
+            .map(_.observations)
+            .map(o => (o.hasMore, o.matches.map(m => (m.id, extractNonsiderealTargets(m))))),
+        _._2,
+        _._1,
+        _._1
+      ).map(_.flatMap(_._2).distinct)
   }
 }
