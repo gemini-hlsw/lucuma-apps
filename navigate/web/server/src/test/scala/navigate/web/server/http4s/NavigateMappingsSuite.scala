@@ -99,7 +99,7 @@ import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
 import navigate.server.OdbProxy
-import navigate.server.Systems
+import navigate.server.Services
 import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.server.tcs.TcsNorthController
 import navigate.server.tcs.TcsNorthControllerSim
@@ -3235,7 +3235,7 @@ object NavigateMappingsTest {
     guideRef: Ref[IO, GuideConfig]
   ) extends NavigateEngine[IO] {
 
-    override val systems: Systems[IO] = Systems(
+    override val services: Services[IO] = Services(
       OdbProxy.dummy[IO],
       dummyClient,
       HorizonsClient(dummyClient),

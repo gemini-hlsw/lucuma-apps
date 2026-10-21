@@ -31,7 +31,7 @@ object CaServiceInit {
     for {
       addrl <- Resource.eval(
                  L.info("Init EPICS but all subsystems in simulation")
-                   .unlessA(conf.systemControl.connectEpics) *>
+                   .unlessA(conf.subsystemControlModes.connectEpics) *>
                    addressList
                )
       srv   <-

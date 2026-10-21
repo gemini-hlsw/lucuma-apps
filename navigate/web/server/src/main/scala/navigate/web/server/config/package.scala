@@ -5,6 +5,7 @@ package navigate.web.server.config
 
 import cats.effect.Sync
 import cats.syntax.all.*
+import com.typesafe.config.Config
 import lucuma.core.enums.Site
 import lucuma.sso.client.util.GpgPublicKeyReader
 import navigate.model.config.*
@@ -16,16 +17,16 @@ import pureconfig.module.ip4s.*
 
 import java.security.PublicKey
 
-case class SiteValueUnknown(site: String)         extends FailureReason {
+case class SiteValueUnknown(site: String)        extends FailureReason {
   def description: String = s"site '$site' invalid"
 }
-case class ModeValueUnknown(mode: String)         extends FailureReason {
+case class ModeValueUnknown(mode: String)        extends FailureReason {
   def description: String = s"mode '$mode' invalid"
 }
-case class StrategyValueUnknown(strategy: String) extends FailureReason {
-  def description: String = s"strategy '$strategy' invalid"
+case class ControlModeValueUnknown(mode: String) extends FailureReason {
+  def description: String = s"control mode '$mode' invalid"
 }
-case class PublicKeyUnknown(value: String)        extends FailureReason {
+case class PublicKeyUnknown(value: String)       extends FailureReason {
   def description: String = s"publicKey '$value' invalid"
 }
 
@@ -54,12 +55,12 @@ given ConfigReader[Mode] = ConfigReader.fromCursor[Mode] { cf =>
   }
 }
 
-given ConfigReader[ControlStrategy] =
-  ConfigReader.fromCursor[ControlStrategy] { cf =>
+given ConfigReader[SubsystemControlMode] =
+  ConfigReader.fromCursor[SubsystemControlMode] { cf =>
     cf.asString.flatMap { c =>
-      ControlStrategy.fromString(c) match {
+      SubsystemControlMode.fromString(c) match {
         case Some(x) => x.asRight
-        case _       => cf.failed(StrategyValueUnknown(c))
+        case _       => cf.failed(ControlModeValueUnknown(c))
       }
     }
   }
@@ -75,3 +76,31 @@ def loadConfiguration[F[_]: Sync](config: ConfigObjectSource): F[NavigateConfigu
     ConfigReader.derived[NavigateConfiguration]
   config.loadF[F, NavigateConfiguration]()
 }
+
+/** Key under which the control mode of each subsystem is configured. */
+val SubsystemControlModesKey: String = "navigate-engine.subsystem-control-modes"
+
+/** Former name of [[SubsystemControlModesKey]], still accepted with a warning. */
+val DeprecatedSystemControlKey: String = "navigate-engine.system-control"
+
+/** Whether the configuration still uses the deprecated `navigate-engine.system-control` key. */
+def hasDeprecatedSystemControl(config: Config): Boolean =
+  config.hasPath(DeprecatedSystemControlKey)
+
+/**
+ * Moves the values under the deprecated `navigate-engine.system-control` key to
+ * `navigate-engine.subsystem-control-modes`. The deprecated values take precedence over the ones
+ * already under the new key (e.g. the defaults in `base.conf`), as the deprecated key can only come
+ * from a hand-written file that was not migrated.
+ */
+def migrateSystemControl(config: Config): Config =
+  if hasDeprecatedSystemControl(config) then
+    val deprecated: Config = config.getConfig(DeprecatedSystemControlKey)
+    val migrated: Config   =
+      if config.hasPath(SubsystemControlModesKey) then
+        deprecated.withFallback(config.getConfig(SubsystemControlModesKey))
+      else deprecated
+    config
+      .withoutPath(DeprecatedSystemControlKey)
+      .withValue(SubsystemControlModesKey, migrated.root)
+  else config

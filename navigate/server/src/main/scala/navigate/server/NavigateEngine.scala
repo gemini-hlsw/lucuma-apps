@@ -63,8 +63,8 @@ import navigate.model.TcsConfig
 import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.WfsConfiguration
-import navigate.model.config.ControlStrategy
 import navigate.model.config.NavigateEngineConfiguration
+import navigate.model.config.SubsystemControlMode
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
@@ -97,7 +97,7 @@ import scala.concurrent.duration.FiniteDuration
 import NavigateEvent.NullEvent
 
 trait NavigateEngine[F[_]] {
-  val systems: Systems[F]
+  val services: Services[F]
   def eventStream: Stream[F, NavigateEvent]
   def mcsPark: F[CommandResult]
   def mcsFollow(enable:                              Boolean): F[CommandResult]
@@ -263,7 +263,7 @@ object NavigateEngine {
 
   private case class NavigateEngineImpl[F[_]: {Temporal, Logger, Async}](
     site:     Site,
-    systems:  Systems[F],
+    services: Services[F],
     conf:     NavigateEngineConfiguration,
     engine:   StateEngine[F, State, NavigateEvent],
     stateRef: Ref[F, State],
@@ -278,7 +278,7 @@ object NavigateEngine {
         if (attempts >= max) None
         else 10.milliseconds.some
       }
-      Retry[F](policy)(systems.client)
+      Retry[F](policy)(services.client)
     }
 
     private def postTelescopeGuideConfig(gc: GuideConfig): F[Unit] = {
@@ -294,7 +294,7 @@ object NavigateEngine {
           .expect[String](postRequest)
           .void
           .handleErrorWith(r => Logger[F].error(r)("Error posting guide configuration to observe")))
-        .whenA(conf.systemControl.observe === ControlStrategy.FullControl)
+        .whenA(conf.subsystemControlModes.observe === SubsystemControlMode.Full)
     }
 
     private def navigateState(s: State): NavigateState =
@@ -306,25 +306,25 @@ object NavigateEngine {
       }
 
     override def mcsPark: F[CommandResult] =
-      simpleCommand(engine, McsPark, systems.tcsCommon.mcsPark)
+      simpleCommand(engine, McsPark, services.tcsCommon.mcsPark)
 
     override def mcsFollow(enable: Boolean): F[CommandResult] =
-      simpleCommand(engine, McsFollow(enable), systems.tcsCommon.mcsFollow(enable))
+      simpleCommand(engine, McsFollow(enable), services.tcsCommon.mcsFollow(enable))
 
     override def scsFollow(enable: Boolean): F[CommandResult] =
-      simpleCommand(engine, ScsFollow(enable), systems.tcsCommon.scsFollow(enable))
+      simpleCommand(engine, ScsFollow(enable), services.tcsCommon.scsFollow(enable))
 
     override def rotStop(useBrakes: Boolean): F[CommandResult] =
-      simpleCommand(engine, CrcsStop(useBrakes), systems.tcsCommon.rotStop(useBrakes))
+      simpleCommand(engine, CrcsStop(useBrakes), services.tcsCommon.rotStop(useBrakes))
 
     override def rotPark: F[CommandResult] =
-      simpleCommand(engine, CrcsPark, systems.tcsCommon.rotPark)
+      simpleCommand(engine, CrcsPark, services.tcsCommon.rotPark)
 
     override def rotFollow(enable: Boolean): F[CommandResult] =
-      simpleCommand(engine, CrcsFollow(enable), systems.tcsCommon.rotFollow(enable))
+      simpleCommand(engine, CrcsFollow(enable), services.tcsCommon.rotFollow(enable))
 
     override def rotMove(angle: RotatorAngle): F[CommandResult] =
-      simpleCommand(engine, CrcsMove(angle), systems.tcsCommon.rotMove(angle))
+      simpleCommand(engine, CrcsMove(angle), services.tcsCommon.rotMove(angle))
 
     // tcsConfig/slew apply (or clear) per-guider tracking as part of the TcsConfig; keep
     // the remembered last-applied tracking config for each guider up to date, the same way
@@ -345,7 +345,7 @@ object NavigateEngine {
       cats.data.State
         .modify[State](_.focus(_.onSwappedTarget).replace(false))
         .flatMap(_ => cats.data.State.modify[State](recordWfsTrackingConfig(config)))
-        .as(stateRef.get.flatMap(st => systems.tcsCommon.tcsConfig(config)(st.guideConfig)))
+        .as(stateRef.get.flatMap(st => services.tcsCommon.tcsConfig(config)(st.guideConfig)))
     )
 
     override def slew(
@@ -371,10 +371,10 @@ object NavigateEngine {
                 .whenA(slewOptions.stopGuide.value)
             )
             .as(
-              systems.tcsCommon
+              services.tcsCommon
                 .slew(slewOptions, tcsConfig)
                 // if succesful send an event to the odb
-                .flatTap(_ => oid.traverse_(systems.odb.addSlewEvent(_, SlewStage.StartSlew)))
+                .flatTap(_ => oid.traverse_(services.odb.addSlewEvent(_, SlewStage.StartSlew)))
             )
         )
 
@@ -384,7 +384,7 @@ object NavigateEngine {
       cats.data.State
         .modify[State](_.focus(_.onSwappedTarget).replace(true))
         .as(
-          systems.tcsCommon.swapTarget(swapConfig)
+          services.tcsCommon.swapTarget(swapConfig)
         )
     )
 
@@ -394,7 +394,7 @@ object NavigateEngine {
       cats.data.State
         .modify[State](_.focus(_.onSwappedTarget).replace(false))
         .as(
-          systems.tcsCommon.restoreTarget(config)
+          services.tcsCommon.restoreTarget(config)
         )
     )
 
@@ -404,13 +404,13 @@ object NavigateEngine {
       simpleCommand(
         engine,
         InstSpecifics(instrumentSpecificsParams),
-        systems.tcsCommon.instrumentSpecifics(instrumentSpecificsParams)
+        services.tcsCommon.instrumentSpecifics(instrumentSpecificsParams)
       )
 
     override def pwfs1Target(target: Target): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1Target(target),
-      systems.tcsCommon.pwfs1Target(target)
+      services.tcsCommon.pwfs1Target(target)
     )
 
     override def pwfs1ProbeTracking(config: TrackingConfig): F[CommandResult] = command(
@@ -418,25 +418,25 @@ object NavigateEngine {
       Pwfs1ProbeTracking(config),
       cats.data.State
         .modify[State](_.focus(_.wfsTrackingConfig.pwfs1).replace(config))
-        .as(systems.tcsCommon.pwfs1ProbeTracking(config))
+        .as(services.tcsCommon.pwfs1ProbeTracking(config))
     )
 
     override def pwfs1Park: F[CommandResult] = simpleCommand(
       engine,
       Pwfs1Park,
-      systems.tcsCommon.pwfs1Park
+      services.tcsCommon.pwfs1Park
     )
 
     override def pwfs1Follow(enable: Boolean): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1Follow(enable),
-      systems.tcsCommon.pwfs1Follow(enable)
+      services.tcsCommon.pwfs1Follow(enable)
     )
 
     override def pwfs2Target(target: Target): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2Target(target),
-      systems.tcsCommon.pwfs2Target(target)
+      services.tcsCommon.pwfs2Target(target)
     )
 
     override def pwfs2ProbeTracking(config: TrackingConfig): F[CommandResult] = command(
@@ -444,25 +444,25 @@ object NavigateEngine {
       Pwfs2ProbeTracking(config),
       cats.data.State
         .modify[State](_.focus(_.wfsTrackingConfig.pwfs2).replace(config))
-        .as(systems.tcsCommon.pwfs2ProbeTracking(config))
+        .as(services.tcsCommon.pwfs2ProbeTracking(config))
     )
 
     override def pwfs2Park: F[CommandResult] = simpleCommand(
       engine,
       Pwfs2Park,
-      systems.tcsCommon.pwfs2Park
+      services.tcsCommon.pwfs2Park
     )
 
     override def pwfs2Follow(enable: Boolean): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2Follow(enable),
-      systems.tcsCommon.pwfs2Follow(enable)
+      services.tcsCommon.pwfs2Follow(enable)
     )
 
     override def oiwfsTarget(target: Target): F[CommandResult] = simpleCommand(
       engine,
       OiwfsTarget(target),
-      systems.tcsCommon.oiwfsTarget(target)
+      services.tcsCommon.oiwfsTarget(target)
     )
 
     override def oiwfsProbeTracking(config: TrackingConfig): F[CommandResult] = command(
@@ -470,26 +470,26 @@ object NavigateEngine {
       OiwfsProbeTracking(config),
       cats.data.State
         .modify[State](_.focus(_.wfsTrackingConfig.oiwfs).replace(config))
-        .as(systems.tcsCommon.oiwfsProbeTracking(config))
+        .as(services.tcsCommon.oiwfsProbeTracking(config))
     )
 
     override def oiwfsPark: F[CommandResult] = simpleCommand(
       engine,
       OiwfsPark,
-      systems.tcsCommon.oiwfsPark
+      services.tcsCommon.oiwfsPark
     )
 
     override def oiwfsFollow(enable: Boolean): F[CommandResult] = simpleCommand(
       engine,
       OiwfsFollow(enable),
-      systems.tcsCommon.oiwfsFollow(enable)
+      services.tcsCommon.oiwfsFollow(enable)
     )
 
     override def rotTrackingConfig(config: RotatorTrackConfig): F[CommandResult] =
       simpleCommand(
         engine,
         RotatorTrackingConfig(config),
-        systems.tcsCommon.rotTrackingConfig(config)
+        services.tcsCommon.rotTrackingConfig(config)
       )
 
     override def enableGuide(config: TelescopeGuideConfig): F[CommandResult] =
@@ -499,7 +499,7 @@ object NavigateEngine {
         cats.data.State
           .modify[State](_.focus(_.guideConfig.tcsGuide).replace(config))
           .as(
-            systems.tcsCommon.enableGuide(config)
+            services.tcsCommon.enableGuide(config)
           )
       ) <* postTelescopeGuideConfig(GuideConfig(config, None))
 
@@ -512,63 +512,63 @@ object NavigateEngine {
             .replace(GuideOff)
         )
         .as(
-          systems.tcsCommon.disableGuide
+          services.tcsCommon.disableGuide
         )
     ) <* postTelescopeGuideConfig(GuideConfig.defaultGuideConfig)
 
     override def pwfs1Observe(period: TimeSpan): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1Observe(period),
-      systems.tcsCommon.pwfs1Observe(period)
+      services.tcsCommon.pwfs1Observe(period)
     )
 
     override def pwfs1StopObserve: F[CommandResult] = simpleCommand(
       engine,
       Pwfs1StopObserve,
-      systems.tcsCommon.pwfs1StopObserve
+      services.tcsCommon.pwfs1StopObserve
     )
 
     override def pwfs2Observe(period: TimeSpan): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2Observe(period),
-      systems.tcsCommon.pwfs2Observe(period)
+      services.tcsCommon.pwfs2Observe(period)
     )
 
     override def pwfs2StopObserve: F[CommandResult] = simpleCommand(
       engine,
       Pwfs2StopObserve,
-      systems.tcsCommon.pwfs2StopObserve
+      services.tcsCommon.pwfs2StopObserve
     )
 
     override def oiwfsObserve(period: TimeSpan): F[CommandResult] = simpleCommand(
       engine,
       OiwfsObserve(period),
-      systems.tcsCommon.oiwfsObserve(period)
+      services.tcsCommon.oiwfsObserve(period)
     )
 
     override def oiwfsStopObserve: F[CommandResult] = simpleCommand(
       engine,
       OiwfsStopObserve,
-      systems.tcsCommon.oiwfsStopObserve
+      services.tcsCommon.oiwfsStopObserve
     )
 
     override def acObserve(period: TimeSpan): F[CommandResult] = simpleCommand(
       engine,
       AcObserve(period),
-      systems.tcsCommon.hrwfsObserve(period)
+      services.tcsCommon.hrwfsObserve(period)
     )
 
     override def acStopObserve: F[CommandResult] = simpleCommand(
       engine,
       AcStopObserve,
-      systems.tcsCommon.hrwfsStopObserve
+      services.tcsCommon.hrwfsStopObserve
     )
 
-    override def getGuideState: F[GuideState] = systems.tcsCommon.getGuideState
+    override def getGuideState: F[GuideState] = services.tcsCommon.getGuideState
 
-    override def getGuidersQuality: F[GuidersQualityValues] = systems.tcsCommon.getGuideQuality
+    override def getGuidersQuality: F[GuidersQualityValues] = services.tcsCommon.getGuideQuality
 
-    override def getTelescopeState: F[TelescopeState] = systems.tcsCommon.getTelescopeState
+    override def getTelescopeState: F[TelescopeState] = services.tcsCommon.getTelescopeState
 
     override def getNavigateState: F[NavigateState] =
       stateRef.get.map(s => NavigateState(s.onSwappedTarget))
@@ -585,54 +585,54 @@ object NavigateEngine {
     override def m1Park: F[CommandResult] = simpleCommand(
       engine,
       M1Park,
-      systems.tcsCommon.m1Park
+      services.tcsCommon.m1Park
     )
 
     override def m1Unpark: F[CommandResult] = simpleCommand(
       engine,
       M1Unpark,
-      systems.tcsCommon.m1Unpark
+      services.tcsCommon.m1Unpark
     )
 
     override def m1OpenLoopOff: F[CommandResult] = simpleCommand(
       engine,
       M1OpenLoopOff,
-      systems.tcsCommon.m1UpdateOff
+      services.tcsCommon.m1UpdateOff
     )
 
     override def m1OpenLoopOn: F[CommandResult] = simpleCommand(
       engine,
       M1OpenLoopOn,
-      systems.tcsCommon.m1UpdateOn
+      services.tcsCommon.m1UpdateOn
     )
 
     override def m1ZeroFigure: F[CommandResult] = simpleCommand(
       engine,
       M1ZeroFigure,
-      systems.tcsCommon.m1ZeroFigure
+      services.tcsCommon.m1ZeroFigure
     )
 
     override def m1LoadAoFigure: F[CommandResult] = simpleCommand(
       engine,
       M1LoadAoFigure,
-      systems.tcsCommon.m1LoadAoFigure
+      services.tcsCommon.m1LoadAoFigure
     )
 
     override def m1LoadNonAoFigure: F[CommandResult] = simpleCommand(
       engine,
       M1LoadNonAoFigure,
-      systems.tcsCommon.m1LoadNonAoFigure
+      services.tcsCommon.m1LoadNonAoFigure
     )
 
     override def lightPathConfig(from: LightSource, to: LightSink): F[CommandResult] =
       simpleCommand(
         engine,
         LightPathConfig(from, to),
-        systems.tcsCommon.lightPath(from, to)
+        services.tcsCommon.lightPath(from, to)
       )
 
     override def getInstrumentPort(instrument: Instrument): F[Option[Int]] =
-      systems.tcsCommon.getInstrumentPort(instrument)
+      services.tcsCommon.getInstrumentPort(instrument)
 
     override def acquisitionAdj(
       offset: Offset,
@@ -642,7 +642,9 @@ object NavigateEngine {
       simpleCommand(
         engine,
         AcquisitionAdjust(offset, ipa, iaa),
-        stateRef.get.flatMap(s => systems.tcsCommon.acquisitionAdj(offset, ipa, iaa)(s.guideConfig))
+        stateRef.get.flatMap(s =>
+          services.tcsCommon.acquisitionAdj(offset, ipa, iaa)(s.guideConfig)
+        )
       )
 
     override def wfsSky(wfs: GuideProbe, period: TimeSpan): F[CommandResult] = wfs match {
@@ -650,19 +652,19 @@ object NavigateEngine {
         simpleCommand(
           engine,
           WfsSky(wfs, period),
-          stateRef.get.flatMap(s => systems.tcsCommon.pwfs1Sky(period)(s.guideConfig))
+          stateRef.get.flatMap(s => services.tcsCommon.pwfs1Sky(period)(s.guideConfig))
         )
       case enums.GuideProbe.PWFS2                                        =>
         simpleCommand(
           engine,
           WfsSky(wfs, period),
-          stateRef.get.flatMap(s => systems.tcsCommon.pwfs2Sky(period)(s.guideConfig))
+          stateRef.get.flatMap(s => services.tcsCommon.pwfs2Sky(period)(s.guideConfig))
         )
       case enums.GuideProbe.GmosOIWFS | enums.GuideProbe.Flamingos2OIWFS =>
         simpleCommand(
           engine,
           WfsSky(wfs, period),
-          stateRef.get.flatMap(s => systems.tcsCommon.oiwfsSky(period)(s.guideConfig))
+          stateRef.get.flatMap(s => services.tcsCommon.oiwfsSky(period)(s.guideConfig))
         )
       case enums.GuideProbe.AltairAOWFS                                  =>
         ???
@@ -672,12 +674,12 @@ object NavigateEngine {
 
     override def getWfsGuideStates: F[WfsGuideStates] = stateRef.get.map(_.wfsTrackingConfig)
 
-    override def getTargetAdjustments: F[TargetOffsets] = systems.tcsCommon.getTargetAdjustments
+    override def getTargetAdjustments: F[TargetOffsets] = services.tcsCommon.getTargetAdjustments
 
     override def getPointingOffset: F[PointingCorrections] =
-      systems.tcsCommon.getPointingCorrections
+      services.tcsCommon.getPointingCorrections
 
-    override def getOriginOffset: F[FocalPlaneOffset] = systems.tcsCommon.getOriginOffset
+    override def getOriginOffset: F[FocalPlaneOffset] = services.tcsCommon.getOriginOffset
 
     override def targetAdjust(
       target:            VirtualTelescope,
@@ -688,7 +690,7 @@ object NavigateEngine {
         engine,
         TargetAdjust(target, handsetAdjustment, openLoops),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.targetAdjust(target, handsetAdjustment, openLoops)(s.guideConfig)
+          services.tcsCommon.targetAdjust(target, handsetAdjustment, openLoops)(s.guideConfig)
         )
       )
 
@@ -700,7 +702,7 @@ object NavigateEngine {
         engine,
         OriginAdjust(handsetAdjustment, openLoops),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.originAdjust(handsetAdjustment, openLoops)(s.guideConfig)
+          services.tcsCommon.originAdjust(handsetAdjustment, openLoops)(s.guideConfig)
         )
       )
 
@@ -709,7 +711,7 @@ object NavigateEngine {
         engine,
         TelescopeOffset(offset, guiding),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.offset(offset, guiding)(s.guideConfig, s.wfsTrackingConfig)
+          services.tcsCommon.offset(offset, guiding)(s.guideConfig, s.wfsTrackingConfig)
         )
       )
 
@@ -717,7 +719,7 @@ object NavigateEngine {
       simpleCommand(
         engine,
         CentralWavelength(wavelength),
-        systems.tcsCommon.centralWavelength(wavelength)
+        services.tcsCommon.centralWavelength(wavelength)
       )
 
     override def configureStep(
@@ -731,7 +733,7 @@ object NavigateEngine {
         engine,
         ConfigureStep(offset, wavelength, lightPath, defocus, guiding),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.configureStep(offset, wavelength, lightPath, defocus, guiding)(
+          services.tcsCommon.configureStep(offset, wavelength, lightPath, defocus, guiding)(
             s.guideConfig,
             s.wfsTrackingConfig
           )
@@ -742,14 +744,14 @@ object NavigateEngine {
       simpleCommand(
         engine,
         PointingAdjust(handsetAdjustment),
-        systems.tcsCommon.pointingAdjust(handsetAdjustment)
+        services.tcsCommon.pointingAdjust(handsetAdjustment)
       )
 
     override def targetOffsetAbsorb(target: VirtualTelescope): F[CommandResult] =
       simpleCommand(
         engine,
         TargetOffsetAbsorb(target),
-        systems.tcsCommon.targetOffsetAbsorb(target)
+        services.tcsCommon.targetOffsetAbsorb(target)
       )
 
     override def targetOffsetClear(target: VirtualTelescope, openLoops: Boolean): F[CommandResult] =
@@ -757,7 +759,7 @@ object NavigateEngine {
         engine,
         TargetOffsetClear(target, openLoops),
         stateRef.get.flatMap(s =>
-          systems.tcsCommon.targetOffsetClear(target, openLoops)(s.guideConfig)
+          services.tcsCommon.targetOffsetClear(target, openLoops)(s.guideConfig)
         )
       )
 
@@ -765,125 +767,125 @@ object NavigateEngine {
       simpleCommand(
         engine,
         OriginOffsetAbsorb,
-        systems.tcsCommon.originOffsetAbsorb
+        services.tcsCommon.originOffsetAbsorb
       )
 
     override def originOffsetClear(openLoops: Boolean): F[CommandResult] =
       simpleCommand(
         engine,
         OriginOffsetClear(openLoops),
-        stateRef.get.flatMap(s => systems.tcsCommon.originOffsetClear(openLoops)(s.guideConfig))
+        stateRef.get.flatMap(s => services.tcsCommon.originOffsetClear(openLoops)(s.guideConfig))
       )
 
     override def pointingOffsetClearLocal: F[CommandResult] =
       simpleCommand(
         engine,
         PointingOffsetClearLocal,
-        systems.tcsCommon.pointingOffsetClearLocal
+        services.tcsCommon.pointingOffsetClearLocal
       )
 
     override def pointingOffsetAbsorbGuide: F[CommandResult] =
       simpleCommand(
         engine,
         PointingOffsetAbsorbGuide,
-        systems.tcsCommon.pointingOffsetAbsorbGuide
+        services.tcsCommon.pointingOffsetAbsorbGuide
       )
 
     override def pointingOffsetClearGuide: F[CommandResult] =
       simpleCommand(
         engine,
         PointingOffsetClearGuide,
-        systems.tcsCommon.pointingOffsetClearGuide
+        services.tcsCommon.pointingOffsetClearGuide
       )
 
     override def acLens(l: AcLens): F[CommandResult] = simpleCommand(
       engine,
       AcSetLens(l),
-      systems.tcsCommon.acCommands.lens(l)
+      services.tcsCommon.acCommands.lens(l)
     )
 
     override def acNdFilter(nd: AcNdFilter): F[CommandResult] = simpleCommand(
       engine,
       AcSetNdFilter(nd),
-      systems.tcsCommon.acCommands.ndFilter(nd)
+      services.tcsCommon.acCommands.ndFilter(nd)
     )
 
     override def acFilter(flt: AcFilter): F[CommandResult] = simpleCommand(
       engine,
       AcSetFilter(flt),
-      systems.tcsCommon.acCommands.filter(flt)
+      services.tcsCommon.acCommands.filter(flt)
     )
 
     override def acWindowSize(wnd: AcWindow): F[CommandResult] = simpleCommand(
       engine,
       AcSetWindowSize(wnd),
-      systems.tcsCommon.acCommands.windowSize(wnd)
+      services.tcsCommon.acCommands.windowSize(wnd)
     )
 
-    override def getAcMechsState: F[AcMechsState] = systems.tcsCommon.acCommands.getState
+    override def getAcMechsState: F[AcMechsState] = services.tcsCommon.acCommands.getState
 
     override def pwfs1Filter(filter: PwfsFilter): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1Filter(filter),
-      systems.tcsCommon.pwfs1Mechs.filter(filter)
+      services.tcsCommon.pwfs1Mechs.filter(filter)
     )
 
     override def pwfs1FieldStop(fieldStop: PwfsFieldStop): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1FieldStop(fieldStop),
-      systems.tcsCommon.pwfs1Mechs.fieldStop(fieldStop)
+      services.tcsCommon.pwfs1Mechs.fieldStop(fieldStop)
     )
 
     override def pwfs2Filter(filter: PwfsFilter): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2Filter(filter),
-      systems.tcsCommon.pwfs2Mechs.filter(filter)
+      services.tcsCommon.pwfs2Mechs.filter(filter)
     )
 
     override def pwfs2FieldStop(fieldStop: PwfsFieldStop): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2FieldStop(fieldStop),
-      systems.tcsCommon.pwfs2Mechs.fieldStop(fieldStop)
+      services.tcsCommon.pwfs2Mechs.fieldStop(fieldStop)
     )
 
-    override def getPwfs1MechsState: F[PwfsMechsState] = systems.tcsCommon.getPwfs1Mechs
+    override def getPwfs1MechsState: F[PwfsMechsState] = services.tcsCommon.getPwfs1Mechs
 
-    override def getPwfs2MechsState: F[PwfsMechsState] = systems.tcsCommon.getPwfs2Mechs
+    override def getPwfs2MechsState: F[PwfsMechsState] = services.tcsCommon.getPwfs2Mechs
 
-    override def getBafflesState: F[BafflesState] = systems.tcsCommon.getBaffles
+    override def getBafflesState: F[BafflesState] = services.tcsCommon.getBaffles
 
     override def pwfs1CircularBuffer(enable: Boolean): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1CircularBuffer(enable),
-      systems.tcsCommon.pwfs1CircularBuffer(enable)
+      services.tcsCommon.pwfs1CircularBuffer(enable)
     )
 
     override def pwfs2CircularBuffer(enable: Boolean): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2CircularBuffer(enable),
-      systems.tcsCommon.pwfs2CircularBuffer(enable)
+      services.tcsCommon.pwfs2CircularBuffer(enable)
     )
 
     override def oiwfsCircularBuffer(enable: Boolean): F[CommandResult] = simpleCommand(
       engine,
       OiwfsCircularBuffer(enable),
-      systems.tcsCommon.oiwfsCircularBuffer(enable)
+      services.tcsCommon.oiwfsCircularBuffer(enable)
     )
 
-    override def getPwfs1Configuration: F[WfsConfiguration] = systems.tcsCommon.getPwfs1Config
+    override def getPwfs1Configuration: F[WfsConfiguration] = services.tcsCommon.getPwfs1Config
 
     override def getPwfs1ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]] =
-      systems.tcsCommon.pwfs1ConfigStream
+      services.tcsCommon.pwfs1ConfigStream
 
-    override def getPwfs2Configuration: F[WfsConfiguration] = systems.tcsCommon.getPwfs2Config
+    override def getPwfs2Configuration: F[WfsConfiguration] = services.tcsCommon.getPwfs2Config
 
     override def getPwfs2ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]] =
-      systems.tcsCommon.pwfs2ConfigStream
+      services.tcsCommon.pwfs2ConfigStream
 
-    override def getOiwfsConfiguration: F[WfsConfiguration] = systems.tcsCommon.getOiwfsConfig
+    override def getOiwfsConfiguration: F[WfsConfiguration] = services.tcsCommon.getOiwfsConfig
 
     override def getOiwfsConfigurationStream: Resource[F, Stream[F, WfsConfiguration]] =
-      systems.tcsCommon.oiwfsConfigStream
+      services.tcsCommon.oiwfsConfigStream
 
     override def refreshEphemerides(date: Option[LocalDate]): F[CommandResult] = for {
       _     <- logEvent(NavigateEvent.CommandStart(NavigateCommand.RefreshEphemerides(date)))
@@ -898,7 +900,7 @@ object NavigateEngine {
               )
           )
       x     <- EphemerisUpdater
-                 .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
+                 .build(site, conf.ephemerisFolder, services.odb, services.horizonsClient)
                  .refreshEphemerides(DateInterval.between(start, start.plusDays(1)))
                  .attempt
                  .map {
@@ -918,110 +920,110 @@ object NavigateEngine {
       simpleCommand(
         engine,
         EcsEnableDome(mode),
-        systems.tcsCommon.ecsEnableDome(mode)
+        services.tcsCommon.ecsEnableDome(mode)
       )
 
     override def ecsDisableDome: F[CommandResult] =
       simpleCommand(
         engine,
         EcsDisableDome,
-        systems.tcsCommon.ecsDisableDome
+        services.tcsCommon.ecsDisableDome
       )
 
     override def ecsDomePark: F[CommandResult] =
-      simpleCommand(engine, EcsDomePark, systems.tcsCommon.ecsDomePark)
+      simpleCommand(engine, EcsDomePark, services.tcsCommon.ecsDomePark)
 
     override def ecsEnableShutters(mode: ShutterMode): F[CommandResult] =
-      simpleCommand(engine, EcsEnableShutters(mode), systems.tcsCommon.ecsEnableShutters(mode))
+      simpleCommand(engine, EcsEnableShutters(mode), services.tcsCommon.ecsEnableShutters(mode))
 
     override def ecsDisableShutters: F[CommandResult] =
-      simpleCommand(engine, EcsDisableShutters, systems.tcsCommon.ecsDisableShutters)
+      simpleCommand(engine, EcsDisableShutters, services.tcsCommon.ecsDisableShutters)
 
     override def ecsShuttersPark: F[CommandResult] =
-      simpleCommand(engine, EcsShuttersPark, systems.tcsCommon.ecsShuttersPark)
+      simpleCommand(engine, EcsShuttersPark, services.tcsCommon.ecsShuttersPark)
 
     override def ecsMoveEastVentGate(position: IntPercent): F[CommandResult] = simpleCommand(
       engine,
       EcsEastVentGateMove(position),
-      systems.tcsCommon.ecsMoveEastVentGate(position)
+      services.tcsCommon.ecsMoveEastVentGate(position)
     )
 
     override def ecsCloseEastVentGate: F[CommandResult] =
-      simpleCommand(engine, EcsCloseEastVentGate, systems.tcsCommon.ecsCloseEastVentGate)
+      simpleCommand(engine, EcsCloseEastVentGate, services.tcsCommon.ecsCloseEastVentGate)
 
     override def ecsMoveWestVentGate(position: IntPercent): F[CommandResult] = simpleCommand(
       engine,
       EcsWestVentGateMove(position),
-      systems.tcsCommon.ecsMoveWestVentGate(position)
+      services.tcsCommon.ecsMoveWestVentGate(position)
     )
 
     override def ecsCloseWestVentGate: F[CommandResult] =
-      simpleCommand(engine, EcsCloseWestVentGate, systems.tcsCommon.ecsCloseWestVentGate)
+      simpleCommand(engine, EcsCloseWestVentGate, services.tcsCommon.ecsCloseWestVentGate)
 
     override def mcsUnwrap: F[CommandResult] =
-      simpleCommand(engine, MountUnwrap, systems.tcsCommon.azimuthUnwrap)
+      simpleCommand(engine, MountUnwrap, services.tcsCommon.azimuthUnwrap)
 
     override def rotUnwrap: F[CommandResult] =
-      simpleCommand(engine, CrcsUnwrap, systems.tcsCommon.rotUnwrap)
+      simpleCommand(engine, CrcsUnwrap, services.tcsCommon.rotUnwrap)
 
     override def pwfs1Unwrap: F[CommandResult] =
-      simpleCommand(engine, Pwfs1Unwrap, systems.tcsCommon.pwfs1Unwrap)
+      simpleCommand(engine, Pwfs1Unwrap, services.tcsCommon.pwfs1Unwrap)
 
     override def pwfs2Unwrap: F[CommandResult] =
-      simpleCommand(engine, Pwfs2Unwrap, systems.tcsCommon.pwfs2Unwrap)
+      simpleCommand(engine, Pwfs2Unwrap, services.tcsCommon.pwfs2Unwrap)
 
     override def agScienceFoldPark: F[CommandResult] = simpleCommand(
       engine,
       AgScienceFoldPark,
-      systems.tcsCommon.agScienceFoldPark
+      services.tcsCommon.agScienceFoldPark
     )
 
     override def agPickoffMirrorPark: F[CommandResult] = simpleCommand(
       engine,
       AgPickoffMirrorPark,
-      systems.tcsCommon.agPickoffMirrorPark
+      services.tcsCommon.agPickoffMirrorPark
     )
 
     override def agAoFoldPark: F[CommandResult] = simpleCommand(
       engine,
       AgAoFoldPark,
-      systems.tcsCommon.agAoFoldPark
+      services.tcsCommon.agAoFoldPark
     )
 
     override def agAllPark: F[CommandResult] = simpleCommand(
       engine,
       AgAllPark,
-      systems.tcsCommon.agAllPark
+      services.tcsCommon.agAllPark
     )
 
     override def pwfs1QlMode(mode: QlMode): F[CommandResult] = simpleCommand(
       engine,
       Pwfs1QlMode(mode),
-      systems.tcsCommon.pwfs1QlMode(mode)
+      services.tcsCommon.pwfs1QlMode(mode)
     )
 
     override def pwfs2QlMode(mode: QlMode): F[CommandResult] = simpleCommand(
       engine,
       Pwfs2QlMode(mode),
-      systems.tcsCommon.pwfs2QlMode(mode)
+      services.tcsCommon.pwfs2QlMode(mode)
     )
 
     override def oiwfsQlMode(mode: QlMode): F[CommandResult] = simpleCommand(
       engine,
       OiwfsQlMode(mode),
-      systems.tcsCommon.oiwfsQlMode(mode)
+      services.tcsCommon.oiwfsQlMode(mode)
     )
   }
 
   def build[F[_]: {Temporal, Logger, Async}](
-    site:    Site,
-    systems: Systems[F],
-    conf:    NavigateEngineConfiguration
+    site:     Site,
+    services: Services[F],
+    conf:     NavigateEngineConfiguration
   ): F[NavigateEngine[F]] = for {
     eng <- StateEngine.build[F, State, NavigateEvent]
     ref <- Ref.of[F, State](startState)
     top <- Topic[F, NavigateState]
-  } yield NavigateEngineImpl[F](site, systems, conf, eng, ref, top)
+  } yield NavigateEngineImpl[F](site, services, conf, eng, ref, top)
 
   case class WfsConfigState(
     period:          Option[TimeSpan],

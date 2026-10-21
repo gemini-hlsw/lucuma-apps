@@ -19,7 +19,7 @@ import navigate.model.config.*
 import navigate.server.CaServiceInit
 import navigate.server.NavigateEngine
 import navigate.server.NavigateFailure
-import navigate.server.Systems
+import navigate.server.Services
 import navigate.web.server.OcsBuildInfo
 import navigate.web.server.common.LogInitialization
 import navigate.web.server.common.RedirectToHttpsRoutes
@@ -53,27 +53,58 @@ object WebServerLauncher extends IOApp with LogInitialization {
   // Try to load configs for deployment and staging and fall back to the common one in the class path
   private def config[F[_]: {Sync, Logger}]: F[ConfigObjectSource] =
     for
-      confDir    <- baseDir[F].map(_.resolve("conf"))
-      secretsConf = confDir.resolve("local").resolve("secrets.conf")
-      systemsConf = confDir.resolve("local").resolve("systems.conf")
-      site        = sys.env.get("SITE").getOrElse("develop")
-      siteConf    = confDir.resolve(site).resolve("site.conf")
-      _          <- Logger[F].info("Loading configuration:")
-      _          <- Logger[F].info:
-                      s" - $systemsConf (present: ${JavaFiles.exists(systemsConf)}), with fallback:"
-      _          <- Logger[F].info:
-                      s" - $secretsConf (present: ${JavaFiles.exists(secretsConf)}), with fallback:"
-      _          <- Logger[F].info(s" - $siteConf (present: ${JavaFiles.exists(siteConf)}), with fallback:")
-      _          <- Logger[F].info(s" - <resources>/base.conf")
-    yield ConfigSource
-      .file(systemsConf)
-      .optional
-      .withFallback:
-        ConfigSource
-          .file(secretsConf)
-          .optional
-          .withFallback:
-            ConfigSource.file(siteConf).optional.withFallback(ConfigSource.resources("base.conf"))
+      confDir          <- baseDir[F].map(_.resolve("conf"))
+      localDir          = confDir.resolve("local")
+      subsystemsConf    = localDir.resolve("subsystems.conf")
+      deprecatedConf    = localDir.resolve("systems.conf")
+      subsystemsPresent = JavaFiles.exists(subsystemsConf)
+      deprecatedPresent = JavaFiles.exists(deprecatedConf)
+      _                <- Logger[F]
+                            .warn(s"systems.conf is deprecated, rename it to subsystems.conf: $deprecatedConf")
+                            .whenA(!subsystemsPresent && deprecatedPresent)
+      overridesConf     =
+        if !subsystemsPresent && deprecatedPresent then deprecatedConf
+        else subsystemsConf
+      secretsConf       = localDir.resolve("secrets.conf")
+      site              = sys.env.get("SITE").getOrElse("develop")
+      siteConf          = confDir.resolve(site).resolve("site.conf")
+      _                <- Logger[F].info("Loading configuration:")
+      _                <- Logger[F].info:
+                            s" - $overridesConf (present: ${JavaFiles.exists(overridesConf)}), with fallback:"
+      _                <- Logger[F].info:
+                            s" - $secretsConf (present: ${JavaFiles.exists(secretsConf)}), with fallback:"
+      _                <- Logger[F].info:
+                            s" - $siteConf (present: ${JavaFiles.exists(siteConf)}), with fallback:"
+      _                <- Logger[F].info(s" - <resources>/base.conf")
+      source            = ConfigSource
+                            .file(overridesConf)
+                            .optional
+                            .withFallback:
+                              ConfigSource
+                                .file(secretsConf)
+                                .optional
+                                .withFallback:
+                                  ConfigSource
+                                    .file(siteConf)
+                                    .optional
+                                    .withFallback(ConfigSource.resources("base.conf"))
+      migrated         <- migrateDeprecatedKeys(source)
+    yield migrated
+
+  // Accept the deprecated navigate-engine.system-control key, with a warning
+  private def migrateDeprecatedKeys[F[_]: {Sync, Logger}](
+    source: ConfigObjectSource
+  ): F[ConfigObjectSource] =
+    Sync[F]
+      .delay(source.config())
+      .flatMap:
+        case Right(c) if hasDeprecatedSystemControl(c) =>
+          Logger[F]
+            .warn(
+              s"$DeprecatedSystemControlKey is deprecated, rename it to $SubsystemControlModesKey"
+            )
+            .as(ConfigSource.fromConfig(migrateSystemControl(c)))
+        case _                                         => source.pure[F]
 
   def makeContext[F[_]: Network](tls: TLSConfig): F[TLSContext[F]] =
     Network[F].tlsContext.fromKeyStoreFile(
@@ -192,7 +223,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
         dspt    <- Dispatcher.sequential[IO]
         cas     <- CaServiceInit.caInit[IO](conf.navigateEngine)
         sys     <-
-          Systems
+          Services
             .build[IO](conf.site, httpClient, conf, cas)(using
               Async[IO],
               Logger[IO],
