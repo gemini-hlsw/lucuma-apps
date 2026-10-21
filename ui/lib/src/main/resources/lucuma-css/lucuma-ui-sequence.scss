@@ -301,6 +301,10 @@ table tr {
     margin: 0;
     padding-right: 0 !important;
 
+    &.lucuma-sequence-clone-button {
+      color: var(--text-color);
+    }
+
     &.lucuma-sequence-delete-button {
       color: var(--negative-icon-color);
     }
