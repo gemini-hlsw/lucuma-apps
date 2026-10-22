@@ -135,8 +135,8 @@ object SubsystemControls
             .toTagMod
         )
     ) {
-  private val IdleIcon      = Icons.ArrowUpFromLine.withFixedWidth()
-  private val RunningIcon   = LucumaIcons.CircleNotch.withFixedWidth()
-  private val CompletedIcon = SequenceIcons.Check.withFixedWidth()
-  private val FailureIcon   = Icons.CircleExclamation.withFixedWidth().withInverse()
+  private val IdleIcon      = Icons.ArrowUpFromLine
+  private val RunningIcon   = LucumaIcons.CircleNotch
+  private val CompletedIcon = SequenceIcons.Check
+  private val FailureIcon   = Icons.CircleExclamation.withInverse()
 }

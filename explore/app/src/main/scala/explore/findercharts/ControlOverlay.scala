@@ -43,27 +43,27 @@ object ControlOverlay {
           Divider(),
           <.div(ExploreStyles.FinderChartsButton,
                 ^.onClick --> p.ops.mod(_.zoomOut),
-                Icons.MagnifyingGlassMinus.withBorder(true).withFixedWidth(true)
+                Icons.MagnifyingGlassMinus.withBorder(true)
           ),
           <.div("Zoom"),
           <.div(ExploreStyles.FinderChartsButton,
                 ^.onClick --> p.ops.mod(_.zoomIn),
-                Icons.MagnifyingGlassPlus.withBorder(true).withFixedWidth(true)
+                Icons.MagnifyingGlassPlus.withBorder(true)
           ),
           FormInputTextView("zoom".refined, value = scaleX, codec = inputCodecs.FinderChartZoom),
           <.div(ExploreStyles.FinderChartsButton,
                 ^.onClick --> p.ops.mod(_.rotateLeft),
-                Icons.ArrowRotateLeft.withBorder(true).withFixedWidth(true)
+                Icons.ArrowRotateLeft.withBorder(true)
           ),
           <.div("Rotate"),
           <.div(ExploreStyles.FinderChartsButton,
                 ^.onClick --> p.ops.mod(_.rotateRight),
-                Icons.ArrowRotateRight.withBorder(true).withFixedWidth(true)
+                Icons.ArrowRotateRight.withBorder(true)
           ),
           FormInputTextView("rotate".refined, value = rotateDeg, codec = inputCodecs.Integer),
           <.div(ExploreStyles.FinderChartsButton,
                 ^.onClick --> p.ops.mod(_.vflip),
-                Icons.ArrowsFromLine.withBorder(true).withFixedWidth(true)
+                Icons.ArrowsFromLine.withBorder(true)
           ),
           <.div("Flip"),
           <.div(
@@ -71,7 +71,6 @@ object ControlOverlay {
             ^.onClick --> p.ops.mod(_.flip),
             Icons.ArrowsFromLine
               .withBorder(true)
-              .withFixedWidth(true)
               .withTransform(Transform(rotate = 90))
           ),
           p.parallacticAngle
@@ -82,14 +81,14 @@ object ControlOverlay {
                   .mod(_.rotateTo(pa)),
                 <.div(ExploreStyles.FinderChartsButtonPA,
                       "Align to PA",
-                      Icons.Angle.withBorder(true).withFixedWidth(true)
+                      Icons.Angle.withBorder(true)
                 )
               )
             )
             .getOrElse(<.div()), // keep the table working OK
           <.div(
             ExploreStyles.FinderChartsButton,
-            Icons.ArrowsRepeatLight.withBorder(true).withFixedWidth(true),
+            Icons.ArrowsRepeatLight.withBorder(true),
             ^.onClick --> p.ops.mod(_.reset)
           ),
           <.div("Reset"),
@@ -97,7 +96,6 @@ object ControlOverlay {
             ExploreStyles.FinderChartsButton,
             Icons.CircleHalfStroke
               .withBorder(true)
-              .withFixedWidth(true)
               .withTransform(Transform(rotate = inverted.get.fold(0, 180))),
             ^.onClick --> inverted.mod(_.flip)
           ),

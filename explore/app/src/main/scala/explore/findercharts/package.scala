@@ -73,7 +73,7 @@ def attachmentSelector(
     Button(
       severity = Button.Severity.Secondary,
       outlined = chartSelector.get.value,
-      icon = Icons.Link.withFixedWidth(false).withInverse(chartSelector.get.value),
+      icon = Icons.Link.withInverse(chartSelector.get.value),
       onClick = chartSelector.mod(_.flip),
       disabled = readOnly,
       tooltip = s"Select charts"

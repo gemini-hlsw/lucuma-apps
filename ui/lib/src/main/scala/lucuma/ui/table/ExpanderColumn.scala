@@ -19,5 +19,5 @@ object ExpanderColumn:
         TableStyles.ExpanderChevron,
         TableStyles.ExpanderChevronOpen.when(expanded),
         ^.onClick ==> (_.stopPropagationCB *> toggle)
-      )(TableIcons.ChevronRight.withFixedWidth(true))
+      )(TableIcons.ChevronRight)
     else EmptyVdom

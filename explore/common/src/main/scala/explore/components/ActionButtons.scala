@@ -33,7 +33,7 @@ object ActionButtons:
     ScalaFnComponent[Props]: props =>
       <.span(Css("p-button-group"))(
         Button(
-          icon = Icons.Clone.withFixedWidth(),
+          icon = Icons.Clone,
           onClick = props.copyProps.callback,
           tooltip = "Copy" + props.copyProps.tooltipExtraStr,
           tooltipOptions = DefaultTooltipOptions,
@@ -41,7 +41,7 @@ object ActionButtons:
           severity = Button.Severity.Secondary
         ).compact.mini,
         Button(
-          icon = Icons.Clipboard.withFixedWidth(),
+          icon = Icons.Clipboard,
           onClick = props.pasteProps.callback,
           tooltip = "Paste" + props.pasteProps.tooltipExtraStr,
           tooltipOptions = DefaultTooltipOptions,
@@ -50,7 +50,7 @@ object ActionButtons:
           clazz = PlSize.Mini.cls
         ).compact.mini,
         Button(
-          icon = Icons.Trash.withFixedWidth(),
+          icon = Icons.Trash,
           onClick = props.deleteProps.callback,
           tooltip = "Delete" + props.deleteProps.tooltipExtraStr,
           tooltipOptions = DefaultTooltipOptions,

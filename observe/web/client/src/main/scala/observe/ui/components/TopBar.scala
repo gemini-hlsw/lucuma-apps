@@ -68,18 +68,18 @@ object TopBar
             val audioSubMenu =
               MenuItem.SubMenu(
                 label = "Sounds",
-                icon = Icons.Volume.withFixedWidth()
+                icon = Icons.Volume
               )(
                 MenuItem.Item(
                   label = "On",
-                  icon = Icons.Volume.withFixedWidth(),
+                  icon = Icons.Volume,
                   disabled = props.isAudioActivated.get,
                   command = props.isAudioActivated.set(IsAudioActivated.True) >>
                     Audio.SoundActivated.play.runAsyncAndForget
                 ),
                 MenuItem.Item(
                   label = "Off",
-                  icon = Icons.VolumeSlash.withFixedWidth(),
+                  icon = Icons.VolumeSlash,
                   disabled = !props.isAudioActivated.get,
                   command = props.isAudioActivated.set(IsAudioActivated.False)
                 )
@@ -93,19 +93,19 @@ object TopBar
             val subsystemsItem: Option[MenuItem] = Option.when(isStaff):
               MenuItem.Item(
                 label = "Subsystems...",
-                icon = Icons.Gears.withFixedWidth(),
+                icon = Icons.Gears,
                 command = isSystemsOpen.set(IsSystemsOpen(true))
               )
 
             val lastItems = subsystemsItem.toList ::: List(
               MenuItem.Item(
                 label = "About Observe",
-                icon = Icons.CircleInfo.withFixedWidth(),
+                icon = Icons.CircleInfo,
                 command = isAboutOpen.set(IsAboutOpen(true))
               ),
               MenuItem.Item(
                 label = "Logout",
-                icon = Icons.Logout.withFixedWidth(),
+                icon = Icons.Logout,
                 command = logout.runAsync
               )
             )

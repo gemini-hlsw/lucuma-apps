@@ -181,7 +181,6 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                   .whenDefined
               )(
                 Icons.CircleSolid
-                  .withFixedWidth()
                   .withClass(
                     ObserveStyles.BreakpointIcon |+|
                       // ObserveStyles.FlippableBreakpoint.when_(canSetBreakpoint) |+|
