@@ -187,7 +187,7 @@ extension [A](view: View[Option[A]])
 
 extension (icon: FontAwesomeIcon)
   def fixedWidthWithTooltip(tooltip: VdomNode): VdomNode =
-    <.span(icon.withFixedWidth()).withTooltip(content = tooltip)
+    <.span(icon).withTooltip(content = tooltip)
 
 extension (target: Target)
   def kindIcon: FontAwesomeIcon =

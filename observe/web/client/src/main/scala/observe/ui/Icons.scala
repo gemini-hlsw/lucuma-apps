@@ -294,4 +294,4 @@ object Icons:
     LayeredIcon()(
       Calendar,
       Sun.withInverse().withTransform(Transform(y = 3, size = 9))
-    ).withFixedWidth().withSize(IconSize.LG)
+    ).withSize(IconSize.LG)

@@ -76,7 +76,7 @@ object ExposureControlButtons
                   case ResumeExposure =>
                     Button(
                       clazz = ObserveStyles.PlayButton,
-                      icon = Icons.Play.withFixedWidth(),
+                      icon = Icons.Play,
                       tooltip = "Resume the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled = props.requestInFlight || !props.isPausedInStep,
@@ -86,7 +86,7 @@ object ExposureControlButtons
                   case PauseExposure  =>
                     Button(
                       clazz = ObserveStyles.PauseButton,
-                      icon = Icons.Pause.withFixedWidth(),
+                      icon = Icons.Pause,
                       tooltip = "Pause the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =
@@ -97,7 +97,7 @@ object ExposureControlButtons
                   case StopExposure   =>
                     Button(
                       clazz = ObserveStyles.StopButton,
-                      icon = Icons.Stop.withFixedWidth().withSize(IconSize.LG),
+                      icon = Icons.Stop.withSize(IconSize.LG),
                       tooltip = "Stop the current exposure early",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =
@@ -108,7 +108,7 @@ object ExposureControlButtons
                   case AbortExposure  =>
                     Button(
                       clazz = ObserveStyles.AbortButton,
-                      icon = SequenceIcons.XMark.withFixedWidth().withSize(IconSize.LG),
+                      icon = SequenceIcons.XMark.withSize(IconSize.LG),
                       tooltip = "Abort the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =

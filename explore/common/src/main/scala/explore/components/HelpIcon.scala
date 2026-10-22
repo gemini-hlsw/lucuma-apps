@@ -32,7 +32,6 @@ object HelpIcon:
           e.stopPropagationCB *> e.preventDefaultCB *> help.displayedHelp.set(props.id.some)
         },
         Icons.Info
-          .withFixedWidth()
           .withClass(ExploreStyles.HelpIcon)
       )
     }

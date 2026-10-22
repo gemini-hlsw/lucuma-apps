@@ -83,7 +83,7 @@ object ChecksOverrideDialog
               .replace(true)
 
         Dialog(
-          header = <.span(Icons.CircleExclamation.withFixedWidth(), " Warning"),
+          header = <.span(Icons.CircleExclamation, " Warning"),
           visible = current.isDefined,
           closable = false,
           modal = true,

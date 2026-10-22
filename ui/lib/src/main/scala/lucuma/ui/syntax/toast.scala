@@ -51,7 +51,7 @@ trait toast:
                      MessageItem(
                        id = id.toString,
                        content = <.span(
-                         LucumaIcons.CircleNotch.withSize(IconSize.LG).withFixedWidth(true),
+                         LucumaIcons.CircleNotch.withSize(IconSize.LG),
                          text
                        ),
                        severity = Message.Severity.Info,

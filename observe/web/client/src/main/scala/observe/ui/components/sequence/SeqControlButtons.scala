@@ -64,8 +64,8 @@ object SeqControlButtons
           Button(
             clazz = ObserveStyles.PlayButton |+| ObserveStyles.ObsSummaryButton,
             loading = props.isRefreshing,
-            icon = Icons.Play.withFixedWidth().withSize(IconSize.LG),
-            loadingIcon = LucumaIcons.CircleNotch.withFixedWidth().withSize(IconSize.LG).withSpin(),
+            icon = Icons.Play.withSize(IconSize.LG),
+            loadingIcon = LucumaIcons.CircleNotch.withSize(IconSize.LG).withSpin(),
             tooltip = "Start/Resume sequence",
             tooltipOptions = tooltipOptions,
             onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
@@ -74,7 +74,7 @@ object SeqControlButtons
           ).when(!props.isRunning),
           Button(
             clazz = ObserveStyles.SequenceHoldButton |+| ObserveStyles.ObsSummaryButton,
-            icon = Icons.PlayPause.withFixedWidth().withSize(IconSize.LG),
+            icon = Icons.PlayPause.withSize(IconSize.LG),
             tooltip = "Hold sequence after current step",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.requestSequenceHold(props.obsId).runAsync,
@@ -83,7 +83,7 @@ object SeqControlButtons
           ).when(props.isRunning && !props.isSequenceHoldRequested),
           Button(
             clazz = ObserveStyles.CancelSequenceHoldButton |+| ObserveStyles.ObsSummaryButton,
-            icon = Icons.CancelSequenceHold.withFixedWidth().withSize(IconSize.LG),
+            icon = Icons.CancelSequenceHold.withSize(IconSize.LG),
             tooltip = "Cancel sequence hold",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.cancelSequenceHoldRequest(props.obsId).runAsync,
@@ -91,7 +91,7 @@ object SeqControlButtons
           ).when(props.isRunning && props.isSequenceHoldRequested),
           Button(
             clazz = ObserveStyles.RewindButton |+| ObserveStyles.ObsSummaryButton,
-            icon = Icons.BackwardStep.withFixedWidth().withSize(IconSize.LG),
+            icon = Icons.BackwardStep.withSize(IconSize.LG),
             tooltip = "Rewind current step: stop before the exposure. Run configures again.",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.rewindStep(props.obsId).runAsync,
@@ -100,7 +100,7 @@ object SeqControlButtons
           ).when(!props.isRewindRequested),
           Button(
             clazz = ObserveStyles.CancelRewindButton |+| ObserveStyles.ObsSummaryButton,
-            icon = Icons.CancelRewind.withFixedWidth().withSize(IconSize.LG),
+            icon = Icons.CancelRewind.withSize(IconSize.LG),
             tooltip = "Cancel rewind request",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.cancelRewindRequest(props.obsId).runAsync,
@@ -108,7 +108,7 @@ object SeqControlButtons
           ).when(props.isRewindRequested),
           Button(
             clazz = ObserveStyles.SkipAcquisitionButton |+| ObserveStyles.ObsSummaryButton,
-            icon = Icons.Forward.withFixedWidth().withSize(IconSize.LG),
+            icon = Icons.Forward.withSize(IconSize.LG),
             tooltip = "Skip acquisition",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.skipAcquisition(props.obsId).runAsync,
@@ -116,7 +116,7 @@ object SeqControlButtons
           ).when(props.hasAcquisition && props.sequenceType === SequenceType.Acquisition),
           Button(
             clazz = ObserveStyles.ResetAcquisitionButton |+| ObserveStyles.ObsSummaryButton,
-            icon = Icons.Backward.withFixedWidth().withSize(IconSize.LG),
+            icon = Icons.Backward.withSize(IconSize.LG),
             tooltip = "Reacquire",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.resetAcquisition(props.obsId).runAsync,

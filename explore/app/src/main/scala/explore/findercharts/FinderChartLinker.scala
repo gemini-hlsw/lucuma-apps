@@ -117,7 +117,7 @@ object FinderChartLinker extends ObsAttachmentUtils with FinderChartsAttachmentU
             e.stopPropagationCB
           },
           <.span(
-            Icons.Files.withFixedWidth(true),
+            Icons.Files,
             "Available charts"
           ),
           Divider(),

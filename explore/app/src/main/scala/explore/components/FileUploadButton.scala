@@ -84,7 +84,7 @@ object FileUploadButton
         React.Fragment(
           <.label(^.htmlFor := s"attachment-upload-$id")(
             Button(
-              icon = Icons.FileArrowUp.withFixedWidth(true),
+              icon = Icons.FileArrowUp,
               onClick = ref.get.map(_.foreach(_.click())),
               disabled = props.readonly,
               tooltip = s"Upload new ${props.attachmentType.longName}",

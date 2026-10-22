@@ -314,7 +314,6 @@ object ConstraintGroupObsList:
                 toggleExpanded(obsIds, props.expandedIds).asEventDefault(e).void
             }
           )
-          .withFixedWidth()
 
         Droppable(
           ObsIdSet.fromString.reverseGet(obsIds),

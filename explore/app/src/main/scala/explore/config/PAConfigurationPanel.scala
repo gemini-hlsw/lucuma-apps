@@ -138,14 +138,14 @@ object PAConfigurationPanel:
         val spinnerButtons = List(
           <.span(ExploreStyles.AngleSpinnerButtons)(
             Button(
-              icon = Icons.AngleUp.withFixedWidth(),
+              icon = Icons.AngleUp,
               text = true,
               severity = Button.Severity.Secondary,
               disabled = finalReadOnly,
               onClick = increment
             ).tiny.compact,
             Button(
-              icon = Icons.AngleDown.withFixedWidth(),
+              icon = Icons.AngleDown,
               text = true,
               severity = Button.Severity.Secondary,
               disabled = finalReadOnly,

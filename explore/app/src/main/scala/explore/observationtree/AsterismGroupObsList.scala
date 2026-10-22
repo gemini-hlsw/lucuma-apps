@@ -520,7 +520,6 @@ object AsterismGroupObsList:
                   .void
             }
           )
-          .withFixedWidth()
 
         Droppable(
           ObsIdSet.fromString.reverseGet(obsIds),

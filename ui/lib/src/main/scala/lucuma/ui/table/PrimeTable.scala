@@ -164,9 +164,9 @@ private val baseHTMLRenderer: HTMLTableRenderer[Any, Any, Any, Any, Any] =
     override protected val ResizerContent: VdomNode  = "⋮"
 
     override protected val SortableColClass: Css       = Css("pl-sortable-col")
-    override protected val SortableIndicator: VdomNode = TableIcons.Sort.withFixedWidth()
-    override protected val SortAscIndicator: VdomNode  = TableIcons.SortUp.withFixedWidth()
-    override protected val SortDescIndicator: VdomNode = TableIcons.SortDown.withFixedWidth()
+    override protected val SortableIndicator: VdomNode = TableIcons.Sort
+    override protected val SortAscIndicator: VdomNode  = TableIcons.SortUp
+    override protected val SortDescIndicator: VdomNode = TableIcons.SortDown
 
 object PrimeTable:
   private val component =

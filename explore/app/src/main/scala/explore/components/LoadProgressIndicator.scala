@@ -26,7 +26,7 @@ object LoadProgressIndicator:
       ExploreStyles.LoadProgressDone.when(state === LoadStageState.Done),
       ^.key := stage.toString
     )(
-      <.span(ExploreStyles.LoadProgressSpinner)(Icons.Spinner.withFixedWidth()),
+      <.span(ExploreStyles.LoadProgressSpinner)(Icons.Spinner),
       <.span(stage.label)
     )
 
