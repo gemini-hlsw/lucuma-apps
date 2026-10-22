@@ -499,6 +499,19 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
           }
           daytimeCalibration {
             instrument
+            calibrationSets {
+              kind
+              count
+              gcal {
+                continuum
+                arcs
+                filter
+                diffuser
+                shutter
+              }
+              gmosNorth $GmosNorthDynamicConfigSubquery
+              gmosSouth $GmosSouthDynamicConfigSubquery
+            }
           }
         }
       """

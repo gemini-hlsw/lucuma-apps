@@ -193,6 +193,26 @@ trait DisplayImplicits:
 
   given Display[GmosRoi] = Display.byShortName(_.longName)
 
+  given Display[CalibrationSetType] = Display.byShortName(_.name)
+
+  given Display[GcalContinuum] = Display.by(_.shortName, _.longName)
+
+  given Display[GcalArc] = Display.by(_.shortName, _.longName)
+
+  given Display[GcalFilter] = Display.by(_.shortName, _.longName)
+
+  given Display[GcalShutter] = Display.by(_.shortName, _.longName)
+
+  given Display[GcalDiffuser] = Display.by(_.shortName, _.longName)
+
+  given Display[DaytimeCalibrationSets.ReadMode] =
+    Display.by(r => s"${r.readMode.longName}, ${r.gain.shortName}",
+               r => s"${r.readMode.longName}, ${r.gain.longName} Gain"
+    )
+
+  given Display[DaytimeCalibrationSets.Binning] =
+    Display.byShortName(b => s"${b.x.shortName} x ${b.y.shortName}")
+
   given Display[FilterType] = Display.byShortName:
     case FilterType.BroadBand     => "Broad Band"
     case FilterType.NarrowBand    => "Narrow Band"

@@ -1,0 +1,80 @@
+// Copyright (c) 2016-2026 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package lucuma.schemas.model
+
+import cats.Eq
+import cats.derived.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
+import io.circe.Decoder
+import io.circe.DecodingFailure
+import io.circe.refined.given
+import lucuma.core.enums.CalibrationSetType
+import lucuma.core.enums.Instrument
+import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.gmos.DynamicConfig
+import lucuma.odb.json.gmos.given
+import lucuma.odb.json.stepconfig.given
+import monocle.Focus
+import monocle.Lens
+import monocle.Prism
+import monocle.macros.GenPrism
+
+/**
+ * The Instrument Setup of a Daytime Calibration Set: the dynamic configuration every step of the
+ * set is taken with.
+ */
+enum DaytimeCalibrationSetup derives Eq:
+  case GmosNorth(config: DynamicConfig.GmosNorth)
+  case GmosSouth(config: DynamicConfig.GmosSouth)
+
+  def instrument: Instrument = this match
+    case GmosNorth(_) => Instrument.GmosNorth
+    case GmosSouth(_) => Instrument.GmosSouth
+
+object DaytimeCalibrationSetup:
+  val gmosNorth: Prism[DaytimeCalibrationSetup, GmosNorth] =
+    GenPrism[DaytimeCalibrationSetup, GmosNorth]
+
+  val gmosSouth: Prism[DaytimeCalibrationSetup, GmosSouth] =
+    GenPrism[DaytimeCalibrationSetup, GmosSouth]
+
+  object GmosNorth:
+    val config: Lens[GmosNorth, DynamicConfig.GmosNorth] = Focus[GmosNorth](_.config)
+
+  object GmosSouth:
+    val config: Lens[GmosSouth, DynamicConfig.GmosSouth] = Focus[GmosSouth](_.config)
+
+/**
+ * One ordered row of a Daytime Calibration: a kind, an exposure count, the GCAL lamp setup of a
+ * Flat or Arc, and the Instrument Setup. The ODB expands it into one atom of `count` identical
+ * day-cal steps.
+ */
+case class DaytimeCalibrationSet(
+  kind:  CalibrationSetType,
+  count: PosInt,
+  gcal:  Option[StepConfig.Gcal],
+  setup: DaytimeCalibrationSetup
+) derives Eq
+
+object DaytimeCalibrationSet:
+  val kind: Lens[DaytimeCalibrationSet, CalibrationSetType]       = Focus[DaytimeCalibrationSet](_.kind)
+  val count: Lens[DaytimeCalibrationSet, PosInt]                  = Focus[DaytimeCalibrationSet](_.count)
+  val gcal: Lens[DaytimeCalibrationSet, Option[StepConfig.Gcal]]  =
+    Focus[DaytimeCalibrationSet](_.gcal)
+  val setup: Lens[DaytimeCalibrationSet, DaytimeCalibrationSetup] =
+    Focus[DaytimeCalibrationSet](_.setup)
+
+  given Decoder[DaytimeCalibrationSet] = Decoder.instance: c =>
+    for
+      kind  <- c.downField("kind").as[CalibrationSetType]
+      count <- c.downField("count").as[PosInt]
+      gcal  <- c.downField("gcal").as[Option[StepConfig.Gcal]]
+      north <- c.downField("gmosNorth").as[Option[DynamicConfig.GmosNorth]]
+      south <- c.downField("gmosSouth").as[Option[DynamicConfig.GmosSouth]]
+      setup <- north
+                 .map(DaytimeCalibrationSetup.GmosNorth(_))
+                 .orElse(south.map(DaytimeCalibrationSetup.GmosSouth(_)))
+                 .toRight(DecodingFailure("Calibration set has no instrument setup", c.history))
+    yield DaytimeCalibrationSet(kind, count, gcal, setup)

@@ -227,6 +227,9 @@ object all:
     def programTimeEstimate: CalculatedValue[Option[TimeSpan]] =
       calcDigest.map(_.map(_.fullTimeEstimate.programTime))
     def fullSetupTime: CalculatedValue[Option[TimeSpan]]       = calcDigest.map(_.map(_.setup.full))
+    // Every charge class, so a non-charged daytime calibration still has a duration.
+    def fullTimeEstimate: CalculatedValue[Option[TimeSpan]]    =
+      calcDigest.map(_.map(_.fullTimeEstimate.sum))
     def remainingObsTime: CalculatedValue[Option[TimeSpan]]    =
       calcDigest.map(_.map(d => d.science.timeEstimate.sum +| d.setup.full))
 

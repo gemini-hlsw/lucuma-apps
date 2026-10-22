@@ -2204,6 +2204,28 @@ svg.fa-check.explore-success-icon {
 // ------
 // Configuration Tile
 // ------
+// Daytime calibration tile: the instrument row and the calibration sets grid.
+.explore-daytime-cal-instrument {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0.5em 0;
+}
+
+.explore-daytime-cal-message {
+  padding: 0.5em;
+  color: var(--text-color-secondary);
+}
+
+.explore-daytime-cal-set-table {
+  // The sequence table theme pads its headers for wide columns; these are narrow.
+  &.pl-react-table.p-datatable .p-datatable-thead > tr > th {
+    padding: 0.15em 0.3em;
+    font-size: smaller;
+    white-space: nowrap;
+  }
+}
+
 .explore-configuration-tile-body {
   background-color: var(--configuration-tile-background);
 }

@@ -54,6 +54,8 @@ import lucuma.schemas.ObservationDB.Enums.TelluricTag
 import lucuma.schemas.ObservationDB.Scalars.AttachmentId
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.DaytimeCalibrationSet
+import lucuma.schemas.model.DaytimeCalibrationSetup
 import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.TelescopeConfigGenerator
@@ -991,7 +993,7 @@ extension (b: ObservingMode)
     case o: ObservingMode.SubaruExchange     =>
       ObservingModeInput.Exchange(o.toInput)
     case o: ObservingMode.DaytimeCalibration =>
-      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(o.calibrationInstrument.assign))
+      ObservingModeInput.DaytimeCalibration(o.toInput)
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
@@ -1187,7 +1189,42 @@ extension (i: BasicConfiguration)
         )
       )
     case BasicConfiguration.DaytimeCalibration(calibrationInstrument)                             =>
-      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(calibrationInstrument.assign))
+      ObservingModeInput.DaytimeCalibration(
+        DaytimeCalibrationInput(instrument = calibrationInstrument.assign)
+      )
+
+extension (gcal: StepConfig.Gcal)
+  def toCalibrationSetGcalInput: CalibrationSetGcalInput =
+    CalibrationSetGcalInput(
+      continuum = gcal.lamp.continuum.orUnassign,
+      arcs = gcal.lamp.arcs.map(_.toSortedSet.toList).orUnassign,
+      filter = gcal.filter,
+      diffuser = gcal.diffuser.assign,
+      shutter = gcal.shutter
+    )
+
+extension (s: DaytimeCalibrationSet)
+  def toInput: CalibrationSetInput =
+    CalibrationSetInput(
+      kind = s.kind,
+      count = s.count,
+      gcal = s.gcal.map(_.toCalibrationSetGcalInput).orUnassign,
+      gmosNorth = DaytimeCalibrationSetup.gmosNorth
+        .getOption(s.setup)
+        .map(_.config.toInput)
+        .orUnassign,
+      gmosSouth = DaytimeCalibrationSetup.gmosSouth
+        .getOption(s.setup)
+        .map(_.config.toInput)
+        .orUnassign
+    )
+
+extension (d: ObservingMode.DaytimeCalibration)
+  def toInput: DaytimeCalibrationInput =
+    DaytimeCalibrationInput(
+      instrument = d.calibrationInstrument.assign,
+      calibrationSets = d.calibrationSets.map(_.toInput).assign
+    )
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

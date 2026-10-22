@@ -39,7 +39,6 @@ import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.drain
@@ -294,7 +293,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           SET = ObservationPropertiesInput(
             groupId = parentId.orIgnore,
             observingMode = ObservingModeInput
-              .DaytimeCalibration(DaytimeCalibrationInput(instrument.assign))
+              .DaytimeCalibration(DaytimeCalibrationInput(instrument = instrument.assign))
               .assign
           ).assign
         )
@@ -302,17 +301,11 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .map(_.createObservation.observation)
       .flatMap(hydrateObservingMode)
 
-  // Re-hydrate an observation with a one query call to fill the blanks of teh subquery.
-  // A daytime calibration's basic configuration already holds its whole mode.
+  // Re-hydrate an observation with a one query call to fill the blanks of the subquery.
   private def hydrateObservingMode(obs: Observation): F[Observation] =
-    obs.basicConfiguration.fold(obs.pure[F]):
-      case BasicConfiguration.DaytimeCalibration(instrument) =>
-        Observation.observingMode
-          .replace(Pot.Ready(ObservingMode.DaytimeCalibration(instrument).some))(obs)
-          .pure[F]
-      case bc                                                =>
-        observationObservingMode(obs.id, bc.obsModeType).map: mode =>
-          Observation.observingMode.replace(Pot.Ready(mode))(obs)
+    obs.basicConfiguration.fold(obs.pure[F]): bc =>
+      observationObservingMode(obs.id, bc.obsModeType).map: mode =>
+        Observation.observingMode.replace(Pot.Ready(mode))(obs)
 
   def cloneObservation(
     obsId:        Observation.Id,
@@ -636,8 +629,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           ObservingModeType.VisitorSouth | ObservingModeType.ZorroSpeckle |
           ObservingModeType.ZorroWideField =>
         ModeViewFlags(visitor = true)
+      // The subquery always selects the daytime calibration view, so no flag is needed.
       case ObservingModeType.DaytimeCalibration                              =>
-        // TODO. Add the mode specific switch
         ModeViewFlags()
 
   private def fetchObservingModes(

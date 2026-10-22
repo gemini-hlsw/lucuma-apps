@@ -396,7 +396,7 @@ enum ObservingModeSummary derives Order:
         )
       )
     case DaytimeCalibration(instrument)                                                    =>
-      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(instrument.assign))
+      ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(instrument = instrument.assign))
 
   // For the dropdown for selecting an existing configuration. The line breaks will be a single space in the dropdown,
   // but will be rendered with line breaks in the dropdown panel.
