@@ -29,6 +29,7 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.AtomRecord
 import lucuma.schemas.model.Dataset
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
@@ -99,6 +100,8 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
    *   - `datasetRange` is the lowest and highest file number (`Dataset.Filename.index`) over the
    *     run's steps' datasets; the visit header shows it aggregated over all runs as "Files min -
    *     max".
+   *   - `interval` spans the run's atom records, from the first one's first event to the last one's
+   *     last event, as recorded by the ODB.
    *   - `runIndex` is the run's position within the visit, which only serves to give each run
    *     separator row a distinct row id.
    */
@@ -106,6 +109,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     sequenceType: SequenceType,
     stepRows:     NonEmptyList[SequenceIndexedRow[D]],
     datasetRange: Option[(Int, Int)],
+    interval:     Option[TimestampInterval],
     runIndex:     Int
   )
 
@@ -190,7 +194,12 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       <.span(run.sequenceType.shortName),
       <.span(s"Steps: ${run.stepRows.head.index} - ${run.stepRows.last.index}"),
       <.span(renderFiles(run.datasetRange)),
-      renderBulkQaButton(ctx.datasetQaBulkEdit, run.stepRows.toList)
+      renderBulkQaButton(ctx.datasetQaBulkEdit, run.stepRows.toList),
+      // The run's wall-clock duration.
+      run.interval.map: interval =>
+        <.span(SequenceStyles.VisitDuration)(
+          DurationPaddedFormatter(interval.timeSpan.toDuration)
+        )
     )
 
   /** The row ids of every run within `visits`, e.g. to expand them. */
@@ -343,34 +352,29 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     startIndex:    StepIndex,
     runIndex:      Int
   ): (Option[VisitRun], StepIndex) =
-    atoms
-      .flatMap(_.steps)
-      .filterNot(step => currentStepId.contains_(step.id))
-      .some
-      .filter(_.nonEmpty)
-      .map: steps =>
-        val datasetIndices = steps.flatMap(_.datasets).map(_.filename.index.value)
+    val steps: List[StepRecord[D]] =
+      atoms.flatMap(_.steps).filterNot(step => currentStepId.contains_(step.id))
 
-        (
-          steps
-            .map:
-              SequenceRow.Executed.ExecutedStep(visitId, _, none, none)
-            .zipWithStepIndex(startIndex),
-          datasetIndices.minOption.map(min => (min, datasetIndices.max))
-        )
-      .map: (zipResult, datasetRange) =>
-        val (rows, nextIndex) = zipResult
+    val (rows: List[(SequenceRow.Executed.ExecutedStep[D], StepIndex)], nextIndex: StepIndex) =
+      steps
+        .map(SequenceRow.Executed.ExecutedStep(visitId, _, none, none))
+        .zipWithStepIndex(startIndex)
 
-        (VisitRun(
-           sequenceType,
-           NonEmptyList.fromListUnsafe(rows.map(SequenceIndexedRow(_, _))),
-           datasetRange,
-           runIndex
-         ).some,
-         nextIndex
-        )
-      .getOrElse:
-        (none, startIndex)
+    val datasetIndices: List[Int] = steps.flatMap(_.datasets).map(_.filename.index.value)
+
+    val run: Option[VisitRun] =
+      NonEmptyList
+        .fromList(rows.map(SequenceIndexedRow(_, _)))
+        .map: stepRows =>
+          VisitRun(
+            sequenceType,
+            stepRows,
+            datasetIndices.minOption.map(min => (min, datasetIndices.max)),
+            atoms.flatMap(_.interval).reduceOption(_.span(_)),
+            runIndex
+          )
+
+    (run, nextIndex)
 
   // Groups consecutive atoms of the same sequence type, keeping their order.
   private def consecutiveRuns(
