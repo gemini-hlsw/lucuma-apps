@@ -124,13 +124,29 @@ class StepFailureReportingSuite extends TestCommon {
   private final class RunningEngine(
     val odb: TestOdbProxy[IO],
     oe:      ObserveEngine[IO],
-    states:  SignallingRef[IO, Option[EngineState[IO]]]
+    states:  SignallingRef[IO, Vector[EngineState[IO]]]
   ):
+    private def sendAndSelect(cmd: ObserveEngine[IO] => IO[Unit])(
+      select: Vector[EngineState[IO]] => Option[EngineState[IO]]
+    ): IO[EngineState[IO]] =
+      // Only states emitted after the command was sent may satisfy `select`.
+      states.get
+        .map(_.size)
+        .flatMap: seen =>
+          cmd(oe) *> states.discrete.map(h => select(h.drop(seen))).unNone.head.compile.lastOrError
+
     def sendAndAwait(cmd: ObserveEngine[IO] => IO[Unit])(
       until: EngineState[IO] => Boolean
     ): IO[EngineState[IO]] =
-      // `discrete` replays the current state first; skip it so a stale match can't satisfy `until`.
-      cmd(oe) *> states.discrete.drop(1).unNone.find(until).compile.lastOrError
+      sendAndSelect(cmd)(_.find(until))
+
+    /**
+     * Waits for the sequence to finish a new run. Trailing states of a previous run can still
+     * arrive after the command, so finished states are skipped until the sequence leaves them.
+     */
+    def sendAndAwaitFinished(cmd: ObserveEngine[IO] => IO[Unit]): IO[EngineState[IO]] =
+      val finished: EngineState[IO] => Boolean = sequenceStatus(_).exists(isFinished)
+      sendAndSelect(cmd)(_.dropWhile(finished).find(finished))
 
   private def withRunningEngine[A](
     gmos: GmosNorthController[IO]
@@ -146,11 +162,11 @@ class StepFailureReportingSuite extends TestCommon {
       tr       <- ObserveEngine.createTranslator(Site.GS, services, rc, ExecutionEnvironment.Development)
       eng      <- Engine.build[IO](ObserveEngine.onStepComplete[IO](services.odb, tr))
       oe        = new ObserveEngineImpl[IO](eng, services, defaultSettings, tr, rc)
-      states   <- SignallingRef.of[IO, Option[EngineState[IO]]](none)
+      states   <- SignallingRef.of[IO, Vector[EngineState[IO]]](Vector.empty)
       a        <- oe
                     .eventResultStream(s0)
                     .evalTap(oe.notifyODB(_).void)
-                    .evalMap((_, s) => states.set(s.some))
+                    .evalMap((_, s) => states.update(_ :+ s))
                     .compile
                     .drain
                     .background
@@ -163,7 +179,7 @@ class StepFailureReportingSuite extends TestCommon {
   test("a subsystem timeout fails the step without sending a step abort to the ODB") {
     withRunningEngine(gmosFailingConfig): engine =>
       for
-        s1  <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+        s1  <- engine.sendAndAwaitFinished(start)
         evs <- engine.odb.outCapture
       yield
         assert(sequenceStatus(s1).exists(_.isError), s"status was ${sequenceStatus(s1)}")
@@ -176,8 +192,8 @@ class StepFailureReportingSuite extends TestCommon {
       .flatMap: failed =>
         withRunningEngine(gmosFailingOnce(failed)): engine =>
           for
-            s1  <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
-            s2  <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+            s1  <- engine.sendAndAwaitFinished(start)
+            s2  <- engine.sendAndAwaitFinished(start)
             evs <- engine.odb.outCapture
           yield
             assert(sequenceStatus(s1).exists(_.isError), s"status was ${sequenceStatus(s1)}")
@@ -201,9 +217,9 @@ class StepFailureReportingSuite extends TestCommon {
                                  clientId
             )
           for
-            s1 <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+            s1 <- engine.sendAndAwaitFinished(start)
             s2 <- engine.sendAndAwait(configure)(gmosSingleRunState(_).exists(_.completed))
-            s3 <- engine.sendAndAwait(start)(sequenceStatus(_).exists(isFinished))
+            s3 <- engine.sendAndAwaitFinished(start)
           yield
             assert(sequenceStatus(s1).exists(_.isError), s"status was ${sequenceStatus(s1)}")
             assertEquals(sequenceStatus(s2), SequenceStatus.Idle.some)
@@ -248,8 +264,9 @@ class StepFailureReportingSuite extends TestCommon {
           _   <- engine.sendAndAwait(start)(observeActionState(_).exists(_.started))
           _   <- engine.sendAndAwait(_.pauseExposure(seqObsId1, observer, user, graceful = false)):
                    observeActionState(_).exists(_.paused)
-          s3  <- engine.sendAndAwait(_.stopExposure(seqObsId1, observer, user, graceful = false)):
-                   sequenceStatus(_).exists(isFinished)
+          s3  <- engine.sendAndAwaitFinished(
+                   _.stopExposure(seqObsId1, observer, user, graceful = false)
+                 )
           evs <- engine.odb.outCapture
         yield
           assert(sequenceStatus(s3).exists(_.isError), s"status was ${sequenceStatus(s3)}")
