@@ -271,10 +271,16 @@ is_manual_system() {
   [[ " ${manual_systems[*]} " =~ [[:space:]]${1}[[:space:]] ]]
 }
 
-# The command the operator must run by hand on the servers of a manual system.
+# The command the operator must run by hand on the servers of a manual system. It takes no tag:
+# the servers deploy the one recorded by record_github_deployment, shown here for reference.
 get_manual_command() {
   local system=$1
-  echo "${manual_command["$system"]} ${docker_tag["$system"]}"
+  echo "${manual_command["$system"]}"
+}
+
+get_manual_command_note() {
+  local system=$1
+  echo "(deploys ${docker_tag["$system"]})"
 }
 
 show_slack_message() {
@@ -299,7 +305,8 @@ show_slack_message() {
   fi
 
   if is_manual_system "$service"; then
-    echo "    Run on the GN and GS $target_env $service servers: \`$(get_manual_command "$service")\`"
+    echo "    Run on the GN and GS $target_env $service servers $(get_manual_command_note "$service"):"
+    echo "    \`\`\`$(get_manual_command "$service")\`\`\`"
   fi
 
   # Include backup ID for ODB
@@ -360,7 +367,8 @@ send_slack_notification() {
     if [ -n "$compare_link" ]; then
       message="$message\nChanges: $compare_link"
     fi
-    message="$message\nRun on the GN and GS $target_env $service servers: \`$(get_manual_command "$service")\`"
+    message="$message\nRun on the GN and GS $target_env $service servers $(get_manual_command_note "$service"):"
+    message="$message\n\`\`\`$(get_manual_command "$service")\`\`\`"
     message="$message\nTime: $timestamp"
   fi
 
@@ -569,7 +577,7 @@ promote_manual_systems() {
     if [ "${promote["$display_name"]}" = true ]; then
       echo "## $display_name → $TARGET_ENV requires a manual step"
       echo "  Run on the GN and GS $TARGET_ENV $display_name servers:"
-      echo "      $(get_manual_command "$display_name")"
+      echo "      $(get_manual_command "$display_name")    $(get_manual_command_note "$display_name")"
 
       record_github_deployment "$display_name"
 
@@ -594,7 +602,7 @@ show_manual_commands() {
         printed=true
       fi
       echo "  $display_name (on the GN and GS $TARGET_ENV servers):"
-      echo "      $(get_manual_command "$display_name")"
+      echo "      $(get_manual_command "$display_name")    $(get_manual_command_note "$display_name")"
     fi
   done
 }
