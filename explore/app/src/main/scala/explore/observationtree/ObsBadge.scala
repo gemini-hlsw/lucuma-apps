@@ -289,18 +289,7 @@ object ObsBadge:
       lazy val validationTooltip =
         if (obs.hasConfigurationRequestError)
           <.span(obs.workflow.value.validationErrors.head.messages.head)
-        else
-          <.div(
-            obs.workflow.value.validationErrors
-              .toTagMod(using
-                ov =>
-                  <.div(
-                    ov.code.name +
-                      obs.severityOf(ov.code, props.dismissedWarnings).dismissedSuffix,
-                    <.ul(ov.messages.toList.toTagMod(using i => <.li(i)))
-                  )
-              )
-          )
+        else validationsTooltip(obs.workflow.value.validationErrors, props.dismissedWarnings)
 
       lazy val validationIcon: VdomNode =
         obs

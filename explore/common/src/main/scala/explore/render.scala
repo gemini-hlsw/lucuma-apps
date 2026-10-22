@@ -4,12 +4,14 @@
 package explore
 
 import cats.syntax.all.given
+import explore.model.DismissedWarnings
 import explore.model.enums.ObsValidationSeverity
 import explore.model.enums.TargetType
 import explore.model.formats.durationHMS
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SchedulingMode
+import lucuma.core.model.ObservationValidation
 import lucuma.core.model.TimingWindowEnd
 import lucuma.core.model.TimingWindowRepeat
 import lucuma.ui.format.*
@@ -55,6 +57,21 @@ object render:
       case ObsValidationSeverity.Error            => Icons.ErrorIcon
       case ObsValidationSeverity.DismissedWarning => Icons.DismissedWarningIcon
       case ObsValidationSeverity.Warning          => Icons.MissingInfoIcon
+
+  // One entry per validation: its code, flagged when dismissed, and then its messages.
+  def validationsTooltip(
+    validations: List[ObservationValidation],
+    dismissed:   DismissedWarnings
+  ): VdomNode =
+    <.div(
+      validations.toTagMod(using
+        ov =>
+          <.div(
+            ov.code.name + ObsValidationSeverity.of(ov.code, dismissed).dismissedSuffix,
+            <.ul(ov.messages.toList.toTagMod(using i => <.li(i)))
+          )
+      )
+    )
 
   given Render[ObsValidationSeverity] = Render.by: severity =>
     React.Fragment(validationSeverityIcon(severity), " ", severity.fullLabel)
