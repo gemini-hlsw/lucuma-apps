@@ -293,8 +293,9 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           programId = programId.assign,
           SET = ObservationPropertiesInput(
             groupId = parentId.orIgnore,
-            observingMode =
-              ObservingModeInput.DaytimeCalibration(DaytimeCalibrationInput(instrument)).assign
+            observingMode = ObservingModeInput
+              .DaytimeCalibration(DaytimeCalibrationInput(instrument.assign))
+              .assign
           ).assign
         )
       .processErrorsIgnoring(ignorePendingObsCalc)
