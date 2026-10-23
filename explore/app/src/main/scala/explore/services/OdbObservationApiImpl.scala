@@ -479,7 +479,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         includeGnirsIfu = flags.gnirsIfu,
         includeGhostIfu = flags.ghostIfu,
         includeVisitor = flags.visitor,
-        includeExchange = flags.exchange
+        includeExchange = flags.exchange,
+        includeDaytimeCalibration = flags.daytimeCalibration
       )
       .processErrors
       .map(_.updateObservations.observations.headOption.flatMap(_.observingMode))
@@ -549,15 +550,17 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     gnirsIfu:           Boolean = false,
     ghostIfu:           Boolean = false,
     visitor:            Boolean = false,
-    exchange:           Boolean = false
+    exchange:           Boolean = false,
+    daytimeCalibration: Boolean = false
   )
 
   // `ObservingModeInput` is a `@oneOf`, so it names exactly the mode-view to turn on.
   private def modeViewFlagsFor(input: Input[ObservingModeInput]): ModeViewFlags =
     input.toOption.fold(ModeViewFlags()):
-      case ObservingModeInput.Visitor(_)  => ModeViewFlags(visitor = true)
-      case ObservingModeInput.Exchange(_) => ModeViewFlags(exchange = true)
-      case facilityInput                  =>
+      case ObservingModeInput.Visitor(_)            => ModeViewFlags(visitor = true)
+      case ObservingModeInput.Exchange(_)           => ModeViewFlags(exchange = true)
+      case ObservingModeInput.DaytimeCalibration(_) => ModeViewFlags(daytimeCalibration = true)
+      case facilityInput                            =>
         modeTypeFor(facilityInput).fold(ModeViewFlags())(modeViewFlagsFor)
 
   // Visitor and exchange inputs don't pin down a single mode type, and neither can carry Altair.
@@ -629,9 +632,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           ObservingModeType.VisitorSouth | ObservingModeType.ZorroSpeckle |
           ObservingModeType.ZorroWideField =>
         ModeViewFlags(visitor = true)
-      // The subquery always selects the daytime calibration view, so no flag is needed.
       case ObservingModeType.DaytimeCalibration                              =>
-        ModeViewFlags()
+        ModeViewFlags(daytimeCalibration = true)
 
   private def fetchObservingModes(
     where:    WhereObservation,
@@ -661,7 +663,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeGnirsIfu = flags.gnirsIfu,
             includeGhostIfu = flags.ghostIfu,
             includeVisitor = flags.visitor,
-            includeExchange = flags.exchange
+            includeExchange = flags.exchange,
+            includeDaytimeCalibration = flags.daytimeCalibration
           )
           .processNoDataErrors
           .map(_.observations),
