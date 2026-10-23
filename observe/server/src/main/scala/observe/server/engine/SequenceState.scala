@@ -46,6 +46,10 @@ final case class SequenceState[F[_]](
 
   def rollback: SequenceState[F] = copy(loadedStep = loadedStep.map(_.rollback))
 
+  /** Back to a pristine step and an idle sequence, as if the failure had never happened. */
+  def resetIfFailed: SequenceState[F] =
+    if status.isError then copy(status = SequenceStatus.Idle).rollback.clearSingles else this
+
   def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): SequenceState[F] =
     copy(
       breakpoints = breakpointsDelta.foldLeft(breakpoints) { case (accum, (stepId, breakpoint)) =>

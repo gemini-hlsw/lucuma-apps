@@ -100,6 +100,10 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         .getOrElse(EngineHandle.unit)
       )
 
+  /**
+   * Runs one action of the loaded step on its own, outside the sequence. A failed sequence is first
+   * reset so the step is run as if it had never failed, exactly as Play does.
+   */
   def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
     EngineHandle.getState.flatMap { st =>
       val resultStream: Option[Stream[F, Result]] =
@@ -111,7 +115,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
 
       resultStream
         .map { p =>
-          EngineHandle.modifySequenceState[F](c.obsId)(u => u.startSingle(c.actCoords)) *>
+          EngineHandle.modifySequenceState[F](c.obsId)(u =>
+            u.resetIfFailed.startSingle(c.actCoords)
+          ) *>
             EngineHandle
               .fromEventStream(
                 p.attempt.flatMap {
