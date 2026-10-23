@@ -5,9 +5,10 @@
 # Example: promote.sh dev staging --dry-run --debug
 # Example: promote.sh dev staging --skip-slack
 #
-# Observe and Navigate run on private servers and are updated by hand with
-# `observe update <tag>` / `navigate update <tag>`. This script does NOT deploy them: it records
-# the GitHub deployment, sends the Slack message and prints the command the operator must run.
+# Observe and Navigate run on private servers and are updated by hand with `observe update` /
+# `navigate update`, which deploy the tag recorded here. This script does NOT deploy them: it
+# records the GitHub deployment, sends the Slack message and prints the command the operator
+# must run.
 
 set -e
 

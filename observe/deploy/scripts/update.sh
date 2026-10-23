@@ -31,9 +31,8 @@ done
 
 . $SCRIPTS_DIR/config.sh
 
-ENVIRONMENT="${SITE%-*}"
-case "$ENVIRONMENT" in
-    staging|production) ;;
+case "$SITE" in
+    staging-gn|staging-gs|production-gn|production-gs) ENVIRONMENT="${SITE%-*}" ;;
     *)
         echo "ERROR: Cannot determine the environment of this server from SITE [$SITE] in $SCRIPTS_DIR/config.sh."
         echo "  SITE must be one of staging-gn, staging-gs, production-gn or production-gs."

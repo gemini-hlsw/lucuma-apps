@@ -6,7 +6,7 @@ SCRIPTS_DIR=~/observe
 
 VERSION=$(cat $SCRIPTS_DIR/deployed-version 2>/dev/null)
 if [ -z "$VERSION" ]; then
-    echo "No deployed version found. Run 'observe update <tag>' first."
+    echo "No deployed version found. Run 'observe update' first."
     exit 1
 fi
 

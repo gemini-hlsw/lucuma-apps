@@ -10,6 +10,12 @@ be incompatible with the other systems of the environment. Tags are `YYYYMMDD-<s
 by CI (e.g. `20260916-4b3faa6d`). The current tag is stored in `~/observe/deployed-version` (written
 only by `update`) and shown by `observe version`. `observe start` and `observe restart` reuse it.
 
+The per-subsystem control modes (`observe-engine.subsystem-control-modes`) live in
+`~/observe/conf/subsystems.conf`, which is now written by the Observe UI (Subsystems dialog) for the
+subsystems of the running site. The UI can also restart the server for the new modes to take
+effect, when nothing is running: the server exits cleanly and the container's
+`--restart unless-stopped` policy brings it back (the server exits with code 3 on such a restart).
+
 You can use the commands in `install.sh` to copy the latest version of the scripts:
 
 ```
