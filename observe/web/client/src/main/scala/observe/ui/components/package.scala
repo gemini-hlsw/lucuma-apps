@@ -38,8 +38,8 @@ val DefaultTooltipOptions =
 extension (rootModel: RootModel)
   def renderExploreLinkToObs
     : Pot[Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]] =
-    (rootModel.clientConfig, rootModel.data.get.userVault.map(_.toPot).flatten).tupled
-      .map: (clientConfig, _) =>
+    (rootModel.clientConfig, rootModel.data.get.userVault.map(_.toPot).flatten)
+      .mapN: (clientConfig, _) =>
         Reusable.always: obsIdOrRef =>
           <.a(
             ^.href := clientConfig.linkToExploreObs(obsIdOrRef).toString,
