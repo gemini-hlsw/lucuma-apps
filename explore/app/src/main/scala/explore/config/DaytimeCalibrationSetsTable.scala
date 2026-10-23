@@ -182,7 +182,7 @@ object DaytimeCalibrationSetsTable:
           FormInputTextView(
             id = cellId(CountColumnId, c.row.original._2),
             value = rowView(c.row.original._2).zoom(DaytimeCalibrationSet.count),
-            codec = inputCodecs.PositiveInt,
+            codec = inputCodecs.CalibrationSetCount,
             groupClass = SequenceStyles.SequenceInput,
             disabled = !editable
           )

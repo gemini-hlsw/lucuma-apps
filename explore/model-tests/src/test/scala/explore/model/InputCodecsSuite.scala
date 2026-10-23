@@ -5,6 +5,7 @@ package explore.model
 
 import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
+import eu.timepit.refined.types.numeric.PosInt
 import explore.model.enums.WavelengthUnits
 import lucuma.core.arb.ArbTime.given
 import lucuma.core.data.EmailAddress
@@ -110,6 +111,12 @@ final class InputCodecsSuite extends DisciplineSuite:
   checkAll("ExposureTimeSeconds", InputCodecTests(inputCodecs.ExposureTimeSeconds))
   checkAll("ExposureTimeMilliseconds", InputCodecTests(inputCodecs.ExposureTimeMilliseconds))
   checkAll("PositiveInt", InputCodecTests(inputCodecs.PositiveInt))
+  checkAll(
+    "CalibrationSetCount",
+    InputCodecTests(inputCodecs.CalibrationSetCount)(using
+      Arbitrary(Gen.choose(1, inputCodecs.MaxCalibrationSetCount.value).map(PosInt.unsafeFrom))
+    )
+  )
   checkAll("ExposureCount", InputCodecTests(inputCodecs.ExposureCount))
   checkAll("Percent", InputCodecTests(inputCodecs.Percent))
   checkAll("SignalToNoiseOptional", InputCodecTests(inputCodecs.SignalToNoiseOptional))
