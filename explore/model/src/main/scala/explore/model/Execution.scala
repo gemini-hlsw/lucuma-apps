@@ -5,13 +5,16 @@ package explore.model
 
 import cats.Eq
 import cats.Order.catsKernelOrderingForOrder
+import cats.data.NonEmptyChain
 import cats.derived.*
 import cats.syntax.all.*
 import explore.model.ProgramTime
 import io.circe.Decoder
 import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.ExecutionState
+import lucuma.core.enums.SequenceType
 import lucuma.core.math.Offset
+import lucuma.core.model.ObservationValidation
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.SequenceDigest
 import lucuma.core.model.sequence.TelescopeConfig
@@ -50,6 +53,23 @@ final case class Execution(
     digest.value.foldMap(_.acquisition.telescopeConfigs.map(_.offset))
   lazy val sciOffset: SortedSet[Offset] =
     digest.value.foldMap(_.science.telescopeConfigs.map(_.offset))
+
+  // The problems the ODB found in the steps of the sequences, one validation per code, worded as
+  // the ODB words them in the observation's validations: acquisition first, then science.
+  lazy val stepValidations: List[ObservationValidation] =
+    digest.value
+      .foldMap: d =>
+        d.acquisition.stepViolations.toList.tupleLeft(SequenceType.Acquisition) ++
+          d.science.stepViolations.toList.tupleLeft(SequenceType.Science)
+      .groupByNel(_._2.code)
+      .toList
+      .map: (code, violations) =>
+        ObservationValidation(
+          code,
+          NonEmptyChain.fromNonEmptyList(
+            violations.map((seqType, v) => s"${seqType.tag.capitalize} sequence: ${v.message}")
+          )
+        )
 
 object Execution:
   val digest: Lens[Execution, CalculatedValue[Option[ObservationDigest]]] =

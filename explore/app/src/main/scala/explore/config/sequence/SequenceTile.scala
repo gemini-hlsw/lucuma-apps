@@ -13,11 +13,14 @@ import explore.components.ui.ExploreStyles
 import explore.config.sequence.byInstrument.*
 import explore.model.AppContext
 import explore.model.AttachmentList
+import explore.model.DismissedWarnings
 import explore.model.Execution
 import explore.model.ObsTabTileIds
 import explore.model.Observation
+import explore.model.enums.ObsValidationSeverity
 import explore.model.enums.WavelengthUnits
 import explore.model.syntax.all.*
+import explore.render.*
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -56,6 +59,7 @@ final case class SequenceTile(
   isEditingScience:        View[IsEditing],
   isUserStaffOrAdmin:      Boolean,
   wavelengthUnits:         WavelengthUnits,
+  dismissedWarnings:       DismissedWarnings,
   obsIsExecuted:           Boolean,
   readonly:                Boolean,
   attachments:             AttachmentList
@@ -63,6 +67,14 @@ final case class SequenceTile(
       ObsTabTileIds.SequenceId.id,
       <.span(
         "Sequence",
+        obsExecution.stepValidations
+          .map(v => ObsValidationSeverity.of(v.code, dismissedWarnings))
+          .maximumOption
+          .map: severity =>
+            <.span(ExploreStyles.SequenceTileStepViolations)(validationSeverityIcon(severity))
+              .withTooltip(content =
+                validationsTooltip(obsExecution.stepValidations, dismissedWarnings)
+              ),
         Option.when(obsExecution.scienceSequenceIsCustomized):
           <.span(ExploreStyles.SequenceTileCustomized)(
             "Customized",
