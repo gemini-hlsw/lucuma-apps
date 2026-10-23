@@ -68,6 +68,9 @@ object DaytimeCalibrationSetsTable:
 
   private val ColDef = ColumnDef[Row]
 
+  // Not exposed by the MultiSelect binding; reaches PrimeReact as a raw prop.
+  private val SelectAllLabel = VdomAttr("selectAllLabel")
+
   private val DragHandleColumnId: ColumnId = ColumnId("dragHandle")
   private val KindColumnId: ColumnId       = ColumnId("kind")
   private val CountColumnId: ColumnId      = ColumnId("count")
@@ -334,8 +337,9 @@ object DaytimeCalibrationSetsTable:
                     ),
                     groupFunctions = ArcGroups,
                     clazz = SequenceStyles.SequenceDropdown,
+                    panelClass = SequenceStyles.SequenceDropdownPanel,
                     disabled = !editable
-                  )
+                  ).withMods(SelectAllLabel := "All")
                 case _                       => EmptyVdom
           ).withSize(110.toPx),
           ColDef(
@@ -436,7 +440,7 @@ object DaytimeCalibrationSetsTable:
                 case _                                                      => TagMod.empty,
             emptyMessage = <.div(
               ExploreStyles.DaytimeCalMessage,
-              "No calibration sets. Add one or enter the sequence by hand."
+              "No calibration sets."
             )
           ),
           Button(

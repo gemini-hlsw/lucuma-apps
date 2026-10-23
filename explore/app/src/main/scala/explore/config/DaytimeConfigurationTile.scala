@@ -30,7 +30,6 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -94,8 +93,16 @@ object DaytimeConfigurationTile
 
         val title: TagMod =
           props.executionTime.value.map: t =>
-            <.span("Duration: ", TimeSpanView(t).withMods(props.executionTime.staleClass))
-              .withOptionalTooltip(props.executionTime.staleTooltipString.map(s => s: VdomNode))
+            <.span(ExploreStyles.SequenceTileTitle)(
+              <.span(ExploreStyles.SequenceTileTitleSummary)(
+                timeDisplay(
+                  "Duration",
+                  t,
+                  timeClass = props.executionTime.staleClass,
+                  timeTooltip = props.executionTime.staleTooltipString.map(s => s: VdomNode)
+                )
+              )
+            )
 
         val body: TagMod =
           daytimeView.fold(
