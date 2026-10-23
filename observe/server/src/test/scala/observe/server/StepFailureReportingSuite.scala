@@ -8,7 +8,7 @@ import cats.effect.Deferred
 import cats.effect.IO
 import cats.effect.Ref
 import cats.syntax.all.*
-import fs2.concurrent.SignallingRef
+import fs2.concurrent.Topic
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
@@ -118,13 +118,14 @@ class StepFailureReportingSuite extends TestCommon {
   private final class RunningEngine(
     val odb: TestOdbProxy[IO],
     oe:      ObserveEngine[IO],
-    states:  SignallingRef[IO, Option[EngineState[IO]]]
+    states:  Topic[IO, EngineState[IO]]
   ):
     def sendAndAwait(cmd: ObserveEngine[IO] => IO[Unit])(
       until: EngineState[IO] => Boolean
     ): IO[EngineState[IO]] =
-      // `discrete` replays the current state first; skip it so a stale match can't satisfy `until`.
-      cmd(oe) *> states.discrete.drop(1).unNone.find(until).compile.lastOrError
+      states.subscribeAwaitUnbounded
+        .use: stream =>
+          cmd(oe) *> stream.dropWhile(until).find(until).compile.lastOrError
 
   private def withRunningEngine[A](
     gmos: GmosNorthController[IO]
@@ -140,11 +141,12 @@ class StepFailureReportingSuite extends TestCommon {
       tr       <- ObserveEngine.createTranslator(Site.GS, services, rc, ExecutionEnvironment.Development)
       eng      <- Engine.build[IO](ObserveEngine.onStepComplete[IO](services.odb, tr))
       oe        = new ObserveEngineImpl[IO](eng, services, defaultSettings, tr, rc)
-      states   <- SignallingRef.of[IO, Option[EngineState[IO]]](none)
+      states   <- Topic[IO, EngineState[IO]]
       a        <- oe
                     .eventResultStream(s0)
                     .evalTap(oe.notifyODB(_).void)
-                    .evalMap((_, s) => states.set(s.some))
+                    .map(_._2)
+                    .through(states.publish)
                     .compile
                     .drain
                     .background
