@@ -153,7 +153,7 @@ object ConstraintsPanel:
               .zoom(ElevationRange.airMass)
               .modCB(
                 mod,
-                (previous, current) => (previous, current).tupled.map((p, c) => cb(p, c)).orEmpty
+                (previous, current) => (previous, current).mapN((p, c) => cb(p, c)).orEmpty
               )
         )
 
@@ -165,7 +165,7 @@ object ConstraintsPanel:
               .zoom(ElevationRange.hourAngle)
               .modCB(
                 mod,
-                (previous, current) => (previous, current).tupled.map((p, c) => cb(p, c)).orEmpty
+                (previous, current) => (previous, current).mapN((p, c) => cb(p, c)).orEmpty
               )
         )
 

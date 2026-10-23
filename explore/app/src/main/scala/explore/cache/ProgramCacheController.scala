@@ -172,7 +172,7 @@ object ProgramCacheController
         attachments,
         programs,
         configurationRequests
-      ).parTupled.flatMap: (obs, grps, pd, ts, as, ps, crs) =>
+      ).parFlatMapN: (obs, grps, pd, ts, as, ps, crs) =>
         tracked(LoadStage.Preparing, clearOthers = true):
           afterNextPaint >> IO(ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs))
         .map((_, obs))
