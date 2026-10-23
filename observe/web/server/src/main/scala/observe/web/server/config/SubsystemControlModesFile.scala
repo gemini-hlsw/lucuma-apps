@@ -34,6 +34,8 @@ object SubsystemControlModesFile:
   private def header(timestamp: Instant, user: String): String =
     s"""# Written by Observe on $timestamp by $user.
        |# Edit through the Observe UI (Subsystems dialog).
+       |# Reserved for subsystem control modes. Instrument settings, such as their URLs, go in
+       |# site.conf instead: this file is rewritten on every save from the UI.
        |""".stripMargin
 
   /**

@@ -463,29 +463,47 @@ object Services {
         GwsEpics.instance[IO](service, tops).map(GwsKeywordsReaderEpics[IO])
       else GwsKeywordsReaderDummy[IO].pure[IO]
 
+    /** Logs which subsystem failed to start, and in which control mode. */
+    private def startup[A](subsystem: String, mode: Option[SubsystemControlMode])(
+      r: Resource[IO, A]
+    ): Resource[IO, A] =
+      r.onError: e =>
+        Resource.eval:
+          Logger[IO].error(e):
+            mode.fold(s"Could not start $subsystem"): m =>
+              s"Could not start $subsystem in ${m.tag} mode. Check its settings, or set it to " +
+                "simulated in subsystems.conf"
+
     def build(site: Site, httpClient: Client[IO]): Resource[IO, Services[IO]] =
+      val modes: SubsystemControlModes = settings.subsystemControlModes
       for {
-        odbProxy                               <- odbProxy[IO](httpClient)
-        dhsClient                              <- Resource.eval(dhs[IO](site, httpClient))
+        odbProxy                               <- startup("ODB", none)(odbProxy[IO](httpClient))
+        dhsClient                              <-
+          startup("DHS", modes.dhs.some)(Resource.eval(dhs[IO](site, httpClient)))
         gcdb                                   <- Resource.eval(GuideConfigDb.newDb[IO])
-        gcals                                  <- Resource.eval(gcal)
+        gcals                                  <- startup("GCAL", modes.gcal.some)(Resource.eval(gcal))
         (gcalCtr, gcalKR)                       = gcals
-        navigateO                              <- navigateClient
-        v                                      <- Resource.eval(tcsObjects(navigateO, site))
+        navigateO                              <- startup("Navigate", modes.tcs.some)(navigateClient)
+        v                                      <-
+          startup("TCS", modes.tcs.some)(Resource.eval(tcsObjects(navigateO, site)))
         (tcsGN, tcsGS, tcsKR, altairKR, condsR) = v
-        w                                      <- Resource.eval(gemsObjects)
+        w                                      <- startup("GeMS", modes.gems.some)(Resource.eval(gemsObjects))
         (gemsKR, gsaoiCtr, gsaoiKR)             = w
-        gnirsObjs                              <- Resource.eval(gnirs)
+        gnirsObjs                              <- startup("GNIRS", modes.gnirs.some)(Resource.eval(gnirs))
         (gnirsCtr, gnirsKR)                     = gnirsObjs
-        f2Controller                           <- Resource.eval(flamingos2)
-        igrins2Ctr                             <- igrins2(httpClient, instanceName)
+        f2Controller                           <-
+          startup("Flamingos-2", modes.flamingos2.some)(Resource.eval(flamingos2))
+        igrins2Ctr                             <-
+          startup("IGRINS-2", modes.igrins2.some)(igrins2(httpClient, instanceName))
         //        (niriCtr, niriKR)                          <- Resource.eval(niri)
         //        (nifsCtr, nifsKR)                          <- Resource.eval(nifs)
-        gms                                    <- Resource.eval(gmosObjects(site))
+        gms                                    <-
+          startup("GMOS", modes.gmos.some)(Resource.eval(gmosObjects(site)))
         (gmosSouthCtr, gmosNorthCtr, gmosKR)    = gms
         //        gpiController                              <- gpi[IO](httpClient, instanceName)
-        ghostController                        <- ghost[IO](httpClient, instanceName)
-        gwsKR                                  <- Resource.eval(gws)
+        ghostController                        <-
+          startup("GHOST", modes.ghost.some)(ghost[IO](httpClient, instanceName))
+        gwsKR                                  <- startup("GWS", modes.gws.some)(Resource.eval(gws))
       } yield Services[IO](
         odbProxy,
         dhsClient,

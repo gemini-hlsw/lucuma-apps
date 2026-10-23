@@ -81,6 +81,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
       deprecatedPresent = JavaFiles.exists(deprecatedConf)
       _                <- warn"systems.conf is deprecated, rename it to subsystems.conf: $deprecatedConf"
                             .whenA(!subsystemsPresent && deprecatedPresent)
+      _                <- warn"$deprecatedConf is ignored because $subsystemsConf exists; delete it"
+                            .whenA(subsystemsPresent && deprecatedPresent)
       overridesConf     =
         if !subsystemsPresent && deprecatedPresent then deprecatedConf
         else subsystemsConf
