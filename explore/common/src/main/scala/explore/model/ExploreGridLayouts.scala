@@ -310,7 +310,6 @@ object ExploreGridLayouts:
       List(
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.NotesId,
-        ObsTabTileIds.DetailsId,
         ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
