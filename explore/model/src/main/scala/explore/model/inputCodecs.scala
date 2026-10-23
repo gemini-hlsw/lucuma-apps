@@ -35,8 +35,8 @@ import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.ZeroTo100
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
-import lucuma.core.util.TimeSpan
 import lucuma.core.optics.ValidFilter
+import lucuma.core.util.TimeSpan
 import lucuma.core.validation.*
 import lucuma.refined.*
 import lucuma.ui.input.InputCodec
