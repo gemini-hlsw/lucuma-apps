@@ -71,11 +71,11 @@ object WebServerLauncher extends IOApp with LogInitialization {
   val ServiceName: String = "observe-server"
 
   // Try to load configs for deployment and staging and fall back to the common one in the class path
-  private def config[F[_]: {Sync, Logger}]: F[ConfigObjectSource] =
+  private def config[F[_]: {Sync, Logger}](base: Path): F[ConfigObjectSource] =
     for
-      confDir          <- baseDir[F].map(_.resolve("conf"))
+      confDir           = base.resolve("conf")
       localDir          = confDir.resolve("local")
-      subsystemsConf   <- SubsystemControlModesFile.path[F]
+      subsystemsConf    = SubsystemControlModesFile.path(base)
       deprecatedConf    = localDir.resolve("systems.conf")
       subsystemsPresent = JavaFiles.exists(subsystemsConf)
       deprecatedPresent = JavaFiles.exists(deprecatedConf)
@@ -215,17 +215,20 @@ object WebServerLauncher extends IOApp with LogInitialization {
     oe:                         ObserveEngine[F],
     savedSubsystemControlModes: Ref[F, SubsystemControlModes],
     subsystemsFile:             Path,
+    baseDir:                    Path,
     shutdown:                   F[Unit]
   ): Resource[F, Server] = {
 
     val commandRoutes: ObserveCommandRoutes[F] = ObserveCommandRoutes(ssoClient, oe)
+
+    val staticRoutes: HttpRoutes[F] = StaticRoutes[F](baseDir).service
 
     def router(
       wsb:                          WebSocketBuilder2[F],
       events:                       Topic[F, (Option[ClientId], ClientEvent)]
     ): HttpRoutes[F] =
       Router[F](
-        "/"                       -> StaticRoutes().service,
+        "/"                       -> staticRoutes,
         "/api/observe/guide"      -> GuideConfigDbRoutes(oe.services.guideDb).service,
         "/api/observe"            -> commandRoutes.service,
         "/api/observe/ping"       -> PingRoutes(ssoClient).service,
@@ -432,7 +435,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
     val observe: Resource[IO, IO[Unit]] =
       for // Initialize log before the engine is setup
         given Logger[IO]        <- Resource.eval(setupLogger[IO])
-        conf                    <- Resource.eval(config[IO].flatMap(loadConfiguration[IO]))
+        base                    <- Resource.eval(baseDir[IO])
+        conf                    <- Resource.eval(config[IO](base).flatMap(loadConfiguration[IO]))
         otel                    <- ObserveOtel.resource[IO](
                                      ServiceName,
                                      OcsBuildInfo.version,
@@ -451,12 +455,21 @@ object WebServerLauncher extends IOApp with LogInitialization {
         engine                  <- engineIO(conf, cli)
         _                       <- redirectWebServer(conf.webServer, engine.services.guideDb)
         sso                     <- ssoClient(cli, conf.lucumaSSO)
-        subsystemsFile          <- Resource.eval(SubsystemControlModesFile.path[IO])
+        subsystemsFile           = SubsystemControlModesFile.path(base)
         saved                   <- Resource.eval:
                                      Ref.of[IO, SubsystemControlModes](conf.observeEngine.subsystemControlModes)
         restartSignal           <- Resource.eval(Deferred[IO, Unit])
         _                       <-
-          webServer(conf, cs, sso, engine, saved, subsystemsFile, restartSignal.complete(()).void)
+          webServer(
+            conf,
+            cs,
+            sso,
+            engine,
+            saved,
+            subsystemsFile,
+            base,
+            restartSignal.complete(()).void
+          )
       yield restartSignal.get *> Logger[IO].info("Restarting on user request")
 
     // Completing the signal releases every resource and the process exits so that the container's
