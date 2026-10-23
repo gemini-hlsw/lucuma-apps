@@ -4,14 +4,12 @@
 package observe.web.server.config
 
 import cats.effect.Sync
-import cats.syntax.all.*
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigObject
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValueFactory
 import lucuma.core.enums.Site
 import observe.model.config.SubsystemControlModes
-import observe.web.server.http4s.baseDir
 import pureconfig.ConfigWriter
 
 import java.nio.file.Files
@@ -29,9 +27,9 @@ import scala.util.Try
 object SubsystemControlModesFile:
   private val ConfigPath: String = "observe-engine.subsystem-control-modes"
 
-  /** Location of the file, `<baseDir>/conf/local/subsystems.conf`. */
-  def path[F[_]: Sync]: F[Path] =
-    baseDir[F].map(_.resolve("conf").resolve("local").resolve("subsystems.conf"))
+  /** Location of the file, `<base>/conf/local/subsystems.conf`. */
+  def path(base: Path): Path =
+    base.resolve("conf").resolve("local").resolve("subsystems.conf")
 
   private def header(timestamp: Instant, user: String): String =
     s"""# Written by Observe on $timestamp by $user.
