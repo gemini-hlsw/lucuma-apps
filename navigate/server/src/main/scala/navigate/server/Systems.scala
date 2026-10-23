@@ -173,10 +173,21 @@ object Systems {
         horizonsClient.ephemeris(key, start, stop, elems, sites)
     }
 
+    // Logs which part failed to start, and in which control mode.
+    def startup[A](part: String, mode: Option[ControlStrategy])(r: Resource[F, A]): Resource[F, A] =
+      r.onError: e =>
+        Resource.eval:
+          Logger[F].error(e):
+            mode.fold(s"Could not start $part"): m =>
+              s"Could not start $part in ${m.tag} mode. Check its settings, or set it to " +
+                "simulated in systems.conf"
+
+    val tcsMode: Option[ControlStrategy] = conf.navigateEngine.systemControl.tcs.some
+
     for {
-      odb  <- buildOdbProxy
-      tcsS <- buildTcsSouthController
-      tcsN <- buildTcsNorthController
+      odb  <- startup("ODB", none)(buildOdbProxy)
+      tcsS <- startup("TCS (south)", tcsMode)(buildTcsSouthController)
+      tcsN <- startup("TCS (north)", tcsMode)(buildTcsNorthController)
     } yield Systems[F](odb,
                        client,
                        buildHorizonsCLient,
