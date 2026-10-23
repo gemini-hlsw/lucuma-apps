@@ -4,7 +4,7 @@ SCRIPTS_DIR=~/observe
 
 # Check if an argument was received
 if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
-    echo "ERROR: You must provide one of the following arguments: start, stop, restart, update <tag> [--force], version or help."
+    echo "ERROR: You must provide one of the following arguments: start, stop, restart, update [--force-version <tag>], version or help."
     exit 1
 fi
 
@@ -28,10 +28,6 @@ case "$option" in
         $SCRIPTS_DIR/restart.sh
         ;;
     update)
-        if [ -z "$2" ]; then
-            $SCRIPTS_DIR/update.sh
-            exit 1
-        fi
         echo "Updating Observe"
         $SCRIPTS_DIR/update.sh "${@:2}" || exit 1
         ;;
@@ -44,11 +40,12 @@ case "$option" in
         ;;
     help)
         echo "To run Observe you should provide a valid agument"
-        echo "Possible argument options are 'start', 'stop', 'restart', 'update <tag> [--force]', 'version' and 'help'"
+        echo "Possible argument options are 'start', 'stop', 'restart', 'update [--force-version <tag>]', 'version' and 'help'"
         echo -e "  ${bold}start${normal}: Will start Observe containers"
         echo -e "  ${bold}stop${normal}: Will stop Observe containers"
         echo -e "  ${bold}restart${normal}: Will restart Observe containers"
-        echo -e "  ${bold}update <tag> [--force]${normal}: Will pull the given noirlab/gpp-obs tag, record it in deployed-version, and recreate the Observe container with it. Deploying 'latest' requires --force"
+        echo -e "  ${bold}update${normal}: Will pull the noirlab/gpp-obs tag last promoted to this server's environment (from SITE in config.sh), record it in deployed-version, and recreate the Observe container with it"
+        echo -e "  ${bold}update --force-version <tag>${normal}: Same, but with the given tag instead of the promoted one. Asks for confirmation"
         echo -e "  ${bold}version${normal}: Will show the currently deployed tag"
         echo -e "  ${bold}help${normal}: Will show this message"
         ;;
