@@ -144,8 +144,7 @@ object StepProgressCell
           props.sequenceStatus,
           props.subsystemOverrides,
           props.clientMode,
-          props.isLoadedStep,
-          props.isPausedInStep
+          props.isLoadedStep
         ),
         exposureControlButtons,
         if (props.isBias)

@@ -241,16 +241,27 @@ class StepFailureReportingSuite extends TestCommon {
           assert(!evs.contains(StepAbort(seqObsId1)), s"step abort was sent: $evs")
   }
 
-  test("a subsystem cannot be configured while an exposure is paused") {
+  test("a subsystem cannot be configured while an exposure is paused, as it is busy") {
     Deferred[IO, Unit].flatMap: pause =>
       withRunningEngine(gmosPausable(pause, ObserveCommandResult.Stopped.pure[IO])): engine =>
-        val configure: ObserveEngine[IO] => IO[Unit] =
-          _.configureSubsystem(seqObsId1, observer, user, stepId(1), Instrument.GmosNorth, clientId)
+        val barrier: Observer                        = Observer("barrier".refined)
+        // Commands are handled in order, so seeing the barrier means configure was handled too.
+        val configure: ObserveEngine[IO] => IO[Unit] = oe =>
+          oe.configureSubsystem(seqObsId1,
+                                observer,
+                                user,
+                                stepId(1),
+                                Instrument.GmosNorth,
+                                clientId
+          ) *>
+            oe.setObserver(seqObsId1, user, barrier)
         for
           _  <- engine.sendAndAwait(start)(observeActionState(_).exists(_.started))
           _  <- engine.sendAndAwait(_.pauseExposure(seqObsId1, observer, user, graceful = false)):
                   observeActionState(_).exists(_.paused)
-          s3 <- engine.sendAndAwait(configure)(_ => true)
+          s3 <- engine.sendAndAwait(configure)(
+                  _.sequences.get(seqObsId1).flatMap(_.observer).contains(barrier)
+                )
         yield
           assert(observeActionState(s3).exists(_.paused), "the paused exposure was lost")
           assertEquals(gmosSingleRunState(s3), ActionState.Idle.some)

@@ -102,16 +102,14 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
 
   /**
    * Runs one action of the loaded step on its own, outside the sequence. A failed sequence is first
-   * reset so the step is run as if it had never failed, exactly as Play does. Refused while an
-   * exposure is paused: resetting would lose track of it.
+   * reset so the step is run as if it had never failed, exactly as Play does.
    */
   def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
     EngineHandle.getState.flatMap { st =>
       val resultStream: Option[Stream[F, Result]] =
         for
           seq <- EngineState.sequenceStateAt(c.obsId).getOption(st)
-          if (seq.status.isIdle || seq.status.isError) && !seq.isPausedInStep &&
-            !seq.getSingleState(c.actCoords).active
+          if (seq.status.isIdle || seq.status.isError) && !seq.getSingleState(c.actCoords).active
           act <- seq.rollback.getSingleAction(c.actCoords)
         yield act.gen
 

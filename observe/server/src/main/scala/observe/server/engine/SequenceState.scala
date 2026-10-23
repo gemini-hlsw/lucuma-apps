@@ -63,9 +63,6 @@ final case class SequenceState[F[_]](
   lazy val currentExecution: Execution[F] =
     loadedStep.map(_.focus).getOrElse(Execution.empty)
 
-  /** An exposure is held paused on the instrument, waiting to be resumed or stopped. */
-  lazy val isPausedInStep: Boolean = currentExecution.execution.exists(Action.paused)
-
   val done: Option[EngineStep[F]] =
     loadedStep.flatMap(_.executionZipper.uncurrentify)
 
