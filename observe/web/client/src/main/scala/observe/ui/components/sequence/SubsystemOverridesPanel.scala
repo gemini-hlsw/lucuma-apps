@@ -10,6 +10,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.react.common.*
+import lucuma.react.primereact.Tag
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
@@ -23,6 +24,8 @@ import observe.model.enums.SubsystemControlMode
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
 import observe.ui.services.ConfigApi
+
+import scalajs.js.JSConverters.*
 
 case class SubsystemOverridesPanel(
   obsId:        Observation.Id,
@@ -45,21 +48,30 @@ object SubsystemOverridesPanel
           editable:    Boolean,
           controlMode: Option[SubsystemControlMode]
         ): VdomNode =
-          val simulated = controlMode.contains(SubsystemControlMode.Simulated)
+          val simulated: Boolean                                     = controlMode.contains(SubsystemControlMode.Simulated)
+          val modeDecoration: Option[(Tag.Severity, String, String)] = controlMode
+            .collect:
+              case SubsystemControlMode.Simulated => (Tag.Severity.Danger, "SIM", "Simulated")
+              case SubsystemControlMode.ReadOnly  => (Tag.Severity.Warning, "R/O", "Read-Only")
           <.div(ObserveStyles.SubsystemToggle)(
-            CheckboxView(
-              id = NonEmptyString.unsafeFrom(
-                s"subsystem-${props.obsId}-${label.value.replaceAll("\\s+", "-")}"
-              ),
-              value = enabled,
-              label = TagMod(
-                label.value,
-                <.sup(ObserveStyles.SubsystemSimTag)("SIM").when(simulated)
-              ),
-              disabled = !editable || simulated
+            Tag(
+              severity = modeDecoration.map(_._1).orUndefined,
+              clazz = ObserveStyles.SubsystemPill
+            )(
+              CheckboxView(
+                id = NonEmptyString.unsafeFrom(
+                  s"subsystem-${props.obsId}-${label.value.replaceAll("\\s+", "-")}"
+                ),
+                value = enabled,
+                label = TagMod(
+                  label.value,
+                  modeDecoration.map((_, tag, _) => <.span(ObserveStyles.SubsystemModeTag)(tag))
+                ),
+                disabled = !editable || simulated
+              )
             )
           ).withTooltip(
-            content = if (simulated) "Simulated" else "",
+            content = modeDecoration.fold("")(_._3),
             position = Tooltip.Position.Top
           )
 

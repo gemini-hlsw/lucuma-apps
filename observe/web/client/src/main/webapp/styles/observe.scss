@@ -1187,6 +1187,7 @@ body {
 
   .observe-obs-summary-subsystems {
     display: flex;
+    align-items: center;
     justify-content: start;
     gap: 0.8em;
     white-space: nowrap;
@@ -1200,14 +1201,52 @@ body {
       }
     }
 
-    .observe-subsystem-sim-tag {
-      margin-left: 0.8em;
-      padding: 0 0.25em;
-      border-radius: 3px;
-      font-size: 0.6em;
-      line-height: 1;
-      background: var(--red-500);
-      color: hsl(0deg 0% 100%);
+    // Every toggle is a Tag so plain and decorated ones share padding and spacing.
+    .p-tag.observe-subsystem-pill {
+      // Overrides the global smaller .p-tag font.
+      font-size: inherit !important;
+
+      &:not(.p-tag-danger, .p-tag-warning) {
+        background: transparent;
+        color: inherit;
+        font-weight: normal;
+      }
+
+      &.p-tag-danger {
+        background: var(--red-500);
+      }
+
+      &.p-tag-warning {
+        background: var(--orange-500);
+      }
+
+      &:is(.p-tag-danger, .p-tag-warning) {
+        color: hsl(0deg 0% 100%);
+
+        // Label and checkbox follow the pill's text color, and stay fully legible when disabled.
+        label,
+        .p-checkbox {
+          color: inherit;
+          opacity: 1 !important;
+        }
+
+        .p-checkbox-box {
+          border-color: currentcolor;
+          background: transparent;
+          color: inherit;
+
+          .p-checkbox-icon {
+            color: inherit;
+          }
+        }
+      }
+    }
+
+    .observe-subsystem-mode-tag {
+      margin-left: 0.5em;
+      font-size: 0.7em;
+      vertical-align: text-top;
+      letter-spacing: 0.05em;
     }
   }
 }
