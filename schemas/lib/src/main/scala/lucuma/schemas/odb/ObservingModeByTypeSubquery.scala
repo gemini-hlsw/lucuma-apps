@@ -12,11 +12,10 @@ import lucuma.schemas.model.ObservingMode
 // only the mode it needs. `mode` is always selected: a caller removing the observing mode turns
 // off every flag, and an empty selection set on the non-leaf `observingMode` field is a server
 // error.
-// `daytimeCalibration` is a single field, so it is always selected rather than flagged.
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
-    "($includeGmosNorthIfu: Boolean!, $includeGmosSouthIfu: Boolean!, $includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!)"
+    "($includeGmosNorthIfu: Boolean!, $includeGmosSouthIfu: Boolean!, $includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!, $includeDaytimeCalibration: Boolean!)"
 
   override val subquery = gql"""
         {
@@ -497,8 +496,21 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             subaruInstrument
             totalRequestTime $TimeSpanSubquery
           }
-          daytimeCalibration {
+          daytimeCalibration @include(if: $$includeDaytimeCalibration) {
             instrument
+            calibrationSets {
+              kind
+              count
+              gcal {
+                continuum
+                arcs
+                filter
+                diffuser
+                shutter
+              }
+              gmosNorth $GmosNorthDynamicConfigSubquery
+              gmosSouth $GmosSouthDynamicConfigSubquery
+            }
           }
         }
       """

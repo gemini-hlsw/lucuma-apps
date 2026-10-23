@@ -75,7 +75,8 @@ object ObsQueriesGQL:
         $$includeGnirsIfu: Boolean!,
         $$includeGhostIfu: Boolean!,
         $$includeVisitor: Boolean!,
-        $$includeExchange: Boolean!
+        $$includeExchange: Boolean!,
+        $$includeDaytimeCalibration: Boolean!
       ){
         updateObservations(input: $$input) {
           observations {

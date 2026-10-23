@@ -442,3 +442,29 @@ A sequence that has been edited by hand after the ODB generated it. The ODB stop
 regenerating it from the Observing Mode. Inserting a calibration is one way a sequence
 becomes Customized; there is no way to undo an insertion from Observe.
 _Avoid_: edited sequence, manual sequence
+
+**Daytime Calibration**:
+A staff-created calibration observation with no target, guide star, ITC or acquisition,
+whose Observing Mode is a Gemini instrument plus an ordered list of Daytime Calibration
+Sets. Created as GMOS North; the instrument may be switched to GMOS South.
+_Avoid_: day cal (the step-level observe class), daytime obs.
+
+**Daytime Calibration Set**:
+One ordered row of a Daytime Calibration: a kind (Bias, Dark, Flat, Arc or Daytime
+Observe), an exposure count, a GCAL lamp setup for Flats and Arcs, and one Instrument
+Setup. The ODB turns each row into one atom of identical day-cal steps. Rows are editable
+only until the sequence is Materialized; afterwards they are frozen.
+_Avoid_: configuration (reserved for a candidate instrument setup), configuration set,
+calibration set (alone: the night-time estimating unit), template, generator.
+
+**Instrument Setup**:
+The single instrument state a Daytime Calibration Set is taken in: exposure time, readout,
+binning, ROI and, for kinds that use the optics, FPU, disperser, central wavelength and
+filter. A Bias has no exposure time; a Bias or Dark has no optics.
+_Avoid_: dynamic config (the storage shape), base config.
+
+**Materialized Sequence**:
+A sequence the ODB has stored rather than generated on demand: after the first visit or a
+hand edit (a Customized Sequence). A Daytime Calibration with a Materialized Sequence no
+longer takes its steps from its Daytime Calibration Sets.
+_Avoid_: stored sequence, frozen sequence.

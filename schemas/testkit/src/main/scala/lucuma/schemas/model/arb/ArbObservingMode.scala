@@ -27,9 +27,13 @@ import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.TelluricType
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.arb.ArbTelluricType
+import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
+import lucuma.core.model.sequence.arb.ArbStepConfig
 import lucuma.core.model.sequence.arb.ArbTelescopeConfig
+import lucuma.core.model.sequence.gmos.DynamicConfig
+import lucuma.core.model.sequence.gmos.arb.ArbDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
@@ -40,6 +44,8 @@ import lucuma.core.util.arb.ArbGid
 import lucuma.core.util.arb.ArbNewType
 import lucuma.core.util.arb.ArbTimeSpan
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.DaytimeCalibrationSet
+import lucuma.schemas.model.DaytimeCalibrationSetup
 import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import org.scalacheck.Arbitrary
@@ -51,6 +57,8 @@ import scala.annotation.targetName
 
 trait ArbObservingMode {
   import ArbAngle.given
+  import ArbDynamicConfig.given
+  import ArbStepConfig.given
   import ArbEnumerated.given
 
   given Arbitrary[GnirsFpu.Spectroscopy] = Arbitrary(
@@ -1782,12 +1790,41 @@ trait ArbObservingMode {
     Cogen[(SubaruInstrument, TimeSpan)]
       .contramap(o => (o.subaruInstrument, o.totalRequestTime))
 
-  given Arbitrary[ObservingMode.DaytimeCalibration] = Arbitrary[ObservingMode.DaytimeCalibration](
-    arbitrary[Instrument].map(ObservingMode.DaytimeCalibration(_))
+  given Arbitrary[DaytimeCalibrationSetup] = Arbitrary(
+    Gen.oneOf(
+      arbitrary[DynamicConfig.GmosNorth].map(DaytimeCalibrationSetup.GmosNorth(_)),
+      arbitrary[DynamicConfig.GmosSouth].map(DaytimeCalibrationSetup.GmosSouth(_))
+    )
   )
 
+  given Arbitrary[DaytimeCalibrationSet] = Arbitrary(
+    for
+      kind  <- arbitrary[CalibrationSetType]
+      count <- arbitrary[PosInt]
+      gcal  <- arbitrary[Option[StepConfig.Gcal]]
+      setup <- arbitrary[DaytimeCalibrationSetup]
+    yield DaytimeCalibrationSet(kind, count, gcal, setup)
+  )
+
+  given Arbitrary[ObservingMode.DaytimeCalibration] = Arbitrary(
+    for
+      instrument <- arbitrary[Instrument]
+      sets       <- Gen.listOfN(3, arbitrary[DaytimeCalibrationSet])
+    yield ObservingMode.DaytimeCalibration(instrument, sets)
+  )
+
+  given Cogen[DaytimeCalibrationSetup] =
+    Cogen[Either[DynamicConfig.GmosNorth, DynamicConfig.GmosSouth]].contramap:
+      case DaytimeCalibrationSetup.GmosNorth(c) => c.asLeft
+      case DaytimeCalibrationSetup.GmosSouth(c) => c.asRight
+
+  given Cogen[DaytimeCalibrationSet] =
+    Cogen[(CalibrationSetType, PosInt, Option[StepConfig.Gcal], DaytimeCalibrationSetup)]
+      .contramap(s => (s.kind, s.count, s.gcal, s.setup))
+
   given Cogen[ObservingMode.DaytimeCalibration] =
-    Cogen[Instrument].contramap(_.calibrationInstrument)
+    Cogen[(Instrument, List[DaytimeCalibrationSet])]
+      .contramap(d => (d.calibrationInstrument, d.calibrationSets))
 
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(

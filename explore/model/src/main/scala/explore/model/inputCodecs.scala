@@ -3,8 +3,10 @@
 
 package explore.model
 
+import cats.data.NonEmptyChain
 import cats.syntax.all.*
 import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
@@ -33,6 +35,7 @@ import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.ZeroTo100
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
+import lucuma.core.optics.ValidFilter
 import lucuma.core.util.TimeSpan
 import lucuma.core.validation.*
 import lucuma.refined.*
@@ -123,6 +126,17 @@ trait inputCodecs:
     ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi.toCodec.withIntegerMask()
   val PositiveInt: InputCodec[PosInt]                                             =
     InputValidSplitEpi.posInt.toCodec.withIntegerMask(allowMinus = false)
+  val MaxCalibrationSetCount: PosInt                                              = 1000.refined
+  val CalibrationSetCount: InputCodec[PosInt]                                     =
+    InputValidSplitEpi.posInt
+      .andThen(
+        ValidFilter[NonEmptyChain[NonEmptyString], PosInt](
+          _.value <= MaxCalibrationSetCount.value,
+          _ => NonEmptyChain("Must be at most 1000".refined[NonEmpty])
+        )
+      )
+      .toCodec
+      .withIntegerMask(allowMinus = false)
   val ExposureCount: InputCodec[Option[PosInt]]                                   =
     InputValidSplitEpi.posInt.optional.toCodec.withIntegerMask(allowMinus = false)
   val Percent: InputCodec[Int Refined ZeroTo100]                                  =

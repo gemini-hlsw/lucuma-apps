@@ -49,7 +49,8 @@ object ProgramSummaryQueriesGQL {
         $$includeGnirsIfu: Boolean!,
         $$includeGhostIfu: Boolean!,
         $$includeVisitor: Boolean!,
-        $$includeExchange: Boolean!
+        $$includeExchange: Boolean!,
+        $$includeDaytimeCalibration: Boolean!
       ) {
         observations(WHERE: $$where, OFFSET_AFTER: $$OFFSET_AFTER) {
           matches {

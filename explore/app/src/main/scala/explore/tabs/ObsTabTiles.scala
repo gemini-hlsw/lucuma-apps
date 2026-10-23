@@ -899,7 +899,16 @@ object ObsTabTiles:
             schedulingWindowsTile.some,
             configurationTile.some,
             Option.when(props.calibrationRole.contains(CalibrationRole.DaytimeCalibration))(
-              DaytimeConfigurationTile()
+              DaytimeConfigurationTile(
+                props.obsId,
+                props.observation.zoom(Observation.observingModeOption),
+                props.observation.get.observingMode.isPending,
+                props.observation.get.execution.digest.fullTimeEstimate,
+                props.observation.get.hasMaterializedSequence,
+                props.readonly,
+                globalPreferences.get.wavelengthUnits,
+                sequenceChanged.set(pending)
+              )
             ),
             itcTile
           ).flattenOption

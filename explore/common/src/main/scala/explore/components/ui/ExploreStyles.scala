@@ -480,6 +480,10 @@ object ExploreStyles:
   // Each row is its own subgrid, so it has a box to drag.
   val GnirsWavelengthRow: Css              = Css("explore-gnirs-wavelength-row")
   val GnirsWavelengthDragHandle: Css       = Css("explore-gnirs-wavelength-drag-handle")
+  // Daytime calibration tile: the instrument row and the calibration sets table.
+  val DaytimeCalInstrument: Css            = Css("explore-daytime-cal-instrument")
+  val DaytimeCalMessage: Css               = Css("explore-daytime-cal-message")
+  val DaytimeCalSetTable: Css              = Css("explore-daytime-cal-set-table")
   val TelescopeConfigGeneratorOffsets: Css = Css("explore-telescope-config-generator-offsets")
   val AcquisitionCustomizationGrid: Css    = Css("explore-acquisition-customization-grid")
   val SvcTelescopeConfigsEditor: Css       = Css("explore-svc-telescope-configs-editor")
