@@ -82,10 +82,10 @@ def failUnlessM[F[_]: MonadThrow](f: F[Boolean], err: Exception): F[Unit] =
 
 def catchObsErrors[F[_]](t: Throwable)(using L: Logger[F]): Stream[F, Result] = t match {
   case e: ObserveFailure =>
-    Stream.eval(L.error(e)(s"Observation error: ${ObserveFailure.explain(e)}")) *>
+    Stream.eval(L.error(e)("Observation error")) *>
       Stream.emit(Result.Error(ObserveFailure.explain(e)))
   case e: Throwable      =>
-    Stream.eval(L.error(e)(s"Observation error: ${e.getMessage}")) *>
+    Stream.eval(L.error(e)("Observation error")) *>
       Stream.emit(Result.Error(ObserveFailure.explain(ObserveFailure.ObserveException(e))))
 }
 

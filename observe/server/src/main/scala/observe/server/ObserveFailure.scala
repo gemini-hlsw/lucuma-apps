@@ -7,7 +7,8 @@ import observe.model.Observation
 import observe.model.dhs.*
 import org.http4s.Uri
 
-sealed trait ObserveFailure extends Exception with Product with Serializable
+sealed trait ObserveFailure extends Exception with Product with Serializable:
+  override def getMessage(): String = ObserveFailure.explain(this)
 
 object ObserveFailure {
 
