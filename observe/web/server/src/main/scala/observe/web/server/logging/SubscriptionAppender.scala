@@ -7,6 +7,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.classic.spi.IThrowableProxy
 import ch.qos.logback.core.UnsynchronizedAppenderBase
 import fs2.concurrent.Topic
 import observe.model.ClientId
@@ -31,6 +32,25 @@ class SubscriptionAppender[F[_]](out: Topic[F, (Option[ClientId], ClientEvent)])
   override def append(event: ILoggingEvent): Unit =
     // We are outside the normal execution loop, thus we need to call unsafeRunAndForget directly.
     observeLogLevel(event.getLevel).foreach: level =>
-      val msg =
-        LogMessage(level, Instant.ofEpochMilli(event.getTimeStamp), event.getFormattedMessage)
+      val msg: LogMessage =
+        LogMessage(
+          level,
+          Instant.ofEpochMilli(event.getTimeStamp),
+          SubscriptionAppender.text(event)
+        )
       dispatcher.unsafeRunAndForget(out.publish1(none, ClientEvent.LogEvent(msg)))
+
+object SubscriptionAppender:
+
+  /**
+   * The text shown in the UI for a log event. Logback keeps the throwable apart from the formatted
+   * message, and it is often where the actual reason is (e.g. the error the ODB answered with), so
+   * its message is appended.
+   */
+  private[logging] def text(event: ILoggingEvent): String =
+    Option(event.getThrowableProxy).fold(event.getFormattedMessage): tp =>
+      s"${event.getFormattedMessage}: ${throwableMessage(tp)}"
+
+  // Many exceptions carry no message; the class name still tells what kind of failure it was.
+  private def throwableMessage(tp: IThrowableProxy): String =
+    Option(tp.getMessage).getOrElse(tp.getClassName)
