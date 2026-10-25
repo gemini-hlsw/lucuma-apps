@@ -23,10 +23,10 @@ object DatasetQaBulkEdit:
     Set(StepExecutionState.Completed, StepExecutionState.Stopped)
 
   /**
-   * The datasets a bulk edit targets: those of completed or stopped steps that have no QA state
-   * yet. Bulk editing never overwrites a QA state; corrections are made dataset by dataset.
+   * The datasets a bulk edit can target: those of completed or stopped steps. The editor then
+   * narrows them down to the ones with no QA state, unless the user chooses to overwrite.
    */
   def targets(steps: List[(StepExecutionState, List[Dataset])]): List[Dataset] =
     steps.flatMap: (executionState, datasets) =>
-      if TargetStates.contains(executionState) then datasets.filter(_.qaState.isEmpty)
+      if TargetStates.contains(executionState) then datasets
       else Nil

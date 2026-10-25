@@ -140,7 +140,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     "Files: " + datasetRange.map((min, max) => s"$min - $max").getOrElse("---")
 
   // The bulk QA button of a visit or run header, when the table supports it and the header has
-  // datasets to target. Once every dataset has a QA state the button goes away.
+  // datasets to target.
   private def renderBulkQaButton(
     bulkEdit: Option[DatasetQaBulkEdit],
     stepRows: List[SequenceIndexedRow[D]]

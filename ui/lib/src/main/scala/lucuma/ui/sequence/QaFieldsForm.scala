@@ -26,7 +26,8 @@ case class QaFieldsForm(
   submit:         Callback,
   cancel:         Callback,
   submitDisabled: Boolean = false,
-  header:         TagMod = TagMod.empty
+  submitLabel:    String = "Save",
+  extraActions:   TagMod = TagMod.empty
 ) extends ReactFnProps(QaFieldsForm)
 
 object QaFieldsForm
@@ -45,7 +46,6 @@ object QaFieldsForm
         },
         ^.onClick ==> (_.stopPropagationCB)
       )(
-        props.header,
         SelectButtonOptional[DatasetQaState](
           clazz = SequenceStyles.QaStatusButtonStrip,
           value = props.qaFields.get.qaState,
@@ -78,8 +78,9 @@ object QaFieldsForm
             disabled = props.submitDisabled
           ).compact
             .withMods(^.`type` := "submit")( // This way it works with "Enter" key.
-              "Save"
-            )
+              props.submitLabel
+            ),
+          props.extraActions
         )
       )
     )

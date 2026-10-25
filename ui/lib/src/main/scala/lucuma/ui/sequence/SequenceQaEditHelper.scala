@@ -159,7 +159,7 @@ trait SequenceQaEditHelper:
         case e => Logger[IO].error(e)(s"Error updating dataset QA state for $datasetIds")
 
   /**
-   * Sets `qaFields` on the datasets among `datasetIds` that have no QA state yet, in one mutation.
+   * Sets `qaFields` on all `datasetIds` in one mutation, overwriting any QA state they have.
    */
   protected def onDatasetsQaChange(
     visits:             View[Option[ExecutionVisits]],
