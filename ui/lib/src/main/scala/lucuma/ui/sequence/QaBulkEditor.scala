@@ -19,7 +19,7 @@ import lucuma.ui.primereact.*
 case class QaBulkEditor(
   datasets: List[Dataset],
   inFlight: Boolean,
-  onChange: NonEmptyList[Dataset.Id] => EditableQaFields => Callback
+  onChange: QaBulkMode => NonEmptyList[Dataset.Id] => EditableQaFields => Callback
 ) extends ReactFnProps(QaBulkEditor)
 
 object QaBulkEditor
@@ -27,32 +27,42 @@ object QaBulkEditor
       for
         qaFields    <- useStateView(EditableQaFields.Empty)
         panelRef    <- useOverlayPanelRef
-        toOverwrite <- useStateView(none[(NonEmptyList[Dataset], EditableQaFields)])
+        toOverwrite <- useStateView(none[(QaBulkMode, EditableQaFields)])
       yield
         val all: Option[NonEmptyList[Dataset]] = NonEmptyList.fromList(props.datasets)
         val unset: List[Dataset]               = props.datasets.filter(_.qaState.isEmpty)
 
-        def overwritten(targets: NonEmptyList[Dataset], fields: EditableQaFields): (Int, Int) =
-          (targets.count(_.qaState.isDefined).toInt,
-           if fields.comment.isDefined then targets.count(_.comment.isDefined).toInt else 0
-          )
+        // Worked out from the current datasets, so a pending confirmation follows live updates.
+        def targets(mode: QaBulkMode): List[Dataset] = mode match
+          case QaBulkMode.OnlyUnset => unset
+          case QaBulkMode.Overwrite => props.datasets
 
-        def setQa(targets: NonEmptyList[Dataset], fields: EditableQaFields): Callback =
-          props.onChange(targets.map(_.id))(fields)
+        def withState(mode: QaBulkMode): Int = targets(mode).count(_.qaState.isDefined)
 
-        // The panel is hidden before confirming, since clicking the dialog would dismiss it anyway.
-        def submit(targets: NonEmptyList[Dataset]): Callback =
-          val fields: EditableQaFields = qaFields.get
-          panelRef.hide >>
-            (if overwritten(targets, fields) =!= (0, 0) then toOverwrite.set((targets, fields).some)
-             else setQa(targets, fields))
+        def withComment(mode: QaBulkMode, fields: EditableQaFields): Int =
+          if fields.comment.isDefined then targets(mode).count(_.comment.isDefined) else 0
 
-        val noState: Boolean = qaFields.get.qaState.isEmpty
+        // The datasets whose QA state or comment the update would replace.
+        def overwritten(mode: QaBulkMode, fields: EditableQaFields): Int =
+          targets(mode).count: dataset =>
+            dataset.qaState.isDefined || (fields.comment.isDefined && dataset.comment.isDefined)
 
         val reset: Callback = qaFields.set(EditableQaFields.Empty)
 
-        val pendingCount: String =
-          toOverwrite.get.foldMap((targets, _) => DatasetQaBulkEdit.datasetCount(targets.size))
+        def setQa(mode: QaBulkMode, fields: EditableQaFields): Callback =
+          NonEmptyList
+            .fromList(targets(mode))
+            .foldMap(targets => props.onChange(mode)(targets.map(_.id))(fields)) >> reset
+
+        // The panel is hidden before confirming, since clicking the dialog would dismiss it anyway.
+        // The fields are kept, so cancelling the confirmation doesn't lose them.
+        def submit(mode: QaBulkMode): Callback =
+          val fields: EditableQaFields = qaFields.get
+          panelRef.hide >>
+            (if overwritten(mode, fields) > 0 then toOverwrite.set((mode, fields).some)
+             else setQa(mode, fields))
+
+        val noState: Boolean = qaFields.get.qaState.isEmpty
 
         <.span(SequenceStyles.QaBulkEditor)(
           Button(
@@ -67,24 +77,25 @@ object QaBulkEditor
             // preventDefault rather than stopPropagation: see the header cell in SequenceColumns.
             onClickE = e => e.preventDefaultCB >> panelRef.toggle(e)
           ).mini.veryCompact,
-          OverlayPanel(onHide = reset)(
+          OverlayPanel()(
             QaFieldsForm(
               qaFields,
-              NonEmptyList.fromList(unset).foldMap(submit),
-              cancel = panelRef.hide,
+              submit(QaBulkMode.OnlyUnset),
+              cancel = panelRef.hide >> reset,
               submitDisabled = noState || unset.isEmpty,
               submitLabel = s"Set for unset (${unset.size})",
               extraActions = Button(
                 icon = SequenceIcons.Check,
                 severity = Button.Severity.Warning,
                 disabled = noState || all.isEmpty,
-                onClick = all.foldMap(submit)
+                onClick = submit(QaBulkMode.Overwrite)
               ).compact(s"Set all (${props.datasets.size})")
             )
           ).withMods(SequenceStyles.QaEditorOverlay).withRef(panelRef.ref),
           Dialog(
-            header = toOverwrite.get.foldMap[String]: (_, fields) =>
-              s"Set $pendingCount to ${fields.qaState.foldMap(_.tag)}?",
+            header = toOverwrite.get.foldMap[String]: (mode, fields) =>
+              s"Set ${DatasetQaBulkEdit.datasetCount(targets(mode).size)} to " +
+                s"${fields.qaState.foldMap(_.tag)}?",
             visible = toOverwrite.get.isDefined,
             modal = true,
             onHide = toOverwrite.set(none),
@@ -96,24 +107,26 @@ object QaBulkEditor
                 onClick = toOverwrite.set(none)
               ).compact,
               Button(
-                label = s"Overwrite $pendingCount",
+                label = toOverwrite.get.foldMap[String]: (mode, fields) =>
+                  s"Overwrite ${DatasetQaBulkEdit.datasetCount(overwritten(mode, fields))}",
                 icon = SequenceIcons.Check,
                 severity = Button.Severity.Danger,
-                onClick = toOverwrite.get.foldMap((targets, fields) =>
-                  setQa(targets, fields)
-                ) >> toOverwrite.set(none)
+                disabled = props.inFlight,
+                // Cleared first, so a second click before the dialog closes sends nothing.
+                onClick = toOverwrite.set(none) >> toOverwrite.get.foldMap(setQa.tupled)
               ).compact
             )
           )(
-            toOverwrite.get.map { (targets, fields) =>
-              val (withState, withComment) = overwritten(targets, fields)
+            toOverwrite.get.map { (mode, fields) =>
+              val states: Int   = withState(mode)
+              val comments: Int = withComment(mode, fields)
               <.div(
                 "This replaces:",
                 <.ul(
-                  <.li(s"the QA state of ${DatasetQaBulkEdit.datasetCount(withState)}")
-                    .when(withState > 0),
-                  <.li(s"the comment of ${DatasetQaBulkEdit.datasetCount(withComment)}")
-                    .when(withComment > 0)
+                  <.li(s"the QA state of ${DatasetQaBulkEdit.datasetCount(states)}")
+                    .when(states > 0),
+                  <.li(s"the comment of ${DatasetQaBulkEdit.datasetCount(comments)}")
+                    .when(comments > 0)
                 ),
                 "Previous values can't be restored in bulk."
               )

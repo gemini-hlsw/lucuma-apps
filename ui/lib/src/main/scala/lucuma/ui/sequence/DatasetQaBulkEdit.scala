@@ -10,9 +10,16 @@ import lucuma.schemas.model.enums.StepExecutionState
 
 import scala.collection.immutable.HashSet
 
+/**
+ * `OnlyUnset` leaves datasets that already have a QA state alone, which the server enforces too in
+ * case the client's data is stale. `Overwrite` replaces whatever QA state they have.
+ */
+enum QaBulkMode:
+  case OnlyUnset, Overwrite
+
 case class DatasetQaBulkEdit(
   datasetIdsInFlight: HashSet[Dataset.Id],
-  onChange:           NonEmptyList[Dataset.Id] => EditableQaFields => Callback
+  onChange:           QaBulkMode => NonEmptyList[Dataset.Id] => EditableQaFields => Callback
 )
 
 object DatasetQaBulkEdit:
