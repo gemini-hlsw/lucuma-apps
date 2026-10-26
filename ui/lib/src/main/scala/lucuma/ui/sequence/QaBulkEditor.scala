@@ -17,7 +17,7 @@ import lucuma.schemas.model.Dataset
 import lucuma.ui.primereact.*
 
 case class QaBulkEditor(
-  datasets: NonEmptyList[Dataset],
+  datasets: List[Dataset],
   inFlight: Boolean,
   onChange: NonEmptyList[Dataset.Id] => EditableQaFields => Callback
 ) extends ReactFnProps(QaBulkEditor)
@@ -29,7 +29,8 @@ object QaBulkEditor
         panelRef    <- useOverlayPanelRef
         toOverwrite <- useStateView(none[(NonEmptyList[Dataset], EditableQaFields)])
       yield
-        val unset: List[Dataset] = props.datasets.filter(_.qaState.isEmpty)
+        val all: Option[NonEmptyList[Dataset]] = NonEmptyList.fromList(props.datasets)
+        val unset: List[Dataset]               = props.datasets.filter(_.qaState.isEmpty)
 
         def overwritten(targets: NonEmptyList[Dataset], fields: EditableQaFields): (Int, Int) =
           (targets.count(_.qaState.isDefined).toInt,
@@ -50,12 +51,19 @@ object QaBulkEditor
 
         val reset: Callback = qaFields.set(EditableQaFields.Empty)
 
+        val pendingCount: String =
+          toOverwrite.get.foldMap((targets, _) => DatasetQaBulkEdit.datasetCount(targets.size))
+
         <.span(SequenceStyles.QaBulkEditor)(
           Button(
             icon = SequenceIcons.Pencil,
             label = "Set QA",
             loading = props.inFlight,
-            tooltip = "Set the QA state of the datasets of these steps",
+            disabled = all.isEmpty,
+            tooltip =
+              if all.isEmpty then "No completed or stopped steps with datasets"
+              else "Set the QA state of the datasets of these steps",
+            tooltipOptions = DefaultTooltipOptions,
             // preventDefault rather than stopPropagation: see the header cell in SequenceColumns.
             onClickE = e => e.preventDefaultCB >> panelRef.toggle(e)
           ).mini.veryCompact,
@@ -69,13 +77,14 @@ object QaBulkEditor
               extraActions = Button(
                 icon = SequenceIcons.Check,
                 severity = Button.Severity.Warning,
-                disabled = noState,
-                onClick = submit(props.datasets)
+                disabled = noState || all.isEmpty,
+                onClick = all.foldMap(submit)
               ).compact(s"Set all (${props.datasets.size})")
             )
           ).withMods(SequenceStyles.QaEditorOverlay).withRef(panelRef.ref),
           Dialog(
-            header = "Overwrite QA?",
+            header = toOverwrite.get.foldMap[String]: (_, fields) =>
+              s"Set $pendingCount to ${fields.qaState.foldMap(_.tag)}?",
             visible = toOverwrite.get.isDefined,
             modal = true,
             onHide = toOverwrite.set(none),
@@ -87,7 +96,7 @@ object QaBulkEditor
                 onClick = toOverwrite.set(none)
               ).compact,
               Button(
-                label = "Overwrite",
+                label = s"Overwrite $pendingCount",
                 icon = SequenceIcons.Check,
                 severity = Button.Severity.Danger,
                 onClick = toOverwrite.get.foldMap((targets, fields) =>
@@ -99,13 +108,14 @@ object QaBulkEditor
             toOverwrite.get.map { (targets, fields) =>
               val (withState, withComment) = overwritten(targets, fields)
               <.div(
-                "This will overwrite the existing values of:",
+                "This replaces:",
                 <.ul(
-                  <.li(s"${DatasetQaBulkEdit.datasetCount(withState)} with a QA state")
+                  <.li(s"the QA state of ${DatasetQaBulkEdit.datasetCount(withState)}")
                     .when(withState > 0),
-                  <.li(s"${DatasetQaBulkEdit.datasetCount(withComment)} with a comment")
+                  <.li(s"the comment of ${DatasetQaBulkEdit.datasetCount(withComment)}")
                     .when(withComment > 0)
-                )
+                ),
+                "Previous values can't be restored in bulk."
               )
             }
           )

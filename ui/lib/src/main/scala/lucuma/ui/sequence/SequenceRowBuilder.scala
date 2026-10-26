@@ -139,14 +139,14 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   private def renderFiles(datasetRange: Option[(Int, Int)]): String =
     "Files: " + datasetRange.map((min, max) => s"$min - $max").getOrElse("---")
 
-  // The bulk QA button of a visit or run header, when the table supports it and the header has
-  // datasets to target.
+  // The bulk QA button of a visit or run header, when the table supports it. It's disabled when
+  // the header has no datasets to target.
   private def renderBulkQaButton(
     bulkEdit: Option[DatasetQaBulkEdit],
     stepRows: List[SequenceIndexedRow[D]]
   ): TagMod =
     bulkEdit
-      .flatMap: bulkEdit =>
+      .map: bulkEdit =>
         val targets: List[Dataset] =
           DatasetQaBulkEdit.targets:
             stepRows
@@ -155,15 +155,11 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
                 case step: SequenceRow.Executed.ExecutedStep[D] =>
                   step.executionState -> step.datasets
 
-        NonEmptyList
-          .fromList(targets)
-          .map: targets =>
-            QaBulkEditor(
-              targets,
-              inFlight =
-                targets.exists(dataset => bulkEdit.datasetIdsInFlight.contains(dataset.id)),
-              bulkEdit.onChange
-            )
+        QaBulkEditor(
+          targets,
+          inFlight = targets.exists(dataset => bulkEdit.datasetIdsInFlight.contains(dataset.id)),
+          bulkEdit.onChange
+        )
       .whenDefined
 
   protected def renderVisitHeader(
