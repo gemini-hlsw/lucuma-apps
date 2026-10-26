@@ -498,7 +498,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 onClickE = smartGcalMenuRef.toggle,
                 disabled =
                   props.executionState.sequenceStatus.isCompleted || isInsertSmartGcalInFlight
-              ).mini.compact.unless(props.isPreview),
+              ).mini.compact.unless(props.isPreview || props.isDaytimeCalibration),
               PopupMenu(model = smartGcalItems).withRef(smartGcalMenuRef.ref)
             )
           ),
