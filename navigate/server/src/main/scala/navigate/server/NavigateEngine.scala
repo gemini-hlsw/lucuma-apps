@@ -75,6 +75,7 @@ import navigate.model.enums.PwfsFilter
 import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
+import navigate.server.acm.GeminiApplyCommand
 import navigate.server.ephemeris.EphemerisUpdater
 import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.stateengine.Handler
@@ -1029,16 +1030,12 @@ object NavigateEngine {
   )
 
   case class State(
-    commandInProgress: Option[NavigateCommand],
     guideConfig:       GuideConfig,
     onSwappedTarget:   Boolean,
     wfsTrackingConfig: WfsGuideStates
-  ) {
-    lazy val tcsActionInProgress: Boolean = commandInProgress.isDefined
-  }
+  )
 
   val startState: State = State(
-    commandInProgress = None,
     guideConfig = GuideConfig.defaultGuideConfig,
     onSwappedTarget = false,
     wfsTrackingConfig = WfsGuideStates(TrackingConfig.noTracking,
@@ -1094,54 +1091,35 @@ object NavigateEngine {
     // Start the async calculation by putting a message in the input queue
     engine
       .offer(
-        // State processing. Get the current state to verify that there is no other command in progress
-        engine.getState.flatMap { st =>
-          if (!st.tcsActionInProgress) {
-            // All clear, let's build the message that will execute the command
-            engine
-              // First, mark that there is a command in progress
-              .modifyState(_.focus(_.commandInProgress).replace(cmdType.some))
-              // And produce the start command event
-              .as(CommandStart(cmdType).some) <*
-              // Flatmap with another Handler. The output is ignored, we only care about the stream that will execute the command later
-              Handler(
-                // Still in State world, cmd checks the current state and produces an F that will execute the command
-                cmd.map(x =>
-                  Handler.RetVal(
-                    NullEvent,
-                    Stream
-                      .eval(
-                        // x is the F that executes the command. It will be evaluated in the main Stream join and produce a result.
-                        x.attempt
-                          .map(cmdResultToNavigateEvent)
-                          .map(z =>
-                            // Here we build the State that will be evaluated at the end
-                            Event(
-                              engine
-                                // Unmark the command in progress flag
-                                .modifyState(_.focus(_.commandInProgress).replace(none))
-                                // And create an output event with the command result
-                                .as(CommandEnd(cmdType, z).some) <*
-                                // Only then pass the result to the Async callback, so a command issued
-                                // as soon as this one returns is not rejected as in progress
-                                Handler.fromStream[F, State, Event[F, State, NavigateEvent]](
-                                  Stream.exec(Async[F].delay(f(z.asRight)))
-                                )
+        // Several commands can be running at the same time, so there is nothing to check in the
+        // state. Produce the start command event.
+        engine.getState.as(CommandStart(cmdType).some) <*
+          // Flatmap with another Handler. The output is ignored, we only care about the stream that will execute the command later
+          Handler(
+            // Still in State world, cmd checks the current state and produces an F that will execute the command
+            cmd.map(x =>
+              Handler.RetVal(
+                NullEvent,
+                Stream
+                  .eval(
+                    // x is the F that executes the command. It will be evaluated in the main Stream join and produce a result.
+                    x.attempt
+                      .map(cmdResultToNavigateEvent)
+                      .map(z =>
+                        // Here we build the State that will be evaluated at the end
+                        Event(
+                          // Create an output event with the command result
+                          engine.getState.as(CommandEnd(cmdType, z).some) <*
+                            Handler.fromStream[F, State, Event[F, State, NavigateEvent]](
+                              Stream.exec(Async[F].delay(f(z.asRight)))
                             )
-                          )
+                        )
                       )
-                      .some
                   )
-                )
+                  .some
               )
-          } else {
-            // Another command was in progress. We schedule the call to the Async callback and produce the output event.
-            val r = CommandResult.CommandFailure(
-              s"Cannot execute command because another TCS command is in progress."
             )
-            engine.lift(Async[F].delay(f(r.asRight)).as(CommandEnd(cmdType, r)))
-          }
-        }
+          )
       )
       .as(none)
   }
@@ -1150,11 +1128,13 @@ object NavigateEngine {
     result: Either[Throwable, ApplyCommandResult]
   ): CommandResult =
     result match {
-      case Right(ApplyCommandResult.Paused)    => CommandResult.CommandPaused
-      case Right(ApplyCommandResult.Completed) => CommandResult.CommandSuccess
-      case Left(e: TimeoutException)           =>
+      case Right(ApplyCommandResult.Paused)                  => CommandResult.CommandPaused
+      case Right(ApplyCommandResult.Completed)               => CommandResult.CommandSuccess
+      case Left(e: GeminiApplyCommand.ApplyCommandException) =>
+        CommandResult.CommandFailure(e.getLocalizedMessage)
+      case Left(e: TimeoutException)                         =>
         CommandResult.CommandFailure(s"Command timed out after ${e.getLocalizedMessage}")
-      case Left(e)                             =>
+      case Left(e)                                           =>
         CommandResult.CommandFailure(
           s"Command failed with error type ${e.getClass.getName}, message: ${e.getLocalizedMessage}"
         )

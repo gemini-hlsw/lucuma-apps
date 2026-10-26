@@ -1021,6 +1021,7 @@ lazy val navigate_server = project
         In(Test)(
           MUnit.value ++
             MUnitCatsEffect.value ++
+            CatsEffectTestkit.value ++
             LucumaCoreTestkit.value
         )
   )
