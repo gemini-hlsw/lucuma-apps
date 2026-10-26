@@ -52,7 +52,7 @@ case class GnirsImagingConfigPanel(
   calibrationRole:              Option[CalibrationRole],
   observingMode:                Aligner[ObservingMode.GnirsImaging, GnirsImagingInput],
   requirementsExposureTimeMode: Option[ExposureTimeMode],
-  revertConfig:                 IO[Unit],
+  revertConfig:                 Option[IO[Unit]],
   sequenceChanged:              Callback,
   permissions:                  ConfigEditPermissions,
   units:                        WavelengthUnits,

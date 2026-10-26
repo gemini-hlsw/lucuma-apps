@@ -41,7 +41,7 @@ case class GmosNorthMosPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GmosNorthMos, GmosNorthMosInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Option[IO[Unit]],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,

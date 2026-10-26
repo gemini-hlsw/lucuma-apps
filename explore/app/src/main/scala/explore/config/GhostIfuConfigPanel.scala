@@ -58,7 +58,7 @@ final case class GhostIfuConfigPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GhostIfu, GhostIfuInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Option[IO[Unit]],
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits

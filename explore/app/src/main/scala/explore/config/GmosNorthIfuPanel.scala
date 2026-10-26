@@ -42,7 +42,7 @@ case class GmosNorthIfuPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GmosNorthIfu, GmosNorthIfuInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Option[IO[Unit]],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,

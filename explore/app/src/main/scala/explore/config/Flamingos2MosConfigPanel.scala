@@ -41,7 +41,7 @@ import lucuma.ui.syntax.all.given
 final case class Flamingos2MosConfigPanel(
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.Flamingos2Mos, Flamingos2MosInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Option[IO[Unit]],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,

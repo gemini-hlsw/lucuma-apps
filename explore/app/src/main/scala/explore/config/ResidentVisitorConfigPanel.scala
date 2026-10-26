@@ -40,7 +40,7 @@ case class ResidentVisitorConfigPanel(
   obsId:            Observation.Id,
   observingMode:    Aligner[ObservingMode.Visitor, VisitorInput],
   requirementsView: View[ScienceRequirements],
-  revertConfig:     IO[Unit],
+  revertConfig:     Option[IO[Unit]],
   permissions:      ConfigEditPermissions,
   isStaffOrAdmin:   Boolean,
   units:            WavelengthUnits

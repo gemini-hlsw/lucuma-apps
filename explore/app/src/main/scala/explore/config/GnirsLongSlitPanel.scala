@@ -39,7 +39,7 @@ case class GnirsLongSlitPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GnirsLongSlit, GnirsLongSlitInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Option[IO[Unit]],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,

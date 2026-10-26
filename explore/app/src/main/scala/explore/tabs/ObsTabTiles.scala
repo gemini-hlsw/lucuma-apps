@@ -873,6 +873,7 @@ object ObsTabTiles:
             props.readonly, // execution status is taken care of in the configuration tile
             !props.programIsReadonly && props.observation.get.isUnobservedTelluric &&
               !props.observation.get.isUserDefinedTelluric.value,
+            props.observation.get.isUserDefinedTelluric.value,
             ObsIdSetEditInfo.of(props.observation.get),
             globalPreferences.get.wavelengthUnits,
             globalPreferences,

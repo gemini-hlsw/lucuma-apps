@@ -42,7 +42,7 @@ case class Flamingos2ImagingConfigPanel(
   calibrationRole:              Option[CalibrationRole],
   observingMode:                Aligner[ObservingMode.Flamingos2Imaging, Flamingos2ImagingInput],
   requirementsExposureTimeMode: Option[ExposureTimeMode],
-  revertConfig:                 IO[Unit],
+  revertConfig:                 Option[IO[Unit]],
   sequenceChanged:              Callback,
   readonly:                     Boolean,
   units:                        WavelengthUnits,

@@ -42,7 +42,7 @@ case class GmosSouthLongSlitPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GmosSouthLongSlit, GmosSouthLongSlitInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Option[IO[Unit]],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,

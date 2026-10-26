@@ -94,6 +94,7 @@ final case class ConfigurationTile(
   sequenceChanged:          Callback,
   readonly:                 Boolean,
   telluricEtmEditable:      Boolean,
+  isUserDefinedTelluric:    Boolean,
   obsIdSetEditInfo:         ObsIdSetEditInfo,          // for determining edit permissions
   units:                    WavelengthUnits,
   globalPreferences:        View[GlobalPreferences],
@@ -359,6 +360,10 @@ object ConfigurationTile
             isChanging
           )
 
+        // A user-defined telluric must keep the configuration of its science observation.
+        val optRevertConfig: Option[IO[Unit]] =
+          revertConfig.some.filterNot(_ => props.isUserDefinedTelluric)
+
         val title =
           <.div(ExploreStyles.TileTitleConfigSelector)(
             DropdownOptional[ObservingModeSummary](
@@ -397,7 +402,7 @@ object ConfigurationTile
                   _.map: om =>
                     new SelectItem[ObservingModeSummary](value = om, label = om.dropdownEntry)
                 .flattenOption
-            ).when(props.permissions.isFullEdit)
+            ).when(props.permissions.isFullEdit && !props.isUserDefinedTelluric)
           )
 
         val posAngleConstraintAligner: Aligner[PosAngleConstraint, Input[PosAngleConstraintInput]] =
@@ -702,7 +707,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       northAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -716,7 +721,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       southAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -730,7 +735,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       northMosAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -745,7 +750,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       southMosAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -760,7 +765,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       ifuAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -774,7 +779,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       ifuAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -789,7 +794,7 @@ object ConfigurationTile
                       props.obsConf.calibrationRole,
                       aligner,
                       reqsExposureTimeMode,
-                      revertConfig,
+                      optRevertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
                       props.units,
@@ -803,7 +808,7 @@ object ConfigurationTile
                       props.obsConf.calibrationRole,
                       aligner,
                       reqsExposureTimeMode,
-                      revertConfig,
+                      optRevertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
                       props.units,
@@ -816,7 +821,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       f2Aligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -828,7 +833,7 @@ object ConfigurationTile
                     Flamingos2MosConfigPanel(
                       props.obsConf.calibrationRole,
                       f2MosAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -844,7 +849,7 @@ object ConfigurationTile
                       props.obsConf.calibrationRole,
                       f2ImgAligner,
                       reqsExposureTimeMode,
-                      revertConfig,
+                      optRevertConfig,
                       props.sequenceChanged,
                       !props.permissions.isFullEdit,
                       props.units,
@@ -857,7 +862,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       ig2Aligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -871,7 +876,7 @@ object ConfigurationTile
                       props.obsConf.calibrationRole,
                       gnirsImgAligner,
                       reqsExposureTimeMode,
-                      revertConfig,
+                      optRevertConfig,
                       props.sequenceChanged,
                       props.permissions,
                       props.units,
@@ -884,7 +889,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       gnirsAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -898,7 +903,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       gnirsAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
@@ -912,7 +917,7 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       ghostAligner,
-                      revertConfig,
+                      optRevertConfig,
                       props.sequenceChanged,
                       props.permissions,
                       props.units
@@ -926,7 +931,7 @@ object ConfigurationTile
                         props.obsId,
                         visitorAligner,
                         requirementsView,
-                        revertConfig,
+                        optRevertConfig,
                         props.permissions,
                         props.isStaffOrAdmin,
                         props.units
@@ -939,16 +944,16 @@ object ConfigurationTile
                         props.programId,
                         props.obsId,
                         visitorAligner,
-                        revertConfig,
+                        optRevertConfig,
                         props.permissions,
                         props.units
                       ),
                   // Keck exchange.
                   optKeckExchangeAligner.map: keckAligner =>
-                    KeckExchangeConfigPanel(keckAligner, revertConfig, props.permissions),
+                    KeckExchangeConfigPanel(keckAligner, optRevertConfig, props.permissions),
                   // Subaru exchange.
                   optSubaruExchangeAligner.map: subaruAligner =>
-                    SubaruExchangeConfigPanel(subaruAligner, revertConfig, props.permissions)
+                    SubaruExchangeConfigPanel(subaruAligner, optRevertConfig, props.permissions)
                 )
             )
           )

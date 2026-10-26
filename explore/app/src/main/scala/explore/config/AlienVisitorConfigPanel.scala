@@ -43,7 +43,7 @@ case class AlienVisitorConfigPanel(
   programId:     Program.Id,
   obsId:         Observation.Id,
   observingMode: Aligner[ObservingMode.Visitor, VisitorInput],
-  revertConfig:  IO[Unit],
+  revertConfig:  Option[IO[Unit]],
   permissions:   ConfigEditPermissions,
   units:         WavelengthUnits
 ) extends ReactFnProps(AlienVisitorConfigPanel)
