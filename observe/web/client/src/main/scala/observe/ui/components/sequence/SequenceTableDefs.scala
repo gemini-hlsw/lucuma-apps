@@ -46,12 +46,8 @@ import scalajs.js
 trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected def instrument: Instrument
 
-  private lazy val isGmos: Boolean =
-    List(Instrument.GmosNorth, Instrument.GmosSouth).contains_(instrument)
-
   private lazy val stepSubsystems: StepConfig => Set[Subsystem] =
-    case StepConfig.Bias | StepConfig.Dark =>
-      if isGmos then Set(ObservatorySubsystem.Gcal) else Set.empty
+    case StepConfig.Bias | StepConfig.Dark => Set.empty
     case StepConfig.Gcal(_, _, _, _)       => Set(ObservatorySubsystem.Tcs, ObservatorySubsystem.Gcal)
     case StepConfig.Science                => Set(ObservatorySubsystem.Tcs, ObservatorySubsystem.Gcal)
     case StepConfig.SmartGcal(_)           => throw new RuntimeException("Smart GCAL is not supported")
