@@ -34,7 +34,8 @@ final case class Igrins2SequenceTable(
   wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[Igrins2DynamicConfig]] => IO[
     List[Atom[Igrins2DynamicConfig]]
-  ]
+  ],
+  hideOffsets:          Boolean
 ) extends ReactFnProps(Igrins2SequenceTable.component)
     with SequenceTable[Igrins2StaticConfig, Igrins2DynamicConfig]
     with SpectroscopySequenceTable[Igrins2DynamicConfig]:

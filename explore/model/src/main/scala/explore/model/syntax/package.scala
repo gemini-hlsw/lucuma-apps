@@ -194,6 +194,10 @@ object all:
       case CalibrationRole.DaytimeCalibration => false
       case _                                  => true
 
+    def isDaytime: Boolean = cr match
+      case CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeCalibration => true
+      case _                                                                   => false
+
   extension (cr: Option[CalibrationRole])
     def needsITC: Boolean               = cr.forall(_.needsITC)
     def needsAcquisitionConfig: Boolean = cr.forall(_.needsAcquisitionConfig)
