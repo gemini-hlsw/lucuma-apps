@@ -34,6 +34,9 @@ private trait SequenceTable[S, D]:
   def wavelengthUnits: WavelengthUnits
   def remoteReplace: SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
 
+  // Daytime calibrations have no offsets, so the p/q columns are hidden.
+  def hideOffsets: Boolean
+
   // The mask name for a custom mask attachment, when known.
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
 

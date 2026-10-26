@@ -32,7 +32,8 @@ final case class GhostSequenceTable(
   wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[GhostDynamicConfig]] => IO[
     List[Atom[GhostDynamicConfig]]
-  ]
+  ],
+  hideOffsets:          Boolean
 ) extends ReactFnProps(GhostSequenceTable.component)
     with SequenceTable[GhostStaticConfig, GhostDynamicConfig]
     with SpectroscopySequenceTable[GhostDynamicConfig]:

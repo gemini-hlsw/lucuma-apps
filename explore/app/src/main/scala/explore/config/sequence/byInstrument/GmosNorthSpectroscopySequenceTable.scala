@@ -35,7 +35,8 @@ final case class GmosNorthSpectroscopySequenceTable(
   remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosNorth]] => IO[
     List[Atom[gmos.DynamicConfig.GmosNorth]]
   ],
-  attachments:          AttachmentList
+  attachments:          AttachmentList,
+  hideOffsets:          Boolean
 ) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth]
     with SpectroscopySequenceTable[gmos.DynamicConfig.GmosNorth]:

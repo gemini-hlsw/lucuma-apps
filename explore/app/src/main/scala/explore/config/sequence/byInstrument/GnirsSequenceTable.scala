@@ -35,7 +35,8 @@ final case class GnirsSequenceTable(
   wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[GnirsDynamicConfig]] => IO[
     List[Atom[GnirsDynamicConfig]]
-  ]
+  ],
+  hideOffsets:          Boolean
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
     with GnirsSpectroscopySequenceTable:

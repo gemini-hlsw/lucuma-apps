@@ -37,7 +37,8 @@ final case class Flamingos2ImagingSequenceTable(
   wavelengthUnits:      WavelengthUnits,
   remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
     List[Atom[Flamingos2DynamicConfig]]
-  ]
+  ],
+  hideOffsets:          Boolean
 ) extends ReactFnProps(Flamingos2ImagingSequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with ImagingSequenceTable[Flamingos2DynamicConfig, Flamingos2Filter]:
