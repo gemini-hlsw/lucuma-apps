@@ -56,7 +56,6 @@ object SequenceStyles:
   val QaStatusButtonStrip: Css  = Css("lucuma-sequence-qa-status-button-strip")
   val QaEditorPanelButtons: Css = Css("lucuma-sequence-qa-editor-panel-buttons")
   val QaBulkEditor: Css         = Css("lucuma-sequence-qa-bulk-editor")
-  val QaBulkEditorCount: Css    = Css("lucuma-sequence-qa-bulk-editor-count")
 
   object StepType:
     val Bias: Css   = Css("lucuma-sequence-step-type-bias")
