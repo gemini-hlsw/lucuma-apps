@@ -70,14 +70,11 @@ final case class ObsBadge(
   focusedObs:            Option[Observation.Id] = none,
   readonly:              Boolean = false
 ) extends ReactFnProps(ObsBadge.component):
-  val executionTime: CalculatedValue[Option[TimeSpan]] = obs.execution.digest.programTimeEstimate
-  val estimateDisplay: EstimateDisplay                 =
-    EstimateDisplay(obs.execution.originalEstimate.map(_.value), obs.workflow.value.state)
-  val isDisabled: Boolean                              = readonly || obs.isOdbCalibration
-  val isDisabledExecuted: Boolean                      = isDisabled || obs.isExecuted
-  val nonEmptyAllocatedBands                           = NonEmptySet.fromSet(allocatedScienceBands)
-  val scienceBandIsInvalid                             = obs.scienceBand.exists(b => !allocatedScienceBands.contains(b))
-  val showScienceBand: Boolean                         =
+  val isDisabled: Boolean         = readonly || obs.isOdbCalibration
+  val isDisabledExecuted: Boolean = isDisabled || obs.isExecuted
+  val nonEmptyAllocatedBands      = NonEmptySet.fromSet(allocatedScienceBands)
+  val scienceBandIsInvalid        = obs.scienceBand.exists(b => !allocatedScienceBands.contains(b))
+  val showScienceBand: Boolean    =
     obs.calibrationRole.isEmpty && allocatedScienceBands.nonEmpty
 
   val telluricType =
@@ -171,6 +168,25 @@ object ObsBadge:
       case Some(CalibrationRole.DaytimeCalibration) =>
         <.span(ThemeIcons.SunBright, " Daytime Calibration")
       case _                                        => obs.title
+
+  private def estimateView(obs: Observation): TagMod =
+    val executionTime: CalculatedValue[Option[TimeSpan]] = obs.execution.digest.programTimeEstimate
+
+    def remainingView(remaining: TimeSpan, label: Option[String]): VdomNode =
+      val tooltip = List(label, executionTime.staleTooltipString).flatten.mkString(". ")
+      TimeSpanView(remaining, tooltip = Option.when(tooltip.nonEmpty)(tooltip))
+        .withMods(executionTime.staleClass)
+
+    def originalView(original: TimeSpan): VdomNode =
+      TimeSpanView(original, tooltip = ("Original estimate": VdomNode).some)
+
+    EstimateDisplay(obs.execution.originalEstimate.map(_.value), obs.workflow.value.state) match
+      case EstimateDisplay.RemainingOnly                  =>
+        executionTime.value.map(remainingView(_, none)).whenDefined
+      case EstimateDisplay.RemainingAndOriginal(original) =>
+        executionTime.value.fold(originalView(original)): remaining =>
+          <.span(remainingView(remaining, "Remaining estimate".some), " / ", originalView(original))
+      case EstimateDisplay.OriginalOnly(original)         => originalView(original)
 
   private val component = ScalaFnComponent[Props]: props =>
     for
@@ -267,25 +283,6 @@ object ObsBadge:
         renderEnumProgress(obs.workflow.state)
       )
 
-      def remainingView(remaining: TimeSpan, label: Option[String]): VdomNode =
-        val tooltip = List(label, props.executionTime.staleTooltipString).flatten.mkString(". ")
-        TimeSpanView(remaining, tooltip = Option.when(tooltip.nonEmpty)(tooltip))
-          .withMods(props.executionTime.staleClass)
-
-      def originalView(original: TimeSpan): VdomNode =
-        TimeSpanView(original, tooltip = ("Original estimate": VdomNode).some)
-
-      val estimateView: TagMod = props.estimateDisplay match
-        case EstimateDisplay.RemainingOnly                  =>
-          props.executionTime.value.map(remainingView(_, none)).whenDefined
-        case EstimateDisplay.RemainingAndOriginal(original) =>
-          props.executionTime.value.fold(originalView(original)): remaining =>
-            <.span(remainingView(remaining, "Remaining estimate".some),
-                   " / ",
-                   originalView(original)
-            )
-        case EstimateDisplay.OriginalOnly(original)         => originalView(original)
-
       lazy val validationTooltip =
         if (obs.hasConfigurationRequestError)
           <.span(obs.workflow.value.validationErrors.head.messages.head)
@@ -361,10 +358,7 @@ object ObsBadge:
             <.span(ExploreStyles.ObsBadgeAssociatedObsTitle, badgeTitle(childObs)),
             extra,
             <.span(ExploreStyles.ObsBadgeAssociatedObsId, obsIdentifier(childObs)),
-            <.span(ExploreStyles.ObsBadgeAssociatedObsTime)(
-              childObs.execution.digest.programTimeEstimate.value
-                .map(TimeSpanView(_))
-            )
+            <.span(ExploreStyles.ObsBadgeAssociatedObsTime)(estimateView(childObs))
           )
         ).compact
 
@@ -455,7 +449,7 @@ object ObsBadge:
                       ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
                     ).withTooltip(content = "ToO Activation")
                   ),
-                estimateView,
+                estimateView(obs),
                 validationIcon
               ),
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
