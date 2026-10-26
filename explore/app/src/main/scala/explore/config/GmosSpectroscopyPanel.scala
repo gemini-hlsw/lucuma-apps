@@ -47,7 +47,7 @@ trait GmosSpectroscopyPanelProps[Grating, Filter, Fpu]:
   def programId: Program.Id
   def obsId: Observation.Id
   def calibrationRole: Option[CalibrationRole]
-  def revertConfig: IO[Unit]
+  def revertConfig: Option[IO[Unit]]
   def confMatrix: SpectroscopyModesMatrix
   def sequenceChanged: Callback
   def permissions: ConfigEditPermissions

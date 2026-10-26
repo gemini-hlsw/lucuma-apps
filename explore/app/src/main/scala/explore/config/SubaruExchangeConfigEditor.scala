@@ -56,7 +56,7 @@ object SubaruExchangeConfigEditor
 // Editing panel for a persisted Subaru exchange mode.
 case class SubaruExchangeConfigPanel(
   observingMode: Aligner[ObservingMode.SubaruExchange, ExchangeInput],
-  revertConfig:  IO[Unit],
+  revertConfig:  Option[IO[Unit]],
   permissions:   ConfigEditPermissions
 ) extends ReactFnProps(SubaruExchangeConfigPanel)
 

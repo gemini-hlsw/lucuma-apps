@@ -22,7 +22,7 @@ import lucuma.ui.syntax.effect.*
 final case class AdvancedConfigButtons(
   editState:            View[ConfigEditState],
   isCustomized:         Boolean,
-  revertConfig:         IO[Unit],
+  revertConfig:         Option[IO[Unit]],
   revertCustomizations: Callback,
   sequenceChanged:      Callback,
   readonly:             Boolean,
@@ -41,15 +41,18 @@ object AdvancedConfigButtons
         else
           <.div(
             ExploreStyles.AdvancedConfigurationButtons,
-            Button(
-              label = "Revert Configuration",
-              icon = Icons.ListIcon,
-              severity = Button.Severity.Secondary,
-              loading = reverting.get,
-              onClick =
-                props.sequenceChanged *> props.revertConfig.switching(reverting.async).runAsync
-            ).compact.small
-              .unless(props.isCustomized),
+            props.revertConfig
+              .map: revertConfig =>
+                Button(
+                  label = "Revert Configuration",
+                  icon = Icons.ListIcon,
+                  severity = Button.Severity.Secondary,
+                  loading = reverting.get,
+                  onClick =
+                    props.sequenceChanged *> revertConfig.switching(reverting.async).runAsync
+                ).compact.small
+                  .unless(props.isCustomized)
+              .whenDefined,
             Button(
               label = "Revert Customizations",
               icon = Icons.TrashUnstyled,
@@ -86,7 +89,7 @@ object RollbackOnlyConfigButtons
         AdvancedConfigButtons(
           editState = editState,
           isCustomized = false,
-          revertConfig = props.revertConfig,
+          revertConfig = props.revertConfig.some,
           revertCustomizations = Callback.empty,
           sequenceChanged = Callback.empty,
           readonly = false,

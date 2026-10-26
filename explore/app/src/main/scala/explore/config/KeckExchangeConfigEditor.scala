@@ -56,7 +56,7 @@ object KeckExchangeConfigEditor
 // Editing panel for a persisted Keck exchange mode.
 case class KeckExchangeConfigPanel(
   observingMode: Aligner[ObservingMode.KeckExchange, ExchangeInput],
-  revertConfig:  IO[Unit],
+  revertConfig:  Option[IO[Unit]],
   permissions:   ConfigEditPermissions
 ) extends ReactFnProps(KeckExchangeConfigPanel)
 
