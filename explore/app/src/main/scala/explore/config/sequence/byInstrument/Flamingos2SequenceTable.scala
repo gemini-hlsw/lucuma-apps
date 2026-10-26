@@ -37,7 +37,8 @@ final case class Flamingos2SequenceTable(
   remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
     List[Atom[Flamingos2DynamicConfig]]
   ],
-  attachments:          AttachmentList
+  attachments:          AttachmentList,
+  hideOffsets:          Boolean
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:
