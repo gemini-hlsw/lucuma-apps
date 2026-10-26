@@ -35,7 +35,7 @@ final case class GmosNorthImagingSequenceTable(
   remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosNorth]] => IO[
     List[Atom[gmos.DynamicConfig.GmosNorth]]
   ],
-  hideOffsets:          Boolean
+  hiddenColumns:        Set[ColumnId]
 ) extends ReactFnProps(GmosNorthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth]
     with ImagingSequenceTable[gmos.DynamicConfig.GmosNorth, GmosNorthFilter]:

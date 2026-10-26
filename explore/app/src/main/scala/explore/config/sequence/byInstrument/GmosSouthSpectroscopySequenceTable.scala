@@ -14,6 +14,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
 import lucuma.react.common.ReactFnProps
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
@@ -36,7 +37,7 @@ final case class GmosSouthSpectroscopySequenceTable(
     List[Atom[gmos.DynamicConfig.GmosSouth]]
   ],
   attachments:          AttachmentList,
-  hideOffsets:          Boolean
+  hiddenColumns:        Set[ColumnId]
 ) extends ReactFnProps(GmosSouthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]
     with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]:

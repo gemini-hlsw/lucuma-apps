@@ -14,6 +14,7 @@ import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.react.common.ReactFnProps
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
@@ -35,7 +36,7 @@ final case class Igrins2SequenceTable(
   remoteReplace:        SequenceType => List[Atom[Igrins2DynamicConfig]] => IO[
     List[Atom[Igrins2DynamicConfig]]
   ],
-  hideOffsets:          Boolean
+  hiddenColumns:        Set[ColumnId]
 ) extends ReactFnProps(Igrins2SequenceTable.component)
     with SequenceTable[Igrins2StaticConfig, Igrins2DynamicConfig]
     with SpectroscopySequenceTable[Igrins2DynamicConfig]:

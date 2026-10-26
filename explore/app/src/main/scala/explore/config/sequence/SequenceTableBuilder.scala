@@ -78,19 +78,17 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   // Columns to hide for this table.
   protected def hiddenColumnIds: Set[ColumnId] = Set.empty
 
-  private val OffsetColumnIds: Set[ColumnId] =
-    Set(SequenceColumns.PColumnId, SequenceColumns.QColumnId)
-
   private lazy val ColumnSizes: Map[ColumnId, ColumnSize] = Map(
     HeaderColumnId   -> FixedSize(0.toPx),
     ExtraRowColumnId -> FixedSize(0.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
-  private def columns(hideOffsets: Boolean)(using
+  private def columns(hiddenColumns: Set[ColumnId])(using
     FetchClient[IO, ObservationDB],
     ToastCtx[IO],
     Logger[IO]
   ): List[ColDef.Type] =
+    val hidden: Set[ColumnId] = hiddenColumnIds ++ hiddenColumns
     List(
       SequenceColumns
         .headerCell(HeaderColumnId, ColDef)
@@ -116,9 +114,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                   )
       ).withColumnSize(ColumnSizes(ExtraRowColumnId))
     ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
-      .filterNot: col =>
-        (hiddenColumnIds ++ Option.when(hideOffsets)(OffsetColumnIds).orEmpty)
-          .exists(_.value === col.id.value)
+      .filterNot(col => hidden.exists(_.value === col.id.value))
 
   private lazy val DynTableDef = DynTable(
     ColumnSizes,
@@ -149,9 +145,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                                            props.remoteReplace
                                          )
         dynTable                      <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
-        cols                          <- useMemo(props.hideOffsets): hideOffsets =>
+        cols                          <- useMemo(props.hiddenColumns): hiddenColumns =>
                                            import ctx.given
-                                           dynTable.setInitialColWidths(columns(hideOffsets))
+                                           dynTable.setInitialColWidths(columns(hiddenColumns))
         resolvedAcquisition            = editContexts.acquisition.resolvedSequence
         resolvedScience                = editContexts.science.resolvedSequence
         (acquisitionRows, scienceRows) = props.buildRows(resolvedAcquisition, resolvedScience)
