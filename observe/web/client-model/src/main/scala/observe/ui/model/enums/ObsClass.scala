@@ -3,13 +3,20 @@
 
 package observe.ui.model.enums
 
-import cats.Eq
+import cats.Order
 import cats.derived.*
+import lucuma.schemas.model.BasicConfiguration
 
-enum ObsClass derives Eq:
-  case Daytime, Nighttime
+enum ObsClass(val label: String) derives Order:
+  case Daytime   extends ObsClass("Day")
+  case Nighttime extends ObsClass("Night")
 
 object ObsClass:
   def fromString(s: String): ObsClass = s match
     case "dayCal" => ObsClass.Daytime
     case _        => ObsClass.Nighttime
+
+  def fromObservingMode(observingMode: Option[BasicConfiguration]): ObsClass =
+    observingMode match
+      case Some(BasicConfiguration.DaytimeCalibration(_)) => ObsClass.Daytime
+      case _                                              => ObsClass.Nighttime
