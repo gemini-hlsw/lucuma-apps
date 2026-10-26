@@ -83,6 +83,14 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             refOpt.map:
               _.scrollToIndex(rowIndex - 1, ScrollOptions)
 
+  private val DaytimeCalibrationHiddenColumns: List[ColumnId] =
+    List(
+      SequenceColumns.PColumnId,
+      SequenceColumns.QColumnId,
+      SequenceColumns.PeakColumnId,
+      SequenceColumns.SNColumnId
+    )
+
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -168,19 +176,17 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               )
         datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        _                        <-
+          useEffectWithDeps(props.isDaytimeCalibration): isDaytimeCalibration =>
+            dynTable.modifyColumnVisibility:
+              _.modify: visibility =>
+                if isDaytimeCalibration then
+                  visibility ++ DaytimeCalibrationHiddenColumns.map(_ -> Visibility.Hidden)
+                else visibility -- DaytimeCalibrationHiddenColumns
         tableState               <-
-          useMemo(dynTable.columnSizing, dynTable.columnVisibility, props.isDaytimeCalibration):
-            (columnSizing, columnVisibility, isDaytimeCalibration) =>
-              PartialTableState(
-                columnSizing = columnSizing,
-                columnVisibility =
-                  if isDaytimeCalibration then
-                    columnVisibility.modify(
-                      _ ++ List(SequenceColumns.PColumnId, SequenceColumns.QColumnId)
-                        .map(_ -> Visibility.Hidden)
-                    )
-                  else columnVisibility
-              )
+          useMemo(dynTable.columnSizing, dynTable.columnVisibility):
+            (columnSizing, columnVisibility) =>
+              PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
         // TODO Remove the following 4 when sequence editing is supported in observe.
         dummyIsEditing           <- useStateView(IsEditing.False)
         dummyEditableSequence    <- useStateView(EditableSequence(List.empty[Atom[D]]))
