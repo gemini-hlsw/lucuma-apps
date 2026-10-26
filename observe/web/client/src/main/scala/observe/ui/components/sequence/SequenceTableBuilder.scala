@@ -169,9 +169,18 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
         tableState               <-
-          useMemo(dynTable.columnSizing, dynTable.columnVisibility):
-            (columnSizing, columnVisibility) =>
-              PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
+          useMemo(dynTable.columnSizing, dynTable.columnVisibility, props.isDaytimeCalibration):
+            (columnSizing, columnVisibility, isDaytimeCalibration) =>
+              PartialTableState(
+                columnSizing = columnSizing,
+                columnVisibility =
+                  if isDaytimeCalibration then
+                    columnVisibility.modify(
+                      _ ++ List(SequenceColumns.PColumnId, SequenceColumns.QColumnId)
+                        .map(_ -> Visibility.Hidden)
+                    )
+                  else columnVisibility
+              )
         // TODO Remove the following 4 when sequence editing is supported in observe.
         dummyIsEditing           <- useStateView(IsEditing.False)
         dummyEditableSequence    <- useStateView(EditableSequence(List.empty[Atom[D]]))
