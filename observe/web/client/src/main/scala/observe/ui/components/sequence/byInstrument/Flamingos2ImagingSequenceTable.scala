@@ -40,6 +40,7 @@ final case class Flamingos2ImagingSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
+  isDaytimeCalibration: Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(Flamingos2ImagingSequenceTable.component)

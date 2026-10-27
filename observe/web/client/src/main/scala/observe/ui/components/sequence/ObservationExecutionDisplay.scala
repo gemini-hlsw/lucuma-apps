@@ -26,6 +26,7 @@ import observe.model.odb.RecordedVisit
 import observe.ui.ObserveStyles
 import observe.ui.components.ObservationSequence
 import observe.ui.model.*
+import observe.ui.model.enums.ObsClass
 
 case class ObservationExecutionDisplay(
   selectedObs:           ObsSummary,
@@ -118,7 +119,8 @@ object ObservationExecutionDisplay
                 selectedRowId,
                 setSelectedRowId,
                 rootModelData.clientMode,
-                props.selectedObs.maskName
+                props.selectedObs.maskName,
+                props.selectedObs.obsClass === ObsClass.Daytime
               )
             },
             errorRender = t =>

@@ -38,6 +38,7 @@ final case class GmosSouthImagingSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
+  isDaytimeCalibration: Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(GmosSouthImagingSequenceTable.component)

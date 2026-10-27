@@ -36,9 +36,7 @@ object ObsHeader
         <.div(ObserveStyles.ObsSummary)(
           <.div(ObserveStyles.ObsSummaryTitle)(
             <.span(ObserveStyles.ObsSummaryTitleText)(props.observation.title)
-              .unless(
-                ObsClass.fromObservingMode(props.observation.observingMode) === ObsClass.Daytime
-              ),
+              .unless(props.observation.obsClass === ObsClass.Daytime),
             <.span(ObserveStyles.ObsSummaryTitleRef)(
               s"[${props.observation.refAndId}]",
               props.linkToExploreObs:

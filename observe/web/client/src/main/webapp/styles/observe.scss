@@ -165,37 +165,6 @@ body {
   white-space: nowrap;
 }
 
-.p-selectbutton {
-  &.observe-obs-class-select {
-    border: 1px solid var(--surface-border);
-
-    .p-button {
-      font-size: 0.85em;
-      border: 0;
-      padding-top: 0.85em;
-      padding-bottom: 0.85em;
-
-      &:not(:first-child) {
-        border-left: 1px solid var(--surface-border);
-      }
-
-      svg {
-        margin-right: 2px;
-      }
-
-      &.p-highlight {
-        background: var(--green-800);
-        border-color: var(--green-800);
-
-        &:hover {
-          background: var(--green-800);
-          border-color: var(--green-800);
-        }
-      }
-    }
-  }
-}
-
 .pl-react-table.p-datatable.lucuma-sequence-table {
   tbody {
     tr.lucuma-sequence-row-has-extra {

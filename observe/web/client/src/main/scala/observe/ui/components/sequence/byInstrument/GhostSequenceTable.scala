@@ -39,6 +39,7 @@ case class GhostSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
+  isDaytimeCalibration: Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(GhostSequenceTable.component)

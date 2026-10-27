@@ -39,6 +39,7 @@ final case class Igrins2SequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
+  isDaytimeCalibration: Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(Igrins2SequenceTable.component)

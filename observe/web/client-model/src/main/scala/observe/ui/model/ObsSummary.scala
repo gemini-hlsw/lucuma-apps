@@ -28,6 +28,7 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.BasicConfiguration
+import observe.ui.model.enums.ObsClass
 import lucuma.ui.display.given
 import monocle.Focus
 import org.typelevel.cats.time.*
@@ -135,6 +136,8 @@ case class ObsSummary(
 
   lazy val refAndId: String =
     obsReference.fold(obsId.shortName)(ref => s"${ref.label} (${obsId.shortName})")
+
+  lazy val obsClass: ObsClass = ObsClass.fromObservation(calibrationRole, observingMode)
 
 object ObsSummary:
   val obsId              = Focus[ObsSummary](_.obsId)

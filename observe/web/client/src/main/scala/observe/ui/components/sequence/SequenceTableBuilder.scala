@@ -178,11 +178,17 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
         _                        <-
           useEffectWithDeps(props.isDaytimeCalibration): isDaytimeCalibration =>
-            dynTable.modifyColumnVisibility:
-              _.modify: visibility =>
-                if isDaytimeCalibration then
-                  visibility ++ DaytimeCalibrationHiddenColumns.map(_ -> Visibility.Hidden)
-                else visibility -- DaytimeCalibrationHiddenColumns
+            val visibility: Map[ColumnId, Visibility] = dynTable.columnVisibility.value
+            val areHidden: Boolean                    =
+              DaytimeCalibrationHiddenColumns.forall(visibility.get(_).contains(Visibility.Hidden))
+            if isDaytimeCalibration && !areHidden then
+              dynTable.modifyColumnVisibility:
+                _.modify(_ ++ DaytimeCalibrationHiddenColumns.map(_ -> Visibility.Hidden))
+            else if !isDaytimeCalibration && DaytimeCalibrationHiddenColumns.exists(
+                visibility.contains
+              )
+            then dynTable.modifyColumnVisibility(_.modify(_ -- DaytimeCalibrationHiddenColumns))
+            else Callback.empty
         tableState               <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>

@@ -11,7 +11,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
@@ -43,6 +42,7 @@ private trait SequenceTable[S, D](
   def setSelectedRowId: SelectedRowId => Callback
   def requests: ObservationRequests
   def isPreview: Boolean
+  def isDaytimeCalibration: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
   def sequenceControls: VdomNode
 
@@ -102,15 +102,6 @@ private trait SequenceTable[S, D](
           .filterNot(_.id.toOption.exists(currentVisitStepIds.contains))
           .toList ++ tail
       case other                                                                             => other
-
-  // The ODB requires every step of a daytime calibration to be dayCal.
-  protected[sequence] lazy val isDaytimeCalibration: Boolean =
-    val observeClasses: List[ObserveClass] =
-      config.science
-        .foldMap(s => (s.nextAtom +: s.possibleFuture).flatMap(_.steps.toList))
-        .map(_.observeClass) ++
-        instrumentVisits.flatMap(_.atoms.flatMap(_.steps.map(_.observeClass)))
-    observeClasses.nonEmpty && observeClasses.forall(_ === ObserveClass.DayCal)
 
   protected[sequence] lazy val scienceRows: List[SequenceRow[D]] =
     config.science

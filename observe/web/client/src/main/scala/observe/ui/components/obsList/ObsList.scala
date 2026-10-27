@@ -56,7 +56,6 @@ case class ObsList(
             .map(_.sequenceStatus)
             .getOrElse(SequenceStatus.Idle),
           observer,
-          ObsClass.fromObservingMode(obs.observingMode),
           loadedObss.value.contains(obs.obsId),
           // We can't easily know step numbers nor the total number of steps.
           // Maybe we want to show pending and total times instead?
@@ -139,7 +138,7 @@ object ObsList
 
       val NotApplicable: String = "---"
 
-      def nighttimeOnly(row: SessionQueueRow)(value: => String): String =
+      def nighttimeOnly(row: SessionQueueRow)(value: String): String =
         if row.obsClass === ObsClass.Daytime then NotApplicable else value
 
       def renderCentered(node: VdomNode, css: Css = Css.Empty): VdomNode =

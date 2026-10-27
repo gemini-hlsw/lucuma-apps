@@ -77,7 +77,7 @@ object Layout
           data.readyObsByInstrument
             .get(instrument)
             .flatMap(data.readyObservationsMap.get)
-            .exists(obs => ObsClass.fromObservingMode(obs.observingMode) === ObsClass.Daytime)
+            .exists(_.obsClass === ObsClass.Daytime)
 
         def logTimezone(clientConfig: ClientConfig) =
           if (showUT.get) ZoneOffset.UTC else clientConfig.site.timezone
@@ -115,9 +115,9 @@ object Layout
                     case _                            => true
                   },
                   tabLabel = {
-                    case AppTab.LoadedObs(instrument) if isDaytimeLoaded(instrument) =>
-                      <.span(Icons.Sun, " ", instrument.shortName).some
-                    case _                                                           => none
+                    case tab @ AppTab.LoadedObs(instrument) if isDaytimeLoaded(instrument) =>
+                      <.span(Icons.Sun, " ", tab.title).some
+                    case _                                                                 => none
                   }
                 ),
                 <.div(LayoutStyles.MainBody)(

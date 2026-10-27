@@ -49,7 +49,6 @@ object ObserveStyles:
   val AcquisitionPromptBusy: Css = Css("observe-acquisition-prompt-busy")
 
   val ObsListTable: Css   = Css("observe-obs-list-table")
-  val ObsClassSelect: Css = Css("observe-obs-class-select")
   val LoadButtonCell: Css = Css("observe-load-button-cell")
   val LoadButton: Css     = Css("observe-load-button")
 

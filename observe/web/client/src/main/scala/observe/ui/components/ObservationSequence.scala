@@ -45,7 +45,8 @@ case class ObservationSequence(
   selectedRowId:        Option[SelectedRowId],
   setSelectedRowId:     SelectedRowId => Callback,
   clientMode:           ClientMode,
-  getMaskName:          Attachment.Id => Option[NonEmptyString]
+  getMaskName:          Attachment.Id => Option[NonEmptyString],
+  isDaytimeCalibration: Boolean
 ) extends ReactFnProps(ObservationSequence)
 
 object ObservationSequence
@@ -120,6 +121,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -138,6 +140,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -157,6 +160,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -179,6 +183,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -197,6 +202,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -216,6 +222,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -238,6 +245,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -256,6 +264,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -278,6 +287,7 @@ object ObservationSequence
               props.setSelectedRowId,
               props.requests,
               isPreview = false,
+              isDaytimeCalibration = props.isDaytimeCalibration,
               onBreakpointFlip,
               sequenceControls
             )
@@ -296,6 +306,7 @@ object ObservationSequence
               props.setSelectedRowId,
               props.requests,
               isPreview = false,
+              isDaytimeCalibration = props.isDaytimeCalibration,
               onBreakpointFlip,
               sequenceControls
             )
@@ -316,6 +327,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -333,6 +345,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -352,6 +365,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
+                  isDaytimeCalibration = props.isDaytimeCalibration,
                   onBreakpointFlip,
                   sequenceControls
                 )
