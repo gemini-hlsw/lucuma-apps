@@ -18,7 +18,6 @@ import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.odb.DeleteSequenceQueryGql.*
 import lucuma.schemas.odb.SequenceEditQueriesGql.*
 import lucuma.schemas.odb.SequenceQueriesGql.*
 import lucuma.schemas.odb.input.*
@@ -106,5 +105,11 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
   def deleteSequence(obsId: Observation.Id): F[Unit] =
     DeleteSequence[F]
       .execute(obsId)
+      .raiseGraphQLErrors
+      .void
+
+  def resetAcquisition(obsId: Observation.Id, regenerate: Boolean): F[Unit] =
+    ResetAcquisition[F]
+      .execute(obsId, regenerate)
       .raiseGraphQLErrors
       .void

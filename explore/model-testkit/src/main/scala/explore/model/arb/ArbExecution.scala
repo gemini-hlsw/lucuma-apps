@@ -37,6 +37,7 @@ trait ArbExecution:
       original        <- arbitrary[Option[TimeSpan]]
       acqMaterialized <- arbitrary[Boolean]
       sciMaterialized <- arbitrary[Boolean]
+      acqCustomized   <- arbitrary[Boolean]
       sciCustomized   <- arbitrary[Boolean]
       executionState  <- arbitrary[ExecutionState]
     } yield Execution(
@@ -45,6 +46,7 @@ trait ArbExecution:
       original.map(ProgramTime(_)),
       acqMaterialized,
       sciMaterialized,
+      acqCustomized,
       sciCustomized,
       executionState
     )

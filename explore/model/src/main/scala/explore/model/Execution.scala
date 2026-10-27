@@ -33,11 +33,18 @@ final case class Execution(
   originalEstimate:                  Option[ProgramTime],
   acquisitionSequenceIsMaterialized: Boolean,
   scienceSequenceIsMaterialized:     Boolean,
+  acquisitionSequenceIsCustomized:   Boolean,
   scienceSequenceIsCustomized:       Boolean,
   executionState:                    ExecutionState
 ) derives Eq:
   val hasMaterializedSequence: Boolean =
     acquisitionSequenceIsMaterialized || scienceSequenceIsMaterialized
+
+  val customizedSequences: List[SequenceType] =
+    List(
+      Option.when(acquisitionSequenceIsCustomized)(SequenceType.Acquisition),
+      Option.when(scienceSequenceIsCustomized)(SequenceType.Science)
+    ).flattenOption
 
   // The Sequence Copy choices for a Duplicate, empty when there is nothing to ask. Pending and all
   // steps are the same when nothing has started, so only all steps is offered then. The ODB never
@@ -99,6 +106,7 @@ object Execution:
             )
       a  <- c.get[Boolean]("acquisitionSequenceIsMaterialized")
       s  <- c.get[Boolean]("scienceSequenceIsMaterialized")
+      ac <- c.get[Boolean]("acquisitionSequenceIsCustomized")
       sc <- c.get[Boolean]("scienceSequenceIsCustomized")
       es <- c.get[ExecutionState]("executionState")
-    yield Execution(d, pt, oe, a, s, sc, es)
+    yield Execution(d, pt, oe, a, s, ac, sc, es)

@@ -3,9 +3,11 @@
 
 package explore.config.sequence
 
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.*
+import crystal.react.hooks.*
 import explore.*
 import explore.components.*
 import explore.components.HelpIcon
@@ -15,6 +17,7 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.DismissedWarnings
 import explore.model.Execution
+import explore.model.IsActive
 import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.enums.ObsValidationSeverity
@@ -27,6 +30,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
@@ -34,17 +38,23 @@ import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.react.primereact.Button
+import lucuma.react.primereact.Dialog
+import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.Message
+import lucuma.react.primereact.TooltipOptions
 import lucuma.react.primereact.tooltip.*
 import lucuma.react.table.ColumnId
 import lucuma.refined.*
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
+import lucuma.ui.primereact.*
 import lucuma.ui.sequence.*
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import org.scalajs.dom.HTMLElement
+import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.SortedSet
 
@@ -75,13 +85,7 @@ final case class SequenceTile(
             <.span(ExploreStyles.SequenceTileStepViolations)(validationSeverityIcon(severity))
               .withTooltip(content =
                 validationsTooltip(obsExecution.stepValidations, dismissedWarnings)
-              ),
-        Option.when(obsExecution.scienceSequenceIsCustomized):
-          <.span(ExploreStyles.SequenceTileCustomized)(
-            "Customized",
-            Icons.WandMagicSparkles,
-            testId := "explore-sequence-customized"
-          ).withTooltip(content = "The science sequence has been customized")
+              )
       ),
       canMinimize = !isEditingAcquisition.get && !isEditingScience.get
     )(
@@ -93,18 +97,22 @@ object SequenceTile
       import SequenceTileHelper.*
 
       for
-        ctx          <- useContext(AppContext.ctx)
-        liveSequence <- useLiveSequence(
-                          props.obsId,
-                          props.asterismIds.toList,
-                          props.customSedTimestamps,
-                          props.calibrationRole
-                        )
-        _            <-
+        ctx               <- useContext(AppContext.ctx)
+        liveSequence      <- useLiveSequence(
+                               props.obsId,
+                               props.asterismIds.toList,
+                               props.customSedTimestamps,
+                               props.calibrationRole
+                             )
+        _                 <-
           useEffectWithDeps(liveSequence): newLiveSequence =>
             props.sequenceChanged.set: // Notify caller of change
               (newLiveSequence.visits, newLiveSequence.sequence.map(_.get)).tupled.void
+        isRegenerating    <- useStateView(IsActive(false))
+        confirmRegenerate <- useStateView(false)
       yield
+        given Logger[IO] = ctx.logger
+
         val execution: Execution           = props.obsExecution
         val staleCss: TagMod               = execution.digest.staleClass
         val staleTooltip: Option[VdomNode] = execution.digest.staleTooltip
@@ -129,6 +137,68 @@ object SequenceTile
               (props.isUserStaffOrAdmin || !props.obsIsExecuted)
           )
 
+        val customizedSequences: List[SequenceType] = execution.customizedSequences
+
+        val customizedBadge: Option[VdomNode] =
+          Option.when(customizedSequences.nonEmpty):
+            <.span(ExploreStyles.SequenceTileCustomized)(
+              Icons.ExclamationDiamond.withClass(ExploreStyles.WarningIcon),
+              "Customized",
+              testId := "explore-sequence-customized"
+            ).withTooltip(content = SequenceTile.customizedTooltip(customizedSequences))
+
+        val canRegenerateAcquisition: Boolean =
+          execution.acquisitionSequenceIsCustomized && !props.readonly &&
+            !props.isEditingAcquisition.get && !props.isEditingScience.get &&
+            (props.isUserStaffOrAdmin || !props.obsIsExecuted)
+
+        val regenerateAcquisition: IO[Unit] =
+          ctx.odbApi
+            .resetAcquisition(props.obsId, regenerate = true)
+            .handleErrorWith: e =>
+              ctx.toastCtx.showToast(
+                s"Failed to regenerate the acquisition: ${e.getMessage}",
+                Message.Severity.Error,
+                sticky = true
+              )
+            .switching(isRegenerating.async, IsActive(_)) >> confirmRegenerate.async.set(false)
+
+        val regenerateAcquisitionButton: Option[VdomNode] =
+          Option.when(canRegenerateAcquisition):
+            React.Fragment(
+              Button(
+                onClick = confirmRegenerate.set(true),
+                label = "Regenerate acquisition",
+                icon = Icons.ArrowsRotate,
+                tooltip = "Discard the acquisition sequence customizations and regenerate it",
+                tooltipOptions = TooltipOptions.Top
+              ).mini.compact,
+              Dialog(
+                visible = confirmRegenerate.get,
+                onHide = confirmRegenerate.set(false),
+                header = "Regenerate acquisition",
+                footer = <.div(
+                  Button(
+                    label = "Cancel",
+                    icon = Icons.Close,
+                    severity = Button.Severity.Danger,
+                    onClick = confirmRegenerate.set(false)
+                  ).small.compact,
+                  Button(
+                    label = "Proceed",
+                    icon = Icons.Checkmark,
+                    onClick = regenerateAcquisition.runAsync,
+                    loading = isRegenerating.get.value
+                  ).small.compact
+                ),
+                position = DialogPosition.Top,
+                modal = true,
+                resizable = false
+              )(
+                <.div("Acquisition sequence customizations will be lost. Proceed?")
+              )
+            )
+
         // A materialized sequence isn't regenerated when the configuration changes, and with no
         // sequence yet the body already shows a spinner, so this only marks an in-place update.
         val isUpdating: Boolean =
@@ -141,33 +211,38 @@ object SequenceTile
             <.span(Icons.Spinner.withSpin(true))
               .withTooltip(content = "Updating sequence...")
 
-        val title =
-          <.span(
-            execution.digest.programTimeEstimate.value
-              .map: plannedTime =>
-                val total: TimeSpan             = programTimeCharge +| plannedTime
-                val pending: TagOf[HTMLElement] =
-                  timeDisplay(
-                    "Pending",
-                    plannedTime,
-                    timeClass = staleCss,
-                    timeTooltip = staleTooltip
-                  )
-                val planned: TagOf[HTMLElement] =
-                  timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)(
-                    testId := "explore-sequence-planned"
-                  )
-
-                <.span(ExploreStyles.SequenceTileTitle)(
-                  <.span(ExploreStyles.SequenceTileTitleSummary)(
-                    HelpIcon("target/main/sequence-times.md".refined),
-                    planned,
-                    executed,
-                    pending,
-                    updatingIndicator
-                  )
+        val summary: VdomNode =
+          execution.digest.programTimeEstimate.value
+            .map: plannedTime =>
+              val total: TimeSpan             = programTimeCharge +| plannedTime
+              val pending: TagOf[HTMLElement] =
+                timeDisplay(
+                  "Pending",
+                  plannedTime,
+                  timeClass = staleCss,
+                  timeTooltip = staleTooltip
                 )
-              .getOrElse(executed)
+              val planned: TagOf[HTMLElement] =
+                timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)(
+                  testId := "explore-sequence-planned"
+                )
+
+              <.span(ExploreStyles.SequenceTileTitleSummary)(
+                HelpIcon("target/main/sequence-times.md".refined),
+                planned,
+                executed,
+                pending,
+                updatingIndicator
+              )
+            .getOrElse(executed)
+
+        val title =
+          <.span(ExploreStyles.SequenceTileTitle)(
+            summary,
+            <.span(ExploreStyles.SequenceTileCustomization)(
+              customizedBadge,
+              regenerateAcquisitionButton
+            ).when(customizedSequences.nonEmpty)
           )
 
         val mismatchError = Message(
@@ -558,4 +633,9 @@ object SequenceTile
             )
 
         TileContents(title, body)
-    )
+    ):
+
+  private def customizedTooltip(sequences: List[SequenceType]): String =
+    sequences match
+      case List(sequenceType) => s"The ${sequenceType.tag} sequence has been customized"
+      case _                  => "The acquisition and science sequences have been customized"

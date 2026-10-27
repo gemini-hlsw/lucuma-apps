@@ -72,15 +72,18 @@ object GnirsImagingConfigPanel
       yield
         import ctx.given
 
-        val disableAdvancedEdit: Boolean      =
+        val disableAdvancedEdit: Boolean         =
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
-        val disableSimpleEdit: Boolean        =
+        val disableSimpleEdit: Boolean           =
           disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
-        val disableAdvancedAcqEdit: Boolean   =
+        val disableAdvancedAcqEdit: Boolean      =
           disableAdvancedEdit && !props.permissions.isOnlyForOngoing
-        val showCustomization: Boolean        = props.calibrationRole.isEmpty
-        val allowRevertCustomization: Boolean = props.permissions.isFullEdit
-        val showAcquisitionConfig: Boolean    = props.calibrationRole.needsAcquisitionConfig
+        val showCustomization: Boolean           = props.calibrationRole.isEmpty
+        val allowRevertCustomization: Boolean    = props.permissions.isFullEdit
+        // Staff may revert the acquisition customizations of an ongoing observation.
+        val allowRevertAcqCustomization: Boolean =
+          allowRevertCustomization || props.permissions.isOnlyForOngoing
+        val showAcquisitionConfig: Boolean       = props.calibrationRole.needsAcquisitionConfig
 
         given Enumerated[Option[GnirsReadMode]] =
           deriveOptionalEnumerated[GnirsReadMode]("Auto")
@@ -275,7 +278,7 @@ object GnirsImagingConfigPanel
                   CustomizedGroupAddon(
                     "automatic",
                     revertAcquisition,
-                    allowRevertCustomization
+                    allowRevertAcqCustomization
                   ).when(showCustomization && acquisition.get.isCustomized)
                 ),
                 toggleable = true,
@@ -291,7 +294,7 @@ object GnirsImagingConfigPanel
                       helpId = Some("configuration/gnirs/acquisition-type.md".refined),
                       disabled = disableAdvancedAcqEdit,
                       showCustomization = showCustomization,
-                      allowRevertCustomization = allowRevertCustomization
+                      allowRevertCustomization = allowRevertAcqCustomization
                     ),
                     acquisitionSkyOffsetViewOpt.map: acquisitionOffsetView =>
                       OffsetInput(
@@ -306,9 +309,9 @@ object GnirsImagingConfigPanel
                       defaultValue = none,
                       label = "Filter".some,
                       helpId = Some("configuration/gnirs/acquisition-filter.md".refined),
-                      disabled = disableSimpleEdit,
+                      disabled = disableAdvancedAcqEdit,
                       showCustomization = showCustomization,
-                      allowRevertCustomization = allowRevertCustomization
+                      allowRevertCustomization = allowRevertAcqCustomization
                     )
                   ),
                   <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -326,7 +329,7 @@ object GnirsImagingConfigPanel
                       isCustomized =
                         showCustomization && acquisition.get.explicitExposureTimeMode.isDefined,
                       revertCustomization = revertAcquisitionExposureTime,
-                      allowRevertCustomization = allowRevertCustomization
+                      allowRevertCustomization = allowRevertAcqCustomization
                     )
                   )
                 )
