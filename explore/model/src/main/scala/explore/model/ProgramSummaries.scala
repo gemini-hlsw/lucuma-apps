@@ -138,6 +138,9 @@ case class ProgramSummaries(
       .mapValues(SortedSet.from)
       .toMap
 
+  // Every target used by at least one observation and only by calibration observations.
+  lazy val calibrationOnlyTargets: Set[Target.Id] = observations.calibrationOnlyTargets
+
   lazy val targetsWithObs: TargetWithObsList =
     targets.map((targetId, target) =>
       targetId -> TargetWithObs(target.target, targetObservations.get(targetId).orEmpty)

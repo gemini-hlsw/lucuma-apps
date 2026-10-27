@@ -22,6 +22,7 @@ import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.enums.TableId
 import explore.model.reusability.given
+import explore.model.syntax.all.*
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.targets.MotionCorrectedTarget
@@ -149,7 +150,8 @@ object TargetTable:
     ScalaFnComponent[Props]: props =>
       for
         ctx        <- useContext(AppContext.ctx)
-        cols       <- useMemo(props.readOnly): readOnly =>
+        calibOnly  <- useMemo(props.obsAndTargets.get._1)(_.calibrationOnlyTargets)
+        cols       <- useMemo(props.readOnly, calibOnly): (readOnly, calibrationOnly) =>
                         import ctx.given
 
                         Option
@@ -208,7 +210,8 @@ object TargetTable:
                                 case AsterismRow.TargetRow(mct) => mct.target.some
                                 case _                          => none,
                               _ match
-                                case AsterismRow.TargetRow(mct) => mct.disposition.some
+                                case AsterismRow.TargetRow(mct) =>
+                                  mct.targetWithId.displayDisposition(calibrationOnly.value).some
                                 case _                          => none,
                               _ match
                                 case AsterismRow.TargetRow(mct)       => mct.target.name.value

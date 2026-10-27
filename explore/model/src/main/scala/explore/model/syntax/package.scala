@@ -19,6 +19,7 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CassRotator
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.Site
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
 import lucuma.core.model.ConstraintSet
@@ -34,6 +35,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.data.AltairConfiguration
+import lucuma.schemas.model.TargetWithId
 
 import java.time.Instant
 import java.time.ZoneOffset
@@ -91,7 +93,23 @@ object all:
     def findWithTargetIds(targetIds: SortedSet[Target.Id]): Option[AsterismGroup] =
       self.find { case (_, grpIds) => grpIds === targetIds }.map(AsterismGroup.fromTuple)
 
+  extension (twid: TargetWithId)
+    // A science target used only by calibrations, as a user-defined telluric's star is, is
+    // shown as a calibration target.
+    def displayDisposition(calibrationOnlyTargets: Set[Target.Id]): TargetDisposition =
+      if twid.disposition === TargetDisposition.Science && calibrationOnlyTargets.contains(twid.id)
+      then TargetDisposition.Calibration
+      else twid.disposition
+
   extension (observations: ObservationList)
+    // Targets in at least one asterism, all of them calibration observations.
+    def calibrationOnlyTargets: Set[Target.Id]                                               =
+      observations.values.toList
+        .flatMap(obs => obs.scienceTargetIds.map(_ -> obs.isCalibration))
+        .groupMapReduce(_._1)(_._2)(_ && _)
+        .collect:
+          case (targetId, true) => targetId
+        .toSet
     def executedOf(obsIds: ObsIdSet): Option[ObsIdSet]                                       =
       val executed = obsIds.idSet.filter(id => observations.get(id).fold(false)(_.isExecuted))
       ObsIdSet.fromSortedSet(executed)
