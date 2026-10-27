@@ -136,6 +136,11 @@ sealed trait SequenceRow[+D]:
     case GnirsDynamicConfig(acquisitionMirror = acqMirror)     =>
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
 
+  private lazy val isBiasOrDark: Boolean = stepConfig.exists:
+    case StepConfig.Bias | StepConfig.Dark => true
+    case _                                 => false
+
+  // GMOS biases and darks don't set the FPU, so they show nothing rather than "Imaging".
   private def gmosFpuName[T](
     fpu:         Option[GmosFpuMask[T]],
     builtinName: T => String
@@ -143,6 +148,7 @@ sealed trait SequenceRow[+D]:
     fpu match
       case Some(GmosFpuMask.Builtin(builtin))     => builtinName(builtin).some
       case Some(GmosFpuMask.Custom(_, slitWidth)) => s"${slitWidth.shortName} Custom Mask".some
+      case None if isBiasOrDark                   => none
       case None                                   => "Imaging".some
 
   // There's no unified FPU type, so we return a string.
