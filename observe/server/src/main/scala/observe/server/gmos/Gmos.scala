@@ -34,7 +34,6 @@ import observe.model.enums.NodAndShuffleStage
 import observe.model.enums.NodAndShuffleStage.*
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
-import observe.server.StepKind.ExclusiveDarkOrBias
 import observe.server.gmos.GmosController.Config
 import observe.server.gmos.GmosController.Config.*
 import observe.server.gmos.GmosController.GmosSite
@@ -306,12 +305,7 @@ object Gmos {
         case StepKind.CelestialObject(_) => StepKind.NodAndShuffle(instrument).asRight
         case st                          => ObserveFailure.Unexpected(s"N&S is not supported for steps of type $st").asLeft
       }
-    } else {
-      stdType.map {
-        case StepKind.DarkOrBias(inst) => StepKind.ExclusiveDarkOrBias(instrument)
-        case x                         => x
-      }
-    }
+    } else stdType
   }
 
   def instrumentStepBuilder[F[_]: {Async, Logger}, T <: GmosSite](

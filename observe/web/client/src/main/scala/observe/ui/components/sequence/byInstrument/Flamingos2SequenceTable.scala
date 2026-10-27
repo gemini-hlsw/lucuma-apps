@@ -41,6 +41,7 @@ final case class Flamingos2SequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
+  isDaytimeCalibration: Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   getMaskName:          Attachment.Id => Option[NonEmptyString],
   sequenceControls:     VdomNode

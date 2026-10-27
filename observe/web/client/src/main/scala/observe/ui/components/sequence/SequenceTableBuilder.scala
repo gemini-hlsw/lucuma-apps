@@ -83,6 +83,14 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             refOpt.map:
               _.scrollToIndex(rowIndex - 1, ScrollOptions)
 
+  private val DaytimeCalibrationHiddenColumns: List[ColumnId] =
+    List(
+      SequenceColumns.PColumnId,
+      SequenceColumns.QColumnId,
+      SequenceColumns.PeakColumnId,
+      SequenceColumns.SNColumnId
+    )
+
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -168,6 +176,19 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               )
         datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        _                        <-
+          useEffectWithDeps(props.isDaytimeCalibration): isDaytimeCalibration =>
+            val visibility: Map[ColumnId, Visibility] = dynTable.columnVisibility.value
+            val areHidden: Boolean                    =
+              DaytimeCalibrationHiddenColumns.forall(visibility.get(_).contains(Visibility.Hidden))
+            if isDaytimeCalibration && !areHidden then
+              dynTable.modifyColumnVisibility:
+                _.modify(_ ++ DaytimeCalibrationHiddenColumns.map(_ -> Visibility.Hidden))
+            else if !isDaytimeCalibration && DaytimeCalibrationHiddenColumns.exists(
+                visibility.contains
+              )
+            then dynTable.modifyColumnVisibility(_.modify(_ -- DaytimeCalibrationHiddenColumns))
+            else Callback.empty
         tableState               <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>

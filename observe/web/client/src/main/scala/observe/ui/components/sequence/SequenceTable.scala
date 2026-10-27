@@ -42,6 +42,7 @@ private trait SequenceTable[S, D](
   def setSelectedRowId: SelectedRowId => Callback
   def requests: ObservationRequests
   def isPreview: Boolean
+  def isDaytimeCalibration: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
   def sequenceControls: VdomNode
 

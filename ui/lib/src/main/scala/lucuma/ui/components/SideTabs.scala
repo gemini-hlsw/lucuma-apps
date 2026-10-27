@@ -28,7 +28,8 @@ case class SideTabs[A](
   tab:            View[A],
   pageUrl:        A => String,
   separatorAfter: A => Boolean,
-  filterPred:     A => Boolean = (_: A) => true
+  filterPred:     A => Boolean = (_: A) => true,
+  tabLabel:       A => Option[VdomNode] = (_: A) => None
 )(using val enumerated: Enumerated[A], val display: Display[A])
     extends ReactFnProps(SideTabs.component)
 
@@ -40,6 +41,8 @@ object SideTabs:
   private def buildComponent[V[_], A] =
     ScalaFnComponent[Props[A]]: p =>
       import p.given
+
+      def label(a: A): VdomNode = p.tabLabel(a).getOrElse(p.display.shortName(a))
 
       <.div(
         SideTabsStyles.SideTabs,
@@ -60,7 +63,7 @@ object SideTabs:
                     ^.onClick ==> ((e: ReactEvent) => e.preventDefaultCB),
                     ^.href := p.pageUrl(tab.value),
                     SideTabsStyles.VerticalButton,
-                    p.display.shortName(tab.value)
+                    label(tab.value)
                   )
                 )
               )
@@ -78,7 +81,7 @@ object SideTabs:
               <.a(
                 ^.onClick ==> ((e: ReactEvent) => e.preventDefaultCB),
                 ^.href := p.pageUrl(tab.value),
-                p.display.shortName(tab.value)
+                label(tab.value)
               )
           )
         )

@@ -3,13 +3,24 @@
 
 package observe.ui.model.enums
 
-import cats.Eq
+import cats.Order
 import cats.derived.*
+import lucuma.core.enums.CalibrationRole
+import lucuma.schemas.model.BasicConfiguration
 
-enum ObsClass derives Eq:
-  case Daytime, Nighttime
+enum ObsClass(val label: String) derives Order:
+  case Daytime   extends ObsClass("Day")
+  case Nighttime extends ObsClass("Night")
 
 object ObsClass:
-  def fromString(s: String): ObsClass = s match
-    case "dayCal" => ObsClass.Daytime
-    case _        => ObsClass.Nighttime
+  // Twilight flats are night calibrations: they need no ITC results but do need offsets.
+  def fromObservation(
+    calibrationRole: Option[CalibrationRole],
+    observingMode:   Option[BasicConfiguration]
+  ): ObsClass =
+    (calibrationRole, observingMode) match
+      case (Some(CalibrationRole.DaytimePinhole), _) |
+          (_, Some(BasicConfiguration.DaytimeCalibration(_))) =>
+        ObsClass.Daytime
+      case _ =>
+        ObsClass.Nighttime

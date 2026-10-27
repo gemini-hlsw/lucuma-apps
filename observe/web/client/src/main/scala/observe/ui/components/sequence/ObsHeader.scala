@@ -17,6 +17,7 @@ import observe.model.enums.SubsystemControlMode
 import observe.ui.ObserveStyles
 import observe.ui.components.ConfigPanel
 import observe.ui.model.ObsSummary
+import observe.ui.model.enums.ObsClass
 
 case class ObsHeader(
   observation:           ObsSummary,
@@ -34,7 +35,8 @@ object ObsHeader
       <.div(ObserveStyles.ObsHeader)(
         <.div(ObserveStyles.ObsSummary)(
           <.div(ObserveStyles.ObsSummaryTitle)(
-            <.span(ObserveStyles.ObsSummaryTitleText)(props.observation.title),
+            <.span(ObserveStyles.ObsSummaryTitleText)(props.observation.title)
+              .unless(props.observation.obsClass === ObsClass.Daytime),
             <.span(ObserveStyles.ObsSummaryTitleRef)(
               s"[${props.observation.refAndId}]",
               props.linkToExploreObs:

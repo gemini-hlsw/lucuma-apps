@@ -12,6 +12,7 @@ import crystal.react.hooks.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.Instrument
 import lucuma.react.common.*
 import lucuma.react.primereact.*
 import lucuma.refined.*
@@ -25,6 +26,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.sso.UserVault
 import observe.model.ClientConfig
 import observe.model.enums.ObserveLogLevel
+import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.components.sequence.GuideConfigStatus
 import observe.ui.model.AppContext
@@ -33,6 +35,7 @@ import observe.ui.model.RootModel
 import observe.ui.model.RootModelData
 import observe.ui.model.UserPreferences
 import observe.ui.model.enums.AppTab
+import observe.ui.model.enums.ObsClass
 
 import java.time.ZoneOffset
 
@@ -69,6 +72,13 @@ object Layout
               ctx.pushPage(newTab) >> cb(appTab, newTab)
           )
 
+        def isDaytimeLoaded(instrument: Instrument): Boolean =
+          val data = props.rootModel.data.get
+          data.readyObsByInstrument
+            .get(instrument)
+            .flatMap(data.readyObservationsMap.get)
+            .exists(_.obsClass === ObsClass.Daytime)
+
         def logTimezone(clientConfig: ClientConfig) =
           if (showUT.get) ZoneOffset.UTC else clientConfig.site.timezone
 
@@ -103,6 +113,11 @@ object Layout
                     case AppTab.LoadedObs(instrument) =>
                       props.rootModel.data.get.readyObsByInstrument.contains(instrument)
                     case _                            => true
+                  },
+                  tabLabel = {
+                    case tab @ AppTab.LoadedObs(instrument) if isDaytimeLoaded(instrument) =>
+                      <.span(Icons.Sun, " ", tab.title).some
+                    case _                                                                 => none
                   }
                 ),
                 <.div(LayoutStyles.MainBody)(

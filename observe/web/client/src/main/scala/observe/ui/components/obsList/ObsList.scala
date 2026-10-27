@@ -56,7 +56,6 @@ case class ObsList(
             .map(_.sequenceStatus)
             .getOrElse(SequenceStatus.Idle),
           observer,
-          ObsClass.Nighttime,
           loadedObss.value.contains(obs.obsId),
           // We can't easily know step numbers nor the total number of steps.
           // Maybe we want to show pending and total times instead?
@@ -137,11 +136,17 @@ object ObsList
             case _                                                                              => EmptyVdom
         icon
 
+      val NotApplicable: String = "---"
+
+      def nighttimeOnly(row: SessionQueueRow)(value: String): String =
+        if row.obsClass === ObsClass.Daytime then NotApplicable else value
+
       def renderCentered(node: VdomNode, css: Css = Css.Empty): VdomNode =
         <.div(ObserveStyles.Centered |+| css)(node)
 
       val StatusIconColumnId: ColumnId  = ColumnId("statusIcon")
       val ObsRefColumnId: ColumnId      = ColumnId("observation")
+      val ObsClassColumnId: ColumnId    = ColumnId("obsClass")
       val InstrumentColumnId: ColumnId  = ColumnId("instrument")
       val ConfigColumnId: ColumnId      = ColumnId("config")
       val TargetColumnId: ColumnId      = ColumnId("target")
@@ -191,6 +196,13 @@ object ObsList
               size = 240.toPx
             ).sortable.withFilterMethod(FilterMethod.Text(_.fold(_._2.shortName, _.label))),
             ColDef(
+              ObsClassColumnId,
+              _.obsClass,
+              header = "Class",
+              cell = _.value.label,
+              size = 90.toPx
+            ).sortable.withFilterMethod(FilterMethod.Select(_.label)),
+            ColDef(
               InstrumentColumnId,
               _.instrument,
               header = "Instrument",
@@ -198,19 +210,19 @@ object ObsList
             ).sortable.withFilterMethod(FilterMethod.Select(_.shortName)),
             ColDef(
               ConfigColumnId,
-              _.configurationSummary.getOrElse("---"),
+              _.configurationSummary.getOrElse(NotApplicable),
               header = "Configuration",
               cell = _.value
             ).sortable.withFilterMethod(FilterMethod.StringText()),
             ColDef(
               TargetColumnId,
-              _.title,
+              row => nighttimeOnly(row)(row.title),
               header = "Target",
               cell = _.value.some.filter(_.nonEmpty).getOrElse(UnknownTargetName)
             ).sortable.withFilterMethod(FilterMethod.StringText()),
             ColDef(
               ConstraintsColumnId,
-              _.constraintsSummary,
+              row => nighttimeOnly(row)(row.constraintsSummary),
               header = "Constraints",
               cell = _.value
             ).sortable.withFilterMethod(FilterMethod.StringSelect())
