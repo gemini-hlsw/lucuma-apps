@@ -136,15 +136,15 @@ object InstrumentDynamicConfig:
 
   def fromDynamicConfig[D](config: D): InstrumentDynamicConfig =
     config match
-      case c @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  =>
+      case c @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)     =>
         InstrumentDynamicConfig.GmosNorth(c)
-      case c @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  =>
+      case c @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)     =>
         InstrumentDynamicConfig.GmosSouth(c)
-      case c @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) =>
+      case c @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _, _) =>
         InstrumentDynamicConfig.Flamingos2(c)
-      case c @ Igrins2DynamicConfig(_)                            =>
+      case c @ Igrins2DynamicConfig(_)                               =>
         InstrumentDynamicConfig.Igrins2(c)
-      case c: GnirsDynamicConfig                                  =>
+      case c: GnirsDynamicConfig                                     =>
         InstrumentDynamicConfig.Gnirs(c)
-      case c: GhostDynamicConfig                                  =>
+      case c: GhostDynamicConfig                                     =>
         InstrumentDynamicConfig.Ghost(c)

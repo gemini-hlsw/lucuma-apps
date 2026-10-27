@@ -168,14 +168,14 @@ extension [D, R <: SequenceRow[D]](list: List[R])
 extension [D](instrumentConfig: D)
   def shouldShowAcquisitionSn: Boolean =
     instrumentConfig match
-      case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, None)                       => true
-      case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, None)                       => true
-      case Flamingos2DynamicConfig(_, _, Flamingos2FpuMask.Imaging, _, _, _, _, _, _) => true
+      case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, None)     => true
+      case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, None)     => true
+      case Flamingos2DynamicConfig(fpu = Flamingos2FpuMask.Imaging) => true
       // GNIRS acquisition images use the acquisition mirror (FPU) and decker. There may be
       // more than one when the acquisition has offsets.
-      case GnirsDynamicConfig(decker = decker, fpu = fpu)                             =>
+      case GnirsDynamicConfig(decker = decker, fpu = fpu)           =>
         decker === GnirsDecker.Acquisition && fpu === GnirsFpu.Other(GnirsFpuOther.Acquisition)
-      case _                                                                          => false
+      case _                                                        => false
 
 extension [D](step: Step[D])
   def getSignalToNoise(
