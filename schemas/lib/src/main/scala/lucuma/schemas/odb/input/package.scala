@@ -1422,7 +1422,8 @@ extension (f2Dynamic: Flamingos2DynamicConfig)
     f2Dynamic.fpu.toInput,
     f2Dynamic.decker,
     f2Dynamic.readoutMode,
-    f2Dynamic.reads
+    f2Dynamic.reads,
+    f2Dynamic.windowCover.orUnassign
   )
 
 extension (sc: StepConfig)

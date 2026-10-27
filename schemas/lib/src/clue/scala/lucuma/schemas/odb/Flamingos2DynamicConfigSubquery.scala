@@ -31,5 +31,6 @@ object Flamingos2DynamicConfigSubquery
       decker
       readoutMode
       reads
+      windowCover
     }
   """

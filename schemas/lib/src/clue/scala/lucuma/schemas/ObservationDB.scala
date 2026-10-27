@@ -124,6 +124,7 @@ trait ObservationDB {
     type Flamingos2ReadMode                  = enums.Flamingos2ReadMode
     type Flamingos2ReadoutMode               = enums.Flamingos2ReadoutMode
     type Flamingos2Reads                     = enums.Flamingos2Reads
+    type Flamingos2WindowCover               = enums.Flamingos2WindowCover
     type FluxDensityContinuumIntegratedUnits = Units Of FluxDensityContinuum[Integrated]
     type FluxDensityContinuumSurfaceUnits    = Units Of FluxDensityContinuum[Surface]
     type FocalPlane                          = enums.FocalPlane

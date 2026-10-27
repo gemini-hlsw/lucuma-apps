@@ -121,14 +121,14 @@ object Flamingos2 {
       case CoreStepType.Dark => Grism.Dark
       case _                 => grismFromSPDisperser(disperser)
 
-  private def ccConfigFromSequenceConfig(
+  private[flamingos2] def ccConfigFromSequenceConfig(
     dynamicConfig: Flamingos2DynamicConfig,
     stepType:      CoreStepType,
     customMasks:   CustomMasks
   ): Either[ObserveFailure, CCConfig] =
     fpuFromFpuMask(dynamicConfig.fpu, customMasks).map: fpu =>
       CCConfig(
-        windowCoverFromStepType(stepType),
+        dynamicConfig.windowCover.getOrElse(windowCoverFromStepType(stepType)),
         dynamicConfig.decker,
         fpu,
         dynamicConfig.filter,

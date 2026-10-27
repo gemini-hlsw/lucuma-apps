@@ -8641,6 +8641,11 @@ type Flamingos2Dynamic {
   """Flamingos 2 reads."""
   reads: Flamingos2Reads!
 
+  """
+  Flamingos 2 window cover. Null means unspecified; dark steps default to CLOSE.
+  """
+  windowCover: Flamingos2WindowCover
+
   """Central wavelength, which is taken from the filter wavelength."""
   centralWavelength: Wavelength!
 }
@@ -8891,6 +8896,7 @@ input Flamingos2DynamicInput {
   decker: Flamingos2Decker!
   readoutMode: Flamingos2ReadoutMode!
   reads: Flamingos2Reads!
+  windowCover: Flamingos2WindowCover
 }
 
 """Flamingos 2 mask option, either builtin or custom mask"""
@@ -9104,6 +9110,15 @@ enum Flamingos2Reads {
 
   """Flamingos2Reads Reads 16"""
   READS_16
+}
+
+"""Flamingos2 Window Cover"""
+enum Flamingos2WindowCover {
+  """Flamingos2WindowCover Open"""
+  OPEN
+
+  """Flamingos2WindowCover Close"""
+  CLOSE
 }
 
 """
