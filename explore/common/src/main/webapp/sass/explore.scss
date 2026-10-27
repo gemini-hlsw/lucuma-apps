@@ -878,7 +878,7 @@ thead tr th.sticky-header {
   .explore-itc-imaging-table-group-header {
     text-align: center;
     width: 100%;
-    border-bottom: 1px solid var(--primary-color-text);
+    border-bottom: 1px solid var(--site-text-color);
   }
 }
 
@@ -3946,6 +3946,7 @@ $help-title-height: 40px;
   padding: 0;
   border: 0;
   background-color: var(--plot-background-color);
+  color: var(--site-text-color);
 }
 
 // --------------
@@ -4493,7 +4494,7 @@ div.spectroscopy-table-emptymessage {
       border: 1px solid;
       border-radius: 4px;
       padding: 0.5rem 1rem;
-      color: var(--primary-color-text);
+      color: var(--site-text-color);
       white-space: pre-wrap;
     }
   }
