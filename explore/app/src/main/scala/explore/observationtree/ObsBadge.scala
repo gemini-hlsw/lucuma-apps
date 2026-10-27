@@ -350,8 +350,7 @@ object ObsBadge:
             ExploreStyles.ObsBadgeSelectedAssociatedObs.when_(selected),
           onClickE = linkOverride(
             focusObs(props.programId, childObs.id.some, ctx)
-          ),
-          severity = Button.Severity.Secondary
+          )
         ).withMods(
           stateTag(currentState),
           <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
