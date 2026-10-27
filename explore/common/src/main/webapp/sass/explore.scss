@@ -1859,6 +1859,17 @@ svg.fa-check.explore-success-icon {
         align-items: center;
         text-align: left;
 
+        &.p-button {
+          background: var(--obs-badge-associated-obs-background);
+          border-color: var(--obs-badge-associated-obs-background);
+
+          &:not(:disabled):hover,
+          &:not(:disabled):active {
+            background: var(--obs-badge-associated-obs-hover-background);
+            border-color: var(--obs-badge-associated-obs-hover-background);
+          }
+        }
+
         // Same accent as the selected badge and side tab, so the focused calibration
         // stands out from its siblings in both themes.
         &.obs-badge-extra-selected-associated-obs {

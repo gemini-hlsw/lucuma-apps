@@ -372,6 +372,8 @@
   --obs-badge-progress-color: auto;
   --obs-badge-id-opacity: 0.5;
   --obs-badge-input-background: var(--color-background-light-20);
+  --obs-badge-associated-obs-background: var(--button-secondary-background);
+  --obs-badge-associated-obs-hover-background: var(--button-secondary-hover-background);
   --obs-selected-badge-shadow:
     inset 3px 0 0 var(--accent-color), 0 0 0 1.5px var(--site-solid-border-color);
 }
