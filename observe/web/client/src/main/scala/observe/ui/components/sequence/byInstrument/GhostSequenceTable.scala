@@ -13,6 +13,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.react.common.*
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.SelectedRowId
@@ -39,7 +40,7 @@ case class GhostSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  isDaytimeCalibration: Boolean,
+  hiddenColumns:        Set[ColumnId],
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(GhostSequenceTable.component)

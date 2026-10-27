@@ -13,12 +13,12 @@ import crystal.react.*
 import crystal.react.hooks.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.model.Observation
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.input.*
+import lucuma.ui.syntax.calibration.needsITC
 import lucuma.ui.syntax.effect.*
 import observe.queries.ObsQueriesGQL
 import observe.ui.model.AppContext
@@ -39,12 +39,7 @@ case class ObservationSyncer(
 object ObservationSyncer
     extends ReactFnComponent[ObservationSyncer](props =>
       def includeItc(obsId: Observation.Id, obsMap: Map[Observation.Id, ObsSummary]): Boolean =
-        obsMap
-          .get(obsId)
-          .flatMap(_.calibrationRole)
-          .forall: role =>
-            role != CalibrationRole.Twilight && role != CalibrationRole.DaytimePinhole &&
-              role != CalibrationRole.DaytimeCalibration
+        obsMap.get(obsId).flatMap(_.calibrationRole).needsITC
 
       def updateSequence(
         obsId:       Observation.Id,

@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GmosAmpGain
@@ -45,6 +46,7 @@ import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.PeakPixel
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
@@ -711,6 +713,14 @@ object SequenceColumns:
   val GhostBlueExposureTimeColumnId: ColumnId  = ColumnId("ghostBlueExposureTime")
   val GhostBlueReadModeColumnId: ColumnId      = ColumnId("ghostBlueReadMode")
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
+
+  // Daytime calibrations have no offsets, and calibrations without ITC have no S/N or peak.
+  def hiddenColumns(
+    calibrationRole: Option[CalibrationRole],
+    observingMode:   Option[BasicConfiguration]
+  ): Set[ColumnId] =
+    Option.when(calibrationRole.isDaytime(observingMode))(Set(PColumnId, QColumnId)).orEmpty ++
+      Option.unless(calibrationRole.needsITC)(Set(SNColumnId, PeakColumnId)).orEmpty
 
   object BaseColumnSizes {
     // Present for editable instruments.

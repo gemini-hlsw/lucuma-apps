@@ -13,6 +13,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.react.common.*
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.SelectedRowId
@@ -39,7 +40,7 @@ final case class Igrins2SequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  isDaytimeCalibration: Boolean,
+  hiddenColumns:        Set[ColumnId],
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(Igrins2SequenceTable.component)

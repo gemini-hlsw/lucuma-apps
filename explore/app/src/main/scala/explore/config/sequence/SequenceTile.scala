@@ -38,6 +38,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.tooltip.*
 import lucuma.react.table.ColumnId
 import lucuma.refined.*
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.ui.sequence.*
@@ -54,6 +55,7 @@ final case class SequenceTile(
   asterismIds:             SortedSet[Target.Id],
   customSedTimestamps:     List[Timestamp],
   calibrationRole:         Option[CalibrationRole],
+  observingMode:           Option[BasicConfiguration],
   hasMaterializedSequence: Boolean,
   sequenceChanged:         View[Pot[Unit]],
   isEditingAcquisition:    View[IsEditing],
@@ -111,16 +113,7 @@ object SequenceTile
         val programTimeCharge: TimeSpan    = execution.programTimeCharge.value
         val executed: TagOf[HTMLElement]   = timeDisplay("Executed", programTimeCharge)
         val hiddenColumns: Set[ColumnId]   =
-          Option
-            .when(props.calibrationRole.exists(_.isDaytime))(
-              Set(SequenceColumns.PColumnId, SequenceColumns.QColumnId)
-            )
-            .orEmpty ++
-            Option
-              .unless(props.calibrationRole.needsITC)(
-                Set(SequenceColumns.SNColumnId, SequenceColumns.PeakColumnId)
-              )
-              .orEmpty
+          SequenceColumns.hiddenColumns(props.calibrationRole, props.observingMode)
 
         // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =

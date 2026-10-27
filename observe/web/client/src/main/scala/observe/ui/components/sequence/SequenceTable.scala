@@ -16,6 +16,7 @@ import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.Visit
@@ -42,7 +43,7 @@ private trait SequenceTable[S, D](
   def setSelectedRowId: SelectedRowId => Callback
   def requests: ObservationRequests
   def isPreview: Boolean
-  def isDaytimeCalibration: Boolean
+  def hiddenColumns: Set[ColumnId]
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
   def sequenceControls: VdomNode
 

@@ -15,6 +15,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.common.*
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.SelectedRowId
@@ -40,7 +41,7 @@ final case class GnirsImagingSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  isDaytimeCalibration: Boolean,
+  hiddenColumns:        Set[ColumnId],
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(GnirsImagingSequenceTable.component)
