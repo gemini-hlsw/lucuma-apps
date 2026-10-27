@@ -57,6 +57,7 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.react.hotkeys.*
 import lucuma.react.hotkeys.hooks.*
+import lucuma.refined.*
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.optics.getWithDefault
@@ -364,7 +365,8 @@ object ObservationTargetsEditorTile
                         AddSkyInfo(skyState.availableSlot, addSkyMode, skyState.canAssign)
                       ),
                       addBaseInfo = AddBaseInfo(addSkyMode).some
-                    )
+                    ),
+                    HelpIcon("target/main/target-types.md".refined)
                   ),
                   obsTimeEditor,
                   <.span(^.textAlign.right)(
