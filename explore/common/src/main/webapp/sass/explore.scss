@@ -1859,8 +1859,15 @@ svg.fa-check.explore-success-icon {
         align-items: center;
         text-align: left;
 
+        // Same accent as the selected badge and side tab, so the focused calibration
+        // stands out from its siblings in both themes.
         &.obs-badge-extra-selected-associated-obs {
-          box-shadow: 0 0 0 2.5px var(--site-solid-border-color);
+          box-shadow: 0 0 0 2px var(--accent-color);
+
+          // The badge-wide button hover outline would paint over the ring and thin it
+          &:hover {
+            outline: none;
+          }
         }
 
         .p-tag.obs-badge-extra-associated-obs-state {
@@ -1925,6 +1932,12 @@ svg.fa-check.explore-success-icon {
         padding: 0.3em 0.4em;
         border-radius: 3px;
         background-color: var(--obs-badge-nested-background);
+
+        // Blends into a selected badge instead of standing out as a box
+        .selected-obs-item &,
+        .obs-badge-selected & {
+          background-color: var(--obs-selected-badge-background);
+        }
 
         // Heads the rows with the science observation's telluric type; not clickable
         .obs-badge-telluric-header {

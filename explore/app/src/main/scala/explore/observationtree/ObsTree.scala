@@ -441,7 +441,9 @@ object ObsTree:
           // If we cannot determine the mainObs, render as a regular group.
           // .toOption.get is safe since it will only happen if we are in a group
           mainObs.fold(renderGroup(item.toOption.get, inSystemTree)) { obs =>
-            val selected: Boolean = props.focusedObsId.contains_(obs.id)
+            // A badge stays selected while one of the calibrations it contains is focused
+            val selected: Boolean =
+              props.focusedObsId.exists(id => id === obs.id || associatedObss.exists(_.id === id))
 
             val badge =
               <.a(
