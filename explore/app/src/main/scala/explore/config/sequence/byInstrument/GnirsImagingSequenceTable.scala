@@ -38,7 +38,7 @@ final case class GnirsImagingSequenceTable(
   remoteReplace:        SequenceType => List[Atom[GnirsDynamicConfig]] => IO[
     List[Atom[GnirsDynamicConfig]]
   ],
-  hideOffsets:          Boolean
+  hiddenColumns:        Set[ColumnId]
 ) extends ReactFnProps(GnirsImagingSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
     with ImagingSequenceTable[GnirsDynamicConfig, GnirsFilter]:

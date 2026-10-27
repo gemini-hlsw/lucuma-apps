@@ -38,7 +38,7 @@ final case class Flamingos2ImagingSequenceTable(
   remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
     List[Atom[Flamingos2DynamicConfig]]
   ],
-  hideOffsets:          Boolean
+  hiddenColumns:        Set[ColumnId]
 ) extends ReactFnProps(Flamingos2ImagingSequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with ImagingSequenceTable[Flamingos2DynamicConfig, Flamingos2Filter]:

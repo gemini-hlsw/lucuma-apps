@@ -14,6 +14,7 @@ import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.common.ReactFnProps
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
@@ -36,7 +37,7 @@ final case class GnirsSequenceTable(
   remoteReplace:        SequenceType => List[Atom[GnirsDynamicConfig]] => IO[
     List[Atom[GnirsDynamicConfig]]
   ],
-  hideOffsets:          Boolean
+  hiddenColumns:        Set[ColumnId]
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
     with GnirsSpectroscopySequenceTable:

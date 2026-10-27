@@ -13,6 +13,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.PeakPixel
 import lucuma.schemas.model.Visit
@@ -34,8 +35,8 @@ private trait SequenceTable[S, D]:
   def wavelengthUnits: WavelengthUnits
   def remoteReplace: SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
 
-  // Daytime calibrations have no offsets, so the p/q columns are hidden.
-  def hideOffsets: Boolean
+  // Columns hidden for this observation, e.g. offsets and ITC for daytime calibrations.
+  def hiddenColumns: Set[ColumnId]
 
   // The mask name for a custom mask attachment, when known.
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None

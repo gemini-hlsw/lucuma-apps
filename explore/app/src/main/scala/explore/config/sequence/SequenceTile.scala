@@ -36,6 +36,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.tooltip.*
+import lucuma.react.table.ColumnId
 import lucuma.refined.*
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
@@ -109,7 +110,17 @@ object SequenceTile
         val staleTooltip: Option[VdomNode] = execution.digest.staleTooltip
         val programTimeCharge: TimeSpan    = execution.programTimeCharge.value
         val executed: TagOf[HTMLElement]   = timeDisplay("Executed", programTimeCharge)
-        val hideOffsets: Boolean           = props.calibrationRole.exists(_.isDaytime)
+        val hiddenColumns: Set[ColumnId]   =
+          Option
+            .when(props.calibrationRole.exists(_.isDaytime))(
+              Set(SequenceColumns.PColumnId, SequenceColumns.QColumnId)
+            )
+            .orEmpty ++
+            Option
+              .unless(props.calibrationRole.needsITC)(
+                Set(SequenceColumns.SNColumnId, SequenceColumns.PeakColumnId)
+              )
+              .orEmpty
 
         // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =
@@ -229,7 +240,7 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms),
                                   props.attachments,
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case ModeSignalToNoise.GmosNorthImaging(itcPerFilter)         =>
                                 GmosNorthImagingSequenceTable(
@@ -247,7 +258,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms),
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               // Twilights have no signal to noise
                               case ModeSignalToNoise.Undefined                              =>
@@ -268,7 +279,7 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms),
                                   props.attachments,
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case _                                                        => mismatchError
                       case SequenceData(
@@ -302,7 +313,7 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceGmosSouthSequence(props.obsId, seqType, atoms),
                                   props.attachments,
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case ModeSignalToNoise.GmosSouthImaging(itcPerFilter)         =>
                                 GmosSouthImagingSequenceTable(
@@ -320,7 +331,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceGmosSouthSequence(props.obsId, seqType, atoms),
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               // Twilights have no signal to noise
                               case ModeSignalToNoise.Undefined                              =>
@@ -341,7 +352,7 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceGmosSouthSequence(props.obsId, seqType, atoms),
                                   props.attachments,
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case _                                                        => mismatchError
                       case SequenceData(
@@ -375,7 +386,7 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceFlamingos2Sequence(props.obsId, seqType, atoms),
                                   props.attachments,
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case ModeSignalToNoise.Flamingos2Imaging(itcPerFilter)        =>
                                 Flamingos2ImagingSequenceTable(
@@ -393,7 +404,27 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceFlamingos2Sequence(props.obsId, seqType, atoms),
-                                  hideOffsets
+                                  hiddenColumns
+                                )
+                              case ModeSignalToNoise.Undefined                              =>
+                                Flamingos2SequenceTable(
+                                  visitsViewOpt,
+                                  config.static,
+                                  flamingos2ExecutionView.flatAcquisition,
+                                  flamingos2ExecutionView.flatScience,
+                                  ItcResultValues.Empty,
+                                  ItcResultValues.Empty,
+                                  isEditEnabled,
+                                  props.isEditingAcquisition,
+                                  props.isEditingScience,
+                                  props.isUserStaffOrAdmin,
+                                  props.wavelengthUnits,
+                                  seqType =>
+                                    atoms =>
+                                      ctx.odbApi
+                                        .replaceFlamingos2Sequence(props.obsId, seqType, atoms),
+                                  props.attachments,
+                                  hiddenColumns
                                 )
                               case _                                                        => mismatchError
                       case SequenceData(
@@ -421,7 +452,7 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               props.wavelengthUnits,
                               seqType => ctx.odbApi.replaceIgrins2Sequence(props.obsId, seqType, _),
-                              hideOffsets
+                              hiddenColumns
                             )
                       case SequenceData(InstrumentExecutionConfig.Ghost(config), _)             =>
                         sequnceView
@@ -442,7 +473,7 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               props.wavelengthUnits,
                               seqType => ctx.odbApi.replaceGhostSequence(props.obsId, seqType, _),
-                              hideOffsets
+                              hiddenColumns
                             )
                       case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise) =>
                         sequnceView
@@ -468,7 +499,7 @@ object SequenceTile
                                   props.wavelengthUnits,
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _),
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case ModeSignalToNoise.GnirsSpectroscopy(acquisitionSn, scienceSn) =>
                                 GnirsSequenceTable(
@@ -485,7 +516,7 @@ object SequenceTile
                                   props.wavelengthUnits,
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _),
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               // Daytime Pinholes have no signal to noise
                               case ModeSignalToNoise.Undefined                                   =>
@@ -503,7 +534,7 @@ object SequenceTile
                                   props.wavelengthUnits,
                                   seqType =>
                                     ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _),
-                                  hideOffsets
+                                  hiddenColumns
                                 )
                               case _                                                             => mismatchError
                       case _                                                                    => mismatchError.some

@@ -813,11 +813,11 @@ object SequenceColumns:
       SNColumnId,
       ROIColumnId,
       ReadModeColumnId,
-      XBinColumnId,
-      YBinColumnId,
       FilterColumnId,
       GratingColumnId,
       FPUColumnId,
+      XBinColumnId,
+      YBinColumnId,
       GCalColumnId
     ).reverse
 
