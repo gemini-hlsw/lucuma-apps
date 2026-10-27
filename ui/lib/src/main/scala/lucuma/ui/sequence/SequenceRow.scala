@@ -75,12 +75,12 @@ sealed trait SequenceRow[+D]:
     case Ior.Both(visitId, stepId) => SelectedRowId(visitId.some, stepId).some
 
   lazy val instrument: Option[Instrument] = instrumentConfig.map:
-    case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => Instrument.GmosNorth
-    case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => Instrument.GmosSouth
-    case Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => Instrument.Flamingos2
-    case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)      => Instrument.Gnirs
-    case Igrins2DynamicConfig(_)                            => Instrument.Igrins2
-    case GhostDynamicConfig(_, _, _, _)                     => Instrument.Ghost
+    case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)     => Instrument.GmosNorth
+    case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)     => Instrument.GmosSouth
+    case Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _, _) => Instrument.Flamingos2
+    case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)         => Instrument.Gnirs
+    case Igrins2DynamicConfig(_)                               => Instrument.Igrins2
+    case GhostDynamicConfig(_, _, _, _)                        => Instrument.Ghost
 
   lazy val stepTypeDisplay: Option[StepTypeDisplay] =
     stepConfig.flatMap(StepTypeDisplay.fromStepConfig)
@@ -93,12 +93,12 @@ sealed trait SequenceRow[+D]:
   lazy val hasGuiding: Boolean             = guiding.contains_(StepGuideState.Enabled)
 
   lazy val wavelength: Option[Wavelength] = instrumentConfig.flatMap:
-    case gn @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => gn.centralWavelength
-    case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => gs.centralWavelength
-    case f2 @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => f2.centralWavelength.some
-    case g @ GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)       => g.centralWavelength.some
-    case Igrins2DynamicConfig(_)                                 => none
-    case GhostDynamicConfig(_, _, _, _)                          => none
+    case gn @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)     => gn.centralWavelength
+    case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)     => gs.centralWavelength
+    case f2 @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _, _) => f2.centralWavelength.some
+    case g @ GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)          => g.centralWavelength.some
+    case Igrins2DynamicConfig(_)                                    => none
+    case GhostDynamicConfig(_, _, _, _)                             => none
 
   lazy val gmosGratingWavelength: Option[Wavelength] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(gratingConfig = grating) => grating.map(_.wavelength)
@@ -121,9 +121,9 @@ sealed trait SequenceRow[+D]:
 
   lazy val totalExposureTime: Option[TimeSpan] = instrumentConfig
     .collect:
-      case GnirsDynamicConfig(exposure, coadds, _, _, _, _, _, _, readMode) =>
+      case GnirsDynamicConfig(exposure, coadds, _, _, _, _, _, _, readMode)  =>
         (exposure +| readMode.readoutTimePerCoadd) *| coadds.value
-      case Flamingos2DynamicConfig(exposure, _, _, readMode, _, _, _, _, _) =>
+      case Flamingos2DynamicConfig(exposure = exposure, readMode = readMode) =>
         exposure +| readMode.readoutTime
     .orElse(exposureTime)
 
