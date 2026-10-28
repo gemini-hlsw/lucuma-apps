@@ -201,11 +201,22 @@ object Flamingos2DaytimeSetup:
           case (None, _)                              =>
             d.copy(fpu = Flamingos2FpuMask.Imaging, decker = Flamingos2Decker.Imaging)
 
-  /** A new kind starts with the window cover the step type implies. */
+  /**
+   * Flamingos 2 can't drop its optics, so a new kind without them gets the default ones. The window
+   * cover is the user's to set for any kind, so it is kept.
+   */
   def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
     d: Flamingos2DynamicConfig
   ): Flamingos2DynamicConfig =
-    if kind === previous then d else d.copy(windowCover = none)
+    if kind === previous || DaytimeCalibrationSets.usesOptics(kind) then d
+    else
+      d.copy(
+        disperser = default.disperser,
+        filter = default.filter,
+        lyotWheel = default.lyotWheel,
+        fpu = default.fpu,
+        decker = default.decker
+      )
 
   val default: Flamingos2DynamicConfig =
     Flamingos2DynamicConfig(

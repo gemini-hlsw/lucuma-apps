@@ -172,7 +172,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(d.decker, Flamingos2Fpu.LongSlit2.decker)
 
-  test("Changing a Flamingos 2 kind resets the window cover"):
+  test("Changing a Flamingos 2 kind keeps the window cover"):
     val f2     = Flamingos2DaytimeSetup.defaultSet
     val open   = f2.copy(
       kind = CalibrationSetType.Flat,
@@ -184,11 +184,34 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     val config = (s: DaytimeCalibrationSet) =>
       DaytimeCalibrationSetup.flamingos2.getOption(s.setup).flatMap(_.config.windowCover)
     assertEquals(config(withKind(open, CalibrationSetType.Flat)), Flamingos2WindowCover.Open.some)
-    assertEquals(config(withKind(open, CalibrationSetType.Dark)), none)
+    assertEquals(config(withKind(open, CalibrationSetType.Dark)), Flamingos2WindowCover.Open.some)
 
   test("Flamingos 2 flats use the IR diffuser"):
     val s = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
     assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
     assertEquals(withKind(dark, CalibrationSetType.Flat).gcal.map(_.diffuser),
                  GcalDiffuser.Visible.some
+    )
+
+  test("A Flamingos 2 dark gets the default optics"):
+    val flat   = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
+    val config = (s: DaytimeCalibrationSet) =>
+      DaytimeCalibrationSetup.flamingos2.getOption(s.setup).map(_.config)
+    val custom = flat.copy(setup =
+      DaytimeCalibrationSetup.Flamingos2(
+        Flamingos2DaytimeSetup.fpu.replace(Flamingos2Fpu.LongSlit2.some)(
+          Flamingos2DaytimeSetup.default.copy(
+            filter = Flamingos2Filter.J,
+            disperser = Flamingos2Disperser.R1200JH.some
+          )
+        )
+      )
+    )
+    val dark   = config(withKind(custom, CalibrationSetType.Dark))
+    assertEquals(dark.map(_.filter), Flamingos2DaytimeSetup.default.filter.some)
+    assertEquals(dark.map(_.disperser), Flamingos2DaytimeSetup.default.disperser.some)
+    assertEquals(dark.map(_.fpu), Flamingos2DaytimeSetup.default.fpu.some)
+    assertEquals(dark.map(_.decker), Flamingos2DaytimeSetup.default.decker.some)
+    assertEquals(config(withKind(custom, CalibrationSetType.Arc)).map(_.filter),
+                 Flamingos2Filter.J.some
     )
