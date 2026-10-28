@@ -151,7 +151,7 @@ object DaytimeCalibrationEditor:
         else
           <.div(
             ExploreStyles.DaytimeCalMessage,
-            "Calibration sets are only supported for GMOS North and GMOS South."
+            "Calibration sets are only supported for GMOS North, GMOS South and Flamingos 2."
           )
 
       <.div(

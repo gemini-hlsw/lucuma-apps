@@ -166,8 +166,21 @@ object GmosDaytimeSetup:
       case Instrument.GmosSouth => south.some
       case _                    => none
 
-/** The Flamingos 2 Instrument Setup a new Daytime Calibration starts from. */
+/** The Flamingos 2 Instrument Setup the Daytime Calibration Set editor works through. */
 object Flamingos2DaytimeSetup:
+  val setup: Optional[DaytimeCalibrationSetup, Flamingos2DynamicConfig] =
+    DaytimeCalibrationSetup.flamingos2.andThen(DaytimeCalibrationSetup.Flamingos2.config)
+
+  /** Picking a read mode also picks its read count, which stays editable. */
+  val readMode: Lens[Flamingos2DynamicConfig, Flamingos2ReadMode] =
+    Lens[Flamingos2DynamicConfig, Flamingos2ReadMode](_.readMode): m =>
+      _.copy(readMode = m, reads = m.readCount)
+
+  /** No FPU is imaging, with no mask in the beam. */
+  val fpu: Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]] =
+    Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]](_.fpu.builtinFpu): u =>
+      _.copy(fpu = u.fold(Flamingos2FpuMask.Imaging)(Flamingos2FpuMask.Builtin(_)))
+
   val default: Flamingos2DynamicConfig =
     Flamingos2DynamicConfig(
       Flamingos2ReadMode.Bright.recommendedExposureTime,
@@ -209,7 +222,8 @@ object DaytimeCalibrationSets:
   val DefaultGcalFilter: GcalFilter     = GcalFilter.Nd10
   val DefaultShutter: GcalShutter       = GcalShutter.Open
 
-  val Instruments: List[Instrument] = List(Instrument.GmosNorth, Instrument.GmosSouth)
+  val Instruments: List[Instrument] =
+    List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2)
 
   val DefaultGcal: StepConfig.Gcal =
     StepConfig.Gcal(

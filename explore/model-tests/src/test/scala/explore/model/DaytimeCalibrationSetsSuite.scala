@@ -9,6 +9,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
@@ -145,3 +146,16 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
     )
     assertEquals(kinds(Instrument.GmosNorth), Enumerated[CalibrationSetType].all)
+
+  test("Picking a Flamingos 2 read mode also picks its read count"):
+    val d = Flamingos2DaytimeSetup.readMode.replace(Flamingos2ReadMode.Faint)(
+      Flamingos2DaytimeSetup.default
+    )
+    assertEquals(d.readMode, Flamingos2ReadMode.Faint)
+    assertEquals(d.reads, Flamingos2ReadMode.Faint.readCount)
+
+  test("Clearing the Flamingos 2 FPU puts the imaging mask back"):
+    val fpu = Flamingos2DaytimeSetup.fpu
+    val d   = fpu.replace(Flamingos2Fpu.LongSlit2.some)(Flamingos2DaytimeSetup.default)
+    assertEquals(fpu.get(d), Flamingos2Fpu.LongSlit2.some)
+    assertEquals(fpu.replace(none)(d).fpu, Flamingos2FpuMask.Imaging)
