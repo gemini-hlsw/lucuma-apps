@@ -73,3 +73,27 @@ object SequenceEditQueriesGql:
         }
       }
     """
+
+  @GraphQL
+  trait DeleteSequence extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation($$obsId: ObservationId!) {
+        deleteSequence(input: { observationId: $$obsId }) {
+          observation {
+            id
+          }
+        }
+      }
+    """
+
+  @GraphQL
+  trait ResetAcquisition extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      mutation($$obsId: ObservationId!, $$regenerate: Boolean!) {
+        resetAcquisition(input: { observationId: $$obsId, regenerate: $$regenerate }) {
+          observation {
+            id
+          }
+        }
+      }
+    """

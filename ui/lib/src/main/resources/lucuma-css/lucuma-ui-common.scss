@@ -15,7 +15,8 @@ $container-xtra-small-cutoff: 376px;
 }
 
 #non-prod-banner {
-  z-index: 2000;
+  // Above the app chrome, below PrimeReact overlays (dialogs, toasts and tooltips start at 1000).
+  z-index: 999;
   position: absolute;
   top: 0;
   left: 50%;

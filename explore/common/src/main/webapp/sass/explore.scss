@@ -1526,21 +1526,10 @@ $search-preview-margin: 5px;
   margin-left: 0.5em;
 }
 
-.explore-sequence-tile-customized {
-  margin-left: 0.75em;
-  color: var(--sequence-customized-color);
-  font-weight: normal;
-  font-style: italic;
-  letter-spacing: normal;
-
-  svg {
-    margin-left: 0.25em;
-  }
-}
-
 .explore-sequence-tile-title {
   width: 100%;
   display: flex;
+  align-items: center;
 
   .explore-sequence-tile-title-summary {
     display: flex;
@@ -1551,6 +1540,25 @@ $search-preview-margin: 5px;
     .explore-sequence-tile-title-item {
       font-weight: bold;
     }
+  }
+
+  // Customization status and actions, at the right end of the title bar.
+  .explore-sequence-tile-customization {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-right: 0.5em;
+  }
+
+  .explore-sequence-tile-customized {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    color: var(--sequence-customized-color);
+    font-weight: normal;
+    letter-spacing: normal;
   }
 }
 

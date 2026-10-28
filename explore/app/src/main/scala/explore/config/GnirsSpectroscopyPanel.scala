@@ -123,15 +123,18 @@ abstract class GnirsSpectroscopyPanelBuilder[
       editState <- useStateView(ConfigEditState.View)
     yield
       import ctx.given
-      val disableAdvancedEdit: Boolean      =
+      val disableAdvancedEdit: Boolean         =
         editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
-      val disableSimpleEdit: Boolean        =
+      val disableSimpleEdit: Boolean           =
         disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
-      val disableAdvancedAcqEdit: Boolean   =
+      val disableAdvancedAcqEdit: Boolean      =
         disableAdvancedEdit && !props.permissions.isOnlyForOngoing
-      val showCustomization: Boolean        = props.calibrationRole.isEmpty
-      val allowRevertCustomization: Boolean = props.permissions.isFullEdit
-      val showAcquisitionConfig: Boolean    = props.calibrationRole.needsAcquisitionConfig
+      val showCustomization: Boolean           = props.calibrationRole.isEmpty
+      val allowRevertCustomization: Boolean    = props.permissions.isFullEdit
+      // Staff may revert the acquisition customizations of an ongoing observation.
+      val allowRevertAcqCustomization: Boolean =
+        allowRevertCustomization || props.permissions.isOnlyForOngoing
+      val showAcquisitionConfig: Boolean       = props.calibrationRole.needsAcquisitionConfig
 
       given readModeEnum: Enumerated[Option[GnirsReadMode]] =
         deriveOptionalEnumerated[GnirsReadMode]("Auto")
@@ -443,7 +446,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
               CustomizedGroupAddon(
                 "automatic",
                 revertAcquisition,
-                allowRevertCustomization
+                allowRevertAcqCustomization
               ).when(showCustomization && acquisition.get.isCustomized)
             ),
             toggleable = true,
@@ -459,7 +462,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
                   helpId = Some("configuration/gnirs/acquisition-type.md".refined),
                   disabled = disableAdvancedAcqEdit,
                   showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
+                  allowRevertCustomization = allowRevertAcqCustomization
                 ),
                 acquisitionSkyOffsetViewOpt.map: acquisitionOffsetView =>
                   OffsetInput(
@@ -474,9 +477,9 @@ abstract class GnirsSpectroscopyPanelBuilder[
                   defaultValue = none,
                   label = "Filter".some,
                   helpId = Some("configuration/gnirs/acquisition-filter.md".refined),
-                  disabled = disableSimpleEdit,
+                  disabled = disableAdvancedAcqEdit,
                   showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
+                  allowRevertCustomization = allowRevertAcqCustomization
                 )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -494,7 +497,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
                   isCustomized =
                     showCustomization && acquisition.get.explicitExposureTimeMode.isDefined,
                   revertCustomization = revertAcquisitionExposureTime,
-                  allowRevertCustomization = allowRevertCustomization
+                  allowRevertCustomization = allowRevertAcqCustomization
                 )
               )
             )

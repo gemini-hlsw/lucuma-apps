@@ -56,3 +56,5 @@ trait OdbSequenceApi[F[_]]:
   ): F[List[Atom[GhostDynamicConfig]]]
 
   def deleteSequence(obsId: Observation.Id): F[Unit]
+
+  def resetAcquisition(obsId: Observation.Id, regenerate: Boolean): F[Unit]
