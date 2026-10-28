@@ -56,7 +56,10 @@ given Display[GmosAmpReadMode] =
 
 given Display[GmosAmpGain] = Display.by(_.shortName, _.longName)
 
-given Display[GmosRoi] = Display.byShortName(_.longName)
+// Drop when lucuma-core names FullFrame "Full Frame".
+given Display[GmosRoi] = Display.byShortName:
+  case GmosRoi.FullFrame => "Full Frame"
+  case r                 => r.longName
 
 given Display[GhostResolutionMode] = Display.by(_.shortName, _.longName)
 

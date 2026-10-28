@@ -233,7 +233,8 @@ object DaytimeCalibrationSetsTable:
                             .fromContinuum(f(g.lamp.continuum.getOrElse(DefaultContinuum)))
                         )
                     ),
-                    editable
+                    editable,
+                    excludedContinua(instrument)
                   )
                 case CalibrationSetType.Arc  =>
                   // An arc keeps at least one lamp: clearing the last one is ignored.
@@ -273,7 +274,7 @@ object DaytimeCalibrationSetsTable:
           ).withSize(70.toPx),
           ColDef(
             ShutterColumnId,
-            header = "Shutter",
+            header = "IR Shutter",
             cell = c =>
               val idx: Int = c.row.original._2
               if c.row.original._1.kind.usesGcal then
@@ -283,7 +284,7 @@ object DaytimeCalibrationSetsTable:
                          editable
                 )
               else EmptyVdom
-          ).withSize(80.toPx)
+          ).withSize(90.toPx)
         )
       ),
       ColDef(

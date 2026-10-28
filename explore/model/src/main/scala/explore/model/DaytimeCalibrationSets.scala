@@ -254,7 +254,7 @@ object DaytimeCalibrationSets:
                 GmosAmpGain.Low,
                 GmosAmpReadMode.Slow
     )
-  val DefaultContinuum: GcalContinuum   = GcalContinuum.QuartzHalogen100W
+  val DefaultContinuum: GcalContinuum   = GcalContinuum.QuartzHalogen5W
   val DefaultArcs: NonEmptySet[GcalArc] = NonEmptySet.one(GcalArc.ArArc)
   val DefaultGcalFilter: GcalFilter     = GcalFilter.Nd10
   val DefaultShutter: GcalShutter       = GcalShutter.Open
@@ -326,6 +326,12 @@ object DaytimeCalibrationSets:
     instrument match
       case Instrument.Flamingos2 => Flamingos2Kinds
       case _                     => Enumerated[CalibrationSetType].all
+
+  /** The continuum lamps an instrument can't use: the 100W QH lamp is GHOST only. */
+  def excludedContinua(instrument: Instrument): Set[GcalContinuum] =
+    instrument match
+      case Instrument.Ghost => Set.empty
+      case _                => Set(GcalContinuum.QuartzHalogen100W)
 
   def defaultSet(instrument: Instrument): Option[DaytimeCalibrationSet] =
     instrument match
