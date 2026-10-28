@@ -349,7 +349,7 @@ object DaytimeCalibrationSetsTable:
         ).withSize(110.toPx),
         ColDef(
           GratingColumnId,
-          header = "Disperser",
+          header = "Grating",
           cell = c =>
             opticsCell(c.row.original):
               optionalDropdown(
@@ -462,7 +462,7 @@ object DaytimeCalibrationSetsTable:
         ).withSize(90.toPx),
         ColDef(
           GratingColumnId,
-          header = "Disperser",
+          header = "Grating",
           cell = c =>
             opticsCell(c.row.original):
               optionalDropdown(

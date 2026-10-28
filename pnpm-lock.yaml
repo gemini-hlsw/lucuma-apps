@@ -351,11 +351,184 @@ importers:
         specifier: 7.4.1
         version: 7.4.1
 
+  observe/web/client:
+    dependencies:
+      '@floating-ui/react':
+        specifier: 0.27.20
+        version: 0.27.20(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@fontsource/lato':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fortawesome/fontawesome-svg-core':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-duotone-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-light-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-regular-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-solid-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-thin-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/sharp-solid-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@react-hook/resize-observer':
+        specifier: 2.0.2
+        version: 2.0.2(react@19.3.1)
+      '@react-hook/size':
+        specifier: 2.1.2
+        version: 2.1.2(react@19.3.1)
+      '@tanstack/react-store':
+        specifier: 0.11.2
+        version: 0.11.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-table':
+        specifier: 9.3.1
+        version: 9.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-virtual':
+        specifier: 3.14.22
+        version: 3.14.22(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/store':
+        specifier: 0.11.2
+        version: 0.11.2
+      '@tanstack/table-core':
+        specifier: 9.3.1
+        version: 9.3.1
+      inputmask:
+        specifier: 5.0.10
+        version: 5.0.10
+      loglevel:
+        specifier: 1.9.2
+        version: 1.9.2
+      primeicons:
+        specifier: 7.0.0
+        version: 7.0.0
+      primereact:
+        specifier: 10.9.9
+        version: 10.9.9(@types/react@19.2.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+      ua-parser-js:
+        specifier: 2.0.10
+        version: 2.0.10
+    devDependencies:
+      '@vitejs/plugin-react':
+        specifier: 6.1.2
+        version: 6.1.2(vite@8.3.5(sass@1.106.1)(terser@5.46.0))
+      sass:
+        specifier: 1.106.1
+        version: 1.106.1
+      unplugin-fonts:
+        specifier: 2.0.0
+        version: 2.0.0(vite@8.3.5(sass@1.106.1)(terser@5.46.0))
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(sass@1.106.1)(terser@5.46.0)
+      vite-plugin-mkcert:
+        specifier: 2.1.0
+        version: 2.1.0(vite@8.3.5(sass@1.106.1)(terser@5.46.0))
+
   schemas:
     devDependencies:
       graphql:
         specifier: 17.0.2
         version: 17.0.2
+
+  ui/demo:
+    dependencies:
+      '@fortawesome/fontawesome-svg-core':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-light-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-regular-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-solid-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/pro-thin-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@fortawesome/sharp-solid-svg-icons':
+        specifier: 7.3.1
+        version: 7.3.1
+      aladin-lite:
+        specifier: 3.8.2
+        version: 3.8.2
+      inputmask:
+        specifier: 5.0.10
+        version: 5.0.10
+    devDependencies:
+      '@atlaskit/pragmatic-drag-and-drop':
+        specifier: 4.0.0
+        version: 4.0.0
+      '@atlaskit/pragmatic-drag-and-drop-auto-scroll':
+        specifier: 3.2.1
+        version: 3.2.1
+      '@atlaskit/pragmatic-drag-and-drop-hitbox':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@react-hook/resize-observer':
+        specifier: 2.0.2
+        version: 2.0.2(react@19.3.1)
+      '@tanstack/react-store':
+        specifier: 0.11.2
+        version: 0.11.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-table':
+        specifier: 9.3.1
+        version: 9.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-virtual':
+        specifier: 3.14.22
+        version: 3.14.22(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/store':
+        specifier: 0.11.2
+        version: 0.11.2
+      '@tanstack/table-core':
+        specifier: 9.3.1
+        version: 9.3.1
+      '@vitejs/plugin-react':
+        specifier: 6.1.2
+        version: 6.1.2(vite@8.3.5(sass@1.106.1)(terser@5.46.0))
+      loglevel:
+        specifier: 1.9.2
+        version: 1.9.2
+      primeicons:
+        specifier: 7.0.0
+        version: 7.0.0
+      primereact:
+        specifier: 10.9.9
+        version: 10.9.9(@types/react@19.2.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+      react-grid-layout:
+        specifier: 2.3.0
+        version: 2.3.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      sass:
+        specifier: 1.106.1
+        version: 1.106.1
+      ua-parser-js:
+        specifier: 2.0.10
+        version: 2.0.10
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(sass@1.106.1)(terser@5.46.0)
 
   ui/tests:
     dependencies:
