@@ -12,6 +12,8 @@ import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
@@ -164,6 +166,30 @@ object GmosDaytimeSetup:
       case Instrument.GmosSouth => south.some
       case _                    => none
 
+/** The Flamingos 2 Instrument Setup a new Daytime Calibration starts from. */
+object Flamingos2DaytimeSetup:
+  val default: Flamingos2DynamicConfig =
+    Flamingos2DynamicConfig(
+      Flamingos2ReadMode.Bright.recommendedExposureTime,
+      none,
+      Flamingos2Filter.Y,
+      Flamingos2ReadMode.Bright,
+      Flamingos2LyotWheel.F16,
+      Flamingos2FpuMask.Imaging,
+      Flamingos2Decker.Imaging,
+      Flamingos2ReadoutMode.Science,
+      Flamingos2ReadMode.Bright.readCount,
+      none
+    )
+
+  val defaultSet: DaytimeCalibrationSet =
+    DaytimeCalibrationSet(
+      CalibrationSetType.Dark,
+      PosInt.unsafeFrom(1),
+      none,
+      DaytimeCalibrationSetup.Flamingos2(default)
+    )
+
 /**
  * The editing rules of Daytime Calibration Sets: every edit leaves a row the ODB accepts, since
  * rows are saved as they change.
@@ -235,6 +261,20 @@ object DaytimeCalibrationSets:
 
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
+  val Flamingos2Kinds: List[CalibrationSetType] =
+    List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
+
+  /** The kinds the ODB accepts for an instrument's calibration sets. */
+  def kinds(instrument: Instrument): List[CalibrationSetType] =
+    instrument match
+      case Instrument.Flamingos2 => Flamingos2Kinds
+      case _                     => Enumerated[CalibrationSetType].all
+
+  def defaultSet(instrument: Instrument): Option[DaytimeCalibrationSet] =
+    instrument match
+      case Instrument.Flamingos2 => Flamingos2DaytimeSetup.defaultSet.some
+      case i                     => GmosDaytimeSetup.forInstrument(i).map(_.defaultSet)
+
   /** The GCAL setup a kind needs, keeping the filter and shutter of the current one. */
   def gcalFor(kind: CalibrationSetType, current: Option[StepConfig.Gcal]): Option[StepConfig.Gcal] =
     val base = current.getOrElse(DefaultGcal)
@@ -283,10 +323,11 @@ object DaytimeCalibrationSets:
     set.copy(kind = kind, gcal = gcalFor(kind, set.gcal), setup = setup)
 
   /**
-   * A new row copies the last one, or starts as a single bias; none for an unsupported instrument.
+   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2); none for an
+   * unsupported instrument.
    */
   def newRow(
     sets:       List[DaytimeCalibrationSet],
     instrument: Instrument
   ): Option[DaytimeCalibrationSet] =
-    sets.lastOption.orElse(GmosDaytimeSetup.forInstrument(instrument).map(_.defaultSet))
+    sets.lastOption.orElse(defaultSet(instrument))

@@ -12,6 +12,7 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
@@ -126,3 +127,21 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(first.map(_.count.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.GmosSouth.some)
     assertEquals(newRow(Nil, Instrument.Gnirs), none)
+
+  test("A new Flamingos 2 row starts as a single dark with no window cover"):
+    val first = newRow(Nil, Instrument.Flamingos2)
+    assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
+    assertEquals(first.map(_.count.value), 1.some)
+    assertEquals(first.map(_.setup.instrument), Instrument.Flamingos2.some)
+    assertEquals(
+      first.flatMap(s => DaytimeCalibrationSetup.flamingos2.getOption(s.setup)).map(_.config),
+      Flamingos2DaytimeSetup.default.some
+    )
+    assertEquals(Flamingos2DaytimeSetup.default.windowCover, none)
+
+  test("Flamingos 2 sets may only be darks, flats or arcs"):
+    assertEquals(
+      kinds(Instrument.Flamingos2),
+      List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
+    )
+    assertEquals(kinds(Instrument.GmosNorth), Enumerated[CalibrationSetType].all)
