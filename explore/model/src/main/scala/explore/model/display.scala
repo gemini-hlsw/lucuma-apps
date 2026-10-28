@@ -232,7 +232,7 @@ trait DisplayImplicits:
 
   given Display[Flamingos2Decker] = Display.by(_.shortName, _.longName)
 
-  given Display[Flamingos2Reads] = Display.by(_.shortName, _.longName)
+  given Display[Flamingos2Reads] = Display.by(_.reads.toString, _.longName)
 
   given Display[Flamingos2WindowCover] = Display.by(_.shortName, _.longName)
 
