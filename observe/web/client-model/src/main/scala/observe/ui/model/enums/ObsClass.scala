@@ -7,6 +7,7 @@ import cats.Order
 import cats.derived.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.ui.syntax.calibration.isDaytime
 
 enum ObsClass(val label: String) derives Order:
   case Daytime   extends ObsClass("Day")
@@ -18,9 +19,4 @@ object ObsClass:
     calibrationRole: Option[CalibrationRole],
     observingMode:   Option[BasicConfiguration]
   ): ObsClass =
-    (calibrationRole, observingMode) match
-      case (Some(CalibrationRole.DaytimePinhole), _) |
-          (_, Some(BasicConfiguration.DaytimeCalibration(_))) =>
-        ObsClass.Daytime
-      case _ =>
-        ObsClass.Nighttime
+    if calibrationRole.isDaytime(observingMode) then ObsClass.Daytime else ObsClass.Nighttime

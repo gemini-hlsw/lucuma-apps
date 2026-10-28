@@ -16,6 +16,7 @@ import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.DefaultErrorRender
 import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
@@ -26,7 +27,6 @@ import observe.model.odb.RecordedVisit
 import observe.ui.ObserveStyles
 import observe.ui.components.ObservationSequence
 import observe.ui.model.*
-import observe.ui.model.enums.ObsClass
 
 case class ObservationExecutionDisplay(
   selectedObs:           ObsSummary,
@@ -120,7 +120,10 @@ object ObservationExecutionDisplay
                 setSelectedRowId,
                 rootModelData.clientMode,
                 props.selectedObs.maskName,
-                props.selectedObs.obsClass === ObsClass.Daytime
+                SequenceColumns.hiddenColumns(
+                  props.selectedObs.calibrationRole,
+                  props.selectedObs.observingMode
+                )
               )
             },
             errorRender = t =>

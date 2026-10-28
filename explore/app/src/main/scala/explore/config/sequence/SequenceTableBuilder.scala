@@ -114,7 +114,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                   )
       ).withColumnSize(ColumnSizes(ExtraRowColumnId))
     ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
-      .filterNot(col => hidden.exists(_.value === col.id.value))
+      .filterNot(col => hidden.contains(col.id))
 
   private lazy val DynTableDef = DynTable(
     ColumnSizes,

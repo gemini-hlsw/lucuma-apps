@@ -19,6 +19,12 @@ class ObsClassSuite extends FunSuite:
       ObsClass.Daytime
     )
 
+  test("daytime calibration role is daytime"):
+    assertEquals(
+      ObsClass.fromObservation(CalibrationRole.DaytimeCalibration.some, None),
+      ObsClass.Daytime
+    )
+
   test("daytime pinhole is daytime"):
     assertEquals(
       ObsClass.fromObservation(CalibrationRole.DaytimePinhole.some, None),

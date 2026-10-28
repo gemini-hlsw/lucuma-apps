@@ -23,7 +23,6 @@ import explore.model.display.given
 import explore.model.enums.SedType
 import explore.model.enums.SedTypeEnum
 import explore.model.inputCodecs
-import explore.model.syntax.all.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -57,6 +56,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.all.needsITC
 import lucuma.ui.utils.*
 import org.typelevel.log4cats.Logger
 

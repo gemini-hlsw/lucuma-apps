@@ -15,4 +15,5 @@ object all
       view,
       effect,
       toast,
-      table
+      table,
+      calibration

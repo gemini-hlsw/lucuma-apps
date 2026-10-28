@@ -11,7 +11,6 @@ import crystal.react.hooks.*
 import explore.*
 import explore.model.AppContext
 import explore.model.Observation
-import explore.model.syntax.all.needsITC
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.model.Target
@@ -19,6 +18,7 @@ import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.LiveSequence
+import lucuma.ui.syntax.all.needsITC
 
 import scala.concurrent.duration.*
 
