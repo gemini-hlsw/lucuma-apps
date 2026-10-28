@@ -510,6 +510,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               }
               gmosNorth $GmosNorthDynamicConfigSubquery
               gmosSouth $GmosSouthDynamicConfigSubquery
+              flamingos2 $Flamingos2DynamicConfigSubquery
             }
           }
         }

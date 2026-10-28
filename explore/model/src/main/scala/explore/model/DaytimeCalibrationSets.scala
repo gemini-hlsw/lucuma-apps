@@ -275,10 +275,11 @@ object DaytimeCalibrationSets:
   /** Rewrites a row for a new kind so that it stays valid; the count is kept. */
   def withKind(set: DaytimeCalibrationSet, kind: CalibrationSetType): DaytimeCalibrationSet =
     val setup = set.setup match
-      case DaytimeCalibrationSetup.GmosNorth(d) =>
+      case DaytimeCalibrationSetup.GmosNorth(d)   =>
         DaytimeCalibrationSetup.GmosNorth(setupFor(GmosDaytimeSetup.north, kind)(d))
-      case DaytimeCalibrationSetup.GmosSouth(d) =>
+      case DaytimeCalibrationSetup.GmosSouth(d)   =>
         DaytimeCalibrationSetup.GmosSouth(setupFor(GmosDaytimeSetup.south, kind)(d))
+      case f2: DaytimeCalibrationSetup.Flamingos2 => f2
     set.copy(kind = kind, gcal = gcalFor(kind, set.gcal), setup = setup)
 
   /**
