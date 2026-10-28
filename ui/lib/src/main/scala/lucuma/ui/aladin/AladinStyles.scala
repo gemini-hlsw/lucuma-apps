@@ -8,5 +8,6 @@ import lucuma.react.common.Css
 object AladinStyles:
   val AladinZoomControl = Css("gpp-aladin-zoom-control")
   val ButtonOnAladin    = Css("gpp-aladin-button")
+  val AladinLoadError   = Css("gpp-aladin-load-error")
 
   val AladinFullScreenButton = Css("gpp-aladin-fullscreen-button")

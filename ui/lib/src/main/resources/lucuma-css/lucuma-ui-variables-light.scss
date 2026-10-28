@@ -520,6 +520,7 @@
   --aladin-button-border-color: var(--site-solid-border-color);
   --aladin-button-hover-background: hsl(0deg 0% 100%);
   --aladin-button-hover-border-color: var(--gray);
+  --aladin-load-error-background: transparent;
 }
 
 @mixin custom-light {

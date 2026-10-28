@@ -576,6 +576,17 @@
   }
 }
 
+.gpp-aladin-load-error {
+  display: flex;
+  align-items: center;
+  background: var(--aladin-load-error-background);
+  justify-content: center;
+  height: 100%;
+  padding: 1em;
+  text-align: center;
+  color: var(--text-color-secondary);
+}
+
 .p-button.p-button-icon-only.gpp-aladin-button,
 .p-button.gpp-aladin-button {
   color: var(--aladin-button-color);
