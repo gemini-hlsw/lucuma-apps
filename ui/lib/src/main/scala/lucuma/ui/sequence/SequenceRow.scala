@@ -127,18 +127,20 @@ sealed trait SequenceRow[+D]:
         exposure +| readMode.readoutTime
     .orElse(exposureTime)
 
+  private lazy val isBiasOrDark: Boolean = stepConfig.exists:
+    case StepConfig.Bias | StepConfig.Dark => true
+    case _                                 => false
+
   // There's no unified grating type, so we return a string.
   lazy val gratingName: Option[String] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(gratingConfig = grating) => grating.map(_.grating.shortName)
     case gmos.DynamicConfig.GmosSouth(gratingConfig = grating) => grating.map(_.grating.shortName)
+    // Flamingos 2 darks must still carry optics, which don't apply, so they show nothing.
+    case _: Flamingos2DynamicConfig if isBiasOrDark            => none
     case Flamingos2DynamicConfig(disperser = disperser)        =>
       disperser.map(_.shortName)
     case GnirsDynamicConfig(acquisitionMirror = acqMirror)     =>
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
-
-  private lazy val isBiasOrDark: Boolean = stepConfig.exists:
-    case StepConfig.Bias | StepConfig.Dark => true
-    case _                                 => false
 
   // GMOS biases and darks don't set the FPU, so they show nothing rather than "Imaging".
   private def gmosFpuName[T](
@@ -153,24 +155,27 @@ sealed trait SequenceRow[+D]:
 
   // There's no unified FPU type, so we return a string.
   lazy val fpuName: Option[String] = instrumentConfig.flatMap:
-    case gmos.DynamicConfig.GmosNorth(fpu = fpu) =>
+    case gmos.DynamicConfig.GmosNorth(fpu = fpu)    =>
       gmosFpuName(fpu, _.longName)
-    case gmos.DynamicConfig.GmosSouth(fpu = fpu) =>
+    case gmos.DynamicConfig.GmosSouth(fpu = fpu)    =>
       gmosFpuName(fpu, _.longName)
-    case Flamingos2DynamicConfig(fpu = fpu)      =>
+    case _: Flamingos2DynamicConfig if isBiasOrDark =>
+      none
+    case Flamingos2DynamicConfig(fpu = fpu)         =>
       fpu match
         case Flamingos2FpuMask.Builtin(builtin)     => builtin.longName.some
         case Flamingos2FpuMask.Custom(_, slitWidth) => slitWidth.longName.some
         case Flamingos2FpuMask.Imaging              => "Imaging".some
-    case GnirsDynamicConfig(fpu = fpu)           =>
+    case GnirsDynamicConfig(fpu = fpu)              =>
       fpu.fold(slit => slit.longName.some, ifu => ifu.shortName.some, other => other.shortName.some)
-    case _                                       =>
+    case _                                          =>
       none
 
   lazy val fpuCustomMaskAttachmentId: Option[Attachment.Id] = instrumentConfig.collect:
-    case gmos.DynamicConfig.GmosNorth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
-    case gmos.DynamicConfig.GmosSouth(fpu = Some(GmosFpuMask.Custom(Defined(id), _))) => id
-    case Flamingos2DynamicConfig(fpu = Flamingos2FpuMask.Custom(Defined(id), _))      => id
+    case gmos.DynamicConfig.GmosNorth(fpu = Some(GmosFpuMask.Custom(Defined(id), _)))             => id
+    case gmos.DynamicConfig.GmosSouth(fpu = Some(GmosFpuMask.Custom(Defined(id), _)))             => id
+    case Flamingos2DynamicConfig(fpu = Flamingos2FpuMask.Custom(Defined(id), _)) if !isBiasOrDark =>
+      id
 
   lazy val deckerName: Option[String] = instrumentConfig.flatMap:
     case Flamingos2DynamicConfig(decker = decker) => decker.shortName.some
@@ -181,6 +186,7 @@ sealed trait SequenceRow[+D]:
   lazy val filterName: Option[String] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(filter = filter) => filter.map(_.shortName)
     case gmos.DynamicConfig.GmosSouth(filter = filter) => filter.map(_.shortName)
+    case _: Flamingos2DynamicConfig if isBiasOrDark    => none
     case Flamingos2DynamicConfig(filter = filter)      => filter.shortName.some
     case GnirsDynamicConfig(filter = filter)           => filter.shortName.some
 
