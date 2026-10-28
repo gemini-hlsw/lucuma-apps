@@ -301,7 +301,7 @@ object NavigateEngineSpec {
       tcsSouth <- TcsSouthControllerSim.build[F]
       ret      <- NavigateEngine.build[F](
                     Site.GS,
-                    Systems(
+                    Services(
                       OdbProxy.dummy,
                       client,
                       HorizonsClient(client),

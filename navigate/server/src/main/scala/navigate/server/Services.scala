@@ -21,8 +21,8 @@ import lucuma.schemas.ObservationDB
 import mouse.boolean.*
 import navigate.epics.EpicsService
 import navigate.epics.EpicsSystem.TelltaleChannel
-import navigate.model.config.ControlStrategy
 import navigate.model.config.NavigateConfiguration
+import navigate.model.config.SubsystemControlMode
 import navigate.server.tcs.*
 import org.http4s.AuthScheme
 import org.http4s.Credentials
@@ -35,7 +35,7 @@ import java.time.Instant
 
 import EpicsSystems.*
 
-case class Systems[F[_]](
+case class Services[F[_]](
   odb:            OdbProxy[F],
   client:         Client[F],
   horizonsClient: HorizonsClient[F],
@@ -44,13 +44,13 @@ case class Systems[F[_]](
   tcsNorth:       TcsNorthController[F]
 )
 
-object Systems {
+object Services {
   def build[F[_]: {Async, Logger, Http4sHttpBackend, Dispatcher, Parallel}](
     site:     Site,
     client:   Client[F],
     conf:     NavigateConfiguration,
     epicsSrv: EpicsService[F]
-  ): Resource[F, Systems[F]] = {
+  ): Resource[F, Services[F]] = {
     val tops = decodeTops(conf.navigateEngine.tops)
 
     // These are placeholders.
@@ -72,7 +72,7 @@ object Systems {
       Resource.eval(odb)
 
     def buildTcsSouthController: Resource[F, TcsSouthController[F]] =
-      if (conf.navigateEngine.systemControl.tcs === ControlStrategy.FullControl) {
+      if (conf.navigateEngine.subsystemControlModes.tcs === SubsystemControlMode.Full) {
         val gmoiTop = readTop(tops, "gmoi".refined)
         val f2oiTop = readTop(tops, "f2oi".refined)
         for {
@@ -123,7 +123,7 @@ object Systems {
         Resource.eval(TcsSouthControllerSim.build)
 
     def buildTcsNorthController: Resource[F, TcsNorthController[F]] =
-      if (conf.navigateEngine.systemControl.tcs === ControlStrategy.FullControl)
+      if (conf.navigateEngine.subsystemControlModes.tcs === SubsystemControlMode.Full)
         for {
           tcs  <- TcsEpicsSystem.build(epicsSrv, tops)
           p1   <- PwfsEpicsSystem.build(epicsSrv, "PWFS1", readTop(tops, "pwfs1".refined))
@@ -174,26 +174,28 @@ object Systems {
     }
 
     // Logs which part failed to start, and in which control mode.
-    def startup[A](part: String, mode: Option[ControlStrategy])(r: Resource[F, A]): Resource[F, A] =
+    def startup[A](part: String, mode: Option[SubsystemControlMode])(
+      r: Resource[F, A]
+    ): Resource[F, A] =
       r.onError: e =>
         Resource.eval:
           Logger[F].error(e):
             mode.fold(s"Could not start $part"): m =>
               s"Could not start $part in ${m.tag} mode. Check its settings, or set it to " +
-                "simulated in systems.conf"
+                "simulated in subsystems.conf"
 
-    val tcsMode: Option[ControlStrategy] = conf.navigateEngine.systemControl.tcs.some
+    val tcsMode: Option[SubsystemControlMode] = conf.navigateEngine.subsystemControlModes.tcs.some
 
     for {
       odb  <- startup("ODB", none)(buildOdbProxy)
       tcsS <- startup("TCS (south)", tcsMode)(buildTcsSouthController)
       tcsN <- startup("TCS (north)", tcsMode)(buildTcsNorthController)
-    } yield Systems[F](odb,
-                       client,
-                       buildHorizonsCLient,
-                       (site === Site.GS).fold(tcsS, tcsN),
-                       tcsS,
-                       tcsN
+    } yield Services[F](odb,
+                        client,
+                        buildHorizonsCLient,
+                        (site === Site.GS).fold(tcsS, tcsN),
+                        tcsS,
+                        tcsN
     )
   }
 
