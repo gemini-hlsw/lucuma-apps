@@ -9,9 +9,11 @@ import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
@@ -126,3 +128,90 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(first.map(_.count.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.GmosSouth.some)
     assertEquals(newRow(Nil, Instrument.Gnirs), none)
+
+  test("A new Flamingos 2 row starts as a single dark with no window cover"):
+    val first = newRow(Nil, Instrument.Flamingos2)
+    assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
+    assertEquals(first.map(_.count.value), 1.some)
+    assertEquals(first.map(_.setup.instrument), Instrument.Flamingos2.some)
+    assertEquals(
+      first.flatMap(s => DaytimeCalibrationSetup.flamingos2.getOption(s.setup)).map(_.config),
+      Flamingos2DaytimeSetup.default.some
+    )
+    assertEquals(Flamingos2DaytimeSetup.default.windowCover, none)
+
+  test("Flamingos 2 sets may only be darks, flats or arcs"):
+    assertEquals(
+      kinds(Instrument.Flamingos2),
+      List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
+    )
+    assertEquals(kinds(Instrument.GmosNorth), Enumerated[CalibrationSetType].all)
+
+  test("Picking a Flamingos 2 read mode also picks its read count"):
+    val d = Flamingos2DaytimeSetup.readMode.replace(Flamingos2ReadMode.Faint)(
+      Flamingos2DaytimeSetup.default
+    )
+    assertEquals(d.readMode, Flamingos2ReadMode.Faint)
+    assertEquals(d.reads, Flamingos2ReadMode.Faint.readCount)
+    assertEquals(d.exposure, Flamingos2ReadMode.Faint.minimumExposureTime)
+
+  test("Re-picking the Flamingos 2 read mode keeps a hand-set read count"):
+    val d = Flamingos2DaytimeSetup.default.copy(reads = Flamingos2Reads.Reads_16)
+    assertEquals(Flamingos2DaytimeSetup.readMode.replace(d.readMode)(d), d)
+
+  test("Clearing the Flamingos 2 FPU puts the imaging mask back"):
+    val fpu = Flamingos2DaytimeSetup.fpu
+    val d   = fpu.replace(Flamingos2Fpu.LongSlit2.some)(Flamingos2DaytimeSetup.default)
+    assertEquals(fpu.get(d), Flamingos2Fpu.LongSlit2.some)
+    assertEquals(fpu.replace(none)(d).fpu, Flamingos2FpuMask.Imaging)
+    assertEquals(fpu.replace(none)(d).decker, Flamingos2Decker.Imaging)
+
+  test("Picking a Flamingos 2 FPU picks its decker"):
+    val d = Flamingos2DaytimeSetup.fpu.replace(Flamingos2Fpu.LongSlit2.some)(
+      Flamingos2DaytimeSetup.default
+    )
+    assertEquals(d.decker, Flamingos2Fpu.LongSlit2.decker)
+
+  test("Changing a Flamingos 2 kind keeps the window cover"):
+    val f2     = Flamingos2DaytimeSetup.defaultSet
+    val open   = f2.copy(
+      kind = CalibrationSetType.Flat,
+      gcal = gcalFor(Instrument.Flamingos2, CalibrationSetType.Flat, none),
+      setup = DaytimeCalibrationSetup.Flamingos2(
+        Flamingos2DaytimeSetup.default.copy(windowCover = Flamingos2WindowCover.Open.some)
+      )
+    )
+    val config = (s: DaytimeCalibrationSet) =>
+      DaytimeCalibrationSetup.flamingos2.getOption(s.setup).flatMap(_.config.windowCover)
+    assertEquals(config(withKind(open, CalibrationSetType.Flat)), Flamingos2WindowCover.Open.some)
+    assertEquals(config(withKind(open, CalibrationSetType.Dark)), Flamingos2WindowCover.Open.some)
+
+  test("Flamingos 2 flats use the IR diffuser"):
+    val s = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
+    assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
+    assertEquals(withKind(dark, CalibrationSetType.Flat).gcal.map(_.diffuser),
+                 GcalDiffuser.Visible.some
+    )
+
+  test("A Flamingos 2 dark gets the default optics"):
+    val flat   = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
+    val config = (s: DaytimeCalibrationSet) =>
+      DaytimeCalibrationSetup.flamingos2.getOption(s.setup).map(_.config)
+    val custom = flat.copy(setup =
+      DaytimeCalibrationSetup.Flamingos2(
+        Flamingos2DaytimeSetup.fpu.replace(Flamingos2Fpu.LongSlit2.some)(
+          Flamingos2DaytimeSetup.default.copy(
+            filter = Flamingos2Filter.J,
+            disperser = Flamingos2Disperser.R1200JH.some
+          )
+        )
+      )
+    )
+    val dark   = config(withKind(custom, CalibrationSetType.Dark))
+    assertEquals(dark.map(_.filter), Flamingos2DaytimeSetup.default.filter.some)
+    assertEquals(dark.map(_.disperser), Flamingos2DaytimeSetup.default.disperser.some)
+    assertEquals(dark.map(_.fpu), Flamingos2DaytimeSetup.default.fpu.some)
+    assertEquals(dark.map(_.decker), Flamingos2DaytimeSetup.default.decker.some)
+    assertEquals(config(withKind(custom, CalibrationSetType.Arc)).map(_.filter),
+                 Flamingos2Filter.J.some
+    )

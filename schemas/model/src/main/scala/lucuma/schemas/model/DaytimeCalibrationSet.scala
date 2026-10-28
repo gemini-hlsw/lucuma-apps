@@ -13,7 +13,9 @@ import io.circe.refined.given
 import lucuma.core.enums.CalibrationSetType
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
+import lucuma.odb.json.flamingos2.given
 import lucuma.odb.json.gmos.given
 import lucuma.odb.json.stepconfig.given
 import monocle.Focus
@@ -28,10 +30,12 @@ import monocle.macros.GenPrism
 enum DaytimeCalibrationSetup derives Eq:
   case GmosNorth(config: DynamicConfig.GmosNorth)
   case GmosSouth(config: DynamicConfig.GmosSouth)
+  case Flamingos2(config: Flamingos2DynamicConfig)
 
   def instrument: Instrument = this match
-    case GmosNorth(_) => Instrument.GmosNorth
-    case GmosSouth(_) => Instrument.GmosSouth
+    case GmosNorth(_)  => Instrument.GmosNorth
+    case GmosSouth(_)  => Instrument.GmosSouth
+    case Flamingos2(_) => Instrument.Flamingos2
 
 object DaytimeCalibrationSetup:
   val gmosNorth: Prism[DaytimeCalibrationSetup, GmosNorth] =
@@ -40,11 +44,17 @@ object DaytimeCalibrationSetup:
   val gmosSouth: Prism[DaytimeCalibrationSetup, GmosSouth] =
     GenPrism[DaytimeCalibrationSetup, GmosSouth]
 
+  val flamingos2: Prism[DaytimeCalibrationSetup, Flamingos2] =
+    GenPrism[DaytimeCalibrationSetup, Flamingos2]
+
   object GmosNorth:
     val config: Lens[GmosNorth, DynamicConfig.GmosNorth] = Focus[GmosNorth](_.config)
 
   object GmosSouth:
     val config: Lens[GmosSouth, DynamicConfig.GmosSouth] = Focus[GmosSouth](_.config)
+
+  object Flamingos2:
+    val config: Lens[Flamingos2, Flamingos2DynamicConfig] = Focus[Flamingos2](_.config)
 
 /**
  * One ordered row of a Daytime Calibration: a kind, an exposure count, the GCAL lamp setup of a
@@ -73,8 +83,10 @@ object DaytimeCalibrationSet:
       gcal  <- c.downField("gcal").as[Option[StepConfig.Gcal]]
       north <- c.downField("gmosNorth").as[Option[DynamicConfig.GmosNorth]]
       south <- c.downField("gmosSouth").as[Option[DynamicConfig.GmosSouth]]
+      f2    <- c.downField("flamingos2").as[Option[Flamingos2DynamicConfig]]
       setup <- north
                  .map(DaytimeCalibrationSetup.GmosNorth(_))
                  .orElse(south.map(DaytimeCalibrationSetup.GmosSouth(_)))
+                 .orElse(f2.map(DaytimeCalibrationSetup.Flamingos2(_)))
                  .toRight(DecodingFailure("Calibration set has no instrument setup", c.history))
     yield DaytimeCalibrationSet(kind, count, gcal, setup)

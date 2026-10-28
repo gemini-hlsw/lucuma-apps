@@ -1216,6 +1216,10 @@ extension (s: DaytimeCalibrationSet)
       gmosSouth = DaytimeCalibrationSetup.gmosSouth
         .getOption(s.setup)
         .map(_.config.toInput)
+        .orUnassign,
+      flamingos2 = DaytimeCalibrationSetup.flamingos2
+        .getOption(s.setup)
+        .map(_.config.toInput)
         .orUnassign
     )
 

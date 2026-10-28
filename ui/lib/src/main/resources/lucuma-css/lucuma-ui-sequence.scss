@@ -70,6 +70,11 @@
       font-size: smaller;
       text-align: center;
     }
+
+    // Keep the label clear of the clear icon, which sits over its right edge.
+    &.p-dropdown-clearable .p-dropdown-label {
+      padding-right: 1.25rem;
+    }
   }
 
   .lucuma-sequence-offset-input {

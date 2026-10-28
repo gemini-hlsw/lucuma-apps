@@ -4,6 +4,7 @@
 package explore.model
 
 import cats.Eq
+import cats.Order
 import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.derived.*
@@ -12,6 +13,8 @@ import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
@@ -164,6 +167,79 @@ object GmosDaytimeSetup:
       case Instrument.GmosSouth => south.some
       case _                    => none
 
+/** The Flamingos 2 Instrument Setup the Daytime Calibration Set editor works through. */
+object Flamingos2DaytimeSetup:
+  val setup: Optional[DaytimeCalibrationSetup, Flamingos2DynamicConfig] =
+    DaytimeCalibrationSetup.flamingos2.andThen(DaytimeCalibrationSetup.Flamingos2.config)
+
+  /**
+   * Picking another read mode also picks its read count, which stays editable, and raises the
+   * exposure to the mode's minimum.
+   */
+  val readMode: Lens[Flamingos2DynamicConfig, Flamingos2ReadMode] =
+    Lens[Flamingos2DynamicConfig, Flamingos2ReadMode](_.readMode): m =>
+      d =>
+        if m === d.readMode then d
+        else
+          d.copy(
+            readMode = m,
+            reads = m.readCount,
+            exposure = Order.max(d.exposure, m.minimumExposureTime)
+          )
+
+  /**
+   * No FPU is imaging, with no mask in the beam, or a custom mask, which is kept. Picking an FPU
+   * also picks the decker it needs.
+   */
+  val fpu: Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]] =
+    Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]](_.fpu.builtinFpu): u =>
+      d =>
+        (u, d.fpu) match
+          case (Some(f), _)                           =>
+            d.copy(fpu = Flamingos2FpuMask.Builtin(f), decker = f.decker)
+          case (None, Flamingos2FpuMask.Custom(_, _)) => d
+          case (None, _)                              =>
+            d.copy(fpu = Flamingos2FpuMask.Imaging, decker = Flamingos2Decker.Imaging)
+
+  /**
+   * Flamingos 2 can't drop its optics, so a new kind without them gets the default ones. The window
+   * cover is the user's to set for any kind, so it is kept.
+   */
+  def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
+    d: Flamingos2DynamicConfig
+  ): Flamingos2DynamicConfig =
+    if kind === previous || DaytimeCalibrationSets.usesOptics(kind) then d
+    else
+      d.copy(
+        disperser = default.disperser,
+        filter = default.filter,
+        lyotWheel = default.lyotWheel,
+        fpu = default.fpu,
+        decker = default.decker
+      )
+
+  val default: Flamingos2DynamicConfig =
+    Flamingos2DynamicConfig(
+      Flamingos2ReadMode.Bright.recommendedExposureTime,
+      none,
+      Flamingos2Filter.Y,
+      Flamingos2ReadMode.Bright,
+      Flamingos2LyotWheel.F16,
+      Flamingos2FpuMask.Imaging,
+      Flamingos2Decker.Imaging,
+      Flamingos2ReadoutMode.Science,
+      Flamingos2ReadMode.Bright.readCount,
+      none
+    )
+
+  val defaultSet: DaytimeCalibrationSet =
+    DaytimeCalibrationSet(
+      CalibrationSetType.Dark,
+      PosInt.unsafeFrom(1),
+      none,
+      DaytimeCalibrationSetup.Flamingos2(default)
+    )
+
 /**
  * The editing rules of Daytime Calibration Sets: every edit leaves a row the ODB accepts, since
  * rows are saved as they change.
@@ -183,13 +259,20 @@ object DaytimeCalibrationSets:
   val DefaultGcalFilter: GcalFilter     = GcalFilter.Nd10
   val DefaultShutter: GcalShutter       = GcalShutter.Open
 
-  val Instruments: List[Instrument] = List(Instrument.GmosNorth, Instrument.GmosSouth)
+  val Instruments: List[Instrument] =
+    List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2)
 
-  val DefaultGcal: StepConfig.Gcal =
+  /** The diffuser the ODB defaults to: visible for GMOS, IR for the infrared instruments. */
+  def defaultDiffuser(instrument: Instrument): GcalDiffuser =
+    instrument match
+      case Instrument.GmosNorth | Instrument.GmosSouth => GcalDiffuser.Visible
+      case _                                           => GcalDiffuser.Ir
+
+  def defaultGcal(instrument: Instrument): StepConfig.Gcal =
     StepConfig.Gcal(
       StepConfig.Gcal.Lamp.fromContinuum(DefaultContinuum),
       DefaultGcalFilter,
-      GcalDiffuser.Visible,
+      defaultDiffuser(instrument),
       DefaultShutter
     )
 
@@ -235,9 +318,27 @@ object DaytimeCalibrationSets:
 
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
+  val Flamingos2Kinds: List[CalibrationSetType] =
+    List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
+
+  /** The kinds the ODB accepts for an instrument's calibration sets. */
+  def kinds(instrument: Instrument): List[CalibrationSetType] =
+    instrument match
+      case Instrument.Flamingos2 => Flamingos2Kinds
+      case _                     => Enumerated[CalibrationSetType].all
+
+  def defaultSet(instrument: Instrument): Option[DaytimeCalibrationSet] =
+    instrument match
+      case Instrument.Flamingos2 => Flamingos2DaytimeSetup.defaultSet.some
+      case i                     => GmosDaytimeSetup.forInstrument(i).map(_.defaultSet)
+
   /** The GCAL setup a kind needs, keeping the filter and shutter of the current one. */
-  def gcalFor(kind: CalibrationSetType, current: Option[StepConfig.Gcal]): Option[StepConfig.Gcal] =
-    val base = current.getOrElse(DefaultGcal)
+  def gcalFor(
+    instrument: Instrument,
+    kind:       CalibrationSetType,
+    current:    Option[StepConfig.Gcal]
+  ): Option[StepConfig.Gcal] =
+    val base = current.getOrElse(defaultGcal(instrument))
     kind match
       case CalibrationSetType.Flat =>
         base
@@ -275,17 +376,20 @@ object DaytimeCalibrationSets:
   /** Rewrites a row for a new kind so that it stays valid; the count is kept. */
   def withKind(set: DaytimeCalibrationSet, kind: CalibrationSetType): DaytimeCalibrationSet =
     val setup = set.setup match
-      case DaytimeCalibrationSetup.GmosNorth(d) =>
+      case DaytimeCalibrationSetup.GmosNorth(d)  =>
         DaytimeCalibrationSetup.GmosNorth(setupFor(GmosDaytimeSetup.north, kind)(d))
-      case DaytimeCalibrationSetup.GmosSouth(d) =>
+      case DaytimeCalibrationSetup.GmosSouth(d)  =>
         DaytimeCalibrationSetup.GmosSouth(setupFor(GmosDaytimeSetup.south, kind)(d))
-    set.copy(kind = kind, gcal = gcalFor(kind, set.gcal), setup = setup)
+      case DaytimeCalibrationSetup.Flamingos2(d) =>
+        DaytimeCalibrationSetup.Flamingos2(Flamingos2DaytimeSetup.forKind(kind, set.kind)(d))
+    set.copy(kind = kind, gcal = gcalFor(set.setup.instrument, kind, set.gcal), setup = setup)
 
   /**
-   * A new row copies the last one, or starts as a single bias; none for an unsupported instrument.
+   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2); none for an
+   * unsupported instrument.
    */
   def newRow(
     sets:       List[DaytimeCalibrationSet],
     instrument: Instrument
   ): Option[DaytimeCalibrationSet] =
-    sets.lastOption.orElse(GmosDaytimeSetup.forInstrument(instrument).map(_.defaultSet))
+    sets.lastOption.orElse(defaultSet(instrument))
