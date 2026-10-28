@@ -517,6 +517,7 @@
   --aladin-button-border-color: var(--gray-500);
   --aladin-button-hover-background: var(--gray-700);
   --aladin-button-hover-border-color: var(--gray-200);
+  --aladin-load-error-background: hsl(0deg 0% 0%);
 }
 
 @mixin custom-dark {

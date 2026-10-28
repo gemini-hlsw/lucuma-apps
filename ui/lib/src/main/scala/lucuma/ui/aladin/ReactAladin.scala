@@ -4,6 +4,7 @@
 package lucuma.ui.aladin
 
 import cats.syntax.option.*
+import cats.syntax.semigroup.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.*
 import japgolly.scalajs.react.hooks.Hooks.UseState
@@ -187,9 +188,14 @@ object ReactAladin
         instance  <- useRef(none[Aladin])
         r         <- useRefToVdom[html.Div]
         abortRef  <- useState(none[AbortController])
+        failed    <- useState(false)
         _         <- useLayoutEffectOnMount {
-                       AsyncCallback.fromCallbackToJsPromise(CallbackTo(A.init)).toCallback *>
-                         createAladin(r.get, aladinRef, instance, abortRef, props)
+                       (AsyncCallback.fromJsPromise(A.init) >>
+                         createAladin(r.get, aladinRef, instance, abortRef, props).asAsyncCallback)
+                         .handleError: t =>
+                           (Callback.warn(s"Aladin failed to initialize: ${t.getMessage}") *>
+                             failed.setState(true)).asAsyncCallback
+                         .toCallback
                      }
         _         <- useEffectOnMount(
                        // Cleanup listeners on unmount.
@@ -205,5 +211,19 @@ object ReactAladin
                          .map: aladin =>
                            if enabled then cleanupListener(abortRef) else disablePanning(aladin, abortRef)
                          .getOrEmpty
-      } yield <.div(props.clazz, ^.untypedRef := r)
+      } yield
+        if failed.value then
+          <.div(props.clazz |+| AladinStyles.AladinLoadError, ^.key := "aladin-load-error")(
+            <.span(
+              "Aladin sky viewer could not start. It requires a browser with WebGL2 support. ",
+              <.a(
+                ^.href   := "https://get.webgl.org/webgl2/",
+                ^.target := "_blank",
+                ^.rel    := "noopener noreferrer",
+                "Check WebGL2 in your browser"
+              ),
+              "."
+            )
+          )
+        else <.div(props.clazz, ^.untypedRef := r)
     )
