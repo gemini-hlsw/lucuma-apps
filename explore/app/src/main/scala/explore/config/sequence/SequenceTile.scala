@@ -55,7 +55,7 @@ final case class SequenceTile(
   asterismIds:             SortedSet[Target.Id],
   customSedTimestamps:     List[Timestamp],
   calibrationRole:         Option[CalibrationRole],
-  observingMode:           Option[BasicConfiguration],
+  basicConfiguration:      Option[BasicConfiguration],
   hasMaterializedSequence: Boolean,
   sequenceChanged:         View[Pot[Unit]],
   isEditingAcquisition:    View[IsEditing],
@@ -113,7 +113,7 @@ object SequenceTile
         val programTimeCharge: TimeSpan    = execution.programTimeCharge.value
         val executed: TagOf[HTMLElement]   = timeDisplay("Executed", programTimeCharge)
         val hiddenColumns: Set[ColumnId]   =
-          SequenceColumns.hiddenColumns(props.calibrationRole, props.observingMode)
+          SequenceColumns.hiddenColumns(props.calibrationRole, props.basicConfiguration)
 
         // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =

@@ -36,6 +36,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.model.TargetWithId
+import lucuma.ui.syntax.calibration.needsITC
 
 import java.time.Instant
 import java.time.ZoneOffset
@@ -200,14 +201,9 @@ object all:
       case CalibrationRole.DaytimeCalibration => false
       case _                                  => true
 
-    def needsAcquisitionConfig: Boolean = cr match
-      case CalibrationRole.Twilight           => false
-      case CalibrationRole.DaytimePinhole     => false
-      case CalibrationRole.DaytimeCalibration => false
-      case _                                  => true
+    def needsAcquisitionConfig: Boolean = cr.needsITC
 
-  extension (cr: Option[CalibrationRole])
-    def needsAcquisitionConfig: Boolean = cr.forall(_.needsAcquisitionConfig)
+  extension (cr: Option[CalibrationRole]) def needsAcquisitionConfig: Boolean = cr.needsITC
 
   extension (bc: ObservingModeType)
     def defaultPosAngleOptions: PosAngleOptions =
