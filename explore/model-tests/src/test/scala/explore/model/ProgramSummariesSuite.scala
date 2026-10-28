@@ -8,21 +8,28 @@ import cats.syntax.all.*
 import crystal.Pot
 import explore.model.arb.ArbExecution.given
 import explore.model.arb.ArbObservation.given
+import explore.model.syntax.all.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.ObservationWorkflow
+import lucuma.core.model.Target
 import lucuma.core.model.arb.ArbObservationWorkflow.given
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.arb.ArbCalculatedValue.given
 import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.core.util.arb.ArbGid.given
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.arb.ArbBasicConfiguration.given
+import lucuma.schemas.model.arb.ArbTargetWithId.given
 import munit.Location
 import munit.ScalaCheckSuite
 import org.scalacheck.Prop.*
 
 import scala.collection.immutable.SortedMap
+import scala.collection.immutable.SortedSet
 
 class ProgramSummariesSuite extends ScalaCheckSuite:
   val emptyPS = ProgramSummaries(none,
@@ -164,3 +171,32 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
   test("maxTooActivation: Interrupting is above Rapid, which is above None"):
     assert(TooActivation.None < TooActivation.Rapid)
     assert(TooActivation.Rapid < TooActivation.Interrupting)
+
+  def obsUsing(obs: Observation, targetId: Target.Id, isCalibration: Boolean): Observation =
+    Observation.scienceTargetIds
+      .replace(SortedSet(targetId))
+      .andThen(
+        Observation.calibrationRole.replace(Option.when(isCalibration)(CalibrationRole.Telluric))
+      )(obs)
+
+  test("calibrationOnlyTargets: a target used only by a calibration"):
+    forAll: (obs: Observation, targetId: Target.Id) =>
+      val ps = emptyPS.upsertObs(obsUsing(obs, targetId, isCalibration = true))
+      assertEquals(ps.calibrationOnlyTargets, Set(targetId))
+
+  test("calibrationOnlyTargets: a target shared with a science observation does not count"):
+    forAll: (obs1: Observation, obs2: Observation, targetId: Target.Id) =>
+      (obs1.id =!= obs2.id) ==> {
+        val ps = emptyPS
+          .upsertObs(obsUsing(obs1, targetId, isCalibration = true))
+          .upsertObs(obsUsing(obs2, targetId, isCalibration = false))
+        assert(ps.calibrationOnlyTargets.isEmpty)
+      }
+
+  test("displayDisposition: only a science target used by calibrations alone changes"):
+    forAll: (twid: TargetWithId) =>
+      val science = twid.copy(disposition = TargetDisposition.Science)
+      val blind   = twid.copy(disposition = TargetDisposition.BlindOffset)
+      assertEquals(science.displayDisposition(Set(twid.id)), TargetDisposition.Calibration)
+      assertEquals(science.displayDisposition(Set.empty), TargetDisposition.Science)
+      assertEquals(blind.displayDisposition(Set(twid.id)), TargetDisposition.BlindOffset)

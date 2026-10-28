@@ -345,12 +345,13 @@ object AsterismGroupObsList:
       val asterismGroups: List[AsterismGroup] =
         props.programSummaries.get.asterismGroups
           .map(AsterismGroup.fromTuple)
-          // Remove targets whose observations are calibrations
+          // Hide groups made only of calibrations. A user-defined telluric may share its
+          // science star's asterism, and that group still holds the science observation.
           .filter { ag =>
             ag.obsIds.idSet.toList
               .map(observations.get)
               .flattenOption
-              .forall(_.calibrationRole.isEmpty)
+              .exists(_.calibrationRole.isEmpty)
           }
           .toList
 

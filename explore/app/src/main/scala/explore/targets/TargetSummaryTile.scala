@@ -20,6 +20,7 @@ import explore.model.Observation
 import explore.model.TargetList
 import explore.model.enums.AppTab
 import explore.model.enums.TableId
+import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -53,16 +54,17 @@ import scala.collection.immutable.SortedSet
 import scala.collection.immutable.TreeSeqMap
 
 final case class TargetSummaryTile(
-  userId:             Option[User.Id],
-  programId:          Program.Id,
-  targets:            View[TargetList],
-  targetObservations: Map[Target.Id, SortedSet[Observation.Id]],
-  selectObservation:  (Observation.Id, Target.Id) => Callback,
-  selectedTargetIds:  View[List[Target.Id]],
-  focusedTargetId:    Option[Target.Id],
-  focusTargetId:      Option[Target.Id] => Callback,
-  readonly:           Boolean,
-  backButton:         VdomNode
+  userId:                 Option[User.Id],
+  programId:              Program.Id,
+  targets:                View[TargetList],
+  targetObservations:     Map[Target.Id, SortedSet[Observation.Id]],
+  calibrationOnlyTargets: Set[Target.Id],
+  selectObservation:      (Observation.Id, Target.Id) => Callback,
+  selectedTargetIds:      View[List[Target.Id]],
+  focusedTargetId:        Option[Target.Id],
+  focusTargetId:          Option[Target.Id] => Callback,
+  readonly:               Boolean,
+  backButton:             VdomNode
 ) extends Tile[TargetSummaryTile](
       ObsTabTileIds.TargetSummaryId.id,
       s"Target Summary (${targets.get.size})",
@@ -121,11 +123,12 @@ object TargetSummaryTile
         ColDef(id, row => accessor(row), ColNames(id))
 
       def columns(
-        ctx:                AppContext[IO],
-        programId:          Program.Id,
-        targetObservations: Map[Target.Id, SortedSet[Observation.Id]],
-        focusTargetId:      Option[Target.Id] => Callback,
-        selectObservation:  (Observation.Id, Target.Id) => Callback
+        ctx:                    AppContext[IO],
+        programId:              Program.Id,
+        targetObservations:     Map[Target.Id, SortedSet[Observation.Id]],
+        calibrationOnlyTargets: Set[Target.Id],
+        focusTargetId:          Option[Target.Id] => Callback,
+        selectObservation:      (Observation.Id, Target.Id) => Callback
       ) =
         List(
           ColDef(
@@ -151,7 +154,7 @@ object TargetSummaryTile
             .ForProgram(
               ColDef,
               _.target.some,
-              _.disposition.some,
+              _.displayDisposition(calibrationOnlyTargets).some,
               _.target.name.value,
               _.target.regionOrBaseCoords,
               _ => none
@@ -207,18 +210,21 @@ object TargetSummaryTile
         filesToImport    <- useStateView(List.empty[DOMFile])
         disposition      <- useStateView(TargetDisposition.Science.some)
         columnVisibility <- useStateView(TargetColumns.DefaultVisibility)
-        cols             <- useMemo(()): _ =>
+        cols             <- useMemo(props.calibrationOnlyTargets): calibrationOnlyTargets =>
                               columns(
                                 ctx,
                                 props.programId,
                                 props.targetObservations,
+                                calibrationOnlyTargets,
                                 props.focusTargetId,
                                 props.selectObservation
                               )
-        rows             <- useMemo(props.targets.get, disposition.get): (targets, disposition) =>
-                              targets.toList
-                                .filter((_, twid) => disposition.forall(_ === twid.disposition))
-                                .map(_._2)
+        rows             <- useMemo(props.targets.get, disposition.get, props.calibrationOnlyTargets):
+                              (targets, disposition, calibrationOnlyTargets) =>
+                                targets.toList
+                                  .filter: (_, twid) =>
+                                    disposition.forall(_ === twid.displayDisposition(calibrationOnlyTargets))
+                                  .map(_._2)
         rowSelection      = props.selectedTargetIds.as(targetIds2RowSelection)
         tableState       <- useMemo(columnVisibility.get, rowSelection.get):
                               (columnVisibility, rowSelection) =>
