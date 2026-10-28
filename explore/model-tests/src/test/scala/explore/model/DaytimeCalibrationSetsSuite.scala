@@ -153,9 +153,42 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(d.readMode, Flamingos2ReadMode.Faint)
     assertEquals(d.reads, Flamingos2ReadMode.Faint.readCount)
+    assertEquals(d.exposure, Flamingos2ReadMode.Faint.minimumExposureTime)
+
+  test("Re-picking the Flamingos 2 read mode keeps a hand-set read count"):
+    val d = Flamingos2DaytimeSetup.default.copy(reads = Flamingos2Reads.Reads_16)
+    assertEquals(Flamingos2DaytimeSetup.readMode.replace(d.readMode)(d), d)
 
   test("Clearing the Flamingos 2 FPU puts the imaging mask back"):
     val fpu = Flamingos2DaytimeSetup.fpu
     val d   = fpu.replace(Flamingos2Fpu.LongSlit2.some)(Flamingos2DaytimeSetup.default)
     assertEquals(fpu.get(d), Flamingos2Fpu.LongSlit2.some)
     assertEquals(fpu.replace(none)(d).fpu, Flamingos2FpuMask.Imaging)
+    assertEquals(fpu.replace(none)(d).decker, Flamingos2Decker.Imaging)
+
+  test("Picking a Flamingos 2 FPU picks its decker"):
+    val d = Flamingos2DaytimeSetup.fpu.replace(Flamingos2Fpu.LongSlit2.some)(
+      Flamingos2DaytimeSetup.default
+    )
+    assertEquals(d.decker, Flamingos2Fpu.LongSlit2.decker)
+
+  test("Changing a Flamingos 2 kind resets the window cover"):
+    val f2     = Flamingos2DaytimeSetup.defaultSet
+    val open   = f2.copy(
+      kind = CalibrationSetType.Flat,
+      gcal = gcalFor(Instrument.Flamingos2, CalibrationSetType.Flat, none),
+      setup = DaytimeCalibrationSetup.Flamingos2(
+        Flamingos2DaytimeSetup.default.copy(windowCover = Flamingos2WindowCover.Open.some)
+      )
+    )
+    val config = (s: DaytimeCalibrationSet) =>
+      DaytimeCalibrationSetup.flamingos2.getOption(s.setup).flatMap(_.config.windowCover)
+    assertEquals(config(withKind(open, CalibrationSetType.Flat)), Flamingos2WindowCover.Open.some)
+    assertEquals(config(withKind(open, CalibrationSetType.Dark)), none)
+
+  test("Flamingos 2 flats use the IR diffuser"):
+    val s = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
+    assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
+    assertEquals(withKind(dark, CalibrationSetType.Flat).gcal.map(_.diffuser),
+                 GcalDiffuser.Visible.some
+    )

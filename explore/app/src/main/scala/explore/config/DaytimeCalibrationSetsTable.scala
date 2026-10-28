@@ -28,6 +28,7 @@ import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -102,9 +103,9 @@ object DaytimeCalibrationSetsTable:
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
   private val DefaultGcalLens: Lens[DaytimeCalibrationSet, StepConfig.Gcal] =
-    Lens[DaytimeCalibrationSet, StepConfig.Gcal](_.gcal.getOrElse(DefaultGcal))(g =>
-      _.copy(gcal = g.some)
-    )
+    Lens[DaytimeCalibrationSet, StepConfig.Gcal](s =>
+      s.gcal.getOrElse(defaultGcal(s.setup.instrument))
+    )(g => _.copy(gcal = g.some))
 
   private def cellId(colId: ColumnId, idx: Int): NonEmptyString =
     NonEmptyString.unsafeFrom(s"daytime-cal-set-${colId.value}-$idx")
@@ -482,7 +483,9 @@ object DaytimeCalibrationSetsTable:
                 FpuColumnId,
                 c.row.original._2,
                 setup(c.row.original._2).zoom(Flamingos2DaytimeSetup.fpu),
-                "Imaging",
+                if Flamingos2FpuMask.custom.nonEmpty(setup(c.row.original._2).get.fpu) then
+                  "Custom Mask"
+                else "Imaging",
                 editable
               )
         ).withSize(110.toPx),

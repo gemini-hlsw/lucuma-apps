@@ -4,6 +4,7 @@
 package explore.model
 
 import cats.Eq
+import cats.Order
 import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.derived.*
@@ -171,15 +172,40 @@ object Flamingos2DaytimeSetup:
   val setup: Optional[DaytimeCalibrationSetup, Flamingos2DynamicConfig] =
     DaytimeCalibrationSetup.flamingos2.andThen(DaytimeCalibrationSetup.Flamingos2.config)
 
-  /** Picking a read mode also picks its read count, which stays editable. */
+  /**
+   * Picking another read mode also picks its read count, which stays editable, and raises the
+   * exposure to the mode's minimum.
+   */
   val readMode: Lens[Flamingos2DynamicConfig, Flamingos2ReadMode] =
     Lens[Flamingos2DynamicConfig, Flamingos2ReadMode](_.readMode): m =>
-      _.copy(readMode = m, reads = m.readCount)
+      d =>
+        if m === d.readMode then d
+        else
+          d.copy(
+            readMode = m,
+            reads = m.readCount,
+            exposure = Order.max(d.exposure, m.minimumExposureTime)
+          )
 
-  /** No FPU is imaging, with no mask in the beam. */
+  /**
+   * No FPU is imaging, with no mask in the beam, or a custom mask, which is kept. Picking an FPU
+   * also picks the decker it needs.
+   */
   val fpu: Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]] =
     Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]](_.fpu.builtinFpu): u =>
-      _.copy(fpu = u.fold(Flamingos2FpuMask.Imaging)(Flamingos2FpuMask.Builtin(_)))
+      d =>
+        (u, d.fpu) match
+          case (Some(f), _)                           =>
+            d.copy(fpu = Flamingos2FpuMask.Builtin(f), decker = f.decker)
+          case (None, Flamingos2FpuMask.Custom(_, _)) => d
+          case (None, _)                              =>
+            d.copy(fpu = Flamingos2FpuMask.Imaging, decker = Flamingos2Decker.Imaging)
+
+  /** A new kind starts with the window cover the step type implies. */
+  def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
+    d: Flamingos2DynamicConfig
+  ): Flamingos2DynamicConfig =
+    if kind === previous then d else d.copy(windowCover = none)
 
   val default: Flamingos2DynamicConfig =
     Flamingos2DynamicConfig(
@@ -225,11 +251,17 @@ object DaytimeCalibrationSets:
   val Instruments: List[Instrument] =
     List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2)
 
-  val DefaultGcal: StepConfig.Gcal =
+  /** The diffuser the ODB defaults to: visible for GMOS, IR for the infrared instruments. */
+  def defaultDiffuser(instrument: Instrument): GcalDiffuser =
+    instrument match
+      case Instrument.GmosNorth | Instrument.GmosSouth => GcalDiffuser.Visible
+      case _                                           => GcalDiffuser.Ir
+
+  def defaultGcal(instrument: Instrument): StepConfig.Gcal =
     StepConfig.Gcal(
       StepConfig.Gcal.Lamp.fromContinuum(DefaultContinuum),
       DefaultGcalFilter,
-      GcalDiffuser.Visible,
+      defaultDiffuser(instrument),
       DefaultShutter
     )
 
@@ -290,8 +322,12 @@ object DaytimeCalibrationSets:
       case i                     => GmosDaytimeSetup.forInstrument(i).map(_.defaultSet)
 
   /** The GCAL setup a kind needs, keeping the filter and shutter of the current one. */
-  def gcalFor(kind: CalibrationSetType, current: Option[StepConfig.Gcal]): Option[StepConfig.Gcal] =
-    val base = current.getOrElse(DefaultGcal)
+  def gcalFor(
+    instrument: Instrument,
+    kind:       CalibrationSetType,
+    current:    Option[StepConfig.Gcal]
+  ): Option[StepConfig.Gcal] =
+    val base = current.getOrElse(defaultGcal(instrument))
     kind match
       case CalibrationSetType.Flat =>
         base
@@ -329,12 +365,13 @@ object DaytimeCalibrationSets:
   /** Rewrites a row for a new kind so that it stays valid; the count is kept. */
   def withKind(set: DaytimeCalibrationSet, kind: CalibrationSetType): DaytimeCalibrationSet =
     val setup = set.setup match
-      case DaytimeCalibrationSetup.GmosNorth(d)   =>
+      case DaytimeCalibrationSetup.GmosNorth(d)  =>
         DaytimeCalibrationSetup.GmosNorth(setupFor(GmosDaytimeSetup.north, kind)(d))
-      case DaytimeCalibrationSetup.GmosSouth(d)   =>
+      case DaytimeCalibrationSetup.GmosSouth(d)  =>
         DaytimeCalibrationSetup.GmosSouth(setupFor(GmosDaytimeSetup.south, kind)(d))
-      case f2: DaytimeCalibrationSetup.Flamingos2 => f2
-    set.copy(kind = kind, gcal = gcalFor(kind, set.gcal), setup = setup)
+      case DaytimeCalibrationSetup.Flamingos2(d) =>
+        DaytimeCalibrationSetup.Flamingos2(Flamingos2DaytimeSetup.forKind(kind, set.kind)(d))
+    set.copy(kind = kind, gcal = gcalFor(set.setup.instrument, kind, set.gcal), setup = setup)
 
   /**
    * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2); none for an

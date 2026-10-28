@@ -146,12 +146,14 @@ object DaytimeCalibrationEditor:
         props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
 
       val table: VdomNode =
-        if DaytimeCalibrationSets.Instruments.contains_(instrument) then
+        if DaytimeCalibrationSets.supports(instrument) then
           DaytimeCalibrationSetsTable(instrument, setsView, props.editable, props.units)
         else
           <.div(
             ExploreStyles.DaytimeCalMessage,
-            "Calibration sets are only supported for GMOS North, GMOS South and Flamingos 2."
+            s"Calibration sets are only supported for ${DaytimeCalibrationSets.Instruments
+                .map(_.longName)
+                .mkString(", ")}."
           )
 
       <.div(
