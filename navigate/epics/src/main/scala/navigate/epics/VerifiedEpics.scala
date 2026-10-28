@@ -11,8 +11,10 @@ import cats.Parallel
 import cats.arrow.FunctionK
 import cats.effect.Async
 import cats.effect.Concurrent
+import cats.effect.MonadCancelThrow
 import cats.effect.Resource
 import cats.effect.std.Dispatcher
+import cats.effect.std.Mutex
 import cats.syntax.all.*
 import fs2.Stream
 import mouse.boolean.*
@@ -212,6 +214,17 @@ object VerifiedEpics {
       new VerifiedEpics[F, K, A] {
         override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = v.systems
         override val run: K[A]                                               = fK.apply(v.run)
+      }
+
+    /**
+     * Makes the program run holding the mutex. The channels involved are the same. The verification
+     * of the channels, if any, is done by the caller before running the program, so it is not
+     * included in the locked section.
+     */
+    def locked(mutex: Mutex[G])(using MonadCancelThrow[G]): VerifiedEpics[F, G, A] =
+      new VerifiedEpics[F, G, A] {
+        override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = v.systems
+        override val run: G[A]                                               = mutex.lock.surround(v.run)
       }
   }
 

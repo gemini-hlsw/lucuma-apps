@@ -100,7 +100,10 @@ trait TcsEpicsSystem[F[_]] {
 object TcsEpicsSystem {
 
   trait TcsEpics[F[_]] {
-    def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult]
+    def post(
+      timeout: FiniteDuration,
+      params:  VerifiedEpics[F, F, Unit]
+    ): VerifiedEpics[F, F, ApplyCommandResult]
     def clear: VerifiedEpics[F, F, Unit]
 
     val mountParkCmd: ParameterlessCommandChannels[F]
@@ -718,7 +721,7 @@ object TcsEpicsSystem {
       this.copy(params = params ++ c)
 
     override def post: VerifiedEpics[F, F, ApplyCommandResult] =
-      tcsEpics.clear *> params.compile *> tcsEpics.post(timeout)
+      tcsEpics.post(timeout, params.compile)
 
     override val mcsParkCommand: BaseCommand[F, TcsCommands[F]] =
       new BaseCommand[F, TcsCommands[F]] {
@@ -1670,8 +1673,11 @@ object TcsEpicsSystem {
     channels: TcsChannels[F]
   ) extends TcsEpics[F] {
 
-    override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
-      applyCmd.post(timeout)
+    override def post(
+      timeout: FiniteDuration,
+      params:  VerifiedEpics[F, F, Unit]
+    ): VerifiedEpics[F, F, ApplyCommandResult] =
+      applyCmd.post(timeout, params)
 
     override def clear: VerifiedEpics[F, F, Unit] = applyCmd.clearIfNotBusy
 

@@ -5,6 +5,7 @@ package navigate.server.tcs
 
 import algebra.instances.array.given
 import cats.Applicative
+import cats.Monad
 import cats.Parallel
 import cats.effect.Async
 import cats.effect.Ref
@@ -18,6 +19,7 @@ import navigate.epics.Channel
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.TestChannel
 import navigate.epics.VerifiedEpics
+import navigate.epics.VerifiedEpics.*>
 import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.server.ApplyCommandResult
 import navigate.server.acm.CadDirective
@@ -62,9 +64,12 @@ import scala.concurrent.duration.FiniteDuration
 
 object TestTcsEpicsSystem {
 
-  class TestApplyCommand[F[_]: Applicative] extends GeminiApplyCommand[F] {
-    override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
-      VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
+  class TestApplyCommand[F[_]: Monad] extends GeminiApplyCommand[F] {
+    override def post(
+      timeout: FiniteDuration,
+      params:  VerifiedEpics[F, F, Unit]
+    ): VerifiedEpics[F, F, ApplyCommandResult] =
+      params *> VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
 
     override def clearIfNotBusy: VerifiedEpics[F, F, Unit] = VerifiedEpics.unit
   }

@@ -10,6 +10,7 @@ import monocle.Focus
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.TestChannel
 import navigate.epics.VerifiedEpics
+import navigate.epics.VerifiedEpics.*>
 import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.server.ApplyCommandResult
 import navigate.server.acm.CadDirective
@@ -110,8 +111,11 @@ object TestAcquisitionCameraEpicsSystem {
     s: Ref[F, State]
   ): AcquisitionCameraEpicsSystem[F] = AcquisitionCameraEpicsSystem.buildSystem(
     new GeminiApplyCommand[F] {
-      override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
-        VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
+      override def post(
+        timeout: FiniteDuration,
+        params:  VerifiedEpics[F, F, Unit]
+      ): VerifiedEpics[F, F, ApplyCommandResult] =
+        params *> VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
 
       override def clearIfNotBusy: VerifiedEpics[F, F, Unit] = VerifiedEpics.unit
     },
