@@ -393,6 +393,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private lazy val windowCoverCol: colDef.TypeFor[Option[String]] =
+    colDef(
+      SequenceColumns.WindowCoverColumnId,
+      _.getStep.flatMap(_.windowCoverName),
+      header = "Window Cover",
+      cell = _.value.orEmpty
+    )
+
   private lazy val gnirsReadModeCol: colDef.TypeFor[Option[GnirsReadMode]] =
     compactEnumCol(
       SequenceColumns.ReadModeColumnId,
@@ -606,6 +614,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       gratingCol,
       filterCol,
       readModeCol,
+      windowCoverCol,
       gcalCol,
       peakCol,
       snCol
@@ -698,6 +707,7 @@ object SequenceColumns:
   val YBinColumnId: ColumnId          = ColumnId("ybin")
   val ROIColumnId: ColumnId           = ColumnId("roi")
   val ReadModeColumnId: ColumnId      = ColumnId("readMode")
+  val WindowCoverColumnId: ColumnId   = ColumnId("windowCover")
   val GCalColumnId: ColumnId          = ColumnId("gcal")
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
@@ -759,7 +769,8 @@ object SequenceColumns:
 
     val ForFlamingos2: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
-        ReadModeColumnId -> Resizable(75.toPx, min = 75.toPx)
+        ReadModeColumnId    -> Resizable(75.toPx, min = 75.toPx),
+        WindowCoverColumnId -> Resizable(70.toPx, min = 60.toPx)
       )
 
     val ForIgrins2: Map[ColumnId, ColumnSize] =
@@ -838,6 +849,7 @@ object SequenceColumns:
       ExposureColumnId,
       PeakColumnId,
       SNColumnId,
+      WindowCoverColumnId,
       FilterColumnId,
       GratingColumnId,
       FPUColumnId,

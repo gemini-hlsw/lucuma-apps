@@ -200,6 +200,10 @@ sealed trait SequenceRow[+D]:
     case Flamingos2DynamicConfig(readMode = readMode) => readMode.shortName
     case GnirsDynamicConfig(readMode = readMode)      => readMode.shortName
 
+  lazy val windowCoverName: Option[String] = instrumentConfig.flatMap:
+    case Flamingos2DynamicConfig(windowCover = windowCover) => windowCover.map(_.shortName)
+    case _                                                  => none
+
   lazy val gnirsReadMode: Option[GnirsReadMode] = instrumentConfig.collect:
     case GnirsDynamicConfig(readMode = readMode) => readMode
 
