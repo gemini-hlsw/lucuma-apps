@@ -191,7 +191,7 @@ trait DisplayImplicits:
 
   given Display[GmosAmpGain] = Display.by(_.shortName, _.longName)
 
-  given Display[GmosRoi] = Display.byShortName(_.longName)
+  export lucuma.ui.display.given_Display_GmosRoi
 
   given Display[CalibrationSetType] = Display.byShortName(_.name)
 

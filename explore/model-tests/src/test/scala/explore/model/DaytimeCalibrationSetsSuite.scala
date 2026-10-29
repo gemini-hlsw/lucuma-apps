@@ -46,7 +46,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       PosInt.unsafeFrom(3),
       StepConfig
         .Gcal(
-          StepConfig.Gcal.Lamp.fromContinuum(GcalContinuum.QuartzHalogen100W),
+          StepConfig.Gcal.Lamp.fromContinuum(GcalContinuum.QuartzHalogen5W),
           GcalFilter.Nd20,
           GcalDiffuser.Visible,
           GcalShutter.Closed
@@ -146,6 +146,15 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
     )
     assertEquals(kinds(Instrument.GmosNorth), Enumerated[CalibrationSetType].all)
+
+  test("Only GHOST may use the 100W QH lamp"):
+    Instruments.foreach: i =>
+      assertEquals(excludedContinua(i), Set(GcalContinuum.QuartzHalogen100W))
+    assertEquals(excludedContinua(Instrument.Ghost), Set.empty[GcalContinuum])
+
+  test("The default lamp is offered for every instrument"):
+    Instruments.foreach: i =>
+      assert(!excludedContinua(i).contains(DefaultContinuum))
 
   test("Picking a Flamingos 2 read mode also picks its read count"):
     val d = Flamingos2DaytimeSetup.readMode.replace(Flamingos2ReadMode.Faint)(
