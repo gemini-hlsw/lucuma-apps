@@ -101,7 +101,7 @@ case class TcsChannels[F[_]](
   chopRelative:             ChopRelativeChannels[F],
   pwfs1UnwrapDir:           Channel[F, CadDirective],
   pwfs2UnwrapDir:           Channel[F, CadDirective],
-  demandAzimuth:            Channel[F, String],
+  demandAzimuth:            Channel[F, Double],
   demandRotator:            Channel[F, Double],
   enclosureState:           EnclosureStateChannels[F],
   instrAA:                  Channel[F, Double],
@@ -998,7 +998,7 @@ object TcsChannels {
       p2mc  <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs2")
       chcf  <- ChopConfigChannels.build(service, tcsTop)
       chrl  <- ChopRelativeChannels.build(service, tcsTop)
-      dmaz  <- service.getChannel[String](tcsTop.value, "demandAz.VAL")
+      dmaz  <- service.getChannel[Double](tcsTop.value, "demandAz.VAL")
       dmrot <- service.getChannel[Double](tcsTop.value, "demandRma.VAL")
       encst <- EnclosureStateChannels.build(service, tcsTop)
       iaa   <- service.getChannel[Double](tcsTop.value, "sad:instrAA.VAL")

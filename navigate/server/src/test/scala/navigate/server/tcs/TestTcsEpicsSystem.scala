@@ -459,7 +459,7 @@ object TestTcsEpicsSystem {
     chopRelative:             ChopRelativeState,
     pwfs1UnwrapDir:           TestChannel.State[CadDirective],
     pwfs2UnwrapDir:           TestChannel.State[CadDirective],
-    demandAzimuth:            TestChannel.State[String],
+    demandAzimuth:            TestChannel.State[Double],
     demandRotator:            TestChannel.State[Double],
     instrAA:                  TestChannel.State[Double],
     focalPlaneOffsetAX:       TestChannel.State[Double],
@@ -1302,7 +1302,7 @@ object TestTcsEpicsSystem {
       ),
       pwfs1UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs1UnwrapDir)),
       pwfs2UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs2UnwrapDir)),
-      demandAzimuth = new TestChannel[F, State, String](s, Focus[State](_.demandAzimuth)),
+      demandAzimuth = new TestChannel[F, State, Double](s, Focus[State](_.demandAzimuth)),
       demandRotator = new TestChannel[F, State, Double](s, Focus[State](_.demandRotator)),
       enclosureState = EnclosureStateChannels(
         domeMode = new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsDomeMode)),
