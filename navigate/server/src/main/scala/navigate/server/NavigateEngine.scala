@@ -1032,9 +1032,10 @@ object NavigateEngine {
   )
 
   case class State(
-    guideConfig:       GuideConfig,
-    onSwappedTarget:   Boolean,
-    wfsTrackingConfig: WfsGuideStates
+    guideConfig:        GuideConfig,
+    onSwappedTarget:    Boolean,
+    wfsTrackingConfig:  WfsGuideStates,
+    commandsInProgress: List[NavigateCommand]
   )
 
   val startState: State = State(
@@ -1043,7 +1044,8 @@ object NavigateEngine {
     wfsTrackingConfig = WfsGuideStates(TrackingConfig.noTracking,
                                        TrackingConfig.noTracking,
                                        TrackingConfig.noTracking
-    )
+    ),
+    commandsInProgress = Nil
   )
 
   /**
@@ -1093,35 +1095,59 @@ object NavigateEngine {
     // Start the async calculation by putting a message in the input queue
     engine
       .offer(
-        // Several commands can be running at the same time, so there is nothing to check in the
-        // state. Produce the start command event.
-        engine.getState.as(CommandStart(cmdType).some) <*
-          // Flatmap with another Handler. The output is ignored, we only care about the stream that will execute the command later
-          Handler(
-            // Still in State world, cmd checks the current state and produces an F that will execute the command
-            cmd.map(x =>
-              Handler.RetVal(
-                NullEvent,
-                Stream
-                  .eval(
-                    // x is the F that executes the command. It will be evaluated in the main Stream join and produce a result.
-                    x.attempt
-                      .map(cmdResultToNavigateEvent)
-                      .map(z =>
-                        // Here we build the State that will be evaluated at the end
-                        Event(
-                          // Create an output event with the command result
-                          engine.getState.as(CommandEnd(cmdType, z).some) <*
-                            Handler.fromStream[F, State, Event[F, State, NavigateEvent]](
-                              Stream.exec(Async[F].delay(f(z.asRight)))
+        // State processing. Several commands can be running at the same time, unless the rules in
+        // CommandConflicts say otherwise.
+        engine.getState.flatMap { st =>
+          st.commandsInProgress.collectFirstSome(running =>
+            CommandConflicts.between(running, cmdType).tupleLeft(running)
+          ) match {
+            case None                 =>
+              engine
+                // First, register the command as in progress
+                .modifyState(_.focus(_.commandsInProgress).modify(cmdType :: _))
+                // And produce the start command event
+                .as(CommandStart(cmdType).some) <*
+                // Flatmap with another Handler. The output is ignored, we only care about the stream that will execute the command later
+                Handler(
+                  // Still in State world, cmd checks the current state and produces an F that will execute the command
+                  cmd.map(x =>
+                    Handler.RetVal(
+                      NullEvent,
+                      Stream
+                        .eval(
+                          // x is the F that executes the command. It will be evaluated in the main Stream join and produce a result.
+                          x.attempt
+                            .map(cmdResultToNavigateEvent)
+                            .map(z =>
+                              // Here we build the State that will be evaluated at the end
+                              Event(
+                                engine
+                                  // Remove one occurrence of the command from the list in progress
+                                  .modifyState(
+                                    _.focus(_.commandsInProgress).modify(_.diff(List(cmdType)))
+                                  )
+                                  // And create an output event with the command result
+                                  .as(CommandEnd(cmdType, z).some) <*
+                                  // Only then pass the result to the Async callback, so a command issued
+                                  // as soon as this one returns is not rejected as in progress
+                                  Handler.fromStream[F, State, Event[F, State, NavigateEvent]](
+                                    Stream.exec(Async[F].delay(f(z.asRight)))
+                                  )
+                              )
                             )
                         )
-                      )
+                        .some
+                    )
                   )
-                  .some
+                )
+            case Some((running, why)) =>
+              // A conflicting command is in progress. We schedule the call to the Async callback and produce the output event.
+              val r = CommandResult.CommandFailure(
+                s"Cannot execute ${cmdType.show} because ${running.show} is in progress: $why"
               )
-            )
-          )
+              engine.lift(Async[F].delay(f(r.asRight)).as(CommandEnd(cmdType, r)))
+          }
+        }
       )
       .as(none)
   }
