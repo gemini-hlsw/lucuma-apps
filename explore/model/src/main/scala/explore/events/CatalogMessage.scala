@@ -35,6 +35,11 @@ object CatalogMessage extends CatalogPicklers {
     type ResponseType = List[GuideStarCandidate]
   }
 
+  // A single guide star by Gaia source id, None if Gaia doesn't know it
+  case class GSByIdRequest(sourceId: Long) extends Request derives Eq {
+    type ResponseType = Option[GuideStarCandidate]
+  }
+
   case class GSCacheCleanupRequest(elapsedTime: Duration) extends Request derives Eq {
     type ResponseType = Nothing
   }
@@ -47,6 +52,8 @@ object CatalogMessage extends CatalogPicklers {
   }
 
   private given Pickler[GSRequest] = generatePickler
+
+  private given Pickler[GSByIdRequest] = generatePickler
 
   private given Pickler[GSCacheCleanupRequest] = generatePickler
 

@@ -70,7 +70,9 @@ case class AladinCell(
   resetSky:            Option[SlotId => IO[Unit]],
   isStaffOrAdmin:      Boolean,
   blindOffsetReadonly: Boolean,
-  guiding:             Option[View[GuidingConfiguration]] = none
+  guiding:             Option[View[GuidingConfiguration]] = none,
+  revertGuideStar:     Callback = Callback.empty,
+  guideStarReadonly:   Boolean = true
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -418,7 +420,11 @@ object AladinCell extends ModelOptics with AladinCommon:
                     props.durationAvailable,
                     props.ags.candidates.isReady,
                     props.anglesToTest.isDefined,
-                    props.targetNotObservable
+                    props.targetNotObservable,
+                    props.ags.manualGuideStar,
+                    props.obsConf.flatMap(_.remoteGSName),
+                    props.guideStarReadonly,
+                    props.revertGuideStar
                   )
                 )
           else EmptyVdom
