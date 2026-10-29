@@ -5,7 +5,6 @@ package explore.targeteditor
 
 import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.*
@@ -20,8 +19,7 @@ import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.IconSize
-import lucuma.react.primereact.Button
-import lucuma.ui.primereact.*
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.syntax.all.given
 
 import scala.math.BigDecimal.RoundingMode
@@ -34,19 +32,12 @@ case class AgsOverlay(
   durationAvailable:   Boolean, // Duration implies sequence
   candidatesAvailable: Boolean,
   anglesAvailable:     Boolean,
-  targetNotObservable: Boolean,
-  manualGuideStar:     Option[ManualGuideStar],
-  guideStarName:       Option[NonEmptyString],
-  readonly:            Boolean,
-  onRevert:            Callback
+  targetNotObservable: Boolean
 ) extends ReactFnProps[AgsOverlay](AgsOverlay.component) {
-  val canCalculate: Boolean  =
+  val canCalculate: Boolean =
     candidatesAvailable && durationAvailable && modeAvailable && anglesAvailable
-  val noGuideStar: Boolean   = canCalculate && selectedGS.get.idx.isEmpty && !agsState.isCalculating
-  val loadingStars           = agsState.isLoading
-  // The star picked by hand can't be used, so there is no analysis to show for it
-  val manualProblem: Boolean =
-    manualGuideStar.exists(_ =!= ManualGuideStar.Selected)
+  val noGuideStar: Boolean  = canCalculate && selectedGS.get.idx.isEmpty && !agsState.isCalculating
+  val loadingStars          = agsState.isLoading
 }
 
 object AgsOverlay:
@@ -58,12 +49,8 @@ object AgsOverlay:
 
       val maxIndex = props.agsResults.size
 
-      val canNavigate = !props.readonly && props.agsState === AgsState.Idle
-
-      val canGoPrev = canNavigate && selectedIndex.exists(_ > 0)
-      // Without a usable pick, next offers the best candidate
-      val canGoNext = canNavigate &&
-        selectedIndex.fold(props.manualProblem && maxIndex > 0)(_ < maxIndex - 1)
+      val canGoPrev = props.agsState === AgsState.Idle && selectedIndex.exists(_ > 0)
+      val canGoNext = props.agsState === AgsState.Idle && selectedIndex.exists(_ < maxIndex - 1)
 
       def goPrev: Option[Callback] =
         selectedIndex
@@ -73,74 +60,44 @@ object AgsOverlay:
           .filter(_ => canGoPrev)
 
       def goNext: Option[Callback] =
-        Option.when(canGoNext)(
-          props.selectedGS.set(props.agsResults.pick(selectedIndex.fold(0)(_ + 1)))
-        )
+        selectedIndex
+          .map { i =>
+            props.selectedGS.set(props.agsResults.pick(i + 1))
+          }
+          .filter(_ => canGoNext)
 
       val errorIcon = Icons.TriangleSolid
         .addClass(ExploreStyles.ItcErrorIcon)
         .withSize(IconSize.LG)
-
-      val manualErrorIcon: VdomNode =
-        Icons.ExclamationTriangle.withClass(ExploreStyles.AgsManualError)
 
       val devOnly =
         <.div(^.cls := "ags-selection-dev",
               TagMod.devOnly(s"${props.agsState} ${props.selectedGS.get}")
         )
 
-      def nameRow(name: NonEmptyString): VdomNode =
-        <.div(
-          ExploreStyles.AgsDescription,
-          Icons.Bahai,
-          <.span(name.value),
-          <.div(
-            ExploreStyles.AgsNavigation,
-            <.span(
-              LucumaPrimeStyles.Disabled.unless(canGoPrev),
-              ^.onClick -->? goPrev,
-              ExploreStyles.AgsNavigationButton,
-              Icons.ChevronLeft
-            ),
-            <.span(
-              LucumaPrimeStyles.Disabled.unless(canGoNext),
-              ^.onClick -->? goNext,
-              ExploreStyles.AgsNavigationButton,
-              Icons.ChevronRight
-            )
-          )
-        )
-
-      // Says the guide star was picked by hand, and whether it can be used, with the way back
-      val manualRow: VdomNode =
-        props.manualGuideStar
-          .map: manual =>
-            val (icon, message, severity) = manual match
-              case ManualGuideStar.Selected =>
-                (EmptyVdom, Constants.ManualGSSelected, Button.Severity.Primary)
-              case ManualGuideStar.Unusable =>
-                (manualErrorIcon, Constants.ManualGSUnusable, Button.Severity.Danger)
-              case ManualGuideStar.NotFound =>
-                (manualErrorIcon, Constants.ManualGSNotFound, Button.Severity.Danger)
-            <.div(
-              ExploreStyles.AgsDescription |+| ExploreStyles.AgsManual,
-              icon,
-              <.span(ExploreStyles.AgsManualError.when(props.manualProblem), message),
-              Button(
-                label = "Revert to Automatic",
-                disabled = props.readonly,
-                onClick = props.onRevert,
-                severity = severity,
-                outlined = true,
-                tooltip = "Revert to Automatic Selection"
-              ).mini.veryCompact
-            ): VdomNode
-          .getOrElse(EmptyVdom)
-
       props.selectedGS.get.analysis
         .map { case analysis =>
           ReactFragment(
-            nameRow(analysis.target.name),
+            <.div(
+              ExploreStyles.AgsDescription,
+              Icons.Bahai,
+              <.span(analysis.target.name.value),
+              <.div(
+                ExploreStyles.AgsNavigation,
+                <.span(
+                  LucumaPrimeStyles.Disabled.unless(canGoPrev),
+                  ^.onClick -->? goPrev,
+                  ExploreStyles.AgsNavigationButton,
+                  Icons.ChevronLeft
+                ),
+                <.span(
+                  LucumaPrimeStyles.Disabled.unless(canGoNext),
+                  ^.onClick -->? goNext,
+                  ExploreStyles.AgsNavigationButton,
+                  Icons.ChevronRight
+                )
+              )
+            ),
             <.div(
               ExploreStyles.AgsDescription,
               devOnly,
@@ -167,15 +124,9 @@ object AgsOverlay:
                       s"(${formatCoordinates(analysis.target.tracking.baseCoordinates)})"
                 )
               )
-            ),
-            manualRow
+            )
           )
         }
-        .orElse(
-          props.guideStarName
-            .filter(_ => props.manualProblem)
-            .map(name => ReactFragment(nameRow(name), devOnly, manualRow))
-        )
         .getOrElse {
           <.div(
             ExploreStyles.AgsDescription,

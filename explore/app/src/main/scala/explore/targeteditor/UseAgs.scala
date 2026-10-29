@@ -11,8 +11,6 @@ import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import crystal.react.syntax.pot.given
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.events.*
 import explore.model.*
 import explore.model.GuideStarSelection.*
@@ -34,24 +32,21 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /**
- * What AGS produced for an observation: the catalog candidates around the base, the analysis of
- * those candidates at the angles to test and, if the guide star was picked by hand, its state.
+ * What AGS produced for an observation: the catalog candidates around the base and the analysis of
+ * those candidates at the angles to test.
  */
 case class AgsData(
-  candidates:      Pot[Option[List[GuideStarCandidate]]],
-  results:         AgsCalculationResults,
-  manualGuideStar: Option[ManualGuideStar] = none
+  candidates: Pot[Option[List[GuideStarCandidate]]],
+  results:    AgsCalculationResults
 )
 
 object AgsData:
   val Empty: AgsData =
     AgsData(Pot.pending, AgsCalculationResults.Empty)
 
-  private given Reusability[ManualGuideStar] = Reusability.byEq
-
   given Reusability[AgsData] =
     // We don't want to check every candidate, the length is enough to know if the catalog changed.
-    Reusability.by(d => (d.candidates.map(_.map(_.length)), d.results, d.manualGuideStar))
+    Reusability.by(d => (d.candidates.map(_.map(_.length)), d.results))
 
 object UseAgs:
   // Position-angle changes debouncing time
@@ -59,9 +54,6 @@ object UseAgs:
 
   // only compare candidates by id
   private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
-
-  private def gaiaSourceId(name: NonEmptyString): Option[Long] =
-    GuideStarName.from(name.value).toOption.flatMap(_.toGaiaSourceId)
 
   /**
    * Runs guide star selection for an observation.
@@ -108,29 +100,6 @@ object UseAgs:
                   .guarantee(obsConf.agsState.foldMap(_.async.set(AgsState.Idle)))
               else none.pure[IO]
             .getOrElse(List.empty.some.pure[IO])
-      // A star picked by hand may lie outside the catalog search (area, brightness or row limit).
-      // It is then looked up by id and added to the candidates, so AGS ranks it with the rest.
-      catalogCands      = candidates.value.toOption.flatten
-      extraStarName     = catalogCands.flatMap: cands =>
-                            obsConf.remoteGSName.filterNot(n => cands.exists(_.name === n))
-      extraStar        <- useEffectResultWithDeps(extraStarName): name =>
-                            import ctx.given
-
-                            name
-                              .flatMap(gaiaSourceId)
-                              .fold(none[GuideStarCandidate].pure[IO]): id =>
-                                (obsConf.agsState.foldMap(_.async.set(AgsState.LoadingCandidates)) *>
-                                  CatalogClient[IO]
-                                    .requestSingle(CatalogMessage.GSByIdRequest(id))
-                                    .map(_.flatten))
-                                  .guarantee(obsConf.agsState.foldMap(_.async.set(AgsState.Idle)))
-                              .tupleLeft(name)
-      // Only wait for the lookup when there is one, keyed on the name it was made for.
-      allCands          = catalogCands.flatMap: cands =>
-                            extraStarName.fold(cands.some): name =>
-                              extraStar.value.toOption
-                                .collect { case (n, star) if n.contains(name) => star }
-                                .map(star => cands ++ star.toList)
       agsCalcProps     <- useMemo(
                             (obsTargets.map(_.focus.id),
                              obsTime,
@@ -140,7 +109,7 @@ object UseAgs:
                              obsConf.obsModeType,
                              obsConf.guidedAcqOffsets,
                              obsConf.guidedSciOffsets,
-                             allCands,
+                             candidates.value.toOption.flatten,
                              obsConf.guideProbe,
                              obsConf.altairMode
                             )
@@ -202,20 +171,4 @@ object UseAgs:
       _                <- useEffectWithDeps((obsConf.remoteGSName, results.constrained)): (n, resultsPot) =>
                             resultsPot.toOption.foldMap: results =>
                               guideStarSelection.set(results.select(n))
-      // Reported only once AGS has settled, so a pick is not flagged while it is being checked.
-      manualGuideStar   =
-        for
-          name   <- obsConf.remoteGSName
-          usable <- results.constrained.toOption
-          if obsConf.agsState.forall(_.get.isIdle)
-        yield
-          val notFound: Boolean =
-            extraStarName.contains(name) &&
-              (gaiaSourceId(name).isEmpty ||
-                extraStar.value.toOption.exists { case (n, star) =>
-                  n.contains(name) && star.isEmpty
-                })
-          if usable.exists(_.target.name === name) then ManualGuideStar.Selected
-          else if notFound then ManualGuideStar.NotFound
-          else ManualGuideStar.Unusable
-    yield AgsData(candidates.value.value, results, manualGuideStar)
+    yield AgsData(candidates.value.value, results)

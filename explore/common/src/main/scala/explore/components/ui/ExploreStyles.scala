@@ -283,8 +283,6 @@ object ExploreStyles:
   val AgsCoordinates: Css      = Css("ags-coordinates")
   val AgsNavigationButton: Css = Css("ags-navigation-button")
   val AgsNavigation: Css       = Css("ags-navigation")
-  val AgsManual: Css           = Css("ags-manual")
-  val AgsManualError: Css      = Css("ags-manual-error")
 
   val ProposalTab: Css               = Css("explore-proposal-tab")
   val ProposalDetailsGrid: Css       = Css("explore-proposal-details-grid")

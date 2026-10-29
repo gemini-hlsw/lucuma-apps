@@ -104,8 +104,7 @@ final case class ObservationTargetsEditorTile(
   positions:             Option[ObsPositions] = None,
   defaultObsTime:        Option[Pot[Instant]] = None,
   ags:                   AgsData = AgsData.Empty,
-  guiding:               Option[View[GuidingConfiguration]] = None,
-  revertGuideStar:       Callback = Callback.empty
+  guiding:               Option[View[GuidingConfiguration]] = None
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
       tileId,
@@ -510,11 +509,7 @@ object ObservationTargetsEditorTile
                       resetSky,
                       props.isStaffOrAdmin,
                       editorReadonly,
-                      props.guiding,
-                      props.revertGuideStar,
-                      // The backend's rule for the guide star, unlike `editorReadonly`, lets staff
-                      // edit executed observations.
-                      props.readonly
+                      props.guiding
                     ),
                     formContent
                   )
