@@ -3338,13 +3338,13 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       (st, ctr) <- createController()
       _         <- st.tcs.update(
                      Focus[TestTcsEpicsSystem.State](_.demandAzimuth)
-                       .replace(TestChannel.State.of("+225:00:12.34"))
+                       .replace(TestChannel.State.of(225.00343))
                    )
       _         <- ctr.azimuthUnwrap
       r1        <- st.tcs.get
       _         <- st.tcs.update(
                      Focus[TestTcsEpicsSystem.State](_.demandAzimuth)
-                       .replace(TestChannel.State.of("-45:00:12.34"))
+                       .replace(TestChannel.State.of(-45.00343))
                    )
       _         <- ctr.azimuthUnwrap
       r2        <- st.tcs.get

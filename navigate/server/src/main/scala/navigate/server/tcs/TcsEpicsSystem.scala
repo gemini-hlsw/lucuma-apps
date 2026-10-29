@@ -608,18 +608,7 @@ object TcsEpicsSystem {
 
         override def azimuthDemand: VerifiedEpics[F, F, AzimuthAngle] =
           readChannel(channels.telltale, channels.demandAzimuth).map(
-            _.flatMap { s =>
-              val parts = s.split(':')
-              (for {
-                deg <- parts.lift(0).flatMap(_.toDoubleOption)
-                min <- parts.lift(1).flatMap(_.toDoubleOption)
-                sec <- parts.lift(2).flatMap(_.toDoubleOption)
-              } yield AzimuthAngle
-                .fromDoubleDegrees(deg + (deg >= 0.0).fold(1.0, -1.0) * (min + sec / 60.0) / 60.0)
-                .pure[F]).getOrElse(
-                Async[F].raiseError(new Throwable(s"Problem reading current azimuth value $s"))
-              )
-            }
+            _.map(AzimuthAngle.fromDoubleDegrees)
           )
 
         override def rotatorDemand: VerifiedEpics[F, F, RotatorAngle] =
