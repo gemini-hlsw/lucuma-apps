@@ -110,27 +110,35 @@ object UseAgs:
             .getOrElse(List.empty.some.pure[IO])
       // A star picked by hand may lie outside the catalog search (area, brightness or row limit).
       // It is then looked up by id and added to the candidates, so AGS ranks it with the rest.
+      // Without the inputs the catalog search needs, the candidates are an empty placeholder and
+      // AGS can't run, so there is nothing to look up.
+      canSearch         = obsTime.isDefined && obsConf.obsModeType.isDefined &&
+                            (obsConf.explicitBase.isDefined || positions.baseTracking.isDefined)
       catalogCands      = candidates.value.toOption.flatten
-      extraStarName     = catalogCands.flatMap: cands =>
-                            obsConf.remoteGSName.filterNot(n => cands.exists(_.name === n))
+      extraStarName     = catalogCands
+                            .filter(_ => canSearch)
+                            .flatMap: cands =>
+                              obsConf.remoteGSName.filterNot(n => cands.exists(_.name === n))
       extraStar        <- useEffectResultWithDeps(extraStarName): name =>
                             import ctx.given
 
                             name
                               .flatMap(gaiaSourceId)
-                              .fold(none[GuideStarCandidate].pure[IO]): id =>
+                              .fold(none[GuideStarCandidate].asRight[String].pure[IO]): id =>
                                 (obsConf.agsState.foldMap(_.async.set(AgsState.LoadingCandidates)) *>
                                   CatalogClient[IO]
                                     .requestSingle(CatalogMessage.GSByIdRequest(id))
-                                    .map(_.flatten))
+                                    .map(_.getOrElse(s"No answer looking up guide star $id".asLeft))
+                                    .handleError(_.getMessage.asLeft))
                                   .guarantee(obsConf.agsState.foldMap(_.async.set(AgsState.Idle)))
                               .tupleLeft(name)
-      // Only wait for the lookup when there is one, keyed on the name it was made for.
+      // The answer for the current name. A failed lookup adds nothing, so AGS still runs.
+      extraLookup       = extraStarName.flatMap: name =>
+                            extraStar.value.toOption.collect:
+                              case (n, lookup) if n.contains(name) => lookup
       allCands          = catalogCands.flatMap: cands =>
-                            extraStarName.fold(cands.some): name =>
-                              extraStar.value.toOption
-                                .collect { case (n, star) if n.contains(name) => star }
-                                .map(star => cands ++ star.toList)
+                            extraStarName.fold(cands.some): _ =>
+                              extraLookup.map(lookup => cands ++ lookup.toOption.flatten.toList)
       agsCalcProps     <- useMemo(
                             (obsTargets.map(_.focus.id),
                              obsTime,
@@ -209,13 +217,10 @@ object UseAgs:
           usable <- results.constrained.toOption
           if obsConf.agsState.forall(_.get.isIdle)
         yield
-          val notFound: Boolean =
-            extraStarName.contains(name) &&
-              (gaiaSourceId(name).isEmpty ||
-                extraStar.value.toOption.exists { case (n, star) =>
-                  n.contains(name) && star.isEmpty
-                })
           if usable.exists(_.target.name === name) then ManualGuideStar.Selected
-          else if notFound then ManualGuideStar.NotFound
-          else ManualGuideStar.Unusable
+          else
+            extraLookup match
+              case Some(Left(_))     => ManualGuideStar.LookupFailed
+              case Some(Right(None)) => ManualGuideStar.NotFound
+              case _                 => ManualGuideStar.Unusable
     yield AgsData(candidates.value.value, results, manualGuideStar)

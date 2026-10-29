@@ -32,6 +32,7 @@ trait Constants:
   val ManualGSSelected       = "Guide star selected manually"
   val ManualGSUnusable       = "Selected guide star is not usable"
   val ManualGSNotFound       = "Selected guide star was not found"
+  val ManualGSLookupFailed   = "Selected guide star could not be checked"
   val NoDuration             = "No duration available"
   val NotObservable          = "Target not observable at the specified time"
   val NoPositionAngle        = "Position angle unavailable without a sequence"

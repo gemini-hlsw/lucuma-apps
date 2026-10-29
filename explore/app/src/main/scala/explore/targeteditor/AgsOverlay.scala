@@ -116,12 +116,14 @@ object AgsOverlay:
         props.manualGuideStar
           .map: manual =>
             val (icon, message, severity) = manual match
-              case ManualGuideStar.Selected =>
+              case ManualGuideStar.Selected     =>
                 (EmptyVdom, Constants.ManualGSSelected, Button.Severity.Primary)
-              case ManualGuideStar.Unusable =>
+              case ManualGuideStar.Unusable     =>
                 (manualErrorIcon, Constants.ManualGSUnusable, Button.Severity.Danger)
-              case ManualGuideStar.NotFound =>
+              case ManualGuideStar.NotFound     =>
                 (manualErrorIcon, Constants.ManualGSNotFound, Button.Severity.Danger)
+              case ManualGuideStar.LookupFailed =>
+                (manualErrorIcon, Constants.ManualGSLookupFailed, Button.Severity.Danger)
             <.div(
               ExploreStyles.AgsDescription |+| ExploreStyles.AgsManual,
               icon,

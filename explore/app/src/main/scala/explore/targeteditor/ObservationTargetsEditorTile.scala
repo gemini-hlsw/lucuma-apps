@@ -376,6 +376,8 @@ object ObservationTargetsEditorTile
                 )
             )
 
+          // The guide star uses `props.readonly` instead: the backend lets staff change it on
+          // executed observations.
           val editorReadonly = props.readonly || obsEditInfo.allAreExecuted
 
           // Sky position callbacks used by AladinCell for both sky and target selection.
@@ -511,10 +513,8 @@ object ObservationTargetsEditorTile
                       props.isStaffOrAdmin,
                       editorReadonly,
                       props.guiding,
-                      props.revertGuideStar,
-                      // The backend's rule for the guide star, unlike `editorReadonly`, lets staff
-                      // edit executed observations.
-                      props.readonly
+                      revertGuideStar = props.revertGuideStar,
+                      guideStarReadonly = props.readonly
                     ),
                     formContent
                   )

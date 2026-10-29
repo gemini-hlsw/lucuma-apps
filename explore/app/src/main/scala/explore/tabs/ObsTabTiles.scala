@@ -12,6 +12,7 @@ import crystal.*
 import crystal.Pot.Ready
 import crystal.react.*
 import crystal.react.hooks.*
+import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.components.*
@@ -337,8 +338,8 @@ object ObsTabTiles:
                                   // again. The name is never cleared here, see `revertGuideStar`.
                                   gss.withOnMod {
                                     (_, _) match {
-                                      case (_, AgsOverride(n, _, _))
-                                          if !props.selectedGSName.get.contains(n) =>
+                                      case (prev, AgsOverride(n, _, _))
+                                          if prev.targetName =!= n.some =>
                                         props.selectedGSName.set(n.some) *>
                                           odbApi
                                             .setGuideTargetName(props.obsId, n.some)
