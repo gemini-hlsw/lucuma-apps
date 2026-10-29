@@ -169,7 +169,7 @@ object DaytimeCalibrationEditor:
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,
-          "The sequence is materialized. Delete it to edit the calibration sets."
+          "The sequence is materialized, calibration sets can no longer be edited."
         ).when(props.hasMaterializedSequence),
         table
       )
