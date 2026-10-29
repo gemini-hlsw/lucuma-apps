@@ -36,6 +36,7 @@ import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.LightSink
 import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.server.tcs.TcsNorthControllerSim
+import navigate.server.tcs.TcsSouthController
 import navigate.server.tcs.TcsSouthControllerSim
 import org.http4s.Response
 import org.http4s.client.Client
@@ -294,11 +295,15 @@ object NavigateEngineSpec {
     Resource.liftK(Applicative[F].pure(Response[F](body = Stream.emits(body.getBytes("UTF-8")))))
   }
 
-  def buildEngine[F[_]: {Async, Logger}]: F[NavigateEngine[F]] = {
+  def buildEngine[F[_]: {Async, Logger}]: F[NavigateEngine[F]] =
+    TcsSouthControllerSim.build[F].flatMap(buildEngineWith[F](_))
+
+  def buildEngineWith[F[_]: {Async, Logger}](
+    tcsSouth: TcsSouthController[F]
+  ): F[NavigateEngine[F]] = {
     val client = buildClient("dummy")
     for {
       tcsNorth <- TcsNorthControllerSim.build[F]
-      tcsSouth <- TcsSouthControllerSim.build[F]
       ret      <- NavigateEngine.build[F](
                     Site.GS,
                     Services(
