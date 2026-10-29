@@ -50,7 +50,7 @@ object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCa
       idb       <- IO(self.indexedDB.toOption)
       stores     = CacheIDBStores()
       cacheDb   <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
-      cache     <- Cache.withIDB[IO](idb, "explore-gaia") // only used for blind offsets for now
+      cache     <- Cache.withIDB[IO](idb, "explore-gaia") // blind offsets and single guide stars
       rawClient  = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
       log       <- IO(LoggerFactory[IO].getLoggerFromName("catalog-server"))
       httpClient = RequestLogger(
@@ -80,6 +80,10 @@ object CatalogServer extends WorkerServer[CatalogMessage.Request] with CatalogCa
             expireGuideStarCandidates(cacheDb, stores, Expiration)
               .toF[IO]
               .handleErrorWith(e => log.error(e)("Error expiring guidestar candidates"))
+
+        case CatalogMessage.GSByIdRequest(sourceId) =>
+          given Logger[IO] = log
+          GuideStarByIdRequestHandler(client, sourceId, cache, invocation.respond(_))
 
         case CatalogMessage.GSCacheCleanupRequest(expTime) =>
           expireGuideStarCandidates(cacheDb, stores, expTime)

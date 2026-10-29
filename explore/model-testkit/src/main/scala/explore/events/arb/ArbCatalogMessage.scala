@@ -32,6 +32,12 @@ trait ArbCatalogMessage:
   given Cogen[CatalogMessage.GSRequest] =
     Cogen[(Tracking, Instant, GuideProbe)].contramap(r => (r.tracking, r.vizTime, r.guideProbe))
 
+  given Arbitrary[CatalogMessage.GSByIdRequest] =
+    Arbitrary(arbitrary[Long].map(CatalogMessage.GSByIdRequest(_)))
+
+  given Cogen[CatalogMessage.GSByIdRequest] =
+    Cogen[Long].contramap(_.sourceId)
+
   given Arbitrary[CatalogMessage.GSCacheCleanupRequest] =
     // for some reason arbitrary[Duration] caused Long overflows, so...
     Arbitrary:
@@ -54,20 +60,26 @@ trait ArbCatalogMessage:
     Arbitrary:
       Gen.oneOf(
         arbitrary[CatalogMessage.GSRequest],
+        arbitrary[CatalogMessage.GSByIdRequest],
         arbitrary[CatalogMessage.GSCacheCleanupRequest],
         arbitrary[CatalogMessage.BlindOffsetRequest],
         Gen.const(CatalogMessage.CleanCache)
       )
 
   given Cogen[CatalogMessage.Request] =
-    Cogen[Either[Unit, Either[CatalogMessage.GSCacheCleanupRequest,
-                              Either[CatalogMessage.GSRequest, CatalogMessage.BlindOffsetRequest]
-    ]]]
+    Cogen[Either[
+      Unit,
+      Either[CatalogMessage.GSCacheCleanupRequest, Either[
+        CatalogMessage.GSRequest,
+        Either[CatalogMessage.GSByIdRequest, CatalogMessage.BlindOffsetRequest]
+      ]]
+    ]]
       .contramap {
         case CatalogMessage.CleanCache               => ().asLeft
         case r: CatalogMessage.GSCacheCleanupRequest => r.asLeft.asRight
         case r: CatalogMessage.GSRequest             => r.asLeft.asRight.asRight
-        case r: CatalogMessage.BlindOffsetRequest    => r.asRight.asRight.asRight
+        case r: CatalogMessage.GSByIdRequest         => r.asLeft.asRight.asRight.asRight
+        case r: CatalogMessage.BlindOffsetRequest    => r.asRight.asRight.asRight.asRight
       }
 
 object ArbCatalogMessage extends ArbCatalogMessage
