@@ -68,6 +68,8 @@ given Display[GhostBinning] =
 
 given Display[GhostReadMode] = Display.by(_.shortName, _.longName)
 
+given Display[Flamingos2WindowCover] = Display.by(_.shortName, _.longName)
+
 given Display[SequenceType] = Display.byShortName:
   case SequenceType.Acquisition => "Acquisition"
   case SequenceType.Science     => "Science"

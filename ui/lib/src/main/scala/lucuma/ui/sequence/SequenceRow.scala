@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.enums.Flamingos2WindowCover
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GnirsReadMode
@@ -200,9 +201,10 @@ sealed trait SequenceRow[+D]:
     case Flamingos2DynamicConfig(readMode = readMode) => readMode.shortName
     case GnirsDynamicConfig(readMode = readMode)      => readMode.shortName
 
-  lazy val windowCoverName: Option[String] = instrumentConfig.collect:
-    case Flamingos2DynamicConfig(windowCover = windowCover) =>
-      windowCover.fold("Auto")(_.shortName)
+  // Outer `None` for non-Flamingos 2 steps; inner `None` means the cover is set automatically.
+  lazy val flamingos2WindowCover: Option[Option[Flamingos2WindowCover]] =
+    instrumentConfig.collect:
+      case Flamingos2DynamicConfig(windowCover = windowCover) => windowCover
 
   lazy val gnirsReadMode: Option[GnirsReadMode] = instrumentConfig.collect:
     case GnirsDynamicConfig(readMode = readMode) => readMode
