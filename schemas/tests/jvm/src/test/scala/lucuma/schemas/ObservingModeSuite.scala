@@ -36,7 +36,8 @@ class ObservingModeSuite extends FunSuite:
             order = WavelengthOrder.Increasing,
             offsets = none,
             skyCount = 0.refined,
-            skyOffsets = none
+            skyOffsets = none,
+            exposuresPerOffset = 1.refined
           )
         )
         assertEquals(initialFilters.size, 1)

@@ -6,6 +6,7 @@ package lucuma.schemas.decoders
 import cats.data.NonEmptyList
 import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.NonNegInt
+import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.ImagingVariantType
@@ -68,23 +69,27 @@ trait ImagingVariantDecoders:
         case ImagingVariantType.Grouped     =>
           val grouped = c.downField("grouped")
           for
-            order      <- grouped.downField("order").as[WavelengthOrder]
-            offsets    <- grouped.downField("offsets").as[Option[TelescopeConfigGenerator]]
-            skyCount   <- grouped.downField("skyCount").as[NonNegInt]
-            skyOffsets <- grouped.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
-          yield ImagingVariant.Grouped(order, offsets, skyCount, skyOffsets)
+            order              <- grouped.downField("order").as[WavelengthOrder]
+            offsets            <- grouped.downField("offsets").as[Option[TelescopeConfigGenerator]]
+            skyCount           <- grouped.downField("skyCount").as[NonNegInt]
+            skyOffsets         <- grouped.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
+            exposuresPerOffset <- grouped.downField("exposuresPerOffset").as[PosInt]
+          yield ImagingVariant.Grouped(order, offsets, skyCount, skyOffsets, exposuresPerOffset)
         case ImagingVariantType.Interleaved =>
           val interleaved = c.downField("interleaved")
           for
-            offsets    <- interleaved.downField("offsets").as[Option[TelescopeConfigGenerator]]
-            skyCount   <- interleaved.downField("skyCount").as[NonNegInt]
-            skyOffsets <- interleaved.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
-          yield ImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
+            offsets            <- interleaved.downField("offsets").as[Option[TelescopeConfigGenerator]]
+            skyCount           <- interleaved.downField("skyCount").as[NonNegInt]
+            skyOffsets         <-
+              interleaved.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
+            exposuresPerOffset <- interleaved.downField("exposuresPerOffset").as[PosInt]
+          yield ImagingVariant.Interleaved(offsets, skyCount, skyOffsets, exposuresPerOffset)
         case ImagingVariantType.PreImaging  =>
           val preimaging = c.downField("preImaging")
           for
-            offset1 <- preimaging.downField("offset1").as[Offset]
-            offset2 <- preimaging.downField("offset2").as[Offset]
-            offset3 <- preimaging.downField("offset3").as[Offset]
-            offset4 <- preimaging.downField("offset4").as[Offset]
-          yield ImagingVariant.PreImaging(offset1, offset2, offset3, offset4)
+            offset1            <- preimaging.downField("offset1").as[Offset]
+            offset2            <- preimaging.downField("offset2").as[Offset]
+            offset3            <- preimaging.downField("offset3").as[Offset]
+            offset4            <- preimaging.downField("offset4").as[Offset]
+            exposuresPerOffset <- preimaging.downField("exposuresPerOffset").as[PosInt]
+          yield ImagingVariant.PreImaging(offset1, offset2, offset3, offset4, exposuresPerOffset)
