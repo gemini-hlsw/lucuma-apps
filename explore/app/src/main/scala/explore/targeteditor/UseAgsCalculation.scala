@@ -151,9 +151,8 @@ object UseAgsCalculation:
                                               r.fold(Default)(_.usable.select(none))
                                             case rem @ RemoteGSSelection(name) =>
                                               r.fold(rem)(_.usable.select(name.some))
-                                            // Re-resolved, the pick may have moved or become unusable
                                             case a: AgsOverride                =>
-                                              r.fold(a)(_.usable.pick(a.selectedGSName))
+                                              a
                                     yield ()).toAsync
 
                                   val query = agsState.map: state =>
@@ -163,8 +162,12 @@ object UseAgsCalculation:
                                       )
                                     process.guarantee(state.async.set(AgsState.Idle))
 
-                                  // A manual pick is checked again too, since the change may make it unusable.
-                                  guideStarSelection.mod(_.resetKeepingName).toAsync *> query.orEmpty
+                                  // A manual pick skips the query; drop the intersections it would
+                                  // have refreshed so the overlay falls back to the unconstrained ones.
+                                  guideStarSelection.mod(_.resetKeepingName).toAsync *>
+                                    (if guideStarSelection.get.isOverride
+                                     then constrainedPF.setState(Map.empty).to[IO]
+                                     else query.orEmpty)
 
                                 case _ =>
                                   // When reverting config we should reset the results
