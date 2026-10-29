@@ -693,7 +693,8 @@ extension (iv: ImagingVariant.Grouped)
       order = iv.order.assign,
       offsets = iv.offsets.map(_.toInput).orUnassign,
       skyCount = iv.skyCount.assign,
-      skyOffsets = iv.skyOffsets.map(_.toInput).orUnassign
+      skyOffsets = iv.skyOffsets.map(_.toInput).orUnassign,
+      exposuresPerOffset = iv.exposuresPerOffset.assign
     )
 
 extension (iv: ImagingVariant.Interleaved)
@@ -701,7 +702,8 @@ extension (iv: ImagingVariant.Interleaved)
     InterleavedImagingVariantInput(
       offsets = iv.offsets.map(_.toInput).orUnassign,
       skyCount = iv.skyCount.assign,
-      skyOffsets = iv.skyOffsets.map(_.toInput).orUnassign
+      skyOffsets = iv.skyOffsets.map(_.toInput).orUnassign,
+      exposuresPerOffset = iv.exposuresPerOffset.assign
     )
 
 extension (iv: ImagingVariant.PreImaging)
@@ -709,7 +711,8 @@ extension (iv: ImagingVariant.PreImaging)
     offset1 = iv.offset1.toInput.assign,
     offset2 = iv.offset2.toInput.assign,
     offset3 = iv.offset3.toInput.assign,
-    offset4 = iv.offset4.toInput.assign
+    offset4 = iv.offset4.toInput.assign,
+    exposuresPerOffset = iv.exposuresPerOffset.assign
   )
 
 extension (iv: ImagingVariant)

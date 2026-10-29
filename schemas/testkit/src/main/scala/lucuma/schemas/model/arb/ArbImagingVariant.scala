@@ -5,6 +5,7 @@ package lucuma.schemas.model.arb
 
 import eu.timepit.refined.scalacheck.all.given
 import eu.timepit.refined.types.numeric.NonNegInt
+import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
 import lucuma.core.math.arb.ArbOffset
@@ -22,26 +23,29 @@ import ArbTelescopeConfigGenerator.given
 trait ArbImagingVariant:
   val genGrouped: Gen[ImagingVariant.Grouped] =
     for
-      order      <- arbitrary[WavelengthOrder]
-      offsets    <- Gen.option(arbitrary[TelescopeConfigGenerator])
-      skyCount   <- arbitrary[NonNegInt]
-      skyOffsets <- Gen.option(arbitrary[TelescopeConfigGenerator])
-    yield ImagingVariant.Grouped(order, offsets, skyCount, skyOffsets)
+      order              <- arbitrary[WavelengthOrder]
+      offsets            <- Gen.option(arbitrary[TelescopeConfigGenerator])
+      skyCount           <- arbitrary[NonNegInt]
+      skyOffsets         <- Gen.option(arbitrary[TelescopeConfigGenerator])
+      exposuresPerOffset <- arbitrary[PosInt]
+    yield ImagingVariant.Grouped(order, offsets, skyCount, skyOffsets, exposuresPerOffset)
 
   val genInterleaved: Gen[ImagingVariant.Interleaved] =
     for
-      offsets    <- Gen.option(arbitrary[TelescopeConfigGenerator])
-      skyCount   <- arbitrary[NonNegInt]
-      skyOffsets <- Gen.option(arbitrary[TelescopeConfigGenerator])
-    yield ImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
+      offsets            <- Gen.option(arbitrary[TelescopeConfigGenerator])
+      skyCount           <- arbitrary[NonNegInt]
+      skyOffsets         <- Gen.option(arbitrary[TelescopeConfigGenerator])
+      exposuresPerOffset <- arbitrary[PosInt]
+    yield ImagingVariant.Interleaved(offsets, skyCount, skyOffsets, exposuresPerOffset)
 
   val genPreImaging: Gen[ImagingVariant.PreImaging] =
     for
-      offset1 <- arbitrary[Offset]
-      offset2 <- arbitrary[Offset]
-      offset3 <- arbitrary[Offset]
-      offset4 <- arbitrary[Offset]
-    yield ImagingVariant.PreImaging(offset1, offset2, offset3, offset4)
+      offset1            <- arbitrary[Offset]
+      offset2            <- arbitrary[Offset]
+      offset3            <- arbitrary[Offset]
+      offset4            <- arbitrary[Offset]
+      exposuresPerOffset <- arbitrary[PosInt]
+    yield ImagingVariant.PreImaging(offset1, offset2, offset3, offset4, exposuresPerOffset)
 
   given Arbitrary[ImagingVariant] =
     Arbitrary[ImagingVariant]:
@@ -52,18 +56,19 @@ trait ArbImagingVariant:
       (WavelengthOrder,
        Option[TelescopeConfigGenerator],
        NonNegInt,
-       Option[TelescopeConfigGenerator]
+       Option[TelescopeConfigGenerator],
+       PosInt
       )
-    ].contramap(o => (o.order, o.offsets, o.skyCount, o.skyOffsets))
+    ].contramap(o => (o.order, o.offsets, o.skyCount, o.skyOffsets, o.exposuresPerOffset))
 
   given Cogen[ImagingVariant.Interleaved] =
     Cogen[
-      (Option[TelescopeConfigGenerator], NonNegInt, Option[TelescopeConfigGenerator])
-    ].contramap(o => (o.offsets, o.skyCount, o.skyOffsets))
+      (Option[TelescopeConfigGenerator], NonNegInt, Option[TelescopeConfigGenerator], PosInt)
+    ].contramap(o => (o.offsets, o.skyCount, o.skyOffsets, o.exposuresPerOffset))
 
   given Cogen[ImagingVariant.PreImaging] =
-    Cogen[(Offset, Offset, Offset, Offset)].contramap(o =>
-      (o.offset1, o.offset2, o.offset3, o.offset4)
+    Cogen[(Offset, Offset, Offset, Offset, PosInt)].contramap(o =>
+      (o.offset1, o.offset2, o.offset3, o.offset4, o.exposuresPerOffset)
     )
 
   given Cogen[ImagingVariant] =

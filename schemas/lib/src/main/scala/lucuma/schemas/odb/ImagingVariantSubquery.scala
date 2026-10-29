@@ -20,17 +20,20 @@ object ImagingVariantSubquery extends GraphQLSubquery.Typed[ObservationDB, Imagi
         offsets $TelescopeConfigGeneratorSubquery
         skyCount
         skyOffsets $TelescopeConfigGeneratorSubquery
+        exposuresPerOffset
       }
       interleaved {
         offsets $TelescopeConfigGeneratorSubquery
         skyCount
         skyOffsets $TelescopeConfigGeneratorSubquery
+        exposuresPerOffset
       }
       preImaging {
         offset1 $OffsetSubquery
         offset2 $OffsetSubquery
         offset3 $OffsetSubquery
         offset4 $OffsetSubquery
+        exposuresPerOffset
       }
     }
   """

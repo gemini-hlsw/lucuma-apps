@@ -20,7 +20,8 @@
           "random": null,
           "spiral": null,
           "uniform": null
-        }
+        },
+        "exposuresPerOffset": 1
       },
       "interleaved": null,
       "preImaging": null

@@ -9,6 +9,8 @@ import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.NonNegInt
+import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.TelescopeConfigEditorStyles
@@ -102,15 +104,27 @@ object ImagingVariantEditor
           .map:
             _.withOnMod(props.variant.set) // no extra work to do here.
 
-      val variantType: ImagingVariantType = props.variant.get match
-        case ImagingVariant.Grouped(_, _, _, _)    => ImagingVariantType.Grouped
-        case ImagingVariant.Interleaved(_, _, _)   => ImagingVariantType.Interleaved
-        case ImagingVariant.PreImaging(_, _, _, _) => ImagingVariantType.PreImaging
+      def exposuresPerOffsetInput(
+        id:                 NonEmptyString,
+        exposuresPerOffset: View[PosInt]
+      ): VdomElement =
+        FormInputTextView(
+          id = id,
+          label = React.Fragment(
+            "Exposures per Offset",
+            HelpIcon("configuration/imaging/exposures-per-offset.md".refined)
+          ),
+          value = exposuresPerOffset,
+          codec = inputCodecs.PositiveInt,
+          placeholder = "1",
+          disabled = props.readonly
+        )
 
       def commonInputs(
-        offsets:    View[Option[TelescopeConfigGenerator]],
-        skyCount:   View[NonNegInt],
-        skyOffsets: View[Option[TelescopeConfigGenerator]]
+        offsets:            View[Option[TelescopeConfigGenerator]],
+        exposuresPerOffset: View[PosInt],
+        skyCount:           View[NonNegInt],
+        skyOffsets:         View[Option[TelescopeConfigGenerator]]
       ): VdomElement =
         React.Fragment(
           TelescopeConfigGeneratorEditor(
@@ -120,6 +134,7 @@ object ImagingVariantEditor
             showCenter = false,
             readonly = props.readonly
           ),
+          exposuresPerOffsetInput("exposures-per-offset".refined, exposuresPerOffset),
           <.hr(TelescopeConfigEditorStyles.Separator),
           FormInputTextView(
             id = "grouped-sky-count".refined,
@@ -145,7 +160,7 @@ object ImagingVariantEditor
       React.Fragment(
         FormEnumDropdown[ImagingVariantType](
           id = "variant-type".refined,
-          value = variantType,
+          value = props.variant.get.variantType,
           onChange = vt => props.variant.mod(_.toVariantType(vt)),
           label = React.Fragment(
             "Offset Variant",
@@ -165,6 +180,7 @@ object ImagingVariantEditor
             ),
             commonInputs(
               grouped.zoom(ImagingVariant.Grouped.offsets),
+              grouped.zoom(ImagingVariant.Grouped.exposuresPerOffset),
               grouped.zoom(ImagingVariant.Grouped.skyCount),
               grouped.zoom(ImagingVariant.Grouped.skyOffsets)
             )
@@ -172,6 +188,7 @@ object ImagingVariantEditor
         interleavedView.map[VdomNode]: interleaved =>
           commonInputs(
             interleaved.zoom(ImagingVariant.Interleaved.offsets),
+            interleaved.zoom(ImagingVariant.Interleaved.exposuresPerOffset),
             interleaved.zoom(ImagingVariant.Interleaved.skyCount),
             interleaved.zoom(ImagingVariant.Interleaved.skyOffsets)
           ),
@@ -204,6 +221,10 @@ object ImagingVariantEditor
               offset = preImaging.zoom(ImagingVariant.PreImaging.offset4),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
+            ),
+            exposuresPerOffsetInput(
+              "preImaging-exposures-per-offset".refined,
+              preImaging.zoom(ImagingVariant.PreImaging.exposuresPerOffset)
             )
           )
       )
