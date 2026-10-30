@@ -8,6 +8,7 @@ import cats.data.NonEmptySet
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
@@ -90,6 +91,11 @@ object DaytimeCalibrationSetsTable:
 
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
+
+  private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
+    Lens[DaytimeCalibrationSet, PosInt](_.count.getOrElse(DefaultCount))(n =>
+      _.copy(count = n.some)
+    )
 
   private val DefaultGcalLens: Lens[DaytimeCalibrationSet, StepConfig.Gcal] =
     Lens[DaytimeCalibrationSet, StepConfig.Gcal](s =>
@@ -189,13 +195,15 @@ object DaytimeCalibrationSetsTable:
         CountColumnId,
         header = "Num Exp",
         cell = c =>
-          FormInputTextView(
-            id = cellId(CountColumnId, c.row.original._2),
-            value = rowView(setsView, c.row.original._2).zoom(DaytimeCalibrationSet.count),
-            codec = inputCodecs.CalibrationSetCount,
-            groupClass = SequenceStyles.SequenceInput,
-            disabled = !editable
-          )
+          if c.row.original._1.kind.isSmart then EmptyVdom
+          else
+            FormInputTextView(
+              id = cellId(CountColumnId, c.row.original._2),
+              value = rowView(setsView, c.row.original._2).zoom(DefaultCountLens),
+              codec = inputCodecs.CalibrationSetCount,
+              groupClass = SequenceStyles.SequenceInput,
+              disabled = !editable
+            )
       ).withSize(60.toPx),
       ColDef(
         ExposureColumnId,
@@ -263,7 +271,7 @@ object DaytimeCalibrationSetsTable:
             header = "Filter",
             cell = c =>
               val idx: Int = c.row.original._2
-              if c.row.original._1.kind.usesGcal then
+              if usesGcalSetup(c.row.original._1.kind) then
                 dropdown(
                   GcalFilterColumnId,
                   idx,
@@ -277,7 +285,7 @@ object DaytimeCalibrationSetsTable:
             header = "IR Shutter",
             cell = c =>
               val idx: Int = c.row.original._2
-              if c.row.original._1.kind.usesGcal then
+              if usesGcalSetup(c.row.original._1.kind) then
                 dropdown(ShutterColumnId,
                          idx,
                          gcalView(idx).zoom(StepConfig.Gcal.shutter),
