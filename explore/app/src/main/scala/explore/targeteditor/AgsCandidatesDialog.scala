@@ -161,14 +161,12 @@ private object AgsCandidatesTable:
         cell =>
           if current.contains(cell.value) then
             <.span(Icons.Bahai).withTooltip(currentTitle, Placement.Right)
-          else EmptyVdom,
-        enableSorting = false
+          else EmptyVdom
       ).withColumnSize(FixedSize(30.toPx)),
       ColDef(
         NameColumnId,
         _.target.name.value,
-        "Name",
-        enableSorting = false
+        "Name"
       ).withColumnSize(FixedSize(280.toPx)),
       ColDef(
         SpeedColumnId,
@@ -178,15 +176,13 @@ private object AgsCandidatesTable:
           <.span(
             AgsOverlay.guideSpeedIcon(cell.value),
             <.span(ExploreStyles.AgsGuideSpeed, cell.value.tag)
-          ),
-        enableSorting = false
+          )
       ).withColumnSize(FixedSize(100.toPx)),
       ColDef(
         BrightnessColumnId,
         identity,
         "Brightness",
-        cell => AgsOverlay.brightness(cell.value).getOrElse(EmptyVdom),
-        enableSorting = false
+        cell => AgsOverlay.brightness(cell.value).getOrElse(EmptyVdom)
       ).withColumnSize(FixedSize(120.toPx))
     )
 

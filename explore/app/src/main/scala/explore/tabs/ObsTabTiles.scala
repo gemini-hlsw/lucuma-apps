@@ -338,16 +338,14 @@ object ObsTabTiles:
                                   // current automatic star does store it, keeping it.
                                   // The name is never cleared here, see `revertGuideStar`.
                                   gss.withOnMod {
-                                    (_, _) match {
-                                      case (_, AgsOverride(n, _, _))
-                                          if !props.selectedGSName.get.contains(n) =>
-                                        props.selectedGSName.set(n.some) *>
-                                          odbApi
-                                            .setGuideTargetName(props.obsId, n.some)
-                                            .runAsyncAndForget
-                                      case _ =>
-                                        Callback.empty
-                                    }
+                                    case AgsOverride(n, _, _)
+                                        if !props.selectedGSName.get.contains(n) =>
+                                      props.selectedGSName.set(n.some) *>
+                                        odbApi
+                                          .setGuideTargetName(props.obsId, n.some)
+                                          .runAsyncAndForget
+                                    case _ =>
+                                      Callback.empty
                                   }
         // The only way the stored name is cleared, at the user's request. Local state changes first
         // and is restored if the backend refuses, unless a star was picked in the meantime.
