@@ -501,6 +501,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             calibrationSets {
               kind
               count
+              stepCount
               gcal {
                 continuum
                 arcs

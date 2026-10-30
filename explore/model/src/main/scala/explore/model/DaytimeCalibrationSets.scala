@@ -82,7 +82,12 @@ trait GmosDaytimeSetup[D, G, F, U]:
     fpuMask.replace(none)(filter.replace(none)(gratingConfig.replace(none)(d)))
 
   def defaultSet: DaytimeCalibrationSet =
-    DaytimeCalibrationSet(CalibrationSetType.Bias, PosInt.unsafeFrom(1), none, wrap(default))
+    DaytimeCalibrationSet(
+      CalibrationSetType.Bias,
+      DaytimeCalibrationSets.DefaultCount.some,
+      none,
+      wrap(default)
+    )
 
 object GmosDaytimeSetup:
   import DaytimeCalibrationSets.DefaultReadout
@@ -235,7 +240,7 @@ object Flamingos2DaytimeSetup:
   val defaultSet: DaytimeCalibrationSet =
     DaytimeCalibrationSet(
       CalibrationSetType.Dark,
-      PosInt.unsafeFrom(1),
+      DaytimeCalibrationSets.DefaultCount.some,
       none,
       DaytimeCalibrationSetup.Flamingos2(default)
     )
@@ -247,6 +252,7 @@ object Flamingos2DaytimeSetup:
 object DaytimeCalibrationSets:
   val DefaultWavelength: Wavelength     = Wavelength.unsafeFromIntPicometers(500_000)
   val DefaultExposure: TimeSpan         = TimeSpan.unsafeFromMicroseconds(1_000_000)
+  val DefaultCount: PosInt              = PosInt.unsafeFrom(1)
   val DefaultReadout: GmosCcdMode       =
     GmosCcdMode(GmosXBinning.One,
                 GmosYBinning.One,
@@ -319,7 +325,9 @@ object DaytimeCalibrationSets:
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
   val Flamingos2Kinds: List[CalibrationSetType] =
-    List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
+    Enumerated[CalibrationSetType].all.filterNot(k =>
+      k === CalibrationSetType.Bias || k === CalibrationSetType.DaytimeObserve
+    )
 
   /** The kinds the ODB accepts for an instrument's calibration sets. */
   def kinds(instrument: Instrument): List[CalibrationSetType] =
@@ -367,7 +375,14 @@ object DaytimeCalibrationSets:
     case CalibrationSetType.Bias | CalibrationSetType.Dark => false
     case _                                                 => true
 
-  def usesExposure(kind: CalibrationSetType): Boolean = kind =!= CalibrationSetType.Bias
+  /** Only a manual flat or arc carries its own GCAL setup; the lookup supplies a smart kind's. */
+  def usesGcalSetup(kind: CalibrationSetType): Boolean = kind.usesGcal && !kind.isSmart
+
+  /**
+   * A bias takes no exposure and a smart kind gets its exposure time from the Smart GCAL lookup.
+   */
+  def usesExposure(kind: CalibrationSetType): Boolean =
+    kind =!= CalibrationSetType.Bias && !kind.isSmart
 
   private def setupFor[D, G, F, U](site: GmosDaytimeSetup[D, G, F, U], kind: CalibrationSetType)(
     d: D
@@ -379,8 +394,16 @@ object DaytimeCalibrationSets:
       else site.exposure.get(d)
     site.exposure.replace(exposure)(optics)
 
-  /** Rewrites a row for a new kind so that it stays valid; the count is kept. */
+  /**
+   * Rewrites a row for a new kind so that it stays valid. A manual row keeps its count; a smart row
+   * has none of its own, so leaving a smart kind starts the count over at one rather than keeping
+   * the count the lookup resolved.
+   */
   def withKind(set: DaytimeCalibrationSet, kind: CalibrationSetType): DaytimeCalibrationSet =
+    val count =
+      if kind.isSmart then none
+      else if set.kind.isSmart then DefaultCount.some
+      else set.count.orElse(DefaultCount.some)
     val setup = set.setup match
       case DaytimeCalibrationSetup.GmosNorth(d)  =>
         DaytimeCalibrationSetup.GmosNorth(setupFor(GmosDaytimeSetup.north, kind)(d))
@@ -388,7 +411,12 @@ object DaytimeCalibrationSets:
         DaytimeCalibrationSetup.GmosSouth(setupFor(GmosDaytimeSetup.south, kind)(d))
       case DaytimeCalibrationSetup.Flamingos2(d) =>
         DaytimeCalibrationSetup.Flamingos2(Flamingos2DaytimeSetup.forKind(kind, set.kind)(d))
-    set.copy(kind = kind, gcal = gcalFor(set.setup.instrument, kind, set.gcal), setup = setup)
+    set.copy(
+      kind = kind,
+      count = count,
+      gcal = gcalFor(set.setup.instrument, kind, set.gcal),
+      setup = setup
+    )
 
   /**
    * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2); none for an

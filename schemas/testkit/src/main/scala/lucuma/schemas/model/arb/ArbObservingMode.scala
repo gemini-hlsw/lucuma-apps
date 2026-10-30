@@ -1804,10 +1804,11 @@ trait ArbObservingMode {
   given Arbitrary[DaytimeCalibrationSet] = Arbitrary(
     for
       kind  <- arbitrary[CalibrationSetType]
-      count <- arbitrary[PosInt]
+      count <- arbitrary[Option[PosInt]]
       gcal  <- arbitrary[Option[StepConfig.Gcal]]
       setup <- arbitrary[DaytimeCalibrationSetup]
-    yield DaytimeCalibrationSet(kind, count, gcal, setup)
+      steps <- arbitrary[Option[PosInt]]
+    yield DaytimeCalibrationSet(kind, count, gcal, setup, steps)
   )
 
   given Arbitrary[ObservingMode.DaytimeCalibration] = Arbitrary(
@@ -1826,8 +1827,15 @@ trait ArbObservingMode {
       case DaytimeCalibrationSetup.Flamingos2(c) => c.asRight.asRight
 
   given Cogen[DaytimeCalibrationSet] =
-    Cogen[(CalibrationSetType, PosInt, Option[StepConfig.Gcal], DaytimeCalibrationSetup)]
-      .contramap(s => (s.kind, s.count, s.gcal, s.setup))
+    Cogen[
+      (CalibrationSetType,
+       Option[PosInt],
+       Option[StepConfig.Gcal],
+       DaytimeCalibrationSetup,
+       Option[PosInt]
+      )
+    ]
+      .contramap(s => (s.kind, s.count, s.gcal, s.setup, s.stepCount))
 
   given Cogen[ObservingMode.DaytimeCalibration] =
     Cogen[(Instrument, List[DaytimeCalibrationSet])]
