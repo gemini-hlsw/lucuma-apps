@@ -333,17 +333,19 @@ object ObsTabTiles:
                                   import ctx.given
 
                                   // A star picked by hand is stored in the backend and the local cache.
-                                  // Resolving the stored name gives the same star, so it is not written
-                                  // again. Picking the current automatic star does store it, keeping it.
+                                  // Only a star other than the stored one is written, so resolving the
+                                  // stored name, or one set elsewhere, never writes it back. Picking the
+                                  // current automatic star does store it, keeping it.
                                   // The name is never cleared here, see `revertGuideStar`.
                                   gss.withOnMod {
                                     (_, _) match {
-                                      case (prev, AgsOverride(n, _, _)) if !prev.isManual(n) =>
+                                      case (_, AgsOverride(n, _, _))
+                                          if !props.selectedGSName.get.contains(n) =>
                                         props.selectedGSName.set(n.some) *>
                                           odbApi
                                             .setGuideTargetName(props.obsId, n.some)
                                             .runAsyncAndForget
-                                      case _                                                 =>
+                                      case _ =>
                                         Callback.empty
                                     }
                                   }

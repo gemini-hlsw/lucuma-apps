@@ -782,6 +782,7 @@
 // The dialog is rendered outside the overlay, so it needs its own speed colours
 .ags-candidates-dialog {
   width: 620px;
+  max-width: 95vw;
 
   .ags-candidates-missing {
     display: flex;

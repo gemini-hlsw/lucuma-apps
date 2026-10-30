@@ -54,9 +54,13 @@ object AgsCandidatesDialog:
     ScalaFnComponent[Props]: props =>
       for
         open   <- useStateView(false)
-        chosen <- useStateView(props.current)
+        chosen <- useStateView(none[NonEmptyString])
       yield
         val close: Callback = open.set(false)
+
+        // An automatic star is the best one, at the top, so it isn't highlighted: that would offer
+        // keeping it as soon as the dialog opens
+        val highlighted: Option[NonEmptyString] = props.current.filter(_ => props.isManual)
 
         val canSelect: Boolean =
           !props.readonly &&
@@ -110,7 +114,7 @@ object AgsCandidatesDialog:
         React.Fragment(
           <.span(
             LucumaPrimeStyles.Disabled.unless(props.enabled),
-            ^.onClick -->? Option.when(props.enabled)(chosen.set(props.current) >> open.set(true)),
+            ^.onClick -->? Option.when(props.enabled)(chosen.set(highlighted) >> open.set(true)),
             ExploreStyles.AgsNavigationButton,
             Icons.ListIcon
           ).withTooltip("Show all candidates"),
@@ -190,7 +194,7 @@ private object AgsCandidatesTable:
     ScalaFnComponent[Props]: props =>
       for
         cols           <- useMemo((props.current, props.isManual))(columns.tupled)
-        rows           <- useMemo(props.candidates.map(_.target.name))(_ => props.candidates)
+        rows           <- useMemo(props.candidates)(identity)
         table          <- useReactTable:
                             TableOptions(cols, rows, enableSorting = false, enableColumnResizing = false)
         virtualizerRef <- useRef(none[HTMLTableVirtualizer])
