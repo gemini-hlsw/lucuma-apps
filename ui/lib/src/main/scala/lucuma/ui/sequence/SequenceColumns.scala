@@ -722,7 +722,9 @@ object SequenceColumns:
   val GhostBlueReadModeColumnId: ColumnId      = ColumnId("ghostBlueReadMode")
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
-  // Columns absent from this map show for every profile.
+  // Columns absent from this map show for every profile. Daytime calibrations have no offsets
+  // and are the only sequences where the window cover is set by hand; roles without ITC have
+  // no S/N or peak.
   private val ColumnRules: Map[ColumnId, SequenceColumnProfile => Boolean] = Map(
     PColumnId           -> (_.kind === SequenceKind.Science),
     QColumnId           -> (_.kind === SequenceKind.Science),
