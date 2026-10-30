@@ -234,8 +234,6 @@ trait DisplayImplicits:
 
   given Display[Flamingos2Reads] = Display.by(_.reads.toString, _.longName)
 
-  given Display[Flamingos2WindowCover] = Display.by(_.shortName, _.longName)
-
   given Display[MultipleFiltersMode] = Display.byShortName:
     case MultipleFiltersMode.Grouped     => "Grouped"
     case MultipleFiltersMode.Interleaved => "Interleaved"

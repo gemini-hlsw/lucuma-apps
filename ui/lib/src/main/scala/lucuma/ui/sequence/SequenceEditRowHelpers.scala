@@ -10,6 +10,7 @@ import crystal.react.syntax.effect.*
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.Flamingos2WindowCover
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GnirsReadMode
@@ -130,6 +131,10 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
 
   protected val gnirsReadModeReplace: Step.Id => GnirsReadMode => Endo[List[Atom[D]]] =
     modifyStep(gnirs.andThen(GnirsDynamicConfig.readMode).replace)
+
+  protected val flamingos2WindowCoverReplace
+    : Step.Id => Option[Flamingos2WindowCover] => Endo[List[Atom[D]]] =
+    modifyStep(flamingos2.andThen(Flamingos2DynamicConfig.windowCover).replace)
 
   protected val gmosWavelengthReplace: Step.Id => Wavelength => Endo[List[Atom[D]]] =
     modifyStep:

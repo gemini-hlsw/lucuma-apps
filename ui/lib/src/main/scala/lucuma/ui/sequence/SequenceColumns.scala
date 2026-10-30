@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.Flamingos2WindowCover
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GmosAmpGain
@@ -391,12 +392,26 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
-  private lazy val windowCoverCol: colDef.TypeFor[Option[String]] =
+  private lazy val windowCoverCol: colDef.TypeFor[Option[Option[Flamingos2WindowCover]]] =
     colDef(
       SequenceColumns.WindowCoverColumnId,
-      _.getStep.flatMap(_.windowCoverName),
+      _.getStep.flatMap(_.flamingos2WindowCover),
       header = "Window Cover",
-      cell = _.value.orEmpty
+      cell = c =>
+        val isFinished: Boolean = c.getStep.forall(_.isFinished)
+        c.value.map[VdomNode]: v =>
+          if c.isRowEditing && !isFinished then
+            EnumOptionalDropdown[Flamingos2WindowCover](
+              id = NonEmptyString.unsafeFrom(
+                s"${SequenceColumns.WindowCoverColumnId.value}-${c.row.index}"
+              ),
+              value = v,
+              placeholder = "Auto",
+              onChange = wc => handleRowValueEdit(c)(flamingos2WindowCoverReplace)(wc.some),
+              clazz = SequenceStyles.SequenceDropdown,
+              panelClass = SequenceStyles.SequenceDropdownPanel
+            )
+          else v.fold("Auto")(_.shortName)
     )
 
   private lazy val gnirsReadModeCol: colDef.TypeFor[Option[GnirsReadMode]] =
