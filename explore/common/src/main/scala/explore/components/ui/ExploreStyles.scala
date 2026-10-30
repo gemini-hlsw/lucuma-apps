@@ -286,6 +286,11 @@ object ExploreStyles:
   val AgsManual: Css           = Css("ags-manual")
   val AgsManualError: Css      = Css("ags-manual-error")
 
+  val AgsCandidatesDialog: Css  = Css("ags-candidates-dialog")
+  val AgsCandidatesTable: Css   = Css("ags-candidates-table")
+  val AgsCandidatesMissing: Css = Css("ags-candidates-missing")
+  val AgsCandidateCurrent: Css  = Css("ags-candidate-current")
+
   val ProposalTab: Css               = Css("explore-proposal-tab")
   val ProposalDetailsGrid: Css       = Css("explore-proposal-details-grid")
   val ProposalPhaseIFlags: Css       = Css("explore-proposal-phase-i-flags")

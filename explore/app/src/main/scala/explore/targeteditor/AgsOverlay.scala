@@ -52,6 +52,22 @@ case class AgsOverlay(
 object AgsOverlay:
   type Props = AgsOverlay
 
+  // The guide speed as a small circle in its colour
+  def guideSpeedIcon(speed: GuideSpeed): VdomNode =
+    speed match
+      case GuideSpeed.Fast   => Icons.CircleSmall.withClass(ExploreStyles.AgsFast)
+      case GuideSpeed.Medium => Icons.CircleSmall.withClass(ExploreStyles.AgsMedium)
+      case GuideSpeed.Slow   => Icons.CircleSmall.withClass(ExploreStyles.AgsSlow)
+
+  // The star's brightness in the band its guide probe sees
+  def brightness(analysis: AgsAnalysis.Usable): Option[VdomNode] =
+    analysis.target.brightnessIn(probeBands(analysis.guideProbe)).map { case (b, v) =>
+      React.Fragment(
+        if (b === Band.GaiaRP) React.Fragment(s"G", <.sub("RP")) else b.shortName,
+        s": ${v.value.value.setScale(2, RoundingMode.HALF_DOWN).toString()}"
+      )
+    }
+
   val component =
     ScalaFnComponent[Props]: props =>
       val selectedIndex = props.selectedGS.get.idx
@@ -77,12 +93,24 @@ object AgsOverlay:
           props.selectedGS.set(props.agsResults.pick(selectedIndex.foldMap(_ + 1)))
         )
 
+      val manualErrorIcon: VdomNode =
+        Icons.ExclamationTriangle.withClass(ExploreStyles.AgsManualError)
+
+      // The state of the star picked by hand: its icon, message and the Revert button's severity
+      val manualInfo: Option[(VdomNode, String, Button.Severity)] =
+        props.manualGuideStar.map:
+          case ManualGuideStar.Selected     =>
+            (EmptyVdom, Constants.ManualGSSelected, Button.Severity.Primary)
+          case ManualGuideStar.Unusable     =>
+            (manualErrorIcon, Constants.ManualGSUnusable, Button.Severity.Danger)
+          case ManualGuideStar.NotFound     =>
+            (manualErrorIcon, Constants.ManualGSNotFound, Button.Severity.Danger)
+          case ManualGuideStar.LookupFailed =>
+            (manualErrorIcon, Constants.ManualGSLookupFailed, Button.Severity.Danger)
+
       val errorIcon = Icons.TriangleSolid
         .addClass(ExploreStyles.ItcErrorIcon)
         .withSize(IconSize.LG)
-
-      val manualErrorIcon: VdomNode =
-        Icons.ExclamationTriangle.withClass(ExploreStyles.AgsManualError)
 
       val devOnly =
         <.div(^.cls := "ags-selection-dev",
@@ -107,23 +135,24 @@ object AgsOverlay:
               ^.onClick -->? goNext,
               ExploreStyles.AgsNavigationButton,
               Icons.ChevronRight
+            ),
+            // Viewing the candidates changes nothing, so a read-only observation can still do it
+            AgsCandidatesDialog(
+              enabled = props.agsState === AgsState.Idle && maxIndex > 0,
+              candidates = props.agsResults,
+              current = props.selectedGS.get.targetName,
+              isManual = props.selectedGS.get.fold(_ => false, _ => true, _ => true),
+              currentProblem = manualInfo.filter(_ => props.manualProblem).map(_._2),
+              readonly = props.readonly,
+              onSelect = name => props.selectedGS.set(props.agsResults.pick(name))
             )
           )
         )
 
       // Says the guide star was picked by hand, and whether it can be used, with the way back
       val manualRow: VdomNode =
-        props.manualGuideStar
-          .map: manual =>
-            val (icon, message, severity) = manual match
-              case ManualGuideStar.Selected     =>
-                (EmptyVdom, Constants.ManualGSSelected, Button.Severity.Primary)
-              case ManualGuideStar.Unusable     =>
-                (manualErrorIcon, Constants.ManualGSUnusable, Button.Severity.Danger)
-              case ManualGuideStar.NotFound     =>
-                (manualErrorIcon, Constants.ManualGSNotFound, Button.Severity.Danger)
-              case ManualGuideStar.LookupFailed =>
-                (manualErrorIcon, Constants.ManualGSLookupFailed, Button.Severity.Danger)
+        manualInfo
+          .map: (icon, message, severity) =>
             <.div(
               ExploreStyles.AgsDescription |+| ExploreStyles.AgsManual,
               icon,
@@ -146,25 +175,10 @@ object AgsOverlay:
             <.div(
               ExploreStyles.AgsDescription,
               devOnly,
-              analysis.guideSpeed.match {
-                case GuideSpeed.Fast   =>
-                  Icons.CircleSmall.withClass(ExploreStyles.AgsFast)
-                case GuideSpeed.Medium =>
-                  Icons.CircleSmall.withClass(ExploreStyles.AgsMedium)
-                case GuideSpeed.Slow   =>
-                  Icons.CircleSmall.withClass(ExploreStyles.AgsSlow)
-              },
+              guideSpeedIcon(analysis.guideSpeed),
               React.Fragment(
                 <.div(ExploreStyles.AgsGuideSpeed, analysis.guideSpeed.tag),
-                <.div(
-                  ExploreStyles.AgsGBrightness,
-                  analysis.target.brightnessIn(probeBands(analysis.guideProbe)).map { case (b, v) =>
-                    React.Fragment(
-                      if (b === Band.GaiaRP) React.Fragment(s"G", <.sub("RP")) else b.shortName,
-                      s": ${v.value.value.setScale(2, RoundingMode.HALF_DOWN).toString()}"
-                    )
-                  }
-                ),
+                <.div(ExploreStyles.AgsGBrightness, brightness(analysis)),
                 <.div(ExploreStyles.AgsCoordinates,
                       s"(${formatCoordinates(analysis.target.tracking.baseCoordinates)})"
                 )

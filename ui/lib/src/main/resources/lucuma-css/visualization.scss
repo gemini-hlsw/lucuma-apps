@@ -715,7 +715,7 @@
 
       /* stylelint-disable-next-line selector-class-pattern */
       svg.svg-inline--fa {
-        color: var(--gray-50);
+        color: var(--hud-color);
         width: auto;
         margin-right: 0;
       }
@@ -768,6 +768,48 @@
     .p-button {
       margin-left: 0.5em;
     }
+  }
+
+  .ags-medium-color {
+    color: var(--ags-medium-guide-speed-color);
+  }
+
+  .ags-slow-color {
+    color: var(--ags-slow-guide-speed-color);
+  }
+}
+
+// The dialog is rendered outside the overlay, so it needs its own speed colours
+.ags-candidates-dialog {
+  width: 620px;
+  max-width: 95vw;
+
+  .ags-candidates-missing {
+    display: flex;
+    gap: 0.3em;
+    align-items: center;
+    margin-bottom: 0.5em;
+    color: var(--error-background-color);
+  }
+
+  .ags-candidates-table {
+    height: 400px;
+  }
+
+  .ags-candidate-current {
+    font-weight: bold;
+  }
+
+  .fa-bahai {
+    color: var(--ags-icon-color);
+  }
+
+  .ags-guide-speed {
+    text-transform: capitalize;
+  }
+
+  .ags-fast-color {
+    color: var(--ags-fast-guide-speed-color);
   }
 
   .ags-medium-color {
