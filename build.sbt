@@ -1255,9 +1255,29 @@ def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use
 // )
 
 lazy val firebaseDeployDev = firebaseDeploy(
-  "Deploy staging app to Firebase",
+  "Deploy dev app to Firebase",
   mainCond,
   live = true
+)
+
+// Explore is deployed to both Firebase and AWS until the AWS deploy is verified and the domains move.
+lazy val awsDeployDev = List(
+  WorkflowStep.Use(
+    UseRef.Public("aws-actions", "configure-aws-credentials", "v5"),
+    name = Some("Configure AWS credentials"),
+    cond = Some(mainCond),
+    params = Map(
+      "role-to-assume" -> "arn:aws:iam::463572454758:role/GeminiExploreGHOIDC",
+      "aws-region"     -> "us-west-2"
+    )
+  ),
+  WorkflowStep.Run(
+    List(
+      """./explore/deploy-aws.sh gemini-edu-explore-test "${{ vars.AWS_EXPLORE_DEV_CLOUDFRONT_ID }}""""
+    ),
+    name = Some("Deploy dev app to AWS"),
+    cond = Some(mainCond)
+  )
 )
 
 lazy val recordExploreDeploymentMetadata = WorkflowStep.Run(
@@ -1299,7 +1319,7 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
       // firebaseDeployReview ::
       firebaseDeployDev ::
       recordExploreDeploymentMetadata ::
-      Nil,
+      awsDeployDev,
     // Only 1 scalaVersion, so no need for matrix
     sbtStepPreamble = Nil,
     scalas = Nil,
