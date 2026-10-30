@@ -5528,7 +5528,8 @@ input SetGuideTargetNameInput {
 
   """
   The name of the guide star. This must satisfy the regular expression "^Gaia DR3 (-?\d+)$" where the
-  numeric part is the Gaia source_id. Omit or set to null to delete.
+  numeric part is the Gaia source_id. Omit or set to null to delete the
+  selection and return to automatic guide star selection.
   """
   targetName: NonEmptyString
 }
@@ -8649,9 +8650,7 @@ type Flamingos2Dynamic {
   """Flamingos 2 reads."""
   reads: Flamingos2Reads!
 
-  """
-  Flamingos 2 window cover. Null means unspecified; dark steps default to CLOSE.
-  """
+  """Flamingos 2 window cover. Null means automatic."""
   windowCover: Flamingos2WindowCover
 
   """Central wavelength, which is taken from the filter wavelength."""
@@ -18166,10 +18165,12 @@ type TargetEnvironment {
 
   """
   The guide target(s) and related information.
-  If a guide target has been set via `guideTargetName`, that target will be
-  returned. If it not found or not usable, an error will be returned.
-  If no guide target has been set, or it has been invalidated by observation/target
-  changes, Gaia will be searched for the best guide target available.
+  If a guide target has been selected via `setGuideTargetName`, that target will
+  be returned. If it is not found or not usable, an error naming it will be
+  returned; select another guide target or clear the selection to return to
+  automatic selection. A selection is never discarded by observation or target
+  changes. If no guide target has been selected, Gaia will be searched for the
+  best guide target available.
   """
   guideEnvironment: GuideEnvironment!
 
@@ -18190,9 +18191,9 @@ type TargetEnvironment {
   explicitBase: Coordinates
 
   """
-  The name of the guide target, if any, set by `setGuideTargetName`.
-  If the name is no longer valid or a sequence cannot be generated, null will
-  be returned.
+  The name of the guide target, if any, selected by `setGuideTargetName`. The
+  selection is returned until it is cleared or replaced, whether or not the
+  star is usable with the current observation settings.
   """
   guideTargetName: NonEmptyString
 
@@ -18433,6 +18434,17 @@ time along with any automatically applied discounts (e.g., for bad weather)
 and manual adjustments made by staff.
 """
 type TimeChargeInvoice {
+  """
+  The interval over which the raw 'executionTime' was measured, before any
+  discounts.  For most visits this is the same as the visit's own 'interval',
+  from its first execution event to its last.  Visitor instrument visits,
+  which record only slew events, are charged from the slew until the next
+  chargeable visit at the site starts or, once the night is over, until
+  nautical dawn, so for them it extends to that point.  Null if the visit has
+  no events.
+  """
+  interval: TimestampInterval
+
   """Raw execution time."""
   executionTime: CategorizedTime!
 
@@ -18637,7 +18649,11 @@ type Visit {
   """Site of the visit."""
   site: Site!
 
-  """Time interval during which this visit executed."""
+  """
+  Time interval from the visit's first execution event to its last.  For the
+  interval over which time is charged, which differs for visitor instrument
+  visits, see 'timeChargeInvoice.interval'.
+  """
   interval: TimestampInterval
 
   """Executed (or at least partially executed) atom records for this visit."""

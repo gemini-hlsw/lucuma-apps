@@ -20,7 +20,8 @@ import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.timeaccounting.given
 
 /**
- * A visit's time charge invoice as computed by the ODB.
+ * A visit's time charge invoice as computed by the ODB. The interval is the one the execution time
+ * was measured over, which for visitor instruments runs past the visit's own events.
  */
 final case class VisitTimeCharge(
   visitId:       Visit.Id,
@@ -106,7 +107,7 @@ object VisitTimeCharge:
     val invoice = c.downField("timeChargeInvoice")
     for
       id          <- c.get[Visit.Id]("id")
-      interval    <- c.get[Option[TimestampInterval]]("interval")
+      interval    <- invoice.get[Option[TimestampInterval]]("interval")
       execution   <- invoice.get[CategorizedTime]("executionTime")
       discounts   <- invoice.get[List[Discount]]("discounts")
       corrections <- invoice.get[List[Correction]]("corrections")
