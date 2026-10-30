@@ -151,8 +151,8 @@ class TimeChargesSuite extends FunSuite:
       """
       {
         "id": "v-1",
-        "interval": { "start": "2026-03-01 23:35:00", "end": "2026-03-02 01:35:00" },
         "timeChargeInvoice": {
+          "interval": { "start": "2026-03-01 23:35:00", "end": "2026-03-02 01:35:00" },
           "executionTime": {
             "program": { "microseconds": 7200000000 },
             "nonCharged": { "microseconds": 0 }
@@ -205,17 +205,43 @@ class TimeChargesSuite extends FunSuite:
     )
     assertEquals(decode[VisitTimeCharge](json), expected.asRight)
 
+  test("a visitor instrument visit spans its invoice interval, not its slew"):
+    val json    =
+      """
+      {
+        "id": "v-2",
+        "interval": { "start": "2026-03-02 01:00:00", "end": "2026-03-02 01:00:00" },
+        "timeChargeInvoice": {
+          "interval": { "start": "2026-03-02 01:00:00", "end": "2026-03-02 02:00:00" },
+          "executionTime": {
+            "program": { "microseconds": 3600000000 },
+            "nonCharged": { "microseconds": 0 }
+          },
+          "discounts": [],
+          "corrections": [],
+          "finalCharge": {
+            "program": { "microseconds": 3600000000 },
+            "nonCharged": { "microseconds": 0 }
+          }
+        }
+      }
+      """
+    val charged = interval("2026-03-02T01:00:00Z", "2026-03-02T02:00:00Z").some
+    val decoded = decode[VisitTimeCharge](json)
+    assertEquals(decoded.map(_.interval), charged.asRight)
+    assertEquals(decoded.map(_.nightRow.flatMap(_.interval)), charged.asRight)
+
   test("visits wholly in daylight from the ODB have no rows"):
     val json =
       """
       [
         {
           "id": "v-13e2",
-          "interval": {
-            "start": "2026-07-05T02:28:18.110493Z",
-            "end": "2026-07-05T02:33:50.47894Z"
-          },
           "timeChargeInvoice": {
+            "interval": {
+              "start": "2026-07-05T02:28:18.110493Z",
+              "end": "2026-07-05T02:33:50.47894Z"
+            },
             "executionTime": {
               "program": { "microseconds": 332368447 },
               "nonCharged": { "microseconds": 0 }
