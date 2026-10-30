@@ -20,6 +20,7 @@ trait calibration:
     // GNIRS pinholes are daytime too, but they use a regular spectroscopy observing mode.
     def isDaytime(observingMode: Option[BasicConfiguration]): Boolean =
       (cr, observingMode) match
+        // TODO: Consider whether we should make daytime pinholes, daytime calibrationss
         case (Some(CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeCalibration), _) |
             (_, Some(BasicConfiguration.DaytimeCalibration(_))) =>
           true

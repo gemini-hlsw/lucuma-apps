@@ -11,7 +11,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GmosAmpGain
@@ -46,7 +45,6 @@ import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.refined.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.PeakPixel
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
@@ -724,13 +722,17 @@ object SequenceColumns:
   val GhostBlueReadModeColumnId: ColumnId      = ColumnId("ghostBlueReadMode")
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
-  // Daytime calibrations have no offsets, and calibrations without ITC have no S/N or peak.
-  def hiddenColumns(
-    calibrationRole: Option[CalibrationRole],
-    observingMode:   Option[BasicConfiguration]
-  ): Set[ColumnId] =
-    Option.when(calibrationRole.isDaytime(observingMode))(Set(PColumnId, QColumnId)).orEmpty ++
-      Option.unless(calibrationRole.needsITC)(Set(SNColumnId, PeakColumnId)).orEmpty
+  // Columns absent from this map show for every profile.
+  private val ColumnRules: Map[ColumnId, SequenceColumnProfile => Boolean] = Map(
+    PColumnId           -> (_.kind === SequenceKind.Science),
+    QColumnId           -> (_.kind === SequenceKind.Science),
+    WindowCoverColumnId -> (_.kind === SequenceKind.Calibration),
+    SNColumnId          -> (_.hasItc),
+    PeakColumnId        -> (_.hasItc)
+  )
+
+  def hiddenColumns(profile: SequenceColumnProfile): Set[ColumnId] =
+    ColumnRules.filterNot(_._2(profile)).keySet
 
   object BaseColumnSizes {
     // Present for editable instruments.

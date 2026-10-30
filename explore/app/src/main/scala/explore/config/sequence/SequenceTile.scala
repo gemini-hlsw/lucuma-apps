@@ -121,7 +121,9 @@ object SequenceTile
         val programTimeCharge: TimeSpan    = execution.programTimeCharge.value
         val executed: TagOf[HTMLElement]   = timeDisplay("Executed", programTimeCharge)
         val hiddenColumns: Set[ColumnId]   =
-          SequenceColumns.hiddenColumns(props.calibrationRole, props.basicConfiguration)
+          SequenceColumns.hiddenColumns(
+            SequenceColumnProfile.fromObservation(props.calibrationRole, props.basicConfiguration)
+          )
 
         // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =
