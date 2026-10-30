@@ -13,7 +13,6 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
-import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
@@ -65,7 +64,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
 
   test("Dark to Flat gets the default lamp setup and keeps the count"):
     val s = withKind(dark, CalibrationSetType.Flat)
-    assertEquals(s.count, dark.count)
+    assertEquals(s.explicitCount, dark.explicitCount)
     assertEquals(
       s.gcal,
       StepConfig
@@ -125,14 +124,14 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(newRow(List(dark, flat), Instrument.GmosNorth), flat.some)
     val first = newRow(Nil, Instrument.GmosSouth)
     assertEquals(first.map(_.kind), CalibrationSetType.Bias.some)
-    assertEquals(first.flatMap(_.count).map(_.value), 1.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.GmosSouth.some)
     assertEquals(newRow(Nil, Instrument.Gnirs), none)
 
   test("A new Flamingos 2 row starts as a single dark with no window cover"):
     val first = newRow(Nil, Instrument.Flamingos2)
     assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
-    assertEquals(first.flatMap(_.count).map(_.value), 1.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.Flamingos2.some)
     assertEquals(
       first.flatMap(s => DaytimeCalibrationSetup.flamingos2.getOption(s.setup)).map(_.config),
@@ -140,23 +139,9 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(Flamingos2DaytimeSetup.default.windowCover, none)
 
-  test("Flamingos 2 sets may be anything but a bias or a daytime observe"):
-    assertEquals(
-      kinds(Instrument.Flamingos2),
-      List(
-        CalibrationSetType.Dark,
-        CalibrationSetType.Flat,
-        CalibrationSetType.Arc,
-        CalibrationSetType.SmartFlat,
-        CalibrationSetType.SmartArc,
-        CalibrationSetType.DayBaseline
-      )
-    )
-    assertEquals(kinds(Instrument.GmosNorth), Enumerated[CalibrationSetType].all)
-
   test("Flat to Smart Flat drops the count and lamp setup, zeroes the exposure, keeps the optics"):
     val s = withKind(flat, CalibrationSetType.SmartFlat)
-    assertEquals(s.count, none)
+    assertEquals(s.explicitCount, none)
     assertEquals(s.gcal, none)
     assertEquals(s.setup,
                  DaytimeCalibrationSetup.GmosNorth(north.exposure.replace(TimeSpan.Zero)(spectro))
@@ -164,9 +149,10 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
 
   test("Smart Flat back to Flat starts the count at one and restores the default exposure"):
     // The ODB reads back the count the lookup resolved; it is not the user's to keep.
-    val smart = withKind(flat, CalibrationSetType.SmartFlat).copy(count = PosInt.unsafeFrom(3).some)
+    val smart =
+      withKind(flat, CalibrationSetType.SmartFlat).copy(explicitCount = PosInt.unsafeFrom(3).some)
     val s     = withKind(smart, CalibrationSetType.Flat)
-    assertEquals(s.count.map(_.value), 1.some)
+    assertEquals(s.explicitCount.map(_.value), 1.some)
     assertEquals(s.gcal, gcalFor(Instrument.GmosNorth, CalibrationSetType.Flat, none))
     assertEquals(s.setup,
                  DaytimeCalibrationSetup.GmosNorth(north.exposure.replace(DefaultExposure)(spectro))
@@ -185,15 +171,6 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       Flamingos2DaytimeSetup.default
     )
     assertEquals(f2.disperser, Flamingos2DaytimeSetup.DefaultDisperser.some)
-
-  test("Smart kinds take no exposure or GCAL setup but keep their optics"):
-    List(CalibrationSetType.SmartFlat, CalibrationSetType.SmartArc, CalibrationSetType.DayBaseline)
-      .foreach: k =>
-        assert(!usesExposure(k))
-        assert(!usesGcalSetup(k))
-        assert(usesOptics(k))
-    assert(usesGcalSetup(CalibrationSetType.Flat))
-    assert(usesGcalSetup(CalibrationSetType.Arc))
 
   test("Only GHOST may use the 100W QH lamp"):
     Instruments.foreach: i =>

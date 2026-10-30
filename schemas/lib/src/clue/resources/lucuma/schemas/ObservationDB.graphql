@@ -5358,10 +5358,7 @@ input DaytimeCalibrationInput {
 The kind of exposure a calibration set produces.  DAYTIME_OBSERVE is an
 exposure with the dome closed and no lamp, such as a pupil or bubble image.
 SMART_FLAT, SMART_ARC and DAY_BASELINE are resolved through the Smart GCAL
-tables when the sequence is generated: the lookup supplies the lamp
-configuration, exposure time and exposure count.  SMART_FLAT and SMART_ARC
-select by lamp type; DAY_BASELINE selects every row of the day baseline,
-flats and arcs alike (the OT's "Day Baseline GCAL").
+tables.
 """
 enum CalibrationSetType {
   BIAS
@@ -5384,17 +5381,17 @@ type CalibrationSet {
   kind: CalibrationSetType!
 
   """
-  Exposures requested for this setup, as given on input.  Always present for
-  a manual kind, always null for a smart kind.
+  Steps this set contributes to the sequence: `explicitCount` for a manual
+  step, the number of steps the Smart GCAL lookup returns for a smart step, or
+  null when the lookup finds no mapping for the setup.
   """
   count: PosInt
 
   """
-  Steps this set contributes to the sequence: `count` for a manual kind, the
-  number of steps the Smart GCAL lookup returns for a smart kind, or null when
-  the lookup finds no mapping for the setup.  Read only.
+  Exposures requested for this setup, as given on input.  Always present for
+  a manual step, always null for a smart step.
   """
-  stepCount: PosInt
+  explicitCount: PosInt
 
   """GCAL lamp configuration, present for FLAT and ARC only."""
   gcal: CalibrationSetGcal
@@ -5426,21 +5423,16 @@ type CalibrationSetGcal {
 
 """
 Calibration set input.  Exactly one instrument setup must be given and it must
-match the mode's instrument.  A FLAT needs a `gcal` with a continuum lamp, an
-ARC one with at least one arc lamp; BIAS, DARK and DAYTIME_OBSERVE take none.
-A BIAS ignores the setup's exposure time and takes zero.  A smart kind
-(SMART_FLAT, SMART_ARC, DAY_BASELINE) takes neither `count` nor `gcal` and
-ignores the setup's exposure time: the Smart GCAL lookup supplies all three.
-A Flamingos 2 set may not be a BIAS or a DAYTIME_OBSERVE.
+match the mode's instrument.
 """
 input CalibrationSetInput {
   kind: CalibrationSetType!
 
   """
   Exposures taken with this setup, at most 1000.  Required for a manual kind,
-  rejected for a smart kind.
+  rejected for a smart kind, whose count comes from the Smart GCAL lookup.
   """
-  count: PosInt
+  explicitCount: PosInt
 
   """
   GCAL lamp configuration, required for FLAT and ARC, rejected otherwise.
@@ -18458,6 +18450,17 @@ time along with any automatically applied discounts (e.g., for bad weather)
 and manual adjustments made by staff.
 """
 type TimeChargeInvoice {
+  """
+  The interval over which the raw 'executionTime' was measured, before any
+  discounts.  For most visits this is the same as the visit's own 'interval',
+  from its first execution event to its last.  Visitor instrument visits,
+  which record only slew events, are charged from the slew until the next
+  chargeable visit at the site starts or, once the night is over, until
+  nautical dawn, so for them it extends to that point.  Null if the visit has
+  no events.
+  """
+  interval: TimestampInterval
+
   """Raw execution time."""
   executionTime: CategorizedTime!
 
@@ -18662,7 +18665,11 @@ type Visit {
   """Site of the visit."""
   site: Site!
 
-  """Time interval during which this visit executed."""
+  """
+  Time interval from the visit's first execution event to its last.  For the
+  interval over which time is charged, which differs for visitor instrument
+  visits, see 'timeChargeInvoice.interval'.
+  """
   interval: TimestampInterval
 
   """Executed (or at least partially executed) atom records for this visit."""

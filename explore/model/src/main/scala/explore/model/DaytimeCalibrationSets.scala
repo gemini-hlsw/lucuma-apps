@@ -426,7 +426,7 @@ object DaytimeCalibrationSets:
     val count =
       if kind.isSmart then none
       else if set.kind.isSmart then DefaultCount.some
-      else set.count.orElse(DefaultCount.some)
+      else set.explicitCount.orElse(DefaultCount.some)
     val setup = set.setup match
       case DaytimeCalibrationSetup.GmosNorth(d)  =>
         DaytimeCalibrationSetup.GmosNorth(setupFor(GmosDaytimeSetup.north, kind)(d))
@@ -436,7 +436,7 @@ object DaytimeCalibrationSets:
         DaytimeCalibrationSetup.Flamingos2(Flamingos2DaytimeSetup.forKind(kind, set.kind)(d))
     set.copy(
       kind = kind,
-      count = count,
+      explicitCount = count,
       gcal = gcalFor(set.setup.instrument, kind, set.gcal),
       setup = setup
     )

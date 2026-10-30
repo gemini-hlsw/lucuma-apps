@@ -94,8 +94,8 @@ object DaytimeCalibrationSetsTable:
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
   private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
-    Lens[DaytimeCalibrationSet, PosInt](_.count.getOrElse(DefaultCount))(n =>
-      _.copy(count = n.some)
+    Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
+      _.copy(explicitCount = n.some)
     )
 
   private val DefaultGcalLens: Lens[DaytimeCalibrationSet, StepConfig.Gcal] =
@@ -193,7 +193,7 @@ object DaytimeCalibrationSetsTable:
             editable,
             excludedKinds
           )
-      ).withSize(90.toPx),
+      ).withSize(120.toPx),
       ColDef(
         CountColumnId,
         header = "Num Exp",
@@ -201,7 +201,7 @@ object DaytimeCalibrationSetsTable:
           val set = c.row.original._1
           // A smart row's count is the lookup's: shown, not edited. No mapping blocks the sequence.
           if set.kind.isSmart then
-            set.stepCount.fold(
+            set.count.fold(
               <.span(Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon))
                 .withTooltip(
                   "No Smart GCAL mapping for this setup; the sequence cannot be generated"
@@ -316,7 +316,6 @@ object DaytimeCalibrationSetsTable:
             clazz = SequenceStyles.DeleteButton,
             text = true,
             disabled = !editable,
-            tooltip = "Remove this calibration set",
             onClick = setsView.mod(l => l.take(idx) ++ l.drop(idx + 1))
           ).tiny.compact
         ,
