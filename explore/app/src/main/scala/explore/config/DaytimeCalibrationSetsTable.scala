@@ -127,12 +127,14 @@ object DaytimeCalibrationSetsTable:
     idx:         Int,
     value:       View[Option[A]],
     placeholder: String,
-    editable:    Boolean
+    editable:    Boolean,
+    showClear:   Boolean = true
   ): VdomNode =
     EnumDropdownOptionalView(
       id = cellId(colId, idx),
       value = value,
       placeholder = placeholder,
+      showClear = showClear,
       clazz = SequenceStyles.SequenceDropdown,
       panelClass = SequenceStyles.SequenceDropdownPanel,
       disabled = !editable

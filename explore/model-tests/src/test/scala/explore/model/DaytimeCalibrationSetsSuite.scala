@@ -172,6 +172,20 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  DaytimeCalibrationSetup.GmosNorth(north.exposure.replace(DefaultExposure)(spectro))
     )
 
+  test("Smart Arc gets a grating when the setup has none, and keeps one it has"):
+    val fromDark = withKind(dark, CalibrationSetType.SmartArc)
+    assertEquals(north.setup.getOption(fromDark.setup).flatMap(north.grating.get),
+                 north.defaultGrating.some
+    )
+    val fromFlat = withKind(flat, CalibrationSetType.SmartArc)
+    assertEquals(north.setup.getOption(fromFlat.setup).flatMap(north.grating.get),
+                 GmosNorthGrating.R831_G5302.some
+    )
+    val f2       = Flamingos2DaytimeSetup.forKind(CalibrationSetType.SmartArc, CalibrationSetType.Dark)(
+      Flamingos2DaytimeSetup.default
+    )
+    assertEquals(f2.disperser, Flamingos2DaytimeSetup.DefaultDisperser.some)
+
   test("Smart kinds take no exposure or GCAL setup but keep their optics"):
     List(CalibrationSetType.SmartFlat, CalibrationSetType.SmartArc, CalibrationSetType.DayBaseline)
       .foreach: k =>
