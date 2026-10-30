@@ -12,7 +12,6 @@ import crystal.*
 import crystal.Pot.Ready
 import crystal.react.*
 import crystal.react.hooks.*
-import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.components.*
@@ -335,16 +334,16 @@ object ObsTabTiles:
 
                                   // A star picked by hand is stored in the backend and the local cache.
                                   // Resolving the stored name gives the same star, so it is not written
-                                  // again. The name is never cleared here, see `revertGuideStar`.
+                                  // again. Picking the current automatic star does store it, keeping it.
+                                  // The name is never cleared here, see `revertGuideStar`.
                                   gss.withOnMod {
                                     (_, _) match {
-                                      case (prev, AgsOverride(n, _, _))
-                                          if prev.targetName =!= n.some =>
+                                      case (prev, AgsOverride(n, _, _)) if !prev.isManual(n) =>
                                         props.selectedGSName.set(n.some) *>
                                           odbApi
                                             .setGuideTargetName(props.obsId, n.some)
                                             .runAsyncAndForget
-                                      case _ =>
+                                      case _                                                 =>
                                         Callback.empty
                                     }
                                   }

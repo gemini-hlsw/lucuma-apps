@@ -49,6 +49,10 @@ object GuideStarSelection:
     def targetName: Option[NonEmptyString] =
       fold(_.index.map(_._2.target.name), _.name.some, _.selectedGSName.some)
 
+    // Whether this is a pick by hand of the named star
+    def isManual(name: NonEmptyString): Boolean =
+      fold(_ => false, _.name === name, _.selectedGSName === name)
+
     def analysis: Option[AgsAnalysis.Usable] = gs match
       case AgsSelection(Some((_, a))) => a.some
       case AgsOverride(_, _, a)       => a.some
