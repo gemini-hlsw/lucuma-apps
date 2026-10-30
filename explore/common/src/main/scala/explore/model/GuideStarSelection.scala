@@ -37,10 +37,8 @@ object GuideStarSelection:
         case a @ RemoteGSSelection(_) => g(a)
         case a @ AgsOverride(_, _, _) => h(a)
 
-    def isOverride: Boolean = fold(_ => false, _ => false, _ => true)
-
     // Drops a stale analysis, keeping a manual pick as a name for `pick` to re-resolve. Going
-    // straight to AgsSelection would read as a switch back to automatic and erase the ODB name.
+    // straight to AgsSelection would lose the pick.
     def resetKeepingName: GuideStarSelection = gs match
       case AgsOverride(name, _, _)  => RemoteGSSelection(name)
       case r @ RemoteGSSelection(_) => r
@@ -57,6 +55,10 @@ object GuideStarSelection:
       case _                          => none
 
     def selectedAngle: Option[Angle] = analysis.map(_.posAngle)
+
+// The state of a guide star the user picked by hand, as reported in the AGS overlay.
+enum ManualGuideStar derives Eq:
+  case Selected, Unusable, NotFound, LookupFailed
 
 extension (r: List[AgsAnalysis.Usable])
   // The star the ODB names when it names one, else the best candidate.

@@ -104,7 +104,8 @@ final case class ObservationTargetsEditorTile(
   positions:             Option[ObsPositions] = None,
   defaultObsTime:        Option[Pot[Instant]] = None,
   ags:                   AgsData = AgsData.Empty,
-  guiding:               Option[View[GuidingConfiguration]] = None
+  guiding:               Option[View[GuidingConfiguration]] = None,
+  revertGuideStar:       Callback = Callback.empty
 )(using val odbApi: OdbObservationApi[IO])
     extends Tile[ObservationTargetsEditorTile](
       tileId,
@@ -375,6 +376,8 @@ object ObservationTargetsEditorTile
                 )
             )
 
+          // The guide star uses `props.readonly` instead: the backend lets staff change it on
+          // executed observations.
           val editorReadonly = props.readonly || obsEditInfo.allAreExecuted
 
           // Sky position callbacks used by AladinCell for both sky and target selection.
@@ -509,7 +512,9 @@ object ObservationTargetsEditorTile
                       resetSky,
                       props.isStaffOrAdmin,
                       editorReadonly,
-                      props.guiding
+                      props.guiding,
+                      revertGuideStar = props.revertGuideStar,
+                      guideStarReadonly = props.readonly
                     ),
                     formContent
                   )

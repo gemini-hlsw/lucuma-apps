@@ -333,33 +333,38 @@ object ObsTabTiles:
                                 .map: gss =>
                                   import ctx.given
 
-                                  // We tell the backend and the local cache of changes to the selected guidestar
-                                  // In some cases when we do a real override
+                                  // A star picked by hand is stored in the backend and the local cache.
+                                  // Resolving the stored name gives the same star, so it is not written
+                                  // again. The name is never cleared here, see `revertGuideStar`.
                                   gss.withOnMod {
                                     (_, _) match {
-                                      // Change of override
-                                      case (AgsOverride(m, _, _), AgsOverride(n, _, _)) if m =!= n =>
+                                      case (prev, AgsOverride(n, _, _))
+                                          if prev.targetName =!= n.some =>
                                         props.selectedGSName.set(n.some) *>
                                           odbApi
                                             .setGuideTargetName(props.obsId, n.some)
                                             .runAsyncAndForget
-                                      // Going from automatic to manual selection
-                                      case (AgsSelection(_), AgsOverride(n, _, _))                 =>
-                                        props.selectedGSName.set(n.some) *>
-                                          odbApi
-                                            .setGuideTargetName(props.obsId, n.some)
-                                            .runAsyncAndForget
-                                      // Going from manual to automated selection
-                                      case (AgsOverride(n, _, _), AgsSelection(_))                 =>
-                                        props.selectedGSName.set(none) *>
-                                          odbApi
-                                            .setGuideTargetName(props.obsId, none)
-                                            .runAsyncAndForget
-                                      case _                                                       =>
-                                        // All other combinations
+                                      case _ =>
                                         Callback.empty
                                     }
                                   }
+        // The only way the stored name is cleared, at the user's request. Local state changes first
+        // and is restored if the backend refuses, unless a star was picked in the meantime.
+        revertGuideStar       = props.selectedGSName.get.fold(Callback.empty): name =>
+                                  import ctx.given
+
+                                  props.selectedGSName.set(none) >>
+                                    guideStarSelection.set(GuideStarSelection.Default) >>
+                                    odbApi
+                                      .setGuideTargetName(props.obsId, none)
+                                      .handleErrorWith: t =>
+                                        ctx.logger.error(t)("Error reverting to automatic guide star") >>
+                                          (props.selectedGSName.mod(_.orElse(name.some)) >>
+                                            guideStarSelection.mod:
+                                              case _: AgsSelection => RemoteGSSelection(name)
+                                              case other           => other
+                                          ).toAsync
+                                      .runAsyncAndForget
         // Some of the fields of an observation are expensive and we can
         // load them on demand. For now it is only the guideStar selection name
         _                    <- useEffectWithDeps(props.obsId): obsId =>
@@ -812,6 +817,7 @@ object ObsTabTiles:
             sequenceChanged = sequenceChanged.set(pending),
             blindOffsetInfo = (props.obsId, blindOffsetView).some,
             guiding = guidingView.some,
+            revertGuideStar = revertGuideStar,
             positions = positions.some,
             defaultObsTime = defaultObsTime.some,
             ags = agsData
