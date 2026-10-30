@@ -48,6 +48,11 @@ trait GmosDaytimeSetup[D, G, F, U]:
   def filterWavelength(f:                F): Wavelength
   def wrap(d:                            D): DaytimeCalibrationSetup
   def default: D
+  def defaultGrating: G
+
+  /** A grating for a kind that needs one, keeping the current one if any. */
+  def withGrating(d: D): D =
+    if grating.get(d).isDefined then d else grating.replace(defaultGrating.some)(d)
 
   lazy val grating: Lens[D, Option[G]] =
     Lens[D, Option[G]](gratingConfig.get(_).map(configGrating.get)): g =>
@@ -119,6 +124,8 @@ object GmosDaytimeSetup:
       def wrap(d: DynamicConfig.GmosNorth): DaytimeCalibrationSetup =
         DaytimeCalibrationSetup.GmosNorth(d)
 
+      val defaultGrating: GmosNorthGrating = GmosNorthGrating.R831_G5302
+
       def default: DynamicConfig.GmosNorth =
         DynamicConfig.GmosNorth(TimeSpan.Zero,
                                 DefaultReadout,
@@ -155,6 +162,8 @@ object GmosDaytimeSetup:
 
       def wrap(d: DynamicConfig.GmosSouth): DaytimeCalibrationSetup =
         DaytimeCalibrationSetup.GmosSouth(d)
+
+      val defaultGrating: GmosSouthGrating = GmosSouthGrating.R831_G5322
 
       def default: DynamicConfig.GmosSouth =
         DynamicConfig.GmosSouth(TimeSpan.Zero,
@@ -213,15 +222,23 @@ object Flamingos2DaytimeSetup:
   def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
     d: Flamingos2DynamicConfig
   ): Flamingos2DynamicConfig =
-    if kind === previous || DaytimeCalibrationSets.usesOptics(kind) then d
-    else
-      d.copy(
-        disperser = default.disperser,
-        filter = default.filter,
-        lyotWheel = default.lyotWheel,
-        fpu = default.fpu,
-        decker = default.decker
-      )
+    val optics =
+      if kind === previous || DaytimeCalibrationSets.usesOptics(kind) then d
+      else
+        d.copy(
+          disperser = default.disperser,
+          filter = default.filter,
+          lyotWheel = default.lyotWheel,
+          fpu = default.fpu,
+          decker = default.decker
+        )
+    if DaytimeCalibrationSets.needsDisperser(kind) then withDisperser(optics) else optics
+
+  val DefaultDisperser: Flamingos2Disperser = Flamingos2Disperser.R1200JH
+
+  /** A disperser for a kind that needs one, keeping the current one if any. */
+  def withDisperser(d: Flamingos2DynamicConfig): Flamingos2DynamicConfig =
+    if d.disperser.isDefined then d else d.copy(disperser = DefaultDisperser.some)
 
   val default: Flamingos2DynamicConfig =
     Flamingos2DynamicConfig(
@@ -384,10 +401,16 @@ object DaytimeCalibrationSets:
   def usesExposure(kind: CalibrationSetType): Boolean =
     kind =!= CalibrationSetType.Bias && !kind.isSmart
 
+  /** A smart arc on an undispersed setup can never resolve, so the ODB refuses it. */
+  def needsDisperser(kind: CalibrationSetType): Boolean = kind === CalibrationSetType.SmartArc
+
   private def setupFor[D, G, F, U](site: GmosDaytimeSetup[D, G, F, U], kind: CalibrationSetType)(
     d: D
   ): D =
-    val optics   = if usesOptics(kind) then d else site.withoutOptics(d)
+    val optics   =
+      if needsDisperser(kind) then site.withGrating(d)
+      else if usesOptics(kind) then d
+      else site.withoutOptics(d)
     val exposure =
       if !usesExposure(kind) then TimeSpan.Zero
       else if site.exposure.get(d) === TimeSpan.Zero then DefaultExposure
