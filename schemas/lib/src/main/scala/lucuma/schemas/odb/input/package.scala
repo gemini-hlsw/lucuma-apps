@@ -1211,7 +1211,7 @@ extension (s: DaytimeCalibrationSet)
   def toInput: CalibrationSetInput =
     CalibrationSetInput(
       kind = s.kind,
-      count = if s.kind.isSmart then Input.unassign else s.count.orUnassign,
+      explicitCount = if s.kind.isSmart then Input.unassign else s.explicitCount.orUnassign,
       gcal = s.gcal.map(_.toCalibrationSetGcalInput).orUnassign,
       gmosNorth = DaytimeCalibrationSetup.gmosNorth
         .getOption(s.setup)
