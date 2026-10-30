@@ -29,6 +29,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
+import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.react.syntax.*
 import lucuma.react.table.*
@@ -195,7 +196,15 @@ object DaytimeCalibrationSetsTable:
         CountColumnId,
         header = "Num Exp",
         cell = c =>
-          if c.row.original._1.kind.isSmart then EmptyVdom
+          val set = c.row.original._1
+          // A smart row's count is the lookup's: shown, not edited. No mapping blocks the sequence.
+          if set.kind.isSmart then
+            set.stepCount.fold(
+              <.span(Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon))
+                .withTooltip(
+                  "No Smart GCAL mapping for this setup; the sequence cannot be generated"
+                )
+            )(n => <.span(n.value.toString))
           else
             FormInputTextView(
               id = cellId(CountColumnId, c.row.original._2),
