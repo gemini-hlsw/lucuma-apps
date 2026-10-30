@@ -56,10 +56,7 @@ given Display[GmosAmpReadMode] =
 
 given Display[GmosAmpGain] = Display.by(_.shortName, _.longName)
 
-// Drop when lucuma-core names FullFrame "Full Frame".
-given Display[GmosRoi] = Display.byShortName:
-  case GmosRoi.FullFrame => "Full Frame"
-  case r                 => r.longName
+given Display[GmosRoi] = Display.byShortName(_.longName)
 
 given Display[GhostResolutionMode] = Display.by(_.shortName, _.longName)
 
@@ -67,8 +64,6 @@ given Display[GhostBinning] =
   Display.by(b => s"${b.spectralBinning} spectral x ${b.spatialBinning} spatial", _.name)
 
 given Display[GhostReadMode] = Display.by(_.shortName, _.longName)
-
-given Display[Flamingos2WindowCover] = Display.by(_.shortName, _.longName)
 
 given Display[SequenceType] = Display.byShortName:
   case SequenceType.Acquisition => "Acquisition"

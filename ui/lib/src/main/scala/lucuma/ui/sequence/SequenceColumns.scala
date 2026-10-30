@@ -11,7 +11,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Flamingos2WindowCover
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostReadMode

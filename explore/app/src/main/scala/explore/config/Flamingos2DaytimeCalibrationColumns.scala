@@ -13,7 +13,6 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
-import lucuma.ui.display.given
 
 private[config] object Flamingos2DaytimeCalibrationColumns:
   private val DeckerColumnId: ColumnId      = ColumnId("decker")
