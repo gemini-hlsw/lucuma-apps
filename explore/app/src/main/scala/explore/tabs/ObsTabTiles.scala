@@ -349,7 +349,7 @@ object ObsTabTiles:
                                     }
                                   }
         // The only way the stored name is cleared, at the user's request. Local state changes first
-        // and is restored if the backend refuses.
+        // and is restored if the backend refuses, unless a star was picked in the meantime.
         revertGuideStar       = props.selectedGSName.get.fold(Callback.empty): name =>
                                   import ctx.given
 
@@ -359,8 +359,11 @@ object ObsTabTiles:
                                       .setGuideTargetName(props.obsId, none)
                                       .handleErrorWith: t =>
                                         ctx.logger.error(t)("Error reverting to automatic guide star") >>
-                                          (props.selectedGSName.set(name.some) >>
-                                            guideStarSelection.set(RemoteGSSelection(name))).toAsync
+                                          (props.selectedGSName.mod(_.orElse(name.some)) >>
+                                            guideStarSelection.mod:
+                                              case _: AgsSelection => RemoteGSSelection(name)
+                                              case other           => other
+                                          ).toAsync
                                       .runAsyncAndForget
         // Some of the fields of an observation are expensive and we can
         // load them on demand. For now it is only the guideStar selection name

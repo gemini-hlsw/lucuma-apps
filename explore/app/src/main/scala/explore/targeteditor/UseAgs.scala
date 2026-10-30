@@ -210,17 +210,18 @@ object UseAgs:
       _                <- useEffectWithDeps((obsConf.remoteGSName, results.constrained)): (n, resultsPot) =>
                             resultsPot.toOption.foldMap: results =>
                               guideStarSelection.set(results.select(n))
-      // Reported only once AGS has settled, so a pick is not flagged while it is being checked.
+      // Reported only once AGS and the lookup have settled, so a pick is not flagged while it is
+      // being checked. A star that was looked up but not found can't be among the AGS results, so
+      // that doesn't wait for them: with no candidates at all, AGS doesn't run.
       manualGuideStar   =
-        for
-          name   <- obsConf.remoteGSName
-          usable <- results.constrained.toOption
-          if obsConf.agsState.forall(_.get.isIdle)
-        yield
-          if usable.exists(_.target.name === name) then ManualGuideStar.Selected
-          else
+        obsConf.remoteGSName
+          .filter(_ => obsConf.agsState.forall(_.get.isIdle))
+          .flatMap: name =>
             extraLookup match
-              case Some(Left(_))     => ManualGuideStar.LookupFailed
-              case Some(Right(None)) => ManualGuideStar.NotFound
-              case _                 => ManualGuideStar.Unusable
+              case Some(Left(_))     => ManualGuideStar.LookupFailed.some
+              case Some(Right(None)) => ManualGuideStar.NotFound.some
+              case _                 =>
+                results.constrained.toOption.map: usable =>
+                  if usable.exists(_.target.name === name) then ManualGuideStar.Selected
+                  else ManualGuideStar.Unusable
     yield AgsData(candidates.value.value, results, manualGuideStar)

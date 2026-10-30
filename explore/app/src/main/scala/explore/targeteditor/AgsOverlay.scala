@@ -74,7 +74,7 @@ object AgsOverlay:
 
       def goNext: Option[Callback] =
         Option.when(canGoNext)(
-          props.selectedGS.set(props.agsResults.pick(selectedIndex.fold(0)(_ + 1)))
+          props.selectedGS.set(props.agsResults.pick(selectedIndex.foldMap(_ + 1)))
         )
 
       val errorIcon = Icons.TriangleSolid
