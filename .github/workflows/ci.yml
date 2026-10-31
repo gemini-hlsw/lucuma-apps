@@ -282,7 +282,7 @@ jobs:
         with:
           bundlemon-args: '--config explore/.bundlemonrc.json --subProject "Explore"'
 
-      - name: Deploy staging app to Firebase
+      - name: Deploy dev app to Firebase
         if: github.ref == 'refs/heads/main'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -298,6 +298,17 @@ jobs:
           # Create a deployment record with commit SHA for tracking
           echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"
           curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' 
+
+      - name: Configure AWS credentials
+        if: github.ref == 'refs/heads/main'
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: 'arn:aws:iam::463572454758:role/GeminiExploreGHOIDC'
+          aws-region: us-west-2
+
+      - name: Deploy dev app to AWS
+        if: github.ref == 'refs/heads/main'
+        run: ./explore/deploy-aws.sh gemini-edu-explore-test "${{ vars.AWS_EXPLORE_DEV_CLOUDFRONT_ID }}"
 
   observe-deploy:
     name: Build and publish Observe Docker image / Deploy to Heroku
