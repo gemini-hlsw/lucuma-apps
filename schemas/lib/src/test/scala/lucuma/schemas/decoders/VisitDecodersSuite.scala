@@ -6,6 +6,7 @@ package lucuma.schemas.decoders
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.GhostBinning
 import lucuma.core.enums.GhostIfu1FiberAgitator
 import lucuma.core.enums.GhostIfu2FiberAgitator
@@ -59,6 +60,7 @@ class VisitDecodersSuite extends InputStreamSuite {
         atoms = List(
           AtomRecord.GmosNorth(
             id = Atom.Id.fromUuid(UUID.fromString("03e40772-09c1-443d-b4c8-b952995ad109")),
+            description = NonEmptyString.unsafeFrom("Initial Acquisition").some,
             executionState = AtomExecutionState.NotStarted,
             interval = TimestampInterval
               .between(
@@ -133,6 +135,7 @@ class VisitDecodersSuite extends InputStreamSuite {
         atoms = List(
           AtomRecord.GmosSouth(
             id = Atom.Id.fromUuid(UUID.fromString("03e40772-09c1-443d-b4c8-b952995ad109")),
+            description = NonEmptyString.unsafeFrom("Initial Acquisition").some,
             executionState = AtomExecutionState.NotStarted,
             interval = TimestampInterval
               .between(
@@ -231,6 +234,7 @@ class VisitDecodersSuite extends InputStreamSuite {
         atoms = List(
           AtomRecord.Ghost(
             id = Atom.Id.fromUuid(UUID.fromString("03e40772-09c1-443d-b4c8-b952995ad109")),
+            description = NonEmptyString.unsafeFrom("Initial Acquisition").some,
             executionState = AtomExecutionState.NotStarted,
             interval = TimestampInterval
               .between(

@@ -95,9 +95,28 @@ private trait SequenceTable[S, D]:
         resolvedScience
       )
 
+    // Acquisition atoms can be of two types: the initial acquisition, or a repeat offer (used for
+    // fine adjustments). We want to tell the types apart since we don't want to generally show
+    // pending repeat offer atoms, unless they are executing. The only way to tell them apart is by
+    // their description. They have different descriptions but there's no standard for them: they
+    // can vary among modes and instruments. Therefore, we compare the description of the pending
+    // acquisition atom with the description of the first atom of the last executed acquisition.
+    // If the descriptions differ, it is considered a repeat offer. (Observe resets the acquisition
+    // whenever it loads the sequence, so a pending initial atom means a new acquisition is due.)
+    val isAcquisitionRepeatOffer: Boolean =
+      (
+        instrumentVisits.reverse.collectFirstSome(_.acquisitionAtoms.headOption),
+        resolvedAcquisition.headOption
+      ).mapN: (executed, pending) =>
+        executed.description.map(_.value) =!= pending.description.map(_.value)
+      .getOrElse(false)
+
     // Hide acquisition when science is executing or when sequence is complete.
     val isAcquisitionDisplayed: Boolean =
-      !currentSequenceType.contains_(SequenceType.Science) && scienceRows.nonEmpty
+      scienceRows.nonEmpty && (currentSequenceType match
+        case Some(SequenceType.Science)     => false
+        case Some(SequenceType.Acquisition) => true
+        case None                           => !isAcquisitionRepeatOffer)
 
     val acquisitionRows: List[SequenceRow[D]] =
       resolvedAcquisition.headOption // If we are executing Science, don't show any future acquisition rows.

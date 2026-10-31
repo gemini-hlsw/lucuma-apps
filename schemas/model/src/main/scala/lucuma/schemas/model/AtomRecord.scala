@@ -5,6 +5,8 @@ package lucuma.schemas.model
 
 import cats.Eq
 import cats.derived.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
@@ -19,6 +21,7 @@ import monocle.Lens
 
 enum AtomRecord[+D]:
   def id: Atom.Id
+  def description: Option[NonEmptyString]
   def executionState: AtomExecutionState
   def interval: Option[TimestampInterval]
   def sequenceType: SequenceType
@@ -26,6 +29,7 @@ enum AtomRecord[+D]:
 
   case GmosNorth protected[schemas] (
     id:             Atom.Id,
+    description:    Option[NonEmptyString],
     executionState: AtomExecutionState,
     interval:       Option[TimestampInterval],
     sequenceType:   SequenceType,
@@ -34,6 +38,7 @@ enum AtomRecord[+D]:
 
   case GmosSouth protected[schemas] (
     id:             Atom.Id,
+    description:    Option[NonEmptyString],
     executionState: AtomExecutionState,
     interval:       Option[TimestampInterval],
     sequenceType:   SequenceType,
@@ -42,6 +47,7 @@ enum AtomRecord[+D]:
 
   case Flamingos2 protected[schemas] (
     id:             Atom.Id,
+    description:    Option[NonEmptyString],
     executionState: AtomExecutionState,
     interval:       Option[TimestampInterval],
     sequenceType:   SequenceType,
@@ -50,6 +56,7 @@ enum AtomRecord[+D]:
 
   case Igrins2 protected[schemas] (
     id:             Atom.Id,
+    description:    Option[NonEmptyString],
     executionState: AtomExecutionState,
     interval:       Option[TimestampInterval],
     sequenceType:   SequenceType,
@@ -58,6 +65,7 @@ enum AtomRecord[+D]:
 
   case Ghost protected[schemas] (
     id:             Atom.Id,
+    description:    Option[NonEmptyString],
     executionState: AtomExecutionState,
     interval:       Option[TimestampInterval],
     sequenceType:   SequenceType,
@@ -66,6 +74,7 @@ enum AtomRecord[+D]:
 
   case Gnirs protected[schemas] (
     id:             Atom.Id,
+    description:    Option[NonEmptyString],
     executionState: AtomExecutionState,
     interval:       Option[TimestampInterval],
     sequenceType:   SequenceType,
@@ -80,6 +89,9 @@ object AtomRecord:
 
     val id: Lens[GmosNorth, Atom.Id] =
       Focus[GmosNorth](_.id)
+
+    val description: Lens[GmosNorth, Option[NonEmptyString]] =
+      Focus[GmosNorth](_.description)
 
     val executionState: Lens[GmosNorth, AtomExecutionState] =
       Focus[GmosNorth](_.executionState)
@@ -99,6 +111,9 @@ object AtomRecord:
     val id: Lens[GmosSouth, Atom.Id] =
       Focus[GmosSouth](_.id)
 
+    val description: Lens[GmosSouth, Option[NonEmptyString]] =
+      Focus[GmosSouth](_.description)
+
     val interval: Lens[GmosSouth, Option[TimestampInterval]] =
       Focus[GmosSouth](_.interval)
 
@@ -113,6 +128,9 @@ object AtomRecord:
 
     val id: Lens[Flamingos2, Atom.Id] =
       Focus[Flamingos2](_.id)
+
+    val description: Lens[Flamingos2, Option[NonEmptyString]] =
+      Focus[Flamingos2](_.description)
 
     val executionState: Lens[Flamingos2, AtomExecutionState] =
       Focus[Flamingos2](_.executionState)
@@ -132,6 +150,9 @@ object AtomRecord:
     val id: Lens[Igrins2, Atom.Id] =
       Focus[Igrins2](_.id)
 
+    val description: Lens[Igrins2, Option[NonEmptyString]] =
+      Focus[Igrins2](_.description)
+
     val executionState: Lens[Igrins2, AtomExecutionState] =
       Focus[Igrins2](_.executionState)
 
@@ -150,6 +171,9 @@ object AtomRecord:
     val id: Lens[Ghost, Atom.Id] =
       Focus[Ghost](_.id)
 
+    val description: Lens[Ghost, Option[NonEmptyString]] =
+      Focus[Ghost](_.description)
+
     val executionState: Lens[Ghost, AtomExecutionState] =
       Focus[Ghost](_.executionState)
 
@@ -167,6 +191,9 @@ object AtomRecord:
 
     val id: Lens[Gnirs, Atom.Id] =
       Focus[Gnirs](_.id)
+
+    val description: Lens[Gnirs, Option[NonEmptyString]] =
+      Focus[Gnirs](_.description)
 
     val executionState: Lens[Gnirs, AtomExecutionState] =
       Focus[Gnirs](_.executionState)

@@ -4,6 +4,7 @@
 package lucuma.ui.sequence
 
 import cats.Endo
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.syntax.effect.*
@@ -202,44 +203,43 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
 
   // Inserts a copy of the row's step, with `modStep` applied to it, right below the row.
   // For executed rows, which have no place in the future sequence, the copy goes at the head.
+  // When nothing remains to execute (a completed observation), the copy opens a new atom.
   private def insertCopyOfRow(row: SequenceRow[D], modStep: Endo[Step[D]])(
     targetSeqType: SequenceType
   ): IO[Endo[List[Atom[D]]]] =
-    IO.randomUUID
-      .map(Step.Id.fromUuid(_))
-      .map: newId =>
-        val copyStep: Endo[Step[D]] = Step.id[D].replace(newId).andThen(modStep)
+    (IO.randomUUID, IO.randomUUID).mapN: (stepUuid, atomUuid) =>
+      val newStepId: Step.Id      = Step.Id.fromUuid(stepUuid)
+      val copyStep: Endo[Step[D]] = Step.id[D].replace(newStepId).andThen(modStep)
 
-        row match
-          case SequenceRow.futureStep(fs)   =>
-            insertStep(
-              copyStep(fs.step),
-              nextTo = fs.stepId,
-              position = Edge.Bottom
+      row match
+        case SequenceRow.futureStep(fs)   =>
+          insertStep(
+            copyStep(fs.step),
+            nextTo = fs.stepId,
+            position = Edge.Bottom
+          )
+        case SequenceRow.executedStep(es) =>
+          val newStep: Step[D] = copyStep(
+            Step(
+              newStepId,
+              es.stepRecord.instrumentConfig,
+              es.stepRecord.stepConfig,
+              es.stepRecord.telescopeConfig,
+              // The ODB recomputes the estimate when the edited sequence is accepted.
+              StepEstimate.Zero,
+              es.stepRecord.observeClass,
+              Breakpoint.Disabled
             )
-          case SequenceRow.executedStep(es) =>
-            val newStep: Step[D] = copyStep(
-              Step(
-                newId,
-                es.stepRecord.instrumentConfig,
-                es.stepRecord.stepConfig,
-                es.stepRecord.telescopeConfig,
-                // TODO IS THIS WHAT WE ACTUALLY WANT?? // es.interval.foldMap(_.timeSpan),
-                StepEstimate.fromMax(List.empty, List.empty),
-                es.stepRecord.observeClass,
-                Breakpoint.Disabled
-              )
-            )
-            {
-              case Nil          => Nil // There's no sequence... What to do?
-              case head :: tail =>
-                val newHead: Atom[D] =
-                  if row.sequenceType.contains_(targetSeqType)
-                  then Atom.steps[D].modify(newStep :: _)(head)
-                  else head
-                newHead :: tail
-            }
-          case _                            => identity
+          )
+          atoms =>
+            if row.sequenceType.contains_(targetSeqType) then
+              atoms match
+                case Nil          =>
+                  val newAtomId: Atom.Id = Atom.Id.fromUuid(atomUuid)
+                  List(Atom(newAtomId, none, NonEmptyList.one(newStep)))
+                case head :: tail => Atom.steps[D].modify(newStep :: _)(head) :: tail
+            else atoms
+        case _                            => identity
 
   protected def cloneRow(row: SequenceRow[D]): SequenceType => IO[Endo[List[Atom[D]]]] =
     insertCopyOfRow(row, identity[Step[D]])
