@@ -781,7 +781,7 @@
 
 // The dialog is rendered outside the overlay, so it needs its own speed colours
 .ags-candidates-dialog {
-  width: 620px;
+  width: 770px;
   max-width: 95vw;
 
   .ags-candidates-missing {
@@ -798,6 +798,12 @@
 
   .ags-candidate-current {
     font-weight: bold;
+  }
+
+  .ags-candidate-vignetting {
+    width: 100%;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   .fa-bahai {

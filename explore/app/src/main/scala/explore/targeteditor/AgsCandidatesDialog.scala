@@ -9,6 +9,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -21,6 +22,7 @@ import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.DialogPosition
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.refined.*
 import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
@@ -91,7 +93,7 @@ object AgsCandidatesDialog:
             Dialog(
               visible = true,
               onHide = close,
-              header = "Guide Star Candidates",
+              header = <.span("Guide Star Candidates", HelpIcon("target/main/ags.md".refined)),
               footer = footer,
               position = DialogPosition.Top,
               closeOnEscape = true,
@@ -138,6 +140,7 @@ private object AgsCandidatesTable:
   private val NameColumnId: ColumnId       = ColumnId("name")
   private val SpeedColumnId: ColumnId      = ColumnId("speed")
   private val BrightnessColumnId: ColumnId = ColumnId("brightness")
+  private val VignettingColumnId: ColumnId = ColumnId("vignetting")
 
   private val ScrollOptions =
     rawVirtual.mod
@@ -183,7 +186,13 @@ private object AgsCandidatesTable:
         identity,
         "Brightness",
         cell => AgsOverlay.brightness(cell.value).getOrElse(EmptyVdom)
-      ).withColumnSize(FixedSize(120.toPx))
+      ).withColumnSize(FixedSize(120.toPx)),
+      ColDef(
+        VignettingColumnId,
+        _.vignetting.toMicroarcsecondsSquared / 1e12,
+        _ => <.div(ExploreStyles.AgsCandidateVignetting, "Vignetting (arcsec²)"),
+        cell => <.div(ExploreStyles.AgsCandidateVignetting, f"${cell.value}%.2f")
+      ).withColumnSize(FixedSize(150.toPx))
     )
 
   private val component =
