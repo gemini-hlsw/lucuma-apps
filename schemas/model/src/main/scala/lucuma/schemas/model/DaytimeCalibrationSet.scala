@@ -58,19 +58,23 @@ object DaytimeCalibrationSetup:
 
 /**
  * One ordered row of a Daytime Calibration: a kind, an exposure count, the GCAL lamp setup of a
- * Flat or Arc, and the Instrument Setup. The ODB expands it into one atom of `count` identical
- * day-cal steps.
+ * Flat or Arc, and the Instrument Setup. `explicitCount` is the user's: the ODB expands a manual
+ * row into one atom of that many identical day-cal steps. A smart row carries no count or GCAL
+ * setup of its own: the Smart GCAL lookup supplies them. `count` is read only: the steps the row
+ * contributes, the lookup's for a smart row, none when it finds no mapping.
  */
 case class DaytimeCalibrationSet(
-  kind:  CalibrationSetType,
-  count: PosInt,
-  gcal:  Option[StepConfig.Gcal],
-  setup: DaytimeCalibrationSetup
+  kind:          CalibrationSetType,
+  explicitCount: Option[PosInt],
+  gcal:          Option[StepConfig.Gcal],
+  setup:         DaytimeCalibrationSetup,
+  count:         Option[PosInt] = None
 ) derives Eq
 
 object DaytimeCalibrationSet:
   val kind: Lens[DaytimeCalibrationSet, CalibrationSetType]       = Focus[DaytimeCalibrationSet](_.kind)
-  val count: Lens[DaytimeCalibrationSet, PosInt]                  = Focus[DaytimeCalibrationSet](_.count)
+  val explicitCount: Lens[DaytimeCalibrationSet, Option[PosInt]]  =
+    Focus[DaytimeCalibrationSet](_.explicitCount)
   val gcal: Lens[DaytimeCalibrationSet, Option[StepConfig.Gcal]]  =
     Focus[DaytimeCalibrationSet](_.gcal)
   val setup: Lens[DaytimeCalibrationSet, DaytimeCalibrationSetup] =
@@ -79,7 +83,8 @@ object DaytimeCalibrationSet:
   given Decoder[DaytimeCalibrationSet] = Decoder.instance: c =>
     for
       kind  <- c.downField("kind").as[CalibrationSetType]
-      count <- c.downField("count").as[PosInt]
+      exp   <- c.downField("explicitCount").as[Option[PosInt]]
+      count <- c.downField("count").as[Option[PosInt]]
       gcal  <- c.downField("gcal").as[Option[StepConfig.Gcal]]
       north <- c.downField("gmosNorth").as[Option[DynamicConfig.GmosNorth]]
       south <- c.downField("gmosSouth").as[Option[DynamicConfig.GmosSouth]]
@@ -89,4 +94,4 @@ object DaytimeCalibrationSet:
                  .orElse(south.map(DaytimeCalibrationSetup.GmosSouth(_)))
                  .orElse(f2.map(DaytimeCalibrationSetup.Flamingos2(_)))
                  .toRight(DecodingFailure("Calibration set has no instrument setup", c.history))
-    yield DaytimeCalibrationSet(kind, count, gcal, setup)
+    yield DaytimeCalibrationSet(kind, exp, gcal, setup, count)

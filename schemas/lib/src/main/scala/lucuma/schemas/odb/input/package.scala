@@ -1207,10 +1207,11 @@ extension (gcal: StepConfig.Gcal)
     )
 
 extension (s: DaytimeCalibrationSet)
+  // A smart row's count is the lookup's, read back from the ODB; sending it is rejected.
   def toInput: CalibrationSetInput =
     CalibrationSetInput(
       kind = s.kind,
-      count = s.count,
+      explicitCount = if s.kind.isSmart then Input.unassign else s.explicitCount.orUnassign,
       gcal = s.gcal.map(_.toCalibrationSetGcalInput).orUnassign,
       gmosNorth = DaytimeCalibrationSetup.gmosNorth
         .getOption(s.setup)

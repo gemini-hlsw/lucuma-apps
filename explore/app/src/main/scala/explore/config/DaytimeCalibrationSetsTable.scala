@@ -8,6 +8,7 @@ import cats.data.NonEmptySet
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
@@ -28,6 +29,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
+import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.react.syntax.*
 import lucuma.react.table.*
@@ -91,6 +93,11 @@ object DaytimeCalibrationSetsTable:
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
+  private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
+    Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
+      _.copy(explicitCount = n.some)
+    )
+
   private val DefaultGcalLens: Lens[DaytimeCalibrationSet, StepConfig.Gcal] =
     Lens[DaytimeCalibrationSet, StepConfig.Gcal](s =>
       s.gcal.getOrElse(defaultGcal(s.setup.instrument))
@@ -120,12 +127,14 @@ object DaytimeCalibrationSetsTable:
     idx:         Int,
     value:       View[Option[A]],
     placeholder: String,
-    editable:    Boolean
+    editable:    Boolean,
+    showClear:   Boolean = true
   ): VdomNode =
     EnumDropdownOptionalView(
       id = cellId(colId, idx),
       value = value,
       placeholder = placeholder,
+      showClear = showClear,
       clazz = SequenceStyles.SequenceDropdown,
       panelClass = SequenceStyles.SequenceDropdownPanel,
       disabled = !editable
@@ -184,18 +193,28 @@ object DaytimeCalibrationSetsTable:
             editable,
             excludedKinds
           )
-      ).withSize(90.toPx),
+      ).withSize(120.toPx),
       ColDef(
         CountColumnId,
         header = "Num Exp",
         cell = c =>
-          FormInputTextView(
-            id = cellId(CountColumnId, c.row.original._2),
-            value = rowView(setsView, c.row.original._2).zoom(DaytimeCalibrationSet.count),
-            codec = inputCodecs.CalibrationSetCount,
-            groupClass = SequenceStyles.SequenceInput,
-            disabled = !editable
-          )
+          val set = c.row.original._1
+          // A smart row's count is the lookup's: shown, not edited. No mapping blocks the sequence.
+          if set.kind.isSmart then
+            set.count.fold(
+              <.span(Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon))
+                .withTooltip(
+                  "No Smart GCAL mapping for this setup; the sequence cannot be generated"
+                )
+            )(n => <.span(n.value.toString))
+          else
+            FormInputTextView(
+              id = cellId(CountColumnId, c.row.original._2),
+              value = rowView(setsView, c.row.original._2).zoom(DefaultCountLens),
+              codec = inputCodecs.CalibrationSetCount,
+              groupClass = SequenceStyles.SequenceInput,
+              disabled = !editable
+            )
       ).withSize(60.toPx),
       ColDef(
         ExposureColumnId,
@@ -263,7 +282,7 @@ object DaytimeCalibrationSetsTable:
             header = "Filter",
             cell = c =>
               val idx: Int = c.row.original._2
-              if c.row.original._1.kind.usesGcal then
+              if usesGcalSetup(c.row.original._1.kind) then
                 dropdown(
                   GcalFilterColumnId,
                   idx,
@@ -277,7 +296,7 @@ object DaytimeCalibrationSetsTable:
             header = "IR Shutter",
             cell = c =>
               val idx: Int = c.row.original._2
-              if c.row.original._1.kind.usesGcal then
+              if usesGcalSetup(c.row.original._1.kind) then
                 dropdown(ShutterColumnId,
                          idx,
                          gcalView(idx).zoom(StepConfig.Gcal.shutter),
@@ -297,7 +316,6 @@ object DaytimeCalibrationSetsTable:
             clazz = SequenceStyles.DeleteButton,
             text = true,
             disabled = !editable,
-            tooltip = "Remove this calibration set",
             onClick = setsView.mod(l => l.take(idx) ++ l.drop(idx + 1))
           ).tiny.compact
         ,

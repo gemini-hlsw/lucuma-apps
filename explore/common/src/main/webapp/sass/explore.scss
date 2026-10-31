@@ -2256,6 +2256,22 @@ svg.fa-check.explore-success-icon {
     font-size: smaller;
     white-space: nowrap;
   }
+
+  &.pl-react-table.p-datatable .p-datatable-tbody > tr > td {
+    padding-left: 0.3em;
+    padding-right: 0.3em;
+  }
+
+  .lucuma-sequence-dropdown {
+    .p-dropdown-trigger,
+    .p-multiselect-trigger {
+      width: 1.5em;
+    }
+
+    &.p-dropdown-clearable .p-dropdown-label {
+      padding-right: 1em;
+    }
+  }
 }
 
 .explore-configuration-tile-body {
