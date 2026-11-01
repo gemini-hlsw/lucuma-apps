@@ -237,54 +237,78 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected def renderStartingVisitHeader: VdomNode =
     <.div(SequenceStyles.RemainingHeader)("Visit starting...")
 
+  /**
+   * The `sequenceType` editor's button strip: undo buttons and Edit while idle, Cancel and Accept
+   * while editing. Shared by the section header and the "Sequence complete" header.
+   */
+  protected def renderEditorButtons(
+    sequenceType: SequenceType,
+    ctxs:         SequenceEditContexts[D]
+  )(using Logger[IO]): VdomNode =
+    val ctx: SequenceEditContext[D] = ctxs.forSequenceType(sequenceType)
+
+    React.Fragment(
+      <.span(
+        UndoButtons(ctx.undoCtx, size = PlSize.Mini, loading = ctx.isEditInFlight)
+          .when(ctx.isEditing.get)
+      ),
+      <.span(SequenceStyles.EditorButtons)(
+        Button(
+          onClickE = _.stopPropagationCB >> ctx.isEditing.set(IsEditing.True),
+          label = "Edit",
+          icon = SequenceIcons.Pencil,
+          tooltip = "Enter sequence editing mode",
+          tooltipOptions = TooltipOptions.Top
+        ).mini.compact
+          .when:
+            ctxs.isEditEnabled && !ctx.isEditing.get
+        ,
+        React
+          .Fragment(
+            Button(
+              onClickE = _.stopPropagationCB >> ctx.onCancel,
+              label = "Cancel",
+              icon = SequenceIcons.XMark,
+              tooltip = "Cancel sequence editing",
+              tooltipOptions = TooltipOptions.Top,
+              severity = Button.Severity.Danger,
+              loading = ctx.isEditInFlight
+            ).mini.compact,
+            Button( // commit
+              onClickE = _.stopPropagationCB >> ctx.onAccept.runAsync,
+              label = "Accept",
+              icon = SequenceIcons.Check,
+              tooltip = "Accept sequence modifications",
+              tooltipOptions = TooltipOptions.Top,
+              severity = Button.Severity.Success,
+              loading = ctx.isEditInFlight
+            ).mini.compact
+          )
+          .when(ctx.isEditing.get)
+      )
+    )
+
   protected def renderCurrentHeader(
     sequenceType: SequenceType
   )(using Logger[IO]): SequenceHeaderContext[D] => VdomNode =
     headerCtx =>
-      val ctxs: SequenceEditContexts[D] = headerCtx.editContexts
-      val ctx: SequenceEditContext[D]   = ctxs.forSequenceType(sequenceType)
-
       <.span(
         SequenceStyles.CurrentHeader,
         sequenceType.toString,
-        <.span(
-          UndoButtons(ctx.undoCtx, size = PlSize.Mini, loading = ctx.isEditInFlight)
-            .when(ctx.isEditing.get)
-        ),
-        <.span(SequenceStyles.EditorButtons)(
-          Button(
-            onClickE = _.stopPropagationCB >> ctx.isEditing.set(IsEditing.True),
-            label = "Edit",
-            icon = SequenceIcons.Pencil,
-            tooltip = "Enter sequence editing mode",
-            tooltipOptions = TooltipOptions.Top
-          ).mini.compact
-            .when:
-              ctxs.isEditEnabled && !ctx.isEditing.get
-          ,
-          React
-            .Fragment(
-              Button(
-                onClickE = _.stopPropagationCB >> ctx.onCancel,
-                label = "Cancel",
-                icon = SequenceIcons.XMark,
-                tooltip = "Cancel sequence editing",
-                tooltipOptions = TooltipOptions.Top,
-                severity = Button.Severity.Danger,
-                loading = ctx.isEditInFlight
-              ).mini.compact,
-              Button( // commit
-                onClickE = _.stopPropagationCB >> ctx.onAccept.runAsync,
-                label = "Accept",
-                icon = SequenceIcons.Check,
-                tooltip = "Accept sequence modifications",
-                tooltipOptions = TooltipOptions.Top,
-                severity = Button.Severity.Success,
-                loading = ctx.isEditInFlight
-              ).mini.compact
-            )
-            .when(ctx.isEditing.get)
-        )
+        renderEditorButtons(sequenceType, headerCtx.editContexts)
+      )
+
+  // Every step has run. The science editor's buttons live here until a step is added, since
+  // the Science section (and its header) only appears once there are pending steps.
+  protected def renderSequenceCompleteHeader(using
+    Logger[IO]
+  ): SequenceHeaderContext[D] => VdomNode =
+    headerCtx =>
+      <.div(
+        SequenceStyles.RemainingHeader,
+        SequenceStyles.CurrentHeader,
+        "Sequence complete",
+        renderEditorButtons(SequenceType.Science, headerCtx.editContexts)
       )
 
   // private val ArchiveBaseUrl = "https://archive.gemini.edu/preview" // In case they want the image instead
@@ -472,12 +496,13 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected case class AlertRow(sequenceType: SequenceType, position: NonNegInt, content: VdomNode)
 
   def stitchSequence(
-    visits:           List[VisitData],
-    currentVisitId:   Option[Visit.Id],     // Used to move current visit steps to current sequences
-    nextScienceIndex: StepIndex,            // Used to continue numbering from visits
-    acquisitionRows:  List[SequenceRow[D]], // Should have completed steps already removed
-    scienceRows:      List[SequenceRow[D]], // Should have completed steps already removed
-    alertRow:         Option[AlertRow] = none
+    visits:                List[VisitData],
+    currentVisitId:        Option[Visit.Id],     // Used to move current visit steps to current sequences
+    nextScienceIndex:      StepIndex,            // Used to continue numbering from visits
+    acquisitionRows:       List[SequenceRow[D]], // Should have completed steps already removed
+    scienceRows:           List[SequenceRow[D]], // Should have completed steps already removed
+    alertRow:              Option[AlertRow] = none,
+    showSequenceLevelEdit: Boolean = false       // Every step has run and the user may add more
   )(using Logger[IO]): List[SequenceTableRowType] = {
     val (pastVisits: List[VisitData], currentVisits: List[VisitData]) =
       visits.partition: visitData =>
@@ -592,9 +617,12 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     // nested in a "Remaining sequence" group instead.
     val liveSections: List[SequenceTableRowType] = acquisitionTableRows ++ scienceTableRows
 
-    def liveGroup(header: VdomNode): SequenceTableRowType =
+    def liveGroup(
+      header:       SequenceHeaderContext[D] => VdomNode,
+      iconOverride: Option[VdomNode] = none
+    ): SequenceTableRowType =
       Expandable(
-        HeaderRow(CurrentGroupRowId, header, collapsible = false).toHeaderOrRow,
+        HeaderRow(CurrentGroupRowId, header, collapsible = false, iconOverride).toHeaderOrRow,
         liveSections
       )
 
@@ -606,9 +634,11 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
           )
         // The visit has started but the ODB hasn't reported it yet.
         case (None, Some(_)) if liveSections.nonEmpty =>
-          List(liveGroup(renderStartingVisitHeader))
+          List(liveGroup(_ => renderStartingVisitHeader))
         case (None, None) if liveSections.nonEmpty    =>
-          List(liveGroup(renderRemainingHeader))
+          List(liveGroup(_ => renderRemainingHeader))
+        case (None, None) if showSequenceLevelEdit    =>
+          List(liveGroup(renderSequenceCompleteHeader, Some[VdomNode](SequenceIcons.Check)))
         case _                                        => Nil
 
     pastVisitsRows ++ currentGroupRows

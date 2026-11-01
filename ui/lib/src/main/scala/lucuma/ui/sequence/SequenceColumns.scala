@@ -942,9 +942,13 @@ object SequenceColumns:
                   TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded())
                 )(TableIcons.ChevronRight)
               ).when(cell.row.getCanExpand() && headerRow.collapsible),
-              // A static "always open" marker in place of the chevron, keeping the content aligned.
-              <.span(TableStyles.ExpanderChevron)(TableIcons.Asterisk)
-                .when(cell.row.getCanExpand() && !headerRow.collapsible),
+              // A static marker in place of the chevron, keeping the content aligned: the row's
+              // own icon, or "always open" for a non-collapsible group.
+              headerRow.iconOverride
+                .orElse:
+                  Option.when[VdomNode](cell.row.getCanExpand() && !headerRow.collapsible):
+                    TableIcons.Asterisk
+                .map(icon => <.span(TableStyles.ExpanderChevron)(icon)),
               <.span(SequenceStyles.TableHeaderContent)(
                 headerRow.content(
                   SequenceHeaderContext(

@@ -122,15 +122,23 @@ trait VisitDecoders:
 
   // Generic atom decoder builder.
   private def atomRecordDecoder[S: Decoder, R](
-    buildAtom: (Atom.Id, AtomExecutionState, Option[TimestampInterval], SequenceType, List[S]) => R
+    buildAtom: (
+      Atom.Id,
+      Option[NonEmptyString],
+      AtomExecutionState,
+      Option[TimestampInterval],
+      SequenceType,
+      List[S]
+    ) => R
   ): Decoder[R] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
+      description    <- c.downField("description").as[Option[NonEmptyString]]
       executionState <- c.downField("executionState").as[AtomExecutionState]
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
       steps          <- c.downField("steps").downField("matches").as[List[S]]
-    yield buildAtom(id, executionState, interval, sequenceType, steps)
+    yield buildAtom(id, description, executionState, interval, sequenceType, steps)
 
   // We must specify a name since the automatic names only take the last part of the type path,
   // generating conflicts among all the `.GmosNorth` and `.GmosSouth` types.

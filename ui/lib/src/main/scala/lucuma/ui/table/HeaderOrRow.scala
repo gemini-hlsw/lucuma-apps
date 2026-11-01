@@ -9,9 +9,15 @@ import lucuma.react.table.RowId
 
 /**
  * A header row grouping the rows under it. A non `collapsible` one shows no chevron and doesn't
- * toggle its group on click; it is up to the table to keep it expanded.
+ * toggle its group on click; it is up to the table to keep it expanded. An `iconOverride` is shown
+ * in the chevron's place, so that the content stays aligned with the collapsible rows'.
  */
-case class HeaderRow[A](rowId: RowId, content: A => VdomNode, collapsible: Boolean = true):
+case class HeaderRow[A](
+  rowId:        RowId,
+  content:      A => VdomNode,
+  collapsible:  Boolean = true,
+  iconOverride: Option[VdomNode] = none
+):
   def toHeaderOrRow[R]: HeaderOrRow[A, R] = this.asLeft
 
 object HeaderRow:

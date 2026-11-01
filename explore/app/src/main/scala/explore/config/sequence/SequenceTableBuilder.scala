@@ -153,13 +153,26 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         (acquisitionRows, scienceRows) = props.buildRows(resolvedAcquisition, resolvedScience)
         rows                          <-
           useMemo(
-            (visitsData, acquisitionRows, scienceRows, props.currentVisitId)
-          ): (visitsData, acquisition, science, currentVisitId) =>
+            (visitsData, acquisitionRows, scienceRows, props.currentVisitId, props.isEditEnabled)
+          ): (visitsData, acquisition, science, currentVisitId, isEditEnabled) =>
             import ctx.given
 
             val (visitRows: List[VisitData], nextScienceIndex: StepIndex) = visitsData.value
 
-            stitchSequence(visitRows, currentVisitId, nextScienceIndex, acquisition, science)
+            // Nothing pending and no visit underway: every step has run. Staff may still add
+            // steps, so the "Sequence complete" header offers the science editor's buttons.
+            val showSequenceLevelEdit: Boolean =
+              isEditEnabled.value && visitRows.nonEmpty && currentVisitId.isEmpty &&
+                acquisition.isEmpty && science.isEmpty
+
+            stitchSequence(
+              visitRows,
+              currentVisitId,
+              nextScienceIndex,
+              acquisition,
+              science,
+              showSequenceLevelEdit = showSequenceLevelEdit
+            )
         datasetIdsInFlight            <- useStateView(HashSet.empty[Dataset.Id])
         tableState                    <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):

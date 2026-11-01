@@ -27,6 +27,7 @@ object ExecutionVisitsSubquery
           atomRecords {
             matches {
               id
+              description
               executionState
               interval $TimestampIntervalSubquery
               sequenceType
