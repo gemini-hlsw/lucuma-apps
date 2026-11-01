@@ -2249,6 +2249,12 @@ svg.fa-check.explore-success-icon {
   color: var(--text-color-secondary);
 }
 
+.explore-configuration-loading-message {
+  min-height: 20em;
+  padding: 0.5em;
+  color: var(--text-color-secondary);
+}
+
 .explore-daytime-cal-set-table {
   // The sequence table theme pads its headers for wide columns; these are narrow.
   &.pl-react-table.p-datatable .p-datatable-thead > tr > th {
