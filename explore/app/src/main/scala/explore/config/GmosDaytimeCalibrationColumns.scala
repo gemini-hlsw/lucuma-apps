@@ -69,7 +69,8 @@ private[config] object GmosDaytimeCalibrationColumns:
                 c.row.original._2,
                 setup(c.row.original._2).zoom(site.grating),
                 "Mirror",
-                editable
+                editable,
+                showClear = !needsDisperser(c.row.original._1.kind)
               )
         ).withSize(110.toPx),
         ColDef(

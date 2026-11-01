@@ -5,6 +5,7 @@ package explore.config
 
 import crystal.react.View
 import explore.config.DaytimeCalibrationSetsTable.*
+import explore.model.DaytimeCalibrationSets
 import explore.model.Flamingos2DaytimeSetup
 import explore.model.display.given
 import lucuma.core.enums.Instrument
@@ -54,7 +55,8 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
                 c.row.original._2,
                 setup(c.row.original._2).zoom(Flamingos2DynamicConfig.disperser),
                 "None",
-                editable
+                editable,
+                showClear = !DaytimeCalibrationSets.needsDisperser(c.row.original._1.kind)
               )
         ).withSize(100.toPx),
         ColDef(
