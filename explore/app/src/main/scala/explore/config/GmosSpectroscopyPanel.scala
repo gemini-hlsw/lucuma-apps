@@ -141,12 +141,11 @@ abstract class GmosSpectroscopyPanelBuilder[
         val allowRevertCustomization = props.allowRevertCustomization
         val showAcquisitionConfig    = props.calibrationRole.needsAcquisitionConfig
 
-        // Engineering filters are only offered to staff. One already set on the
-        // observation stays visible, this only governs what can be chosen.
+        val engineeringFilters: Set[Filter] =
+          Enumerated[Filter].all.filter(f => filterTypeGetter(f) === FilterType.Engineering).toSet
+
         val excludedFilters: Set[Filter] =
-          if props.isStaff then Set.empty
-          else
-            Enumerated[Filter].all.filter(f => filterTypeGetter(f) === FilterType.Engineering).toSet
+          engineeringFilters.excludedFor(props.isStaff, props.filterView.get)
 
         val centralWavelengthView = props.centralWavelengthView
 

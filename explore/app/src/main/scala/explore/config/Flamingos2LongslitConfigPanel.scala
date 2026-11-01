@@ -157,6 +157,9 @@ object Flamingos2LongslitConfigPanel
         val excludedAcquistionFilters =
           Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
+        val excludedFpus: Set[Flamingos2Fpu] =
+          Flamingos2Fpu.Pinholes.excludedFor(props.isStaff, fpuView.get.some)
+
         // Tellurics offer their own presets, science observations the nod patterns.
         def configFields[P <: SlitOffsetPreset: {Enumerated, Display}](
           defaultForPreset: P => SlitTelescopeConfigs
@@ -168,6 +171,7 @@ object Flamingos2LongslitConfigPanel
               defaultValue = props.observingMode.get.initialFpu,
               label = "FPU".some,
               helpId = Some("configuration/f2/fpu.md".refined),
+              exclude = excludedFpus,
               disabled = disableSimpleEdit,
               showCustomization = showCustomization,
               allowRevertCustomization = allowRevertCustomization
