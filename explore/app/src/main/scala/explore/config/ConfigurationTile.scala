@@ -666,7 +666,9 @@ object ConfigurationTile
                 ),
               props.altair.toOptionView.map: altair =>
                 AltairConfigurationPanel(altair, props.guideStarSeparation, props.permissions),
-              if (props.mode.get.isEmpty)
+              if props.modePending then
+                <.div(ExploreStyles.ConfigurationLoadingMessage, "Loading observing mode...")
+              else if props.mode.get.isEmpty then
                 props.obsConf.constraints
                   .map(constraints =>
                     BasicConfigurationPanel(
