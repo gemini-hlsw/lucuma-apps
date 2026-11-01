@@ -208,6 +208,8 @@ object ObsTabContents extends TwoPanels:
         deckShown              <- useStateView(DeckShown.Shown)
         addingObservation      <- useStateView(AddingObservation(false))
         treeWidth              <- useStateView(props.preferredTreeWidth)
+        // Tiles remount per observation; this keeps their measured auto heights across switches.
+        tileHeights            <- useRef(Map.empty[String, Int])
         _                      <- useEffectWithDeps(props.preferredTreeWidth):
                                     treeWidth.set // resync when the preference subscription fires
       } yield
@@ -356,7 +358,8 @@ object ObsTabContents extends TwoPanels:
                   resize,
                   props.userPreferences,
                   obsIsReadonly,
-                  props.readonly
+                  props.readonly,
+                  tileHeights
                 ).withKey(s"${obsId.show}")
               )
         }
