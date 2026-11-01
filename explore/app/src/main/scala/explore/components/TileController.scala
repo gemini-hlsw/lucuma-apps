@@ -47,7 +47,8 @@ case class TileController(
   section:          GridLayoutSection,
   renderBackButton: Option[VdomNode] = None,
   clazz:            Option[Css] = None,
-  storeLayout:      Boolean = true
+  storeLayout:      Boolean = true,
+  measuredHeights:  Option[Hooks.UseRef[Map[String, Int]]] = None
 ) extends ReactFnProps(TileController.component):
   val tiles: List[TileState[?]] =
     tileDefs.map: t =>
@@ -173,7 +174,9 @@ object TileController:
 
   private val grid =
     ScalaFnComponent[Props]: props =>
-      val tileFlags: TileFlags = TileFlags.of(props.tiles)
+      val tileFlags: TileFlags          = TileFlags.of(props.tiles)
+      // Auto heights measured by a previous mount of the same section.
+      val seedHeights: Map[String, Int] = props.measuredHeights.fold(Map.empty)(_.value)
       for
         ctx            <- useContext(AppContext.ctx)
         // Get the breakpoint from the layout
@@ -184,10 +187,17 @@ object TileController:
                             )
                           )
         // Make a local copy of the layout fixing the state of minimized layouts
-        currentLayout  <- useStateView(updateResizableState(tileFlags, props.layoutMap))
+        currentLayout  <- useStateView(
+                            applyMeasuredHeights(
+                              tileFlags,
+                              seedHeights,
+                              dom.window.innerHeight.toInt,
+                              updateResizableState(tileFlags, props.layoutMap)
+                            )
+                          )
         // Last content height reported per tile id. Survives minimize/maximize so maximizing
         // can restore the height the content wants.
-        lastMeasuredPx <- useStateView(Map.empty[String, Int])
+        lastMeasuredPx <- useStateView(seedHeights)
         // Update the current layout if it changes upstream. Auto-height tiles keep their local height
         _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
                             (_, layout) =>
@@ -264,6 +274,7 @@ object TileController:
           val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
           viewportPx.flatMap: vp =>
             (lastMeasuredPx.mod(_.updated(id.value, measuredPx)) *>
+              props.measuredHeights.foldMap(_.mod(_.updated(id.value, measuredPx))) *>
               currentLayout
                 .zoom(allTiles)
                 .mod:
