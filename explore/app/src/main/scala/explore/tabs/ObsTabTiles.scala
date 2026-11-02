@@ -120,7 +120,7 @@ case class ObsTabTiles(
   userPreferences:   View[UserPreferences],
   readonly:          Boolean,
   programIsReadonly: Boolean,
-  tileHeights:       Hooks.UseRef[Map[String, Int]]
+  tileHeights:       Hooks.UseRef[TileController.MeasuredHeights]
 ) extends ReactFnProps(ObsTabTiles.component):
   val isStaffOrAdminUser: Boolean = vault.isStaffOrAdmin
   val obsIsReadonly: Boolean      =

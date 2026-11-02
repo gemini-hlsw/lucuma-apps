@@ -960,5 +960,5 @@ object ConfigurationTile
             )
           )
 
-        TileContents(title, body)
+        TileContents(title, body, heightSettled = !props.modePending)
     })

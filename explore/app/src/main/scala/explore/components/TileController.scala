@@ -48,7 +48,7 @@ case class TileController(
   renderBackButton: Option[VdomNode] = None,
   clazz:            Option[Css] = None,
   storeLayout:      Boolean = true,
-  measuredHeights:  Option[Hooks.UseRef[Map[String, Int]]] = None
+  measuredHeights:  Option[Hooks.UseRef[TileController.MeasuredHeights]] = None
 ) extends ReactFnProps(TileController.component):
   val tiles: List[TileState[?]] =
     tileDefs.map: t =>
@@ -62,6 +62,9 @@ case class TileController(
 
 object TileController:
   private type Props = TileController
+
+  /** Auto heights measured so far, in pixels, keyed by section and tile id. */
+  type MeasuredHeights = Map[(GridLayoutSection, String), Int]
 
   private def storeLayouts[F[_]: ApplicativeThrow](
     userId:  Option[User.Id],
@@ -174,11 +177,16 @@ object TileController:
 
   private val grid =
     ScalaFnComponent[Props]: props =>
-      val tileFlags: TileFlags          = TileFlags.of(props.tiles)
-      // Auto heights measured by a previous mount of the same section.
-      val seedHeights: Map[String, Int] = props.measuredHeights.fold(Map.empty)(_.value)
+      val tileFlags: TileFlags = TileFlags.of(props.tiles)
       for
         ctx            <- useContext(AppContext.ctx)
+        // Auto heights measured by a previous mount of this section, read once at mount.
+        seed           <- useMemo(()): _ =>
+                            val heights: Map[String, Int] =
+                              props.measuredHeights.fold(Map.empty)(_.value.collect {
+                                case ((s, id), px) if s === props.section => id -> px
+                              })
+                            (heights, viewportPx.runNow())
         // Get the breakpoint from the layout
         breakpoint     <- useState(
                             getBreakpointFromWidth(
@@ -190,14 +198,14 @@ object TileController:
         currentLayout  <- useStateView(
                             applyMeasuredHeights(
                               tileFlags,
-                              seedHeights,
-                              dom.window.innerHeight.toInt,
+                              seed.value._1,
+                              seed.value._2,
                               updateResizableState(tileFlags, props.layoutMap)
                             )
                           )
         // Last content height reported per tile id. Survives minimize/maximize so maximizing
         // can restore the height the content wants.
-        lastMeasuredPx <- useStateView(seedHeights)
+        lastMeasuredPx <- useStateView(seed.value._1)
         // Update the current layout if it changes upstream. Auto-height tiles keep their local height
         _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
                             (_, layout) =>
@@ -269,12 +277,15 @@ object TileController:
             .headOption(currentLayout.get)
             .map(h => TileHeightPreset.values.minBy(p => math.abs(p.rows - h)))
 
+        def recordMeasurement(id: Tile.TileId, px: Int): Callback =
+          lastMeasuredPx.mod(_.updated(id.value, px)) *>
+            props.measuredHeights.foldMap(_.mod(_.updated((props.section, id.value), px)))
+
         // Measurements arriving while minimized  must not overwrite the last real measurement.
         def autoHeightCallback(id: Tile.TileId): Int => Callback = measuredPx =>
           val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
           viewportPx.flatMap: vp =>
-            (lastMeasuredPx.mod(_.updated(id.value, measuredPx)) *>
-              props.measuredHeights.foldMap(_.mod(_.updated(id.value, measuredPx))) *>
+            (recordMeasurement(id, measuredPx) *>
               currentLayout
                 .zoom(allTiles)
                 .mod:

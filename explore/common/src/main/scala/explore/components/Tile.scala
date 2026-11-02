@@ -138,7 +138,11 @@ trait TileComponent[P <: Tile[P]](
         declaredHeight = tileContents.contentHeightPx
         _             <-
           useEffectWithDeps(
-            (props.autoHeight, titleResize.height, contentResize.height, declaredHeight)
+            (props.autoHeight && tileContents.heightSettled,
+             titleResize.height,
+             contentResize.height,
+             declaredHeight
+            )
           ):
             case (true, Some(titleH), _, Some(declaredH))   =>
               tileState.autoHeightCallback(titleH + declaredH)

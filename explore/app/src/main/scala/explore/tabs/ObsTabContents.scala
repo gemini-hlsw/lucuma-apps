@@ -209,7 +209,7 @@ object ObsTabContents extends TwoPanels:
         addingObservation      <- useStateView(AddingObservation(false))
         treeWidth              <- useStateView(props.preferredTreeWidth)
         // Tiles remount per observation; this keeps their measured auto heights across switches.
-        tileHeights            <- useRef(Map.empty[String, Int])
+        tileHeights            <- useRef(Map.empty: TileController.MeasuredHeights)
         _                      <- useEffectWithDeps(props.preferredTreeWidth):
                                     treeWidth.set // resync when the preference subscription fires
       } yield
