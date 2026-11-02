@@ -187,6 +187,20 @@ trait formats:
       ts => f"${ts.toSeconds}%.0f"
     )
 
+  /** Seconds with up to millisecond precision. */
+  val durationSDecimal: InputValidWedge[TimeSpan] =
+    InputValidWedge(
+      _.parseBigDecimalOption
+        .flatMap(TimeSpan.fromSeconds)
+        .toRight("Invalid duration".refined[NonEmpty])
+        .toEitherErrors,
+      _.toSeconds
+        .setScale(3, BigDecimal.RoundingMode.HALF_UP)
+        .bigDecimal
+        .stripTrailingZeros
+        .toPlainString
+    )
+
   val time24h: InputValidWedge[LocalTime] =
     InputValidWedge(
       s =>

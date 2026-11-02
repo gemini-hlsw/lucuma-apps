@@ -26,7 +26,6 @@ import lucuma.core.enums.GcalArc
 import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -38,6 +37,7 @@ import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
 import lucuma.ui.dnd.*
+import lucuma.ui.input.InputCodec
 import lucuma.ui.input.toCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -94,6 +94,9 @@ object DaytimeCalibrationSetsTable:
 
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
+
+  private val ExposureDecimalSeconds =
+    formats.durationSDecimal.toCodec.withDecimalMask(3, allowMinus = false)
 
   private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
     Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
@@ -165,11 +168,12 @@ object DaytimeCalibrationSetsTable:
 
   /** The columns every instrument shares, around the columns of its own setup. */
   private[config] def columns(
-    instrument:   Instrument,
-    setsView:     View[List[DaytimeCalibrationSet]],
-    editable:     Boolean,
-    exposureView: Int => View[TimeSpan],
-    setupColumns: List[ColDef.Type]
+    instrument:    Instrument,
+    setsView:      View[List[DaytimeCalibrationSet]],
+    editable:      Boolean,
+    exposureView:  Int => View[TimeSpan],
+    setupColumns:  List[ColDef.Type],
+    exposureCodec: InputCodec[TimeSpan] = ExposureSeconds
   ): List[ColDef.Type] =
     def gcalView(idx: Int): View[StepConfig.Gcal] = rowView(setsView, idx).zoom(DefaultGcalLens)
 
@@ -229,7 +233,7 @@ object DaytimeCalibrationSetsTable:
             FormInputTextView(
               id = cellId(ExposureColumnId, c.row.original._2),
               value = exposureView(c.row.original._2),
-              codec = ExposureSeconds,
+              codec = exposureCodec,
               groupClass = SequenceStyles.SequenceInput,
               disabled = !editable
             )
@@ -359,8 +363,9 @@ object DaytimeCalibrationSetsTable:
                               setupView(props.setsView,
                                         Igrins2DaytimeSetup.setup,
                                         Igrins2DaytimeSetup.default
-                              )(_).zoom(Igrins2DynamicConfig.exposure),
-                              Nil
+                              )(_).zoom(Igrins2DaytimeSetup.exposure),
+                              Nil,
+                              ExposureDecimalSeconds
                             )
                           case _                     => Nil
         table    <- useReactTable:

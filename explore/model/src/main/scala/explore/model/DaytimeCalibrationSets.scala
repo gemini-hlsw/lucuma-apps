@@ -19,6 +19,7 @@ import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -268,10 +269,18 @@ object Igrins2DaytimeSetup:
   val setup: Optional[DaytimeCalibrationSetup, Igrins2DynamicConfig] =
     DaytimeCalibrationSetup.igrins2.andThen(DaytimeCalibrationSetup.Igrins2.config)
 
-  def forKind(kind: CalibrationSetType)(d: Igrins2DynamicConfig): Igrins2DynamicConfig =
-    Igrins2DynamicConfig.exposure.modify(DaytimeCalibrationSets.exposureFor(kind, _))(d)
+  def clampExposure(t: TimeSpan): TimeSpan =
+    Order.min(Order.max(t, igrins2.MinExposureTime), igrins2.MaxExposureTime)
 
-  val default: Igrins2DynamicConfig = Igrins2DynamicConfig(DaytimeCalibrationSets.DefaultExposure)
+  /** The exposure as edited: kept within the IGRINS-2 limits. */
+  val exposure: Lens[Igrins2DynamicConfig, TimeSpan] =
+    Lens[Igrins2DynamicConfig, TimeSpan](_.exposure)(t => _.copy(exposure = clampExposure(t)))
+
+  def forKind(kind: CalibrationSetType)(d: Igrins2DynamicConfig): Igrins2DynamicConfig =
+    val e = DaytimeCalibrationSets.exposureFor(kind, d.exposure, igrins2.DefaultExposureTime)
+    d.copy(exposure = if e === TimeSpan.Zero then e else clampExposure(e))
+
+  val default: Igrins2DynamicConfig = Igrins2DynamicConfig(igrins2.DefaultExposureTime)
 
   val defaultSet: DaytimeCalibrationSet =
     DaytimeCalibrationSet(
@@ -435,9 +444,13 @@ object DaytimeCalibrationSets:
     site.exposure.modify(exposureFor(kind, _))(optics)
 
   /** No exposure for a kind that takes none; a kind that takes one starts at the default. */
-  def exposureFor(kind: CalibrationSetType, current: TimeSpan): TimeSpan =
+  def exposureFor(
+    kind:    CalibrationSetType,
+    current: TimeSpan,
+    default: TimeSpan = DefaultExposure
+  ): TimeSpan =
     if !usesExposure(kind) then TimeSpan.Zero
-    else if current === TimeSpan.Zero then DefaultExposure
+    else if current === TimeSpan.Zero then default
     else current
 
   /**

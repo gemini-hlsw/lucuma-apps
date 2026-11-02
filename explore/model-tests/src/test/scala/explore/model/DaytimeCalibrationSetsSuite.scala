@@ -14,6 +14,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
@@ -259,12 +260,23 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  Flamingos2Filter.J.some
     )
 
-  test("A new IGRINS-2 row starts as a single one second dark"):
+  test("A new IGRINS-2 row starts as a single dark of the IGRINS-2 default exposure"):
     val first = newRow(Nil, Instrument.Igrins2)
     assertEquals(first, Igrins2DaytimeSetup.defaultSet.some)
     assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
     assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
-    assertEquals(Igrins2DaytimeSetup.default.exposure, DefaultExposure)
+    assertEquals(Igrins2DaytimeSetup.default.exposure, igrins2.DefaultExposureTime)
+
+  test("An IGRINS-2 exposure is kept within its limits"):
+    val exposure = Igrins2DaytimeSetup.exposure
+    val d        = Igrins2DaytimeSetup.default
+    assertEquals(exposure.replace(DefaultExposure)(d).exposure, igrins2.MinExposureTime)
+    assertEquals(exposure.replace(TimeSpan.unsafeFromMicroseconds(700_000_000))(d).exposure,
+                 igrins2.MaxExposureTime
+    )
+    assertEquals(exposure.replace(TimeSpan.unsafeFromMicroseconds(5_500_000))(d).exposure,
+                 TimeSpan.unsafeFromMicroseconds(5_500_000)
+    )
 
   test("IGRINS-2 takes neither a bias nor a daytime observe"):
     assertEquals(kinds(Instrument.Igrins2), kinds(Instrument.Flamingos2))
@@ -283,7 +295,9 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     val smart    = withKind(long, CalibrationSetType.SmartFlat)
     assertEquals(exposure(smart), TimeSpan.Zero.some)
     assertEquals(smart.explicitCount, none)
-    assertEquals(exposure(withKind(smart, CalibrationSetType.Dark)), DefaultExposure.some)
+    assertEquals(exposure(withKind(smart, CalibrationSetType.Dark)),
+                 igrins2.DefaultExposureTime.some
+    )
     assertEquals(exposure(withKind(long, CalibrationSetType.Flat)),
                  TimeSpan.unsafeFromMicroseconds(30_000_000).some
     )
