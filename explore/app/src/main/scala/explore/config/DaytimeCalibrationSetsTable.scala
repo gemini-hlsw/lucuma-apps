@@ -392,6 +392,8 @@ object DaytimeCalibrationSetsTable:
             headerCellMod = _.column.id match
               case id if id == DragHandleColumnId || id == DeleteColumnId =>
                 SequenceStyles.HiddenColTableHeader
+              case id if id == GcalGroupColumnId                          =>
+                ExploreStyles.DaytimeCalGroupHeader
               case _                                                      => TagMod.empty,
             rowMod = tableDnd.rowMod(),
             cellMod = tableDnd.cellMod: (cell, _) =>

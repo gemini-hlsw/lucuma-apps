@@ -492,6 +492,7 @@ object ExploreStyles:
   val DaytimeCalInstrument: Css            = Css("explore-daytime-cal-instrument")
   val DaytimeCalMessage: Css               = Css("explore-daytime-cal-message")
   val DaytimeCalSetTable: Css              = Css("explore-daytime-cal-set-table")
+  val DaytimeCalGroupHeader: Css           = Css("explore-daytime-cal-group-header")
   val TelescopeConfigGeneratorOffsets: Css = Css("explore-telescope-config-generator-offsets")
   val AcquisitionCustomizationGrid: Css    = Css("explore-acquisition-customization-grid")
   val SvcTelescopeConfigsEditor: Css       = Css("explore-svc-telescope-configs-editor")
