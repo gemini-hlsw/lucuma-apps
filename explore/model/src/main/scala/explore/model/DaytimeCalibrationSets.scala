@@ -25,7 +25,6 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
-import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 
@@ -274,8 +273,6 @@ object Igrins2DaytimeSetup:
   val setup: Optional[DaytimeCalibrationSetup, Igrins2DynamicConfig] =
     DaytimeCalibrationSetup.igrins2.andThen(DaytimeCalibrationSetup.Igrins2.config)
 
-  val exposure: Lens[Igrins2DynamicConfig, TimeSpan] = Focus[Igrins2DynamicConfig](_.exposure)
-
   def forKind(kind: CalibrationSetType)(d: Igrins2DynamicConfig): Igrins2DynamicConfig =
     d.copy(exposure =
       DaytimeCalibrationSets.exposureFor(kind, d.exposure, igrins2.DefaultExposureTime)
@@ -442,13 +439,13 @@ object DaytimeCalibrationSets:
       if needsDisperser(kind) then site.withGrating(d)
       else if usesOptics(kind) then d
       else site.withoutOptics(d)
-    site.exposure.modify(exposureFor(kind, _))(optics)
+    site.exposure.modify(exposureFor(kind, _, DefaultExposure))(optics)
 
   /** No exposure for a kind that takes none; a kind that takes one starts at the default. */
   def exposureFor(
     kind:    CalibrationSetType,
     current: TimeSpan,
-    default: TimeSpan = DefaultExposure
+    default: TimeSpan
   ): TimeSpan =
     if !usesExposure(kind) then TimeSpan.Zero
     else if current === TimeSpan.Zero then default

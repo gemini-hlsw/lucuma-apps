@@ -48,7 +48,6 @@ final case class DaytimeConfigurationTile(
   executionTime:           CalculatedValue[Option[TimeSpan]],
   hasMaterializedSequence: Boolean,
   readonly:                Boolean,
-  isStaffOrAdmin:          Boolean,
   units:                   WavelengthUnits,
   sequenceChanged:         Callback
 ) extends Tile[DaytimeConfigurationTile](
@@ -56,7 +55,7 @@ final case class DaytimeConfigurationTile(
       "Daytime Calibration",
       autoHeight = true
     )(DaytimeConfigurationTile):
-  val editable: Boolean = !readonly && isStaffOrAdmin && !hasMaterializedSequence
+  val editable: Boolean = !readonly && !hasMaterializedSequence
 
 object DaytimeConfigurationTile
     extends TileComponent[DaytimeConfigurationTile]({ (props, _) =>

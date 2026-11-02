@@ -26,6 +26,7 @@ import lucuma.core.enums.GcalArc
 import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -360,7 +361,7 @@ object DaytimeCalibrationSetsTable:
                               setupView(props.setsView,
                                         Igrins2DaytimeSetup.setup,
                                         Igrins2DaytimeSetup.default
-                              )(_).zoom(Igrins2DaytimeSetup.exposure),
+                              )(_).zoom(Igrins2DynamicConfig.exposure),
                               Nil,
                               inputCodecs.Igrins2CalibrationExposure
                             )

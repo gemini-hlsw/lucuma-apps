@@ -305,7 +305,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       (s: DaytimeCalibrationSet) => Igrins2DaytimeSetup.setup.getOption(s.setup).map(_.exposure)
     val long     = Igrins2DaytimeSetup.defaultSet.copy(setup =
       DaytimeCalibrationSetup.Igrins2(
-        Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(30_000_000))
+        Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(45_000_000))
       )
     )
     val smart    = withKind(long, CalibrationSetType.SmartFlat)
@@ -315,7 +315,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  igrins2.DefaultExposureTime.some
     )
     assertEquals(exposure(withKind(long, CalibrationSetType.Flat)),
-                 TimeSpan.unsafeFromMicroseconds(30_000_000).some
+                 TimeSpan.unsafeFromMicroseconds(45_000_000).some
     )
 
   test("IGRINS-2 flats use the IR diffuser"):
