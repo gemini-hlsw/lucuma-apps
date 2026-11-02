@@ -158,6 +158,13 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  DaytimeCalibrationSetup.GmosNorth(north.exposure.replace(DefaultExposure)(spectro))
     )
 
+  test("Changing the kind leaves the resolved count pending until the ODB reads it back"):
+    val resolved = flat.copy(count = DaytimeCalibrationSet.Count.Resolved(PosInt.unsafeFrom(3)))
+    assertEquals(withKind(resolved, CalibrationSetType.SmartFlat).count,
+                 DaytimeCalibrationSet.Count.Pending
+    )
+    assertEquals(withKind(resolved, CalibrationSetType.Flat).count, resolved.count)
+
   test("Smart Arc gets a grating when the setup has none, and keeps one it has"):
     val fromDark = withKind(dark, CalibrationSetType.SmartArc)
     assertEquals(north.setup.getOption(fromDark.setup).flatMap(north.grating.get),

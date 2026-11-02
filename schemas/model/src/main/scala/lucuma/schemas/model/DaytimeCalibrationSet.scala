@@ -61,17 +61,22 @@ object DaytimeCalibrationSetup:
  * Flat or Arc, and the Instrument Setup. `explicitCount` is the user's: the ODB expands a manual
  * row into one atom of that many identical day-cal steps. A smart row carries no count or GCAL
  * setup of its own: the Smart GCAL lookup supplies them. `count` is read only: the steps the row
- * contributes, the lookup's for a smart row, none when it finds no mapping.
+ * contributes, the lookup's for a smart row, and pending until the ODB resolves an edited row.
  */
 case class DaytimeCalibrationSet(
   kind:          CalibrationSetType,
   explicitCount: Option[PosInt],
   gcal:          Option[StepConfig.Gcal],
   setup:         DaytimeCalibrationSetup,
-  count:         Option[PosInt] = None
+  count:         DaytimeCalibrationSet.Count = DaytimeCalibrationSet.Count.Missing
 ) derives Eq
 
 object DaytimeCalibrationSet:
+  enum Count derives Eq:
+    case Pending
+    case Missing
+    case Resolved(n: PosInt)
+
   val kind: Lens[DaytimeCalibrationSet, CalibrationSetType]       = Focus[DaytimeCalibrationSet](_.kind)
   val explicitCount: Lens[DaytimeCalibrationSet, Option[PosInt]]  =
     Focus[DaytimeCalibrationSet](_.explicitCount)
@@ -94,4 +99,10 @@ object DaytimeCalibrationSet:
                  .orElse(south.map(DaytimeCalibrationSetup.GmosSouth(_)))
                  .orElse(f2.map(DaytimeCalibrationSetup.Flamingos2(_)))
                  .toRight(DecodingFailure("Calibration set has no instrument setup", c.history))
-    yield DaytimeCalibrationSet(kind, exp, gcal, setup, count)
+    yield DaytimeCalibrationSet(
+      kind,
+      exp,
+      gcal,
+      setup,
+      count.fold(Count.Missing)(Count.Resolved(_))
+    )

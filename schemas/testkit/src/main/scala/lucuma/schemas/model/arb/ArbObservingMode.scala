@@ -1807,7 +1807,11 @@ trait ArbObservingMode {
       exp   <- arbitrary[Option[PosInt]]
       gcal  <- arbitrary[Option[StepConfig.Gcal]]
       setup <- arbitrary[DaytimeCalibrationSetup]
-      count <- arbitrary[Option[PosInt]]
+      count <- Gen.oneOf(
+                 Gen.const(DaytimeCalibrationSet.Count.Pending),
+                 Gen.const(DaytimeCalibrationSet.Count.Missing),
+                 arbitrary[PosInt].map(DaytimeCalibrationSet.Count.Resolved(_))
+               )
     yield DaytimeCalibrationSet(kind, exp, gcal, setup, count)
   )
 
@@ -1832,10 +1836,15 @@ trait ArbObservingMode {
        Option[PosInt],
        Option[StepConfig.Gcal],
        DaytimeCalibrationSetup,
-       Option[PosInt]
+       Option[Option[PosInt]]
       )
     ]
-      .contramap(s => (s.kind, s.explicitCount, s.gcal, s.setup, s.count))
+      .contramap: s =>
+        val count = s.count match
+          case DaytimeCalibrationSet.Count.Pending     => none
+          case DaytimeCalibrationSet.Count.Missing     => none.some
+          case DaytimeCalibrationSet.Count.Resolved(n) => n.some.some
+        (s.kind, s.explicitCount, s.gcal, s.setup, count)
 
   given Cogen[ObservingMode.DaytimeCalibration] =
     Cogen[(Instrument, List[DaytimeCalibrationSet])]

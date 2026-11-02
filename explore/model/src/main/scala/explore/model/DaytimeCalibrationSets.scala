@@ -437,6 +437,7 @@ object DaytimeCalibrationSets:
     set.copy(
       kind = kind,
       explicitCount = count,
+      count = if kind === set.kind then set.count else DaytimeCalibrationSet.Count.Pending,
       gcal = gcalFor(set.setup.instrument, kind, set.gcal),
       setup = setup
     )

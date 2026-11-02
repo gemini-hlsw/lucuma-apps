@@ -201,12 +201,15 @@ object DaytimeCalibrationSetsTable:
           val set = c.row.original._1
           // A smart row's count is the lookup's: shown, not edited. No mapping blocks the sequence.
           if set.kind.isSmart then
-            set.count.fold(
-              <.span(Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon))
-                .withTooltip(
-                  "No Smart GCAL mapping for this setup; the sequence cannot be generated"
-                )
-            )(n => <.span(n.value.toString))
+            set.count match
+              case DaytimeCalibrationSet.Count.Pending     =>
+                <.span(Icons.Spinner.withSpin(true))
+              case DaytimeCalibrationSet.Count.Missing     =>
+                <.span(Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon))
+                  .withTooltip(
+                    "No Smart GCAL mapping for this setup; the sequence cannot be generated"
+                  )
+              case DaytimeCalibrationSet.Count.Resolved(n) => <.span(n.value.toString)
           else
             FormInputTextView(
               id = cellId(CountColumnId, c.row.original._2),
