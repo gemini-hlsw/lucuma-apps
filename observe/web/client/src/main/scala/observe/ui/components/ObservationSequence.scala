@@ -19,8 +19,8 @@ import lucuma.react.primereact.Message
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
-import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceData
 import observe.model.ExecutionState
 import observe.model.ObserveStep.*

@@ -16,8 +16,8 @@ import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
-import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.GnirsSpectroscopySequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress

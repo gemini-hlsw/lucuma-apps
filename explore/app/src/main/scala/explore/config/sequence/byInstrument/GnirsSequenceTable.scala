@@ -17,9 +17,9 @@ import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
-import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.GnirsSpectroscopySequenceTable
 
 final case class GnirsSequenceTable(

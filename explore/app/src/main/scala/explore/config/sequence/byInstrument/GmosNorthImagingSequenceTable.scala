@@ -16,9 +16,9 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
-import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 

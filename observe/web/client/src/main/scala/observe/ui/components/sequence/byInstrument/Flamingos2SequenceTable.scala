@@ -17,8 +17,8 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
-import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress

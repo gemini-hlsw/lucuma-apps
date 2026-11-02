@@ -12,13 +12,13 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
 import lucuma.react.common.ReactFnProps
-import lucuma.schemas.ObservationDB.Enums.GmosSouthFilter
 import lucuma.react.table.ColumnId
+import lucuma.schemas.ObservationDB.Enums.GmosSouthFilter
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
-import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
