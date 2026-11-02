@@ -280,29 +280,55 @@ object ObservationSequence
                   onBreakpointFlip,
                   sequenceControls
                 )
+              // Daytime calibrations have no signal to noise
+              case ModeSignalToNoise.Undefined                                =>
+                Flamingos2SequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  ItcResultValues.Empty,
+                  ItcResultValues.Empty,
+                  props.visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
+                  props.requests,
+                  isPreview = false,
+                  hiddenColumns = props.hiddenColumns,
+                  onBreakpointFlip,
+                  props.getMaskName,
+                  sequenceControls
+                )
               case _                                                          => mismatchError
-          case SequenceData(
-                InstrumentExecutionConfig.Igrins2(config),
-                ModeSignalToNoise.Spectroscopy(acquisitionItc, scienceItc)
-              ) =>
-            Igrins2SequenceTable(
-              props.clientMode,
-              props.obsId,
-              config,
-              acquisitionItc,
-              scienceItc,
-              props.visits,
-              props.executionState.get,
-              props.currentRecordedVisit,
-              props.progress,
-              props.selectedRowId,
-              props.setSelectedRowId,
-              props.requests,
-              isPreview = false,
-              hiddenColumns = props.hiddenColumns,
-              onBreakpointFlip,
-              sequenceControls
-            )
+          case SequenceData(InstrumentExecutionConfig.Igrins2(config), signalToNoise)    =>
+            def table(acquisitionItc: ItcResultValues, scienceItc: ItcResultValues) =
+              Igrins2SequenceTable(
+                props.clientMode,
+                props.obsId,
+                config,
+                acquisitionItc,
+                scienceItc,
+                props.visits,
+                props.executionState.get,
+                props.currentRecordedVisit,
+                props.progress,
+                props.selectedRowId,
+                props.setSelectedRowId,
+                props.requests,
+                isPreview = false,
+                hiddenColumns = props.hiddenColumns,
+                onBreakpointFlip,
+                sequenceControls
+              )
+            signalToNoise match
+              case ModeSignalToNoise.Spectroscopy(acquisitionItc, scienceItc) =>
+                table(acquisitionItc, scienceItc)
+              // Daytime calibrations have no signal to noise
+              case ModeSignalToNoise.Undefined                                =>
+                table(ItcResultValues.Empty, ItcResultValues.Empty)
+              case _                                                          => mismatchError
           case SequenceData(InstrumentExecutionConfig.Ghost(config), _)                  =>
             GhostSequenceTable(
               props.clientMode,
