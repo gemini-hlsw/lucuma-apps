@@ -25,6 +25,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
+import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 
@@ -273,16 +274,12 @@ object Igrins2DaytimeSetup:
   val setup: Optional[DaytimeCalibrationSetup, Igrins2DynamicConfig] =
     DaytimeCalibrationSetup.igrins2.andThen(DaytimeCalibrationSetup.Igrins2.config)
 
-  def clampExposure(t: TimeSpan): TimeSpan =
-    Order.min(Order.max(t, igrins2.MinExposureTime), igrins2.MaxExposureTime)
-
-  /** The exposure as edited: kept within the IGRINS-2 limits. */
-  val exposure: Lens[Igrins2DynamicConfig, TimeSpan] =
-    Lens[Igrins2DynamicConfig, TimeSpan](_.exposure)(t => _.copy(exposure = clampExposure(t)))
+  val exposure: Lens[Igrins2DynamicConfig, TimeSpan] = Focus[Igrins2DynamicConfig](_.exposure)
 
   def forKind(kind: CalibrationSetType)(d: Igrins2DynamicConfig): Igrins2DynamicConfig =
-    val e = DaytimeCalibrationSets.exposureFor(kind, d.exposure, igrins2.DefaultExposureTime)
-    d.copy(exposure = if e === TimeSpan.Zero then e else clampExposure(e))
+    d.copy(exposure =
+      DaytimeCalibrationSets.exposureFor(kind, d.exposure, igrins2.DefaultExposureTime)
+    )
 
   val default: Igrins2DynamicConfig = Igrins2DynamicConfig(igrins2.DefaultExposureTime)
 

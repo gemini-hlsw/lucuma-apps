@@ -284,16 +284,15 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(Igrins2DaytimeSetup.default.exposure, igrins2.DefaultExposureTime)
 
-  test("An IGRINS-2 exposure is kept within its limits"):
-    val exposure = Igrins2DaytimeSetup.exposure
-    val d        = Igrins2DaytimeSetup.default
-    assertEquals(exposure.replace(DefaultExposure)(d).exposure, igrins2.MinExposureTime)
-    assertEquals(exposure.replace(TimeSpan.unsafeFromMicroseconds(700_000_000))(d).exposure,
-                 igrins2.MaxExposureTime
+  test("An IGRINS-2 exposure outside its limits is rejected"):
+    val valid = inputCodecs.Igrins2CalibrationExposure.valid
+    assertEquals(valid.getValid("3.08").toOption, igrins2.MinExposureTime.some)
+    assertEquals(valid.getValid("600").toOption, igrins2.MaxExposureTime.some)
+    assertEquals(valid.getValid("5.5").toOption, TimeSpan.unsafeFromMicroseconds(5_500_000).some)
+    assertEquals(valid.getValid("3.07").leftMap(_.head.value),
+                 "Must be between 3.08 and 600 s".asLeft
     )
-    assertEquals(exposure.replace(TimeSpan.unsafeFromMicroseconds(5_500_000))(d).exposure,
-                 TimeSpan.unsafeFromMicroseconds(5_500_000)
-    )
+    assert(valid.getValid("600.01").isLeft)
 
   test("IGRINS-2 takes neither a bias nor a daytime observe"):
     assertEquals(kinds(Instrument.Igrins2), kinds(Instrument.Flamingos2))

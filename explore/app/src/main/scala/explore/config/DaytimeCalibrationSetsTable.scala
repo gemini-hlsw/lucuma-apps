@@ -95,9 +95,6 @@ object DaytimeCalibrationSetsTable:
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
-  private val ExposureDecimalSeconds =
-    formats.durationSDecimal.toCodec.withDecimalMask(3, allowMinus = false)
-
   private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
     Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
       _.copy(explicitCount = n.some)
@@ -365,7 +362,7 @@ object DaytimeCalibrationSetsTable:
                                         Igrins2DaytimeSetup.default
                               )(_).zoom(Igrins2DaytimeSetup.exposure),
                               Nil,
-                              ExposureDecimalSeconds
+                              inputCodecs.Igrins2CalibrationExposure
                             )
                           case _                     => Nil
         table    <- useReactTable:
