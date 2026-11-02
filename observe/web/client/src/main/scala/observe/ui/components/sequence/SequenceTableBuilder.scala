@@ -446,6 +446,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         val isInsertSmartGcalInFlight: Boolean =
           props.requests.insertSmartGcal === OperationRequest.InFlight
 
+        // A completed sequence can be edited again once it is given new steps (same as Start).
+        val hasPendingSteps: Boolean =
+          !props.executionState.sequenceStatus.isCompleted || props.scienceRows.nonEmpty
+
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
             case Some(
@@ -489,8 +493,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 severity = Button.Severity.Success,
                 loading = isInsertSmartGcalInFlight,
                 onClickE = smartGcalMenuRef.toggle,
-                disabled =
-                  props.executionState.sequenceStatus.isCompleted || isInsertSmartGcalInFlight
+                disabled = !hasPendingSteps || isInsertSmartGcalInFlight
               ).mini.compact.unless(props.isPreview),
               PopupMenu(model = smartGcalItems).withRef(smartGcalMenuRef.ref)
             )
