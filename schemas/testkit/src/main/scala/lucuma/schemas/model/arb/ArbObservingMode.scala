@@ -40,6 +40,8 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.igrins2.arb.ArbIgrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbGid
@@ -61,6 +63,7 @@ trait ArbObservingMode {
   import ArbAngle.given
   import ArbDynamicConfig.given
   import ArbFlamingos2DynamicConfig.given
+  import ArbIgrins2DynamicConfig.given
   import ArbStepConfig.given
   import ArbEnumerated.given
 
@@ -1797,7 +1800,8 @@ trait ArbObservingMode {
     Gen.oneOf(
       arbitrary[DynamicConfig.GmosNorth].map(DaytimeCalibrationSetup.GmosNorth(_)),
       arbitrary[DynamicConfig.GmosSouth].map(DaytimeCalibrationSetup.GmosSouth(_)),
-      arbitrary[Flamingos2DynamicConfig].map(DaytimeCalibrationSetup.Flamingos2(_))
+      arbitrary[Flamingos2DynamicConfig].map(DaytimeCalibrationSetup.Flamingos2(_)),
+      arbitrary[Igrins2DynamicConfig].map(DaytimeCalibrationSetup.Igrins2(_))
     )
   )
 
@@ -1824,11 +1828,15 @@ trait ArbObservingMode {
 
   given Cogen[DaytimeCalibrationSetup] =
     Cogen[
-      Either[DynamicConfig.GmosNorth, Either[DynamicConfig.GmosSouth, Flamingos2DynamicConfig]]
+      Either[
+        DynamicConfig.GmosNorth,
+        Either[DynamicConfig.GmosSouth, Either[Flamingos2DynamicConfig, Igrins2DynamicConfig]]
+      ]
     ].contramap:
       case DaytimeCalibrationSetup.GmosNorth(c)  => c.asLeft
       case DaytimeCalibrationSetup.GmosSouth(c)  => c.asLeft.asRight
-      case DaytimeCalibrationSetup.Flamingos2(c) => c.asRight.asRight
+      case DaytimeCalibrationSetup.Flamingos2(c) => c.asLeft.asRight.asRight
+      case DaytimeCalibrationSetup.Igrins2(c)    => c.asRight.asRight.asRight
 
   given Cogen[DaytimeCalibrationSet] =
     Cogen[

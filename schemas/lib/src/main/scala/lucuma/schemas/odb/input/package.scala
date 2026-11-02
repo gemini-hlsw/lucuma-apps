@@ -1224,6 +1224,10 @@ extension (s: DaytimeCalibrationSet)
       flamingos2 = DaytimeCalibrationSetup.flamingos2
         .getOption(s.setup)
         .map(_.config.toInput)
+        .orUnassign,
+      igrins2 = DaytimeCalibrationSetup.igrins2
+        .getOption(s.setup)
+        .map(_.config.toInput)
         .orUnassign
     )
 

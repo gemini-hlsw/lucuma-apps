@@ -19,6 +19,7 @@ import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
@@ -262,6 +263,24 @@ object Flamingos2DaytimeSetup:
       DaytimeCalibrationSetup.Flamingos2(default)
     )
 
+/** The IGRINS-2 Instrument Setup the Daytime Calibration Set editor works through. */
+object Igrins2DaytimeSetup:
+  val setup: Optional[DaytimeCalibrationSetup, Igrins2DynamicConfig] =
+    DaytimeCalibrationSetup.igrins2.andThen(DaytimeCalibrationSetup.Igrins2.config)
+
+  def forKind(kind: CalibrationSetType)(d: Igrins2DynamicConfig): Igrins2DynamicConfig =
+    Igrins2DynamicConfig.exposure.modify(DaytimeCalibrationSets.exposureFor(kind, _))(d)
+
+  val default: Igrins2DynamicConfig = Igrins2DynamicConfig(DaytimeCalibrationSets.DefaultExposure)
+
+  val defaultSet: DaytimeCalibrationSet =
+    DaytimeCalibrationSet(
+      CalibrationSetType.Dark,
+      DaytimeCalibrationSets.DefaultCount.some,
+      none,
+      DaytimeCalibrationSetup.Igrins2(default)
+    )
+
 /**
  * The editing rules of Daytime Calibration Sets: every edit leaves a row the ODB accepts, since
  * rows are saved as they change.
@@ -283,7 +302,7 @@ object DaytimeCalibrationSets:
   val DefaultShutter: GcalShutter       = GcalShutter.Open
 
   val Instruments: List[Instrument] =
-    List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2)
+    List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2, Instrument.Igrins2)
 
   /** The diffuser the ODB defaults to: visible for GMOS, IR for the infrared instruments. */
   def defaultDiffuser(instrument: Instrument): GcalDiffuser =
@@ -341,7 +360,8 @@ object DaytimeCalibrationSets:
 
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
-  val Flamingos2Kinds: List[CalibrationSetType] =
+  /** Flamingos 2 and IGRINS-2 take neither a bias nor a daytime observe. */
+  val NoBiasKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(k =>
       k === CalibrationSetType.Bias || k === CalibrationSetType.DaytimeObserve
     )
@@ -349,8 +369,8 @@ object DaytimeCalibrationSets:
   /** The kinds the ODB accepts for an instrument's calibration sets. */
   def kinds(instrument: Instrument): List[CalibrationSetType] =
     instrument match
-      case Instrument.Flamingos2 => Flamingos2Kinds
-      case _                     => Enumerated[CalibrationSetType].all
+      case Instrument.Flamingos2 | Instrument.Igrins2 => NoBiasKinds
+      case _                                          => Enumerated[CalibrationSetType].all
 
   /** The continuum lamps an instrument can't use: the 100W QH lamp is GHOST only. */
   def excludedContinua(instrument: Instrument): Set[GcalContinuum] =
@@ -361,6 +381,7 @@ object DaytimeCalibrationSets:
   def defaultSet(instrument: Instrument): Option[DaytimeCalibrationSet] =
     instrument match
       case Instrument.Flamingos2 => Flamingos2DaytimeSetup.defaultSet.some
+      case Instrument.Igrins2    => Igrins2DaytimeSetup.defaultSet.some
       case i                     => GmosDaytimeSetup.forInstrument(i).map(_.defaultSet)
 
   /** The GCAL setup a kind needs, keeping the filter and shutter of the current one. */
@@ -407,15 +428,17 @@ object DaytimeCalibrationSets:
   private def setupFor[D, G, F, U](site: GmosDaytimeSetup[D, G, F, U], kind: CalibrationSetType)(
     d: D
   ): D =
-    val optics   =
+    val optics =
       if needsDisperser(kind) then site.withGrating(d)
       else if usesOptics(kind) then d
       else site.withoutOptics(d)
-    val exposure =
-      if !usesExposure(kind) then TimeSpan.Zero
-      else if site.exposure.get(d) === TimeSpan.Zero then DefaultExposure
-      else site.exposure.get(d)
-    site.exposure.replace(exposure)(optics)
+    site.exposure.modify(exposureFor(kind, _))(optics)
+
+  /** No exposure for a kind that takes none; a kind that takes one starts at the default. */
+  def exposureFor(kind: CalibrationSetType, current: TimeSpan): TimeSpan =
+    if !usesExposure(kind) then TimeSpan.Zero
+    else if current === TimeSpan.Zero then DefaultExposure
+    else current
 
   /**
    * Rewrites a row for a new kind so that it stays valid. A manual row keeps its count; a smart row
@@ -434,6 +457,8 @@ object DaytimeCalibrationSets:
         DaytimeCalibrationSetup.GmosSouth(setupFor(GmosDaytimeSetup.south, kind)(d))
       case DaytimeCalibrationSetup.Flamingos2(d) =>
         DaytimeCalibrationSetup.Flamingos2(Flamingos2DaytimeSetup.forKind(kind, set.kind)(d))
+      case DaytimeCalibrationSetup.Igrins2(d)    =>
+        DaytimeCalibrationSetup.Igrins2(Igrins2DaytimeSetup.forKind(kind)(d))
     set.copy(
       kind = kind,
       explicitCount = count,
@@ -443,8 +468,8 @@ object DaytimeCalibrationSets:
     )
 
   /**
-   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2); none for an
-   * unsupported instrument.
+   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2 and
+   * IGRINS-2); none for an unsupported instrument.
    */
   def newRow(
     sets:       List[DaytimeCalibrationSet],

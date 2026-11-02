@@ -6,6 +6,7 @@ package explore.model
 import cats.data.NonEmptySet
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
+import io.circe.parser.decode
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
@@ -13,6 +14,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
@@ -255,4 +257,56 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(dark.map(_.decker), Flamingos2DaytimeSetup.default.decker.some)
     assertEquals(config(withKind(custom, CalibrationSetType.Arc)).map(_.filter),
                  Flamingos2Filter.J.some
+    )
+
+  test("A new IGRINS-2 row starts as a single one second dark"):
+    val first = newRow(Nil, Instrument.Igrins2)
+    assertEquals(first, Igrins2DaytimeSetup.defaultSet.some)
+    assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
+    assertEquals(Igrins2DaytimeSetup.default.exposure, DefaultExposure)
+
+  test("IGRINS-2 takes neither a bias nor a daytime observe"):
+    assertEquals(kinds(Instrument.Igrins2), kinds(Instrument.Flamingos2))
+    assert(!kinds(Instrument.Igrins2).contains(CalibrationSetType.Bias))
+    assert(!kinds(Instrument.Igrins2).contains(CalibrationSetType.DaytimeObserve))
+    assert(supports(Instrument.Igrins2))
+
+  test("An IGRINS-2 smart kind zeroes the exposure, and leaving it restores the default"):
+    val exposure =
+      (s: DaytimeCalibrationSet) => Igrins2DaytimeSetup.setup.getOption(s.setup).map(_.exposure)
+    val long     = Igrins2DaytimeSetup.defaultSet.copy(setup =
+      DaytimeCalibrationSetup.Igrins2(
+        Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(30_000_000))
+      )
+    )
+    val smart    = withKind(long, CalibrationSetType.SmartFlat)
+    assertEquals(exposure(smart), TimeSpan.Zero.some)
+    assertEquals(smart.explicitCount, none)
+    assertEquals(exposure(withKind(smart, CalibrationSetType.Dark)), DefaultExposure.some)
+    assertEquals(exposure(withKind(long, CalibrationSetType.Flat)),
+                 TimeSpan.unsafeFromMicroseconds(30_000_000).some
+    )
+
+  test("IGRINS-2 flats use the IR diffuser"):
+    val s = withKind(Igrins2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
+    assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
+
+  test("An IGRINS-2 calibration set decodes its setup"):
+    val json =
+      """{
+        "kind": "DARK",
+        "count": 2,
+        "explicitCount": 2,
+        "gcal": null,
+        "gmosNorth": null,
+        "gmosSouth": null,
+        "flamingos2": null,
+        "igrins2": { "exposure": { "microseconds": 5000000 } }
+      }"""
+    assertEquals(
+      decode[DaytimeCalibrationSet](json).map(_.setup),
+      DaytimeCalibrationSetup
+        .Igrins2(Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(5_000_000)))
+        .asRight
     )

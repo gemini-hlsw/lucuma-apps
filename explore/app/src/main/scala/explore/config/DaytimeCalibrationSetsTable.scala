@@ -14,6 +14,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.DaytimeCalibrationSets
 import explore.model.GmosDaytimeSetup
+import explore.model.Igrins2DaytimeSetup
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats
@@ -25,6 +26,7 @@ import lucuma.core.enums.GcalArc
 import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -349,6 +351,17 @@ object DaytimeCalibrationSetsTable:
                             )
                           case Instrument.Flamingos2 =>
                             Flamingos2DaytimeCalibrationColumns(props.setsView, editable)
+                          case Instrument.Igrins2    =>
+                            columns(
+                              Instrument.Igrins2,
+                              props.setsView,
+                              editable,
+                              setupView(props.setsView,
+                                        Igrins2DaytimeSetup.setup,
+                                        Igrins2DaytimeSetup.default
+                              )(_).zoom(Igrins2DynamicConfig.exposure),
+                              Nil
+                            )
                           case _                     => Nil
         table    <- useReactTable:
                       TableOptions(
