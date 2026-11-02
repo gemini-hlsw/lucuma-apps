@@ -17,7 +17,6 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.DefaultErrorRender
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
-import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
@@ -121,11 +120,9 @@ object ObservationExecutionDisplay
                 setSelectedRowId,
                 rootModelData.clientMode,
                 props.selectedObs.maskName,
-                SequenceColumns.hiddenColumns(
-                  SequenceColumnProfile.fromObservation(
-                    props.selectedObs.calibrationRole,
-                    props.selectedObs.observingMode
-                  )
+                SequenceColumnProfile.fromObservation(
+                  props.selectedObs.calibrationRole,
+                  props.selectedObs.observingMode
                 )
               )
             },

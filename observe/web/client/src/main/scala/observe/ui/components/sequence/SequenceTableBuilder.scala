@@ -91,7 +91,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         sequenceApi              <- useContext(SequenceApi.ctx)
         cols                     <-
           useMemo(
-            (props.clientMode, props.instrument, props.obsId, props.isPreview, props.hiddenColumns)
+            (props.clientMode, props.instrument, props.obsId, props.isPreview, props.columnProfile)
           ):
             import ctx.given
             columnDefs(_, _, _, _, _)
@@ -169,7 +169,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 acquisitionPrompt
               )
         datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
-        dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        dynTable                 <-
+          useDynTable(DynTableDefs(props.columnProfile.kind), SizePx(resize.width.orEmpty))
         tableState               <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>

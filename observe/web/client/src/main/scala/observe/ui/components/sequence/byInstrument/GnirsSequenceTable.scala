@@ -13,10 +13,10 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.common.*
-import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.byInstrument.GnirsSpectroscopySequenceTable
 import observe.model.ExecutionState
@@ -41,7 +41,7 @@ case class GnirsSequenceTable(
   setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  hiddenColumns:        Set[ColumnId],
+  columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   sequenceControls:     VdomNode
 ) extends ReactFnProps(GnirsSequenceTable.component)
