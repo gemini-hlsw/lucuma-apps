@@ -145,7 +145,7 @@ abstract class GmosSpectroscopyPanelBuilder[
           Enumerated[Filter].all.filter(f => filterTypeGetter(f) === FilterType.Engineering).toSet
 
         val excludedFilters: Set[Filter] =
-          engineeringFilters.excludedFor(props.isStaff, props.filterView.get)
+          engineeringFilters.excludedUnless(props.isStaff, props.filterView.get)
 
         val centralWavelengthView = props.centralWavelengthView
 
