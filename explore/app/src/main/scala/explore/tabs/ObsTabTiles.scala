@@ -914,6 +914,7 @@ object ObsTabTiles:
                 props.observation.get.execution.digest.fullTimeEstimate,
                 props.observation.get.hasMaterializedSequence,
                 props.readonly,
+                props.isStaffOrAdminUser,
                 globalPreferences.get.wavelengthUnits,
                 sequenceChanged.set(pending)
               )
