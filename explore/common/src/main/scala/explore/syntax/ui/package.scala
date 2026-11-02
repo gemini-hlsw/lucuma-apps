@@ -161,6 +161,12 @@ extension (vault: Option[UserVault])
   def isGuest: Boolean        = vault.map(_.user).map(_.role === GuestRole).getOrElse(true)
   def isStaffOrAdmin: Boolean = vault.exists(_.isStaffOrAdmin)
 
+extension [A](exclusions: Set[A])
+  // Values to exclude from a selector unless allowed. The current value is never excluded,
+  // otherwise the dropdown can't find it among its options and renders blank.
+  def excludedUnless(allowed: Boolean, current: Option[A]): Set[A] =
+    if allowed then Set.empty else exclusions -- current
+
 extension [F[_], A](view: ViewF[F, A])
   def zoom[B](getAdjust: GetAdjust[A, B]): ViewF[F, B] =
     view.zoom(getAdjust.get)(getAdjust.mod)
