@@ -125,14 +125,11 @@ object SequenceTile
             SequenceColumnProfile.fromObservation(props.calibrationRole, props.basicConfiguration)
           )
 
-        // The ODB only lets staff replace the sequence once execution has started, and only staff
-        // edit daytime calibrations at all.
+        // The ODB only lets staff replace the sequence once execution has started.
         val isEditEnabled: IsEditEnabled =
           IsEditEnabled(
             sizeState.isMaximized && liveSequence.isReady && !props.readonly &&
-              (props.isUserStaffOrAdmin ||
-                (!props.obsIsExecuted &&
-                  !props.calibrationRole.contains(CalibrationRole.DaytimeCalibration)))
+              (props.isUserStaffOrAdmin || !props.obsIsExecuted)
           )
 
         val customizedSequences: List[SequenceType] = execution.customizedSequences
