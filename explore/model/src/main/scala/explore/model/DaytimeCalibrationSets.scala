@@ -224,7 +224,7 @@ object Flamingos2DaytimeSetup:
   def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
     d: Flamingos2DynamicConfig
   ): Flamingos2DynamicConfig =
-    val optics =
+    val optics     =
       if kind === previous || DaytimeCalibrationSets.usesOptics(kind) then d
       else
         d.copy(
@@ -234,7 +234,11 @@ object Flamingos2DaytimeSetup:
           fpu = default.fpu,
           decker = default.decker
         )
-    if DaytimeCalibrationSets.needsDisperser(kind) then withDisperser(optics) else optics
+    val configured =
+      if DaytimeCalibrationSets.needsDisperser(kind) then withDisperser(optics) else optics
+    configured.copy(exposure =
+      DaytimeCalibrationSets.exposureFor(kind, d.exposure, d.readMode.recommendedExposureTime)
+    )
 
   val DefaultDisperser: Flamingos2Disperser = Flamingos2Disperser.R1200JH
 

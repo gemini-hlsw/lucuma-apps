@@ -230,6 +230,23 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(config(withKind(open, CalibrationSetType.Flat)), Flamingos2WindowCover.Open.some)
     assertEquals(config(withKind(open, CalibrationSetType.Dark)), Flamingos2WindowCover.Open.some)
 
+  test("A Flamingos 2 smart kind zeroes the exposure, and leaving it restores the default"):
+    val exposure =
+      (s: DaytimeCalibrationSet) => Flamingos2DaytimeSetup.setup.getOption(s.setup).map(_.exposure)
+    val long     = Flamingos2DaytimeSetup.defaultSet.copy(setup =
+      DaytimeCalibrationSetup.Flamingos2(
+        Flamingos2DaytimeSetup.default.copy(exposure = TimeSpan.unsafeFromMicroseconds(45_000_000))
+      )
+    )
+    val smart    = withKind(long, CalibrationSetType.SmartFlat)
+    assertEquals(exposure(smart), TimeSpan.Zero.some)
+    assertEquals(exposure(withKind(smart, CalibrationSetType.Flat)),
+                 Flamingos2ReadMode.Bright.recommendedExposureTime.some
+    )
+    assertEquals(exposure(withKind(long, CalibrationSetType.Arc)),
+                 TimeSpan.unsafeFromMicroseconds(45_000_000).some
+    )
+
   test("Flamingos 2 flats use the IR diffuser"):
     val s = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
     assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
