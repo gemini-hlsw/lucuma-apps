@@ -143,6 +143,10 @@ case class ObsTabTiles(
 
   val calibrationRole: Option[CalibrationRole] = observation.zoom(Observation.calibrationRole).get
 
+  /** Only staff edit daytime calibrations. */
+  val daytimeCalIsReadonly: Boolean =
+    calibrationRole.contains(CalibrationRole.DaytimeCalibration) && !isStaffOrAdminUser
+
   val constraintSet = observation.zoom(Observation.constraints)
 
   val centralWavelength: Option[CentralWavelength] =
@@ -568,7 +572,7 @@ object ObsTabTiles:
             globalPreferences.get.wavelengthUnits,
             props.programSummaries.dismissedWarnings,
             props.observation.get.isExecuted,
-            props.programIsReadonly,
+            props.programIsReadonly || props.daytimeCalIsReadonly,
             props.attachments.get
           )
 
@@ -912,8 +916,7 @@ object ObsTabTiles:
                 props.observation.get.observingMode.isPending,
                 props.observation.get.execution.digest.fullTimeEstimate,
                 props.observation.get.hasMaterializedSequence,
-                props.readonly,
-                props.isStaffOrAdminUser,
+                props.readonly || props.daytimeCalIsReadonly,
                 globalPreferences.get.wavelengthUnits,
                 sequenceChanged.set(pending)
               )

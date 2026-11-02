@@ -499,7 +499,7 @@ object SequenceTile
                               case _                                                        => mismatchError
                       case SequenceData(
                             InstrumentExecutionConfig.Igrins2(config),
-                            ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+                            signalToNoise
                           ) =>
                         sequnceView
                           .zoom(
@@ -509,21 +509,30 @@ object SequenceTile
                           )
                           .toOptionView
                           .map: igrins2ExecutionView =>
-                            Igrins2SequenceTable(
-                              visitsViewOpt,
-                              config.static,
-                              igrins2ExecutionView.flatAcquisition,
-                              igrins2ExecutionView.flatScience,
-                              acquisitionSn,
-                              scienceSn,
-                              isEditEnabled,
-                              props.isEditingAcquisition,
-                              props.isEditingScience,
-                              props.isUserStaffOrAdmin,
-                              props.wavelengthUnits,
-                              seqType => ctx.odbApi.replaceIgrins2Sequence(props.obsId, seqType, _),
-                              hiddenColumns
-                            )
+                            def table(acquisitionSn: ItcResultValues, scienceSn: ItcResultValues) =
+                              Igrins2SequenceTable(
+                                visitsViewOpt,
+                                config.static,
+                                igrins2ExecutionView.flatAcquisition,
+                                igrins2ExecutionView.flatScience,
+                                acquisitionSn,
+                                scienceSn,
+                                isEditEnabled,
+                                props.isEditingAcquisition,
+                                props.isEditingScience,
+                                props.isUserStaffOrAdmin,
+                                props.wavelengthUnits,
+                                seqType =>
+                                  ctx.odbApi.replaceIgrins2Sequence(props.obsId, seqType, _),
+                                hiddenColumns
+                              )
+                            signalToNoise match
+                              case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                                table(acquisitionSn, scienceSn)
+                              // Daytime calibrations have no signal to noise
+                              case ModeSignalToNoise.Undefined                              =>
+                                table(ItcResultValues.Empty, ItcResultValues.Empty)
+                              case _                                                        => mismatchError
                       case SequenceData(InstrumentExecutionConfig.Ghost(config), _)             =>
                         sequnceView
                           .zoom(

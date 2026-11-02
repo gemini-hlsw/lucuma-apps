@@ -35,6 +35,7 @@ import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.ZeroTo100
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
+import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.optics.ValidFilter
 import lucuma.core.util.TimeSpan
 import lucuma.core.validation.*
@@ -115,6 +116,22 @@ trait inputCodecs:
     durationS.optional.toCodec.withIntegerMask(allowMinus = false)
   val ExposureTimeMilliseconds: InputCodec[Option[TimeSpan]]  =
     durationMs.optional.toCodec.withDecimalMask(2, allowMinus = false)
+  val Igrins2CalibrationExposure: InputCodec[TimeSpan]        =
+    InputValidWedge[TimeSpan](
+      durationMs
+        .getValid(_)
+        .flatMap: t =>
+          if t >= igrins2.MinExposureTime && t <= igrins2.MaxExposureTime then t.asRight
+          else
+            NonEmptyChain(
+              NonEmptyString.unsafeFrom(
+                s"Must be between ${seconds(igrins2.MinExposureTime)} and ${seconds(igrins2.MaxExposureTime)} s"
+              )
+            ).asLeft
+      ,
+      durationMs.reverseGet
+    ).toCodec
+      .withDecimalMask(2, allowMinus = false)
   val ProposalHours: InputCodec[BigDecimal Refined HourRange] =
     ExploreModelValidators.hoursValidWedge.toCodec.withDecimalMask(2)
 
@@ -173,6 +190,9 @@ trait inputCodecs:
 
   // Wavelengths
   // The decimals follow each unit's wedge: μm prints four, nm one, Å none.
+  private def seconds(t: TimeSpan): String =
+    t.toSeconds.bigDecimal.stripTrailingZeros.toPlainString
+
   private def wavelengthMask(units: WavelengthUnits): InputmaskOptions =
     units match
       case WavelengthUnits.Micrometers => Masks.decimalOptions(4.some, false, none)

@@ -40,6 +40,8 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.igrins2.arb.ArbIgrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbGid
@@ -61,6 +63,7 @@ trait ArbObservingMode {
   import ArbAngle.given
   import ArbDynamicConfig.given
   import ArbFlamingos2DynamicConfig.given
+  import ArbIgrins2DynamicConfig.given
   import ArbStepConfig.given
   import ArbEnumerated.given
 
@@ -1797,17 +1800,23 @@ trait ArbObservingMode {
     Gen.oneOf(
       arbitrary[DynamicConfig.GmosNorth].map(DaytimeCalibrationSetup.GmosNorth(_)),
       arbitrary[DynamicConfig.GmosSouth].map(DaytimeCalibrationSetup.GmosSouth(_)),
-      arbitrary[Flamingos2DynamicConfig].map(DaytimeCalibrationSetup.Flamingos2(_))
+      arbitrary[Flamingos2DynamicConfig].map(DaytimeCalibrationSetup.Flamingos2(_)),
+      arbitrary[Igrins2DynamicConfig].map(DaytimeCalibrationSetup.Igrins2(_))
     )
   )
 
   given Arbitrary[DaytimeCalibrationSet] = Arbitrary(
     for
       kind  <- arbitrary[CalibrationSetType]
-      count <- arbitrary[PosInt]
+      exp   <- arbitrary[Option[PosInt]]
       gcal  <- arbitrary[Option[StepConfig.Gcal]]
       setup <- arbitrary[DaytimeCalibrationSetup]
-    yield DaytimeCalibrationSet(kind, count, gcal, setup)
+      count <- Gen.oneOf(
+                 Gen.const(DaytimeCalibrationSet.Count.Pending),
+                 Gen.const(DaytimeCalibrationSet.Count.Missing),
+                 arbitrary[PosInt].map(DaytimeCalibrationSet.Count.Resolved(_))
+               )
+    yield DaytimeCalibrationSet(kind, exp, gcal, setup, count)
   )
 
   given Arbitrary[ObservingMode.DaytimeCalibration] = Arbitrary(
@@ -1819,15 +1828,31 @@ trait ArbObservingMode {
 
   given Cogen[DaytimeCalibrationSetup] =
     Cogen[
-      Either[DynamicConfig.GmosNorth, Either[DynamicConfig.GmosSouth, Flamingos2DynamicConfig]]
+      Either[
+        DynamicConfig.GmosNorth,
+        Either[DynamicConfig.GmosSouth, Either[Flamingos2DynamicConfig, Igrins2DynamicConfig]]
+      ]
     ].contramap:
       case DaytimeCalibrationSetup.GmosNorth(c)  => c.asLeft
       case DaytimeCalibrationSetup.GmosSouth(c)  => c.asLeft.asRight
-      case DaytimeCalibrationSetup.Flamingos2(c) => c.asRight.asRight
+      case DaytimeCalibrationSetup.Flamingos2(c) => c.asLeft.asRight.asRight
+      case DaytimeCalibrationSetup.Igrins2(c)    => c.asRight.asRight.asRight
 
   given Cogen[DaytimeCalibrationSet] =
-    Cogen[(CalibrationSetType, PosInt, Option[StepConfig.Gcal], DaytimeCalibrationSetup)]
-      .contramap(s => (s.kind, s.count, s.gcal, s.setup))
+    Cogen[
+      (CalibrationSetType,
+       Option[PosInt],
+       Option[StepConfig.Gcal],
+       DaytimeCalibrationSetup,
+       Option[Option[PosInt]]
+      )
+    ]
+      .contramap: s =>
+        val count = s.count match
+          case DaytimeCalibrationSet.Count.Pending     => none
+          case DaytimeCalibrationSet.Count.Missing     => none.some
+          case DaytimeCalibrationSet.Count.Resolved(n) => n.some.some
+        (s.kind, s.explicitCount, s.gcal, s.setup, count)
 
   given Cogen[ObservingMode.DaytimeCalibration] =
     Cogen[(Instrument, List[DaytimeCalibrationSet])]

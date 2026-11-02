@@ -8,11 +8,13 @@ import cats.data.NonEmptySet
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.DaytimeCalibrationSets
 import explore.model.GmosDaytimeSetup
+import explore.model.Igrins2DaytimeSetup
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats
@@ -24,16 +26,19 @@ import lucuma.core.enums.GcalArc
 import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
+import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
 import lucuma.ui.dnd.*
+import lucuma.ui.input.InputCodec
 import lucuma.ui.input.toCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -91,6 +96,11 @@ object DaytimeCalibrationSetsTable:
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
+  private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
+    Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
+      _.copy(explicitCount = n.some)
+    )
+
   private val DefaultGcalLens: Lens[DaytimeCalibrationSet, StepConfig.Gcal] =
     Lens[DaytimeCalibrationSet, StepConfig.Gcal](s =>
       s.gcal.getOrElse(defaultGcal(s.setup.instrument))
@@ -120,12 +130,14 @@ object DaytimeCalibrationSetsTable:
     idx:         Int,
     value:       View[Option[A]],
     placeholder: String,
-    editable:    Boolean
+    editable:    Boolean,
+    showClear:   Boolean = true
   ): VdomNode =
     EnumDropdownOptionalView(
       id = cellId(colId, idx),
       value = value,
       placeholder = placeholder,
+      showClear = showClear,
       clazz = SequenceStyles.SequenceDropdown,
       panelClass = SequenceStyles.SequenceDropdownPanel,
       disabled = !editable
@@ -154,11 +166,12 @@ object DaytimeCalibrationSetsTable:
 
   /** The columns every instrument shares, around the columns of its own setup. */
   private[config] def columns(
-    instrument:   Instrument,
-    setsView:     View[List[DaytimeCalibrationSet]],
-    editable:     Boolean,
-    exposureView: Int => View[TimeSpan],
-    setupColumns: List[ColDef.Type]
+    instrument:    Instrument,
+    setsView:      View[List[DaytimeCalibrationSet]],
+    editable:      Boolean,
+    exposureView:  Int => View[TimeSpan],
+    setupColumns:  List[ColDef.Type],
+    exposureCodec: InputCodec[TimeSpan] = ExposureSeconds
   ): List[ColDef.Type] =
     def gcalView(idx: Int): View[StepConfig.Gcal] = rowView(setsView, idx).zoom(DefaultGcalLens)
 
@@ -184,18 +197,31 @@ object DaytimeCalibrationSetsTable:
             editable,
             excludedKinds
           )
-      ).withSize(90.toPx),
+      ).withSize(120.toPx),
       ColDef(
         CountColumnId,
         header = "Num Exp",
         cell = c =>
-          FormInputTextView(
-            id = cellId(CountColumnId, c.row.original._2),
-            value = rowView(setsView, c.row.original._2).zoom(DaytimeCalibrationSet.count),
-            codec = inputCodecs.CalibrationSetCount,
-            groupClass = SequenceStyles.SequenceInput,
-            disabled = !editable
-          )
+          val set = c.row.original._1
+          // A smart row's count is the lookup's: shown, not edited. No mapping blocks the sequence.
+          if set.kind.isSmart then
+            set.count match
+              case DaytimeCalibrationSet.Count.Pending     =>
+                <.span(Icons.Spinner.withSpin(true))
+              case DaytimeCalibrationSet.Count.Missing     =>
+                <.span(Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon))
+                  .withTooltip(
+                    "No Smart GCAL mapping for this setup; the sequence cannot be generated"
+                  )
+              case DaytimeCalibrationSet.Count.Resolved(n) => <.span(n.value.toString)
+          else
+            FormInputTextView(
+              id = cellId(CountColumnId, c.row.original._2),
+              value = rowView(setsView, c.row.original._2).zoom(DefaultCountLens),
+              codec = inputCodecs.CalibrationSetCount,
+              groupClass = SequenceStyles.SequenceInput,
+              disabled = !editable
+            )
       ).withSize(60.toPx),
       ColDef(
         ExposureColumnId,
@@ -205,7 +231,7 @@ object DaytimeCalibrationSetsTable:
             FormInputTextView(
               id = cellId(ExposureColumnId, c.row.original._2),
               value = exposureView(c.row.original._2),
-              codec = ExposureSeconds,
+              codec = exposureCodec,
               groupClass = SequenceStyles.SequenceInput,
               disabled = !editable
             )
@@ -263,7 +289,7 @@ object DaytimeCalibrationSetsTable:
             header = "Filter",
             cell = c =>
               val idx: Int = c.row.original._2
-              if c.row.original._1.kind.usesGcal then
+              if usesGcalSetup(c.row.original._1.kind) then
                 dropdown(
                   GcalFilterColumnId,
                   idx,
@@ -277,7 +303,7 @@ object DaytimeCalibrationSetsTable:
             header = "IR Shutter",
             cell = c =>
               val idx: Int = c.row.original._2
-              if c.row.original._1.kind.usesGcal then
+              if usesGcalSetup(c.row.original._1.kind) then
                 dropdown(ShutterColumnId,
                          idx,
                          gcalView(idx).zoom(StepConfig.Gcal.shutter),
@@ -327,6 +353,18 @@ object DaytimeCalibrationSetsTable:
                             )
                           case Instrument.Flamingos2 =>
                             Flamingos2DaytimeCalibrationColumns(props.setsView, editable)
+                          case Instrument.Igrins2    =>
+                            columns(
+                              Instrument.Igrins2,
+                              props.setsView,
+                              editable,
+                              setupView(props.setsView,
+                                        Igrins2DaytimeSetup.setup,
+                                        Igrins2DaytimeSetup.default
+                              )(_).zoom(Igrins2DynamicConfig.exposure),
+                              Nil,
+                              inputCodecs.Igrins2CalibrationExposure
+                            )
                           case _                     => Nil
         table    <- useReactTable:
                       TableOptions(
@@ -357,6 +395,8 @@ object DaytimeCalibrationSetsTable:
             headerCellMod = _.column.id match
               case id if id == DragHandleColumnId || id == DeleteColumnId =>
                 SequenceStyles.HiddenColTableHeader
+              case id if id == GcalGroupColumnId                          =>
+                ExploreStyles.DaytimeCalGroupHeader
               case _                                                      => TagMod.empty,
             rowMod = tableDnd.rowMod(),
             cellMod = tableDnd.cellMod: (cell, _) =>

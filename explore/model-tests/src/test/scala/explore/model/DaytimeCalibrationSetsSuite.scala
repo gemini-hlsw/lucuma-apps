@@ -6,6 +6,7 @@ package explore.model
 import cats.data.NonEmptySet
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
+import io.circe.parser.decode
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
@@ -13,7 +14,8 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
-import lucuma.core.util.Enumerated
+import lucuma.core.model.sequence.igrins2 as igrins2
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
@@ -43,7 +45,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
   val flat: DaytimeCalibrationSet =
     DaytimeCalibrationSet(
       CalibrationSetType.Flat,
-      PosInt.unsafeFrom(3),
+      PosInt.unsafeFrom(3).some,
       StepConfig
         .Gcal(
           StepConfig.Gcal.Lamp.fromContinuum(GcalContinuum.QuartzHalogen5W),
@@ -58,14 +60,14 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
   val dark: DaytimeCalibrationSet =
     DaytimeCalibrationSet(
       CalibrationSetType.Dark,
-      PosInt.unsafeFrom(10),
+      PosInt.unsafeFrom(10).some,
       none,
       DaytimeCalibrationSetup.GmosNorth(north.withoutOptics(spectro))
     )
 
   test("Dark to Flat gets the default lamp setup and keeps the count"):
     val s = withKind(dark, CalibrationSetType.Flat)
-    assertEquals(s.count, dark.count)
+    assertEquals(s.explicitCount, dark.explicitCount)
     assertEquals(
       s.gcal,
       StepConfig
@@ -125,14 +127,14 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(newRow(List(dark, flat), Instrument.GmosNorth), flat.some)
     val first = newRow(Nil, Instrument.GmosSouth)
     assertEquals(first.map(_.kind), CalibrationSetType.Bias.some)
-    assertEquals(first.map(_.count.value), 1.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.GmosSouth.some)
     assertEquals(newRow(Nil, Instrument.Gnirs), none)
 
   test("A new Flamingos 2 row starts as a single dark with no window cover"):
     val first = newRow(Nil, Instrument.Flamingos2)
     assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
-    assertEquals(first.map(_.count.value), 1.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.Flamingos2.some)
     assertEquals(
       first.flatMap(s => DaytimeCalibrationSetup.flamingos2.getOption(s.setup)).map(_.config),
@@ -140,12 +142,45 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(Flamingos2DaytimeSetup.default.windowCover, none)
 
-  test("Flamingos 2 sets may only be darks, flats or arcs"):
-    assertEquals(
-      kinds(Instrument.Flamingos2),
-      List(CalibrationSetType.Dark, CalibrationSetType.Flat, CalibrationSetType.Arc)
+  test("Flat to Smart Flat drops the count and lamp setup, zeroes the exposure, keeps the optics"):
+    val s = withKind(flat, CalibrationSetType.SmartFlat)
+    assertEquals(s.explicitCount, none)
+    assertEquals(s.gcal, none)
+    assertEquals(s.setup,
+                 DaytimeCalibrationSetup.GmosNorth(north.exposure.replace(TimeSpan.Zero)(spectro))
     )
-    assertEquals(kinds(Instrument.GmosNorth), Enumerated[CalibrationSetType].all)
+
+  test("Smart Flat back to Flat starts the count at one and restores the default exposure"):
+    // The ODB reads back the count the lookup resolved; it is not the user's to keep.
+    val smart =
+      withKind(flat, CalibrationSetType.SmartFlat).copy(explicitCount = PosInt.unsafeFrom(3).some)
+    val s     = withKind(smart, CalibrationSetType.Flat)
+    assertEquals(s.explicitCount.map(_.value), 1.some)
+    assertEquals(s.gcal, gcalFor(Instrument.GmosNorth, CalibrationSetType.Flat, none))
+    assertEquals(s.setup,
+                 DaytimeCalibrationSetup.GmosNorth(north.exposure.replace(DefaultExposure)(spectro))
+    )
+
+  test("Changing the kind leaves the resolved count pending until the ODB reads it back"):
+    val resolved = flat.copy(count = DaytimeCalibrationSet.Count.Resolved(PosInt.unsafeFrom(3)))
+    assertEquals(withKind(resolved, CalibrationSetType.SmartFlat).count,
+                 DaytimeCalibrationSet.Count.Pending
+    )
+    assertEquals(withKind(resolved, CalibrationSetType.Flat).count, resolved.count)
+
+  test("Smart Arc gets a grating when the setup has none, and keeps one it has"):
+    val fromDark = withKind(dark, CalibrationSetType.SmartArc)
+    assertEquals(north.setup.getOption(fromDark.setup).flatMap(north.grating.get),
+                 north.defaultGrating.some
+    )
+    val fromFlat = withKind(flat, CalibrationSetType.SmartArc)
+    assertEquals(north.setup.getOption(fromFlat.setup).flatMap(north.grating.get),
+                 GmosNorthGrating.R831_G5302.some
+    )
+    val f2       = Flamingos2DaytimeSetup.forKind(CalibrationSetType.SmartArc, CalibrationSetType.Dark)(
+      Flamingos2DaytimeSetup.default
+    )
+    assertEquals(f2.disperser, Flamingos2DaytimeSetup.DefaultDisperser.some)
 
   test("Only GHOST may use the 100W QH lamp"):
     Instruments.foreach: i =>
@@ -195,6 +230,23 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(config(withKind(open, CalibrationSetType.Flat)), Flamingos2WindowCover.Open.some)
     assertEquals(config(withKind(open, CalibrationSetType.Dark)), Flamingos2WindowCover.Open.some)
 
+  test("A Flamingos 2 smart kind zeroes the exposure, and leaving it restores the default"):
+    val exposure =
+      (s: DaytimeCalibrationSet) => Flamingos2DaytimeSetup.setup.getOption(s.setup).map(_.exposure)
+    val long     = Flamingos2DaytimeSetup.defaultSet.copy(setup =
+      DaytimeCalibrationSetup.Flamingos2(
+        Flamingos2DaytimeSetup.default.copy(exposure = TimeSpan.unsafeFromMicroseconds(45_000_000))
+      )
+    )
+    val smart    = withKind(long, CalibrationSetType.SmartFlat)
+    assertEquals(exposure(smart), TimeSpan.Zero.some)
+    assertEquals(exposure(withKind(smart, CalibrationSetType.Flat)),
+                 Flamingos2ReadMode.Bright.recommendedExposureTime.some
+    )
+    assertEquals(exposure(withKind(long, CalibrationSetType.Arc)),
+                 TimeSpan.unsafeFromMicroseconds(45_000_000).some
+    )
+
   test("Flamingos 2 flats use the IR diffuser"):
     val s = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
     assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
@@ -223,4 +275,68 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(dark.map(_.decker), Flamingos2DaytimeSetup.default.decker.some)
     assertEquals(config(withKind(custom, CalibrationSetType.Arc)).map(_.filter),
                  Flamingos2Filter.J.some
+    )
+
+  test("A new IGRINS-2 row starts as a single dark of the IGRINS-2 default exposure"):
+    val first = newRow(Nil, Instrument.Igrins2)
+    assertEquals(first, Igrins2DaytimeSetup.defaultSet.some)
+    assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
+    assertEquals(Igrins2DaytimeSetup.default.exposure, igrins2.DefaultExposureTime)
+
+  test("An IGRINS-2 exposure outside its limits is rejected"):
+    val valid = inputCodecs.Igrins2CalibrationExposure.valid
+    assertEquals(valid.getValid("3.08").toOption, igrins2.MinExposureTime.some)
+    assertEquals(valid.getValid("600").toOption, igrins2.MaxExposureTime.some)
+    assertEquals(valid.getValid("5.5").toOption, TimeSpan.unsafeFromMicroseconds(5_500_000).some)
+    assertEquals(valid.getValid("3.07").leftMap(_.head.value),
+                 "Must be between 3.08 and 600 s".asLeft
+    )
+    assert(valid.getValid("600.01").isLeft)
+
+  test("IGRINS-2 takes neither a bias nor a daytime observe"):
+    assertEquals(kinds(Instrument.Igrins2), kinds(Instrument.Flamingos2))
+    assert(!kinds(Instrument.Igrins2).contains(CalibrationSetType.Bias))
+    assert(!kinds(Instrument.Igrins2).contains(CalibrationSetType.DaytimeObserve))
+    assert(supports(Instrument.Igrins2))
+
+  test("An IGRINS-2 smart kind zeroes the exposure, and leaving it restores the default"):
+    val exposure =
+      (s: DaytimeCalibrationSet) => Igrins2DaytimeSetup.setup.getOption(s.setup).map(_.exposure)
+    val long     = Igrins2DaytimeSetup.defaultSet.copy(setup =
+      DaytimeCalibrationSetup.Igrins2(
+        Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(45_000_000))
+      )
+    )
+    val smart    = withKind(long, CalibrationSetType.SmartFlat)
+    assertEquals(exposure(smart), TimeSpan.Zero.some)
+    assertEquals(smart.explicitCount, none)
+    assertEquals(exposure(withKind(smart, CalibrationSetType.Dark)),
+                 igrins2.DefaultExposureTime.some
+    )
+    assertEquals(exposure(withKind(long, CalibrationSetType.Flat)),
+                 TimeSpan.unsafeFromMicroseconds(45_000_000).some
+    )
+
+  test("IGRINS-2 flats use the IR diffuser"):
+    val s = withKind(Igrins2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
+    assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
+
+  test("An IGRINS-2 calibration set decodes its setup"):
+    val json =
+      """{
+        "kind": "DARK",
+        "count": 2,
+        "explicitCount": 2,
+        "gcal": null,
+        "gmosNorth": null,
+        "gmosSouth": null,
+        "flamingos2": null,
+        "igrins2": { "exposure": { "microseconds": 5000000 } }
+      }"""
+    assertEquals(
+      decode[DaytimeCalibrationSet](json).map(_.setup),
+      DaytimeCalibrationSetup
+        .Igrins2(Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(5_000_000)))
+        .asRight
     )

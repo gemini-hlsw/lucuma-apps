@@ -501,6 +501,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             calibrationSets {
               kind
               count
+              explicitCount
               gcal {
                 continuum
                 arcs
@@ -511,6 +512,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               gmosNorth $GmosNorthDynamicConfigSubquery
               gmosSouth $GmosSouthDynamicConfigSubquery
               flamingos2 $Flamingos2DynamicConfigSubquery
+              igrins2 $Igrins2DynamicConfigSubquery
             }
           }
         }

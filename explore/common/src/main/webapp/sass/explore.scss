@@ -2256,6 +2256,27 @@ svg.fa-check.explore-success-icon {
     font-size: smaller;
     white-space: nowrap;
   }
+
+  // A line under a group title spans the columns it groups.
+  &.pl-react-table.p-datatable .p-datatable-thead > tr > th.explore-daytime-cal-group-header {
+    border-bottom: 1px solid var(--site-text-color);
+  }
+
+  &.pl-react-table.p-datatable .p-datatable-tbody > tr > td {
+    padding-left: 0.3em;
+    padding-right: 0.3em;
+  }
+
+  .lucuma-sequence-dropdown {
+    .p-dropdown-trigger,
+    .p-multiselect-trigger {
+      width: 1.5em;
+    }
+
+    &.p-dropdown-clearable .p-dropdown-label {
+      padding-right: 1em;
+    }
+  }
 }
 
 .explore-configuration-tile-body {
