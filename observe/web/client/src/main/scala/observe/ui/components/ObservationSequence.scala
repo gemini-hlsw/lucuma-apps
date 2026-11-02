@@ -68,6 +68,16 @@ object ObservationSequence
             case InstrumentExecutionConfig.Gnirs(config)      => config.acquisition.isDefined
             case _                                            => false
 
+        val hasPendingScience: Boolean =
+          props.sequenceData.config match
+            case InstrumentExecutionConfig.GmosNorth(config)  => config.science.isDefined
+            case InstrumentExecutionConfig.GmosSouth(config)  => config.science.isDefined
+            case InstrumentExecutionConfig.Flamingos2(config) => config.science.isDefined
+            case InstrumentExecutionConfig.Igrins2(config)    => config.science.isDefined
+            case InstrumentExecutionConfig.Ghost(config)      => config.science.isDefined
+            case InstrumentExecutionConfig.Gnirs(config)      => config.science.isDefined
+            case _                                            => false
+
         val sequenceControls: VdomNode =
           SeqControlButtons(
             props.obsId,
@@ -76,6 +86,7 @@ object ObservationSequence
             props.executionState.get.loadedStep.exists(_.isObserveStarted),
             props.executionState.get.sequenceType,
             hasAcquisition,
+            hasPendingScience,
             props.requests
           )
 

@@ -274,7 +274,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       EngineState
         .atSequence(obsId)
         .getOption(st)
-        .filter(seqData => seqData.seq.status.isIdle || seqData.seq.status.isError)
+        // A completed sequence may have been given new steps (e.g. edited in Explore). Starting
+        // it reads the next step from the ODB, which runs it, or completes the sequence again
+        // if there is none.
+        .filter: seqData =>
+          seqData.seq.status.isIdle || seqData.seq.status.isError ||
+            seqData.seq.status.isCompleted
         .map: seq =>
           (for {
             _              <- EngineHandle.modifySequenceState[F](obsId): seq =>

@@ -25,13 +25,14 @@ import observe.ui.model.enums.OperationRequest
 import observe.ui.services.SequenceApi
 
 case class SeqControlButtons(
-  obsId:            Observation.Id,
-  refreshing:       Pot[View[Boolean]],
-  sequenceStatus:   SequenceStatus,
-  isObserveStarted: Boolean,
-  sequenceType:     SequenceType,
-  hasAcquisition:   Boolean,
-  requests:         ObservationRequests
+  obsId:             Observation.Id,
+  refreshing:        Pot[View[Boolean]],
+  sequenceStatus:    SequenceStatus,
+  isObserveStarted:  Boolean,
+  sequenceType:      SequenceType,
+  hasAcquisition:    Boolean,
+  hasPendingScience: Boolean,
+  requests:          ObservationRequests
 ) extends ReactFnProps(SeqControlButtons):
   val isSequenceHoldRequested: Boolean      = sequenceStatus.isSequenceHoldRequested
   val isSequenceHoldInFlight: Boolean       = requests.sequenceHold === OperationRequest.InFlight
@@ -43,7 +44,8 @@ case class SeqControlButtons(
   val isRunning: Boolean                    = sequenceStatus.isRunning
   val isWaitingUserPrompt: Boolean          = sequenceStatus.isWaitingUserPrompt
   val isRefreshing: Boolean                 = refreshing.exists(_.get)
-  val isCompleted: Boolean                  = sequenceStatus.isCompleted
+  // A completed sequence can be started again once it is given new steps.
+  val hasPendingSteps: Boolean              = !sequenceStatus.isCompleted || hasPendingScience
   val isIdleOrError: Boolean                = sequenceStatus.isIdle || sequenceStatus.isError
   val isSkipAcquisitionInFlight: Boolean    = requests.skipAcquisition === OperationRequest.InFlight
   val isResetAcquisitionInFlight: Boolean   =
@@ -70,7 +72,7 @@ object SeqControlButtons
             tooltipOptions = tooltipOptions,
             onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
               sequenceApi.startSequence(props.obsId).runAsync,
-            disabled = props.isRefreshing || props.isCompleted
+            disabled = props.isRefreshing || !props.hasPendingSteps
           ).when(!props.isRunning),
           Button(
             clazz = ObserveStyles.SequenceHoldButton |+| ObserveStyles.ObsSummaryButton,
