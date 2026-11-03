@@ -282,17 +282,21 @@ object TileController:
             props.measuredHeights.foldMap(_.mod(_.updated((props.section, id.value), px)))
 
         // Measurements arriving while minimized  must not overwrite the last real measurement.
-        def autoHeightCallback(id: Tile.TileId): Int => Callback = measuredPx =>
-          val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
-          viewportPx.flatMap: vp =>
-            (recordMeasurement(id, measuredPx) *>
-              currentLayout
-                .zoom(allTiles)
-                .mod:
-                  case l if l.i === id.value =>
-                    resolveAutoHeight(l, measuredPx, vp, false, tileFlags.minRows(id.value))
-                  case l                     => l
-                .when_(!gesturing.get)).unless_(minimized)
+        // A placeholder (unsettled) measurement is never recorded, and only sizes the tile when
+        // there is no earlier height to hold.
+        def autoHeightCallback(id: Tile.TileId): (Int, Boolean) => Callback =
+          (measuredPx, settled) =>
+            val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
+            val holding   = !settled && lastMeasuredPx.get.contains(id.value)
+            viewportPx.flatMap: vp =>
+              (recordMeasurement(id, measuredPx).when_(settled) *>
+                currentLayout
+                  .zoom(allTiles)
+                  .mod:
+                    case l if l.i === id.value =>
+                      resolveAutoHeight(l, measuredPx, vp, false, tileFlags.minRows(id.value))
+                    case l                     => l
+                  .when_(!gesturing.get)).unless_(minimized || holding)
 
         val currentLayouts = currentLayout.get
 

@@ -115,7 +115,7 @@ object DaytimeConfigurationTile
                                      props.units
             )
 
-        TileContents(title, body)
+        TileContents(title, body, heightSettled = !props.modePending)
     })
 
 /** The instrument dropdown and the Daytime Calibration Sets grid. */

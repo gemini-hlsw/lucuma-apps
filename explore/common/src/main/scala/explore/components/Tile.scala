@@ -89,7 +89,7 @@ protected[components] case class TileState[P <: Tile[P]](
   canMaximize:          Boolean = true,
   sizeState:            TileSizeState,
   sizeStateCallback:    TileSizeState => Callback = (_ => Callback.empty),
-  autoHeightCallback:   Int => Callback = (_ => Callback.empty),
+  autoHeightCallback:   (Int, Boolean) => Callback = ((_, _) => Callback.empty),
   heightPreset:         Option[TileHeightPreset] = None,
   heightPresetCallback: TileHeightPreset => Callback = (_ => Callback.empty)
 ) extends ReactFnProps(tileProps.component.component):
@@ -107,7 +107,7 @@ protected[components] case class TileState[P <: Tile[P]](
   ): TileState[P] =
     copy(sizeState = state, sizeStateCallback = sizeStateCallback)
 
-  def withAutoHeightCallback(autoHeightCallback: Int => Callback): TileState[P] =
+  def withAutoHeightCallback(autoHeightCallback: (Int, Boolean) => Callback): TileState[P] =
     copy(autoHeightCallback = autoHeightCallback)
 
   def withHeightPresets(
@@ -136,20 +136,29 @@ trait TileComponent[P <: Tile[P]](
         // A body that declares its height is not measured, and keeps a body box that fills the
         // tile, so a table inside it can still size itself to the space it is given.
         declaredHeight = tileContents.contentHeightPx
+        wasSettled    <- useRef(tileContents.heightSettled)
         _             <-
           useEffectWithDeps(
-            (props.autoHeight && tileContents.heightSettled,
+            (props.autoHeight,
+             tileContents.heightSettled,
              titleResize.height,
              contentResize.height,
              declaredHeight
             )
           ):
-            case (true, Some(titleH), _, Some(declaredH))   =>
-              tileState.autoHeightCallback(titleH + declaredH)
-            case (true, Some(titleH), Some(contentH), None) =>
-              tileState.autoHeightCallback(titleH + contentH)
-            case _                                          =>
-              Callback.empty
+            case (true, settled, Some(titleH), contentH, declaredH) =>
+              // On the commit that swaps a placeholder for real content the detector still holds
+              // the placeholder's height, so read the real one from the DOM instead.
+              val justSettled                    = settled && !wasSettled.value
+              val bodyH: CallbackTo[Option[Int]] =
+                declaredH.fold(
+                  if justSettled then contentResize.ref.get.map(_.map(_.offsetHeight.toInt))
+                  else CallbackTo.pure(contentH)
+                )(h => CallbackTo.pure(h.some))
+              wasSettled.set(settled) >>
+                bodyH.flatMap(_.foldMap(h => tileState.autoHeightCallback(titleH + h, settled)))
+            case (_, settled, _, _, _)                              =>
+              wasSettled.set(settled)
       yield
         val maximizeButton: Button =
           Button(
