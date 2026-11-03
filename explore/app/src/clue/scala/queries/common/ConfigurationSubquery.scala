@@ -65,11 +65,17 @@ object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Config
           grating
           fpu
         }
+        flamingos2Imaging {
+          filters
+        }
         flamingos2LongSlit {
           disperser
         }
         flamingos2Mos {
           disperser
+        }
+        ghostIfu {
+          resolutionMode
         }
         gmosNorthImaging {
           filters
@@ -85,6 +91,10 @@ object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Config
         gnirsIfu {
           grating
           fpu
+        }
+        gnirsImaging {
+          camera
+          filters
         }
         visitor {
           mode

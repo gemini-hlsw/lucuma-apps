@@ -47,8 +47,8 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
         .withSize(110.toPx)
         .sortable,
       configurationColumn(FPUColumnId, _.observingMode.fpu).withSize(110.toPx).sortable,
-      configurationColumn(DisperserColumnId, _.observingMode.disperser)
-        .withSize(110.toPx)
+      configurationColumn(ConfigurationColumnId, _.observingMode.details)
+        .withSize(200.toPx)
         .sortable,
       configurationColumn(AltairColumnId, _.altair.foldMap(_.shortName))
         .withSize(100.toPx)
@@ -103,7 +103,7 @@ object ConfigurationTableColumnBuilder {
   private val DecColumnId             = ColumnId("dec")
   private val InstrumentColumnId      = ColumnId("instrument")
   private val FPUColumnId             = ColumnId("fpu")
-  private val DisperserColumnId       = ColumnId("disperser")
+  private val ConfigurationColumnId   = ColumnId("configuration")
   private val AltairColumnId          = ColumnId("altair")
   private val ImageQualityColumnId    = ColumnId("image_quality")
   private val CloudExtinctionColumnId = ColumnId("cloud_extinction")
@@ -117,7 +117,7 @@ object ConfigurationTableColumnBuilder {
     DecColumnId             -> "Dec",
     InstrumentColumnId      -> "Instrument",
     FPUColumnId             -> "FPU",
-    DisperserColumnId       -> "Disperser",
+    ConfigurationColumnId   -> "Configuration",
     AltairColumnId          -> "AO",
     ImageQualityColumnId    -> "IQ",
     CloudExtinctionColumnId -> "CC",
@@ -128,11 +128,11 @@ object ConfigurationTableColumnBuilder {
 
   extension (mode: Configuration.ObservingMode)
     def fpu: String = mode match
-      case Flamingos2Imaging      => "Imaging"
+      case Flamingos2Imaging(_)   => "Imaging"
       case Flamingos2LongSlit(_)  => "LongSlit"
       case Flamingos2Mos(_)       => "MOS"
       case Igrins2LongSlit        => "LongSlit"
-      case GhostIfu               => "IFU"
+      case GhostIfu(_)            => "IFU"
       case GmosNorthLongSlit(_)   => "LongSlit"
       case GmosNorthImaging(_)    => "Imaging"
       case GmosNorthMos(_)        => "MOS"
@@ -143,27 +143,32 @@ object ConfigurationTableColumnBuilder {
       case GmosSouthIfu(_, _)     => "IFU"
       case GnirsLongSlit(_, _, _) => "LongSlit"
       case GnirsIfu(_, _)         => "IFU"
-      case GnirsImaging           => "Imaging"
+      case GnirsImaging(_, _)     => "Imaging"
       case Visitor(_, _)          => ""
 
-    def disperser: String = mode match
-      case Flamingos2Imaging             => ""
-      case Flamingos2LongSlit(disperser) => disperser.shortName
-      case Flamingos2Mos(disperser)      => disperser.shortName
-      case GhostIfu                      => ""
-      case GmosNorthImaging(_)           => ""
-      case GmosNorthLongSlit(grating)    => grating.shortName
-      case GmosNorthMos(grating)         => grating.shortName
-      case GmosSouthLongSlit(grating)    => grating.shortName
-      case GmosSouthImaging(_)           => ""
-      case GmosSouthMos(grating)         => grating.shortName
-      case GmosNorthIfu(grating, _)      => grating.shortName
-      case GmosSouthIfu(grating, _)      => grating.shortName
-      case GnirsLongSlit(grating, _, _)  => grating.shortName
-      case GnirsIfu(grating, _)          => grating.shortName
-      case GnirsImaging                  => ""
-      case Igrins2LongSlit               => ""
-      case Visitor(_, _)                 => ""
+    /**
+     * A summary of every mode parameter that is subject to approval.
+     */
+    def details: String = mode match
+      case Flamingos2Imaging(filters)            => filters.map(_.shortName).mkString(", ")
+      case Flamingos2LongSlit(disperser)         => disperser.shortName
+      case Flamingos2Mos(disperser)              => disperser.shortName
+      case GhostIfu(resolutionMode)              => resolutionMode.shortName
+      case GmosNorthImaging(filters)             => filters.map(_.shortName).mkString(", ")
+      case GmosNorthLongSlit(grating)            => grating.shortName
+      case GmosNorthMos(grating)                 => grating.shortName
+      case GmosSouthLongSlit(grating)            => grating.shortName
+      case GmosSouthImaging(filters)             => filters.map(_.shortName).mkString(", ")
+      case GmosSouthMos(grating)                 => grating.shortName
+      case GmosNorthIfu(grating, fpu)            => s"${grating.shortName}, ${fpu.shortName}"
+      case GmosSouthIfu(grating, fpu)            => s"${grating.shortName}, ${fpu.shortName}"
+      case GnirsLongSlit(grating, camera, prism) =>
+        s"${grating.shortName}, ${camera.shortName}, ${prism.shortName}"
+      case GnirsIfu(grating, fpu)                => s"${grating.shortName}, ${fpu.shortName}"
+      case GnirsImaging(camera, filters)         =>
+        s"${camera.shortName}: ${filters.map(_.shortName).mkString(", ")}"
+      case Igrins2LongSlit                       => ""
+      case Visitor(_, _)                         => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =
     val targetNames =
