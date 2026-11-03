@@ -36,6 +36,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.model.TargetWithId
+import lucuma.ui.syntax.calibration.isDaytimeRole
 import lucuma.ui.syntax.calibration.needsITC
 
 import java.time.Instant
@@ -196,12 +197,8 @@ object all:
 
   extension (cr: CalibrationRole)
     def needsAGS: Boolean = cr match
-      case CalibrationRole.SpectroPhotometric => true
-      case CalibrationRole.Twilight           => false
-      case CalibrationRole.DaytimeArc         => false
-      case CalibrationRole.DaytimeCalibration => false
-      case CalibrationRole.DaytimeFlat        => false
-      case _                                  => true
+      case CalibrationRole.Twilight => false
+      case _                        => !cr.isDaytimeRole
 
     def needsAcquisitionConfig: Boolean = cr.needsITC
 
