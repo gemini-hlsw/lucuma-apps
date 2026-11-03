@@ -449,6 +449,22 @@ whose Observing Mode is a Gemini instrument plus an ordered list of Daytime Cali
 Sets. Created as GMOS North; the instrument may be switched to GMOS South.
 _Avoid_: day cal (the step-level observe class), daytime obs.
 
+**Daytime Pinhole**:
+A system-generated calibration observation taken for one GNIRS science observation. It
+carries a copy of the science observation's GNIRS mode, has no target and uses no ITC,
+and lives in the science observation's per-observation calibration group. Nobody can edit
+it. Not a Daytime Calibration (staff hand-made, its own mode).
+_Avoid_: pinhole observation, daytime calibration (the staff-made observation).
+
+**Daytime Flat**:
+A system-generated calibration observation taken for one Flamingos-2 imaging science
+observation. It carries a copy of the science observation's Flamingos-2 imaging mode, has
+no target and uses no ITC, and lives in the science observation's per-observation
+calibration group. Its sequence is one daytime flat per distinct science filter. Nobody
+can edit it. It behaves like a Daytime Pinhole. Not a Daytime Calibration.
+_Avoid_: imaging flat (the step kind, not the observation), daytime calibration (the
+staff-made observation).
+
 **Daytime Calibration Set**:
 One ordered row of a Daytime Calibration: a kind (Bias, Dark, Flat, Arc or Daytime
 Observe), an exposure count, a GCAL lamp setup for Flats and Arcs, and one Instrument
