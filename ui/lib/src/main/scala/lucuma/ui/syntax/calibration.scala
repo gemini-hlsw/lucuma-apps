@@ -25,10 +25,9 @@ trait calibration:
   extension (cr: Option[CalibrationRole])
     def needsITC: Boolean = cr.forall(_.needsITC)
 
-    // Pinholes, arcs and flats are daytime too, but they use a regular spectroscopy observing mode.
+    // Pinholes, flats and arcs are daytime too, but they use a regular science observing mode.
     def isDaytime(observingMode: Option[BasicConfiguration]): Boolean =
       (cr, observingMode) match
-        // TODO: Consider whether we should make daytime pinholes, daytime calibrationss
         case (Some(role), _) if role.isDaytimeRole               => true
         case (_, Some(BasicConfiguration.DaytimeCalibration(_))) => true
         case _                                                   => false
