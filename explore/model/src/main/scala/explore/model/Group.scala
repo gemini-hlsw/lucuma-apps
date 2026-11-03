@@ -40,7 +40,14 @@ case class Group(
   // group (an "observation calibration group") together with their calibration observations.
   def isObsCalibration: Boolean =
     system && calibrationRoles
-      .intersect(List(CalibrationRole.Telluric, CalibrationRole.DaytimePinhole))
+      .intersect(
+        List(
+          CalibrationRole.Telluric,
+          CalibrationRole.DaytimeArc,
+          CalibrationRole.DaytimeFlat,
+          CalibrationRole.DaytimePinhole
+        )
+      )
       .nonEmpty
 
 object Group:
