@@ -47,8 +47,7 @@ case class TileController(
   section:          GridLayoutSection,
   renderBackButton: Option[VdomNode] = None,
   clazz:            Option[Css] = None,
-  storeLayout:      Boolean = true,
-  measuredHeights:  Option[Hooks.UseRef[TileController.MeasuredHeights]] = None
+  storeLayout:      Boolean = true
 ) extends ReactFnProps(TileController.component):
   val tiles: List[TileState[?]] =
     tileDefs.map: t =>
@@ -62,9 +61,6 @@ case class TileController(
 
 object TileController:
   private type Props = TileController
-
-  /** Auto heights measured so far, in pixels, keyed by section and tile id. */
-  type MeasuredHeights = Map[(GridLayoutSection, String), Int]
 
   private def storeLayouts[F[_]: ApplicativeThrow](
     userId:  Option[User.Id],
@@ -98,6 +94,7 @@ object TileController:
   private case class TileFlags(autoMinRows: Map[String, Int], hidden: Set[String]):
     def isAuto(id:      String): Boolean = autoMinRows.contains(id)
     def minRows(id:     String): Int     = autoMinRows.getOrElse(id, AutoHeightMinRows)
+    def floor(id:       String): Int     = math.max(AutoHeightMinRows, minRows(id))
     def autoVisible(id: String): Boolean = isAuto(id) && !hidden.contains(id)
 
   private object TileFlags:
@@ -149,7 +146,7 @@ object TileController:
       else l
     }(layouts)
 
-  private def updateResizableState(flags: TileFlags, p: LayoutsMap): LayoutsMap =
+  private def updateResizableState(flags: TileFlags, viewportPx: Int, p: LayoutsMap): LayoutsMap =
     allLayouts
       .andThen(layoutItems)
       .modify { r =>
@@ -158,13 +155,11 @@ object TileController:
           // height to 0 for hidden tiles
           r.copy(minH = 0, h = 0, isResizable = false)
         else if flags.isAuto(r.i) then
-          // An h of 1 is a legitimately minimized tile; any other stored h is stale and reset
-          // to the floor until the tile reports a measurement. The pinned minH/maxH restrict
+          // An h of 1 is a legitimately minimized tile; any other stored h is the last measured
+          // span and is kept until the tile reports a measurement. The pinned minH/maxH restrict
           // the corner handle to horizontal resizing.
           if r.h === 1 then r.copy(minH = 1, maxH = 1)
-          else
-            val floor = flags.minRows(r.i)
-            r.copy(h = floor, minH = floor, maxH = floor)
+          else seedAutoHeight(r, viewportPx, flags.minRows(r.i))
         else if r.h === 1 then r.copy(minH = 1)
         else r
       }(p)
@@ -180,13 +175,6 @@ object TileController:
       val tileFlags: TileFlags = TileFlags.of(props.tiles)
       for
         ctx            <- useContext(AppContext.ctx)
-        // Auto heights measured by a previous mount of this section, read once at mount.
-        seed           <- useMemo(()): _ =>
-                            val heights: Map[String, Int] =
-                              props.measuredHeights.fold(Map.empty)(_.value.collect {
-                                case ((s, id), px) if s === props.section => id -> px
-                              })
-                            (heights, viewportPx.runNow())
         // Get the breakpoint from the layout
         breakpoint     <- useState(
                             getBreakpointFromWidth(
@@ -194,18 +182,14 @@ object TileController:
                               props.gridWidth
                             )
                           )
+        viewportHeight <- useViewportHeight
         // Make a local copy of the layout fixing the state of minimized layouts
         currentLayout  <- useStateView(
-                            applyMeasuredHeights(
-                              tileFlags,
-                              seed.value._1,
-                              seed.value._2,
-                              updateResizableState(tileFlags, props.layoutMap)
-                            )
+                            updateResizableState(tileFlags, viewportHeight, props.layoutMap)
                           )
         // Last content height reported per tile id. Survives minimize/maximize so maximizing
         // can restore the height the content wants.
-        lastMeasuredPx <- useStateView(seed.value._1)
+        lastMeasuredPx <- useRef(Map.empty[String, Int])
         // Update the current layout if it changes upstream. Auto-height tiles keep their local height
         _              <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
                             (_, layout) =>
@@ -213,12 +197,12 @@ object TileController:
                                 currentLayout.mod: current =>
                                   applyMeasuredHeights(
                                     tileFlags,
-                                    lastMeasuredPx.get,
+                                    lastMeasuredPx.value,
                                     vp,
                                     preserveAutoHeights(
                                       tileFlags,
                                       current,
-                                      updateResizableState(tileFlags, layout)
+                                      updateResizableState(tileFlags, vp, layout)
                                     )
                                   )
         // While a drag or resize gesture is in flight, measurements are recorded but not applied.
@@ -226,10 +210,9 @@ object TileController:
         // Auto heights are capped to the viewport, and a measurement can land while the window is
         // briefly short (startup, restore). Content re-measures don't fire on a window resize, so
         // the cap is re-applied here when the viewport height changes.
-        viewportHeight <- useViewportHeight
         _              <- useEffectWithDeps(viewportHeight): vp =>
                             currentLayout
-                              .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.get, vp, _))
+                              .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.value, vp, _))
                               .unless_(gesturing.get)
         storeThrottler <- useMemo(())(_ => Throttler.unsafe[IO](1.second))
       yield
@@ -246,7 +229,7 @@ object TileController:
                     else l.copy(h = 1, minH = 1)
                   else if (st === TileSizeState.Maximized)
                     if tileFlags.isAuto(id.value) then
-                      val measuredPx = lastMeasuredPx.get.getOrElse(id.value, 0)
+                      val measuredPx = lastMeasuredPx.value.getOrElse(id.value, 0)
                       resolveAutoHeight(l, measuredPx, vp, false, tileFlags.minRows(id.value))
                     else
                       val defaultHeight =
@@ -277,19 +260,18 @@ object TileController:
             .headOption(currentLayout.get)
             .map(h => TileHeightPreset.values.minBy(p => math.abs(p.rows - h)))
 
-        def recordMeasurement(id: Tile.TileId, px: Int): Callback =
-          lastMeasuredPx.mod(_.updated(id.value, px)) *>
-            props.measuredHeights.foldMap(_.mod(_.updated((props.section, id.value), px)))
-
         // Measurements arriving while minimized  must not overwrite the last real measurement.
         // A placeholder (unsettled) measurement is never recorded, and only sizes the tile when
-        // there is no earlier height to hold.
+        // its span is still at the floor, so a seeded or measured height is held.
         def autoHeightCallback(id: Tile.TileId): (Int, Boolean) => Callback =
           (measuredPx, settled) =>
             val minimized = unsafeSizeToState(currentLayout.get, id) === TileSizeState.Minimized
-            val holding   = !settled && lastMeasuredPx.get.contains(id.value)
+            val holding   = !settled &&
+              unsafeTileHeight(id)
+                .headOption(currentLayout.get)
+                .exists(_ > tileFlags.floor(id.value))
             viewportPx.flatMap: vp =>
-              (recordMeasurement(id, measuredPx).when_(settled) *>
+              (lastMeasuredPx.mod(_.updated(id.value, measuredPx)).when_(settled) *>
                 currentLayout
                   .zoom(allTiles)
                   .mod:
@@ -348,7 +330,7 @@ object TileController:
           gesturing.set(false) *>
             viewportPx.flatMap: vp =>
               currentLayout
-                .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.get, vp, _))
+                .mod(applyMeasuredHeights(tileFlags, lastMeasuredPx.value, vp, _))
                 .when_(tileFlags.autoMinRows.nonEmpty)
 
         ResponsiveReactGridLayout(

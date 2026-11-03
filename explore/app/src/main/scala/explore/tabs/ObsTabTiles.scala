@@ -119,8 +119,7 @@ case class ObsTabTiles(
   resize:            UseResizeDetectorReturn,
   userPreferences:   View[UserPreferences],
   readonly:          Boolean,
-  programIsReadonly: Boolean,
-  tileHeights:       Hooks.UseRef[TileController.MeasuredHeights]
+  programIsReadonly: Boolean
 ) extends ReactFnProps(ObsTabTiles.component):
   val isStaffOrAdminUser: Boolean = vault.isStaffOrAdmin
   val obsIsReadonly: Boolean      =
@@ -938,8 +937,7 @@ object ObsTabTiles:
             layout,
             tiles,
             section,
-            props.backButton.some,
-            measuredHeights = props.tileHeights.some
+            props.backButton.some
           ),
           if isVisitorMode then EmptyVdom // Visitors have no sequences
           else
