@@ -147,6 +147,19 @@ object layout {
       then item
       else item.copy(h = rows, minH = rows, maxH = rows)
 
+  /**
+   * Seeds an auto-height tile's row span from its stored one, clamped to the floor and to what fits
+   * in `viewportPx`, so the tile keeps its last height until its content measures.
+   */
+  def seedAutoHeight(
+    item:       LayoutItem,
+    viewportPx: Int,
+    minRows:    Int = AutoHeightMinRows
+  ): LayoutItem =
+    val floor = math.max(AutoHeightMinRows, minRows)
+    val rows  = math.min(math.max(floor, item.h), math.max(floor, rowsAvailable(viewportPx)))
+    item.copy(h = rows, minH = rows, maxH = rows)
+
   // Only the x, y, width and height are saved in user preferences.
   // A stored width below `minW` cannot come from the user: react-grid-layout enforces `minW` on
   // resize, and minimizing a tile only changes its height.

@@ -427,6 +427,7 @@ object ExploreStyles:
 
   // Configuration tile
   val ConfigurationTileBody: Css           = Css("explore-configuration-tile-body")
+  val ConfigurationLoadingMessage: Css     = Css("explore-configuration-loading-message")
   val PAConfigurationForm: Css             = Css("explore-pa-configuration-form")
   val PAConfigurationAngle: Css            = Css("explore-pa-configuration-angle")
   val PAConfigurationCassRotatorFixed: Css = Css("explore-pa-configuration-cass-rotator-fixed")

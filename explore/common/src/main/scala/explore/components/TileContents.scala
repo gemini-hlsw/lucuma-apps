@@ -14,11 +14,15 @@ import japgolly.scalajs.react.vdom.html_<^.*
  * @param contentHeightPx
  *   the height the body wants, in pixels. Only meaningful on an auto-height tile, where it replaces
  *   the measurement of the rendered body.
+ * @param heightSettled
+ *   false while the body is a placeholder for content still loading. An auto-height tile then keeps
+ *   its current height instead of adopting the placeholder's.
  */
 final case class TileContents(
   title:           TagMod,
   body:            TagMod,
-  contentHeightPx: Option[Int] = None
+  contentHeightPx: Option[Int] = None,
+  heightSettled:   Boolean = true
 )
 
 object TileContents:
