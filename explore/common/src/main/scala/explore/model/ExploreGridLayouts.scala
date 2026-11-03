@@ -313,9 +313,9 @@ object ExploreGridLayouts:
         ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
-    // Pinhole observations have no targets and can't be edited, so only Configuration
-    // (and the separately rendered Sequence tile) are shown.
-    lazy val DaytimePinholeRemovedIds =
+    // Generated daytime observations (pinholes, flats, arcs) have no targets and can't be
+    // edited, so only Configuration (and the separately rendered Sequence tile) are shown.
+    lazy val GeneratedDaytimeRemovedIds =
       List(
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
@@ -344,7 +344,11 @@ object ExploreGridLayouts:
         case Some(CalibrationRole.Twilight)           => TwilightRemovedIds
         case Some(CalibrationRole.SpectroPhotometric) => SpecPhotoRemovedIds
         case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
-        case Some(CalibrationRole.DaytimePinhole)     => DaytimePinholeRemovedIds
+        case Some(
+              CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeFlat |
+              CalibrationRole.DaytimeArc
+            ) =>
+          GeneratedDaytimeRemovedIds
         case Some(CalibrationRole.DaytimeCalibration) => DaytimeCalibrationRemovedIds
         case _                                        => Nil
 
