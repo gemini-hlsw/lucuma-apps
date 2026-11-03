@@ -21,6 +21,7 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
@@ -38,7 +39,7 @@ final case class Flamingos2ImagingSequenceTable(
   remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
     List[Atom[Flamingos2DynamicConfig]]
   ],
-  hiddenColumns:        Set[ColumnId]
+  columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(Flamingos2ImagingSequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with ImagingSequenceTable[Flamingos2DynamicConfig, Flamingos2Filter]:

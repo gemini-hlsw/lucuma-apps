@@ -643,6 +643,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       guideStateCol,
       pOffsetCol,
       qOffsetCol,
+      gcalCol,
       peakCol,
       snCol
     )
@@ -798,6 +799,7 @@ object SequenceColumns:
         FowlerSamplesColumnId -> Resizable(120.toPx, min = 90.toPx),
         PColumnId             -> FixedSize(95.toPx),
         QColumnId             -> FixedSize(95.toPx),
+        GCalColumnId          -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx),
         SNColumnId            -> Resizable(75.toPx, min = 75.toPx),
         PeakColumnId          -> Resizable(85.toPx, min = 85.toPx)
       )
@@ -882,7 +884,8 @@ object SequenceColumns:
       FowlerSamplesColumnId,
       ExposureColumnId,
       PeakColumnId,
-      SNColumnId
+      SNColumnId,
+      GCalColumnId
     ).reverse
 
     val ForGhost: List[ColumnId] = List(
@@ -903,14 +906,18 @@ object SequenceColumns:
       GCalColumnId
     ).reverse
 
-    def apply(instrument: Instrument): List[ColumnId] =
-      instrument match
+    // Daytime calibrations are all about the GCal config, so it is never dropped for them.
+    def apply(instrument: Instrument, kind: SequenceKind): List[ColumnId] =
+      val base = instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
         case Instrument.Gnirs                            => ForGnirs
         case Instrument.Igrins2                          => ForIgrins2
         case Instrument.Ghost                            => ForGhost
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
+      kind match
+        case SequenceKind.Calibration => base.filterNot(_ == GCalColumnId)
+        case SequenceKind.Science     => base
   }
 
   def headerCell[D, T, R, TM <: SequenceTableMeta[D], CM, TF](

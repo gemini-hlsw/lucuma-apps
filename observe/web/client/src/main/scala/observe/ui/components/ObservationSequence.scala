@@ -16,11 +16,11 @@ import lucuma.core.model.sequence.Step
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
-import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceData
 import observe.model.ExecutionState
 import observe.model.ObserveStep.*
@@ -47,7 +47,7 @@ case class ObservationSequence(
   setSelectedRowId:     SelectedRowId => Callback,
   clientMode:           ClientMode,
   getMaskName:          Attachment.Id => Option[NonEmptyString],
-  hiddenColumns:        Set[ColumnId]
+  columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(ObservationSequence)
 
 object ObservationSequence
@@ -133,7 +133,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -152,7 +152,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -172,7 +172,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -195,7 +195,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -214,7 +214,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -234,7 +234,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -257,7 +257,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -276,7 +276,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -296,7 +296,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   props.getMaskName,
                   sequenceControls
@@ -318,7 +318,7 @@ object ObservationSequence
                 props.setSelectedRowId,
                 props.requests,
                 isPreview = false,
-                hiddenColumns = props.hiddenColumns,
+                columnProfile = props.columnProfile,
                 onBreakpointFlip,
                 sequenceControls
               )
@@ -344,7 +344,7 @@ object ObservationSequence
               props.setSelectedRowId,
               props.requests,
               isPreview = false,
-              hiddenColumns = props.hiddenColumns,
+              columnProfile = props.columnProfile,
               onBreakpointFlip,
               sequenceControls
             )
@@ -365,7 +365,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -383,7 +383,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   sequenceControls
                 )
@@ -403,7 +403,7 @@ object ObservationSequence
                   props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
-                  hiddenColumns = props.hiddenColumns,
+                  columnProfile = props.columnProfile,
                   onBreakpointFlip,
                   sequenceControls
                 )

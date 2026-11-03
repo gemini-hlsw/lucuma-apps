@@ -111,27 +111,30 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
 
   // The order in which they are removed by overflow. The ones at the beginning go first.
   // Missing columns are not removed by overflow. (We declare them in reverse order)
-  protected lazy val ColumnPriorities: List[ColumnId] =
+  protected def columnPriorities(kind: SequenceKind): List[ColumnId] =
     List(
       DeckerColumnId,
       ReadModeColumnId
-    ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument)
+    ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument, kind)
 
   private lazy val collapsibleColIds: Set[ColumnId] =
     Set(SequenceColumns.DragHandleColumnId, SequenceColumns.EditControlsColumnId)
       .filter(_ => instrument.isSequenceEditable)
 
-  protected lazy val DynTableDef = DynTable(
-    ColumnSizes,
-    ColumnPriorities,
-    DynTable.ColState(
-      resized = ColumnSizing(),
-      visibility = ColumnVisibility(
-        (extraDetailColumnIds ++ collapsibleColIds).map(_ -> Visibility.Hidden).toMap
+  protected lazy val DynTableDefs: Map[SequenceKind, DynTable] =
+    SequenceKind.values.toList.fproduct { kind =>
+      DynTable(
+        ColumnSizes,
+        columnPriorities(kind),
+        DynTable.ColState(
+          resized = ColumnSizing(),
+          visibility = ColumnVisibility(
+            (extraDetailColumnIds ++ collapsibleColIds).map(_ -> Visibility.Hidden).toMap
+          )
+        ),
+        collapsibleCols = collapsibleColIds
       )
-    ),
-    collapsibleCols = collapsibleColIds
-  )
+    }.toMap
 
 // [T, A, TM, CM, TF, CF, FM]
   private def column[V](
@@ -147,7 +150,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     instrument:    Instrument,
     obsId:         Observation.Id,
     isPreview:     Boolean,
-    hiddenColumns: Set[ColumnId]
+    columnProfile: SequenceColumnProfile
   )(using
     FetchClient[IO, ObservationDB],
     ToastCtx[IO],
@@ -254,7 +257,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
       )
     ) ++
       instrumentColDefs
-        .filterNot(colDef => hiddenColumns.contains(colDef.id))
+        .filterNot(colDef => SequenceColumns.hiddenColumns(columnProfile).contains(colDef.id))
         .map(colDef => colDef.withColumnSize(ColumnSizes(colDef.id))) ++
       List(
         column(DeckerColumnId, "Decker"),

@@ -18,6 +18,7 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
@@ -35,7 +36,7 @@ final case class GmosSouthImagingSequenceTable(
   remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosSouth]] => IO[
     List[Atom[gmos.DynamicConfig.GmosSouth]]
   ],
-  hiddenColumns:        Set[ColumnId]
+  columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(GmosSouthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]
     with ImagingSequenceTable[gmos.DynamicConfig.GmosSouth, GmosSouthFilter]:

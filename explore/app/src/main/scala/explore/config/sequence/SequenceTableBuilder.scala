@@ -83,12 +83,12 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     ExtraRowColumnId -> FixedSize(0.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
-  private def columns(hiddenColumns: Set[ColumnId])(using
+  private def columns(columnProfile: SequenceColumnProfile)(using
     FetchClient[IO, ObservationDB],
     ToastCtx[IO],
     Logger[IO]
   ): List[ColDef.Type] =
-    val hidden: Set[ColumnId] = hiddenColumnIds ++ hiddenColumns
+    val hidden: Set[ColumnId] = hiddenColumnIds ++ SequenceColumns.hiddenColumns(columnProfile)
     List(
       SequenceColumns
         .headerCell(HeaderColumnId, ColDef)
@@ -116,16 +116,19 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
       .filterNot(col => hidden.contains(col.id))
 
-  private lazy val DynTableDef = DynTable(
-    ColumnSizes,
-    SequenceColumns.BaseColumnPriorities(instrument),
-    DynTable.ColState(
-      resized = ColumnSizing(),
-      visibility = ColumnVisibility()
-    ),
-    collapsibleCols =
-      Set(DragHandleColumnId, EditControlsColumnId).filter(_ => instrument.isSequenceEditable)
-  )
+  private lazy val DynTableDefs: Map[SequenceKind, DynTable] =
+    SequenceKind.values.toList.fproduct { kind =>
+      DynTable(
+        ColumnSizes,
+        SequenceColumns.BaseColumnPriorities(instrument, kind),
+        DynTable.ColState(
+          resized = ColumnSizing(),
+          visibility = ColumnVisibility()
+        ),
+        collapsibleCols =
+          Set(DragHandleColumnId, EditControlsColumnId).filter(_ => instrument.isSequenceEditable)
+      )
+    }.toMap
 
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
@@ -144,10 +147,11 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                                            props.science,
                                            props.remoteReplace
                                          )
-        dynTable                      <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
-        cols                          <- useMemo(props.hiddenColumns): hiddenColumns =>
+        dynTable                      <-
+          useDynTable(DynTableDefs(props.columnProfile.kind), SizePx(resize.width.orEmpty))
+        cols                          <- useMemo(props.columnProfile): columnProfile =>
                                            import ctx.given
-                                           dynTable.setInitialColWidths(columns(hiddenColumns))
+                                           dynTable.setInitialColWidths(columns(columnProfile))
         resolvedAcquisition            = editContexts.acquisition.resolvedSequence
         resolvedScience                = editContexts.science.resolvedSequence
         (acquisitionRows, scienceRows) = props.buildRows(resolvedAcquisition, resolvedScience)

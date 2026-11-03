@@ -5,6 +5,8 @@ package lucuma.ui.sequence
 
 import cats.Eq
 import cats.derived.*
+import japgolly.scalajs.react.ReactCats.*
+import japgolly.scalajs.react.Reusability
 import lucuma.core.enums.CalibrationRole
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.syntax.calibration.*
@@ -16,6 +18,8 @@ enum SequenceKind derives Eq:
 case class SequenceColumnProfile(kind: SequenceKind, hasItc: Boolean) derives Eq
 
 object SequenceColumnProfile:
+  given Reusability[SequenceColumnProfile] = Reusability.byEq
+
   def fromObservation(
     calibrationRole: Option[CalibrationRole],
     observingMode:   Option[BasicConfiguration]

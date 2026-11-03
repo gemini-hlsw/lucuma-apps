@@ -21,6 +21,7 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
@@ -38,7 +39,7 @@ final case class GnirsImagingSequenceTable(
   remoteReplace:        SequenceType => List[Atom[GnirsDynamicConfig]] => IO[
     List[Atom[GnirsDynamicConfig]]
   ],
-  hiddenColumns:        Set[ColumnId]
+  columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(GnirsImagingSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
     with ImagingSequenceTable[GnirsDynamicConfig, GnirsFilter]:

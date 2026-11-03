@@ -15,11 +15,11 @@ import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.react.common.ReactFnProps
-import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 
 final case class GhostSequenceTable(
@@ -34,7 +34,7 @@ final case class GhostSequenceTable(
   remoteReplace:        SequenceType => List[Atom[GhostDynamicConfig]] => IO[
     List[Atom[GhostDynamicConfig]]
   ],
-  hiddenColumns:        Set[ColumnId]
+  columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(GhostSequenceTable.component)
     with SequenceTable[GhostStaticConfig, GhostDynamicConfig]
     with SpectroscopySequenceTable[GhostDynamicConfig]:
