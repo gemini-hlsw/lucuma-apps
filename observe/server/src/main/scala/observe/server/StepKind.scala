@@ -15,6 +15,9 @@ sealed trait StepKind extends Product with Serializable {
 object StepKind {
   final case class CelestialObject(override val instrument: Instrument)     extends StepKind
   final case class NodAndShuffle(override val instrument: Instrument)       extends StepKind
+  // Science steps in a daytime calibration: the light goes from the sky to the instrument, without
+  // the telescope pointing at a target, and GCAL is off
+  final case class DayCalObject(override val instrument: Instrument)        extends StepKind
   final case class Gems(override val instrument: Instrument)                extends StepKind
   final case class AltairObs(override val instrument: Instrument)           extends StepKind
   // Flats or Arcs that can be taken without caring about OI guiding
@@ -33,6 +36,7 @@ object StepKind {
   given Eq[StepKind] = Eq.instance {
     case (CelestialObject(i), CelestialObject(j))         => i === j
     case (NodAndShuffle(i), NodAndShuffle(j))             => i === j
+    case (DayCalObject(i), DayCalObject(j))               => i === j
     case (Gems(i), Gems(j))                               => i === j
     case (AltairObs(i), AltairObs(j))                     => i === j
     case (FlatOrArc(i, a), FlatOrArc(j, b))               => i === j && a === b

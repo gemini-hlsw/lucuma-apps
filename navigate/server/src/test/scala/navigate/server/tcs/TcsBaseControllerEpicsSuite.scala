@@ -2616,6 +2616,45 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
+  // A configuration with a wavelength change and a light path that moves the science fold. The
+  // TCS never gets in position (as when it is not tracking a target in a calibration), while the
+  // A&G mechanisms do.
+  private def configureStepWithTcsNeverInPosition(
+    mountFollow: String
+  ): IO[(StateRefs[IO], IO[ApplyCommandResult])] =
+    for {
+      x        <- lightPathAtGnPort3(sfParked = 1, sfName = none)
+      (st, ctr) = x
+      _        <- st.tcs.update(_.focus(_.inPosition.value).replace("FALSE".some))
+      _        <- st.tcs.update(_.focus(_.agInPosition.value).replace(1.0.some))
+      _        <- st.tcs.update(_.focus(_.sourceAWavelength.value).replace(1000.0.some))
+      _        <- st.mcs.update(_.focus(_.follow).replace(TestChannel.State.of(mountFollow)))
+      _        <- setWfsTrackingState(st.tcs, Focus[State](_.pwfs1TrackingState))
+      _        <- st.tcs.update(_.focus(_.guideStatus).replace(GuideConfigState.default))
+    } yield (st,
+             ctr.configureStep(
+               none,
+               Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)),
+               LightPath(LightSource.Sky, LightSink.GmosNorth).some,
+               none,
+               guiding = false
+             )(GuideConfig(noGuideConfig, none), WfsGuideStates.noTracking)
+    )
+
+  test("ConfigureStep command only waits for the A&G mechanisms if nothing is tracking") {
+    for {
+      (_, configure) <- configureStepWithTcsNeverInPosition("OFF")
+      r              <- configure.timeout(FiniteDuration(10, TimeUnit.SECONDS))
+    } yield assertEquals(r, ApplyCommandResult.Completed)
+  }
+
+  test("ConfigureStep command waits for the TCS to be in position if the mount is tracking") {
+    for {
+      (_, configure) <- configureStepWithTcsNeverInPosition("ON")
+      r              <- configure.timeout(FiniteDuration(5, TimeUnit.SECONDS)).attempt
+    } yield assert(r.left.exists(_.isInstanceOf[java.util.concurrent.TimeoutException]))
+  }
+
   test(
     "ConfigureStep command applies the instrument defocus as focus offset B, leaving focus offset A unchanged"
   ) {

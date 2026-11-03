@@ -482,6 +482,18 @@ object SeqTranslate {
             ObservatorySubsystem.Gcal -> defaultGcal
           )
 
+        // Only the light path is configured, as the telescope is not pointing at a target
+        case StepKind.DayCalObject(inst) =>
+          Map(
+            ObservatorySubsystem.Tcs  -> getTcs(
+              flatOrArcTcsSubsystems(inst),
+              insStep,
+              LightSource.Sky,
+              telescopeConfig
+            ),
+            ObservatorySubsystem.Gcal -> defaultGcal
+          )
+
         case StepKind.FlatOrArc(inst, gcalCfg) =>
           Map(
             ObservatorySubsystem.Tcs  -> getTcs(
@@ -590,6 +602,15 @@ object SeqTranslate {
           (ctx: HeaderExtraData) =>
             List(
               commonHeaders(obsCfg, stepCfg, allButGaos.toList, kwClient)(ctx),
+              gwsHeaders(kwClient),
+              instHeader(kwClient)
+            )
+
+      case StepKind.DayCalObject(inst) =>
+        (kwClient: KeywordsClient[F]) =>
+          (ctx: HeaderExtraData) =>
+            List(
+              commonHeaders(obsCfg, stepCfg, flatOrArcTcsSubsystems(inst).toList, kwClient)(ctx),
               gwsHeaders(kwClient),
               instHeader(kwClient)
             )
@@ -743,7 +764,8 @@ object SeqTranslate {
       else StepKind.FlatOrArc(inst, c).asRight
     case StepConfig.Science                =>
       // TODO: Here goes the logic to differentiate between a non GAOS, GeMS ot Altair observation.
-      StepKind.CelestialObject(inst).asRight
+      if (obsClass === ObserveClass.DayCal) StepKind.DayCalObject(inst).asRight
+      else StepKind.CelestialObject(inst).asRight
     case StepConfig.SmartGcal(_)           => Unexpected("Smart GCAL is not supported").asLeft
   }
 
