@@ -10,20 +10,27 @@ trait calibration:
   extension (cr: CalibrationRole)
     def needsITC: Boolean = cr match
       case CalibrationRole.Twilight           => false
-      case CalibrationRole.DaytimePinhole     => false
+      case CalibrationRole.DaytimeArc         => false
       case CalibrationRole.DaytimeCalibration => false
+      case CalibrationRole.DaytimeFlat        => false
+      case CalibrationRole.DaytimePinhole     => false
       case _                                  => true
+
+    def isDaytimeRole: Boolean = cr match
+      case CalibrationRole.DaytimeArc | CalibrationRole.DaytimeCalibration |
+          CalibrationRole.DaytimeFlat | CalibrationRole.DaytimePinhole =>
+        true
+      case _ => false
 
   extension (cr: Option[CalibrationRole])
     def needsITC: Boolean = cr.forall(_.needsITC)
 
-    // GNIRS pinholes are daytime too, but they use a regular spectroscopy observing mode.
+    // Pinholes, arcs and flats are daytime too, but they use a regular spectroscopy observing mode.
     def isDaytime(observingMode: Option[BasicConfiguration]): Boolean =
       (cr, observingMode) match
         // TODO: Consider whether we should make daytime pinholes, daytime calibrationss
-        case (Some(CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeCalibration), _) |
-            (_, Some(BasicConfiguration.DaytimeCalibration(_))) =>
-          true
-        case _ => false
+        case (Some(role), _) if role.isDaytimeRole               => true
+        case (_, Some(BasicConfiguration.DaytimeCalibration(_))) => true
+        case _                                                   => false
 
 object calibration extends calibration

@@ -198,7 +198,9 @@ object all:
     def needsAGS: Boolean = cr match
       case CalibrationRole.SpectroPhotometric => true
       case CalibrationRole.Twilight           => false
+      case CalibrationRole.DaytimeArc         => false
       case CalibrationRole.DaytimeCalibration => false
+      case CalibrationRole.DaytimeFlat        => false
       case _                                  => true
 
     def needsAcquisitionConfig: Boolean = cr.needsITC
