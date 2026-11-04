@@ -5330,8 +5330,6 @@ span.explore-offsets-count {
   color: var(--text-color);
 }
 
-// Read-only list of configuration values for generated daytime observations, which
-// show the science observation's values but can't change them.
 .explore-readonly-list {
   display: grid;
   grid-template-columns: 1fr;

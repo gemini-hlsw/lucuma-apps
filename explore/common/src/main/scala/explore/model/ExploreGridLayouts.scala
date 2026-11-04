@@ -15,6 +15,7 @@ import lucuma.react.gridlayout.BreakpointName
 import lucuma.react.gridlayout.Layout
 import lucuma.react.gridlayout.LayoutItem
 import lucuma.refined.*
+import lucuma.ui.syntax.calibration.isGeneratedDaytime
 
 import scala.collection.immutable.SortedMap
 
@@ -341,16 +342,13 @@ object ExploreGridLayouts:
 
     def removedTiles(role: Option[CalibrationRole]) =
       role match
-        case Some(CalibrationRole.Twilight)           => TwilightRemovedIds
-        case Some(CalibrationRole.SpectroPhotometric) => SpecPhotoRemovedIds
-        case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
-        case Some(
-              CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeFlat |
-              CalibrationRole.DaytimeArc
-            ) =>
+        case Some(CalibrationRole.Twilight)                              => TwilightRemovedIds
+        case Some(CalibrationRole.SpectroPhotometric)                    => SpecPhotoRemovedIds
+        case Some(CalibrationRole.Telluric)                              => TelluricRemovedIds
+        case Some(calibrationRole) if calibrationRole.isGeneratedDaytime =>
           GeneratedDaytimeRemovedIds
-        case Some(CalibrationRole.DaytimeCalibration) => DaytimeCalibrationRemovedIds
-        case _                                        => Nil
+        case Some(CalibrationRole.DaytimeCalibration)                    => DaytimeCalibrationRemovedIds
+        case _                                                           => Nil
 
     lazy val defaultObsLayouts: LayoutsMap =
       defineStdLayouts(

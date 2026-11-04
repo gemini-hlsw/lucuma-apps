@@ -111,16 +111,10 @@ object GnirsWavelengthsPanel:
         // Roles without an ITC (Daytime Pinhole) take their wavelengths from the science
         // observation and can't change them, so they get a plain list.
         val wavelengthTable =
-          <.div(ExploreStyles.ReadonlyList)(
-            props.wavelengthsView.get.toList
-              .map(_.centralWavelength.value)
-              .toTagMod(using
-                w =>
-                  <.span(
-                    ExploreStyles.ReadonlyListRow,
-                    s"${wavelengthDisplay(props.units).shortName(w)} ${props.units.symbol}"
-                  )
-              )
+          ReadonlyList(
+            props.wavelengthsView.get.toList.map: cw =>
+              val value = wavelengthDisplay(props.units).shortName(cw.centralWavelength.value)
+              s"$value ${props.units.symbol}"
           )
 
         val editable: Boolean = props.calibrationRole.needsITC
