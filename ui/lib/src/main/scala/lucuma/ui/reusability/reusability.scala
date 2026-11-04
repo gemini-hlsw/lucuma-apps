@@ -34,6 +34,7 @@ import lucuma.react.table.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
+import lucuma.ui.aladin.HipsMirror
 import lucuma.ui.aladin.facade.AladinOptions
 import lucuma.ui.sso.UserVault
 import lucuma.ui.table.ColumnSize
@@ -90,6 +91,7 @@ trait MathReusabilityInstances:
   given Reusability[Coordinates]                                      = Reusability.byEq
   given Reusability[Epoch]                                            = Reusability.byEq
   given Reusability[ProperMotion]                                     = Reusability.byEq
+  given Reusability[HipsMirror]                                       = Reusability.byEq
   given Reusability[RadialVelocity]                                   = Reusability.byEq
   given Reusability[Parallax]                                         = Reusability.byEq
   given Reusability[BigDecimal]                                       = Reusability.byEq

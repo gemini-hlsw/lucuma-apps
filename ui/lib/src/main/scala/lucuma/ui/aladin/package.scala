@@ -3,6 +3,9 @@
 
 package lucuma.ui.aladin
 
+import cats.Eq
+import cats.data.NonEmptyList
+import cats.derived.*
 import lucuma.core.math.*
 import lucuma.core.util.Enumerated
 import lucuma.react.common.*
@@ -86,31 +89,51 @@ object CooFrame:
       case "j2000d"   => Some(J2000d)
       case "galactic" => Some(Galactic)
 
-enum ImageSurvey(val tag: String, val name: String, val id: String, val epoch: Epoch)
-    derives Enumerated:
-  // See
-  // https://github.com/cds-astro/aladin-lite/blob/master/src/js/DefaultHiPSList.js
-  // Survey epochs: DSS ~1990, 2MASS ~1999
+enum HipsServer(val tag: String, val name: String, val baseUrl: String) derives Enumerated:
+  case Cds  extends HipsServer("cds", "CDS", "https://alasky.cds.unistra.fr")
+  case Esac extends HipsServer("esac", "ESAC", "https://skies.esac.esa.int")
+
+case class HipsMirror(server: HipsServer, path: String) derives Eq:
+  val url: String = s"${server.baseUrl}/$path"
+
+// Mirrors are listed in the order they are tried. Survey epochs: DSS ~1990, 2MASS ~1999
+enum ImageSurvey(
+  val tag:     String,
+  val name:    String,
+  val mirrors: NonEmptyList[HipsMirror],
+  val epoch:   Epoch
+) derives Enumerated:
   case DSS
-      extends ImageSurvey("dss_color",
-                          "DSS",
-                          "P/DSS2/color",
-                          Epoch.Julian.fromIntMilliyears(1990000).get
+      extends ImageSurvey(
+        "dss_color",
+        "DSS",
+        NonEmptyList
+          .of(HipsMirror(HipsServer.Cds, "DSS/DSSColor"), HipsMirror(HipsServer.Esac, "DSSColor")),
+        Epoch.Julian.fromIntMilliyears(1990000).get
       )
   case TWOMASS
-      extends ImageSurvey("twomass_color",
-                          "2MASS",
-                          "P/2MASS/color",
-                          Epoch.Julian.fromIntMilliyears(1999000).get
+      extends ImageSurvey(
+        "twomass_color",
+        "2MASS",
+        NonEmptyList
+          .of(HipsMirror(HipsServer.Cds, "2MASS/Color"), HipsMirror(HipsServer.Esac, "2MASSColor")),
+        Epoch.Julian.fromIntMilliyears(1999000).get
       )
 
 object AladinOptions:
   val Default: AladinOptions = apply()
 
+  /**
+   * A copy of `options` that loads the survey from `mirror`, leaving `options` untouched.
+   */
+  def withSurvey(options: AladinOptions, mirror: HipsMirror): AladinOptions =
+    val p = js.Object.assign(new js.Object, options).asInstanceOf[AladinOptions]
+    p.survey = mirror.url
+    p
+
   def apply(
     fov:                      js.UndefOr[Angle] = js.undefined,
     target:                   js.UndefOr[String] = js.undefined,
-    survey:                   js.UndefOr[ImageSurvey] = js.undefined,
     cooFrame:                 js.UndefOr[CooFrame] = js.undefined,
     showReticle:              js.UndefOr[Boolean] = js.undefined,
     showZoomControl:          js.UndefOr[Boolean] = js.undefined,
@@ -137,7 +160,6 @@ object AladinOptions:
     val p = new js.Object().asInstanceOf[AladinOptions]
     fov.foreach(v => p.fov = v.toDoubleDegrees)
     target.foreach(v => p.target = v)
-    survey.foreach(v => p.survey = v.id)
     cooFrame.foreach(v => p.cooFrame = v.toJs)
     reticleColor.foreach(v => p.reticleColor = v: String)
     reticleSize.foreach(v => p.reticleSize = v)

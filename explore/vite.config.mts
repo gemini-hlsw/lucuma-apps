@@ -315,17 +315,18 @@ export default defineConfig(async ({ mode }) => {
               pattern: /^https:\/\/simbad.u-strasbg.fr\/simbad\/sim-id/,
               name: 'simbad',
             }),
+            // Tiles only: HiPS mirror probes (properties and ?probe tiles) must reach the network
             imageCache({
-              pattern: /^https:\/\/alasky.u-strasbg.fr\/DSS/,
-              name: 'aladin-images',
-            }),
-            imageCache({
-              pattern: /^https:\/\/alasky.cds.unistra.fr\/DSS/,
+              pattern: /^https:\/\/alasky\.cds\.unistra\.fr\/DSS\/.*\/Norder\d+\/.*\.jpg$/,
               name: 'cds-dss',
             }),
             imageCache({
-              pattern: /^https:\/\/alaskybis.cds.unistra.fr\/2MASS/,
+              pattern: /^https:\/\/alasky\.cds\.unistra\.fr\/2MASS\/.*\/Norder\d+\/.*\.jpg$/,
               name: 'cds-2mass',
+            }),
+            imageCache({
+              pattern: /^https:\/\/skies\.esac\.esa\.int\/.*\/Norder\d+\/.*\.jpg$/,
+              name: 'esac-hips',
             }),
           ],
         },

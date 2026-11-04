@@ -3,15 +3,17 @@
 
 package lucuma.ui.aladin
 
-import cats.syntax.option.*
-import cats.syntax.semigroup.*
+import cats.syntax.all.*
+import crystal.react.hooks.*
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.hooks.*
 import japgolly.scalajs.react.hooks.Hooks.UseState
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.*
 import lucuma.react.common.*
 import lucuma.ui.aladin.facade.*
+import lucuma.ui.reusability.given
 import org.scalajs.dom.AbortController
 import org.scalajs.dom.AbortSignal
 import org.scalajs.dom.EventListenerOptions
@@ -119,6 +121,8 @@ extension (a: Aladin)
 case class ReactAladin(
   clazz:          Css = Css.Empty,
   options:        AladinOptions = AladinOptions.Default,
+  survey:         ImageSurvey = ImageSurvey.DSS,
+  onMirror:       Option[HipsMirror] => Callback = _ => Callback.empty,
   customize:      js.UndefOr[Aladin => Callback] = js.undefined,
   panningEnabled: Boolean = true,
   modifiers:      Seq[TagMod] = Seq.empty
@@ -166,51 +170,69 @@ object ReactAladin
         }
 
       def createAladin(
-        r:         CallbackTo[Option[html.Div]],
+        e:         html.Div,
         aladinRef: UseState[Option[Aladin]],
         instance:  Hooks.UseRef[Option[Aladin]],
         abortRef:  UseState[Option[AbortController]],
-        props:     ReactAladin
+        props:     ReactAladin,
+        mirror:    HipsMirror
       ): Callback =
-        r.flatMap {
-          case Some(e) =>
-            CallbackTo(A.aladin(e, props.options)).flatMap { a =>
-              aladinRef.setState(Some(a)) *>
-                instance.set(Some(a)) *>
-                props.customize.fold(Callback.empty)(f => f(a)) *>
-                disablePanning(a, abortRef).unless_(props.panningEnabled)
-            }
-          case _       => Callback.empty
+        CallbackTo(A.aladin(e, AladinOptions.withSurvey(props.options, mirror))).flatMap { a =>
+          aladinRef.setState(Some(a)) *>
+            instance.set(Some(a)) *>
+            props.customize.fold(Callback.empty)(f => f(a)) *>
+            disablePanning(a, abortRef).unless_(props.panningEnabled)
         }
 
       for {
-        aladinRef <- useState(none[Aladin])
-        instance  <- useRef(none[Aladin])
-        r         <- useRefToVdom[html.Div]
-        abortRef  <- useState(none[AbortController])
-        failed    <- useState(false)
-        _         <- useLayoutEffectOnMount {
-                       (AsyncCallback.fromJsPromise(A.init) >>
-                         createAladin(r.get, aladinRef, instance, abortRef, props).asAsyncCallback)
-                         .handleError: t =>
-                           (Callback.warn(s"Aladin failed to initialize: ${t.getMessage}") *>
-                             failed.setState(true)).asAsyncCallback
-                         .toCallback
-                     }
-        _         <- useEffectOnMount(
-                       // Cleanup listeners on unmount.
-                       CallbackTo(instance.get.flatMap(_.map(disposeAladin).getOrEmpty))
-                     )
-        _         <- useEffectWithDeps(props.options.survey.toOption): survey =>
-                       aladinRef.value
-                         .zip(survey)
-                         .map((a, s) => Callback(a.setBaseImageLayer(s)))
-                         .getOrEmpty
-        _         <- useEffectWithDeps(props.panningEnabled): enabled =>
-                       aladinRef.value
-                         .map: aladin =>
-                           if enabled then cleanupListener(abortRef) else disablePanning(aladin, abortRef)
-                         .getOrEmpty
+        aladinRef    <- useState(none[Aladin])
+        instance     <- useRef(none[Aladin])
+        r            <- useRefToVdom[html.Div]
+        abortRef     <- useState(none[AbortController])
+        failed       <- useState(false)
+        started      <- useRef(false)
+        latestMirror <- useRef(none[HipsMirror])
+        mirrorPot    <- useStream(props.survey)(HipsResolver.watch)
+        mirror        = mirrorPot.toOption
+        _            <- useEffectOnMount(
+                          // Cleanup listeners on unmount.
+                          CallbackTo(instance.get.flatMap(_.map(disposeAladin).getOrEmpty))
+                        )
+        // Aladin is created only once a mirror answers, so it never falls back to its CDS default.
+        _            <- useEffectWithDeps(mirror):
+                          case None          => Callback.empty
+                          case Some(None)    =>
+                            // The view shows the unavailable message, so drop Aladin and start over.
+                            instance.get.flatMap(_.foldMap(disposeAladin)) *>
+                              instance.set(none) *>
+                              aladinRef.setState(none) *>
+                              started.set(false) *>
+                              latestMirror.set(none) *>
+                              props.onMirror(none)
+                          case Some(Some(m)) =>
+                            val create: Callback =
+                              (instance.get, latestMirror.get, r.get).tupled.flatMap:
+                                case (None, Some(latest), Some(e)) =>
+                                  createAladin(e, aladinRef, instance, abortRef, props, latest)
+                                case (None, _, _)                  => started.set(false)
+                                case _                             => Callback.empty
+                            latestMirror.set(m.some) *>
+                              props.onMirror(m.some) *>
+                              instance.get.flatMap:
+                                case Some(a)               => Callback(a.setBaseImageLayer(m.url))
+                                case None if started.value => Callback.empty
+                                case None                  =>
+                                  started.set(true) *>
+                                    (AsyncCallback.fromJsPromise(A.init) >> create.asAsyncCallback)
+                                      .handleError: t =>
+                                        (Callback.warn(s"Aladin failed to initialize: ${t.getMessage}") *>
+                                          failed.setState(true)).asAsyncCallback
+                                      .toCallback
+        _            <- useEffectWithDeps(props.panningEnabled): enabled =>
+                          aladinRef.value
+                            .map: aladin =>
+                              if enabled then cleanupListener(abortRef) else disablePanning(aladin, abortRef)
+                            .getOrEmpty
       } yield
         if failed.value then
           <.div(props.clazz |+| AladinStyles.AladinLoadError, ^.key := "aladin-load-error")(
@@ -224,6 +246,10 @@ object ReactAladin
               ),
               "."
             )
+          )
+        else if mirror.exists(_.isEmpty) then
+          <.div(props.clazz |+| AladinStyles.AladinLoadError, ^.key := "aladin-no-survey")(
+            <.span("Sky images unavailable: no survey server responded.")
           )
         else <.div(props.clazz, ^.untypedRef := r)
     )

@@ -330,9 +330,9 @@ object AladinContainer {
                 showFrame = false,
                 showCooLocation = false,
                 showFullscreenControl = false,
-                showProjectionControl = false,
-                survey = props.survey.get
+                showProjectionControl = false
               ),
+              survey = props.survey.get,
               customize = customizeAladin(_),
               panningEnabled = props.panningEnabled.get
             )
