@@ -5329,3 +5329,20 @@ span.explore-offsets-count {
 .p-button.p-button-text.explore-reset-to-derived {
   color: var(--text-color);
 }
+
+.explore-readonly-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: 0.5em;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--border-radius);
+
+  .explore-readonly-list-row {
+    padding: 0.25em 0.5em;
+  }
+
+  .explore-readonly-list-row:nth-child(even) {
+    background-color: var(--surface-50);
+  }
+}

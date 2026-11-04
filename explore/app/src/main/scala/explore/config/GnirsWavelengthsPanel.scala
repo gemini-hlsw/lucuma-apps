@@ -12,6 +12,7 @@ import explore.Icons
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.Constants
+import explore.model.display.wavelengthDisplay
 import explore.model.enums.WavelengthUnits
 import explore.model.inputCodecs
 import japgolly.scalajs.react.*
@@ -34,6 +35,7 @@ import lucuma.ui.dnd.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.calibration.needsITC
 import lucuma.ui.utils.*
 
 /**
@@ -106,6 +108,137 @@ object GnirsWavelengthsPanel:
             .withOnMod: l =>
               NonEmptyList.fromList(l).fold(Callback.empty)(props.wavelengthsView.set)
 
+        // Roles without an ITC (Daytime Pinhole) take their wavelengths from the science
+        // observation and can't change them, so they get a plain list.
+        def wavelengthTable =
+          ReadonlyList(
+            props.wavelengthsView.get.toList.map: cw =>
+              val value = wavelengthDisplay(props.units).shortName(cw.centralWavelength.value)
+              s"$value ${props.units.symbol}"
+          )
+
+        val editable: Boolean = props.calibrationRole.needsITC
+
+        def editableGrid =
+          <.div(ExploreStyles.GnirsWavelengthGrid)(
+            <.span(), // the drag handle
+            <.span(), // the action button
+            <.span("λ Center", ExploreStyles.GnirsWavelengthGridHeader),
+            <.span("Exposure Mode", ExploreStyles.GnirsWavelengthGridHeader),
+            <.span("Signal/Noise", ExploreStyles.GnirsWavelengthGridHeader),
+            <.span("Exp. Time", ExploreStyles.GnirsWavelengthGridHeader),
+            <.span("Number of Exp.", ExploreStyles.GnirsWavelengthGridHeader),
+            <.span("Coadds", ExploreStyles.GnirsWavelengthGridHeader),
+            <.span(Constants.SignalToNoiseAtLabel, ExploreStyles.GnirsWavelengthGridHeader),
+            // Each row is a subgrid spanning every column, so it is a single element to
+            // drag while its controls still line up with the headers and with each other.
+            // The rows are identified by position, not by wavelength: a wavelength may
+            // appear more than once, and the order is the user's.
+            localView.toListOfViews.zipWithIndex
+              .toReactFragment(using
+                (swView, idx) =>
+                  val wavelength = swView.get.centralWavelength
+
+                  // The drop gap opens on the row the pointer is over, on the side the
+                  // dragged row would land.
+                  val dropGap: TagMod =
+                    dndScope.dragOver.headOption
+                      .map(_.data)
+                      .filter(d =>
+                        d.value === idx && !dndScope.dragging.map(_.value).contains_(idx)
+                      )
+                      .flatMap(_.extractClosestEdge)
+                      .fold(TagMod.empty)(dragOverStyle(DropGapHeight, _))
+
+                  DraggableDropTargetWithHandle[Int, Int](
+                    handleRef =>
+                      <.div(ExploreStyles.GnirsWavelengthRow)(
+                        dropGap,
+                        // The handle element stays mounted even when the configuration is
+                        // not customized: the drag registration happens once, on mount, so
+                        // a handle that appeared later would never become draggable.  Only
+                        // the grip icon comes and goes.
+                        <.span(ExploreStyles.GnirsWavelengthDragHandle)(
+                          if props.wavelengthReadonly then EmptyVdom else Icons.GripDotsVertical
+                        ).withRef(handleRef),
+                        props.telluricEtm.fold(
+                          Button(
+                            icon = Icons.Trash,
+                            clazz = ExploreStyles.GnirsWavelengthGridAction,
+                            text = true,
+                            disabled = props.wavelengthReadonly,
+                            onClick = localView.mod(l => l.take(idx) ++ l.drop(idx + 1))
+                          ).tiny.compact
+                        )(telluric =>
+                          Button(
+                            icon = Icons.ArrowUTurnDownLeft,
+                            clazz =
+                              ExploreStyles.GnirsWavelengthGridAction |+| ExploreStyles.ResetToDerived,
+                            text = true,
+                            disabled = props.exposureTimeModeReadonly,
+                            tooltip = "Reset to the value derived from the science observation",
+                            onClick = telluric.reset(idx)
+                          ).tiny.compact
+                        ),
+                        <.span(
+                          ExploreStyles.GnirsWavelengthCenter,
+                          FormInputTextView(
+                            id = NonEmptyString.unsafeFrom(s"gnirsCentralWavelength$idx"),
+                            value = swView.zoom(
+                              GnirsCentralWavelengthConfig.centralWavelength.andThen(
+                                CentralWavelength.Value
+                              )
+                            ),
+                            label = "λ Center",
+                            labelClass = ExploreStyles.HiddenLabel,
+                            units = props.units.symbol,
+                            codec = inputCodecs.wavelength(props.units),
+                            disabled = props.wavelengthReadonly
+                          )
+                        ),
+                        ExposureTimeModeEditor(
+                          instrument = props.instrument,
+                          wavelength = wavelength.value.some,
+                          exposureTimeMode = props.telluricEtm.fold(
+                            swView.zoom(GnirsCentralWavelengthConfig.exposureTimeMode)
+                          )(_.view(idx)),
+                          coadds = swView.zoom(GnirsCentralWavelengthConfig.coadds).some,
+                          scienceMode = ScienceMode.Spectroscopy,
+                          readonly = props.exposureTimeModeReadonly,
+                          units = props.units,
+                          calibrationRole = props.calibrationRole,
+                          idPrefix = NonEmptyString.unsafeFrom(s"gnirsWavelength$idx"),
+                          forGridRow = true,
+                          coaddsReadonly = props.telluricEtm.isDefined
+                        )
+                      ),
+                    getInitialData = _ => Data(idx),
+                    getData = args => Data(idx).attachClosestEdge(args, Axes.Vertical.edges),
+                    canDrag = _ => !props.wavelengthReadonly
+                  ).withKey(s"gnirs-wavelength-$idx").toUnmounted: VdomNode
+              ),
+            <.span(), // the new row's drag handle column
+            // A new row copies the last one: duplicate wavelengths are legal now, so
+            // there is no need to invent a distinct one, and the user edits the row
+            // anyway.
+            Button(
+              icon = Icons.ThinPlus,
+              severity = Button.Severity.Success,
+              clazz = ExploreStyles.GnirsWavelengthGridAction,
+              text = true,
+              disabled = props.wavelengthReadonly,
+              onClick = localView.mod: l =>
+                val last = l.lastOption.getOrElse(props.wavelengthsView.get.last)
+                l :+ GnirsCentralWavelengthConfig(
+                  last.centralWavelength,
+                  // There should always be one, but fall back to the last row's.
+                  props.requirementsExposureTimeMode.getOrElse(last.exposureTimeMode),
+                  last.coadds
+                )
+            ).tiny.compact,
+            <.span(ExploreStyles.GnirsWavelengthCenter, "Add wavelength")
+          )
+
         dndScope.context(
           Panel(
             header = <.span(
@@ -125,123 +258,6 @@ object GnirsWavelengthsPanel:
             toggleable = true,
             collapsed = false
           )(
-            <.div(ExploreStyles.GnirsWavelengthGrid)(
-              <.span(), // the drag handle
-              <.span(), // the action button
-              <.span("λ Center", ExploreStyles.GnirsWavelengthGridHeader),
-              <.span("Exposure Mode", ExploreStyles.GnirsWavelengthGridHeader),
-              <.span("Signal/Noise", ExploreStyles.GnirsWavelengthGridHeader),
-              <.span("Exp. Time", ExploreStyles.GnirsWavelengthGridHeader),
-              <.span("Number of Exp.", ExploreStyles.GnirsWavelengthGridHeader),
-              <.span("Coadds", ExploreStyles.GnirsWavelengthGridHeader),
-              <.span(Constants.SignalToNoiseAtLabel, ExploreStyles.GnirsWavelengthGridHeader),
-              // Each row is a subgrid spanning every column, so it is a single element to
-              // drag while its controls still line up with the headers and with each other.
-              // The rows are identified by position, not by wavelength: a wavelength may
-              // appear more than once, and the order is the user's.
-              localView.toListOfViews.zipWithIndex
-                .toReactFragment(using
-                  (swView, idx) =>
-                    val wavelength = swView.get.centralWavelength
-
-                    // The drop gap opens on the row the pointer is over, on the side the
-                    // dragged row would land.
-                    val dropGap: TagMod =
-                      dndScope.dragOver.headOption
-                        .map(_.data)
-                        .filter(d =>
-                          d.value === idx && !dndScope.dragging.map(_.value).contains_(idx)
-                        )
-                        .flatMap(_.extractClosestEdge)
-                        .fold(TagMod.empty)(dragOverStyle(DropGapHeight, _))
-
-                    DraggableDropTargetWithHandle[Int, Int](
-                      handleRef =>
-                        <.div(ExploreStyles.GnirsWavelengthRow)(
-                          dropGap,
-                          // The handle element stays mounted even when the configuration is
-                          // not customized: the drag registration happens once, on mount, so
-                          // a handle that appeared later would never become draggable.  Only
-                          // the grip icon comes and goes.
-                          <.span(ExploreStyles.GnirsWavelengthDragHandle)(
-                            if props.wavelengthReadonly then EmptyVdom else Icons.GripDotsVertical
-                          ).withRef(handleRef),
-                          props.telluricEtm.fold(
-                            Button(
-                              icon = Icons.Trash,
-                              clazz = ExploreStyles.GnirsWavelengthGridAction,
-                              text = true,
-                              disabled = props.wavelengthReadonly,
-                              onClick = localView.mod(l => l.take(idx) ++ l.drop(idx + 1))
-                            ).tiny.compact
-                          )(telluric =>
-                            Button(
-                              icon = Icons.ArrowUTurnDownLeft,
-                              clazz =
-                                ExploreStyles.GnirsWavelengthGridAction |+| ExploreStyles.ResetToDerived,
-                              text = true,
-                              disabled = props.exposureTimeModeReadonly,
-                              tooltip = "Reset to the value derived from the science observation",
-                              onClick = telluric.reset(idx)
-                            ).tiny.compact
-                          ),
-                          <.span(
-                            ExploreStyles.GnirsWavelengthCenter,
-                            FormInputTextView(
-                              id = NonEmptyString.unsafeFrom(s"gnirsCentralWavelength$idx"),
-                              value = swView.zoom(
-                                GnirsCentralWavelengthConfig.centralWavelength.andThen(
-                                  CentralWavelength.Value
-                                )
-                              ),
-                              label = "λ Center",
-                              labelClass = ExploreStyles.HiddenLabel,
-                              units = props.units.symbol,
-                              codec = inputCodecs.wavelength(props.units),
-                              disabled = props.wavelengthReadonly
-                            )
-                          ),
-                          ExposureTimeModeEditor(
-                            instrument = props.instrument,
-                            wavelength = wavelength.value.some,
-                            exposureTimeMode = props.telluricEtm.fold(
-                              swView.zoom(GnirsCentralWavelengthConfig.exposureTimeMode)
-                            )(_.view(idx)),
-                            coadds = swView.zoom(GnirsCentralWavelengthConfig.coadds).some,
-                            scienceMode = ScienceMode.Spectroscopy,
-                            readonly = props.exposureTimeModeReadonly,
-                            units = props.units,
-                            calibrationRole = props.calibrationRole,
-                            idPrefix = NonEmptyString.unsafeFrom(s"gnirsWavelength$idx"),
-                            forGridRow = true,
-                            coaddsReadonly = props.telluricEtm.isDefined
-                          )
-                        ),
-                      getInitialData = _ => Data(idx),
-                      getData = args => Data(idx).attachClosestEdge(args, Axes.Vertical.edges),
-                      canDrag = _ => !props.wavelengthReadonly
-                    ).withKey(s"gnirs-wavelength-$idx").toUnmounted: VdomNode
-                ),
-              <.span(), // the new row's drag handle column
-              // A new row copies the last one: duplicate wavelengths are legal now, so
-              // there is no need to invent a distinct one, and the user edits the row
-              // anyway.
-              Button(
-                icon = Icons.ThinPlus,
-                severity = Button.Severity.Success,
-                clazz = ExploreStyles.GnirsWavelengthGridAction,
-                text = true,
-                disabled = props.wavelengthReadonly,
-                onClick = localView.mod: l =>
-                  val last = l.lastOption.getOrElse(props.wavelengthsView.get.last)
-                  l :+ GnirsCentralWavelengthConfig(
-                    last.centralWavelength,
-                    // There should always be one, but fall back to the last row's.
-                    props.requirementsExposureTimeMode.getOrElse(last.exposureTimeMode),
-                    last.coadds
-                  )
-              ).tiny.compact,
-              <.span(ExploreStyles.GnirsWavelengthCenter, "Add wavelength")
-            )
+            if editable then editableGrid else wavelengthTable
           )
         )

@@ -165,6 +165,8 @@ object ObsBadge:
   private def badgeTitle(obs: Observation): VdomNode =
     obs.calibrationRole match
       case Some(CalibrationRole.DaytimePinhole)     => "Daytime Pinhole"
+      case Some(CalibrationRole.DaytimeFlat)        => "Daytime Flat"
+      case Some(CalibrationRole.DaytimeArc)         => "Daytime Arc"
       case Some(CalibrationRole.DaytimeCalibration) =>
         <.span(ThemeIcons.SunBright, " Daytime Calibration")
       case _                                        => obs.title

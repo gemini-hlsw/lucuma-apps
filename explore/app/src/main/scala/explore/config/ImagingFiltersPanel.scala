@@ -33,6 +33,7 @@ import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.calibration.needsITC
 import lucuma.ui.utils.*
 import monocle.Lens
 
@@ -88,24 +89,16 @@ object ImagingFiltersPanel:
                 .fromList(l)
                 .fold(Callback.empty)(props.filtersView.set)
 
-        Panel(
-          header = <.span(
-            "Filters",
-            HelpIcon("configuration/imaging-filters.md".refined),
-            CustomizedGroupAddon(
-              "original",
-              props.filtersView.set(props.initialFilters),
-              props.allowRevertCustomization
-            ).when(props.showCustomization && props.initialFilters =!= props.filtersView.get),
-            <.span(
-              Icons.ErrorIcon
-            ).withTooltip(
-              content = "At least one filter is required."
-            ).when(localFiltersView.get.length === 0)
-          ),
-          toggleable = true,
-          collapsed = false
-        )(
+        // Roles without an ITC (Daytime Flat) take their filters from the science
+        // observation and can't change them, so they get a plain list.
+        def filterTable =
+          ReadonlyList(
+            props.filtersView.get.toList.map(f => props.display.shortName(props.filterLens.get(f)))
+          )
+
+        val editable: Boolean = props.calibrationRole.needsITC
+
+        def editableGrid =
           <.div(
             ExploreStyles.ImagingFilterGrid,
             ExploreStyles.ImagingFilterGridWithCoadds.when_(props.coaddsLens.isDefined)
@@ -188,6 +181,26 @@ object ImagingFiltersPanel:
               )
             )
           )
+
+        Panel(
+          header = <.span(
+            "Filters",
+            HelpIcon("configuration/imaging-filters.md".refined),
+            CustomizedGroupAddon(
+              "original",
+              props.filtersView.set(props.initialFilters),
+              props.allowRevertCustomization
+            ).when(props.showCustomization && props.initialFilters =!= props.filtersView.get),
+            <.span(
+              Icons.ErrorIcon
+            ).withTooltip(
+              content = "At least one filter is required."
+            ).when(localFiltersView.get.length === 0)
+          ),
+          toggleable = true,
+          collapsed = false
+        )(
+          if editable then editableGrid else filterTable
         )
     }
 

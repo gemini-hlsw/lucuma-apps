@@ -15,6 +15,7 @@ import lucuma.react.gridlayout.BreakpointName
 import lucuma.react.gridlayout.Layout
 import lucuma.react.gridlayout.LayoutItem
 import lucuma.refined.*
+import lucuma.ui.syntax.calibration.isGeneratedDaytime
 
 import scala.collection.immutable.SortedMap
 
@@ -313,9 +314,9 @@ object ExploreGridLayouts:
         ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
-    // Pinhole observations have no targets and can't be edited, so only Configuration
-    // (and the separately rendered Sequence tile) are shown.
-    lazy val DaytimePinholeRemovedIds =
+    // Generated daytime observations (pinholes, flats, arcs) have no targets and can't be
+    // edited, so only Configuration (and the separately rendered Sequence tile) are shown.
+    lazy val GeneratedDaytimeRemovedIds =
       List(
         ObsTabTileIds.NotesId,
         ObsTabTileIds.DetailsId,
@@ -341,12 +342,13 @@ object ExploreGridLayouts:
 
     def removedTiles(role: Option[CalibrationRole]) =
       role match
-        case Some(CalibrationRole.Twilight)           => TwilightRemovedIds
-        case Some(CalibrationRole.SpectroPhotometric) => SpecPhotoRemovedIds
-        case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
-        case Some(CalibrationRole.DaytimePinhole)     => DaytimePinholeRemovedIds
-        case Some(CalibrationRole.DaytimeCalibration) => DaytimeCalibrationRemovedIds
-        case _                                        => Nil
+        case Some(CalibrationRole.Twilight)                              => TwilightRemovedIds
+        case Some(CalibrationRole.SpectroPhotometric)                    => SpecPhotoRemovedIds
+        case Some(CalibrationRole.Telluric)                              => TelluricRemovedIds
+        case Some(calibrationRole) if calibrationRole.isGeneratedDaytime =>
+          GeneratedDaytimeRemovedIds
+        case Some(CalibrationRole.DaytimeCalibration)                    => DaytimeCalibrationRemovedIds
+        case _                                                           => Nil
 
     lazy val defaultObsLayouts: LayoutsMap =
       defineStdLayouts(
