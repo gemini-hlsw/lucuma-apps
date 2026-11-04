@@ -120,7 +120,7 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   val reqConditions = ConstraintSet(
-    ImageQuality.Preset.PointTwo,
+    ImageQuality.Preset.PointThree,
     CloudExtinction.Preset.PointFive,
     SkyBackground.Dark,
     WaterVapor.Median,
@@ -1071,7 +1071,7 @@ class ObserveEngineSuite extends TestCommon {
     : (ODBObservation, NonEmptyList[Step[DynamicConfig.GmosNorth]]) = {
 
     val reqConditions = ConstraintSet(
-      ImageQuality.Preset.PointTwo,
+      ImageQuality.Preset.PointThree,
       CloudExtinction.Preset.PointFive,
       SkyBackground.Dark,
       WaterVapor.Median,
@@ -1125,7 +1125,7 @@ class ObserveEngineSuite extends TestCommon {
     ) >>>
       EngineState.conditions
         .andThen(CurrentConditions.iq)
-        .replace(ImageQuality.Preset.PointTwo.toImageQuality.some) >>>
+        .replace(ImageQuality.Preset.PointThree.toImageQuality.some) >>>
       EngineState.conditions.andThen(CurrentConditions.wv).replace(WaterVapor.Median.some) >>>
       EngineState.conditions.andThen(CurrentConditions.sb).replace(SkyBackground.Dark.some) >>>
       EngineState.conditions

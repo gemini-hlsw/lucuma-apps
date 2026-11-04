@@ -379,7 +379,7 @@ object TestCommon {
       ),
       defaultTargetEnvironment.some,
       ConstraintSet(
-        ImageQuality.Preset.PointOne,
+        ImageQuality.Preset.PointThree,
         CloudExtinction.Preset.PointOne,
         SkyBackground.Dark,
         WaterVapor.Median,
