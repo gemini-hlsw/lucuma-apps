@@ -57,7 +57,7 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
       wsb    <- WebSocketBuilder2[IO]
       l      <- s(
                   Request[IO](method = Method.POST, uri = Uri.unsafeFromString(s"/${clientId.value}/iq"))
-                    .withEntity(ImageQuality.Preset.PointTwo.toImageQuality.asJson)
+                    .withEntity(ImageQuality.Preset.PointThree.toImageQuality.asJson)
                 ).value
       b      <- l.traverse(_.as[String])
     yield (l.map(_.status), b)

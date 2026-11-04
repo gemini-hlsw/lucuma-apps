@@ -606,7 +606,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
       focalPlane.forall(f => r.focalPlane === f) &&
       isSupportedGmosFpu(r) &&
       r.capability === capability &&
-      iq.forall(i => r.ao =!= ModeAO.AO || (i <= ImageQuality.Preset.PointTwo)) &&
+      iq.forall(i => r.ao =!= ModeAO.AO || (i <= ImageQuality.Preset.PointThree)) &&
       wavelength.forall(w => w >= r.λmin.value && w <= r.λmax.value) &&
       resolution.forall(_ <= r.resolution) &&
       (range, rowRangePM).mapN(_.pm.value <= _).forall(identity) &&
@@ -632,7 +632,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
         resolution.foldMap(re => (re.value - r.resolution.value).abs)
       // give a bumpp to non-AO modes (but don't discard them)
       val aoScore: Rational           =
-        if (iq.forall(i => r.ao =!= ModeAO.AO || (i <= ImageQuality.Preset.PointTwo))) ScoreBump
+        if (iq.forall(i => r.ao =!= ModeAO.AO || (i <= ImageQuality.Preset.PointThree))) ScoreBump
         else Rational.zero
       // If wavelength > 0.65mu, then prefer settings with a filter to avoid 2nd order contamination
       val filterScore: Rational       =

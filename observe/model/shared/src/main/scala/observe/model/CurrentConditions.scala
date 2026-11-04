@@ -59,7 +59,7 @@ object CurrentConditions:
       // In the ODB model it's 20% but that value it's marked as obsolete
       // so I took the non-obsolete lowest value.
       CloudExtinction.Preset.PointOne.toCloudExtinction.some,
-      ImageQuality.Preset.PointOne.toImageQuality.some,
+      ImageQuality.Preset.PointThree.toImageQuality.some,
       SkyBackground.Darkest.some,
       WaterVapor.VeryDry.some
     )

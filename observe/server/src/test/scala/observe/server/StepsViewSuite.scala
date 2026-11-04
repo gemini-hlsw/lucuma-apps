@@ -206,7 +206,7 @@ class StepsViewSuite extends TestCommon {
   }
 
   test("StepsView setImageQuality should set Image Quality condition") {
-    val iq = ImageQuality.Preset.PointTwo.toImageQuality
+    val iq = ImageQuality.Preset.PointThree.toImageQuality
     val s0 = EngineState.default[IO]
 
     (for {
