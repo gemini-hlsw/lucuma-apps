@@ -366,7 +366,7 @@ object AladinContainer extends AladinCommon {
           )
         survey                  <- useMemo(props.vizConf.map(_.conditionsWavelength)):
                                      _.map(surveyForWavelength).getOrElse(ImageSurvey.DSS)
-        mirror                  <- useEffectResultWithDeps(survey.value)(HipsResolver.resolve)
+        mirror                  <- useState(none[(ImageSurvey, Option[HipsMirror])])
         targetCoords            <-
           useMemo(
             (props.obsTargets, survey, props.obsTimeTracking, props.obsTimeCoords)
@@ -770,7 +770,9 @@ object AladinContainer extends AladinCommon {
                   )(MaskSlitTooltip(slit))
 
             val serverSuffix: String =
-              mirror.value.toOption.foldMap(_.fold(" (unavailable)")(m => s" (${m.server.name})"))
+              mirror.value
+                .filter(_._1 === survey.value)
+                .foldMap(_._2.fold(" (unavailable)")(m => s" (${m.server.name})"))
 
             ReactFragment(
               aladinRef.value.map(AladinZoomControl(_)),
@@ -870,6 +872,7 @@ object AladinContainer extends AladinCommon {
               ReactAladin(
                 ExploreStyles.TargetAladin,
                 survey = survey.value,
+                onMirror = m => mirror.setState((survey.value, m).some),
                 options = AladinOptions(
                   target = baseCoordinatesForAladin,
                   fov = Angle.fromMicroarcseconds(

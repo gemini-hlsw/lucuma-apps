@@ -19,7 +19,7 @@ import scala.concurrent.duration.*
  */
 object HipsResolver:
   private val ProbeTimeout: FiniteDuration = 3.seconds
-  private val UpTtl: FiniteDuration        = 1.hour
+  private val UpTtl: FiniteDuration        = 15.minutes
   private val DownTtl: FiniteDuration      = 10.minutes
   private val StoragePrefix: String        = "lucuma-hips-status:"
 
@@ -63,13 +63,13 @@ object HipsResolver:
       IO.fromPromise(IO(dom.fetch(url, init)))
         .map(_.ok)
         .onCancel(IO(controller.abort()))
+        .timeout(ProbeTimeout)
+        .handleError(_ => false)
 
   // The `?probe` suffix keeps the service worker tile cache from answering for the server.
   private def probe(mirror: HipsMirror): IO[Boolean] =
-    (fetchOk(s"${mirror.url}/properties") &&
-      fetchOk(s"${mirror.url}/Norder3/Dir0/Npix0.jpg?probe"))
-      .timeout(ProbeTimeout)
-      .handleError(_ => false)
+    fetchOk(s"${mirror.url}/properties") &&
+      fetchOk(s"${mirror.url}/Norder3/Dir0/Npix0.jpg?probe")
 
   extension (io: IO[Boolean])
     private def &&(other: => IO[Boolean]): IO[Boolean] =
@@ -97,16 +97,28 @@ object HipsResolver:
    * for the same survey share a single probe, which keeps running if the caller is cancelled.
    */
   def resolve(survey: ImageSurvey): IO[Option[HipsMirror]] =
-    Deferred[IO, Option[HipsMirror]].flatMap: deferred =>
-      inFlight
-        .modify: running =>
-          running.get(survey) match
-            case Some(existing) => (running, existing.get)
-            case None           =>
-              val run =
-                pick(survey)
-                  .handleError(_ => none)
-                  .flatMap(deferred.complete)
-                  .guarantee(inFlight.update(_ - survey))
-              (running + (survey -> deferred), run.start >> deferred.get)
-        .flatten
+    IO.uncancelable: poll =>
+      Deferred[IO, Option[HipsMirror]].flatMap: deferred =>
+        inFlight
+          .modify: running =>
+            running.get(survey) match
+              case Some(existing) => (running, poll(existing.get))
+              case None           =>
+                val run =
+                  pick(survey)
+                    .handleError(_ => none)
+                    .flatMap(deferred.complete)
+                    .guarantee(inFlight.update(_ - survey))
+                (running + (survey -> deferred), run.start >> poll(deferred.get))
+          .flatten
+
+  /**
+   * Emits the resolved mirror, and while no mirror is up, resolves again once the down status
+   * expires.
+   */
+  def watch(survey: ImageSurvey): fs2.Stream[IO, Option[HipsMirror]] =
+    fs2.Stream
+      .eval(resolve(survey))
+      .flatMap:
+        case None   => fs2.Stream.emit(none) ++ fs2.Stream.sleep_[IO](DownTtl) ++ watch(survey)
+        case mirror => fs2.Stream.emit(mirror)
