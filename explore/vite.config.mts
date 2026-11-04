@@ -327,6 +327,10 @@ export default defineConfig(async ({ mode }) => {
               pattern: /^https:\/\/alaskybis.cds.unistra.fr\/2MASS/,
               name: 'cds-2mass',
             }),
+            imageCache({
+              pattern: /^https:\/\/skies.esac.esa.int\//,
+              name: 'esac-hips',
+            }),
           ],
         },
       }),

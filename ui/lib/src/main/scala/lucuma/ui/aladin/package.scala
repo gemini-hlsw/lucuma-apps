@@ -94,13 +94,13 @@ enum ImageSurvey(val tag: String, val name: String, val id: String, val epoch: E
   case DSS
       extends ImageSurvey("dss_color",
                           "DSS",
-                          "P/DSS2/color",
+                          "https://skies.esac.esa.int/DSSColor",
                           Epoch.Julian.fromIntMilliyears(1990000).get
       )
   case TWOMASS
       extends ImageSurvey("twomass_color",
                           "2MASS",
-                          "P/2MASS/color",
+                          "https://skies.esac.esa.int/2MASSColor",
                           Epoch.Julian.fromIntMilliyears(1999000).get
       )
 
@@ -110,7 +110,7 @@ object AladinOptions:
   def apply(
     fov:                      js.UndefOr[Angle] = js.undefined,
     target:                   js.UndefOr[String] = js.undefined,
-    survey:                   js.UndefOr[ImageSurvey] = js.undefined,
+    survey:                   js.UndefOr[ImageSurvey] = ImageSurvey.DSS,
     cooFrame:                 js.UndefOr[CooFrame] = js.undefined,
     showReticle:              js.UndefOr[Boolean] = js.undefined,
     showZoomControl:          js.UndefOr[Boolean] = js.undefined,
