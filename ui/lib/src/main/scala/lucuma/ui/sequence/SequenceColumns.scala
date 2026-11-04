@@ -314,7 +314,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.DeckerColumnId,
       _.getStep.flatMap(_.deckerName),
       header = _ => "Decker",
-      cell = _.value.orEmpty
+      cell = c =>
+        val shortName = c.value.orEmpty
+        c.getStep
+          .flatMap(_.deckerLongName)
+          .fold[VdomNode](shortName): longName =>
+            <.span(shortName)
+              .withTooltip(content = longName, showDelay = 100, position = Tooltip.Position.Top)
     )
 
   private lazy val gratingCol: colDef.TypeFor[Option[String]] =
