@@ -475,9 +475,10 @@ object ExploreStyles:
   // Added alongside ImagingFilterGrid by the imaging modes that carry per-filter
   // coadds (GNIRS), which need one more column.
   val ImagingFilterGridWithCoadds: Css     = Css("explore-imaging-filter-grid-with-coadds")
-  val ImagingFilterGridReadonly: Css       = Css("explore-imaging-filter-grid-readonly")
   val ImagingFilterGridHeader: Css         = Css("explore-imaging-filter-grid-header")
   val ImagingFilterGridAction: Css         = Css("explore-imaging-filter-grid-action")
+  val ReadonlyList: Css                    = Css("explore-readonly-list")
+  val ReadonlyListRow: Css                 = Css("explore-readonly-list-row")
   val GmosIfuAnalysisAngle: Css            = Css("explore-gmos-ifu-analysis-angle")
 
   val ResetToDerived: Css = Css("explore-reset-to-derived")

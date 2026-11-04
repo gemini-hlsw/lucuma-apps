@@ -2599,25 +2599,6 @@ svg.fa-check.explore-success-icon {
           [coadds] 1fr;
       }
 
-      // The read-only list shown for roles without an ITC (Daytime Flat).
-      &.explore-imaging-filter-grid-readonly {
-        grid-template-columns: [filter] 1fr;
-        gap: 0;
-        margin-top: 0.5em;
-        padding-top: 0;
-        overflow: hidden;
-        border: 1px solid var(--surface-border);
-        border-radius: var(--border-radius);
-
-        .explore-imaging-filter {
-          padding: 0.25em 0.5em;
-        }
-
-        .explore-imaging-filter:nth-child(even) {
-          background-color: var(--surface-50);
-        }
-      }
-
       .pl-form-field {
         width: 100%;
       }
@@ -5347,4 +5328,23 @@ span.explore-offsets-count {
 
 .p-button.p-button-text.explore-reset-to-derived {
   color: var(--text-color);
+}
+
+// Read-only list of configuration values for generated daytime observations, which
+// show the science observation's values but can't change them.
+.explore-readonly-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: 0.5em;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--border-radius);
+
+  .explore-readonly-list-row {
+    padding: 0.25em 0.5em;
+  }
+
+  .explore-readonly-list-row:nth-child(even) {
+    background-color: var(--surface-50);
+  }
 }
