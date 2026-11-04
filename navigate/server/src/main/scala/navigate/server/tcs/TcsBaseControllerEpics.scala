@@ -2336,6 +2336,18 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       gs               <- getGuideState
       pg               <- getProbesGuideState.verifiedRun(ConnectionTimeout)
       oiInstrument     <- sys.ags.status.oiwfsName.verifiedRun(ConnectionTimeout)
+      tracking         <- isTracking(guide)
+      // An offset or wavelength only makes sense if the telescope is following a target. Asking
+      // for them otherwise is probably a mistake of the caller, which would go unnoticed because
+      // nothing is waited for in that case.
+      requested         =
+        List(offset.as("an offset"), wavelength.as("a central wavelength")).flattenOption
+      _                <-
+        Logger[F]
+          .warn(
+            s"configureStep: the telescope is not tracking, but the step has ${requested.mkString(" and ")}"
+          )
+          .whenA(!tracking && requested.nonEmpty)
       // Only consult the rotator angle channel when there is actually an offset to apply.
       moveAndPause     <-
         offset.traverse { o =>
@@ -2386,12 +2398,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       // Like Observe, wait once, after everything has been sent: for the TCS to be in position if
       // the mount moved (offset or wavelength change) or, if it did not, for the A&G mechanisms
       // if the light path changed. A wavelength change waits for the full in-position timeout; an
-      // offset, for a time that depends on how far the telescope has to move.
+      // offset, for a time that depends on how far the telescope has to move. The TCS in-position
+      // flag never gets true if nothing is tracking, as in a calibration, so then only the A&G
+      // mechanisms are waited for.
       inPositionTimeout =
         List(
           wlResult.exists(_._2).option(InPositionTimeout),
           offsetMove.filterNot(_.isNull).map(m => offsetTimeout(m.displacementArcsec))
-        ).flattenOption.maxOption
+        ).flattenOption.maxOption.filter(_ => tracking)
       _                <- inPositionTimeout match {
                             case Some(t) =>
                               logStep("wait for in position", t.toString)(

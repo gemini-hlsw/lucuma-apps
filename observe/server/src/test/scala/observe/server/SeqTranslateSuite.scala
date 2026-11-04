@@ -11,8 +11,10 @@ import fs2.Stream
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
+import lucuma.core.model.sequence.StepConfig
 import lucuma.core.util.TimeSpan
 import observe.common.test.*
 import observe.model.ActionType
@@ -224,6 +226,19 @@ class SeqTranslateSuite extends TestCommon {
       assert(t.abortExposure(seqObsId1).apply(s4) != Stream.empty)
       assert(t.abortExposure(seqObsId1).apply(s5) == Stream.empty)
       assert(t.abortExposure(seqObsId1).apply(s6) == Stream.empty)
+    }
+  }
+
+  test("SeqTranslate classifies science steps of a daytime calibration apart from sky ones") {
+    assertEquals(
+      SeqTranslate.calcStepType(Instrument.GmosSouth, StepConfig.Science, ObserveClass.DayCal),
+      StepKind.DayCalObject(Instrument.GmosSouth).asRight
+    )
+    List(ObserveClass.Science, ObserveClass.NightCal, ObserveClass.Acquisition).foreach { c =>
+      assertEquals(
+        SeqTranslate.calcStepType(Instrument.GmosSouth, StepConfig.Science, c),
+        StepKind.CelestialObject(Instrument.GmosSouth).asRight
+      )
     }
   }
 
