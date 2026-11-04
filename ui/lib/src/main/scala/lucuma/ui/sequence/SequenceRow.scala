@@ -178,6 +178,9 @@ sealed trait SequenceRow[+D]:
     case GnirsDynamicConfig(decker = decker)      => decker.shortName.some
     case _                                        => none
 
+  lazy val deckerLongName: Option[String] = instrumentConfig.collect:
+    case GnirsDynamicConfig(decker = decker) => decker.longName
+
   // There's no unified filter type, so we return a string.
   lazy val filterName: Option[String] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(filter = filter) => filter.map(_.shortName)
