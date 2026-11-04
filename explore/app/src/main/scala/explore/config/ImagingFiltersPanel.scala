@@ -91,14 +91,14 @@ object ImagingFiltersPanel:
 
         // Roles without an ITC (Daytime Flat) take their filters from the science
         // observation and can't change them, so they get a plain list.
-        val filterTable =
+        def filterTable =
           ReadonlyList(
             props.filtersView.get.toList.map(f => props.display.shortName(props.filterLens.get(f)))
           )
 
         val editable: Boolean = props.calibrationRole.needsITC
 
-        val editableGrid =
+        def editableGrid =
           <.div(
             ExploreStyles.ImagingFilterGrid,
             ExploreStyles.ImagingFilterGridWithCoadds.when_(props.coaddsLens.isDefined)
