@@ -54,8 +54,8 @@ import monocle.Optional
 import scala.collection.immutable.SortedSet
 
 /**
- * The Daytime Calibration Sets of a GMOS or Flamingos 2 daytime calibration, one editable row per
- * set, styled and reordered like the sequence table.
+ * The Daytime Calibration Sets of a daytime calibration, one editable row per set, styled and
+ * reordered like the sequence table.
  */
 case class DaytimeCalibrationSetsTable(
   instrument: Instrument,
@@ -353,6 +353,8 @@ object DaytimeCalibrationSetsTable:
                             )
                           case Instrument.Flamingos2 =>
                             Flamingos2DaytimeCalibrationColumns(props.setsView, editable)
+                          case Instrument.Gnirs      =>
+                            GnirsDaytimeCalibrationColumns(props.setsView, editable, units)
                           case Instrument.Igrins2    =>
                             columns(
                               Instrument.Igrins2,

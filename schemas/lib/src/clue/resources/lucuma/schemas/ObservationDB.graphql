@@ -5416,6 +5416,9 @@ type CalibrationSet {
 
   """IGRINS-2 setup, when the instrument is IGRINS-2."""
   igrins2: Igrins2Dynamic
+
+  """GNIRS setup, when the instrument is GNIRS."""
+  gnirs: GnirsDynamic
 }
 
 """GCAL configuration of a flat or arc calibration set."""
@@ -5451,6 +5454,7 @@ input CalibrationSetInput {
   gmosSouth: GmosSouthDynamicInput
   flamingos2: Flamingos2DynamicInput
   igrins2: Igrins2DynamicInput
+  gnirs: GnirsDynamicInput
 }
 
 """

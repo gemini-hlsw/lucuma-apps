@@ -1228,6 +1228,10 @@ extension (s: DaytimeCalibrationSet)
       igrins2 = DaytimeCalibrationSetup.igrins2
         .getOption(s.setup)
         .map(_.config.toInput)
+        .orUnassign,
+      gnirs = DaytimeCalibrationSetup.gnirs
+        .getOption(s.setup)
+        .map(_.config.toInput)
         .orUnassign
     )
 
