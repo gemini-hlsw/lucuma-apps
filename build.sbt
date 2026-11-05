@@ -1123,14 +1123,20 @@ val isMergedCond: String             = "github.event.pull_request.merged == true
 def allConds(conds: String*): String = conds.mkString("(", " && ", ")")
 def anyConds(conds: String*): String = conds.mkString("(", " || ", ")")
 
-val herokuToken  = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
+val herokuToken   = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
 // Makes sbt-lucuma skip flaky-tagged MUnit tests on Scala.js, where MUnit can't read env vars.
-val munitFlakyOk = "MUNIT_FLAKY_OK" -> "${{ vars.MUNIT_FLAKY_OK }}"
+val munitFlakyOk  = "MUNIT_FLAKY_OK" -> "${{ vars.MUNIT_FLAKY_OK }}"
+// S3 bucket and CloudFront distribution serving explore-dev-cf.gemini.edu
+val awsExploreDev = Map(
+  "AWS_EXPLORE_DEV_BUCKET"        -> "${{ vars.AWS_EXPLORE_DEV_BUCKET }}",
+  "AWS_EXPLORE_DEV_CLOUDFRONT_ID" -> "${{ vars.AWS_EXPLORE_DEV_CLOUDFRONT_ID }}"
+)
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
 ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
 ThisBuild / githubWorkflowEnv += herokuToken
 ThisBuild / githubWorkflowEnv += munitFlakyOk
+ThisBuild / githubWorkflowEnv ++= awsExploreDev
 
 ThisBuild / githubWorkflowPermissions := Some(
   Permissions.Specify.defaultPermissive
@@ -1273,7 +1279,7 @@ lazy val awsDeployDev = List(
   ),
   WorkflowStep.Run(
     List(
-      """./explore/deploy-aws.sh gemini-edu-explore-test "${{ vars.AWS_EXPLORE_DEV_CLOUDFRONT_ID }}""""
+      """./explore/deploy-aws.sh "$AWS_EXPLORE_DEV_BUCKET" "$AWS_EXPLORE_DEV_CLOUDFRONT_ID""""
     ),
     name = Some("Deploy dev app to AWS"),
     cond = Some(mainCond)

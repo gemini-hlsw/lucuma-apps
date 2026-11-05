@@ -28,7 +28,9 @@ permissions:
   statuses: write
 
 env:
+  AWS_EXPLORE_DEV_CLOUDFRONT_ID: ${{ vars.AWS_EXPLORE_DEV_CLOUDFRONT_ID }}
   MUNIT_FLAKY_OK: ${{ vars.MUNIT_FLAKY_OK }}
+  AWS_EXPLORE_DEV_BUCKET: ${{ vars.AWS_EXPLORE_DEV_BUCKET }}
   SBT_OPTS: '-Dlmcoursier.internal.shaded.coursier.exception-retry=10'
   LUCUMA_AFFECTED_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
   HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
@@ -308,7 +310,7 @@ jobs:
 
       - name: Deploy dev app to AWS
         if: github.ref == 'refs/heads/main'
-        run: ./explore/deploy-aws.sh gemini-edu-explore-test "${{ vars.AWS_EXPLORE_DEV_CLOUDFRONT_ID }}"
+        run: ./explore/deploy-aws.sh "$AWS_EXPLORE_DEV_BUCKET" "$AWS_EXPLORE_DEV_CLOUDFRONT_ID"
 
   observe-deploy:
     name: Build and publish Observe Docker image / Deploy to Heroku
