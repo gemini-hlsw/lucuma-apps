@@ -12,7 +12,7 @@ import lucuma.core.enums.DatasetQaState
 import lucuma.core.util.Enumerated
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.InputText
+import lucuma.react.primereact.InputTextarea
 import lucuma.react.primereact.SelectButtonOptional
 import lucuma.react.primereact.SelectItem
 import lucuma.ui.primereact.*
@@ -37,12 +37,16 @@ object QaFieldsForm
       <.form(SequenceStyles.QaEditorPanel)(
         ^.onSubmit ==> (e => e.preventDefaultCB >> submit),
         // Enter submits from the status strip or the comment input (preventDefault keeps the input
-        // from submitting again). A focused button keeps its own Enter, so Cancel cancels.
+        // from submitting again). A focused button keeps its own Enter, so Cancel cancels, and
+        // Shift+Enter adds a line break to the comment.
         ^.onKeyDown ==> { (e: ReactKeyboardEventFromHtml) =>
+          val ownEnter: Boolean =
+            e.target.isInstanceOf[dom.HTMLButtonElement] ||
+              (e.shiftKey && e.target.isInstanceOf[dom.HTMLTextAreaElement])
           e.keyCode match
-            case KeyCode.Enter if !e.target.isInstanceOf[dom.HTMLButtonElement] =>
+            case KeyCode.Enter if !ownEnter =>
               e.preventDefaultCB >> submit
-            case _                                                              => Callback.empty
+            case _                          => Callback.empty
         },
         ^.onClick ==> (_.stopPropagationCB)
       )(
@@ -58,25 +62,27 @@ object QaFieldsForm
               qaState.value.tag
             )
         ).compact,
-        InputText(
-          id = "qaComment",
-          value = props.qaFields.get.comment.map(_.value).orEmpty,
-          placeholder = "Comment",
-          onChange = e =>
+        InputTextarea(autoResize = true)(
+          ^.id          := "qaComment",
+          ^.rows        := 3,
+          ^.placeholder := "Comment",
+          ^.value       := props.qaFields.get.comment.map(_.value).orEmpty,
+          ^.onChange ==> { (e: ReactEventFromTextArea) =>
             props.qaFields.mod:
               EditableQaFields.comment.replace(NonEmptyString.from(e.target.value).toOption)
-        ).withMods(^.autoComplete.off),
+          }
+        ),
         <.div(SequenceStyles.QaEditorPanelButtons)(
           Button(
             icon = SequenceIcons.XMark,
             severity = Button.Severity.Danger,
             onClick = props.cancel
-          ).compact("Cancel"),
+          ).veryCompact("Cancel"),
           Button(
             icon = SequenceIcons.Check,
             severity = Button.Severity.Success,
             disabled = props.submitDisabled
-          ).compact
+          ).veryCompact
             .withMods(^.`type` := "submit")( // This way it works with "Enter" key.
               props.submitLabel
             ),

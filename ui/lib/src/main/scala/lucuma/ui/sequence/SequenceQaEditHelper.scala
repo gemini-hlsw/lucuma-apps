@@ -140,35 +140,45 @@ trait SequenceQaEditHelper:
       fieldsById.get(dataset.id).fold(dataset)(EditableQaFields.fromDataset.replace(_)(dataset))
     )(visits)
 
-  // Returns the QA fields of the datasets the server actually updated.
+  // Returns the QA fields of the datasets the server actually updated, or None when there's no QA
+  // state to set.
   private def updateDatasetsQa(
     mode:       QaBulkMode,
     datasetIds: NonEmptyList[Dataset.Id],
-    qaState:    DatasetQaState,
-    comment:    Option[NonEmptyString]
+    qaFields:   EditableQaFields
   )(using
     FetchClient[IO, ObservationDB],
     Logger[IO]
-  ): IO[List[(Dataset.Id, EditableQaFields)]] =
-    (mode match
+  ): Option[IO[List[(Dataset.Id, EditableQaFields)]]] =
+    val ids: List[Dataset.Id] = datasetIds.toList
+    val update                = mode match
       case QaBulkMode.OnlyUnset =>
-        VisitQueriesGQL
-          .UpdateUnsetDatasetsQa[IO]
-          .execute(datasetIds.toList, qaState, comment.orIgnore)
-          .raiseGraphQLErrors
-          .map(_.updateDatasets.datasets.map(d => d.id -> EditableQaFields(d.qaState, d.comment)))
+        qaFields.qaState.map: qaState =>
+          VisitQueriesGQL
+            .UpdateUnsetDatasetsQa[IO]
+            .execute(ids, qaState, qaFields.comment.orIgnore)
+            .raiseGraphQLErrors
+            .map(_.updateDatasets.datasets.map(d => d.id -> EditableQaFields(d.qaState, d.comment)))
       case QaBulkMode.Overwrite =>
+        qaFields.qaState.map: qaState =>
+          VisitQueriesGQL
+            .UpdateDatasetsQa[IO]
+            .execute(ids, qaState, qaFields.comment.orIgnore)
+            .raiseGraphQLErrors
+            .map(_.updateDatasets.datasets.map(d => d.id -> EditableQaFields(d.qaState, d.comment)))
+      case QaBulkMode.Clear     =>
         VisitQueriesGQL
-          .UpdateDatasetsQa[IO]
-          .execute(datasetIds.toList, qaState, comment.orIgnore)
+          .ClearDatasetsQa[IO]
+          .execute(ids)
           .raiseGraphQLErrors
           .map(_.updateDatasets.datasets.map(d => d.id -> EditableQaFields(d.qaState, d.comment)))
-    ).onError:
-      case e => Logger[IO].error(e)(s"Error updating dataset QA state for $datasetIds")
+          .some
+    update.map(_.onError:
+      case e => Logger[IO].error(e)(s"Error updating dataset QA state for $datasetIds"))
 
   /**
-   * Sets `qaFields` on `datasetIds` in one mutation. Depending on `mode`, datasets that already
-   * have a QA state are either skipped or overwritten.
+   * Applies `mode` to `datasetIds` in one mutation: sets `qaFields`, skipping or overwriting
+   * datasets that already have a QA state, or clears their QA state and comment.
    */
   protected def onDatasetsQaChange(
     visits:             View[Option[ExecutionVisits]],
@@ -181,21 +191,22 @@ trait SequenceQaEditHelper:
     mode =>
       datasetIds =>
         qaFields =>
-          (visits.toOptionView, qaFields.qaState).mapN { (visits, qaState) =>
-            val ids: Set[Dataset.Id] = datasetIds.toList.toSet
+          (visits.toOptionView, updateDatasetsQa(mode, datasetIds, qaFields)).mapN {
+            (visits, update) =>
+              val ids: Set[Dataset.Id] = datasetIds.toList.toSet
 
-            datasetIdsInFlight.mod(_ ++ ids) >>
-              updateDatasetsQa(mode, datasetIds, qaState, qaFields.comment)
-                .flatMap: updated =>
-                  (visits.mod(patchDatasets(updated)) >> datasetIdsInFlight.mod(_ -- ids)).to[IO]
-                .handleErrorWith: e =>
-                  datasetIdsInFlight.async.mod(_ -- ids) >>
-                    ToastCtx[IO].showToast(
-                      s"Error updating the QA state of ${DatasetQaBulkEdit.datasetCount(ids.size)}: ${e.getMessage}",
-                      Message.Severity.Error,
-                      sticky = true
-                    )
-                .runAsync
+              datasetIdsInFlight.mod(_ ++ ids) >>
+                update
+                  .flatMap: updated =>
+                    (visits.mod(patchDatasets(updated)) >> datasetIdsInFlight.mod(_ -- ids)).to[IO]
+                  .handleErrorWith: e =>
+                    datasetIdsInFlight.async.mod(_ -- ids) >>
+                      ToastCtx[IO].showToast(
+                        s"Error updating the QA state of ${DatasetQaBulkEdit.datasetCount(ids.size)}: ${e.getMessage}",
+                        Message.Severity.Error,
+                        sticky = true
+                      )
+                  .runAsync
           }.orEmpty // Nothing to do without visits or without a state to set.
 
   private def updateDatasetQa(datasetId: Dataset.Id, qaFields: EditableQaFields)(using

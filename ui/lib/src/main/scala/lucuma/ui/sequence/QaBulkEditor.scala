@@ -36,16 +36,26 @@ object QaBulkEditor
         def targets(mode: QaBulkMode): List[Dataset] = mode match
           case QaBulkMode.OnlyUnset => unset
           case QaBulkMode.Overwrite => props.datasets
+          case QaBulkMode.Clear     =>
+            props.datasets.filter(d => d.qaState.isDefined || d.comment.isDefined)
 
         def withState(mode: QaBulkMode): Int = targets(mode).count(_.qaState.isDefined)
 
         def withComment(mode: QaBulkMode, fields: EditableQaFields): Int =
-          if fields.comment.isDefined then targets(mode).count(_.comment.isDefined) else 0
+          if mode == QaBulkMode.Clear || fields.comment.isDefined then
+            targets(mode).count(_.comment.isDefined)
+          else 0
 
-        // The datasets whose QA state or comment the update would replace.
+        // The datasets whose QA state or comment the update would replace or remove.
         def overwritten(mode: QaBulkMode, fields: EditableQaFields): Int =
-          targets(mode).count: dataset =>
-            dataset.qaState.isDefined || (fields.comment.isDefined && dataset.comment.isDefined)
+          if mode == QaBulkMode.Clear then targets(mode).size
+          else
+            targets(mode).count: dataset =>
+              dataset.qaState.isDefined || (fields.comment.isDefined && dataset.comment.isDefined)
+
+        def confirmLabel(mode: QaBulkMode, fields: EditableQaFields): String =
+          val verb: String = if mode == QaBulkMode.Clear then "Clear" else "Overwrite"
+          s"$verb ${DatasetQaBulkEdit.datasetCount(overwritten(mode, fields))}"
 
         val reset: Callback = qaFields.set(EditableQaFields.Empty)
 
@@ -62,7 +72,10 @@ object QaBulkEditor
             (if overwritten(mode, fields) > 0 then toOverwrite.set((mode, fields).some)
              else setQa(mode, fields))
 
-        val noState: Boolean = qaFields.get.qaState.isEmpty
+        val noState: Boolean       = qaFields.get.qaState.isEmpty
+        // An empty form clears, as deselecting everything does on a single dataset.
+        val emptyForm: Boolean     = noState && qaFields.get.comment.isEmpty
+        val toClear: List[Dataset] = targets(QaBulkMode.Clear)
 
         <.span(SequenceStyles.QaBulkEditor)(
           Button(
@@ -72,7 +85,7 @@ object QaBulkEditor
             disabled = all.isEmpty,
             tooltip =
               if all.isEmpty then "No completed or stopped steps with datasets"
-              else "Set the QA state of the datasets of these steps",
+              else "Set or clear the QA state of the datasets of these steps",
             tooltipOptions = DefaultTooltipOptions,
             // preventDefault rather than stopPropagation: see the header cell in SequenceColumns.
             onClickE = e => e.preventDefaultCB >> panelRef.toggle(e)
@@ -84,18 +97,32 @@ object QaBulkEditor
               cancel = panelRef.hide >> reset,
               submitDisabled = noState || unset.isEmpty,
               submitLabel = s"Set for unset (${unset.size})",
-              extraActions = Button(
-                icon = SequenceIcons.Check,
-                severity = Button.Severity.Warning,
-                disabled = noState || all.isEmpty,
-                onClick = submit(QaBulkMode.Overwrite)
-              ).compact(s"Set all (${props.datasets.size})")
+              extraActions =
+                if emptyForm then
+                  Button(
+                    icon = SequenceIcons.Trash,
+                    severity = Button.Severity.Danger,
+                    disabled = toClear.isEmpty,
+                    tooltip = "Remove the QA state and comment of every dataset",
+                    tooltipOptions = DefaultTooltipOptions,
+                    onClick = submit(QaBulkMode.Clear)
+                  ).veryCompact(s"Clear all (${toClear.size})")
+                else
+                  Button(
+                    icon = SequenceIcons.Check,
+                    severity = Button.Severity.Warning,
+                    disabled = noState || all.isEmpty,
+                    onClick = submit(QaBulkMode.Overwrite)
+                  ).veryCompact(s"Set all (${props.datasets.size})")
             )
           ).withMods(SequenceStyles.QaEditorOverlay).withRef(panelRef.ref),
           Dialog(
-            header = toOverwrite.get.foldMap[String]: (mode, fields) =>
-              s"Set ${DatasetQaBulkEdit.datasetCount(targets(mode).size)} to " +
-                s"${fields.qaState.foldMap(_.tag)}?",
+            header = toOverwrite.get.foldMap[String]:
+              case (QaBulkMode.Clear, _) =>
+                s"Clear the QA of ${DatasetQaBulkEdit.datasetCount(toClear.size)}?"
+              case (mode, fields)        =>
+                s"Set ${DatasetQaBulkEdit.datasetCount(targets(mode).size)} to " +
+                  s"${fields.qaState.foldMap(_.tag)}?",
             visible = toOverwrite.get.isDefined,
             modal = true,
             onHide = toOverwrite.set(none),
@@ -105,23 +132,22 @@ object QaBulkEditor
                 icon = SequenceIcons.XMark,
                 severity = Button.Severity.Secondary,
                 onClick = toOverwrite.set(none)
-              ).compact,
+              ).small.compact,
               Button(
-                label = toOverwrite.get.foldMap[String]: (mode, fields) =>
-                  s"Overwrite ${DatasetQaBulkEdit.datasetCount(overwritten(mode, fields))}",
+                label = toOverwrite.get.foldMap[String](confirmLabel.tupled),
                 icon = SequenceIcons.Check,
                 severity = Button.Severity.Danger,
                 disabled = props.inFlight,
                 // Cleared first, so a second click before the dialog closes sends nothing.
                 onClick = toOverwrite.set(none) >> toOverwrite.get.foldMap(setQa.tupled)
-              ).compact
+              ).small.compact
             )
           )(
             toOverwrite.get.map { (mode, fields) =>
               val states: Int   = withState(mode)
               val comments: Int = withComment(mode, fields)
               <.div(
-                "This replaces:",
+                if mode == QaBulkMode.Clear then "This removes:" else "This replaces:",
                 <.ul(
                   <.li(s"the QA state of ${DatasetQaBulkEdit.datasetCount(states)}")
                     .when(states > 0),

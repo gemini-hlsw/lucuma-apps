@@ -12,10 +12,11 @@ import scala.collection.immutable.HashSet
 
 /**
  * `OnlyUnset` leaves datasets that already have a QA state alone, which the server enforces too in
- * case the client's data is stale. `Overwrite` replaces whatever QA state they have.
+ * case the client's data is stale. `Overwrite` replaces whatever QA state they have. `Clear`
+ * removes the QA state and comment, like deselecting everything on a single dataset.
  */
 enum QaBulkMode:
-  case OnlyUnset, Overwrite
+  case OnlyUnset, Overwrite, Clear
 
 case class DatasetQaBulkEdit(
   datasetIdsInFlight: HashSet[Dataset.Id],
