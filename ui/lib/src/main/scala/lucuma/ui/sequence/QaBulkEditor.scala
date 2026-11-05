@@ -132,7 +132,7 @@ object QaBulkEditor
                 icon = SequenceIcons.XMark,
                 severity = Button.Severity.Secondary,
                 onClick = toOverwrite.set(none)
-              ).compact,
+              ).small.compact,
               Button(
                 label = toOverwrite.get.foldMap[String](confirmLabel.tupled),
                 icon = SequenceIcons.Check,
@@ -140,7 +140,7 @@ object QaBulkEditor
                 disabled = props.inFlight,
                 // Cleared first, so a second click before the dialog closes sends nothing.
                 onClick = toOverwrite.set(none) >> toOverwrite.get.foldMap(setQa.tupled)
-              ).compact
+              ).small.compact
             )
           )(
             toOverwrite.get.map { (mode, fields) =>
