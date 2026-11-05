@@ -46,6 +46,7 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.calibration.needsOffsets
 import monocle.Lens
 
 /**
@@ -421,7 +422,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
           ),
           <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
             props.telescopeConfigsEditor(prismView.get, cameraView.get, primaryWavelength)
-          )
+          ).when(props.calibrationRole.needsOffsets)
         ),
         GnirsWavelengthsPanel(
           instrument = gnirsInstrument,
