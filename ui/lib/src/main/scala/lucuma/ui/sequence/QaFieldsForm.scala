@@ -37,12 +37,16 @@ object QaFieldsForm
       <.form(SequenceStyles.QaEditorPanel)(
         ^.onSubmit ==> (e => e.preventDefaultCB >> submit),
         // Enter submits from the status strip or the comment input (preventDefault keeps the input
-        // from submitting again). A focused button keeps its own Enter, so Cancel cancels.
+        // from submitting again). A focused button keeps its own Enter, so Cancel cancels, and
+        // Shift+Enter adds a line break to the comment.
         ^.onKeyDown ==> { (e: ReactKeyboardEventFromHtml) =>
+          val ownEnter: Boolean =
+            e.target.isInstanceOf[dom.HTMLButtonElement] ||
+              (e.shiftKey && e.target.isInstanceOf[dom.HTMLTextAreaElement])
           e.keyCode match
-            case KeyCode.Enter if !e.target.isInstanceOf[dom.HTMLButtonElement] =>
+            case KeyCode.Enter if !ownEnter =>
               e.preventDefaultCB >> submit
-            case _                                                              => Callback.empty
+            case _                          => Callback.empty
         },
         ^.onClick ==> (_.stopPropagationCB)
       )(
