@@ -12,7 +12,7 @@ import lucuma.core.enums.DatasetQaState
 import lucuma.core.util.Enumerated
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.InputText
+import lucuma.react.primereact.InputTextarea
 import lucuma.react.primereact.SelectButtonOptional
 import lucuma.react.primereact.SelectItem
 import lucuma.ui.primereact.*
@@ -58,25 +58,27 @@ object QaFieldsForm
               qaState.value.tag
             )
         ).compact,
-        InputText(
-          id = "qaComment",
-          value = props.qaFields.get.comment.map(_.value).orEmpty,
-          placeholder = "Comment",
-          onChange = e =>
+        InputTextarea(autoResize = true)(
+          ^.id          := "qaComment",
+          ^.rows        := 3,
+          ^.placeholder := "Comment",
+          ^.value       := props.qaFields.get.comment.map(_.value).orEmpty,
+          ^.onChange ==> { (e: ReactEventFromTextArea) =>
             props.qaFields.mod:
               EditableQaFields.comment.replace(NonEmptyString.from(e.target.value).toOption)
-        ).withMods(^.autoComplete.off),
+          }
+        ),
         <.div(SequenceStyles.QaEditorPanelButtons)(
           Button(
             icon = SequenceIcons.XMark,
             severity = Button.Severity.Danger,
             onClick = props.cancel
-          ).compact("Cancel"),
+          ).veryCompact("Cancel"),
           Button(
             icon = SequenceIcons.Check,
             severity = Button.Severity.Success,
             disabled = props.submitDisabled
-          ).compact
+          ).veryCompact
             .withMods(^.`type` := "submit")( // This way it works with "Enter" key.
               props.submitLabel
             ),

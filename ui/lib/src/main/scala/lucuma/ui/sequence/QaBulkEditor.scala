@@ -106,14 +106,14 @@ object QaBulkEditor
                     tooltip = "Remove the QA state and comment of every dataset",
                     tooltipOptions = DefaultTooltipOptions,
                     onClick = submit(QaBulkMode.Clear)
-                  ).compact(s"Clear all (${toClear.size})")
+                  ).veryCompact(s"Clear all (${toClear.size})")
                 else
                   Button(
                     icon = SequenceIcons.Check,
                     severity = Button.Severity.Warning,
                     disabled = noState || all.isEmpty,
                     onClick = submit(QaBulkMode.Overwrite)
-                  ).compact(s"Set all (${props.datasets.size})")
+                  ).veryCompact(s"Set all (${props.datasets.size})")
             )
           ).withMods(SequenceStyles.QaEditorOverlay).withRef(panelRef.ref),
           Dialog(
