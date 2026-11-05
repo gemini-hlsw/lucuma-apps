@@ -35,6 +35,7 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.calibration.needsOffsets
 
 case class Flamingos2ImagingConfigPanel(
   programId:                    Program.Id,
@@ -124,7 +125,7 @@ object Flamingos2ImagingConfigPanel
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ImagingVariantEditor(variantView, props.readonly)
-            )
+            ).when(props.calibrationRole.needsOffsets)
           ),
           <.div(ExploreStyles.ImagingLowerGrid)(
             ImagingFiltersPanel(
