@@ -9,8 +9,15 @@
 # `navigate update`, which deploy the tag recorded here. This script does NOT deploy them: it
 # records the GitHub deployment, sends the Slack message and prints the command the operator
 # must run.
+#
+# Explore is hosted on both Firebase and AWS (S3 + CloudFront) while the migration to AWS lasts,
+# so it is promoted on both. The AWS part needs the `aws` CLI and credentials in the environment
+# (AWS_PROFILE or the default profile) with access to the Explore buckets and distributions.
 
 set -e
+
+# The aws cli pipes command output through a pager when run from a terminal; keep it inline.
+export AWS_PAGER=""
 
 SOURCE_ENV=$1
 TARGET_ENV=$2
@@ -93,6 +100,76 @@ map_firebase_deploy_env() {
     "production") echo "prod" ;;
     *) echo "${env}" ;;
   esac
+}
+
+# S3 bucket holding the Explore site of an environment (origin of its CloudFront distribution).
+map_aws_explore_bucket() {
+  local env=$1
+  case $env in
+    "dev") echo "gemini-edu-explore-dev" ;;
+    "staging") echo "gemini-edu-explore-test" ;;
+    "production") echo "gemini-edu-explore-prd" ;;
+    *) echo "" ;;
+  esac
+}
+
+# CloudFront distribution serving the Explore site of an environment.
+map_aws_explore_distribution() {
+  local env=$1
+  case $env in
+    "dev") echo "E3DZG7GNUB60T6" ;;
+    "staging") echo "E2E5A5UYD8VLF7" ;;
+    "production") echo "E1VDJ0RPRW1PVL" ;;
+    *) echo "" ;;
+  esac
+}
+
+# Copy the Explore build recorded for the source environment onto the target bucket, server side,
+# and invalidate the target distribution. The CI deploy archives every build under
+# builds/<git-sha>/ in the dev bucket, so the copy always comes from there, whatever the source
+# environment: the promoted content is exactly the recorded sha even if dev moved on meanwhile.
+# Assets are copied first so the new index.html never references bundles that don't exist yet;
+# the old index.html referencing removed bundles is harmless, caches still hold them. Tags are
+# not copied: we don't use them, and copying them on large objects needs s3:GetObjectTagging,
+# which developers don't have.
+promote_explore_aws() {
+  local sha=${source_sha["Explore"]}
+  local archive="s3://$(map_aws_explore_bucket dev)/builds/$sha"
+  local target_bucket=$(map_aws_explore_bucket "$TARGET_ENV")
+  local target_distribution=$(map_aws_explore_distribution "$TARGET_ENV")
+
+  if [ -z "$target_bucket" ] || [ -z "$target_distribution" ]; then
+    echo "  ! No AWS bucket or distribution configured for Explore in $TARGET_ENV"
+    exit 1
+  fi
+  if ! command -v aws >/dev/null; then
+    echo "  ! aws CLI not found; install it and set AWS_PROFILE to a profile with access to the Explore buckets"
+    exit 1
+  fi
+  if ! aws s3 ls "$archive/index.html" >/dev/null; then
+    echo "  ! Build $sha is not archived at $archive; deploy it to dev again to archive it"
+    exit 1
+  fi
+
+  echo "  Copying $archive to s3://$target_bucket..."
+  if aws s3 sync "$archive/assets" "s3://$target_bucket/assets" --delete \
+       --copy-props metadata-directive &&
+     aws s3 sync "$archive" "s3://$target_bucket" --delete \
+       --exclude "assets/*" --exclude "builds/*" --copy-props metadata-directive; then
+    echo "  ✓ Explore build $sha copied to s3://$target_bucket"
+  else
+    echo "  ! Explore AWS copy FAILED"
+    exit 1
+  fi
+
+  local invalidation
+  if invalidation=$(aws cloudfront create-invalidation --distribution-id "$target_distribution" \
+       --paths "/*" --query "Invalidation.Id" --output text); then
+    echo "  ✓ CloudFront distribution $target_distribution invalidated ($invalidation)"
+  else
+    echo "  ! CloudFront invalidation of $target_distribution FAILED"
+    exit 1
+  fi
 }
 
 # Resolve the GitHub deployment environment for a system. Most systems use the
@@ -776,11 +853,14 @@ if [ "${promote["Explore"]}" = true ]; then
   source_deploy_env=$(map_firebase_deploy_env "$SOURCE_ENV")
   target_deploy_env=$(map_firebase_deploy_env "$TARGET_ENV")
   if firebase hosting:clone explore-gemini-$source_deploy_env:live explore-gemini-$target_deploy_env:live; then
-    echo "  ✓ Explore promoted successfully"
+    echo "  ✓ Explore promoted on Firebase"
   else
-    echo "  ! Explore promotion FAILED"
+    echo "  ! Explore Firebase promotion FAILED"
     exit 1
   fi
+
+  promote_explore_aws
+
   echo "  Recording deployment to GitHub..."
 
   record_github_deployment "Explore"
