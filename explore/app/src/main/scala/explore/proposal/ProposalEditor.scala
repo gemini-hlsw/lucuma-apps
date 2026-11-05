@@ -42,6 +42,7 @@ import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProgramUserRole
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.enums.ProposalSubmissionError
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.Site
@@ -471,6 +472,12 @@ object ProposalEditor
           val errorsTile: Option[Tile[?]] =
             props.errors.map(ProposalErrorsTile(_))
 
+          // TAC feedback can only exist once the proposal has been submitted.
+          val tacFeedbackTile: Option[Tile[?]] =
+            Option.when(props.undoCtx.get.proposalStatus >= ProposalStatus.Submitted)(
+              ProposalTacFeedbackTile(props.undoCtx.get.tacFeedback)
+            )
+
           <.div(ExploreStyles.MultiPanelTile)(
             TileController(
               props.optUserId,
@@ -483,7 +490,8 @@ object ProposalEditor
                 abstractTile.some,
                 attachmentsTile.some,
                 errorsTile,
-                pdfSummaryTile
+                pdfSummaryTile,
+                tacFeedbackTile
               ).flattenOption,
               GridLayoutSection.ProposalLayout,
               storeLayout = true

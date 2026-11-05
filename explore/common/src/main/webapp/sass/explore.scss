@@ -4599,6 +4599,64 @@ div.spectroscopy-table-emptymessage {
     gap: 0.75rem;
   }
 
+  .explore-proposal-tac-feedback-tile {
+    .explore-proposal-tac-feedback-empty {
+      padding: 1rem;
+      color: var(--text-color-secondary);
+    }
+
+    // Narrow tiles stack each partner's values as label/value rows.
+    .explore-proposal-tac-feedback-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 0.25rem 0.5rem;
+      align-items: baseline;
+      padding: 0.5rem 1rem;
+
+      .explore-proposal-tac-feedback-partner {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+
+        &:not(:first-child) {
+          margin-top: 0.75rem;
+        }
+
+        img.partner-split-flag {
+          margin-left: 0;
+        }
+      }
+
+      .explore-proposal-tac-feedback-label {
+        font-weight: bold;
+      }
+
+      .explore-proposal-tac-feedback-comments {
+        grid-column: 1 / -1;
+        max-height: 10em;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        padding: 0.5rem;
+        border: 1px solid var(--site-border-color);
+      }
+
+      // Wide tiles show each partner's values on one line, with the columns
+      // aligned across partners.
+      @container tile (min-width: #{exploreCommon.$tile-medium-cutoff}) {
+        grid-template-columns: repeat(6, max-content) 1fr;
+
+        .explore-proposal-tac-feedback-partner {
+          grid-column: auto;
+        }
+
+        .explore-proposal-tac-feedback-label {
+          margin-left: 2rem;
+        }
+      }
+    }
+  }
+
   .explore-proposal-errors-tile {
     padding: 1rem;
 
