@@ -45,7 +45,8 @@ case class ProgramDetails(
   shouldNotify:         Boolean,
   active:               DateInterval,
   programTimes:         ProgramTimes,
-  dismissedWarnings:    DismissedWarnings
+  dismissedWarnings:    DismissedWarnings,
+  tacFeedback:          List[TacFeedback]
 ) derives Eq:
   val allUsers: List[ProgramUser] = pi.fold(users)(_ :: users)
 
@@ -79,6 +80,8 @@ object ProgramDetails:
   val programTimes: Lens[ProgramDetails, ProgramTimes]                  = Focus[ProgramDetails](_.programTimes)
   val dismissedWarnings: Lens[ProgramDetails, DismissedWarnings]        =
     Focus[ProgramDetails](_.dismissedWarnings)
+  val tacFeedback: Lens[ProgramDetails, List[TacFeedback]]              =
+    Focus[ProgramDetails](_.tacFeedback)
 
   given Decoder[ProgramDetails] = Decoder.instance(c =>
     for {
@@ -104,6 +107,7 @@ object ProgramDetails:
       teb   <- c.downField("timeEstimateBanded").as[List[CalculatedValue[BandedProgramTime]]]
       tc    <- c.downField("timeCharge").as[List[BandedProgramTime]]
       dw    <- c.get[List[ObservationValidationCode]]("dismissedWarnings")
+      tf    <- c.get[List[TacFeedback]]("tacFeedback")
     } yield ProgramDetails(
       n,
       d,
@@ -124,6 +128,7 @@ object ProgramDetails:
       ac,
       ProgramTimes(ter, teb, tc),
       // The GraphQL field is typed as the whole enum; keep only the warnings.
-      dw.flatMap(_.asWarning).toSet
+      dw.flatMap(_.asWarning).toSet,
+      tf
     )
   )

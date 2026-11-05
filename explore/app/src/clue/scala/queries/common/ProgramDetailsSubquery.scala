@@ -40,5 +40,6 @@ object ProgramDetailsSubquery extends GraphQLSubquery.Typed[ObservationDB, Progr
       timeEstimateBanded $CalculatedBandedProgramTimeSubquery
       timeCharge $BandedProgramTimeSubquery
       dismissedWarnings
+      tacFeedback $TacFeedbackSubquery
     }
   """

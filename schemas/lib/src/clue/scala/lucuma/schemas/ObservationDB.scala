@@ -221,6 +221,7 @@ trait ObservationDB {
     type StepStage                           = enums.StepStage
     type StepType                            = enums.StepType
     type TacCategory                         = enums.TacCategory
+    type TacPartnerDecision                  = enums.TacPartnerDecision
     type TimeAccountingCategory              = enums.TimeAccountingCategory
     type TimeChargeCorrectionOp              = TimeChargeCorrection.Op
     type TimingWindowInclusion               = enums.TimingWindowInclusion
