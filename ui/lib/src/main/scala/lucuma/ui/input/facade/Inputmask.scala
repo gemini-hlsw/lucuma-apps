@@ -15,7 +15,7 @@ import scala.scalajs.js.annotation.JSImport
  */
 @js.native
 @JSImport("inputmask", JSImport.Default)
-class Inputmask(@unused options: InputmaskOptions) extends js.Object:
+class Inputmask(@unused options: InputmaskOptionsJs) extends js.Object:
   /** Attaches the mask to the element and returns this instance. */
   def mask(element: html.Input): Inputmask = js.native
 
@@ -40,12 +40,12 @@ object Inputmask extends js.Object:
   /** Removes the mask from the element with the given id. */
   def remove(elementId: String): Unit = js.native
 
-  def isValid(value: String, options: InputmaskOptions): Boolean = js.native
+  def isValid(value: String, options: InputmaskOptionsJs): Boolean = js.native
 
-  def format(value: String, options: InputmaskOptions): String = js.native
+  def format(value: String, options: InputmaskOptionsJs): String = js.native
 
 /**
- * Inputmask options; only the ones we use are declared.
+ * The JS shape of the Inputmask options, see `lucuma.ui.input.InputmaskOptions` for the fields.
  *
  * The `numeric` alias and its options (`digits`, `allowMinus`, `integerDigits`, ...) are left out
  * on purpose: numbers are masked with regexes instead (see `Masks.integerOptions`). The alias
@@ -54,7 +54,7 @@ object Inputmask extends js.Object:
  * the alias options with ours recursively, so `shortcuts = {}` keeps the alias's `k` and `m`
  * entries; only `null` removes them.
  */
-trait InputmaskOptions extends js.Object:
+trait InputmaskOptionsJs extends js.Object:
   var mask: js.UndefOr[String]                     = js.undefined
   var regex: js.UndefOr[String]                    = js.undefined
   var placeholder: js.UndefOr[String]              = js.undefined

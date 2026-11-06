@@ -96,6 +96,11 @@ object FormInputTextView:
         _            <- useEffectOnMount(
                           validate(props.stringValue, props.codec.valid, props.onValidChange)
                         )
+        _            <- useEffectWithDeps(props.codec.mask): _ =>
+                          // A new codec prints the same value differently (e.g. "1.00" vs "1"), and
+                          // the mask attached below re-masks whatever text the input holds, so the
+                          // text is reprinted even though the value is unchanged.
+                          displayValue.setState(props.stringValue) >> errors.setState(none)
         _            <- useInputmask(props.id, props.codec.mask)
       yield
         val errorChain: Option[NonEmptyChain[NonEmptyString]] =

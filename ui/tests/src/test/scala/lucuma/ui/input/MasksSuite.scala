@@ -9,7 +9,7 @@ import munit.FunSuite
 /** Acceptance is checked with Inputmask's own regex engine, whose dialect differs from Scala's. */
 final class MasksSuite extends FunSuite:
   private def matches(pattern: String, s: String): Boolean =
-    Inputmask.isValid(s, Masks.regexOptions(pattern))
+    Inputmask.isValid(s, Masks.regexOptions(pattern).toJs)
 
   test("range emits Inputmask-safe alternations") {
     assertEquals(Masks.range(0, 23, 2), "([0-1][0-9]|[2][0-3])")

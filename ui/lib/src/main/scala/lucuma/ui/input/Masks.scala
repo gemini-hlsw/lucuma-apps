@@ -3,8 +3,6 @@
 
 package lucuma.ui.input
 
-import lucuma.ui.input.facade.InputmaskOptions
-
 /**
  * Regex fragments for Inputmask masks, and the options we attach them with.
  *
@@ -82,15 +80,16 @@ object Masks:
    * in time, incomplete text left in place for the parser to flag on blur.
    */
   def regexOptions(pattern: String): InputmaskOptions =
-    new InputmaskOptions:
-      regex = pattern
-      placeholder = ""
-      jitMasking = true
-      showMaskOnHover = false
-      clearIncomplete = false
+    InputmaskOptions(
+      regex = pattern,
+      placeholder = "",
+      jitMasking = true,
+      showMaskOnHover = false,
+      clearIncomplete = false,
       // Inputmask's Escape would restore the pre-focus text without an input event, leaving React's
       // state on the edited text; the parent component owns the text, so Escape does nothing.
       undoOnEscape = false
+    )
 
   /** Digits used for "unbounded" numeric parts; Inputmask needs a finite quantifier. */
   private val MaxDigits: Int = 20
@@ -140,18 +139,17 @@ object Masks:
 
   /** A regex mask that also asks mobile keyboards for the decimal layout. */
   private def numeric(pattern: String): InputmaskOptions =
-    val options: InputmaskOptions = regexOptions(pattern)
-    options.inputmode = "decimal"
-    options
+    regexOptions(pattern).copy(inputMode = InputMode.Decimal)
 
   /** Free text forced to upper case. */
   val UpperCaseOptions: InputmaskOptions =
-    new InputmaskOptions:
-      mask = "*{*}"
-      casing = "upper"
-      placeholder = ""
-      showMaskOnHover = false
+    InputmaskOptions(
+      mask = "*{*}",
+      casing = Casing.Upper,
+      placeholder = "",
+      showMaskOnHover = false,
       undoOnEscape = false
+    )
 
   private def pow10(n: Int): Int = List.fill(n)(10).product
 
