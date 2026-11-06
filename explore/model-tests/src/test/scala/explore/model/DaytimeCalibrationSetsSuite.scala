@@ -379,13 +379,13 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     val out = gnirs.grating.replace(GnirsGrating.D111.some)(gnirs.default)
     assertEquals(
       out.acquisitionMirror,
-      gnirs.DefaultDisperser.copy(grating = GnirsGrating.D111)
+      gnirs.defaultDisperser(gnirs.default).copy(grating = GnirsGrating.D111)
     )
     val lxd = gnirs.prism.replace(GnirsPrism.Lxd)(gnirsSpectro)
     assertEquals(gnirs.grating.replace(GnirsGrating.D10.some)(lxd).acquisitionMirror,
                  GnirsAcquisitionMirrorMode.Out(GnirsPrism.Lxd,
                                                 GnirsGrating.D10,
-                                                gnirs.DefaultDisperser.wavelength
+                                                gnirs.defaultDisperser(gnirs.default).wavelength
                  )
     )
     assertEquals(gnirs.grating.replace(none)(out).acquisitionMirror, GnirsAcquisitionMirrorMode.In)
@@ -422,8 +422,10 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
   test("The GNIRS prism and wavelength are only set with the mirror out"):
     assertEquals(gnirs.prism.replace(GnirsPrism.Sxd)(gnirs.default), gnirs.default)
     val w = Wavelength.unsafeFromIntPicometers(1_650_000)
-    assertEquals(gnirs.wavelength.replace(w.some)(gnirs.default), gnirs.default)
-    assertEquals(gnirs.wavelength.get(gnirs.wavelength.replace(w.some)(gnirsSpectro)), w.some)
+    assertEquals(gnirs.wavelength.replace(w)(gnirs.default), gnirs.default)
+    assertEquals(gnirs.wavelength.getOption(gnirs.wavelength.replace(w)(gnirsSpectro)), w.some)
+    val hand = gnirs.default.copy(decker = GnirsDecker.PupilViewer)
+    assertEquals(gnirs.prism.replace(GnirsPrism.Sxd)(hand), hand)
 
   test("Every GNIRS arc and smart kind gets a disperser and a slit, keeping one it has"):
     List(
@@ -434,7 +436,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
       .foreach: kind =>
         val d = gnirsConfig(withKind(gnirs.defaultSet, kind))
-        assertEquals(d.map(_.acquisitionMirror), gnirs.DefaultDisperser.some)
+        assertEquals(d.map(_.acquisitionMirror), gnirs.defaultDisperser(gnirs.default).some)
         assertEquals(d.map(_.fpu), GnirsFpu.Spectroscopy.Slit(gnirs.DefaultSlit).some)
         assertEquals(d.map(_.decker), GnirsDecker.ShortCamLongSlit.some)
     val lxd  = gnirs.prism.replace(GnirsPrism.Lxd)(gnirsSpectro)
@@ -446,6 +448,31 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(kept.map(_.acquisitionMirror), lxd.acquisitionMirror.some)
     assertEquals(kept.map(_.fpu), lxd.fpu.some)
     assert(!gnirs.needsDisperser(CalibrationSetType.Flat))
+
+  test("The GNIRS default disperser sits at the filter's wavelength"):
+    def wavelength(f: GnirsFilter): Option[Wavelength] =
+      gnirs.wavelength.getOption(gnirs.grating.replace(GnirsGrating.D32.some)(gnirs.default.copy(filter = f)))
+    assertEquals(wavelength(GnirsFilter.Order4), Wavelength.unsafeFromIntPicometers(1_650_000).some)
+    assertEquals(wavelength(GnirsFilter.Order3), Wavelength.unsafeFromIntPicometers(2_200_000).some)
+    assertEquals(wavelength(GnirsFilter.CrossDispersed),
+                 Wavelength.unsafeFromIntPicometers(1_650_000).some
+    )
+
+  test("A GNIRS arc swaps an imaging FPU for a slit even with the mirror out, but keeps a pinhole"):
+    val out     = gnirs.grating.replace(GnirsGrating.D32.some)(gnirs.default)
+    def arc(d: GnirsDynamicConfig): Option[GnirsDynamicConfig] =
+      gnirsConfig(
+        withKind(gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(d)),
+                 CalibrationSetType.SmartArc
+        )
+      )
+    assertEquals(arc(out).map(_.fpu), GnirsFpu.Spectroscopy.Slit(gnirs.DefaultSlit).some)
+    assertEquals(arc(out).map(_.decker), GnirsDecker.ShortCamLongSlit.some)
+    val pinhole = gnirs.fpu.replace(GnirsFpu.Other(GnirsFpuOther.Pinhole1))(out)
+    assertEquals(arc(pinhole).map(_.fpu), pinhole.fpu.some)
+
+  test("GNIRS offers the IFUs"):
+    assert(gnirs.Fpus.contains(GnirsFpu.Spectroscopy.Ifu(GnirsFpuIfu.LowResolution)))
 
   test("A GNIRS dark gets the default optics and keeps its exposure and read mode"):
     val arc  = withKind(

@@ -6,11 +6,11 @@ package explore.config
 import crystal.react.View
 import eu.timepit.refined.cats.given
 import explore.config.DaytimeCalibrationSetsTable.*
-import explore.model.DaytimeCalibrationSets.DefaultWavelength
 import explore.model.GnirsDaytimeSetup
 import explore.model.GnirsDaytimeSetup.given
 import explore.model.enums.WavelengthUnits
 import explore.model.inputCodecs
+import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
@@ -100,20 +100,19 @@ private[config] object GnirsDaytimeCalibrationColumns:
             val idx: Int = c.row.original._2
             // Editable with the mirror out; otherwise the filter's wavelength, read-only.
             opticsCell(c.row.original):
-              if mirrorOut(idx) then
-                FormInputTextView(
-                  id = cellId(WavelengthColumnId, idx),
-                  value = setup(idx).zoom(d =>
-                    GnirsDaytimeSetup.wavelength.get(d).getOrElse(DefaultWavelength)
-                  )(f => GnirsDaytimeSetup.wavelength.modify(_.map(f))),
-                  codec = inputCodecs.wavelength(units),
-                  groupClass = SequenceStyles.SequenceInput,
-                  disabled = !editable
-                )
-              else
-                inputCodecs
-                  .wavelengthValid(units)
-                  .reverseGet(setup(idx).get.centralWavelength): VdomNode
+              setup(idx)
+                .zoom(GnirsDaytimeSetup.wavelength)
+                .asView
+                .fold[VdomNode](
+                  inputCodecs.wavelengthValid(units).reverseGet(setup(idx).get.centralWavelength)
+                ): wavelength =>
+                  FormInputTextView(
+                    id = cellId(WavelengthColumnId, idx),
+                    value = wavelength,
+                    codec = inputCodecs.wavelength(units),
+                    groupClass = SequenceStyles.SequenceInput,
+                    disabled = !editable
+                  )
         ).withSize(80.toPx),
         ColDef(
           FilterColumnId,

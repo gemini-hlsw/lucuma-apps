@@ -307,18 +307,21 @@ object GnirsDaytimeSetup:
 
   val DefaultSlit: GnirsFpuSlit = GnirsFpuSlit.LongSlit_0_30
 
-  // The setup the GNIRS smart GCAL tables are known to cover.
-  val DefaultDisperser: GnirsAcquisitionMirrorMode.Out =
+  /**
+   * A setup the GNIRS smart GCAL tables cover, at the filter's wavelength: the lookup ignores the
+   * filter, so another wavelength would match lamps for light the filter blocks.
+   */
+  def defaultDisperser(d: GnirsDynamicConfig): GnirsAcquisitionMirrorMode.Out =
     GnirsAcquisitionMirrorMode.Out(
       GnirsPrism.Mirror,
       GnirsGrating.D32,
-      GnirsGratingWavelength(Wavelength.unsafeFromIntPicometers(2_200_000))
+      GnirsGratingWavelength(d.filter.centralWavelength)
     )
 
-  /** The FPUs offered: the long slits and the other apertures, but no IFU. */
   val Fpus: List[GnirsFpu] =
     Enumerated[GnirsFpuOther].all.map(GnirsFpu.Other(_)) ++
-      Enumerated[GnirsFpuSlit].all.map(GnirsFpu.Spectroscopy.Slit(_))
+      Enumerated[GnirsFpuSlit].all.map(GnirsFpu.Spectroscopy.Slit(_)) ++
+      Enumerated[GnirsFpuIfu].all.map(GnirsFpu.Spectroscopy.Ifu(_))
 
   given Enumerated[GnirsFpu] =
     Enumerated
@@ -360,7 +363,7 @@ object GnirsDaytimeSetup:
     Lens[GnirsDynamicConfig, Option[GnirsGrating]](out.getOption(_).map(_.grating)): g =>
       d =>
         val mirror  = g.fold(GnirsAcquisitionMirrorMode.In): grating =>
-          out.getOption(d).getOrElse(DefaultDisperser).copy(grating = grating)
+          out.getOption(d).getOrElse(defaultDisperser(d)).copy(grating = grating)
         val updated = d.copy(acquisitionMirror = mirror)
         if prism.get(updated) === prism.get(d) then updated else withDecker(updated)
 
@@ -368,25 +371,25 @@ object GnirsDaytimeSetup:
   val prism: Lens[GnirsDynamicConfig, GnirsPrism] =
     Lens[GnirsDynamicConfig, GnirsPrism](
       out.getOption(_).fold(GnirsPrism.Mirror)(_.prism)
-    )(p => d => withDecker(out.modify(_.copy(prism = p))(d)))
+    )(p => d => if out.isEmpty(d) then d else withDecker(out.modify(_.copy(prism = p))(d)))
 
-  /** Only set with the mirror out. */
-  val wavelength: Lens[GnirsDynamicConfig, Option[Wavelength]] =
-    Lens[GnirsDynamicConfig, Option[Wavelength]](out.getOption(_).map(_.wavelength.value)): w =>
-      d => w.fold(d)(w => out.modify(_.copy(wavelength = GnirsGratingWavelength(w)))(d))
+  val wavelength: Optional[GnirsDynamicConfig, Wavelength] =
+    Optional[GnirsDynamicConfig, Wavelength](out.getOption(_).map(_.wavelength.value)): w =>
+      out.modify(_.copy(wavelength = GnirsGratingWavelength(w)))
 
   /** The ODB takes no arc and no Smart GCAL row with the mirror in. */
   def needsDisperser(kind: CalibrationSetType): Boolean =
     kind.isSmart || kind === CalibrationSetType.Arc
 
-  /** The default disperser and slit, unless the mirror is already out. */
+  /** Takes the mirror out, and swaps an imaging FPU for the default slit. */
   def withDisperser(d: GnirsDynamicConfig): GnirsDynamicConfig =
-    if out.nonEmpty(d) then d
-    else
-      val slit = d.fpu match
-        case s @ GnirsFpu.Spectroscopy.Slit(_) => s
-        case _                                 => GnirsFpu.Spectroscopy.Slit(DefaultSlit)
-      withDecker(d.copy(acquisitionMirror = DefaultDisperser, fpu = slit))
+    val fpu     = d.fpu match
+      case GnirsFpu.Other(GnirsFpuOther.Acquisition | GnirsFpuOther.PupilViewer) =>
+        GnirsFpu.Spectroscopy.Slit(DefaultSlit)
+      case u                                                                     => u
+    val updated =
+      d.copy(acquisitionMirror = out.getOption(d).getOrElse(defaultDisperser(d)), fpu = fpu)
+    if updated === d then d else withDecker(updated)
 
   /** Like Flamingos 2, a new kind without optics gets the default ones. */
   def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
@@ -511,6 +514,9 @@ object DaytimeCalibrationSets:
 
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
+  val GnirsKinds: List[CalibrationSetType] =
+    Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.Bias)
+
   /** Flamingos 2 and IGRINS-2 take neither a bias nor a daytime observe. */
   val NoBiasKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(k =>
@@ -521,8 +527,7 @@ object DaytimeCalibrationSets:
   def kinds(instrument: Instrument): List[CalibrationSetType] =
     instrument match
       case Instrument.Flamingos2 | Instrument.Igrins2 => NoBiasKinds
-      case Instrument.Gnirs                           =>
-        Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.Bias)
+      case Instrument.Gnirs                           => GnirsKinds
       case _                                          => Enumerated[CalibrationSetType].all
 
   /** The continuum lamps an instrument can't use: the 100W QH lamp is GHOST only. */
