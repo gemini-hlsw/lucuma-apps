@@ -45,7 +45,7 @@ object PresettableTelescopeConfigsEditor
           activePreset = activePreset,
           onSelect = onSelect,
           disabled = props.presetsReadonly,
-          showRevert = props.telescopeConfigs.get =!= props.defaultConfigs,
+          showRevert = activePreset.isEmpty,
           onRevert = props.telescopeConfigs.set(props.defaultConfigs)
         ),
         TelescopeConfigsEditor(
