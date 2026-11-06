@@ -323,7 +323,6 @@ object DaytimeCalibrationSetsTable:
             clazz = SequenceStyles.DeleteButton,
             text = true,
             disabled = !editable,
-            tooltip = "Remove this calibration set",
             onClick = setsView.mod(l => l.take(idx) ++ l.drop(idx + 1))
           ).tiny.compact
         ,
