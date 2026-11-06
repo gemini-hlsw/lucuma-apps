@@ -11,6 +11,7 @@ import crystal.react.hooks.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.ExploreModelValidators
+import explore.model.ExposureTimeRules
 import explore.model.Help
 import explore.model.Observation
 import explore.model.display.given
@@ -251,6 +252,7 @@ abstract class GmosSpectroscopyPanelBuilder[
               dithersControl(props.sequenceChanged),
               ExposureTimeModeEditor(
                 instrument = props.instrument,
+                exposureRules = ExposureTimeRules(props.instrument),
                 wavelength = none,
                 exposureTimeMode = props.exposureTimeModeView,
                 coadds = none,

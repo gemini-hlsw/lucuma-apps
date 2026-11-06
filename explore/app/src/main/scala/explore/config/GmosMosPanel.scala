@@ -8,6 +8,7 @@ import crystal.react.View
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.Attachment
+import explore.model.ExposureTimeRules
 import explore.model.Help
 import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
@@ -62,6 +63,7 @@ private[config] def mosAcquisitionPanel[Filter: Enumerated: Display](
       // signal-to-noise mode, so only the exposure time is offered.
       ExposureTimeModeEditor(
         instrument = props.instrument,
+        exposureRules = ExposureTimeRules(props.instrument),
         wavelength = none,
         exposureTimeMode = exposureTimeMode,
         coadds = none,

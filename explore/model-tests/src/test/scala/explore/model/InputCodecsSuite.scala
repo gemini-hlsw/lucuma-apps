@@ -108,8 +108,11 @@ final class InputCodecsSuite extends DisciplineSuite:
   checkAll("DurationHmOptional", InputCodecTests(inputCodecs.DurationHmOptional))
   checkAll("DurationHms", InputCodecTests(inputCodecs.DurationHms))
   checkAll("Time24h", InputCodecTests(inputCodecs.Time24h))
-  checkAll("ExposureTimeSeconds", InputCodecTests(inputCodecs.ExposureTimeSeconds))
-  checkAll("ExposureTimeMilliseconds", InputCodecTests(inputCodecs.ExposureTimeMilliseconds))
+  checkAll("ExposureTimeSeconds", InputCodecTests(inputCodecs.exposureTimeSeconds(List.empty)))
+  checkAll(
+    "ExposureTimeMilliseconds",
+    InputCodecTests(inputCodecs.exposureTimeMilliseconds(List.empty))
+  )
   checkAll("PositiveInt", InputCodecTests(inputCodecs.PositiveInt))
   checkAll(
     "CalibrationSetCount",

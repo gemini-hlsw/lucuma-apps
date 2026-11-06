@@ -13,6 +13,7 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -242,6 +243,7 @@ object Flamingos2LongslitConfigPanel
                   LucumaPrimeStyles.FormColumnCompact,
                   ExposureTimeModeEditor(
                     instrument = props.observingMode.get.instrument,
+                    exposureRules = ExposureTimeRules(props.observingMode.get.instrument),
                     wavelength = none,
                     exposureTimeMode = acquisitionExposureTimeView,
                     coadds = none,

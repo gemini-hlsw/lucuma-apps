@@ -13,6 +13,7 @@ import explore.common.Aligner
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
@@ -102,6 +103,7 @@ object ResidentVisitorConfigPanel
             exposureTimeMode.asView.map: tcView =>
               TimeAndCountModeEditor(
                 instrument = mode.instrument,
+                exposureRules = ExposureTimeRules(mode.instrument),
                 value = tcView,
                 readonly = !props.permissions.isFullEdit,
                 calibrationRole = none,

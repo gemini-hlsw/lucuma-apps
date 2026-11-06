@@ -21,6 +21,7 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.react.SizePx
 import lucuma.react.common.ReactFnProps
 import lucuma.react.pragmaticdnd.*
@@ -45,6 +46,7 @@ import lucuma.ui.utils.*
  */
 case class GnirsWavelengthsPanel(
   instrument:                   Option[Instrument],
+  exposureRules:                List[ExposureRule],
   wavelengthsView:              View[NonEmptyList[GnirsCentralWavelengthConfig]],
   initialWavelengths:           NonEmptyList[GnirsCentralWavelengthConfig],
   requirementsExposureTimeMode: Option[ExposureTimeMode],
@@ -198,6 +200,7 @@ object GnirsWavelengthsPanel:
                         ),
                         ExposureTimeModeEditor(
                           instrument = props.instrument,
+                          exposureRules = props.exposureRules,
                           wavelength = wavelength.value.some,
                           exposureTimeMode = props.telluricEtm.fold(
                             swView.zoom(GnirsCentralWavelengthConfig.exposureTimeMode)

@@ -15,6 +15,7 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -203,6 +204,7 @@ object GmosImagingConfigPanel {
             <.div(ExploreStyles.ImagingLowerGrid)(
               ImagingFiltersPanel(
                 instrument = props.instrument,
+                exposureRules = ExposureTimeRules(props.instrument),
                 filtersView = filtersView,
                 filterLens = filtersFilterLens,
                 etmLens = filtersEtmLens,

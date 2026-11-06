@@ -15,12 +15,14 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 
 final case class TimeAndCountModeEditor(
   instrument:      Option[Instrument],
+  exposureRules:   List[ExposureRule],
   value:           View[ExposureTimeMode.TimeAndCountMode],
   readonly:        Boolean,
   calibrationRole: Option[CalibrationRole],
@@ -47,6 +49,7 @@ object TimeAndCountModeEditor
 
         TimeAndCountFieldsEditor(
           props.instrument,
+          props.exposureRules,
           info,
           props.readonly,
           props.calibrationRole,

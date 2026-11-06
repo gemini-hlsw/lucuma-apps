@@ -19,6 +19,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
@@ -29,6 +30,7 @@ import lucuma.ui.syntax.all.given
 
 case class TimeAndCountEditor(
   instrument:      Option[Instrument],
+  exposureRules:   List[ExposureRule],
   options:         View[TimeAndCountModeInfo],
   coadds:          Option[View[PosInt]] = none,
   scienceMode:     ScienceMode,
@@ -52,6 +54,7 @@ object TimeAndCountEditor extends ConfigurationFormats:
       React.Fragment(
         TimeAndCountFieldsEditor(
           props.instrument,
+          props.exposureRules,
           props.options,
           props.readonly,
           props.calibrationRole,

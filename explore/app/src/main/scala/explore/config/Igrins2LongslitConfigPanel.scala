@@ -16,6 +16,7 @@ import explore.components.ui.ExploreStyles
 import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.config.offsets.TelescopeConfigsEditor
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.model.syntax.all.*
@@ -142,6 +143,7 @@ object Igrins2LongslitConfigPanel
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
                 instrument = props.observingMode.get.instrument,
+                exposureRules = ExposureTimeRules(props.observingMode.get.instrument),
                 wavelength = none,
                 exposureTimeMode = exposureTimeMode,
                 coadds = none,
