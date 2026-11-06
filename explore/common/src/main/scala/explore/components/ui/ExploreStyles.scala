@@ -437,6 +437,7 @@ object ExploreStyles:
   val PAConfigurationForm: Css             = Css("explore-pa-configuration-form")
   val PAConfigurationAngle: Css            = Css("explore-pa-configuration-angle")
   val PAConfigurationCassRotatorFixed: Css = Css("explore-pa-configuration-cass-rotator-fixed")
+  val PAConfigurationMaskMismatch: Css     = Css("explore-pa-configuration-mask-mismatch")
   val AltairConfigurationForm: Css         = Css("explore-altair-configuration-form")
   val AltairConfigurationMode: Css         = Css("explore-altair-configuration-mode")
   val AngleSpinnerButtons: Css             = Css("angle-spinner-buttons")

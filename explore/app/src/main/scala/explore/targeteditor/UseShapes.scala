@@ -205,9 +205,6 @@ def usePatrolFieldShapes(
       )
   }.map(_.value)
 
-// Below this the PA difference is rounding, not a different setup
-private val MosMaskPaTolerance: Angle = Angle.fromDoubleDegrees(0.1)
-
 // On-sky shapes for a mask, drawn at the observation position and PA
 // The fitted geometry is in the design's own orientation, so it is turned from the
 // design PA to the observation PA, the same way the instrument outline is rotated.
@@ -237,8 +234,7 @@ private def mosMaskShapes(
       // coordinates
       val rotation: Angle = posAngle - design.positionAngle
 
-      val paMismatch: Boolean =
-        rotation.toSignedDoubleDegrees.abs > MosMaskPaTolerance.toDoubleDegrees
+      val paMismatch: Boolean = design.paMismatch(posAngle)
 
       val apertures: List[(MaskDesignSlit, ShapeExpression)] =
         design.slits
