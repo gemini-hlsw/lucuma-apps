@@ -53,7 +53,6 @@ final case class InputmaskOptions(
   onIncomplete:         js.UndefOr[Reusable[Callback]] = js.undefined,
   onCleared:            js.UndefOr[Reusable[Callback]] = js.undefined
 ):
-  /** Only the defined options are set: an explicit `undefined` is an own key, unlike an absent one. */
   def toJs: InputmaskOptionsJs =
     val js: InputmaskOptionsJs = new InputmaskOptionsJs {}
     mask.foreach(js.mask = _)
