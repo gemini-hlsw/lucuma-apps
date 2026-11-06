@@ -14,6 +14,9 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
@@ -129,7 +132,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(first.map(_.kind), CalibrationSetType.Bias.some)
     assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.GmosSouth.some)
-    assertEquals(newRow(Nil, Instrument.Gnirs), none)
+    assertEquals(newRow(Nil, Instrument.Ghost), none)
 
   test("A new Flamingos 2 row starts as a single dark with no window cover"):
     val first = newRow(Nil, Instrument.Flamingos2)
@@ -247,9 +250,15 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  TimeSpan.unsafeFromMicroseconds(45_000_000).some
     )
 
-  test("Flamingos 2 flats use the IR diffuser"):
-    val s = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
-    assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
+  test("Infrared flats use the IR diffuser, GMOS flats the visible one"):
+    List(
+      Flamingos2DaytimeSetup.defaultSet,
+      Igrins2DaytimeSetup.defaultSet,
+      GnirsDaytimeSetup.defaultSet
+    ).foreach: set =>
+      assertEquals(withKind(set, CalibrationSetType.Flat).gcal.map(_.diffuser),
+                   GcalDiffuser.Ir.some
+      )
     assertEquals(withKind(dark, CalibrationSetType.Flat).gcal.map(_.diffuser),
                  GcalDiffuser.Visible.some
     )
@@ -318,10 +327,6 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  TimeSpan.unsafeFromMicroseconds(45_000_000).some
     )
 
-  test("IGRINS-2 flats use the IR diffuser"):
-    val s = withKind(Igrins2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
-    assertEquals(s.gcal.map(_.diffuser), GcalDiffuser.Ir.some)
-
   test("An IGRINS-2 calibration set decodes its setup"):
     val json =
       """{
@@ -339,4 +344,204 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       DaytimeCalibrationSetup
         .Igrins2(Igrins2DynamicConfig(TimeSpan.unsafeFromMicroseconds(5_000_000)))
         .asRight
+    )
+
+  val gnirs = GnirsDaytimeSetup
+
+  val gnirsSpectro: GnirsDynamicConfig =
+    gnirs.fpu.replace(GnirsFpu.Spectroscopy.Slit(GnirsFpuSlit.LongSlit_0_30))(
+      gnirs.grating.replace(GnirsGrating.D32.some)(gnirs.default)
+    )
+
+  def gnirsConfig(s: DaytimeCalibrationSet): Option[GnirsDynamicConfig] =
+    gnirs.setup.getOption(s.setup)
+
+  test("A new GNIRS row starts as a single 20 s dark through the acquisition mirror"):
+    val first = newRow(Nil, Instrument.Gnirs)
+    assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
+    assertEquals(first.map(_.setup.instrument), Instrument.Gnirs.some)
+    assertEquals(gnirsConfig(gnirs.defaultSet).map(_.exposure), gnirs.DefaultExposure.some)
+    assertEquals(gnirs.default.acquisitionMirror, GnirsAcquisitionMirrorMode.In)
+
+  test("GNIRS takes every kind but a bias"):
+    assert(supports(Instrument.Gnirs))
+    assert(!kinds(Instrument.Gnirs).contains(CalibrationSetType.Bias))
+    assert(kinds(Instrument.Gnirs).contains(CalibrationSetType.DaytimeObserve))
+
+  test("A new GNIRS exposure picks its read mode, which stays editable"):
+    val long = gnirs.exposure.replace(TimeSpan.unsafeFromMicroseconds(120_000_000))(gnirs.default)
+    assertEquals(long.readMode, GnirsReadMode.VeryFaint)
+    val hand = long.copy(readMode = GnirsReadMode.Faint)
+    assertEquals(gnirs.exposure.replace(hand.exposure)(hand), hand)
+
+  test("Picking a GNIRS grating takes the mirror out, and clearing it puts it back"):
+    val out = gnirs.grating.replace(GnirsGrating.D111.some)(gnirs.default)
+    assertEquals(
+      out.acquisitionMirror,
+      gnirs.defaultDisperser(gnirs.default).copy(grating = GnirsGrating.D111)
+    )
+    val lxd = gnirs.prism.replace(GnirsPrism.Lxd)(gnirsSpectro)
+    assertEquals(
+      gnirs.grating.replace(GnirsGrating.D10.some)(lxd).acquisitionMirror,
+      GnirsAcquisitionMirrorMode.Out(GnirsPrism.Lxd,
+                                     GnirsGrating.D10,
+                                     gnirs.defaultDisperser(gnirs.default).wavelength
+      )
+    )
+    assertEquals(gnirs.grating.replace(none)(out).acquisitionMirror, GnirsAcquisitionMirrorMode.In)
+
+  test("The GNIRS decker follows the camera, the prism and the FPU"):
+    assertEquals(gnirsSpectro.decker, GnirsDecker.ShortCamLongSlit)
+    assertEquals(gnirs.camera.replace(GnirsCamera.LongBlue)(gnirsSpectro).decker,
+                 GnirsDecker.LongCamLongSlit
+    )
+    assertEquals(gnirs.prism.replace(GnirsPrism.Sxd)(gnirsSpectro).decker,
+                 GnirsDecker.ShortCamCrossDispersed
+    )
+    assertEquals(
+      gnirs.fpu.replace(GnirsFpu.Other(GnirsFpuOther.Acquisition))(gnirsSpectro).decker,
+      GnirsDecker.Acquisition
+    )
+    assertEquals(
+      gnirs.fpu.replace(GnirsFpu.Other(GnirsFpuOther.PupilViewer))(gnirsSpectro).decker,
+      GnirsDecker.PupilViewer
+    )
+
+  test("A hand-picked GNIRS decker is kept until the camera, prism or FPU changes"):
+    val hand = gnirsSpectro.copy(decker = GnirsDecker.PupilViewer)
+    assertEquals(gnirs.exposure.replace(TimeSpan.unsafeFromMicroseconds(5_000_000))(hand).decker,
+                 GnirsDecker.PupilViewer
+    )
+    assertEquals(gnirs.grating.replace(GnirsGrating.D111.some)(hand).decker,
+                 GnirsDecker.PupilViewer
+    )
+    assertEquals(gnirs.camera.replace(GnirsCamera.ShortBlue)(hand).decker,
+                 GnirsDecker.ShortCamLongSlit
+    )
+
+  test("The GNIRS prism and wavelength are only set with the mirror out"):
+    assertEquals(gnirs.prism.replace(GnirsPrism.Sxd)(gnirs.default), gnirs.default)
+    val w    = Wavelength.unsafeFromIntPicometers(1_650_000)
+    assertEquals(gnirs.wavelength.replace(w)(gnirs.default), gnirs.default)
+    assertEquals(gnirs.wavelength.getOption(gnirs.wavelength.replace(w)(gnirsSpectro)), w.some)
+    val hand = gnirs.default.copy(decker = GnirsDecker.PupilViewer)
+    assertEquals(gnirs.prism.replace(GnirsPrism.Sxd)(hand), hand)
+
+  test("Every GNIRS arc and Day Baseline gets a disperser and a slit, keeping one it has"):
+    List(CalibrationSetType.Arc, CalibrationSetType.SmartArc, CalibrationSetType.DayBaseline)
+      .foreach: kind =>
+        val d = gnirsConfig(withKind(gnirs.defaultSet, kind))
+        assertEquals(d.map(_.acquisitionMirror), gnirs.defaultDisperser(gnirs.default).some)
+        assertEquals(d.map(_.fpu), GnirsFpu.Spectroscopy.Slit(gnirs.DefaultSlit).some)
+        assertEquals(d.map(_.decker), GnirsDecker.ShortCamLongSlit.some)
+    val lxd  = gnirs.prism.replace(GnirsPrism.Lxd)(gnirsSpectro)
+    val kept = gnirsConfig(
+      withKind(gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(lxd)),
+               CalibrationSetType.SmartArc
+      )
+    )
+    assertEquals(kept.map(_.acquisitionMirror), lxd.acquisitionMirror.some)
+    assertEquals(kept.map(_.fpu), lxd.fpu.some)
+    assert(!gnirs.needsMirrorOut(CalibrationSetType.Flat))
+
+  test("A GNIRS smart kind keeps the read mode it had"):
+    val hand = gnirs.default.copy(readMode = GnirsReadMode.Faint)
+    val d    = gnirsConfig(
+      withKind(gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(hand)),
+               CalibrationSetType.SmartFlat
+      )
+    )
+    assertEquals(d.map(_.readMode), GnirsReadMode.Faint.some)
+
+  test("A GNIRS filter change moves a long slit wavelength into the filter's range"):
+    val k       = gnirs.filter.replace(GnirsFilter.Order3)(gnirsSpectro)
+    assertEquals(gnirs.wavelength.getOption(k), GnirsFilter.Order3.centralWavelength.some)
+    val inRange = gnirs.wavelength.replace(Wavelength.unsafeFromIntPicometers(2_120_000))(k)
+    assertEquals(gnirs.wavelength.getOption(gnirs.filter.replace(GnirsFilter.H2)(inRange)),
+                 Wavelength.unsafeFromIntPicometers(2_120_000).some
+    )
+    val sxd     = gnirs.prism.replace(GnirsPrism.Sxd)(gnirsSpectro)
+    assertEquals(gnirs.wavelength.getOption(gnirs.filter.replace(GnirsFilter.Order3)(sxd)),
+                 gnirs.wavelength.getOption(sxd)
+    )
+    assertEquals(gnirs.filter.replace(GnirsFilter.Order3)(gnirs.default).filter, GnirsFilter.Order3)
+
+  test("A GNIRS Smart Flat keeps the mirror in, for the imaging flats"):
+    val d = gnirsConfig(withKind(gnirs.defaultSet, CalibrationSetType.SmartFlat))
+    assertEquals(d.map(_.acquisitionMirror), GnirsAcquisitionMirrorMode.In.some)
+    assertEquals(d.map(_.fpu), gnirs.default.fpu.some)
+
+  test("The GNIRS default disperser sits at the filter's wavelength"):
+    def wavelength(f: GnirsFilter): Option[Wavelength] =
+      gnirs.wavelength.getOption(
+        gnirs.grating.replace(GnirsGrating.D32.some)(gnirs.default.copy(filter = f))
+      )
+    assertEquals(wavelength(GnirsFilter.Order4), Wavelength.unsafeFromIntPicometers(1_650_000).some)
+    assertEquals(wavelength(GnirsFilter.Order3), Wavelength.unsafeFromIntPicometers(2_200_000).some)
+    assertEquals(wavelength(GnirsFilter.CrossDispersed),
+                 Wavelength.unsafeFromIntPicometers(1_650_000).some
+    )
+
+  test("A GNIRS arc swaps an imaging FPU for a slit even with the mirror out, but keeps a pinhole"):
+    val out                                                    = gnirs.grating.replace(GnirsGrating.D32.some)(gnirs.default)
+    def arc(d: GnirsDynamicConfig): Option[GnirsDynamicConfig] =
+      gnirsConfig(
+        withKind(gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(d)),
+                 CalibrationSetType.SmartArc
+        )
+      )
+    assertEquals(arc(out).map(_.fpu), GnirsFpu.Spectroscopy.Slit(gnirs.DefaultSlit).some)
+    assertEquals(arc(out).map(_.decker), GnirsDecker.ShortCamLongSlit.some)
+    val pinhole                                                = gnirs.fpu.replace(GnirsFpu.Other(GnirsFpuOther.Pinhole1))(out)
+    assertEquals(arc(pinhole).map(_.fpu), pinhole.fpu.some)
+
+  test("GNIRS offers the IFUs"):
+    assert(gnirs.Fpus.contains(GnirsFpu.Spectroscopy.Ifu(GnirsFpuIfu.LowResolution)))
+
+  test("A GNIRS dark gets the default optics and keeps its exposure and read mode"):
+    val arc  = withKind(
+      gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(gnirsSpectro)),
+      CalibrationSetType.Arc
+    )
+    val dark = gnirsConfig(withKind(arc, CalibrationSetType.Dark))
+    assertEquals(dark, gnirs.default.some)
+    assertEquals(gnirsConfig(arc).map(_.acquisitionMirror), gnirsSpectro.acquisitionMirror.some)
+
+  test("A GNIRS smart kind zeroes the exposure, and leaving it restores the default"):
+    val smart = withKind(gnirs.defaultSet, CalibrationSetType.SmartFlat)
+    assertEquals(gnirsConfig(smart).map(_.exposure), TimeSpan.Zero.some)
+    val back  = gnirsConfig(withKind(smart, CalibrationSetType.Flat))
+    assertEquals(back.map(_.exposure), gnirs.DefaultExposure.some)
+    assertEquals(back.map(_.readMode), GnirsReadMode.Bright.some)
+
+  test("A GNIRS calibration set decodes its setup"):
+    val json =
+      """{
+        "kind": "DARK",
+        "count": 1,
+        "explicitCount": 1,
+        "gcal": null,
+        "gmosNorth": null,
+        "gmosSouth": null,
+        "flamingos2": null,
+        "igrins2": null,
+        "gnirs": {
+          "exposure": { "microseconds": 20000000 },
+          "coadds": 1,
+          "centralWavelength": { "picometers": 2200000 },
+          "filter": "ORDER4",
+          "decker": "ACQUISITION",
+          "fpuSlit": null,
+          "fpuOther": "ACQUISITION",
+          "fpuIfu": null,
+          "acquisitionMirrorOut": null,
+          "camera": "SHORT_BLUE",
+          "focusMotorSteps": null,
+          "readMode": "BRIGHT"
+        }
+      }"""
+    assertEquals(
+      decode[DaytimeCalibrationSet](json).map(_.setup),
+      DaytimeCalibrationSetup.Gnirs(gnirs.default).asRight
     )

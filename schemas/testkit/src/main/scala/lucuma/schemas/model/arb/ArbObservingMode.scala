@@ -37,9 +37,11 @@ import lucuma.core.model.sequence.flamingos2.arb.ArbFlamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.arb.ArbDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
+import lucuma.core.model.sequence.gnirs.arb.ArbGnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.arb.ArbIgrins2DynamicConfig
 import lucuma.core.util.TimeSpan
@@ -64,6 +66,7 @@ trait ArbObservingMode {
   import ArbDynamicConfig.given
   import ArbFlamingos2DynamicConfig.given
   import ArbIgrins2DynamicConfig.given
+  import ArbGnirsDynamicConfig.given
   import ArbStepConfig.given
   import ArbEnumerated.given
 
@@ -1801,7 +1804,8 @@ trait ArbObservingMode {
       arbitrary[DynamicConfig.GmosNorth].map(DaytimeCalibrationSetup.GmosNorth(_)),
       arbitrary[DynamicConfig.GmosSouth].map(DaytimeCalibrationSetup.GmosSouth(_)),
       arbitrary[Flamingos2DynamicConfig].map(DaytimeCalibrationSetup.Flamingos2(_)),
-      arbitrary[Igrins2DynamicConfig].map(DaytimeCalibrationSetup.Igrins2(_))
+      arbitrary[Igrins2DynamicConfig].map(DaytimeCalibrationSetup.Igrins2(_)),
+      arbitrary[GnirsDynamicConfig].map(DaytimeCalibrationSetup.Gnirs(_))
     )
   )
 
@@ -1830,13 +1834,17 @@ trait ArbObservingMode {
     Cogen[
       Either[
         DynamicConfig.GmosNorth,
-        Either[DynamicConfig.GmosSouth, Either[Flamingos2DynamicConfig, Igrins2DynamicConfig]]
+        Either[
+          DynamicConfig.GmosSouth,
+          Either[Flamingos2DynamicConfig, Either[Igrins2DynamicConfig, GnirsDynamicConfig]]
+        ]
       ]
     ].contramap:
       case DaytimeCalibrationSetup.GmosNorth(c)  => c.asLeft
       case DaytimeCalibrationSetup.GmosSouth(c)  => c.asLeft.asRight
       case DaytimeCalibrationSetup.Flamingos2(c) => c.asLeft.asRight.asRight
-      case DaytimeCalibrationSetup.Igrins2(c)    => c.asRight.asRight.asRight
+      case DaytimeCalibrationSetup.Igrins2(c)    => c.asLeft.asRight.asRight.asRight
+      case DaytimeCalibrationSetup.Gnirs(c)      => c.asRight.asRight.asRight.asRight
 
   given Cogen[DaytimeCalibrationSet] =
     Cogen[

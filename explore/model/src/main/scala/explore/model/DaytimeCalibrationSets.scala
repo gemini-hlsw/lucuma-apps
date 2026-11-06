@@ -19,8 +19,14 @@ import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsFocus
+import lucuma.core.model.sequence.gnirs.GnirsFpu
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
@@ -289,6 +295,162 @@ object Igrins2DaytimeSetup:
     )
 
 /**
+ * The GNIRS Instrument Setup the Daytime Calibration Set editor works through. The decker stays
+ * editable but is picked again whenever the camera, prism or FPU changes, and the read mode is
+ * picked again whenever the exposure changes.
+ */
+object GnirsDaytimeSetup:
+  val setup: Optional[DaytimeCalibrationSetup, GnirsDynamicConfig] =
+    DaytimeCalibrationSetup.gnirs.andThen(DaytimeCalibrationSetup.Gnirs.config)
+
+  val DefaultExposure: TimeSpan = TimeSpan.unsafeFromMicroseconds(20_000_000)
+
+  val DefaultSlit: GnirsFpuSlit = GnirsFpuSlit.LongSlit_0_30
+
+  /**
+   * A setup the GNIRS smart GCAL tables cover, at the filter's wavelength: the lookup ignores the
+   * filter, so another wavelength would match lamps for light the filter blocks.
+   */
+  def defaultDisperser(d: GnirsDynamicConfig): GnirsAcquisitionMirrorMode.Out =
+    GnirsAcquisitionMirrorMode.Out(
+      GnirsPrism.Mirror,
+      GnirsGrating.D32,
+      GnirsGratingWavelength(d.filter.centralWavelength)
+    )
+
+  val Fpus: List[GnirsFpu] =
+    Enumerated[GnirsFpuOther].all.map(GnirsFpu.Other(_)) ++
+      Enumerated[GnirsFpuSlit].all.map(GnirsFpu.Spectroscopy.Slit(_)) ++
+      Enumerated[GnirsFpuIfu].all.map(GnirsFpu.Spectroscopy.Ifu(_))
+
+  given Enumerated[GnirsFpu] =
+    Enumerated
+      .fromNEL(NonEmptyList.fromListUnsafe(Fpus))
+      .withTag(_.fold(_.tag, _.tag, _.tag))
+
+  given Display[GnirsFpu] =
+    Display.byShortName(_.fold(s => s"${s.shortName} slit", _.shortName, _.shortName))
+
+  def deckerFor(d: GnirsDynamicConfig): GnirsDecker =
+    val prism = GnirsAcquisitionMirrorMode.out.getOption(d.acquisitionMirror).map(_.prism)
+    d.fpu match
+      case GnirsFpu.Other(GnirsFpuOther.Acquisition) => GnirsDecker.Acquisition
+      case GnirsFpu.Other(GnirsFpuOther.PupilViewer) => GnirsDecker.PupilViewer
+      case GnirsFpu.Spectroscopy.Ifu(ifu)            => GnirsDecker.forIfu(ifu)
+      case _                                         =>
+        GnirsDecker.forCameraAndPrism(d.camera, prism.getOrElse(GnirsPrism.Mirror))
+
+  private def withDecker(d: GnirsDynamicConfig): GnirsDynamicConfig =
+    d.copy(decker = deckerFor(d))
+
+  val exposure: Lens[GnirsDynamicConfig, TimeSpan] =
+    Lens[GnirsDynamicConfig, TimeSpan](_.exposure): t =>
+      d =>
+        if t === d.exposure then d
+        else if t === TimeSpan.Zero then d.copy(exposure = t)
+        else d.copy(exposure = t, readMode = GnirsReadMode.forExposureTime(t))
+
+  val camera: Lens[GnirsDynamicConfig, GnirsCamera] =
+    Lens[GnirsDynamicConfig, GnirsCamera](_.camera)(c => d => withDecker(d.copy(camera = c)))
+
+  val fpu: Lens[GnirsDynamicConfig, GnirsFpu] =
+    Lens[GnirsDynamicConfig, GnirsFpu](_.fpu)(u => d => withDecker(d.copy(fpu = u)))
+
+  private val out: Optional[GnirsDynamicConfig, GnirsAcquisitionMirrorMode.Out] =
+    GnirsDynamicConfig.acquisitionMirror.andThen(GnirsAcquisitionMirrorMode.out)
+
+  /** No grating is the acquisition mirror in; picking one takes it out with the default setup. */
+  val grating: Lens[GnirsDynamicConfig, Option[GnirsGrating]] =
+    Lens[GnirsDynamicConfig, Option[GnirsGrating]](out.getOption(_).map(_.grating)): g =>
+      d =>
+        val mirror  = g.fold(GnirsAcquisitionMirrorMode.In): grating =>
+          out.getOption(d).getOrElse(defaultDisperser(d)).copy(grating = grating)
+        val updated = d.copy(acquisitionMirror = mirror)
+        if prism.get(updated) === prism.get(d) then updated else withDecker(updated)
+
+  /** Only set with the mirror out. */
+  val prism: Lens[GnirsDynamicConfig, GnirsPrism] =
+    Lens[GnirsDynamicConfig, GnirsPrism](
+      out.getOption(_).fold(GnirsPrism.Mirror)(_.prism)
+    )(p => d => if out.isEmpty(d) then d else withDecker(out.modify(_.copy(prism = p))(d)))
+
+  /**
+   * With the mirror out and no cross-dispersion, a wavelength outside the new filter's range moves
+   * to the filter's, since the smart GCAL lookup ignores the filter.
+   */
+  val filter: Lens[GnirsDynamicConfig, GnirsFilter] =
+    Lens[GnirsDynamicConfig, GnirsFilter](_.filter): f =>
+      d =>
+        val updated = d.copy(filter = f)
+        out
+          .getOption(updated)
+          .filter(o =>
+            o.prism === GnirsPrism.Mirror &&
+              !f.spectroscopyRange.exists(_.contains(o.wavelength.value))
+          )
+          .fold(updated)(_ => wavelength.replace(f.centralWavelength)(updated))
+
+  val wavelength: Optional[GnirsDynamicConfig, Wavelength] =
+    Optional[GnirsDynamicConfig, Wavelength](out.getOption(_).map(_.wavelength.value)): w =>
+      out.modify(_.copy(wavelength = GnirsGratingWavelength(w)))
+
+  /**
+   * The ODB takes no arc with the mirror in, and Smart GCAL's imaging rows are night baseline flats
+   * only, so just a Smart Flat may keep the mirror in.
+   */
+  def needsMirrorOut(kind: CalibrationSetType): Boolean =
+    kind === CalibrationSetType.Arc || kind === CalibrationSetType.SmartArc ||
+      kind === CalibrationSetType.DayBaseline
+
+  /** Takes the mirror out, and swaps an imaging FPU for the default slit. */
+  def withDisperser(d: GnirsDynamicConfig): GnirsDynamicConfig =
+    val fpu     = d.fpu match
+      case GnirsFpu.Other(GnirsFpuOther.Acquisition | GnirsFpuOther.PupilViewer) =>
+        GnirsFpu.Spectroscopy.Slit(DefaultSlit)
+      case u                                                                     => u
+    val updated =
+      d.copy(acquisitionMirror = out.getOption(d).getOrElse(defaultDisperser(d)), fpu = fpu)
+    if updated === d then d else withDecker(updated)
+
+  /** Like Flamingos 2, a new kind without optics gets the default ones. */
+  def forKind(kind: CalibrationSetType, previous: CalibrationSetType)(
+    d: GnirsDynamicConfig
+  ): GnirsDynamicConfig =
+    val optics     =
+      if kind === previous || DaytimeCalibrationSets.usesOptics(kind) then d
+      else
+        d.copy(
+          filter = default.filter,
+          decker = default.decker,
+          fpu = default.fpu,
+          acquisitionMirror = default.acquisitionMirror,
+          camera = default.camera
+        )
+    val configured = if needsMirrorOut(kind) then withDisperser(optics) else optics
+    exposure.modify(DaytimeCalibrationSets.exposureFor(kind, _, DefaultExposure))(configured)
+
+  val default: GnirsDynamicConfig =
+    GnirsDynamicConfig(
+      DefaultExposure,
+      PosInt.unsafeFrom(1),
+      GnirsFilter.Order4,
+      GnirsDecker.Acquisition,
+      GnirsFpu.Other(GnirsFpuOther.Acquisition),
+      GnirsAcquisitionMirrorMode.In,
+      GnirsCamera.ShortBlue,
+      GnirsFocus.Best,
+      GnirsReadMode.Bright
+    )
+
+  val defaultSet: DaytimeCalibrationSet =
+    DaytimeCalibrationSet(
+      CalibrationSetType.Dark,
+      DaytimeCalibrationSets.DefaultCount.some,
+      none,
+      DaytimeCalibrationSetup.Gnirs(default)
+    )
+
+/**
  * The editing rules of Daytime Calibration Sets: every edit leaves a row the ODB accepts, since
  * rows are saved as they change.
  */
@@ -309,7 +471,13 @@ object DaytimeCalibrationSets:
   val DefaultShutter: GcalShutter       = GcalShutter.Open
 
   val Instruments: List[Instrument] =
-    List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2, Instrument.Igrins2)
+    List(
+      Instrument.GmosNorth,
+      Instrument.GmosSouth,
+      Instrument.Flamingos2,
+      Instrument.Igrins2,
+      Instrument.Gnirs
+    )
 
   /** The diffuser the ODB defaults to: visible for GMOS, IR for the infrared instruments. */
   def defaultDiffuser(instrument: Instrument): GcalDiffuser =
@@ -367,6 +535,9 @@ object DaytimeCalibrationSets:
 
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
+  val GnirsKinds: List[CalibrationSetType] =
+    Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.Bias)
+
   /** Flamingos 2 and IGRINS-2 take neither a bias nor a daytime observe. */
   val NoBiasKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(k =>
@@ -377,6 +548,7 @@ object DaytimeCalibrationSets:
   def kinds(instrument: Instrument): List[CalibrationSetType] =
     instrument match
       case Instrument.Flamingos2 | Instrument.Igrins2 => NoBiasKinds
+      case Instrument.Gnirs                           => GnirsKinds
       case _                                          => Enumerated[CalibrationSetType].all
 
   /** The continuum lamps an instrument can't use: the 100W QH lamp is GHOST only. */
@@ -389,6 +561,7 @@ object DaytimeCalibrationSets:
     instrument match
       case Instrument.Flamingos2 => Flamingos2DaytimeSetup.defaultSet.some
       case Instrument.Igrins2    => Igrins2DaytimeSetup.defaultSet.some
+      case Instrument.Gnirs      => GnirsDaytimeSetup.defaultSet.some
       case i                     => GmosDaytimeSetup.forInstrument(i).map(_.defaultSet)
 
   /** The GCAL setup a kind needs, keeping the filter and shutter of the current one. */
@@ -470,6 +643,8 @@ object DaytimeCalibrationSets:
         DaytimeCalibrationSetup.Flamingos2(Flamingos2DaytimeSetup.forKind(kind, set.kind)(d))
       case DaytimeCalibrationSetup.Igrins2(d)    =>
         DaytimeCalibrationSetup.Igrins2(Igrins2DaytimeSetup.forKind(kind)(d))
+      case DaytimeCalibrationSetup.Gnirs(d)      =>
+        DaytimeCalibrationSetup.Gnirs(GnirsDaytimeSetup.forKind(kind, set.kind)(d))
     set.copy(
       kind = kind,
       explicitCount = count,
@@ -479,8 +654,8 @@ object DaytimeCalibrationSets:
     )
 
   /**
-   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2 and
-   * IGRINS-2); none for an unsupported instrument.
+   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2, IGRINS-2 and
+   * GNIRS); none for an unsupported instrument.
    */
   def newRow(
     sets:       List[DaytimeCalibrationSet],

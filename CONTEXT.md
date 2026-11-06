@@ -446,7 +446,8 @@ _Avoid_: edited sequence, manual sequence
 **Daytime Calibration**:
 A staff-created calibration observation with no target, guide star, ITC or acquisition,
 whose Observing Mode is a Gemini instrument plus an ordered list of Daytime Calibration
-Sets. Created as GMOS North; the instrument may be switched to GMOS South.
+Sets. Created as GMOS North; the instrument may be switched to any instrument that supports
+Daytime Calibration Sets.
 _Avoid_: day cal (the step-level observe class), daytime obs.
 
 **Daytime Pinhole**:
