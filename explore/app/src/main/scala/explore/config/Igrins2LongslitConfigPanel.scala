@@ -30,7 +30,6 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.model.sequence.igrins2
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.igrins2.SvcMinExposureTime
 import lucuma.core.util.TimeSpan
@@ -164,7 +163,7 @@ object Igrins2LongslitConfigPanel
               SlitTelescopeConfigsEditor(
                 explicitValue = explicitTelescopeConfigsView,
                 defaultValue = props.observingMode.get.defaultTelescopeConfigs,
-                defaultForPreset = igrins2.defaultSlitTelescopeConfigs,
+                presets = props.observingMode.get.telescopeConfigPresets,
                 helpId = "configuration/igrins2/slit-spatial-offsets.md".refined,
                 presetsReadonly = !props.permissions.isFullEdit,
                 editingReadonly = disableEdit

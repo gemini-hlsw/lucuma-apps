@@ -3,6 +3,7 @@
 
 package explore.config
 
+import cats.Eq
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.Input
@@ -27,7 +28,6 @@ import lucuma.core.enums.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
-import lucuma.core.model.sequence.flamingos2
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
@@ -36,6 +36,7 @@ import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.SlitTelescopeConfigPresets
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
@@ -161,8 +162,8 @@ object Flamingos2LongslitConfigPanel
           Flamingos2Fpu.Pinholes.excludedUnless(props.isStaff, fpuView.get.some)
 
         // Tellurics offer their own presets, science observations the nod patterns.
-        def configFields[P <: SlitOffsetPreset: {Enumerated, Display}](
-          defaultForPreset: P => SlitTelescopeConfigs
+        def configFields[P <: SlitOffsetPreset: {Eq, Display}](
+          presets: SlitTelescopeConfigPresets[P]
         ): VdomElement =
           Flamingos2ConfigFields(
             fpuControl = CustomizableEnumSelect(
@@ -186,7 +187,7 @@ object Flamingos2LongslitConfigPanel
             exposureTimeMode = exposureTimeMode,
             explicitTelescopeConfigsView = explicitTelescopeConfigsView,
             defaultTelescopeConfigs = props.observingMode.get.defaultTelescopeConfigs,
-            defaultForPreset = defaultForPreset,
+            presets = presets,
             offsetsHelpId = "configuration/f2/slit-spatial-offsets.md".refined,
             instrument = props.observingMode.get.instrument,
             modeData = modeData,
@@ -205,8 +206,8 @@ object Flamingos2LongslitConfigPanel
 
         val fields: VdomElement =
           if (props.calibrationRole.contains(CalibrationRole.Telluric))
-            configFields(flamingos2.defaultTelluricTelescopeConfigs)
-          else configFields(flamingos2.defaultSlitTelescopeConfigs)
+            configFields(props.observingMode.get.telluricTelescopeConfigPresets)
+          else configFields(props.observingMode.get.telescopeConfigPresets)
 
         React.Fragment(
           fields,
@@ -257,7 +258,7 @@ object Flamingos2LongslitConfigPanel
             ).when(showAcquisitionConfig),
             AdvancedConfigButtons(
               editState = editState,
-              isCustomized = props.observingMode.get.isCustomized,
+              isCustomized = props.observingMode.get.isCustomized(props.calibrationRole),
               revertConfig = props.revertConfig,
               revertCustomizations =
                 props.observingMode.view(_.toInput).mod(_.revertCustomizations),

@@ -25,7 +25,6 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
-import lucuma.core.model.sequence.gmos
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -141,14 +140,14 @@ case class GmosNorthIfuPanel(
       .view(_.toInput.assign)
 
   // The IFU has its own sky bundle 60" away, so it does not nod: the positions are a plain list.
-  // The presets are keyed by plain name and depend on the FPU (one slit vs two slits).
+  // The presets depend on the FPU (one slit vs two slits).
   def offsetsControl(disabled: Boolean): VdomNode =
     PresettableTelescopeConfigsEditor(
       telescopeConfigs = observingMode
         .zoom(Mode.explicitTelescopeConfigs, GmosNorthIfuInput.explicitTelescopeConfigs.modify)
         .view(_.map(_.toList.map(_.toInput)).orUnassign)
         .removeOptionality(Mode.defaultTelescopeConfigs.get(observingMode.get)),
-      presets = gmos.ifu.northTelescopeConfigPresets(Mode.fpu.get(observingMode.get)),
+      presets = observingMode.get.telescopeConfigPresets,
       helpId = "configuration/mos-spatial-offsets.md".refined,
       defaultConfigs = Mode.defaultTelescopeConfigs.get(observingMode.get),
       presetsReadonly = disabled,

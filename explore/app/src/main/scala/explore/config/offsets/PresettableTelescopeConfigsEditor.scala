@@ -4,7 +4,6 @@
 package explore.config.offsets
 
 import cats.data.NonEmptyList
-import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
@@ -12,10 +11,11 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
+import lucuma.schemas.model.TelescopeConfigPresets
 
 final case class PresettableTelescopeConfigsEditor(
   telescopeConfigs: View[NonEmptyList[TelescopeConfig]],
-  presets:          NonEmptyList[(String, NonEmptyList[TelescopeConfig])],
+  presets:          TelescopeConfigPresets,
   defaultConfigs:   NonEmptyList[TelescopeConfig],
   helpId:           NonEmptyString,
   presetsReadonly:  Boolean, // selecting a preset
@@ -24,23 +24,21 @@ final case class PresettableTelescopeConfigsEditor(
 
 object PresettableTelescopeConfigsEditor
     extends ReactFnComponent[PresettableTelescopeConfigsEditor](props =>
-      // Presets arrive as (name, pattern) pairs from core, keyed by plain String,
-      // since these modes have no slit to derive an offset direction from.
+      // Presets are keyed by plain String, since these modes have no slit to derive an offset
+      // direction from.
 
       // Exact-match: the active preset is the one whose pattern equals the
       // current configs; None means a custom, hand-edited pattern.
-      val activePreset: Option[String] =
-        props.presets.find(_._2 === props.telescopeConfigs.get).map(_._1)
+      val activePreset: Option[String] = props.presets.keyOf(props.telescopeConfigs.get)
 
       val onSelect: Option[String] => Callback =
-        _.flatMap(name => props.presets.find(_._1 === name).map(_._2))
-          .fold(Callback.empty)(props.telescopeConfigs.set)
+        _.flatMap(props.presets.value).fold(Callback.empty)(props.telescopeConfigs.set)
 
       React.Fragment(
         OffsetPresetsHeader(
           id = "offset-mode".refined,
           helpId = props.helpId,
-          presets = props.presets.map(_._1).toList,
+          presets = props.presets.keys.toList,
           label = identity,
           activePreset = activePreset,
           onSelect = onSelect,

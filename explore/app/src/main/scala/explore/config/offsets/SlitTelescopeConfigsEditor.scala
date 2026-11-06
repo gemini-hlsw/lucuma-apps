@@ -3,6 +3,7 @@
 
 package explore.config.offsets
 
+import cats.Eq
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
@@ -14,19 +15,19 @@ import lucuma.core.enums.SlitOffsetPreset
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.util.Display
-import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
+import lucuma.schemas.model.SlitTelescopeConfigPresets
 import lucuma.ui.syntax.all.given
 
 final case class SlitTelescopeConfigsEditor[P <: SlitOffsetPreset](
-  explicitValue:    View[Option[SlitTelescopeConfigs]],
-  defaultValue:     SlitTelescopeConfigs,
-  defaultForPreset: P => SlitTelescopeConfigs,
-  helpId:           NonEmptyString,
-  presetsReadonly:  Boolean, // selecting a preset
-  editingReadonly:  Boolean  // editing the individual offsets.
-)(using val enumerated: Enumerated[P], val display: Display[P])
+  explicitValue:   View[Option[SlitTelescopeConfigs]],
+  defaultValue:    SlitTelescopeConfigs,
+  presets:         SlitTelescopeConfigPresets[P],
+  helpId:          NonEmptyString,
+  presetsReadonly: Boolean, // selecting a preset
+  editingReadonly: Boolean  // editing the individual offsets.
+)(using val eq: Eq[P], val display: Display[P])
     extends ReactFnProps(SlitTelescopeConfigsEditor.component)
 
 object SlitTelescopeConfigsEditor:
@@ -43,8 +44,7 @@ object SlitTelescopeConfigsEditor:
       // effective configs.
       // None means a custom, hand-edited pattern.
       // The preset is not stored on the odb
-      val activePreset: Option[P] =
-        Enumerated[P].all.find(p => props.defaultForPreset(p) === value.get)
+      val activePreset: Option[P] = props.presets.keyOf(value.get)
 
       val alongSlitView: Option[View[NonEmptyList[TelescopeConfig]]] =
         value
@@ -64,13 +64,13 @@ object SlitTelescopeConfigsEditor:
         OffsetPresetsHeader(
           id = "offset-mode".refined,
           helpId = props.helpId,
-          presets = Enumerated[P].all,
+          presets = props.presets.keys.toList,
           label = props.display.shortName,
           activePreset = activePreset,
-          onSelect =
-            (p: Option[P]) => p.foldMap(preset => value.set(props.defaultForPreset(preset))),
+          onSelect = (p: Option[P]) => p.flatMap(props.presets.value).foldMap(value.set),
           disabled = props.presetsReadonly,
-          showRevert = value.get =!= props.defaultValue,
+          // A preset is a supported choice: only a hand-edited pattern is flagged as customized.
+          showRevert = activePreset.isEmpty,
           onRevert = props.explicitValue.set(none)
         ),
         alongSlitView.map: alongSlitTelescopeConfigs =>
