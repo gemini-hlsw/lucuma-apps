@@ -61,13 +61,13 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
    */
   protected val CurrentGroupRowId: RowId = RowId("current")
 
-  /** The rows expanded from the start: the live group and its two sections. */
+  /** The Acquisition and Science header rows of the remaining sequence. */
+  protected val RemainingHeadersRowIds: Set[RowId] =
+    Set(RowId(SequenceType.Acquisition.toString), RowId(SequenceType.Science.toString))
+
+  /** The rows expanded from the start: the current sequence and its two sections. */
   protected val CurrentExpandedRowIds: List[RowId] =
-    List(
-      CurrentGroupRowId,
-      RowId(SequenceType.Acquisition.toString),
-      RowId(SequenceType.Science.toString)
-    )
+    CurrentGroupRowId :: RemainingHeadersRowIds.toList
 
   protected val CurrentExpandedState: Expanded =
     Expanded.fromExpandedRows(CurrentExpandedRowIds*)

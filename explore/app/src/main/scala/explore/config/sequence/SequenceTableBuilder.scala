@@ -273,6 +273,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                   case _ =>
                     SequenceRowHeight.Regular,
               overscan = 8,
+              // The current sequence headers stick to the top, keeping the edit buttons reachable.
+              stickyRowIds = RemainingHeadersRowIds,
               containerRef = tableDnd.containerRef,
               compact = Compact.Very,
               hoverableRows = true,

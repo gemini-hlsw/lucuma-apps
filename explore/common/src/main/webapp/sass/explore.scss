@@ -1574,12 +1574,44 @@ $search-preview-margin: 5px;
 
   .p-datatable-tbody > tr.explore-sequence-row-first-in-atom,
   tr.explore-sequence-row-header {
-    box-shadow: inset 0 2px;
-
     &:hover {
       box-shadow:
         inset 0 2px var(--green-500),
         inset 0 -1px var(--green-500) !important;
+    }
+  }
+
+  // An atom starts with a top line, unless a header right before it already draws that line.
+  .p-datatable-tbody
+    > tr.explore-sequence-row-first-in-atom:not(tr.explore-sequence-row-header + *) {
+    box-shadow: inset 0 2px;
+  }
+
+  // A header draws its own bottom line, so it keeps it when stuck.
+  tr.explore-sequence-row-header {
+    box-shadow:
+      inset 0 2px,
+      inset 0 -2px;
+  }
+
+  // With a line on each side, the buttons center without the offset the shared style adds for a
+  // top line alone.
+  tr.explore-sequence-row-header .lucuma-sequence-current-header button {
+    margin-top: 0;
+  }
+
+  // The live section header sticks below the column headers, so its edit buttons stay reachable.
+  // The column headers get a higher z-index so the stuck row never paints over them.
+  &.lucuma-sequence-table {
+    .p-datatable-thead {
+      z-index: 3;
+    }
+
+    .p-datatable-tbody > tr.sticky-row {
+      position: sticky;
+      top: 27px; // The column header row's height.
+      z-index: 2;
+      background: var(--surface-card);
     }
   }
 }
