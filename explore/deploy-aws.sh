@@ -2,7 +2,7 @@
 # Upload the Explore build in heroku/static to an S3 bucket and invalidate its CloudFront distribution.
 #
 # The build is uploaded under builds/<git-sha>/, an immutable copy that promotions and rollbacks
-# copy from, and then copied server side onto the bucket root, which the distribution serves.
+# copy from, and then copied server side onto latest/, the origin path the distribution serves.
 #
 # Usage: ./deploy-aws.sh <bucket> <cloudfront-distribution-id>
 #
@@ -26,6 +26,7 @@ if [[ ! -f "${static}/index.html" ]]; then
 fi
 
 archive="s3://${bucket}/builds/${sha}"
+latest="s3://${bucket}/latest"
 
 # Upload the build once, to its immutable archive, with the cache headers each kind of file needs.
 echo "Archiving build ${sha} to ${archive}"
@@ -42,13 +43,12 @@ aws s3 sync "${static}" "${archive}" --delete --exclude "assets/*" \
 aws s3 cp "${static}/manifest.webmanifest" "${archive}/manifest.webmanifest" \
   --cache-control "no-cache" --content-type "application/manifest+json"
 
-# Then replace the bucket root with it: clear the root, keeping the history, and copy the archive
-# over, server side. Tags are not copied: we don't use them, and copying them on large objects
-# needs s3:GetObjectTagging, which developers don't have. The site is down for the few seconds of
-# the copy, which is fine for dev and keeps this simple; promotions overwrite in place instead.
-echo "Deploying build ${sha} to s3://${bucket}"
-aws s3 rm "s3://${bucket}/" --recursive --exclude "builds/*"
-aws s3 sync "${archive}" "s3://${bucket}" --copy-props metadata-directive
+# Then copy the archive onto latest/, server side, the same way promotions do. Assets go first so
+# the new index.html never references bundles that don't exist yet. Tags are not copied: we don't
+# use them, and copying them on large objects needs s3:GetObjectTagging, which developers don't have.
+echo "Deploying build ${sha} to ${latest}"
+aws s3 sync "${archive}/assets" "${latest}/assets" --delete --copy-props metadata-directive
+aws s3 sync "${archive}" "${latest}" --delete --exclude "assets/*" --copy-props metadata-directive
 
 aws cloudfront create-invalidation --distribution-id "${distribution}" --paths "/*" \
   --query "Invalidation.Id" --output text
