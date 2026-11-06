@@ -6,6 +6,7 @@ package explore.config
 import crystal.react.View
 import eu.timepit.refined.cats.given
 import explore.config.DaytimeCalibrationSetsTable.*
+import explore.model.DaytimeCalibrationSets
 import explore.model.GnirsDaytimeSetup
 import explore.model.GnirsDaytimeSetup.given
 import explore.model.enums.WavelengthUnits
@@ -48,14 +49,17 @@ private[config] object GnirsDaytimeCalibrationColumns:
         ColDef(
           CoaddsColumnId,
           header = "Coadds",
+          // Smart GCAL supplies a smart row's coadds, like its exposure.
           cell = c =>
-            FormInputTextView(
-              id = cellId(CoaddsColumnId, c.row.original._2),
-              value = setup(c.row.original._2).zoom(GnirsDynamicConfig.coadds),
-              codec = inputCodecs.PositiveInt,
-              groupClass = SequenceStyles.SequenceInput,
-              disabled = !editable
-            )
+            if DaytimeCalibrationSets.usesExposure(c.row.original._1.kind) then
+              FormInputTextView(
+                id = cellId(CoaddsColumnId, c.row.original._2),
+                value = setup(c.row.original._2).zoom(GnirsDynamicConfig.coadds),
+                codec = inputCodecs.PositiveInt,
+                groupClass = SequenceStyles.SequenceInput,
+                disabled = !editable
+              )
+            else EmptyVdom
         ).withSize(60.toPx),
         ColDef(
           CameraColumnId,
@@ -80,7 +84,7 @@ private[config] object GnirsDaytimeCalibrationColumns:
                 setup(c.row.original._2).zoom(GnirsDaytimeSetup.grating),
                 "Mirror",
                 editable,
-                showClear = !GnirsDaytimeSetup.needsDisperser(c.row.original._1.kind)
+                showClear = !GnirsDaytimeSetup.needsMirrorOut(c.row.original._1.kind)
               )
         ).withSize(100.toPx),
         ColDef(
@@ -122,7 +126,7 @@ private[config] object GnirsDaytimeCalibrationColumns:
               dropdown(
                 FilterColumnId,
                 c.row.original._2,
-                setup(c.row.original._2).zoom(GnirsDynamicConfig.filter),
+                setup(c.row.original._2).zoom(GnirsDaytimeSetup.filter),
                 editable
               )
         ).withSize(110.toPx),

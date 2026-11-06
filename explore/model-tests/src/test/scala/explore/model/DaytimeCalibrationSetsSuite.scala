@@ -443,7 +443,29 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(kept.map(_.acquisitionMirror), lxd.acquisitionMirror.some)
     assertEquals(kept.map(_.fpu), lxd.fpu.some)
-    assert(!gnirs.needsDisperser(CalibrationSetType.Flat))
+    assert(!gnirs.needsMirrorOut(CalibrationSetType.Flat))
+
+  test("A GNIRS smart kind keeps the read mode it had"):
+    val hand = gnirs.default.copy(readMode = GnirsReadMode.Faint)
+    val d    = gnirsConfig(
+      withKind(gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(hand)),
+               CalibrationSetType.SmartFlat
+      )
+    )
+    assertEquals(d.map(_.readMode), GnirsReadMode.Faint.some)
+
+  test("A GNIRS filter change moves a long slit wavelength into the filter's range"):
+    val k = gnirs.filter.replace(GnirsFilter.Order3)(gnirsSpectro)
+    assertEquals(gnirs.wavelength.getOption(k), GnirsFilter.Order3.centralWavelength.some)
+    val inRange = gnirs.wavelength.replace(Wavelength.unsafeFromIntPicometers(2_120_000))(k)
+    assertEquals(gnirs.wavelength.getOption(gnirs.filter.replace(GnirsFilter.H2)(inRange)),
+                 Wavelength.unsafeFromIntPicometers(2_120_000).some
+    )
+    val sxd = gnirs.prism.replace(GnirsPrism.Sxd)(gnirsSpectro)
+    assertEquals(gnirs.wavelength.getOption(gnirs.filter.replace(GnirsFilter.Order3)(sxd)),
+                 gnirs.wavelength.getOption(sxd)
+    )
+    assertEquals(gnirs.filter.replace(GnirsFilter.Order3)(gnirs.default).filter, GnirsFilter.Order3)
 
   test("A GNIRS Smart Flat keeps the mirror in, for the imaging flats"):
     val d = gnirsConfig(withKind(gnirs.defaultSet, CalibrationSetType.SmartFlat))

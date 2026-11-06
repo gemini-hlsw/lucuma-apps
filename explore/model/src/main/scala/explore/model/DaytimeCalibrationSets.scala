@@ -347,6 +347,7 @@ object GnirsDaytimeSetup:
     Lens[GnirsDynamicConfig, TimeSpan](_.exposure): t =>
       d =>
         if t === d.exposure then d
+        else if t === TimeSpan.Zero then d.copy(exposure = t)
         else d.copy(exposure = t, readMode = GnirsReadMode.forExposureTime(t))
 
   val camera: Lens[GnirsDynamicConfig, GnirsCamera] =
@@ -373,6 +374,22 @@ object GnirsDaytimeSetup:
       out.getOption(_).fold(GnirsPrism.Mirror)(_.prism)
     )(p => d => if out.isEmpty(d) then d else withDecker(out.modify(_.copy(prism = p))(d)))
 
+  /**
+   * With the mirror out and no cross-dispersion, a wavelength outside the new filter's range moves
+   * to the filter's, since the smart GCAL lookup ignores the filter.
+   */
+  val filter: Lens[GnirsDynamicConfig, GnirsFilter] =
+    Lens[GnirsDynamicConfig, GnirsFilter](_.filter): f =>
+      d =>
+        val updated = d.copy(filter = f)
+        out
+          .getOption(updated)
+          .filter(o =>
+            o.prism === GnirsPrism.Mirror &&
+              !f.spectroscopyRange.exists(_.contains(o.wavelength.value))
+          )
+          .fold(updated)(_ => wavelength.replace(f.centralWavelength)(updated))
+
   val wavelength: Optional[GnirsDynamicConfig, Wavelength] =
     Optional[GnirsDynamicConfig, Wavelength](out.getOption(_).map(_.wavelength.value)): w =>
       out.modify(_.copy(wavelength = GnirsGratingWavelength(w)))
@@ -381,7 +398,7 @@ object GnirsDaytimeSetup:
    * The ODB takes no arc with the mirror in, and Smart GCAL's imaging rows are night baseline flats
    * only, so just a Smart Flat may keep the mirror in.
    */
-  def needsDisperser(kind: CalibrationSetType): Boolean =
+  def needsMirrorOut(kind: CalibrationSetType): Boolean =
     kind === CalibrationSetType.Arc || kind === CalibrationSetType.SmartArc ||
       kind === CalibrationSetType.DayBaseline
 
@@ -409,7 +426,7 @@ object GnirsDaytimeSetup:
           acquisitionMirror = default.acquisitionMirror,
           camera = default.camera
         )
-    val configured = if needsDisperser(kind) then withDisperser(optics) else optics
+    val configured = if needsMirrorOut(kind) then withDisperser(optics) else optics
     exposure.modify(DaytimeCalibrationSets.exposureFor(kind, _, DefaultExposure))(configured)
 
   val default: GnirsDynamicConfig =
