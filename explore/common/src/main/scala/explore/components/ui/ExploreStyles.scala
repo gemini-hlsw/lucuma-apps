@@ -644,6 +644,7 @@ object ExploreStyles:
   val BlindOffsetSelectedTarget     = Css("blind-offset-selected-target")
   val BlindOffsetLine               = Css("blind-offset-line")
   val MosMaskOutline                = Css("mos-mask-outline")
+  val MosMaskPaMismatch             = Css("mos-mask-pa-mismatch")
   val MosMaskSlit                   = Css("mos-mask-slit")
   val MosMaskAcquisitionBox         = Css("mos-mask-acq-box")
   val AladinToolbox                 = Css("explore-aladin-toolbox-button")
