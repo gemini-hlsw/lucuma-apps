@@ -45,6 +45,15 @@ object ProposalType:
       case g: GeminiProposalType => GeminiProposalType.partnerSplits.getOption(g).orEmpty
     }
 
+  // Modifies the partner splits of any proposal type that has them.
+  def modifyPartnerSplits(
+    f: List[PartnerSplit] => List[PartnerSplit]
+  ): ProposalType => ProposalType = {
+    case k: KeckProposalType   => KeckProposalType.partnerSplits.modify(f)(k)
+    case s: SubaruProposalType => SubaruProposalType.partnerSplits.modify(f)(s)
+    case g: GeminiProposalType => GeminiProposalType.partnerSplits.modify(f)(g)
+  }
+
   // Exchange proposal requesting time at Keck.
   case class KeckProposalType(minPercentTime: IntPercent, partnerSplits: List[PartnerSplit])
       extends ProposalType derives Eq

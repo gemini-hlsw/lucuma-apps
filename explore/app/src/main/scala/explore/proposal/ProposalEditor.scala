@@ -24,9 +24,11 @@ import explore.model.AttachmentList
 import explore.model.CallForProposal
 import explore.model.Constants
 import explore.model.ExploreGridLayouts
+import explore.model.PartnerSplit
 import explore.model.ProgramDetails
 import explore.model.ProgramUser
 import explore.model.Proposal
+import explore.model.ProposalError
 import explore.model.ProposalSummaryGeneration
 import explore.model.ProposalTabTileIds
 import explore.model.ProposalType
@@ -34,6 +36,7 @@ import explore.model.ProposalType.GeminiProposalType
 import explore.model.ProposalType.GeminiProposalType.FastTurnaround
 import explore.model.enums.GridLayoutSection
 import explore.model.layout.LayoutsMap
+import explore.model.reusability.given
 import explore.users.AddProgramUserButton
 import explore.users.ProgramUsersTable
 import japgolly.scalajs.react.*
@@ -43,7 +46,6 @@ import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProgramUserRole
 import lucuma.core.enums.ProposalStatus
-import lucuma.core.enums.ProposalSubmissionError
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.Site
 import lucuma.core.enums.TooActivation
@@ -75,7 +77,7 @@ case class ProposalEditor(
   users:              View[List[ProgramUser]],
   attachments:        View[AttachmentList],
   summaryGeneration:  View[ProposalSummaryGeneration],
-  errors:             Option[List[ProposalSubmissionError]],
+  errors:             Option[List[ProposalError]],
   authToken:          Option[NonEmptyString],
   cfps:               List[CallForProposal],
   layout:             LayoutsMap,
@@ -191,6 +193,11 @@ object ProposalEditor
                                        remoteTimeRequestUpdate(gemini.scienceSubtype, desired)(using
                                          ctx
                                        ).runAsyncAndForget
+        // Keep the partner leads in line with the team, as the ODB does by itself whenever an
+        // investigator is added, removed, re-affiliated or made PI.  Only the local copy changes:
+        // this is a consequence of another edit, so it neither goes to the ODB nor joins undo/redo.
+        _               <- useEffectWithDeps(props.users.get): users =>
+                             props.proposal.model.mod(_.withPartnerLeads(users))
         resize          <- useResizeDetector
       yield
         import ctx.given
@@ -361,6 +368,13 @@ object ProposalEditor
               )
             )
 
+          // The partner leads, for a proposal whose time is split among partners.
+          val partnerLeads: Option[Set[ProgramUser.Id]] =
+            props.proposal.get.proposalType
+              .map(ProposalType.anyPartnerSplits.get)
+              .filter(_.nonEmpty)
+              .map(PartnerSplit.leads(_).values.toSet)
+
           val usersTile =
             SimpleTile(
               ProposalTabTileIds.UsersId.id,
@@ -384,7 +398,8 @@ object ProposalEditor
                     props.proposalIsReadonly,
                     props.userIsReadonlyCoi,
                     classicalView.get.isDefined
-                  )
+                  ),
+                  partnerLeads
                 )
               )
             )

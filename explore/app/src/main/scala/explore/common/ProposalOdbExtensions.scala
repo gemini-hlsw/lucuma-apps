@@ -175,7 +175,11 @@ trait ProposalOdbExtensions:
 
   extension (split: PartnerSplit)
     def toInput: PartnerSplitInput =
-      PartnerSplitInput(partner = split.partner, percent = split.percent)
+      PartnerSplitInput(
+        partner = split.partner,
+        percent = split.percent,
+        leadId = split.lead.orUnassign
+      )
 
   extension (proposal: Proposal)
     def toInput: ProposalPropertiesInput =
