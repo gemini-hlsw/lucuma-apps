@@ -103,6 +103,14 @@ final case class ObsConfiguration(
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)
 
+  def mosMaskDesign: Option[MaskDesign] =
+    maskDesign.filter: _ =>
+      obsModeType.exists:
+        case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos |
+            ObservingModeType.Flamingos2Mos =>
+          true
+        case _ => false
+
   // When cass rotator is fixed he PA editor is disabled
   def cassRotatorFixed: Boolean =
     cassRotator === CassRotator.Fixed
