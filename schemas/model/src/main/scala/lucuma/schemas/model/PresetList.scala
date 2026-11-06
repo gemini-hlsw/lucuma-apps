@@ -35,6 +35,14 @@ object PresetList:
     def contains(value: V)(using Eq[V]): Boolean = presets.exists(_._2 === value)
 
     /**
+     * What a revert leaves in place: the explicit value when `isCustomized` would not flag it, so a
+     * chosen preset survives and a hand-edited value is dropped. The two must agree, which is why
+     * this is defined through `isCustomized` rather than `contains`.
+     */
+    def retain(explicitValue: Option[V], defaultValue: V)(using Eq[V]): Option[V] =
+      if isCustomized(explicitValue, defaultValue) then None else explicitValue
+
+    /**
      * An explicit value customizes the setting only when it is neither the default nor a preset.
      * The default is normally the head of the list, so the first check is a guard for the case
      * where the server's default has drifted from the presets.

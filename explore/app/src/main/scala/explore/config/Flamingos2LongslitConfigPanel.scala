@@ -260,8 +260,9 @@ object Flamingos2LongslitConfigPanel
               editState = editState,
               isCustomized = props.observingMode.get.isCustomized(props.calibrationRole),
               revertConfig = props.revertConfig,
-              revertCustomizations =
-                props.observingMode.view(_.toInput).mod(_.revertCustomizations),
+              revertCustomizations = props.observingMode
+                .view(_.toInput)
+                .mod(_.revertCustomizations(props.calibrationRole)),
               sequenceChanged = props.sequenceChanged,
               !props.permissions.isFullEdit,
               showAdvancedButton = true

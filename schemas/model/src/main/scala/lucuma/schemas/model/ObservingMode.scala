@@ -30,7 +30,6 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
-import lucuma.core.model.sequence.gnirs.defaultIfuTelescopeConfigs
 import lucuma.core.model.sequence.igrins2.SvcDefaultExposure
 import lucuma.core.model.sequence.igrins2.SvcDefaultTelescopeConfigs
 import lucuma.core.util.Enumerated
@@ -319,7 +318,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -473,7 +474,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -640,7 +643,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -789,7 +794,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -931,7 +938,7 @@ object ObservingMode:
         acquisition.isCustomized
 
     def revertCustomizations: GmosNorthIfu =
-      this.copy(
+      val reverted: GmosNorthIfu = this.copy(
         grating = this.initialGrating,
         filter = this.initialFilter,
         fpu = this.initialFpu,
@@ -945,6 +952,11 @@ object ObservingMode:
         explicitWavelengthDithers = None,
         explicitTelescopeConfigs = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted FPU.
+      reverted.copy(explicitTelescopeConfigs =
+        reverted.telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       )
 
   object GmosNorthIfu:
@@ -1094,7 +1106,7 @@ object ObservingMode:
         acquisition.isCustomized
 
     def revertCustomizations: GmosSouthIfu =
-      this.copy(
+      val reverted: GmosSouthIfu = this.copy(
         grating = this.initialGrating,
         filter = this.initialFilter,
         fpu = this.initialFpu,
@@ -1108,6 +1120,11 @@ object ObservingMode:
         explicitWavelengthDithers = None,
         explicitTelescopeConfigs = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted FPU.
+      reverted.copy(explicitTelescopeConfigs =
+        reverted.telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       )
 
   object GmosSouthIfu:
@@ -1387,7 +1404,16 @@ object ObservingMode:
       offsetsCustomized ||
       acquisition.isCustomized
 
-    def revertCustomizations: Flamingos2LongSlit =
+    // Science observations: tellurics must pass their role, since they pick from another family.
+    def revertCustomizations: Flamingos2LongSlit = revertCustomizations(none)
+
+    // A preset is a choice, not a customization, so it survives the revert; the role decides
+    // which family it may come from.
+    def revertCustomizations(calibrationRole: Option[CalibrationRole]): Flamingos2LongSlit =
+      val retained: Option[SlitTelescopeConfigs] =
+        if calibrationRole.contains(CalibrationRole.Telluric) then
+          telluricTelescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
+        else telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       this.copy(
         disperser = this.initialDisperser,
         filter = this.initialFilter,
@@ -1396,7 +1422,7 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitTelescopeConfigs = None,
+        explicitTelescopeConfigs = retained,
         acquisition = acquisition.revertCustomizations
       )
 
@@ -1520,7 +1546,9 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = this.acquisition.revertCustomizations
       )
 
@@ -1672,7 +1700,12 @@ object ObservingMode:
         svc.exists(_.isCustomized)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitTelescopeConfigs = None, svc = svc.map(_.revertCustomizations))
+      // A preset is a choice, not a customization, so it survives the revert.
+      this.copy(
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
+        svc = svc.map(_.revertCustomizations)
+      )
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
@@ -2004,7 +2037,7 @@ object ObservingMode:
         acquisition.isCustomized
 
     def revertCustomizations: GnirsLongSlit =
-      copy(
+      val reverted: GnirsLongSlit = copy(
         fpu = initialFpu,
         explicitTelescopeConfigs = None,
         grating = initialGrating,
@@ -2017,6 +2050,11 @@ object ObservingMode:
         explicitWellDepth = None,
         explicitFocusMotorSteps = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted optics.
+      reverted.copy(explicitTelescopeConfigs =
+        reverted.telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       )
 
   object GnirsLongSlit:
@@ -2114,9 +2152,8 @@ object ObservingMode:
         acquisition.isCustomized
 
     def revertCustomizations: GnirsIfu =
-      copy(
+      val reverted: GnirsIfu = copy(
         fpu = initialFpu,
-        telescopeConfigs = defaultIfuTelescopeConfigs(initialFpu),
         grating = initialGrating,
         filter = initialFilter,
         prism = initialPrism,
@@ -2127,6 +2164,13 @@ object ObservingMode:
         explicitWellDepth = None,
         explicitFocusMotorSteps = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted FPU; otherwise the pattern goes back to that FPU's seed.
+      reverted.copy(telescopeConfigs =
+        reverted.telescopeConfigPresets
+          .retain(telescopeConfigs.some, reverted.telescopeConfigPresets.default)
+          .getOrElse(reverted.telescopeConfigPresets.default)
       )
 
   object GnirsIfu:

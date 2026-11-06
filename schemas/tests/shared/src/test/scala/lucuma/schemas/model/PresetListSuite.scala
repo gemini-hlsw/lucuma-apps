@@ -38,6 +38,12 @@ class PresetListSuite extends FunSuite:
   test("a value matching no preset is a customization"):
     assert(presets.isCustomized(3.some, 1))
 
+  test("retain keeps exactly what isCustomized would not flag"):
+    assertEquals(presets.retain(2.some, 1), 2.some)
+    assertEquals(presets.retain(9.some, 9), 9.some)
+    assertEquals(presets.retain(3.some, 1), none)
+    assertEquals(presets.retain(none, 1), none)
+
   test("fromEnumerated lists every case in order"):
     val list: PresetList[GmosSlitOffsetPreset, String] =
       PresetList.fromEnumerated[GmosSlitOffsetPreset, String](_.tag)
