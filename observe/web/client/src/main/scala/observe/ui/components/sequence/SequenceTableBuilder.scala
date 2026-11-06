@@ -210,7 +210,12 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.visits,
                 datasetIdsInFlight,
                 props.onBreakpointFlip,
-                SequenceEditContexts(IsEditEnabled.False, dummyEditContext, dummyEditContext),
+                SequenceEditContexts(
+                  IsEditEnabled.False,
+                  isStepOngoing = false,
+                  dummyEditContext,
+                  dummyEditContext
+                ),
                 props.maskName,
                 DatasetQaBulkEdit(
                   datasetIdsInFlight.get, {

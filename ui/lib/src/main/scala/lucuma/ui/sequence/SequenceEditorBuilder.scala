@@ -71,6 +71,7 @@ trait SequenceEditorBuilder[D: Eq]:
 
   protected def useEditContexts(
     isEditEnabled:        IsEditEnabled,
+    isStepOngoing:        Boolean,
     isEditingAcquisition: View[IsEditing],
     isEditingScience:     View[IsEditing],
     acquisition:          View[List[Atom[D]]],
@@ -95,6 +96,7 @@ trait SequenceEditorBuilder[D: Eq]:
         )
     yield SequenceEditContexts(
       isEditEnabled = isEditEnabled,
+      isStepOngoing = isStepOngoing,
       acquisition = acqEditContext,
       science = sciEditContext
     )

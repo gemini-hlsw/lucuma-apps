@@ -141,6 +141,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         given ToastCtx[IO]             = ctx.toastCtx
         editContexts                  <- useEditContexts(
                                            props.isEditEnabled,
+                                           props.isExecuting,
                                            props.isEditingAcquisition,
                                            props.isEditingScience,
                                            props.acquisition,

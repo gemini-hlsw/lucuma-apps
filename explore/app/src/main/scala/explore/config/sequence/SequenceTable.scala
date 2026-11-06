@@ -82,7 +82,7 @@ private trait SequenceTable[S, D]:
     currentVisitData.map(_._1)
   private lazy val currentSequenceType: Option[SequenceType]    =
     currentVisitData.map(_._2)
-  private lazy val isExecuting: Boolean                         =
+  protected[sequence] lazy val isExecuting: Boolean             =
     currentVisitData.exists(_._3)
 
   protected[sequence] def buildRows(
