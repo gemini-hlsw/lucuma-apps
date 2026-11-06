@@ -3,6 +3,7 @@
 
 package explore.config
 
+import cats.Eq
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
@@ -21,6 +22,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
+import lucuma.schemas.model.SlitTelescopeConfigPresets
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
@@ -46,7 +48,7 @@ final case class Flamingos2ConfigFields[P <: SlitOffsetPreset](
   exposureTimeMode:             View[ExposureTimeMode],
   explicitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]],
   defaultTelescopeConfigs:      SlitTelescopeConfigs,
-  defaultForPreset:             P => SlitTelescopeConfigs,
+  presets:                      SlitTelescopeConfigPresets[P],
   offsetsHelpId:                NonEmptyString,
   instrument:                   Option[Instrument],
   modeData:                     Reusable[Option[ModeData]],
@@ -61,7 +63,7 @@ final case class Flamingos2ConfigFields[P <: SlitOffsetPreset](
   etmReadonly:                  Boolean,
   presetsReadonly:              Boolean,
   resetEtm:                     Option[Callback] = none
-)(using val enumerated: Enumerated[P], val display: Display[P])
+)(using val eq: Eq[P], val display: Display[P])
     extends ReactFnProps(Flamingos2ConfigFields.component)
 
 object Flamingos2ConfigFields:
@@ -151,7 +153,7 @@ object Flamingos2ConfigFields:
           SlitTelescopeConfigsEditor(
             explicitValue = props.explicitTelescopeConfigsView,
             defaultValue = props.defaultTelescopeConfigs,
-            defaultForPreset = props.defaultForPreset,
+            presets = props.presets,
             helpId = props.offsetsHelpId,
             presetsReadonly = props.presetsReadonly,
             editingReadonly = props.disableSimpleEdit

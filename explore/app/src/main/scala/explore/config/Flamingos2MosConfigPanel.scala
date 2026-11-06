@@ -26,7 +26,6 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
-import lucuma.core.model.sequence.flamingos2
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -231,7 +230,7 @@ object Flamingos2MosConfigPanel
             exposureTimeMode = exposureTimeMode,
             explicitTelescopeConfigsView = explicitTelescopeConfigsView,
             defaultTelescopeConfigs = props.observingMode.get.defaultTelescopeConfigs,
-            defaultForPreset = flamingos2.defaultMosTelescopeConfigs,
+            presets = props.observingMode.get.telescopeConfigPresets,
             offsetsHelpId = "configuration/f2/mos-spatial-offsets.md".refined,
             instrument = props.observingMode.get.instrument,
             modeData = modeData,

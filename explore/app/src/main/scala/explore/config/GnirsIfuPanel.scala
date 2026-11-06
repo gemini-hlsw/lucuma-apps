@@ -21,9 +21,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
 import lucuma.core.math.Offset
-import lucuma.core.math.Wavelength
 import lucuma.core.model.Program
-import lucuma.core.model.sequence.gnirs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.react.common.ReactFnProps
@@ -126,18 +124,13 @@ case class GnirsIfuPanel(
   ] =
     centralWavelengthsAligner.view(_.toList.map(_.toInput).assign)
 
-  def telescopeConfigsEditor(
-    prism:      GnirsPrism,
-    camera:     GnirsCamera,
-    wavelength: Wavelength
-  ): VdomNode =
-    val fpu = observingMode.get.fpu
+  def telescopeConfigsEditor: VdomNode =
     PresettableTelescopeConfigsEditor(
       telescopeConfigs = observingMode
         .zoom(ObservingMode.GnirsIfu.telescopeConfigs, GnirsIfuInput.telescopeConfigs.modify)
         .view(_.toList.map(_.toInput).assign),
-      presets = gnirs.gnirsIfuTelescopeConfigPresets(fpu),
-      defaultConfigs = gnirs.defaultIfuTelescopeConfigs(fpu),
+      presets = observingMode.get.telescopeConfigPresets,
+      defaultConfigs = observingMode.get.telescopeConfigPresets.default,
       helpId = "configuration/ifu-spatial-offsets.md".refined,
       presetsReadonly = !permissions.isFullEdit,
       editingReadonly = !permissions.isFullEdit

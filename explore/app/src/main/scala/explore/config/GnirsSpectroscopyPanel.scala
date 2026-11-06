@@ -30,7 +30,6 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
 import lucuma.core.math.Offset
-import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
@@ -106,11 +105,7 @@ trait GnirsSpectroscopyPanelProps[Fpu]:
   ]
 
   /** The offsets editor: along-slit presets for the slit, plain p/q offsets for the IFU. */
-  def telescopeConfigsEditor(
-    prism:      GnirsPrism,
-    camera:     GnirsCamera,
-    wavelength: Wavelength
-  ): VdomNode
+  def telescopeConfigsEditor: VdomNode
 
 /** The form itself, which differs between the two modes only in the FPU type. */
 abstract class GnirsSpectroscopyPanelBuilder[
@@ -189,12 +184,6 @@ abstract class GnirsSpectroscopyPanelBuilder[
                 .send(cws => _ => cws.toList.toTelluricEtmInput(idx, Input.unassign).assign)
                 .runAsync
           )
-
-      // Where a single representative wavelength is needed (the along-slit offset
-      // defaults are computed from the grating setting), use the first in the
-      // user-specified order, which is the one the sequence starts at.
-      val primaryWavelength: Wavelength =
-        centralWavelengthsView.get.head.centralWavelength.value
 
       val cameraView: View[GnirsCamera] = props.cameraView
 
@@ -421,7 +410,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
             )
           ),
           <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-            props.telescopeConfigsEditor(prismView.get, cameraView.get, primaryWavelength)
+            props.telescopeConfigsEditor
           ).when(props.calibrationRole.needsOffsets)
         ),
         GnirsWavelengthsPanel(

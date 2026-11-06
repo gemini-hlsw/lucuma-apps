@@ -173,8 +173,7 @@ case class GmosSouthMosPanel(
       .view(_.toInput.assign)
 
   def offsetsControl(disabled: Boolean): VdomNode =
-    // A MOS mask has no single slit to nod along, so the positions are a plain list
-    // and the only preset is the default.
+    // A MOS mask has no single slit to nod along, so the positions are a plain list.
     PresettableTelescopeConfigsEditor(
       telescopeConfigs = observingMode
         .zoom(
@@ -185,9 +184,7 @@ case class GmosSouthMosPanel(
         .removeOptionality(
           ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(observingMode.get)
         ),
-      presets = NonEmptyList.one(
-        "Default" -> ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(observingMode.get)
-      ),
+      presets = observingMode.get.telescopeConfigPresets,
       defaultConfigs = ObservingMode.GmosSouthMos.defaultTelescopeConfigs.get(observingMode.get),
       helpId = "configuration/gmos/mos-spatial-offsets.md".refined,
       presetsReadonly = disabled,

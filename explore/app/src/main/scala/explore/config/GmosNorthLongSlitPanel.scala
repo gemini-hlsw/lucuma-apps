@@ -25,7 +25,6 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
-import lucuma.core.model.sequence.gmos.longslit.defaultSlitTelescopeConfigs
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -178,7 +177,7 @@ case class GmosNorthLongSlitPanel(
         )
         .view(_.map(_.toInput).orUnassign),
       defaultValue = ObservingMode.GmosNorthLongSlit.defaultTelescopeConfigs.get(observingMode.get),
-      defaultForPreset = defaultSlitTelescopeConfigs,
+      presets = observingMode.get.telescopeConfigPresets,
       helpId = "configuration/slit-spatial-offsets.md".refined,
       presetsReadonly = disabled,
       editingReadonly = disabled

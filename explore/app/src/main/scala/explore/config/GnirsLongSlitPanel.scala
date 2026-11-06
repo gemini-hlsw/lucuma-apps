@@ -21,12 +21,9 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
 import lucuma.core.math.Offset
-import lucuma.core.math.Wavelength
 import lucuma.core.model.Program
-import lucuma.core.model.sequence.gnirs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
-import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
@@ -139,11 +136,7 @@ case class GnirsLongSlitPanel(
   ] =
     centralWavelengthsAligner.view(_.toList.map(_.toInput).assign)
 
-  def telescopeConfigsEditor(
-    prism:      GnirsPrism,
-    camera:     GnirsCamera,
-    wavelength: Wavelength
-  ): VdomNode =
+  def telescopeConfigsEditor: VdomNode =
     SlitTelescopeConfigsEditor(
       explicitValue = observingMode
         .zoom(ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
@@ -151,8 +144,7 @@ case class GnirsLongSlitPanel(
         )
         .view(_.map(_.toInput).orUnassign),
       defaultValue = observingMode.get.defaultTelescopeConfigs,
-      defaultForPreset =
-        gnirs.defaultSlitTelescopeConfigs(_, prism, camera, GnirsGratingWavelength(wavelength)),
+      presets = observingMode.get.telescopeConfigPresets,
       helpId = "configuration/slit-spatial-offsets.md".refined,
       presetsReadonly = !permissions.isFullEdit,
       editingReadonly = !permissions.isFullEdit

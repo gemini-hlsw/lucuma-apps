@@ -29,7 +29,7 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
-import lucuma.core.model.sequence.gnirs.defaultIfuTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.igrins2.SvcDefaultExposure
 import lucuma.core.model.sequence.igrins2.SvcDefaultTelescopeConfigs
 import lucuma.core.util.Enumerated
@@ -111,16 +111,18 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case s: ObservingMode.GmosSouthLongSlit                         =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
     case n: ObservingMode.GmosNorthMos                              =>
-      BasicConfiguration.GmosNorthMos(n.grating,
-                                      n.filter,
-                                      n.customMask.slitWidth,
-                                      n.centralWavelength
+      BasicConfiguration.GmosNorthMos(
+        n.grating,
+        n.filter,
+        n.customMask.slitWidth,
+        n.centralWavelength
       )
     case s: ObservingMode.GmosSouthMos                              =>
-      BasicConfiguration.GmosSouthMos(s.grating,
-                                      s.filter,
-                                      s.customMask.slitWidth,
-                                      s.centralWavelength
+      BasicConfiguration.GmosSouthMos(
+        s.grating,
+        s.filter,
+        s.customMask.slitWidth,
+        s.centralWavelength
       )
     case n: ObservingMode.GmosNorthIfu                              =>
       BasicConfiguration.GmosNorthIfu(n.grating, n.filter, n.fpu, n.centralWavelength)
@@ -142,21 +144,23 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
       BasicConfiguration.GnirsImaging(g.filters.map(_.filter), g.camera)
     case g: ObservingMode.GnirsLongSlit                             =>
       BasicConfiguration
-        .GnirsSpectroscopy(g.filter,
-                           GnirsFpu.Spectroscopy.Slit(g.fpu),
-                           g.prism,
-                           g.grating,
-                           g.camera,
-                           g.centralWavelengths.head.centralWavelength
+        .GnirsSpectroscopy(
+          g.filter,
+          GnirsFpu.Spectroscopy.Slit(g.fpu),
+          g.prism,
+          g.grating,
+          g.camera,
+          g.centralWavelengths.head.centralWavelength
         )
     case g: ObservingMode.GnirsIfu                                  =>
       BasicConfiguration
-        .GnirsSpectroscopy(g.filter,
-                           GnirsFpu.Spectroscopy.Ifu(g.fpu),
-                           g.prism,
-                           g.grating,
-                           g.camera,
-                           g.centralWavelengths.head.centralWavelength
+        .GnirsSpectroscopy(
+          g.filter,
+          GnirsFpu.Spectroscopy.Ifu(g.fpu),
+          g.prism,
+          g.grating,
+          g.camera,
+          g.centralWavelengths.head.centralWavelength
         )
     case g: ObservingMode.GhostIfu                                  =>
       val red  = ItcGhostDetector(
@@ -169,11 +173,12 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
         binning = g.blue.binning,
         readMode = g.blue.readMode
       )
-      BasicConfiguration.GhostIfu(g.resolutionMode,
-                                  g.stepCount,
-                                  g.signalToNoiseAt,
-                                  red = red,
-                                  blue = blue
+      BasicConfiguration.GhostIfu(
+        g.resolutionMode,
+        g.stepCount,
+        g.signalToNoiseAt,
+        red = red,
+        blue = blue
       )
     case v: ObservingMode.Visitor                                   =>
       BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.scienceFovDiameter)
@@ -284,6 +289,9 @@ object ObservingMode:
     val telescopeConfigs: SlitTelescopeConfigs            =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[GmosSlitOffsetPreset] =
+      TelescopeConfigPresets.GmosLongSlit
+
     def isCustomized: Boolean =
       initialGrating =!= grating ||
         initialFilter =!= filter ||
@@ -295,7 +303,7 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosNorthLongSlit =
@@ -310,7 +318,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -435,6 +445,9 @@ object ObservingMode:
     val telescopeConfigs: SlitTelescopeConfigs            =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[GmosSlitOffsetPreset] =
+      TelescopeConfigPresets.GmosLongSlit
+
     def isCustomized: Boolean =
       initialGrating =!= grating ||
         initialFilter =!= filter ||
@@ -446,7 +459,7 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosSouthLongSlit =
@@ -461,7 +474,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -599,6 +614,9 @@ object ObservingMode:
     val telescopeConfigs: NonEmptyList[TelescopeConfig]   =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: TelescopeConfigPresets =
+      TelescopeConfigPresets.gmosMos(defaultTelescopeConfigs)
+
     def isCustomized: Boolean =
       initialGrating =!= grating ||
         initialFilter =!= filter ||
@@ -610,7 +628,7 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosNorthMos =
@@ -625,7 +643,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -745,6 +765,9 @@ object ObservingMode:
     val telescopeConfigs: NonEmptyList[TelescopeConfig]   =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: TelescopeConfigPresets =
+      TelescopeConfigPresets.gmosMos(defaultTelescopeConfigs)
+
     def isCustomized: Boolean =
       initialGrating =!= grating ||
         initialFilter =!= filter ||
@@ -756,7 +779,7 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosSouthMos =
@@ -771,7 +794,9 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = acquisition.revertCustomizations
       )
 
@@ -894,6 +919,9 @@ object ObservingMode:
     val telescopeConfigs: NonEmptyList[TelescopeConfig]   =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: TelescopeConfigPresets =
+      TelescopeConfigPresets.gmosNorthIfu(fpu)
+
     def isCustomized: Boolean =
       initialGrating =!= grating ||
         initialFilter =!= filter ||
@@ -906,11 +934,11 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosNorthIfu =
-      this.copy(
+      val reverted: GmosNorthIfu = this.copy(
         grating = this.initialGrating,
         filter = this.initialFilter,
         fpu = this.initialFpu,
@@ -924,6 +952,11 @@ object ObservingMode:
         explicitWavelengthDithers = None,
         explicitTelescopeConfigs = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted FPU.
+      reverted.copy(explicitTelescopeConfigs =
+        reverted.telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       )
 
   object GmosNorthIfu:
@@ -1054,6 +1087,9 @@ object ObservingMode:
     val telescopeConfigs: NonEmptyList[TelescopeConfig]   =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: TelescopeConfigPresets =
+      TelescopeConfigPresets.gmosSouthIfu(fpu)
+
     def isCustomized: Boolean =
       initialGrating =!= grating ||
         initialFilter =!= filter ||
@@ -1066,11 +1102,11 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosSouthIfu =
-      this.copy(
+      val reverted: GmosSouthIfu = this.copy(
         grating = this.initialGrating,
         filter = this.initialFilter,
         fpu = this.initialFpu,
@@ -1084,6 +1120,11 @@ object ObservingMode:
         explicitWavelengthDithers = None,
         explicitTelescopeConfigs = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted FPU.
+      reverted.copy(explicitTelescopeConfigs =
+        reverted.telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       )
 
   object GmosSouthIfu:
@@ -1335,18 +1376,44 @@ object ObservingMode:
     val readMode: Flamingos2ReadMode           =
       explicitReadMode.getOrElse(Flamingos2ReadMode.Bright)
 
-    def isCustomized: Boolean =
-      initialDisperser =!= disperser ||
-        initialFilter =!= filter ||
-        initialFpu =!= fpu ||
-        explicitReadMode.isDefined ||
-        explicitReads.isDefined ||
-        explicitDecker.exists(_ =!= defaultDecker) ||
-        explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
-        acquisition.isCustomized
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[Flamingos2SlitOffsetPreset] =
+      TelescopeConfigPresets.Flamingos2LongSlit
 
-    def revertCustomizations: Flamingos2LongSlit =
+    val telluricTelescopeConfigPresets: SlitTelescopeConfigPresets[Flamingos2TelluricOffsetPreset] =
+      TelescopeConfigPresets.Flamingos2Telluric
+
+    // Science observations: tellurics must pass their role, since they pick from another family.
+    def isCustomized: Boolean = isCustomized(none)
+
+    // Tellurics pick from their own preset family, so the role decides which list applies.
+    def isCustomized(calibrationRole: Option[CalibrationRole]): Boolean =
+      val offsetsCustomized: Boolean =
+        if calibrationRole.contains(CalibrationRole.Telluric) then
+          telluricTelescopeConfigPresets.isCustomized(
+            explicitTelescopeConfigs,
+            defaultTelescopeConfigs
+          )
+        else telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs)
+      initialDisperser =!= disperser ||
+      initialFilter =!= filter ||
+      initialFpu =!= fpu ||
+      explicitReadMode.isDefined ||
+      explicitReads.isDefined ||
+      explicitDecker.exists(_ =!= defaultDecker) ||
+      explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
+      offsetsCustomized ||
+      acquisition.isCustomized
+
+    // Science observations: tellurics must pass their role, since they pick from another family.
+    def revertCustomizations: Flamingos2LongSlit = revertCustomizations(none)
+
+    // A preset is a choice, not a customization, so it survives the revert; the role decides
+    // which family it may come from.
+    def revertCustomizations(calibrationRole: Option[CalibrationRole]): Flamingos2LongSlit =
+      val retained: Option[SlitTelescopeConfigs] =
+        if calibrationRole.contains(CalibrationRole.Telluric) then
+          telluricTelescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
+        else telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       this.copy(
         disperser = this.initialDisperser,
         filter = this.initialFilter,
@@ -1355,7 +1422,7 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitTelescopeConfigs = None,
+        explicitTelescopeConfigs = retained,
         acquisition = acquisition.revertCustomizations
       )
 
@@ -1456,6 +1523,9 @@ object ObservingMode:
     val readMode: Flamingos2ReadMode           =
       explicitReadMode.getOrElse(Flamingos2ReadMode.Bright)
 
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[Flamingos2MosOffsetPreset] =
+      TelescopeConfigPresets.Flamingos2Mos
+
     def isCustomized: Boolean =
       initialDisperser =!= disperser ||
         initialFilter =!= filter ||
@@ -1464,7 +1534,7 @@ object ObservingMode:
         explicitReads.isDefined ||
         explicitDecker.exists(_ =!= defaultDecker) ||
         explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: Flamingos2Mos =
@@ -1476,7 +1546,9 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitTelescopeConfigs = None,
+        // A preset is a choice, not a customization, so it survives the revert.
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
         acquisition = this.acquisition.revertCustomizations
       )
 
@@ -1620,12 +1692,20 @@ object ObservingMode:
     val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[Igrins2SlitOffsetPreset] =
+      TelescopeConfigPresets.Igrins2LongSlit
+
     def isCustomized: Boolean =
-      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+      telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         svc.exists(_.isCustomized)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitTelescopeConfigs = None, svc = svc.map(_.revertCustomizations))
+      // A preset is a choice, not a customization, so it survives the revert.
+      this.copy(
+        explicitTelescopeConfigs =
+          telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs),
+        svc = svc.map(_.revertCustomizations)
+      )
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
@@ -1933,9 +2013,18 @@ object ObservingMode:
     def telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    // The along-slit pattern depends on the optical config, and the sequence starts at the first
+    // central wavelength, so the presets are derived from that one.
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[GnirsSlitOffsetPreset] =
+      TelescopeConfigPresets.gnirsLongSlit(
+        prism,
+        camera,
+        GnirsGratingWavelength(centralWavelengths.head.centralWavelength.value)
+      )
+
     def isCustomized: Boolean =
       initialFpu =!= fpu ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs) ||
         initialGrating =!= grating ||
         initialFilter =!= filter ||
         initialPrism =!= prism ||
@@ -1948,7 +2037,7 @@ object ObservingMode:
         acquisition.isCustomized
 
     def revertCustomizations: GnirsLongSlit =
-      copy(
+      val reverted: GnirsLongSlit = copy(
         fpu = initialFpu,
         explicitTelescopeConfigs = None,
         grating = initialGrating,
@@ -1961,6 +2050,11 @@ object ObservingMode:
         explicitWellDepth = None,
         explicitFocusMotorSteps = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted optics.
+      reverted.copy(explicitTelescopeConfigs =
+        reverted.telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
       )
 
   object GnirsLongSlit:
@@ -2039,10 +2133,13 @@ object ObservingMode:
     val wellDepth: GnirsWellDepth =
       explicitWellDepth.getOrElse(defaultWellDepth)
 
+    val telescopeConfigPresets: TelescopeConfigPresets =
+      TelescopeConfigPresets.gnirsIfu(fpu)
+
     def isCustomized: Boolean =
       initialFpu =!= fpu ||
-        // No server default; the canonical seed is the FPU's first preset.
-        telescopeConfigs =!= defaultIfuTelescopeConfigs(fpu) ||
+        // No server default; any of the FPU's presets is a supported choice.
+        !telescopeConfigPresets.contains(telescopeConfigs) ||
         initialGrating =!= grating ||
         initialFilter =!= filter ||
         initialPrism =!= prism ||
@@ -2055,9 +2152,8 @@ object ObservingMode:
         acquisition.isCustomized
 
     def revertCustomizations: GnirsIfu =
-      copy(
+      val reverted: GnirsIfu = copy(
         fpu = initialFpu,
-        telescopeConfigs = defaultIfuTelescopeConfigs(initialFpu),
         grating = initialGrating,
         filter = initialFilter,
         prism = initialPrism,
@@ -2068,6 +2164,13 @@ object ObservingMode:
         explicitWellDepth = None,
         explicitFocusMotorSteps = None,
         acquisition = acquisition.revertCustomizations
+      )
+      // A preset is a choice, not a customization, so it survives the revert as long as it is
+      // still one for the reverted FPU; otherwise the pattern goes back to that FPU's seed.
+      reverted.copy(telescopeConfigs =
+        reverted.telescopeConfigPresets
+          .retain(telescopeConfigs.some, reverted.telescopeConfigPresets.default)
+          .getOrElse(reverted.telescopeConfigPresets.default)
       )
 
   object GnirsIfu:
