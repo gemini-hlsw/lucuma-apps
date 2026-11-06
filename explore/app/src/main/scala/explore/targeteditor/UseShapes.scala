@@ -205,10 +205,13 @@ def usePatrolFieldShapes(
       )
   }.map(_.value)
 
-// On-sky shapes for a mask
-// The geometry is fitted from the slits themselves, already in its true sky
-// orientation. PA may not match the observation PA
-private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpression]] =
+// On-sky shapes for a mask, drawn at the observation position and PA
+// The fitted geometry is in the design's own orientation, so it is turned from the
+// design PA to the observation PA, the same way the instrument outline is rotated.
+private def mosMaskShapes(
+  design:   MaskDesign,
+  posAngle: Angle
+): Option[SortedMap[Css, ShapeExpression]] =
   MosMaskGeometry
     .fromSlits(
       design.instrument,
@@ -229,9 +232,11 @@ private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpres
     .map: geometry =>
       // The shapes are offsets from the design's pointing, drawn anchored at the base
       // coordinates
+      val rotation: Angle = posAngle - design.positionAngle
+
       val apertures: List[(MaskDesignSlit, ShapeExpression)] =
         design.slits
-          .zip(geometry.slits)
+          .zip(geometry.slits.map(_ ⟲ rotation))
           .filter(_._1.priority =!= MosSlitPriority.Ignore)
 
       val slits: List[(Css, ShapeExpression)] =
@@ -243,7 +248,7 @@ private def mosMaskShapes(design: MaskDesign): Option[SortedMap[Css, ShapeExpres
 
       // The apertures are cut out of the plate, as in the physical mask.
       val body: ShapeExpression =
-        apertures.foldLeft(geometry.outline)((b, aperture) => b - aperture._2)
+        apertures.foldLeft(geometry.outline ⟲ rotation)((b, aperture) => b - aperture._2)
 
       SortedMap.from(
         (ExploreStyles.MosMaskOutline, body) :: slits
@@ -278,7 +283,11 @@ def useVisualizationShapes(
 
       (vizConf.map(_.configuration.obsModeType), baseCoordinates).flatMapN: (conf, baseCoords) =>
         val maskShapes: Option[SortedMap[Css, ShapeExpression]] =
-          vizConf.flatMap(_.maskDesign).flatMap(mosMaskShapes)
+          for
+            design   <- vizConf.flatMap(_.maskDesign)
+            posAngle <- selectedGS.map(_.posAngle).orElse(vizConf.map(_.posAngle))
+            shapes   <- mosMaskShapes(design, posAngle)
+          yield shapes
 
         // The fitted mask replaces the nominal slit placement area the instrument
         // geometry draws, so drop the latter when a design is available.
