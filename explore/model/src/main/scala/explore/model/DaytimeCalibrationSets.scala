@@ -377,9 +377,13 @@ object GnirsDaytimeSetup:
     Optional[GnirsDynamicConfig, Wavelength](out.getOption(_).map(_.wavelength.value)): w =>
       out.modify(_.copy(wavelength = GnirsGratingWavelength(w)))
 
-  /** The ODB takes no arc and no Smart GCAL row with the mirror in. */
+  /**
+   * The ODB takes no arc with the mirror in, and Smart GCAL's imaging rows are night baseline flats
+   * only, so just a Smart Flat may keep the mirror in.
+   */
   def needsDisperser(kind: CalibrationSetType): Boolean =
-    kind.isSmart || kind === CalibrationSetType.Arc
+    kind === CalibrationSetType.Arc || kind === CalibrationSetType.SmartArc ||
+      kind === CalibrationSetType.DayBaseline
 
   /** Takes the mirror out, and swaps an imaging FPU for the default slit. */
   def withDisperser(d: GnirsDynamicConfig): GnirsDynamicConfig =

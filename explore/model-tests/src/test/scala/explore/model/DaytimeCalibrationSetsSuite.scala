@@ -428,13 +428,8 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     val hand = gnirs.default.copy(decker = GnirsDecker.PupilViewer)
     assertEquals(gnirs.prism.replace(GnirsPrism.Sxd)(hand), hand)
 
-  test("Every GNIRS arc and smart kind gets a disperser and a slit, keeping one it has"):
-    List(
-      CalibrationSetType.Arc,
-      CalibrationSetType.SmartFlat,
-      CalibrationSetType.SmartArc,
-      CalibrationSetType.DayBaseline
-    )
+  test("Every GNIRS arc and Day Baseline gets a disperser and a slit, keeping one it has"):
+    List(CalibrationSetType.Arc, CalibrationSetType.SmartArc, CalibrationSetType.DayBaseline)
       .foreach: kind =>
         val d = gnirsConfig(withKind(gnirs.defaultSet, kind))
         assertEquals(d.map(_.acquisitionMirror), gnirs.defaultDisperser(gnirs.default).some)
@@ -443,12 +438,17 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     val lxd  = gnirs.prism.replace(GnirsPrism.Lxd)(gnirsSpectro)
     val kept = gnirsConfig(
       withKind(gnirs.defaultSet.copy(setup = DaytimeCalibrationSetup.Gnirs(lxd)),
-               CalibrationSetType.SmartFlat
+               CalibrationSetType.SmartArc
       )
     )
     assertEquals(kept.map(_.acquisitionMirror), lxd.acquisitionMirror.some)
     assertEquals(kept.map(_.fpu), lxd.fpu.some)
     assert(!gnirs.needsDisperser(CalibrationSetType.Flat))
+
+  test("A GNIRS Smart Flat keeps the mirror in, for the imaging flats"):
+    val d = gnirsConfig(withKind(gnirs.defaultSet, CalibrationSetType.SmartFlat))
+    assertEquals(d.map(_.acquisitionMirror), GnirsAcquisitionMirrorMode.In.some)
+    assertEquals(d.map(_.fpu), gnirs.default.fpu.some)
 
   test("The GNIRS default disperser sits at the filter's wavelength"):
     def wavelength(f: GnirsFilter): Option[Wavelength] =
