@@ -20,6 +20,7 @@ import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.core.util.time.format.UtcFormatter
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.Expandable
 import lucuma.react.table.Expanded
@@ -257,8 +258,11 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
           onClickE = _.stopPropagationCB >> ctx.isEditing.set(IsEditing.True),
           label = "Edit",
           icon = SequenceIcons.Pencil,
-          tooltip = "Enter sequence editing mode",
-          tooltipOptions = TooltipOptions.Top
+          disabled = ctxs.isStepOngoing,
+          tooltip =
+            if (ctxs.isStepOngoing) "The sequence cannot be edited while a step is executing"
+            else "Enter sequence editing mode",
+          tooltipOptions = TooltipOptions(position = Tooltip.Position.Top, showOnDisabled = true)
         ).mini.compact
           .when:
             ctxs.isEditEnabled && !ctx.isEditing.get

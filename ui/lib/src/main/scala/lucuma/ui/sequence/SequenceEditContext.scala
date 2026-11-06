@@ -22,8 +22,13 @@ final case class SequenceEditContext[D](
   def resolvedSequence: List[Atom[D]] =
     if (isEditing.get) undoCtx.get.value else liveSequence
 
+/**
+ * `isStepOngoing` is true while a step is executing. The ODB rejects a sequence replacement then,
+ * so the Edit button is shown disabled with an explanation instead of hidden.
+ */
 final case class SequenceEditContexts[D](
   isEditEnabled: IsEditEnabled,
+  isStepOngoing: Boolean,
   acquisition:   SequenceEditContext[D],
   science:       SequenceEditContext[D]
 ):
