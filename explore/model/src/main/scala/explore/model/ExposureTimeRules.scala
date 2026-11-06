@@ -26,8 +26,8 @@ object ExposureTimeRules:
 
   /**
    * The rules for an exposure of `instrument` with no explicit read mode. The ODB then picks the
-   * read mode from the exposure time, so the only minimum a short exposure can break is that of
-   * the read mode for the shortest exposures.
+   * read mode from the exposure time, so the only minimum a short exposure can break is that of the
+   * read mode for the shortest exposures.
    */
   def apply(instrument: Option[Instrument]): List[ExposureRule] =
     instrument match

@@ -21,14 +21,21 @@ final class ExposureTimeRulesSuite extends FunSuite:
     assertEquals(errors(codec, "0"), List("Exposure times for GMOS North must be at least 1 s."))
     assertEquals(codec.valid.getValid("1"), 1.secTimeSpan.some.asRight)
 
-  test("with no explicit read mode the minimum is that of the read mode for the shortest exposures"):
+  test(
+    "with no explicit read mode the minimum is that of the read mode for the shortest exposures"
+  ):
     val codec = inputCodecs.exposureTimeMilliseconds(ExposureTimeRules(Instrument.Gnirs.some))
-    assertEquals(errors(codec, "0.1"), List("Exposure times for GNIRS very bright read mode must be at least 0.2 s."))
+    assertEquals(errors(codec, "0.1"),
+                 List("Exposure times for GNIRS very bright read mode must be at least 0.2 s.")
+    )
     assertEquals(errors(codec, "0.2"), Nil)
 
   test("an explicit read mode raises the minimum"):
-    val codec = inputCodecs.exposureTimeMilliseconds(ExposureTimeRules.gnirs(GnirsReadMode.Faint.some))
-    assertEquals(errors(codec, "5"), List("Exposure times for GNIRS faint read mode must be at least 9 s."))
+    val codec =
+      inputCodecs.exposureTimeMilliseconds(ExposureTimeRules.gnirs(GnirsReadMode.Faint.some))
+    assertEquals(errors(codec, "5"),
+                 List("Exposure times for GNIRS faint read mode must be at least 9 s.")
+    )
 
   test("warnings are not applied and an empty field is accepted"):
     val codec = inputCodecs.exposureTimeSeconds(ExposureTimeRules(Instrument.GmosNorth.some))
