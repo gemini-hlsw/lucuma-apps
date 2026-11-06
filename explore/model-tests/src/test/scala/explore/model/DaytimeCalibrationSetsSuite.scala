@@ -434,8 +434,13 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(gnirs.wavelength.replace(w.some)(gnirs.default), gnirs.default)
     assertEquals(gnirs.wavelength.get(gnirs.wavelength.replace(w.some)(gnirsSpectro)), w.some)
 
-  test("Every GNIRS smart kind gets a disperser and a slit, keeping one it has"):
-    List(CalibrationSetType.SmartFlat, CalibrationSetType.SmartArc, CalibrationSetType.DayBaseline)
+  test("Every GNIRS arc and smart kind gets a disperser and a slit, keeping one it has"):
+    List(
+      CalibrationSetType.Arc,
+      CalibrationSetType.SmartFlat,
+      CalibrationSetType.SmartArc,
+      CalibrationSetType.DayBaseline
+    )
       .foreach: kind =>
         val d = gnirsConfig(withKind(gnirs.defaultSet, kind))
         assertEquals(d.map(_.acquisitionMirror), gnirs.DefaultDisperser.some)
@@ -450,7 +455,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(kept.map(_.acquisitionMirror), lxd.acquisitionMirror.some)
     assertEquals(kept.map(_.fpu), lxd.fpu.some)
-    assert(!gnirs.needsDisperser(CalibrationSetType.Arc))
+    assert(!gnirs.needsDisperser(CalibrationSetType.Flat))
 
   test("A GNIRS dark gets the default optics and keeps its exposure and read mode"):
     val arc  = withKind(

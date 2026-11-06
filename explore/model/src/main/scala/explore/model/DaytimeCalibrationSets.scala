@@ -375,8 +375,9 @@ object GnirsDaytimeSetup:
     Lens[GnirsDynamicConfig, Option[Wavelength]](out.getOption(_).map(_.wavelength.value)): w =>
       d => w.fold(d)(w => out.modify(_.copy(wavelength = GnirsGratingWavelength(w)))(d))
 
-  /** Smart GCAL has no GNIRS rows with the mirror in, so every smart kind needs a disperser. */
-  def needsDisperser(kind: CalibrationSetType): Boolean = kind.isSmart
+  /** The ODB takes no arc and no Smart GCAL row with the mirror in. */
+  def needsDisperser(kind: CalibrationSetType): Boolean =
+    kind.isSmart || kind === CalibrationSetType.Arc
 
   /** The default disperser and slit, unless the mirror is already out. */
   def withDisperser(d: GnirsDynamicConfig): GnirsDynamicConfig =
