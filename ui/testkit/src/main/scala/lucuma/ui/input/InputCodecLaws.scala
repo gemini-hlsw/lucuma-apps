@@ -18,7 +18,7 @@ final case class InputCodecLaws[A](format: InputCodec[A]):
   def canonicalIsValidForMask(a: A): Boolean =
     val canonical: String = format.valid.reverseGet(a)
     // Inputmask reports the empty text as incomplete, but every mask lets the field be emptied.
-    canonical.isEmpty || format.mask.forall(options => Inputmask.isValid(canonical, options))
+    canonical.isEmpty || format.mask.forall(options => Inputmask.isValid(canonical, options.toJs))
 
   /**
    * The canonical text parses back to a value that prints the same, so redisplaying a value never

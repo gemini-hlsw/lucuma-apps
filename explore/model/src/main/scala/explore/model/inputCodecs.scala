@@ -41,8 +41,8 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.validation.*
 import lucuma.refined.*
 import lucuma.ui.input.InputCodec
+import lucuma.ui.input.InputmaskOptions
 import lucuma.ui.input.Masks
-import lucuma.ui.input.facade.InputmaskOptions
 import lucuma.ui.input.toCodec
 
 import java.time.LocalTime
@@ -56,9 +56,10 @@ trait inputCodecs:
   val Ra: InputCodec[RightAscension]                = InputCodec.TruncatedRa
   val Dec: InputCodec[Declination]                  = InputCodec.TruncatedDec
   val EpochNoScheme: InputCodec[Epoch]              =
-    MathValidators.epochNoScheme.toCodec.withDecimalMask(3,
-                                                         allowMinus = false,
-                                                         integerDigits = 4.some
+    MathValidators.epochNoScheme.toCodec.withDecimalMask(
+      3,
+      allowMinus = false,
+      integerDigits = 4.some
     )
   val ProperMotionRa: InputCodec[ProperMotion.RA]   =
     ExploreModelValidators.pmRAValidWedge.toCodec.withDecimalMask(3)

@@ -9,7 +9,6 @@ import lucuma.core.math.RightAscension
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.validation.InputValidFormat
 import lucuma.core.validation.InputValidSplitEpi
-import lucuma.ui.input.facade.InputmaskOptions
 
 /**
  * Everything a text input needs for a value of type `A`: the codec between the text and `A`, used
