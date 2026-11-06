@@ -73,12 +73,9 @@ case class MaskDesign(
   slits:               List[MaskDesignSlit]
 ) derives Eq:
   def paMismatch(posAngle: Angle): Boolean =
-    (posAngle - positionAngle).toSignedDoubleDegrees.abs > MaskDesign.PaTolerance.toDoubleDegrees
+    posAngle =!= positionAngle
 
 object MaskDesign:
-  // Below this the PA difference is rounding, not a different setup
-  val PaTolerance: Angle = Angle.fromDoubleDegrees(0.1)
-
   given Decoder[MaskDesign] = Decoder.instance: c =>
     for
       name          <- c.downField("name").as[NonEmptyString]
