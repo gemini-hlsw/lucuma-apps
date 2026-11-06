@@ -124,10 +124,11 @@ map_aws_explore_distribution() {
   esac
 }
 
-# Copy the Explore build recorded for the source environment onto the target bucket, server side,
-# and invalidate the target distribution. The CI deploy archives every build under
-# builds/<git-sha>/ in the dev bucket, so the copy always comes from there, whatever the source
-# environment: the promoted content is exactly the recorded sha even if dev moved on meanwhile.
+# Copy the Explore build recorded for the source environment onto latest/ in the target bucket,
+# the origin path its distribution serves, and invalidate the distribution. The CI deploy archives
+# every build under builds/<git-sha>/ in the dev bucket, so the copy always comes from there,
+# whatever the source environment: the promoted content is exactly the recorded sha even if dev
+# moved on meanwhile.
 # Assets are copied first so the new index.html never references bundles that don't exist yet;
 # the old index.html referencing removed bundles is harmless, caches still hold them. Tags are
 # not copied: we don't use them, and copying them on large objects needs s3:GetObjectTagging,
@@ -136,6 +137,7 @@ promote_explore_aws() {
   local sha=${source_sha["Explore"]}
   local archive="s3://$(map_aws_explore_bucket dev)/builds/$sha"
   local target_bucket=$(map_aws_explore_bucket "$TARGET_ENV")
+  local target="s3://$target_bucket/latest"
   local target_distribution=$(map_aws_explore_distribution "$TARGET_ENV")
 
   if [ -z "$target_bucket" ] || [ -z "$target_distribution" ]; then
@@ -151,12 +153,10 @@ promote_explore_aws() {
     exit 1
   fi
 
-  echo "  Copying $archive to s3://$target_bucket..."
-  if aws s3 sync "$archive/assets" "s3://$target_bucket/assets" --delete \
-       --copy-props metadata-directive &&
-     aws s3 sync "$archive" "s3://$target_bucket" --delete \
-       --exclude "assets/*" --exclude "builds/*" --copy-props metadata-directive; then
-    echo "  ✓ Explore build $sha copied to s3://$target_bucket"
+  echo "  Copying $archive to $target..."
+  if aws s3 sync "$archive/assets" "$target/assets" --delete --copy-props metadata-directive &&
+     aws s3 sync "$archive" "$target" --delete --exclude "assets/*" --copy-props metadata-directive; then
+    echo "  ✓ Explore build $sha copied to $target"
   else
     echo "  ! Explore AWS copy FAILED"
     exit 1
