@@ -11,18 +11,22 @@ import explore.*
 import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.PartnerSplit
+import explore.model.ProgramUser
 import explore.model.enums.Visible
 import explore.model.inputCodecs
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Partner
+import lucuma.core.model.PartnerLeads
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Message
+import lucuma.react.primereact.SelectItem
 import lucuma.react.table.*
 import lucuma.refined.*
+import lucuma.ui.primereact.FormDropdownOptional
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -32,6 +36,7 @@ import lucuma.ui.utils.*
 case class PartnerSplitsEditor(
   show:    Visible,
   splits:  View[List[PartnerSplit]],
+  users:   List[ProgramUser],
   closeMe: Callback,
   onSave:  List[PartnerSplit] => Callback
 ) extends ReactFnProps(PartnerSplitsEditor.component)
@@ -39,7 +44,11 @@ case class PartnerSplitsEditor(
 object PartnerSplitsEditor:
   private type Props = PartnerSplitsEditor
 
-  private val ColDef = ColumnDef[View[PartnerSplit]]
+  // The team is table meta, rather than a dependency of the columns, so that a change to it
+  // re-renders the cells without replacing the columns.
+  private case class TableMeta(users: List[ProgramUser])
+
+  private val ColDef = ColumnDef[View[PartnerSplit]].WithTableMeta[TableMeta]
 
   private def save(props: Props) =
     if (addsUpTo100(props.splits.get))
@@ -82,6 +91,33 @@ object PartnerSplitsEditor:
       )
     )
 
+  private def userName(u: ProgramUser): String =
+    Some(u.name).filter(_.trim.nonEmpty).orElse(u.email).getOrElse(u.id.toString)
+
+  // The lead is chosen among the investigators affiliated with the partner.  The PI always leads
+  // the PI's own partner, so that row is not editable, and a partner without time has no lead.
+  private def makeLeadCell(split: View[PartnerSplit], users: List[ProgramUser]): VdomNode =
+    val s          = split.get
+    val byId       = users.map(u => u.id -> u).toMap
+    val candidates =
+      PartnerLeads.candidates(s.partner, users.map(_.leadCandidate)).flatMap(c => byId.get(c.id))
+
+    if s.percent.value === 0 then EmptyVdom
+    else
+      candidates.find(_.leadCandidate.isPi) match
+        case Some(pi)                   => <.span(userName(pi))
+        case None if candidates.isEmpty =>
+          <.span(ExploreStyles.WarningInput, "No affiliated investigator")
+        case None                       =>
+          FormDropdownOptional(
+            id = NonEmptyString.unsafeFrom(s"${s.partner.tag}-lead"),
+            value = s.lead,
+            options = candidates.map(u => SelectItem(u.id, userName(u))),
+            onChange = split.zoom(PartnerSplit.lead).set,
+            placeholder = "Select a lead",
+            clazz = ExploreStyles.WarningInput.when_(s.lead.isEmpty)
+          )
+
   private def total(splits:       List[PartnerSplit]) = splits.map(_.percent.value).sum
   private def addsUpTo100(splits: List[PartnerSplit]) = total(splits) === 100
 
@@ -102,19 +138,33 @@ object PartnerSplitsEditor:
           footer = ctx =>
             val tot: Int = ctx.table.getRowModel().rows.map(_.original.get.percent.value).sum
             s"${tot}%"
+        ),
+        ColDef(
+          id = ColumnId("lead"),
+          header = "Lead",
+          cell =
+            cell => cell.table.options.meta.map(meta => makeLeadCell(cell.row.original, meta.users))
         )
       )
 
   protected val component = ScalaFnComponent[Props]: props =>
+    // Every edit re-applies the lead rules, so a default lead appears, or a lead goes, as soon as a
+    // partner's time changes -- just as the ODB will do when the splits are saved.
+    val splits: View[List[PartnerSplit]] =
+      props.splits.zoom(identity[List[PartnerSplit]])(f =>
+        a => PartnerSplit.withLeads(f(a), props.users)
+      )
+
     for
-      rows  <- useMemo(props.splits.reuseByValue)(_.value.toListOfViews)
+      rows  <- useMemo((props.splits.get, props.users))(_ => splits.toListOfViews)
       table <- useReactTable:
                  TableOptions(
                    columns,
                    rows,
                    getRowId = (row, _, _) => RowId(row.get.partner.tag),
                    enableSorting = false,
-                   enableColumnResizing = false
+                   enableColumnResizing = false,
+                   meta = TableMeta(props.users)
                  )
     yield Dialog(
       visible = props.show.value,

@@ -19,6 +19,7 @@ import lucuma.core.enums.ProgramUserRole
 import lucuma.core.enums.ProposalSubmissionError
 import lucuma.core.enums.ProposalSubmissionError.*
 import lucuma.core.enums.TacCategory
+import lucuma.core.model.PartnerLeads
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.ProposalReference
 import lucuma.core.util.Timestamp
@@ -109,33 +110,69 @@ case class Proposal(
   private lazy val partnerSplits: Option[List[PartnerSplit]] =
     geminiPartnerSplits.orElse(externalPartnerSplits)
 
-  private def usersAndTimesErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
-    val investigators      = users.investigators
-    val partnerError       =
-      Option.unless(investigators.forall(_.partnerLink.isSet))(UnspecifiedInvestigatorPartner)
-    val partnerSplitsError = partnerSplits.flatMap(splits =>
+  private def unspecifiedPartnerError(users: List[ProgramUser]): Option[ProposalSubmissionError] =
+    Option.unless(users.investigators.forall(_.partnerLink.isSet))(UnspecifiedInvestigatorPartner)
+
+  private lazy val partnerSplitsError: Option[ProposalSubmissionError] =
+    partnerSplits.flatMap(splits =>
       Option.when(splits.foldLeft(0)(_ + _.percent.value) != 100)(InvalidPartnerSplits)
     )
+
+  // Matching investigators against the splits is only meaningful once every
+  // investigator is affiliated and the splits themselves add up.
+  private def canMatchInvestigators(users: List[ProgramUser]): Boolean =
+    unspecifiedPartnerError(users).isEmpty && partnerSplitsError.isEmpty
+
+  /**
+   * Each partner with requested time needs a lead, though only once some investigator is eligible:
+   * a partner with none is reported as `UnmatchedPartnerTime` instead. The leads are judged as the
+   * ODB will hold them, with any lead that needs no choice already assigned.
+   */
+  private def partnerLeadErrors(users: List[ProgramUser]): List[ProposalError] =
+    if !canMatchInvestigators(users) then Nil
+    else
+      partnerSplits.foldMap: splits =>
+        val requested = PartnerSplit.requested(splits)
+        val team      = users.map(_.leadCandidate)
+        val leads     = PartnerLeads.normalize(requested, team, PartnerSplit.leads(splits))
+        PartnerLeads
+          .missing(requested, team, leads)
+          .map(p =>
+            ProposalError(MissingPartnerLead, ProposalSubmissionError.missingPartnerLead(p))
+          )
+
+  /**
+   * This proposal with the partner leads implied by the splits and `users`, as the ODB assigns them
+   * whenever either changes.
+   */
+  def withPartnerLeads(users: List[ProgramUser]): Proposal =
+    copy(proposalType =
+      proposalType.map(ProposalType.modifyPartnerSplits(PartnerSplit.withLeads(_, users)))
+    )
+
+  private def usersAndTimesErrors(users: List[ProgramUser]): List[ProposalSubmissionError] =
+    val investigators     = users.investigators
+    val partnerError      = unspecifiedPartnerError(users)
     // What every investigator must supply.  `name` is empty rather than absent
     // when unset, so it is tested for emptiness -- and trimmed first, because
     // nothing stops the API from storing a blank one and the ODB trims too.
-    val nameError          =
+    val nameError         =
       Option.when(investigators.exists(_.name.trim.isEmpty))(MissingInvestigatorName)
     // Missing and malformed are independent, as they are in the ODB: one
     // investigator with no email and another with a bad one is two problems.
-    val emails             = investigators.map(_.email)
-    val missingEmailError  = Option.when(emails.exists(_.isEmpty))(MissingInvestigatorEmail)
-    val invalidEmailError  =
+    val emails            = investigators.map(_.email)
+    val missingEmailError = Option.when(emails.exists(_.isEmpty))(MissingInvestigatorEmail)
+    val invalidEmailError =
       Option.when(emails.flattenOption.exists(EmailAddress.from(_).isLeft))(
         InvalidInvestigatorEmail
       )
-    val educationError     =
+    val educationError    =
       Option.when(investigators.exists(_.educationalStatus.isEmpty))(
         MissingInvestigatorEducationalStatus
       )
-    val affiliationError   =
+    val affiliationError  =
       Option.when(investigators.exists(_.affiliation.isEmpty))(MissingInvestigatorAffiliation)
-    val notInvitedError    =
+    val notInvitedError   =
       Option
         .when(investigators.exists(u => !u.isConfirmed && !u.successfullyInvited))(
           UninvitedInvestigator
@@ -143,7 +180,7 @@ case class Proposal(
 
     // only validate this if the splits are valid and all partners have been affiliated.
     val affiliationMismatches: List[ProposalSubmissionError] =
-      if partnerError.isEmpty && partnerSplitsError.isEmpty then
+      if canMatchInvestigators(users) then
         // Make sure every partner split requested has a matching user.
         // Only verify this if splits and users are all valid.
         partnerSplits
@@ -246,17 +283,21 @@ case class Proposal(
     attachments:              AttachmentList,
     hasDefinedObservations:   Boolean,
     hasUndefinedObservations: Boolean
-  ): List[ProposalSubmissionError] = List(
-    Option.when(title.isEmpty)(MissingTitle).toList,
-    Option.when(abstrakt.isEmpty)(MissingAbstract).toList,
-    Option.unless(category.isDefined)(MissingCategory).toList,
-    cfPError(users),
-    usersAndTimesErrors(users),
-    fastTurnaroundErrors(users),
-    attachmentErrors(attachments),
-    obsErrors(hasDefinedObservations, hasUndefinedObservations),
-    deadlineErrors(users)
-  ).flatten
+  ): List[ProposalError] =
+    List(
+      Option.when(title.isEmpty)(MissingTitle).toList,
+      Option.when(abstrakt.isEmpty)(MissingAbstract).toList,
+      Option.unless(category.isDefined)(MissingCategory).toList,
+      cfPError(users),
+      usersAndTimesErrors(users)
+    ).flatten.map(ProposalError(_)) ++
+      partnerLeadErrors(users) ++
+      List(
+        fastTurnaroundErrors(users),
+        attachmentErrors(attachments),
+        obsErrors(hasDefinedObservations, hasUndefinedObservations),
+        deadlineErrors(users)
+      ).flatten.map(ProposalError(_))
 
 object Proposal:
   val call: Lens[Proposal, Option[CallForProposal]]                  =

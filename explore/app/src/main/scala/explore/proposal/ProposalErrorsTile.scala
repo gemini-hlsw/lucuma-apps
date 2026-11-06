@@ -9,9 +9,9 @@ import explore.components.ui.ExploreStyles
 import explore.model.ProposalTabTileIds
 import explore.utils.testId
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.ProposalSubmissionError
+import explore.model.ProposalError
 
-final case class ProposalErrorsTile(errors: List[ProposalSubmissionError])
+final case class ProposalErrorsTile(errors: List[ProposalError])
     extends Tile[ProposalErrorsTile](
       id = ProposalTabTileIds.ErrorsId.id,
       title = s"Errors (${errors.size})",
