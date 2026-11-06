@@ -455,13 +455,13 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(d.map(_.readMode), GnirsReadMode.Faint.some)
 
   test("A GNIRS filter change moves a long slit wavelength into the filter's range"):
-    val k = gnirs.filter.replace(GnirsFilter.Order3)(gnirsSpectro)
+    val k       = gnirs.filter.replace(GnirsFilter.Order3)(gnirsSpectro)
     assertEquals(gnirs.wavelength.getOption(k), GnirsFilter.Order3.centralWavelength.some)
     val inRange = gnirs.wavelength.replace(Wavelength.unsafeFromIntPicometers(2_120_000))(k)
     assertEquals(gnirs.wavelength.getOption(gnirs.filter.replace(GnirsFilter.H2)(inRange)),
                  Wavelength.unsafeFromIntPicometers(2_120_000).some
     )
-    val sxd = gnirs.prism.replace(GnirsPrism.Sxd)(gnirsSpectro)
+    val sxd     = gnirs.prism.replace(GnirsPrism.Sxd)(gnirsSpectro)
     assertEquals(gnirs.wavelength.getOption(gnirs.filter.replace(GnirsFilter.Order3)(sxd)),
                  gnirs.wavelength.getOption(sxd)
     )
