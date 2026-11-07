@@ -187,7 +187,7 @@ object PAConfigurationPanel:
             <.div(ExploreStyles.PAConfigurationMaskMismatch)(
               Icons.TriangleSolid.withClass(ExploreStyles.WarningIcon),
               <.span(
-                f"PA mismatch, mask file uses ${design.positionAngle.toDoubleDegrees}%.2f °"
+                f"PA mismatch, mask file PA is ${design.positionAngle.toDoubleDegrees}%.2f °"
               ),
               Button(
                 label = "Use mask PA",
