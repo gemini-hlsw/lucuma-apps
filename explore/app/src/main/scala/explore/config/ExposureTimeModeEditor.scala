@@ -18,12 +18,14 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 
 // See parameter comments on `ExposureTimeModeEditorOptional`
 final case class ExposureTimeModeEditor(
   instrument:               Option[Instrument],
+  exposureRules:            List[ExposureRule],
   wavelength:               Option[Wavelength],
   exposureTimeMode:         View[ExposureTimeMode],
   coadds:                   Option[View[PosInt]] = none,
@@ -53,6 +55,7 @@ object ExposureTimeModeEditor
         val oEtmWithOnMod = oEtm.withOnMod(_.foldMap(props.exposureTimeMode.set))
         ExposureTimeModeEditorOptional(
           props.instrument,
+          props.exposureRules,
           props.wavelength,
           oEtmWithOnMod,
           modeType,

@@ -9,6 +9,7 @@ import eu.timepit.refined.cats.*
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
+import explore.model.ExposureTimeRules
 import explore.model.ScienceRequirements
 import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
@@ -88,6 +89,7 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
         ).clearable(^.autoComplete.off),
         ExposureTimeModeEditorOptional(
           instrument = p.instrument,
+          exposureRules = ExposureTimeRules(p.instrument),
           wavelength = wv.get,
           exposureTimeMode = p.exposureTimeMode,
           exposureTimeModeType = p.exposureTimeModeType,

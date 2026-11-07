@@ -14,9 +14,12 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.TooltipOptions
 import lucuma.refined.*
 import lucuma.ui.input.*
 import lucuma.ui.primereact.FormInputTextView
@@ -26,6 +29,7 @@ import lucuma.ui.syntax.all.given
 
 case class TimeAndCountFieldsEditor(
   instrument:      Option[Instrument],
+  exposureRules:   List[ExposureRule],
   options:         View[TimeAndCountModeInfo],
   readonly:        Boolean,
   calibrationRole: Option[CalibrationRole],
@@ -43,13 +47,12 @@ object TimeAndCountFieldsEditor extends ConfigurationFormats:
       val exposureTime = props.options.zoom(TimeAndCountModeInfo.time)
       val count        = props.options.zoom(TimeAndCountModeInfo.count)
 
+      // GMOS and Flamingos 2 expose for whole seconds; the others accept fractions.
       val timeCodec: InputCodec[Option[TimeSpan]] = props.instrument
-        .collect {
-          case Instrument.GmosSouth | Instrument.GmosNorth | Instrument.Flamingos2 |
-              Instrument.Ghost =>
-            inputCodecs.ExposureTimeSeconds
+        .collect { case Instrument.GmosSouth | Instrument.GmosNorth | Instrument.Flamingos2 =>
+          inputCodecs.exposureTimeSeconds(props.exposureRules)
         }
-        .getOrElse(inputCodecs.ExposureTimeMilliseconds)
+        .getOrElse(inputCodecs.exposureTimeMilliseconds(props.exposureRules))
 
       React.Fragment(
         props.controlsWrapper(
@@ -60,6 +63,8 @@ object TimeAndCountFieldsEditor extends ConfigurationFormats:
             labelClass = props.labelClass,
             groupClass = ExploreStyles.WarningInput.when_(exposureTime.get.isEmpty),
             codec = timeCodec,
+            // A rule the typed value breaks is reported under the field.
+            tooltipOptions = TooltipOptions(position = Tooltip.Position.Bottom),
             postAddons =
               exposureTime.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
             units = "s",

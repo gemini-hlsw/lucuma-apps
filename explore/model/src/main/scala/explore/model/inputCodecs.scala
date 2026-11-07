@@ -13,6 +13,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.enums.WavelengthUnits
 import explore.model.formats.*
 import lucuma.core.data.EmailAddress
+import lucuma.core.enums.ObserveClass
 import lucuma.core.math.Angle
 import lucuma.core.math.ApparentRadialVelocity
 import lucuma.core.math.BrightnessValue
@@ -34,6 +35,8 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.ZeroTo100
+import lucuma.core.model.sequence.exposure.ExposureRule
+import lucuma.core.model.sequence.exposure.ExposureRules
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
 import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.optics.ValidFilter
@@ -113,10 +116,6 @@ trait inputCodecs:
     durationHM.optional.toCodec.withRegexMask(Masks.DurationHm)
   val DurationHms: InputCodec[TimeSpan]                       = durationHMS.toCodec.withRegexMask(Masks.DurationHms)
   val Time24h: InputCodec[LocalTime]                          = time24h.toCodec.withRegexMask(Masks.Hm)
-  val ExposureTimeSeconds: InputCodec[Option[TimeSpan]]       =
-    durationS.optional.toCodec.withIntegerMask(allowMinus = false)
-  val ExposureTimeMilliseconds: InputCodec[Option[TimeSpan]]  =
-    durationMs.optional.toCodec.withDecimalMask(2, allowMinus = false)
   val Igrins2CalibrationExposure: InputCodec[TimeSpan]        =
     InputValidWedge[TimeSpan](
       durationMs
@@ -135,6 +134,32 @@ trait inputCodecs:
       .withDecimalMask(2, allowMinus = false)
   val ProposalHours: InputCodec[BigDecimal Refined HourRange] =
     ExploreModelValidators.hoursValidWedge.toCodec.withDecimalMask(2)
+
+  // Exposure times, checked against the instrument's error rules (see `ExposureTimeRules`): a
+  // value the rules reject never leaves the field, so the ODB does not get to flag it. Warnings
+  // are left to the ODB.
+  private def exposureTime(
+    base:  InputValidWedge[TimeSpan],
+    rules: List[ExposureRule]
+  ): InputValidWedge[Option[TimeSpan]] =
+    InputValidWedge[TimeSpan](
+      base
+        .getValid(_)
+        .flatMap: t =>
+          NonEmptyChain
+            .fromSeq:
+              ExposureRules
+                .check(rules.filter(_.isError), t, ObserveClass.Science)
+                .flatMap(v => NonEmptyString.from(v.message).toOption)
+            .toLeft(t),
+      base.reverseGet
+    ).optional
+
+  def exposureTimeSeconds(rules: List[ExposureRule]): InputCodec[Option[TimeSpan]] =
+    exposureTime(durationS, rules).toCodec.withIntegerMask(allowMinus = false)
+
+  def exposureTimeMilliseconds(rules: List[ExposureRule]): InputCodec[Option[TimeSpan]] =
+    exposureTime(durationMs, rules).toCodec.withDecimalMask(2, allowMinus = false)
 
   // Counts and numbers
   val Integer: InputCodec[Int]                                                    = InputValidSplitEpi.int.toCodec.withIntegerMask()

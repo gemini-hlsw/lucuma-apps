@@ -26,6 +26,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.react.primereact.Button
@@ -36,6 +37,8 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 
 /**
+ * @param exposureRules - The lucuma-core rules a typed exposure time is checked against; one it
+ *    breaks is reported on the field and not set. See `ExposureTimeRules`.
  * @param idPrefix - Since we often have multiple exposure time editors on the page at one time, we add
  *    a prefix to the control ids.
  * @param forceCount - Forces the count for Time & Count to the provided value and does not display the
@@ -60,6 +63,7 @@ import lucuma.ui.syntax.all.given
  */
 case class ExposureTimeModeEditorOptional(
   instrument:               Option[Instrument],
+  exposureRules:            List[ExposureRule],
   wavelength:               Option[Wavelength],
   exposureTimeMode:         View[Option[ExposureTimeMode]],
   exposureTimeModeType:     View[ExposureTimeModeType],
@@ -216,6 +220,7 @@ object ExposureTimeModeEditorOptional:
           else
             TimeAndCountEditor(
               props.instrument,
+              props.exposureRules,
               tcModeView,
               props.coadds,
               props.scienceMode,

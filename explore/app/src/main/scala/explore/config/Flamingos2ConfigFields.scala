@@ -10,6 +10,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.offsets.SlitTelescopeConfigsEditor
+import explore.model.ExposureTimeRules
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.syntax.ui.*
@@ -132,6 +133,7 @@ object Flamingos2ConfigFields:
         <.div(LucumaPrimeStyles.FormColumnCompact)(
           ExposureTimeModeEditor(
             instrument = props.instrument,
+            exposureRules = ExposureTimeRules.flamingos2(props.readModeView.get),
             wavelength = none,
             exposureTimeMode = props.exposureTimeMode,
             coadds = none,

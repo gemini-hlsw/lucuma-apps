@@ -13,6 +13,7 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -130,6 +131,7 @@ object Flamingos2ImagingConfigPanel
           <.div(ExploreStyles.ImagingLowerGrid)(
             ImagingFiltersPanel(
               instrument = props.mode.instrument,
+              exposureRules = ExposureTimeRules.flamingos2(readModeView.get),
               filtersView = filtersView,
               filterLens = ObservingMode.Flamingos2Imaging.ImagingFilter.filter,
               etmLens = ObservingMode.Flamingos2Imaging.ImagingFilter.exposureTimeMode,

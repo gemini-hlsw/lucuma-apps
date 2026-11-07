@@ -16,6 +16,7 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.offsets.OffsetInput
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
@@ -252,6 +253,7 @@ object GnirsImagingConfigPanel
             <.div(ExploreStyles.ImagingLowerGridStack)(
               ImagingFiltersPanel(
                 instrument = props.mode.instrument,
+                exposureRules = ExposureTimeRules.gnirs(readModeView.get),
                 filtersView = filtersView,
                 filterLens = ObservingMode.GnirsImaging.ImagingFilter.filter,
                 etmLens = ObservingMode.GnirsImaging.ImagingFilter.exposureTimeMode,
@@ -317,6 +319,7 @@ object GnirsImagingConfigPanel
                   <.div(LucumaPrimeStyles.FormColumnCompact)(
                     ExposureTimeModeEditor(
                       instrument = props.mode.instrument,
+                      exposureRules = ExposureTimeRules(props.mode.instrument),
                       wavelength = none,
                       exposureTimeMode = acquisitionExposureTimeView,
                       coadds = acquisitionCoaddsView.some,

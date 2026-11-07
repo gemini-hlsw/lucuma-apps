@@ -14,6 +14,7 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Attachment
+import explore.model.ExposureTimeRules
 import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
@@ -278,6 +279,7 @@ object Flamingos2MosConfigPanel
                   // signal-to-noise mode, so only the exposure time is offered.
                   ExposureTimeModeEditor(
                     instrument = props.observingMode.get.instrument,
+                    exposureRules = ExposureTimeRules(props.observingMode.get.instrument),
                     wavelength = none,
                     exposureTimeMode = acquisitionExposureTimeView,
                     coadds = none,

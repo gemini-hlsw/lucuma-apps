@@ -23,6 +23,7 @@ import lucuma.core.enums.ScienceMode
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
@@ -39,6 +40,7 @@ import monocle.Lens
 
 case class ImagingFiltersPanel[ImagingFilter, Filter](
   instrument:                   Option[Instrument],
+  exposureRules:                List[ExposureRule],
   filtersView:                  View[NonEmptyList[ImagingFilter]],
   filterLens:                   Lens[ImagingFilter, Filter],
   etmLens:                      Lens[ImagingFilter, ExposureTimeMode],
@@ -139,6 +141,7 @@ object ImagingFiltersPanel:
                     ),
                     ExposureTimeModeEditor(
                       instrument = props.instrument,
+                      exposureRules = props.exposureRules,
                       wavelength = none,
                       exposureTimeMode = imagingFilterView.zoom(props.etmLens),
                       coadds = props.coaddsLens.map(imagingFilterView.zoom(_)),

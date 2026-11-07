@@ -17,6 +17,7 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.offsets.OffsetInput
 import explore.model.AppContext
+import explore.model.ExposureTimeRules
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.model.inputCodecs
@@ -415,6 +416,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
         ),
         GnirsWavelengthsPanel(
           instrument = gnirsInstrument,
+          exposureRules = ExposureTimeRules.gnirs(readModeView.get),
           wavelengthsView = centralWavelengthsView,
           initialWavelengths = initialCentralWavelengths,
           // A new row with no explicit exposure time mode falls back to the
@@ -475,6 +477,7 @@ abstract class GnirsSpectroscopyPanelBuilder[
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 ExposureTimeModeEditor(
                   instrument = gnirsInstrument,
+                  exposureRules = ExposureTimeRules(gnirsInstrument),
                   wavelength = none,
                   exposureTimeMode = acquisitionExposureTimeView,
                   coadds = acquisitionCoaddsView.some,

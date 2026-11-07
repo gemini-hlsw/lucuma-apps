@@ -37,6 +37,8 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.sequence.DetectorEstimate
+import lucuma.core.model.sequence.exposure.ExposureRule
+import lucuma.core.model.sequence.exposure.ExposureRules
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
@@ -199,6 +201,7 @@ object GhostIfuConfigPanel
         def detectorPanel(
           label:         String,
           detector:      GhostIfu.GhostDetector,
+          exposureRules: List[ExposureRule],
           colorClazz:    Css,
           idPrefix:      NonEmptyString,
           aligner:       Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput],
@@ -238,6 +241,7 @@ object GhostIfuConfigPanel
               LucumaPrimeStyles.FormColumnCompact,
               TimeAndCountModeEditor(
                 instrument = mode.instrument,
+                exposureRules = exposureRules,
                 value = timeAndCountView,
                 readonly = !props.permissions.isFullEdit,
                 calibrationRole = props.calibrationRole,
@@ -334,6 +338,7 @@ object GhostIfuConfigPanel
             detectorPanel(
               label = "Blue Camera",
               detector = mode.blue,
+              exposureRules = ExposureRules.ghostBlue,
               colorClazz = LucumaStyles.GhostBlue,
               idPrefix = "ghostBlue".refined,
               aligner = detectorAligner(GhostIfu.blue, GhostIfuInput.blue),
@@ -343,6 +348,7 @@ object GhostIfuConfigPanel
             detectorPanel(
               label = "Red Camera",
               detector = mode.red,
+              exposureRules = ExposureRules.ghostRed,
               colorClazz = LucumaStyles.GhostRed,
               idPrefix = "ghostRed".refined,
               aligner = detectorAligner(GhostIfu.red, GhostIfuInput.red),

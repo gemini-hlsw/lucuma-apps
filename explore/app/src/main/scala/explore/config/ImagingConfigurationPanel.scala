@@ -8,6 +8,7 @@ import crystal.react.View
 import explore.components.HelpIcon
 import explore.model.BroadBand
 import explore.model.Combination
+import explore.model.ExposureTimeRules
 import explore.model.NarrowBand
 import explore.model.ScienceRequirements
 import explore.model.display.given
@@ -92,6 +93,7 @@ object ImagingConfigurationPanel
         ),
         ExposureTimeModeEditorOptional(
           instrument = p.instrument,
+          exposureRules = ExposureTimeRules(p.instrument),
           wavelength = none,
           exposureTimeMode = p.exposureTimeMode,
           exposureTimeModeType = p.exposureTimeModeType,

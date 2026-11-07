@@ -7,6 +7,7 @@ import cats.syntax.all.*
 import crystal.react.View
 import explore.components.*
 import explore.components.ui.ExploreStyles
+import explore.model.ExposureTimeRules
 import explore.model.Help
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
@@ -66,6 +67,7 @@ private[config] def gmosAcqPanel[Roi: Enumerated: Display, Filter: Enumerated: D
       LucumaPrimeStyles.FormColumnCompact,
       ExposureTimeModeEditor(
         instrument = props.instrument,
+        exposureRules = ExposureTimeRules(props.instrument),
         wavelength = none,
         exposureTimeMode = exposureTimeMode,
         coadds = none,
