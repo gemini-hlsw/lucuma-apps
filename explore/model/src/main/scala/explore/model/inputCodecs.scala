@@ -37,6 +37,7 @@ import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.ZeroTo100
 import lucuma.core.model.sequence.exposure.ExposureRule
 import lucuma.core.model.sequence.exposure.ExposureRules
+import lucuma.core.model.sequence.ghost as ghost
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
 import lucuma.core.model.sequence.igrins2 as igrins2
 import lucuma.core.optics.ValidFilter
@@ -111,28 +112,30 @@ trait inputCodecs:
     valid.toCodec.withDecimalMask(1)
 
   // Time
-  val DurationHm: InputCodec[TimeSpan]                        = durationHM.toCodec.withRegexMask(Masks.DurationHm)
-  val DurationHmOptional: InputCodec[Option[TimeSpan]]        =
+  val DurationHm: InputCodec[TimeSpan]                                            = durationHM.toCodec.withRegexMask(Masks.DurationHm)
+  val DurationHmOptional: InputCodec[Option[TimeSpan]]                            =
     durationHM.optional.toCodec.withRegexMask(Masks.DurationHm)
-  val DurationHms: InputCodec[TimeSpan]                       = durationHMS.toCodec.withRegexMask(Masks.DurationHms)
-  val Time24h: InputCodec[LocalTime]                          = time24h.toCodec.withRegexMask(Masks.Hm)
-  val Igrins2CalibrationExposure: InputCodec[TimeSpan]        =
+  val DurationHms: InputCodec[TimeSpan]                                           = durationHMS.toCodec.withRegexMask(Masks.DurationHms)
+  val Time24h: InputCodec[LocalTime]                                              = time24h.toCodec.withRegexMask(Masks.Hm)
+  private def boundedExposure(min: TimeSpan, max: TimeSpan): InputCodec[TimeSpan] =
     InputValidWedge[TimeSpan](
       durationMs
         .getValid(_)
         .flatMap: t =>
-          if t >= igrins2.MinExposureTime && t <= igrins2.MaxExposureTime then t.asRight
+          if t >= min && t <= max then t.asRight
           else
             NonEmptyChain(
-              NonEmptyString.unsafeFrom(
-                s"Must be between ${seconds(igrins2.MinExposureTime)} and ${seconds(igrins2.MaxExposureTime)} s"
-              )
+              NonEmptyString.unsafeFrom(s"Must be between ${seconds(min)} and ${seconds(max)} s")
             ).asLeft
       ,
       durationMs.reverseGet
     ).toCodec
       .withDecimalMask(2, allowMinus = false)
-  val ProposalHours: InputCodec[BigDecimal Refined HourRange] =
+  val Igrins2CalibrationExposure: InputCodec[TimeSpan]                            =
+    boundedExposure(igrins2.MinExposureTime, igrins2.MaxExposureTime)
+  val GhostCalibrationExposure: InputCodec[TimeSpan]                              =
+    boundedExposure(ghost.MinExposureTime, ghost.MaxExposureTime)
+  val ProposalHours: InputCodec[BigDecimal Refined HourRange]                     =
     ExploreModelValidators.hoursValidWedge.toCodec.withDecimalMask(2)
 
   // Exposure times, checked against the instrument's error rules (see `ExposureTimeRules`): a

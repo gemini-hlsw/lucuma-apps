@@ -44,7 +44,7 @@ private[config] object GnirsDaytimeCalibrationColumns:
       Instrument.Gnirs,
       setsView,
       editable,
-      setup(_).zoom(GnirsDaytimeSetup.exposure),
+      Some(setup(_).zoom(GnirsDaytimeSetup.exposure)),
       List(
         ColDef(
           CoaddsColumnId,

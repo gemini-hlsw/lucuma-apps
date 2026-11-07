@@ -44,7 +44,7 @@ private[config] object GmosDaytimeCalibrationColumns:
       site.instrument,
       setsView,
       editable,
-      setup(_).zoom(site.exposure),
+      Some(setup(_).zoom(site.exposure)),
       List(
         ColDef(
           FpuColumnId,

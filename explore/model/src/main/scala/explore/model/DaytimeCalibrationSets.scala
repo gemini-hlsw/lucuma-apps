@@ -15,6 +15,8 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
@@ -31,6 +33,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.DaytimeCalibrationSetup
+import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 
@@ -451,6 +454,63 @@ object GnirsDaytimeSetup:
     )
 
 /**
+ * The GHOST Instrument Setup the Daytime Calibration Set editor works through. The fiber agitators
+ * stay disabled: a daytime calibration has no target.
+ */
+object GhostDaytimeSetup:
+  val setup: Optional[DaytimeCalibrationSetup, GhostDynamicConfig] =
+    DaytimeCalibrationSetup.ghost.andThen(DaytimeCalibrationSetup.Ghost.config)
+
+  val DefaultExposure: TimeSpan = TimeSpan.unsafeFromMicroseconds(10_000_000)
+
+  val DefaultDetector: GhostDetector =
+    GhostDetector(
+      DefaultExposure,
+      DaytimeCalibrationSets.DefaultCount,
+      GhostBinning.OneByOne,
+      GhostReadMode.Slow
+    )
+
+  val red: Lens[GhostDynamicConfig, GhostDetector] =
+    Lens[GhostDynamicConfig, GhostDetector](_.red.value)(r => _.copy(red = r.asRed))
+
+  val blue: Lens[GhostDynamicConfig, GhostDetector] =
+    Lens[GhostDynamicConfig, GhostDetector](_.blue.value)(b => _.copy(blue = b.asBlue))
+
+  val exposureTime: Lens[GhostDetector, TimeSpan]  = Focus[GhostDetector](_.exposureTime)
+  val exposureCount: Lens[GhostDetector, PosInt]   = Focus[GhostDetector](_.exposureCount)
+  val binning: Lens[GhostDetector, GhostBinning]   = Focus[GhostDetector](_.binning)
+  val readMode: Lens[GhostDetector, GhostReadMode] = Focus[GhostDetector](_.readMode)
+
+  /**
+   * Smart GCAL supplies a smart row's exposures, and only for 1x1 binning, so a smart kind starts
+   * there; the binning stays editable.
+   */
+  def forKind(kind: CalibrationSetType)(d: GhostDynamicConfig): GhostDynamicConfig =
+    def detector(g: GhostDetector): GhostDetector =
+      val exposed =
+        g.copy(exposureTime =
+          DaytimeCalibrationSets.exposureFor(kind, g.exposureTime, DefaultExposure)
+        )
+      if kind.isSmart then
+        exposed.copy(exposureCount = DaytimeCalibrationSets.DefaultCount,
+                     binning = GhostBinning.OneByOne
+        )
+      else exposed
+    red.modify(detector).andThen(blue.modify(detector))(d)
+
+  val default: GhostDynamicConfig =
+    GhostDynamicConfig(DefaultDetector.asRed, DefaultDetector.asBlue)
+
+  val defaultSet: DaytimeCalibrationSet =
+    DaytimeCalibrationSet(
+      CalibrationSetType.Dark,
+      DaytimeCalibrationSets.DefaultCount.some,
+      none,
+      DaytimeCalibrationSetup.Ghost(default)
+    )
+
+/**
  * The editing rules of Daytime Calibration Sets: every edit leaves a row the ODB accepts, since
  * rows are saved as they change.
  */
@@ -476,14 +536,15 @@ object DaytimeCalibrationSets:
       Instrument.GmosSouth,
       Instrument.Flamingos2,
       Instrument.Igrins2,
-      Instrument.Gnirs
+      Instrument.Gnirs,
+      Instrument.Ghost
     )
 
   /** The diffuser the ODB defaults to: visible for GMOS, IR for the infrared instruments. */
   def defaultDiffuser(instrument: Instrument): GcalDiffuser =
     instrument match
-      case Instrument.GmosNorth | Instrument.GmosSouth => GcalDiffuser.Visible
-      case _                                           => GcalDiffuser.Ir
+      case Instrument.GmosNorth | Instrument.GmosSouth | Instrument.Ghost => GcalDiffuser.Visible
+      case _                                                              => GcalDiffuser.Ir
 
   def defaultGcal(instrument: Instrument): StepConfig.Gcal =
     StepConfig.Gcal(
@@ -538,6 +599,9 @@ object DaytimeCalibrationSets:
   val GnirsKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.Bias)
 
+  val GhostKinds: List[CalibrationSetType] =
+    Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.DaytimeObserve)
+
   /** Flamingos 2 and IGRINS-2 take neither a bias nor a daytime observe. */
   val NoBiasKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(k =>
@@ -549,6 +613,7 @@ object DaytimeCalibrationSets:
     instrument match
       case Instrument.Flamingos2 | Instrument.Igrins2 => NoBiasKinds
       case Instrument.Gnirs                           => GnirsKinds
+      case Instrument.Ghost                           => GhostKinds
       case _                                          => Enumerated[CalibrationSetType].all
 
   /** The continuum lamps an instrument can't use: the 100W QH lamp is GHOST only. */
@@ -562,6 +627,7 @@ object DaytimeCalibrationSets:
       case Instrument.Flamingos2 => Flamingos2DaytimeSetup.defaultSet.some
       case Instrument.Igrins2    => Igrins2DaytimeSetup.defaultSet.some
       case Instrument.Gnirs      => GnirsDaytimeSetup.defaultSet.some
+      case Instrument.Ghost      => GhostDaytimeSetup.defaultSet.some
       case i                     => GmosDaytimeSetup.forInstrument(i).map(_.defaultSet)
 
   /** The GCAL setup a kind needs, keeping the filter and shutter of the current one. */
@@ -645,6 +711,8 @@ object DaytimeCalibrationSets:
         DaytimeCalibrationSetup.Igrins2(Igrins2DaytimeSetup.forKind(kind)(d))
       case DaytimeCalibrationSetup.Gnirs(d)      =>
         DaytimeCalibrationSetup.Gnirs(GnirsDaytimeSetup.forKind(kind, set.kind)(d))
+      case DaytimeCalibrationSetup.Ghost(d)      =>
+        DaytimeCalibrationSetup.Ghost(GhostDaytimeSetup.forKind(kind)(d))
     set.copy(
       kind = kind,
       explicitCount = count,
@@ -654,8 +722,8 @@ object DaytimeCalibrationSets:
     )
 
   /**
-   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2, IGRINS-2 and
-   * GNIRS); none for an unsupported instrument.
+   * A new row copies the last one, or starts as a single bias (a dark for Flamingos 2, IGRINS-2,
+   * GNIRS and GHOST); none for an unsupported instrument.
    */
   def newRow(
     sets:       List[DaytimeCalibrationSet],

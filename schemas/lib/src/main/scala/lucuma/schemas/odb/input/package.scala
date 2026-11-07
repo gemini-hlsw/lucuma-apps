@@ -1232,6 +1232,10 @@ extension (s: DaytimeCalibrationSet)
       gnirs = DaytimeCalibrationSetup.gnirs
         .getOption(s.setup)
         .map(_.config.toInput)
+        .orUnassign,
+      ghost = DaytimeCalibrationSetup.ghost
+        .getOption(s.setup)
+        .map(_.config.toInput)
         .orUnassign
     )
 
