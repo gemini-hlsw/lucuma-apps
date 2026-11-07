@@ -76,19 +76,23 @@ object DaytimeCalibrationSetsTable:
   // Not exposed by the MultiSelect binding; reaches PrimeReact as a raw prop.
   private val SelectAllLabel = VdomAttr("selectAllLabel")
 
-  private val DragHandleColumnId: ColumnId       = ColumnId("dragHandle")
-  private val KindColumnId: ColumnId             = ColumnId("kind")
-  private val CountColumnId: ColumnId            = ColumnId("count")
-  private val ExposureColumnId: ColumnId         = ColumnId("exposure")
-  private[config] val FpuColumnId: ColumnId      = ColumnId("fpu")
-  private[config] val GratingColumnId: ColumnId  = ColumnId("grating")
-  private[config] val FilterColumnId: ColumnId   = ColumnId("filter")
-  private[config] val ReadModeColumnId: ColumnId = ColumnId("readMode")
-  private val GcalGroupColumnId: ColumnId        = ColumnId("gcal")
-  private val LampColumnId: ColumnId             = ColumnId("lamp")
-  private val GcalFilterColumnId: ColumnId       = ColumnId("gcalFilter")
-  private val ShutterColumnId: ColumnId          = ColumnId("shutter")
-  private val DeleteColumnId: ColumnId           = ColumnId("delete")
+  private val DragHandleColumnId: ColumnId        = ColumnId("dragHandle")
+  private val KindColumnId: ColumnId              = ColumnId("kind")
+  private val CountColumnId: ColumnId             = ColumnId("count")
+  private val ExposureColumnId: ColumnId          = ColumnId("exposure")
+  private[config] val FpuColumnId: ColumnId       = ColumnId("fpu")
+  private[config] val GratingColumnId: ColumnId   = ColumnId("grating")
+  private[config] val FilterColumnId: ColumnId    = ColumnId("filter")
+  private[config] val ReadModeColumnId: ColumnId  = ColumnId("readMode")
+  private val GcalGroupColumnId: ColumnId         = ColumnId("gcal")
+  private[config] val RedGroupColumnId: ColumnId  = ColumnId("red")
+  private[config] val BlueGroupColumnId: ColumnId = ColumnId("blue")
+  private val groupColumnIds: Set[ColumnId]       =
+    Set(GcalGroupColumnId, RedGroupColumnId, BlueGroupColumnId)
+  private val LampColumnId: ColumnId              = ColumnId("lamp")
+  private val GcalFilterColumnId: ColumnId        = ColumnId("gcalFilter")
+  private val ShutterColumnId: ColumnId           = ColumnId("shutter")
+  private val DeleteColumnId: ColumnId            = ColumnId("delete")
 
   private val ArcGroups: NonEmptyList[(String, GcalArc => Boolean)] =
     NonEmptyList.one(("Arcs", _ => true))
@@ -169,7 +173,7 @@ object DaytimeCalibrationSetsTable:
     instrument:    Instrument,
     setsView:      View[List[DaytimeCalibrationSet]],
     editable:      Boolean,
-    exposureView:  Int => View[TimeSpan],
+    exposureView:  Option[Int => View[TimeSpan]],
     setupColumns:  List[ColDef.Type],
     exposureCodec: InputCodec[TimeSpan] = ExposureSeconds
   ): List[ColDef.Type] =
@@ -177,6 +181,22 @@ object DaytimeCalibrationSetsTable:
 
     val excludedKinds: Set[CalibrationSetType] =
       Enumerated[CalibrationSetType].all.toSet -- kinds(instrument)
+
+    val exposureColumn: Option[ColDef.Type] = exposureView.map: exposure =>
+      ColDef(
+        ExposureColumnId,
+        header = "Exp Time (s)",
+        cell = c =>
+          if usesExposure(c.row.original._1.kind) then
+            FormInputTextView(
+              id = cellId(ExposureColumnId, c.row.original._2),
+              value = exposure(c.row.original._2),
+              codec = exposureCodec,
+              groupClass = SequenceStyles.SequenceInput,
+              disabled = !editable
+            )
+          else EmptyVdom
+      ).withSize(70.toPx)
 
     List(
       ColDef(
@@ -222,22 +242,8 @@ object DaytimeCalibrationSetsTable:
               groupClass = SequenceStyles.SequenceInput,
               disabled = !editable
             )
-      ).withSize(60.toPx),
-      ColDef(
-        ExposureColumnId,
-        header = "Exp Time (s)",
-        cell = c =>
-          if usesExposure(c.row.original._1.kind) then
-            FormInputTextView(
-              id = cellId(ExposureColumnId, c.row.original._2),
-              value = exposureView(c.row.original._2),
-              codec = exposureCodec,
-              groupClass = SequenceStyles.SequenceInput,
-              disabled = !editable
-            )
-          else EmptyVdom
-      ).withSize(70.toPx)
-    ) ++ setupColumns ++ List(
+      ).withSize(60.toPx)
+    ) ++ exposureColumn.toList ++ setupColumns ++ List(
       ColDef.group(
         GcalGroupColumnId,
         header = "GCAL",
@@ -354,15 +360,19 @@ object DaytimeCalibrationSetsTable:
                             Flamingos2DaytimeCalibrationColumns(props.setsView, editable)
                           case Instrument.Gnirs      =>
                             GnirsDaytimeCalibrationColumns(props.setsView, editable, units)
+                          case Instrument.Ghost      =>
+                            GhostDaytimeCalibrationColumns(props.setsView, editable)
                           case Instrument.Igrins2    =>
                             columns(
                               Instrument.Igrins2,
                               props.setsView,
                               editable,
-                              setupView(props.setsView,
-                                        Igrins2DaytimeSetup.setup,
-                                        Igrins2DaytimeSetup.default
-                              )(_).zoom(Igrins2DynamicConfig.exposure),
+                              Some(
+                                setupView(props.setsView,
+                                          Igrins2DaytimeSetup.setup,
+                                          Igrins2DaytimeSetup.default
+                                )(_).zoom(Igrins2DynamicConfig.exposure)
+                              ),
                               Nil,
                               inputCodecs.Igrins2CalibrationExposure
                             )
@@ -396,7 +406,7 @@ object DaytimeCalibrationSetsTable:
             headerCellMod = _.column.id match
               case id if id == DragHandleColumnId || id == DeleteColumnId =>
                 SequenceStyles.HiddenColTableHeader
-              case id if id == GcalGroupColumnId                          =>
+              case id if groupColumnIds.contains(id)                      =>
                 ExploreStyles.DaytimeCalGroupHeader
               case _                                                      => TagMod.empty,
             rowMod = tableDnd.rowMod(),

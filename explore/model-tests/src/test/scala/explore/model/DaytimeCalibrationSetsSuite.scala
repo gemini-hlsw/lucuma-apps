@@ -11,6 +11,8 @@ import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
@@ -132,7 +134,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(first.map(_.kind), CalibrationSetType.Bias.some)
     assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
     assertEquals(first.map(_.setup.instrument), Instrument.GmosSouth.some)
-    assertEquals(newRow(Nil, Instrument.Ghost), none)
+    assertEquals(newRow(Nil, Instrument.Alopeke), none)
 
   test("A new Flamingos 2 row starts as a single dark with no window cover"):
     val first = newRow(Nil, Instrument.Flamingos2)
@@ -186,8 +188,10 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(f2.disperser, Flamingos2DaytimeSetup.DefaultDisperser.some)
 
   test("Only GHOST may use the 100W QH lamp"):
-    Instruments.foreach: i =>
-      assertEquals(excludedContinua(i), Set(GcalContinuum.QuartzHalogen100W))
+    Instruments
+      .filterNot(_ === Instrument.Ghost)
+      .foreach: i =>
+        assertEquals(excludedContinua(i), Set(GcalContinuum.QuartzHalogen100W))
     assertEquals(excludedContinua(Instrument.Ghost), Set.empty[GcalContinuum])
 
   test("The default lamp is offered for every instrument"):
@@ -250,7 +254,7 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
                  TimeSpan.unsafeFromMicroseconds(45_000_000).some
     )
 
-  test("Infrared flats use the IR diffuser, GMOS flats the visible one"):
+  test("Infrared flats use the IR diffuser, GMOS and GHOST flats the visible one"):
     List(
       Flamingos2DaytimeSetup.defaultSet,
       Igrins2DaytimeSetup.defaultSet,
@@ -259,9 +263,10 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       assertEquals(withKind(set, CalibrationSetType.Flat).gcal.map(_.diffuser),
                    GcalDiffuser.Ir.some
       )
-    assertEquals(withKind(dark, CalibrationSetType.Flat).gcal.map(_.diffuser),
-                 GcalDiffuser.Visible.some
-    )
+    List(dark, GhostDaytimeSetup.defaultSet).foreach: set =>
+      assertEquals(withKind(set, CalibrationSetType.Flat).gcal.map(_.diffuser),
+                   GcalDiffuser.Visible.some
+      )
 
   test("A Flamingos 2 dark gets the default optics"):
     val flat   = withKind(Flamingos2DaytimeSetup.defaultSet, CalibrationSetType.Flat)
@@ -544,4 +549,102 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assertEquals(
       decode[DaytimeCalibrationSet](json).map(_.setup),
       DaytimeCalibrationSetup.Gnirs(gnirs.default).asRight
+    )
+
+  val ghost = GhostDaytimeSetup
+
+  def ghostConfig(s: DaytimeCalibrationSet): Option[GhostDynamicConfig] =
+    ghost.setup.getOption(s.setup)
+
+  def ghostDetectors(s: DaytimeCalibrationSet): Option[(GhostDetector, GhostDetector)] =
+    ghostConfig(s).map(d => (ghost.red.get(d), ghost.blue.get(d)))
+
+  val ghostHand: GhostDetector =
+    GhostDetector(
+      TimeSpan.unsafeFromMicroseconds(30_000_000),
+      PosInt.unsafeFrom(3),
+      GhostBinning.TwoByTwo,
+      GhostReadMode.Fast
+    )
+
+  val ghostHandSet: DaytimeCalibrationSet =
+    ghost.defaultSet.copy(setup =
+      DaytimeCalibrationSetup.Ghost(
+        ghost.default.copy(red = ghostHand.asRed, blue = ghostHand.asBlue)
+      )
+    )
+
+  test("A new GHOST row starts as a single dark with both detectors at 10 s, 1x1 and slow"):
+    val first    = newRow(Nil, Instrument.Ghost)
+    assertEquals(first.map(_.kind), CalibrationSetType.Dark.some)
+    assertEquals(first.flatMap(_.explicitCount).map(_.value), 1.some)
+    val detector = GhostDetector(
+      TimeSpan.unsafeFromMicroseconds(10_000_000),
+      PosInt.unsafeFrom(1),
+      GhostBinning.OneByOne,
+      GhostReadMode.Slow
+    )
+    assertEquals(first.flatMap(ghostDetectors), (detector, detector).some)
+    assertEquals(first.flatMap(ghostConfig).map(_.ifu1FiberAgitator),
+                 GhostIfu1FiberAgitator.Disabled.some
+    )
+
+  test("GHOST takes every kind but a daytime observe"):
+    assert(supports(Instrument.Ghost))
+    assert(kinds(Instrument.Ghost).contains(CalibrationSetType.Bias))
+    assert(!kinds(Instrument.Ghost).contains(CalibrationSetType.DaytimeObserve))
+
+  test("A GHOST bias zeroes both exposure times, keeping the rest, and leaving it restores them"):
+    val bias = withKind(ghostHandSet, CalibrationSetType.Bias)
+    val zero = ghostHand.copy(exposureTime = TimeSpan.Zero)
+    assertEquals(ghostDetectors(bias), (zero, zero).some)
+    val back = ghostDetectors(withKind(bias, CalibrationSetType.Dark)).map(_._1.exposureTime)
+    assertEquals(back, ghost.DefaultExposure.some)
+
+  test("A GHOST smart kind zeroes both exposures and starts at 1x1, still editable"):
+    val smart    = withKind(ghostHandSet, CalibrationSetType.SmartFlat)
+    val detector =
+      ghostHand.copy(exposureTime = TimeSpan.Zero,
+                     exposureCount = PosInt.unsafeFrom(1),
+                     binning = GhostBinning.OneByOne
+      )
+    assertEquals(ghostDetectors(smart), (detector, detector).some)
+    val rebinned = smart.copy(setup =
+      DaytimeCalibrationSetup.Ghost(
+        ghost.red.andThen(ghost.binning).replace(GhostBinning.TwoByTwo)(ghostConfig(smart).get)
+      )
+    )
+    assertEquals(ghostDetectors(rebinned).map(_._1.binning), GhostBinning.TwoByTwo.some)
+    val back     = ghostDetectors(withKind(smart, CalibrationSetType.Flat))
+    assertEquals(back.map(_._1.exposureTime), ghost.DefaultExposure.some)
+
+  test("A GHOST calibration set decodes its setup"):
+    val detector =
+      """{
+          "exposureTime": { "microseconds": 10000000 },
+          "exposureCount": 1,
+          "binning": "ONE_BY_ONE",
+          "readMode": "SLOW"
+        }"""
+    val json     =
+      s"""{
+        "kind": "DARK",
+        "count": 1,
+        "explicitCount": 1,
+        "gcal": null,
+        "gmosNorth": null,
+        "gmosSouth": null,
+        "flamingos2": null,
+        "igrins2": null,
+        "gnirs": null,
+        "ghost": {
+          "red": $detector,
+          "blue": $detector,
+          "ifu1FiberAgitator": "DISABLED",
+          "ifu2FiberAgitator": "DISABLED"
+        }
+      }"""
+    assertEquals(
+      decode[DaytimeCalibrationSet](json).map(_.setup),
+      DaytimeCalibrationSetup.Ghost(ghost.default).asRight
     )

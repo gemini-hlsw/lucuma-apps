@@ -31,7 +31,7 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
       Instrument.Flamingos2,
       setsView,
       editable,
-      setup(_).zoom(Flamingos2DynamicConfig.exposure),
+      Some(setup(_).zoom(Flamingos2DynamicConfig.exposure)),
       List(
         ColDef(
           FilterColumnId,
