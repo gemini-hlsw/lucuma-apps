@@ -6,7 +6,6 @@ package explore.config
 import crystal.react.View
 import eu.timepit.refined.cats.given
 import explore.config.DaytimeCalibrationSetsTable.*
-import explore.model.DaytimeCalibrationSets
 import explore.model.GhostDaytimeSetup
 import explore.model.inputCodecs
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -14,14 +13,10 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.react.common.Css
-import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
-import lucuma.ui.primereact.*
-import lucuma.ui.primereact.given
-import lucuma.ui.sequence.SequenceStyles
 import monocle.Lens
 
 private[config] object GhostDaytimeCalibrationColumns:
@@ -39,57 +34,35 @@ private[config] object GhostDaytimeCalibrationColumns:
       color:    Css,
       detector: Lens[GhostDynamicConfig, GhostDetector]
     ): ColDef.Type =
-      def colId(field: String): ColumnId = ColumnId(s"$name-$field")
-      def view(idx: Int): View[GhostDetector] = setup(idx).zoom(detector)
+      def colId(field: String): ColumnId         = ColumnId(s"$name-$field")
+      def view(idx:    Int): View[GhostDetector] = setup(idx).zoom(detector)
 
       ColDef.group(
         groupId,
         header = _ => <.span(color)(name.capitalize),
         columns = List(
-          ColDef(
+          inputColumn(
             colId("exposure"),
-            header = "Exp (s)",
-            cell = c =>
-              val idx: Int = c.row.original._2
-              if DaytimeCalibrationSets.usesExposure(c.row.original._1.kind) then
-                FormInputTextView(
-                  id = cellId(colId("exposure"), idx),
-                  value = view(idx).zoom(GhostDaytimeSetup.exposureTime),
-                  codec = inputCodecs.GhostCalibrationExposure,
-                  groupClass = SequenceStyles.SequenceInput,
-                  disabled = !editable
-                )
-              else EmptyVdom
-          ).withSize(70.toPx),
-          ColDef(
+            "Exp (s)",
+            70,
+            editable,
+            inputCodecs.GhostCalibrationExposure,
+            withExposure
+          )(view(_).zoom(GhostDaytimeSetup.exposureTime)),
+          inputColumn(
             colId("count"),
-            header = "#",
-            cell = c =>
-              val idx: Int = c.row.original._2
-              if c.row.original._1.kind.isSmart then EmptyVdom
-              else
-                FormInputTextView(
-                  id = cellId(colId("count"), idx),
-                  value = view(idx).zoom(GhostDaytimeSetup.exposureCount),
-                  codec = inputCodecs.PositiveInt,
-                  groupClass = SequenceStyles.SequenceInput,
-                  disabled = !editable
-                )
-          ).withSize(50.toPx),
-          ColDef(
-            colId("readMode"),
-            header = "Read",
-            cell = c =>
-              val idx: Int = c.row.original._2
-              dropdown(colId("readMode"), idx, view(idx).zoom(GhostDaytimeSetup.readMode), editable)
-          ).withSize(80.toPx),
-          ColDef(
-            colId("binning"),
-            header = "Bin",
-            cell = c =>
-              val idx: Int = c.row.original._2
-              dropdown(colId("binning"), idx, view(idx).zoom(GhostDaytimeSetup.binning), editable)
-          ).withSize(70.toPx)
+            "#",
+            50,
+            editable,
+            inputCodecs.PositiveInt,
+            r => !r._1.kind.isSmart
+          )(view(_).zoom(GhostDaytimeSetup.exposureCount)),
+          dropdownColumn(colId("readMode"), "Read", 80, editable)(
+            view(_).zoom(GhostDaytimeSetup.readMode)
+          ),
+          dropdownColumn(colId("binning"), "Bin", 70, editable)(
+            view(_).zoom(GhostDaytimeSetup.binning)
+          )
         )
       )
 
@@ -97,7 +70,6 @@ private[config] object GhostDaytimeCalibrationColumns:
       Instrument.Ghost,
       setsView,
       editable,
-      None,
       List(
         detectorColumns("red", RedGroupColumnId, LucumaStyles.GhostRed, GhostDaytimeSetup.red),
         detectorColumns("blue", BlueGroupColumnId, LucumaStyles.GhostBlue, GhostDaytimeSetup.blue)

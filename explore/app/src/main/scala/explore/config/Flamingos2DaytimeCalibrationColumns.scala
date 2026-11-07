@@ -11,7 +11,6 @@ import explore.model.display.given
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
-import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 
@@ -31,94 +30,41 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
       Instrument.Flamingos2,
       setsView,
       editable,
-      Some(setup(_).zoom(Flamingos2DynamicConfig.exposure)),
       List(
-        ColDef(
-          FilterColumnId,
-          header = "Filter",
-          cell = c =>
-            opticsCell(c.row.original):
-              dropdown(
-                FilterColumnId,
-                c.row.original._2,
-                setup(c.row.original._2).zoom(Flamingos2DynamicConfig.filter),
-                editable
-              )
-        ).withSize(90.toPx),
-        ColDef(
+        exposureColumn(editable)(setup(_).zoom(Flamingos2DynamicConfig.exposure)),
+        dropdownColumn(FilterColumnId, "Filter", 90, editable, withOptics)(
+          setup(_).zoom(Flamingos2DynamicConfig.filter)
+        ),
+        optionalDropdownColumn(
           GratingColumnId,
-          header = "Grating",
-          cell = c =>
-            opticsCell(c.row.original):
-              optionalDropdown(
-                GratingColumnId,
-                c.row.original._2,
-                setup(c.row.original._2).zoom(Flamingos2DynamicConfig.disperser),
-                "None",
-                editable,
-                showClear = !DaytimeCalibrationSets.needsDisperser(c.row.original._1.kind)
-              )
-        ).withSize(100.toPx),
-        ColDef(
+          "Grating",
+          100,
+          editable,
+          _ => "None",
+          showClear = r => !DaytimeCalibrationSets.needsDisperser(r._1.kind),
+          show = withOptics
+        )(setup(_).zoom(Flamingos2DynamicConfig.disperser)),
+        optionalDropdownColumn(
           FpuColumnId,
-          header = "FPU",
-          cell = c =>
-            opticsCell(c.row.original):
-              optionalDropdown(
-                FpuColumnId,
-                c.row.original._2,
-                setup(c.row.original._2).zoom(Flamingos2DaytimeSetup.fpu),
-                if Flamingos2FpuMask.custom.nonEmpty(setup(c.row.original._2).get.fpu) then
-                  "Custom Mask"
-                else "Imaging",
-                editable
-              )
-        ).withSize(110.toPx),
-        ColDef(
-          DeckerColumnId,
-          header = "Decker",
-          cell = c =>
-            opticsCell(c.row.original):
-              dropdown(
-                DeckerColumnId,
-                c.row.original._2,
-                setup(c.row.original._2).zoom(Flamingos2DynamicConfig.decker),
-                editable
-              )
-        ).withSize(90.toPx),
-        ColDef(
-          ReadModeColumnId,
-          header = "Read Mode",
-          cell = c =>
-            dropdown(
-              ReadModeColumnId,
-              c.row.original._2,
-              setup(c.row.original._2).zoom(Flamingos2DaytimeSetup.readMode),
-              editable
-            )
-        ).withSize(90.toPx),
-        ColDef(
-          ReadsColumnId,
-          header = "Reads",
-          cell = c =>
-            dropdown(
-              ReadsColumnId,
-              c.row.original._2,
-              setup(c.row.original._2).zoom(Flamingos2DynamicConfig.reads),
-              editable
-            )
-        ).withSize(70.toPx),
-        ColDef(
-          WindowCoverColumnId,
-          header = "Window Cover",
-          cell = c =>
-            optionalDropdown(
-              WindowCoverColumnId,
-              c.row.original._2,
-              setup(c.row.original._2).zoom(Flamingos2DynamicConfig.windowCover),
-              "Auto",
-              editable
-            )
-        ).withSize(90.toPx)
+          "FPU",
+          110,
+          editable,
+          r =>
+            if Flamingos2FpuMask.custom.nonEmpty(setup(r._2).get.fpu) then "Custom Mask"
+            else "Imaging",
+          show = withOptics
+        )(setup(_).zoom(Flamingos2DaytimeSetup.fpu)),
+        dropdownColumn(DeckerColumnId, "Decker", 90, editable, withOptics)(
+          setup(_).zoom(Flamingos2DynamicConfig.decker)
+        ),
+        dropdownColumn(ReadModeColumnId, "Read Mode", 90, editable)(
+          setup(_).zoom(Flamingos2DaytimeSetup.readMode)
+        ),
+        dropdownColumn(ReadsColumnId, "Reads", 70, editable)(
+          setup(_).zoom(Flamingos2DynamicConfig.reads)
+        ),
+        optionalDropdownColumn(WindowCoverColumnId, "Window Cover", 90, editable, _ => "Auto")(
+          setup(_).zoom(Flamingos2DynamicConfig.windowCover)
+        )
       )
     )
