@@ -1,25 +1,48 @@
 #!/usr/bin/env bash
 # Roll back SSO, ITC, ODB and RESOURCE in a given environment to a given commit SHA.
 # If SHA is not provided, list SHAs appearing in the last 10 deployment records for the environment.
-# Usage: rollback-servers.sh <env> [<commit-sha>] [--debug]
+# Usage: rollback-servers.sh <env> [<commit-sha>] [--only <systems>] [--debug]
+#
+# --only takes a comma separated list of systems, e.g. `--only ODB,ITC`. Explore is only rolled
+# back when named there, and on its own: it lives in lucuma-apps, so its commit SHA can't be
+# shared with the servers. It needs AWS credentials (AWS_PROFILE) and only changes the AWS site,
+# not Firebase.
+#   rollback-servers.sh production 1e29b27d1983f700ad0a1bf4613e1cdda129e054 --only Explore
 
 # Vibe coded 🎉 with GPT-5 mini
 
 set -e
 
-ENV=$1
-SHA=$2
+source "$(dirname "${BASH_SOURCE[0]}")/explore/aws-explore.sh"
+
+USAGE="Usage: rollback-servers.sh <env> [<commit-sha>] [--only <systems>] [--debug]"
+ENV=""
+SHA=""
+ONLY=""
 DEBUG=false
 DEBUG_CURL=()
 
-for arg in "$@"; do
-  case $arg in
+while [ $# -gt 0 ]; do
+  case $1 in
     --debug) DEBUG=true; DEBUG_CURL=("-v") ;;
+    --only)
+      ONLY=${2:-}
+      if [ -z "$ONLY" ]; then echo "$USAGE"; exit 1; fi
+      shift
+      ;;
+    --*) echo "Unknown option $1"; echo "$USAGE"; exit 1 ;;
+    *)
+      if [ -z "$ENV" ]; then ENV=$1
+      elif [ -z "$SHA" ]; then SHA=$1
+      else echo "$USAGE"; exit 1
+      fi
+      ;;
   esac
+  shift
 done
 
 if [ -z "$ENV" ]; then
-  echo "Usage: rollback-servers.sh <env> [<commit-sha>] [--debug]"
+  echo "$USAGE"
   exit 1
 fi
 
@@ -82,8 +105,41 @@ repo["RESOURCE"]="gemini-hlsw/lucuma-odb"
 image_name["RESOURCE"]="lucuma-resource"
 process_types["RESOURCE"]="web"
 
+repo["Explore"]="gemini-hlsw/lucuma-apps"
+
 docker_systems=("SSO" "ITC" "ODB" "RESOURCE")
+all_systems=("${docker_systems[@]}" "Explore")
 deploy_env=$(map_github_deploy_env "$ENV")
+
+# Systems to roll back: the servers by default, or the --only list matched case-insensitively.
+systems=()
+if [ -z "$ONLY" ]; then
+  systems=("${docker_systems[@]}")
+else
+  IFS=',' read -r -a requested <<< "$ONLY"
+  for name in "${requested[@]}"; do
+    match=""
+    for system in "${all_systems[@]}"; do
+      if [ "${system,,}" = "${name,,}" ]; then match=$system; fi
+    done
+    if [ -z "$match" ]; then
+      echo "Error: Unknown system '$name'. Must be one of: ${all_systems[*]}"
+      exit 1
+    fi
+    systems+=("$match")
+  done
+fi
+
+rollback_explore=false
+rollback_servers=false
+for system in "${systems[@]}"; do
+  if [ "$system" = "Explore" ]; then rollback_explore=true; else rollback_servers=true; fi
+done
+
+if [ "$rollback_explore" = true ] && [ "$rollback_servers" = true ]; then
+  echo "Error: Explore is versioned in ${repo["Explore"]}, not with the servers. Roll it back on its own with --only Explore."
+  exit 1
+fi
 
 # GitHub curl base options (re-usable)
 gh_curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
@@ -97,7 +153,7 @@ heroku_curl_base+=( "${DEBUG_CURL[@]}" )
 if [ -z "$SHA" ]; then
   echo "Listing commit SHAs from recent deployments for environment '$ENV' (newest first):"
   declare -A seen_repo=()
-  for system in "${docker_systems[@]}"; do
+  for system in "${systems[@]}"; do
     repo_name=${repo["$system"]}
     if [ "${seen_repo[$repo_name]+_}" ]; then
       continue
@@ -106,7 +162,7 @@ if [ -z "$SHA" ]; then
 
     # list which services use this repo
     services=""
-    for s in "${docker_systems[@]}"; do
+    for s in "${systems[@]}"; do
       if [ "${repo[$s]}" = "$repo_name" ]; then
         services="$services $s"
       fi
@@ -116,7 +172,10 @@ if [ -z "$SHA" ]; then
     echo
     echo "==> $repo_name (services:$services)"
     # fetch a larger page to increase chance of getting 10 unique SHAs (there are duplicates)
-    if gh_output=$(curl "${gh_curl_opts[@]}" "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&per_page=50"); then
+    # lucuma-apps records several apps per environment, so only list the Explore ones.
+    task_filter=""
+    if [ "$system" = "Explore" ]; then task_filter="&task=deploy:Explore"; fi
+    if gh_output=$(curl "${gh_curl_opts[@]}" "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}${task_filter}&per_page=50"); then
       if [ "$DEBUG" = true ]; then echo "  *** GITHUB RESPONSE: $gh_output"; fi
 
       # emit sha<TAB>created_at for each deployment, preserve order, then dedupe by sha while preserving first occurrence
@@ -129,7 +188,7 @@ if [ -z "$SHA" ]; then
     fi
   done
   echo
-  echo "To perform a rollback, re-run with the desired SHA: rollback-servers.sh <env> <commit-sha>"
+  echo "To perform a rollback, re-run with the desired SHA: rollback-servers.sh <env> <commit-sha> [--only <systems>]"
   exit 1
 fi
 
@@ -146,7 +205,29 @@ confirm() {
   done
 }
 
-if ! confirm ; then
+confirm_explore() {
+  local reply
+  read -r -p "This replaces the Explore site users load in $ENV on AWS (not Firebase). Proceed [y/N]: " reply
+  [[ "${reply,,}" =~ ^y(es)?$ ]]
+}
+
+# Resolve the Explore build before asking, so a wrong SHA fails before any confirmation.
+if [ "$rollback_explore" = true ]; then
+  echo "Resolving Explore build for $SHA"
+  if ! commit_out=$(curl "${gh_curl_opts[@]}" "https://api.github.com/repos/${repo["Explore"]}/commits/${SHA}"); then
+    echo "  ! Commit $SHA not found in ${repo["Explore"]}"
+    exit 1
+  fi
+  SHA=$(echo "$commit_out" | jq -r '.sha')
+  echo "  Commit: $SHA"
+  check_explore_archive "$SHA" || exit 1
+  echo "  ✓ Build archived at $(aws_explore_archive "$SHA")"
+fi
+
+if [ "$rollback_servers" = true ] && ! confirm ; then
+  exit 1
+fi
+if [ "$rollback_explore" = true ] && ! confirm_explore ; then
   exit 1
 fi
 
@@ -179,7 +260,48 @@ send_slack_notification() {
   fi
 }
 
-echo "Rolling back ${docker_systems[*]} in $ENV to commit $SHA"
+record_github_rollback() {
+  local system=$1
+  local payload_object=$2
+  local repo_name=${repo["$system"]}
+
+  echo "  Recording deployment on GitHub..."
+  local payload
+  payload=$(printf '{"ref":"%s","auto_merge":false,"original_environment":"%s","environment":"%s","description":"Rollback to %s","required_contexts":[],"task":"deploy:%s"%s}' \
+    "$SHA" "$deploy_env" "$deploy_env" "$SHA" "$system" "$payload_object")
+
+  local gh_post_out gh_post_ok
+  if gh_post_out=$(curl "${gh_curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" -d "$payload"); then
+    gh_post_ok=true
+  else
+    gh_post_ok=false
+  fi
+
+  if [ "$DEBUG" = true ]; then echo "  *** GITHUB POST RESPONSE: $gh_post_out"; fi
+
+  if [ "$gh_post_ok" = true ] && echo "$gh_post_out" | grep -q '"id"'; then
+    echo "  ✓ GitHub deployment record created for $system"
+    send_slack_notification "$system" "$ENV" "$SHA"
+  else
+    echo "  ! Failed to create GitHub deployment record: $gh_post_out"
+    exit 1
+  fi
+}
+
+# Explore has no Heroku release: roll back by serving the build CI archived for the commit.
+if [ "$rollback_explore" = true ]; then
+  echo "Rolling back Explore in $ENV to commit $SHA"
+  echo
+  echo "##### Applying"
+  echo "==> Explore"
+  deploy_explore_build "$SHA" "$ENV" || exit 1
+  record_github_rollback "Explore" ""
+  echo
+  echo "Firebase still serves the previous Explore build in $ENV."
+  exit 0
+fi
+
+echo "Rolling back ${systems[*]} in $ENV to commit $SHA"
 
 # Two phases. Resolving every system before touching anything means a missing or incomplete
 # deployment record aborts with nothing changed, rather than leaving dev on a mix of versions
@@ -190,7 +312,7 @@ declare -A resolved_shas
 echo
 echo "##### Resolving deployments"
 
-for system in "${docker_systems[@]}"; do
+for system in "${systems[@]}"; do
   repo_name=${repo["$system"]}
 
   echo "==> $system"
@@ -225,7 +347,7 @@ done
 echo
 echo "##### Applying"
 
-for system in "${docker_systems[@]}"; do
+for system in "${systems[@]}"; do
   echo "==> $system"
 
   repo_name=${repo["$system"]}
@@ -256,25 +378,7 @@ for system in "${docker_systems[@]}"; do
     fi
   done
 
-  echo "  Recording deployment on GitHub..."
-  payload=$(printf '{"ref":"%s","auto_merge":false,"original_environment":"%s","environment":"%s","description":"Rollback to %s","required_contexts":[],"task":"deploy:%s","payload":{"docker_image_shas":%s}}' \
-    "$SHA" "$deploy_env" "$deploy_env" "$SHA" "$system" "$docker_shas_json")
-
-  if gh_post_out=$(curl "${gh_curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" -d "$payload"); then
-    gh_post_ok=true
-  else
-    gh_post_ok=false
-  fi
-
-  if [ "$DEBUG" = true ]; then echo "  *** GITHUB POST RESPONSE: $gh_post_out"; fi
-
-  if [ "$gh_post_ok" = true ] && echo "$gh_post_out" | grep -q '"id"'; then
-    echo "  ✓ GitHub deployment record created for $system"
-    send_slack_notification "$system" "$ENV" "$SHA"
-  else
-    echo "  ! Failed to create GitHub deployment record: $gh_post_out"
-    exit 1
-  fi
+  record_github_rollback "$system" ", \"payload\":{\"docker_image_shas\":$docker_shas_json}"
 
   echo
 done

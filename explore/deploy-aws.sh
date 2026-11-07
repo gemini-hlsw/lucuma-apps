@@ -11,12 +11,10 @@
 
 set -euo pipefail
 
-# The aws cli pipes command output through a pager when run from a terminal; keep it inline.
-export AWS_PAGER=""
-
 bucket=${1:?S3 bucket name}
 distribution=${2:?CloudFront distribution id}
 explore_dir="$(cd "$(dirname "$0")" && pwd)"
+source "${explore_dir}/aws-explore.sh"
 static="${explore_dir}/heroku/static"
 sha=$(git -C "${explore_dir}" rev-parse HEAD)
 
@@ -43,18 +41,8 @@ aws s3 sync "${static}" "${archive}" --delete --exclude "assets/*" \
 aws s3 cp "${static}/manifest.webmanifest" "${archive}/manifest.webmanifest" \
   --cache-control "no-cache" --content-type "application/manifest+json"
 
-# Then copy the archive onto latest/, server side, the same way promotions do. This uses `cp`, not
-# `sync`: sync skips same-sized files when the source is older (e.g. redeploying an earlier build)
-# and would keep the newer index.html and sw.js. Assets go first so the new index.html never
-# references bundles that don't exist yet, and stale files are only removed at the end. Tags are not
-# copied: we don't use them, and copying them on large objects needs s3:GetObjectTagging, which
-# developers don't have.
+# Then copy the archive onto latest/, server side, the same way promotions do.
 echo "Deploying build ${sha} to ${latest}"
-aws s3 cp "${archive}/assets" "${latest}/assets" --recursive --only-show-errors \
-  --copy-props metadata-directive
-aws s3 cp "${archive}" "${latest}" --recursive --only-show-errors --exclude "assets/*" \
-  --copy-props metadata-directive
-aws s3 sync "${archive}" "${latest}" --delete --only-show-errors --copy-props metadata-directive
+copy_explore_build "${archive}" "${latest}"
 
-aws cloudfront create-invalidation --distribution-id "${distribution}" --paths "/*" \
-  --query "Invalidation.Id" --output text
+invalidate_explore_distribution "${distribution}"

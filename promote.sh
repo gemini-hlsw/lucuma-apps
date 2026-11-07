@@ -16,8 +16,7 @@
 
 set -e
 
-# The aws cli pipes command output through a pager when run from a terminal; keep it inline.
-export AWS_PAGER=""
+source "$(dirname "${BASH_SOURCE[0]}")/explore/aws-explore.sh"
 
 SOURCE_ENV=$1
 TARGET_ENV=$2
@@ -102,79 +101,11 @@ map_firebase_deploy_env() {
   esac
 }
 
-# S3 bucket holding the Explore site of an environment (origin of its CloudFront distribution).
-map_aws_explore_bucket() {
-  local env=$1
-  case $env in
-    "dev") echo "gemini-edu-explore-dev" ;;
-    "staging") echo "gemini-edu-explore-test" ;;
-    "production") echo "gemini-edu-explore-prd" ;;
-    *) echo "" ;;
-  esac
-}
-
-# CloudFront distribution serving the Explore site of an environment.
-map_aws_explore_distribution() {
-  local env=$1
-  case $env in
-    "dev") echo "E3DZG7GNUB60T6" ;;
-    "staging") echo "E2E5A5UYD8VLF7" ;;
-    "production") echo "E1VDJ0RPRW1PVL" ;;
-    *) echo "" ;;
-  esac
-}
-
-# Copy the Explore build recorded for the source environment onto latest/ in the target bucket,
-# the origin path its distribution serves, and invalidate the distribution. The CI deploy archives
-# every build under builds/<git-sha>/ in the dev bucket, so the copy always comes from there,
-# whatever the source environment: the promoted content is exactly the recorded sha even if dev
-# moved on meanwhile.
-# The copy uses `cp`, not `sync`: sync skips files of the same size when the source is older,
-# which is always the case when going back to an earlier build, and would keep the newer
-# index.html and sw.js. Assets are copied first so the new index.html never references bundles
-# that don't exist yet, and stale files are only removed once the new build is complete. Tags are
-# not copied: we don't use them, and copying them on large objects needs s3:GetObjectTagging,
-# which developers don't have.
+# Copy the Explore build recorded for the source environment onto the target environment. The
+# copy always comes from the dev archive, whatever the source environment: the promoted content is
+# exactly the recorded sha even if dev moved on meanwhile.
 promote_explore_aws() {
-  local sha=${source_sha["Explore"]}
-  local archive="s3://$(map_aws_explore_bucket dev)/builds/$sha"
-  local target_bucket=$(map_aws_explore_bucket "$TARGET_ENV")
-  local target="s3://$target_bucket/latest"
-  local target_distribution=$(map_aws_explore_distribution "$TARGET_ENV")
-
-  if [ -z "$target_bucket" ] || [ -z "$target_distribution" ]; then
-    echo "  ! No AWS bucket or distribution configured for Explore in $TARGET_ENV"
-    exit 1
-  fi
-  if ! command -v aws >/dev/null; then
-    echo "  ! aws CLI not found; install it and set AWS_PROFILE to a profile with access to the Explore buckets"
-    exit 1
-  fi
-  if ! aws s3 ls "$archive/index.html" >/dev/null; then
-    echo "  ! Build $sha is not archived at $archive; deploy it to dev again to archive it"
-    exit 1
-  fi
-
-  echo "  Copying $archive to $target..."
-  if aws s3 cp "$archive/assets" "$target/assets" --recursive --only-show-errors \
-       --copy-props metadata-directive &&
-     aws s3 cp "$archive" "$target" --recursive --only-show-errors --exclude "assets/*" \
-       --copy-props metadata-directive &&
-     aws s3 sync "$archive" "$target" --delete --only-show-errors --copy-props metadata-directive; then
-    echo "  ✓ Explore build $sha copied to $target"
-  else
-    echo "  ! Explore AWS copy FAILED"
-    exit 1
-  fi
-
-  local invalidation
-  if invalidation=$(aws cloudfront create-invalidation --distribution-id "$target_distribution" \
-       --paths "/*" --query "Invalidation.Id" --output text); then
-    echo "  ✓ CloudFront distribution $target_distribution invalidated ($invalidation)"
-  else
-    echo "  ! CloudFront invalidation of $target_distribution FAILED"
-    exit 1
-  fi
+  deploy_explore_build "${source_sha["Explore"]}" "$TARGET_ENV" || exit 1
 }
 
 # Resolve the GitHub deployment environment for a system. Most systems use the
