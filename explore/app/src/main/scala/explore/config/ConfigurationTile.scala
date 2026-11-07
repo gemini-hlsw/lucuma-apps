@@ -661,7 +661,8 @@ object ConfigurationTile
                     props.obsConf.selectedPA,
                     props.obsConf.averagePA,
                     props.permissions,
-                    props.obsConf.cassRotator
+                    props.obsConf.cassRotator,
+                    props.obsConf.mosMaskDesign
                   )
                 ),
               props.altair.toOptionView.map: altair =>

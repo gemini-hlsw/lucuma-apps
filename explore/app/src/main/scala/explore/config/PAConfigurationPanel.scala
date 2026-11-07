@@ -9,6 +9,7 @@ import explore.Icons
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AveragePABasis
+import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.enums.PosAngleOptions
 import explore.model.inputCodecs
@@ -41,7 +42,8 @@ case class PAConfigurationPanel(
   selectedPA:   Option[Angle],
   averagePA:    Option[AveragePABasis],
   permissions:  ConfigEditPermissions,
-  cassRotator:  CassRotator
+  cassRotator:  CassRotator,
+  maskDesign:   Option[MaskDesign]
 ) extends ReactFnProps(PAConfigurationPanel.component)
 
 object PAConfigurationPanel:
@@ -172,6 +174,29 @@ object PAConfigurationPanel:
           )(^.autoComplete.off)
         )
 
+      // Same PA the visualization uses to rotate the mask
+      val observationPA: Angle =
+        props.selectedPA.getOrElse(
+          paView.get.fallbackPosAngle(props.averagePA.map(_.averagePA))
+        )
+
+      val maskMismatchWarning: Option[VdomNode] =
+        props.maskDesign
+          .filter(_.paMismatch(observationPA))
+          .map: design =>
+            <.div(ExploreStyles.PAConfigurationMaskMismatch)(
+              Icons.TriangleSolid.withClass(ExploreStyles.WarningIcon),
+              <.span(
+                f"PA mismatch, mask file PA is ${design.positionAngle.toDoubleDegrees}%.2f °"
+              ),
+              Button(
+                label = "Use mask PA",
+                severity = Button.Severity.Secondary,
+                disabled = finalReadOnly || cassRotatorFixed,
+                onClick = paView.set(PosAngleConstraint.Fixed(design.positionAngle))
+              ).mini.compact
+            )
+
       <.div(
         LucumaPrimeStyles.FormColumnCompact,
         ExploreStyles.PAConfigurationForm
@@ -192,6 +217,7 @@ object PAConfigurationPanel:
         fixedView.mapValue(posAngleEditor).unless(cassRotatorFixed),
         allowedFlipView.mapValue(posAngleEditor).unless(cassRotatorFixed),
         parallacticOverrideView.mapValue(posAngleEditor).unless(cassRotatorFixed),
-        selectedAngle.unless(cassRotatorFixed)
+        selectedAngle.unless(cassRotatorFixed),
+        maskMismatchWarning
       )
     }
