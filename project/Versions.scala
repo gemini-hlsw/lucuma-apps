@@ -47,7 +47,7 @@ object Versions {
   val mUnitScalacheck        = "1.3.1"
   val openTelemetry          = "1.64.0" // must match otel4s, see .scala-steward.conf
   val openTelemetryInstr     = "2.26.1-alpha"
-  val otel4s                 = "1.1.0"
+  val otel4s                 = "1.2.0"
   val otel4sSdk              = "0.19.4"
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.11"
