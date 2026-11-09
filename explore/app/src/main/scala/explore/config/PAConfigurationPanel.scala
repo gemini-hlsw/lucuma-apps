@@ -36,14 +36,15 @@ import lucuma.ui.syntax.all.given
 import monocle.Lens
 
 case class PAConfigurationPanel(
-  programId:    Program.Id,
-  obsId:        Observation.Id,
-  posAngleView: View[PosAngleConstraint],
-  selectedPA:   Option[Angle],
-  averagePA:    Option[AveragePABasis],
-  permissions:  ConfigEditPermissions,
-  cassRotator:  CassRotator,
-  maskDesign:   Option[MaskDesign]
+  programId:     Program.Id,
+  obsId:         Observation.Id,
+  posAngleView:  View[PosAngleConstraint],
+  selectedPA:    Option[Angle],
+  averagePA:     Option[AveragePABasis],
+  permissions:   ConfigEditPermissions,
+  cassRotator:   CassRotator,
+  maskDesign:    Option[MaskDesign],
+  requiresFixed: Boolean
 ) extends ReactFnProps(PAConfigurationPanel.component)
 
 object PAConfigurationPanel:
@@ -131,6 +132,13 @@ object PAConfigurationPanel:
           Enumerated[PosAngleOptions].all.toSet -- allowedExecutedOptions
         else Set.empty
 
+      // MOS masks are cut for one angle, so only Fixed is offered. A legacy non-Fixed
+      // constraint stays visible so the user can move it to Fixed.
+      val excludedOptions: Set[PosAngleOptions] =
+        if (props.requiresFixed)
+          Enumerated[PosAngleOptions].all.toSet - PosAngleOptions.Fixed - posAngleOptionsView.get
+        else Set.empty
+
       def posAngleEditor(pa: View[Angle]) =
         val AngleStep = Angle.fromDoubleDegrees(1.0)
 
@@ -207,6 +215,7 @@ object PAConfigurationPanel:
             React.Fragment("Position Angle", HelpIcon("configuration/positionangle.md".refined)),
           value = posAngleOptionsView,
           disabled = finalReadOnly || cassRotatorFixed,
+          exclude = excludedOptions,
           disabledItems = disabledOptions
         ),
         <.div(ExploreStyles.PAConfigurationCassRotatorFixed)(
