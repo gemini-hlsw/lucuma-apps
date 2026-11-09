@@ -2321,6 +2321,31 @@ svg.fa-check.explore-success-icon {
     border-bottom: 1px solid var(--site-border-color);
   }
 
+  // Read only generated daytime calibrations have no acquisition nor buttons below the divider
+  .explore-gmos-spectroscopy-upper-grid,
+  .explore-imaging-upper-grid,
+  .explore-flamingos2-upper-grid,
+  .explore-gnirs-upper-grid,
+  .explore-igrins2-upper-grid,
+  .explore-ghost-upper-grid,
+  .explore-visitor-upper-grid {
+    &:has(+ :empty) {
+      border-bottom: none;
+    }
+  }
+
+  .explore-gmos-spectroscopy-lower-grid,
+  .explore-imaging-lower-grid,
+  .explore-flamingos2-lower-grid,
+  .explore-gnirs-lower-grid,
+  .explore-igrins2-lower-grid,
+  .explore-ghost-lower-grid,
+  .explore-visitor-lower-grid {
+    &:empty {
+      display: none;
+    }
+  }
+
   .explore-igrins2-lower-grid {
     display: grid;
     padding: 0.5em;

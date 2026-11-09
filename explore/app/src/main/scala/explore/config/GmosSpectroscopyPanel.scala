@@ -35,6 +35,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.calibration.needsOffsets
 import lucuma.ui.utils.given
 
 /**
@@ -232,7 +233,7 @@ abstract class GmosSpectroscopyPanelBuilder[
                 ExploreStyles.SlitTelescopeConfigEditorInline
               )(
                 props.offsetsControl(props.permissions.isReadonly)
-              )
+              ).when(props.calibrationRole.needsOffsets)
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               CustomizableInputText(
