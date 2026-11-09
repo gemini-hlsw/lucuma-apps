@@ -192,7 +192,7 @@ object PAConfigurationPanel:
               Button(
                 label = "Use mask PA",
                 severity = Button.Severity.Secondary,
-                disabled = finalReadOnly || cassRotatorFixed,
+                disabled = finalReadOnly || cassRotatorFixed || props.permissions.isOnlyForOngoing,
                 onClick = paView.set(PosAngleConstraint.Fixed(design.positionAngle))
               ).mini.compact
             )
