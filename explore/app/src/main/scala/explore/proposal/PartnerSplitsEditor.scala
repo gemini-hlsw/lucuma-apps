@@ -156,6 +156,11 @@ object PartnerSplitsEditor:
       )
 
     for
+      // The team can change while the dialog is open, when another user's edit arrives, so the
+      // rules are re-applied to the draft then too.  Otherwise OK could send a lead who is no
+      // longer eligible, which the ODB rejects.
+      _     <- useEffectWithDeps(props.users): users =>
+                 props.splits.mod(PartnerSplit.withLeads(_, users))
       rows  <- useMemo((props.splits.get, props.users))(_ => splits.toListOfViews)
       table <- useReactTable:
                  TableOptions(
