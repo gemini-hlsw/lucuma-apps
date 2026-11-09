@@ -71,7 +71,9 @@ case class MaskDesign(
   positionAngle:       Angle,
   dispersionDirection: MosDispersionDirection,
   slits:               List[MaskDesignSlit]
-) derives Eq
+) derives Eq:
+  def paMismatch(posAngle: Angle): Boolean =
+    posAngle =!= positionAngle
 
 object MaskDesign:
   given Decoder[MaskDesign] = Decoder.instance: c =>

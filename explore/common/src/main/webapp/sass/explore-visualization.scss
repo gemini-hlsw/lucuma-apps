@@ -98,6 +98,16 @@ $brightness: var(--aladin-image-brightness);
       stroke-width: 1.2px;
       fill: var(--viz-mos-outline-fill);
       vector-effect: non-scaling-stroke;
+
+      &.mos-mask-pa-mismatch {
+        stroke: var(--warning-background-color);
+        stroke-dasharray: 6 4;
+        animation: mos-mask-pa-mismatch-pulse 1s ease-in-out infinite;
+
+        @media (prefers-reduced-motion: reduce) {
+          animation: none;
+        }
+      }
     }
 
     .mos-mask-slit {
@@ -452,5 +462,11 @@ $brightness: var(--aladin-image-brightness);
 
   .finder-charts-image-inverted {
     filter: invert(1);
+  }
+}
+
+@keyframes mos-mask-pa-mismatch-pulse {
+  50% {
+    stroke-opacity: 0.2;
   }
 }

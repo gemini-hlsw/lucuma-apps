@@ -9,6 +9,7 @@ import explore.Icons
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AveragePABasis
+import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.enums.PosAngleOptions
 import explore.model.inputCodecs
@@ -35,13 +36,15 @@ import lucuma.ui.syntax.all.given
 import monocle.Lens
 
 case class PAConfigurationPanel(
-  programId:    Program.Id,
-  obsId:        Observation.Id,
-  posAngleView: View[PosAngleConstraint],
-  selectedPA:   Option[Angle],
-  averagePA:    Option[AveragePABasis],
-  permissions:  ConfigEditPermissions,
-  cassRotator:  CassRotator
+  programId:     Program.Id,
+  obsId:         Observation.Id,
+  posAngleView:  View[PosAngleConstraint],
+  selectedPA:    Option[Angle],
+  averagePA:     Option[AveragePABasis],
+  permissions:   ConfigEditPermissions,
+  cassRotator:   CassRotator,
+  maskDesign:    Option[MaskDesign],
+  requiresFixed: Boolean
 ) extends ReactFnProps(PAConfigurationPanel.component)
 
 object PAConfigurationPanel:
@@ -129,6 +132,13 @@ object PAConfigurationPanel:
           Enumerated[PosAngleOptions].all.toSet -- allowedExecutedOptions
         else Set.empty
 
+      // MOS masks are cut for one angle, so only Fixed is offered. A legacy non-Fixed
+      // constraint stays visible so the user can move it to Fixed.
+      val excludedOptions: Set[PosAngleOptions] =
+        if (props.requiresFixed)
+          Enumerated[PosAngleOptions].all.toSet - PosAngleOptions.Fixed - posAngleOptionsView.get
+        else Set.empty
+
       def posAngleEditor(pa: View[Angle]) =
         val AngleStep = Angle.fromDoubleDegrees(1.0)
 
@@ -172,6 +182,29 @@ object PAConfigurationPanel:
           )(^.autoComplete.off)
         )
 
+      // Same PA the visualization uses to rotate the mask
+      val observationPA: Angle =
+        props.selectedPA.getOrElse(
+          paView.get.fallbackPosAngle(props.averagePA.map(_.averagePA))
+        )
+
+      val maskMismatchWarning: Option[VdomNode] =
+        props.maskDesign
+          .filter(_.paMismatch(observationPA))
+          .map: design =>
+            <.div(ExploreStyles.PAConfigurationMaskMismatch)(
+              Icons.TriangleSolid.withClass(ExploreStyles.WarningIcon),
+              <.span(
+                f"PA mismatch, mask file PA is ${design.positionAngle.toDoubleDegrees}%.2f °"
+              ),
+              Button(
+                label = "Use mask PA",
+                severity = Button.Severity.Secondary,
+                disabled = finalReadOnly || cassRotatorFixed || props.permissions.isOnlyForOngoing,
+                onClick = paView.set(PosAngleConstraint.Fixed(design.positionAngle))
+              ).mini.compact
+            )
+
       <.div(
         LucumaPrimeStyles.FormColumnCompact,
         ExploreStyles.PAConfigurationForm
@@ -182,6 +215,7 @@ object PAConfigurationPanel:
             React.Fragment("Position Angle", HelpIcon("configuration/positionangle.md".refined)),
           value = posAngleOptionsView,
           disabled = finalReadOnly || cassRotatorFixed,
+          exclude = excludedOptions,
           disabledItems = disabledOptions
         ),
         <.div(ExploreStyles.PAConfigurationCassRotatorFixed)(
@@ -192,6 +226,7 @@ object PAConfigurationPanel:
         fixedView.mapValue(posAngleEditor).unless(cassRotatorFixed),
         allowedFlipView.mapValue(posAngleEditor).unless(cassRotatorFixed),
         parallacticOverrideView.mapValue(posAngleEditor).unless(cassRotatorFixed),
-        selectedAngle.unless(cassRotatorFixed)
+        selectedAngle.unless(cassRotatorFixed),
+        maskMismatchWarning
       )
     }
