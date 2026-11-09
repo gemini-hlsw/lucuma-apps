@@ -98,10 +98,11 @@ class ProposalErrorsSuite extends FunSuite:
     education:   Option[EducationalStatus] = EducationalStatus.PhD.some,
     confirmed:   Boolean = true,
     creditName:  Option[String] = "Test Investigator".some,
-    affiliation: Option[NonEmptyString] = NonEmptyString.unsafeFrom("Test University").some
+    affiliation: Option[NonEmptyString] = NonEmptyString.unsafeFrom("Test University").some,
+    id:          Long = 1L
   ): ProgramUser =
     ProgramUser(
-      id = ProgramUser.Id.fromLong(1L).get,
+      id = ProgramUser.Id.fromLong(id).get,
       user = none,
       partnerLink = partnerLink,
       role = role,
@@ -170,7 +171,18 @@ class ProposalErrorsSuite extends FunSuite:
     defined:     Boolean = true,
     undefined:   Boolean = false
   ): List[ProposalSubmissionError] =
-    proposal.errors(title, abstrakt, users, attachments, defined, undefined)
+    proposal.errors(title, abstrakt, users, attachments, defined, undefined).map(_.error)
+
+  /** The errors, with their messages, of a proposal that is otherwise complete. */
+  private def messagesOf(proposal: Proposal, users: List[ProgramUser]): List[ProposalError] =
+    proposal.errors(
+      title = NonEmptyString.unsafeFrom("Title").some,
+      abstrakt = NonEmptyString.unsafeFrom("Abstract").some,
+      users = users,
+      attachments = bothAttachments,
+      hasDefinedObservations = true,
+      hasUndefinedObservations = false
+    )
 
   test("a complete proposal has no errors"):
     assertEquals(errorsOf(), Nil)
@@ -347,6 +359,77 @@ class ProposalErrorsSuite extends FunSuite:
     )
     assertEquals(errorsOf(p), List(UnmatchedPartnerTime))
 
+  private def splitsProposal(splits: PartnerSplit*): Proposal =
+    val t = GeminiProposalType.partnerSplits.replace(splits.toList)(
+      queueType.asInstanceOf[GeminiProposalType]
+    )
+    valid.copy(
+      call = geminiCall(partners =
+        List((Partner.US, Deadline.some), (Partner.CA, Deadline.some), (Partner.AR, Deadline.some))
+      ).some,
+      proposalType = (t: ProposalType).some
+    )
+
+  private def coi(p: Partner, id: Long): ProgramUser =
+    user(PartnerLink.HasGeminiPartner(p), ProgramUserRole.Coi, id = id)
+
+  test("a partner with several eligible investigators and no lead"):
+    val p = splitsProposal(
+      PartnerSplit(Partner.US, IntPercent.unsafeFrom(50)),
+      PartnerSplit(Partner.CA, IntPercent.unsafeFrom(50))
+    )
+    assertEquals(
+      messagesOf(p, users = List(pi, coi(Partner.CA, 2), coi(Partner.CA, 3))),
+      List(ProposalError(MissingPartnerLead, "Select a partner lead for Canada."))
+    )
+
+  test("a chosen lead satisfies the rule"):
+    val p = splitsProposal(
+      PartnerSplit(Partner.US, IntPercent.unsafeFrom(50)),
+      PartnerSplit(Partner.CA, IntPercent.unsafeFrom(50), ProgramUser.Id.fromLong(3L))
+    )
+    assertEquals(errorsOf(p, users = List(pi, coi(Partner.CA, 2), coi(Partner.CA, 3))), Nil)
+
+  test("a lead that needs no choice is assumed"):
+    val p = splitsProposal(
+      PartnerSplit(Partner.US, IntPercent.unsafeFrom(50)),
+      PartnerSplit(Partner.CA, IntPercent.unsafeFrom(50))
+    )
+    assertEquals(errorsOf(p, users = List(pi, coi(Partner.CA, 2))), Nil)
+
+  test("a partner without an eligible investigator reports only the unmatched time"):
+    val p = splitsProposal(
+      PartnerSplit(Partner.US, IntPercent.unsafeFrom(50)),
+      PartnerSplit(Partner.AR, IntPercent.unsafeFrom(50))
+    )
+    assertEquals(errorsOf(p, users = List(pi, coi(Partner.CA, 2))), List(UnmatchedPartnerTime))
+
+  test("withPartnerLeads assigns the leads the ODB would"):
+    val ca2   = coi(Partner.CA, 2)
+    val ar3   = coi(Partner.AR, 3)
+    val ar4   = coi(Partner.AR, 4)
+    val p     = splitsProposal(
+      PartnerSplit(Partner.US, IntPercent.unsafeFrom(40)),
+      PartnerSplit(Partner.CA, IntPercent.unsafeFrom(30)),
+      PartnerSplit(Partner.AR, IntPercent.unsafeFrom(30)),
+      PartnerSplit(Partner.BR, IntPercent.unsafeFrom(0), ProgramUser.Id.fromLong(5L))
+    )
+    val leads = p
+      .withPartnerLeads(List(pi, ca2, ar3, ar4))
+      .proposalType
+      .toList
+      .flatMap(ProposalType.anyPartnerSplits.get)
+      .map(s => s.partner -> s.lead)
+    assertEquals(
+      leads,
+      List(
+        Partner.US -> pi.id.some,
+        Partner.CA -> ca2.id.some,
+        Partner.AR -> none,
+        Partner.BR -> none
+      )
+    )
+
   // US is the default home for a proposal with no other affiliation, so unlike
   // every other partner a US share needs no investigator to back it.
   test("US time needs no matching collaborator"):
@@ -435,6 +518,7 @@ class ProposalErrorsSuite extends FunSuite:
         UninvitedInvestigator,
         UhTimeWithoutUhPi,
         UnmatchedPartnerTime,
+        MissingPartnerLead,
         MissingFtMentor,
         MissingScienceAttachment,
         MissingTeamAttachment,

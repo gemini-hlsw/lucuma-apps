@@ -58,9 +58,15 @@ import monocle.Iso
 import scala.collection.immutable.SortedSet
 import scala.scalajs.js.JSConverters.*
 
+/**
+ * `partnerLeads` names the investigators who are partner leads, for a proposal whose time is split
+ * among partners. It is empty when the proposal has no partner splits, and the Lead column is then
+ * hidden.
+ */
 case class ProgramUsersTable(
-  users: View[List[ProgramUser]],
-  mode:  ProgramUsersTable.Mode
+  users:        View[List[ProgramUser]],
+  mode:         ProgramUsersTable.Mode,
+  partnerLeads: Option[Set[ProgramUser.Id]] = none
 ) extends ReactFnProps(ProgramUsersTable.component):
   import ProgramUsersTable.Column
   import ProgramUsersTable.Mode
@@ -80,11 +86,13 @@ case class ProgramUsersTable(
   private val hiddenColumns: Set[ProgramUsersTable.Column] = mode match
     case Mode.CoIs(_, proposalIsRo, userIsRoCoi, isClassical) =>
       Set(Column.DataAccess) ++
+        (if (partnerLeads.isDefined) Set.empty else Set(Column.Lead)) ++
         (if (isClassical) Set.empty else Set(Column.Visitor)) ++
         (if (proposalIsRo || userIsRoCoi) Set(Column.Actions) else Set.empty)
     case Mode.SupportPrimary | Mode.SupportSecondary          =>
       Set(
         Column.Partner,
+        Column.Lead,
         Column.EducationalStatus,
         Column.Thesis,
         Column.Gender,
@@ -99,6 +107,7 @@ case class ProgramUsersTable(
     case Mode.DataSharing(_)                                  =>
       Set(
         Column.Partner,
+        Column.Lead,
         Column.EducationalStatus,
         Column.Thesis,
         Column.Gender,
@@ -124,7 +133,8 @@ object ProgramUsersTable:
     isActive:           View[IsActive],
     overlayPanelRef:    OverlayPanelRef,
     createInviteStatus: View[CreateInviteStatus],
-    currentProgUserId:  View[Option[ProgramUser.Id]]
+    currentProgUserId:  View[Option[ProgramUser.Id]],
+    partnerLeads:       Set[ProgramUser.Id]
   ):
     val userId: Option[User.Id] = mode match
       case Mode.CoIs(vault, _, _, _)                   => vault.user.id.some
@@ -192,6 +202,7 @@ object ProgramUsersTable:
 
     case Name              extends Column("name", "Name")
     case Partner           extends Column("partner", "Partner")
+    case Lead              extends Column("lead", "Lead")
     case Email             extends Column("email", "Email")
     case EducationalStatus extends Column("education", "Education")
     case Thesis            extends Column("thesis", "Thesis")
@@ -621,6 +632,18 @@ object ProgramUsersTable:
               onChange = r => view.set(r)
             )
       ).sortableBy(_.get),
+      // Partner leads are chosen in the partner splits editor; here they are only shown.
+      ColDef(
+        Column.Lead.id,
+        _.get.id,
+        Column.Lead.header,
+        cell = c =>
+          c.table.options.meta.map: meta =>
+            if meta.partnerLeads.contains(c.value) then
+              <.span(Icons.Star).withTooltip("Partner lead"): VdomNode
+            else EmptyVdom,
+        enableSorting = false
+      ),
       ColDef(
         Column.Status.id,
         _.get.status,
@@ -710,7 +733,8 @@ object ProgramUsersTable:
                                     isActive,
                                     overlayPanelRef,
                                     createInviteStatus,
-                                    currentProgUserId
+                                    currentProgUserId,
+                                    props.partnerLeads.orEmpty
                                   ),
                                   state = tableState
                                 )

@@ -182,6 +182,7 @@ object ProposalDetailsBody:
   private def partnerSplitsAndTimes(
     partnerSplitsView:   Option[View[List[PartnerSplit]]],
     splitsList:          View[List[PartnerSplit]],
+    users:               List[ProgramUser],
     totalHours:          View[Hours],
     minimumPctView:      View[IntPercent],
     minimumPctTotalView: Option[View[IntPercent]],
@@ -294,6 +295,7 @@ object ProposalDetailsBody:
             PartnerSplitsEditor(
               showDialog.get,
               splitsList,
+              users,
               showDialog.set(Visible.Hidden),
               splits => psView.set(splits)
             ),
@@ -336,6 +338,7 @@ object ProposalDetailsBody:
   private def geminiFields(
     gemini:            View[GeminiProposalType],
     splitsList:        View[List[PartnerSplit]],
+    users:             List[ProgramUser],
     totalHours:        View[Hours],
     timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
     isCfpSelected:     Boolean,
@@ -472,6 +475,7 @@ object ProposalDetailsBody:
         partnerSplitsAndTimes(
           partnerSplitsView,
           splitsList,
+          users,
           totalHours,
           mv,
           minimumPctTotalView,
@@ -488,6 +492,7 @@ object ProposalDetailsBody:
   private def keckFields(
     keck:              View[KeckProposalType],
     splitsList:        View[List[PartnerSplit]],
+    users:             List[ProgramUser],
     totalHours:        View[Hours],
     timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
     isCfpSelected:     Boolean,
@@ -502,6 +507,7 @@ object ProposalDetailsBody:
       partnerSplitsAndTimes(
         partnerSplitsView.some,
         splitsList,
+        users,
         totalHours,
         minimumPctView,
         None,
@@ -516,6 +522,7 @@ object ProposalDetailsBody:
   private def subaruFields(
     subaru:            View[SubaruProposalType],
     splitsList:        View[List[PartnerSplit]],
+    users:             List[ProgramUser],
     totalHours:        View[Hours],
     timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
     isCfpSelected:     Boolean,
@@ -531,6 +538,7 @@ object ProposalDetailsBody:
       partnerSplitsAndTimes(
         partnerSplitsView.some,
         splitsList,
+        users,
         totalHours,
         minimumPctView,
         None,
@@ -640,7 +648,8 @@ object ProposalDetailsBody:
 
     // The editor works on a copy of the splits, seeded from the proposal each time it opens.
     val openSplitsEditor: Callback =
-      splitsList.set(initialSplits(props.proposal)) >> showDialog.set(Visible.Shown)
+      splitsList.set(PartnerSplit.withLeads(initialSplits(props.proposal), props.users)) >>
+        showDialog.set(Visible.Shown)
 
     val titleAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
       props.detailsAligner.zoom(ProgramDetails.name, ProgramPropertiesInput.name.modify)
@@ -701,6 +710,7 @@ object ProposalDetailsBody:
             geminiFields(
               gemini,
               splitsList,
+              props.users,
               totalHours,
               props.timeEstimateRange,
               isCfpSelected,
@@ -715,6 +725,7 @@ object ProposalDetailsBody:
           optKeckView.map(keck =>
             keckFields(keck,
                        splitsList,
+                       props.users,
                        totalHours,
                        props.timeEstimateRange,
                        isCfpSelected,
@@ -726,6 +737,7 @@ object ProposalDetailsBody:
           optSubaruView.map(subaru =>
             subaruFields(subaru,
                          splitsList,
+                         props.users,
                          totalHours,
                          props.timeEstimateRange,
                          isCfpSelected,

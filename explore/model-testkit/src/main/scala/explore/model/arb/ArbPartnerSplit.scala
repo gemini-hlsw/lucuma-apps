@@ -4,29 +4,32 @@
 package explore.model.arb
 
 import eu.timepit.refined.scalacheck.all.*
-import lucuma.core.model.IntPercent
+import explore.model.PartnerSplit
 import lucuma.core.enums.Partner
+import lucuma.core.model.IntPercent
+import lucuma.core.model.ProgramUser
 import lucuma.core.util.arb.ArbEnumerated
+import lucuma.core.util.arb.ArbGid
 import org.scalacheck.*
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen.*
 
-import explore.model.PartnerSplit
-
 trait ArbPartnerSplit:
   import ArbEnumerated.given
+  import ArbGid.given
 
   given Arbitrary[PartnerSplit] =
     Arbitrary {
       for {
         partner <- arbitrary[Partner]
         percent <- arbitrary[IntPercent]
-      } yield PartnerSplit(partner, percent)
+        lead    <- arbitrary[Option[ProgramUser.Id]]
+      } yield PartnerSplit(partner, percent, lead)
     }
 
   given Cogen[PartnerSplit] =
     Cogen[
-      (Partner, IntPercent)
-    ].contramap(p => (p.partner, p.percent))
+      (Partner, IntPercent, Option[ProgramUser.Id])
+    ].contramap(p => (p.partner, p.percent, p.lead))
 
 object ArbPartnerSplit extends ArbPartnerSplit

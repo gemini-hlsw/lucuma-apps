@@ -89,5 +89,6 @@ object PartnerSplitSubquery extends GraphQLSubquery.Typed[ObservationDB, Partner
     {
       partner
       percent
+      lead { id }
     }
   """

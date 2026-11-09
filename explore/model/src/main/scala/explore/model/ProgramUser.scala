@@ -14,6 +14,7 @@ import lucuma.core.data.EmailAddress
 import lucuma.core.enums.EducationalStatus
 import lucuma.core.enums.Gender
 import lucuma.core.enums.ProgramUserRole
+import lucuma.core.model.PartnerLeads
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.UserProfile
 import lucuma.odb.json.partnerlink.given
@@ -35,6 +36,10 @@ case class ProgramUser(
   hasDataAccess:     Boolean,
   classicalVisitor:  Boolean
 ) derives Eq:
+  /** This user as a potential partner lead. */
+  def leadCandidate: PartnerLeads.Candidate =
+    PartnerLeads.Candidate(id, role, partnerLink)
+
   val name: String          =
     preferredProfile.displayName.orElse(user.map(_.name)).orEmpty
   val email: Option[String] =
