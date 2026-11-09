@@ -3,6 +3,7 @@
 
 package explore.config
 
+import cats.Eq
 import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.syntax.all.*
@@ -14,7 +15,6 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.DaytimeCalibrationSets
 import explore.model.GmosDaytimeSetup
-import explore.model.Igrins2DaytimeSetup
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats
@@ -25,8 +25,8 @@ import lucuma.core.enums.CalibrationSetType
 import lucuma.core.enums.GcalArc
 import lucuma.core.enums.GcalContinuum
 import lucuma.core.enums.Instrument
+import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -76,19 +76,24 @@ object DaytimeCalibrationSetsTable:
   // Not exposed by the MultiSelect binding; reaches PrimeReact as a raw prop.
   private val SelectAllLabel = VdomAttr("selectAllLabel")
 
-  private val DragHandleColumnId: ColumnId       = ColumnId("dragHandle")
-  private val KindColumnId: ColumnId             = ColumnId("kind")
-  private val CountColumnId: ColumnId            = ColumnId("count")
-  private val ExposureColumnId: ColumnId         = ColumnId("exposure")
-  private[config] val FpuColumnId: ColumnId      = ColumnId("fpu")
-  private[config] val GratingColumnId: ColumnId  = ColumnId("grating")
-  private[config] val FilterColumnId: ColumnId   = ColumnId("filter")
-  private[config] val ReadModeColumnId: ColumnId = ColumnId("readMode")
-  private val GcalGroupColumnId: ColumnId        = ColumnId("gcal")
-  private val LampColumnId: ColumnId             = ColumnId("lamp")
-  private val GcalFilterColumnId: ColumnId       = ColumnId("gcalFilter")
-  private val ShutterColumnId: ColumnId          = ColumnId("shutter")
-  private val DeleteColumnId: ColumnId           = ColumnId("delete")
+  private val DragHandleColumnId: ColumnId        = ColumnId("dragHandle")
+  private val KindColumnId: ColumnId              = ColumnId("kind")
+  private val CountColumnId: ColumnId             = ColumnId("count")
+  private val ExposureColumnId: ColumnId          = ColumnId("exposure")
+  private val WavelengthColumnId: ColumnId        = ColumnId("wavelength")
+  private[config] val FpuColumnId: ColumnId       = ColumnId("fpu")
+  private[config] val GratingColumnId: ColumnId   = ColumnId("grating")
+  private[config] val FilterColumnId: ColumnId    = ColumnId("filter")
+  private[config] val ReadModeColumnId: ColumnId  = ColumnId("readMode")
+  private val GcalGroupColumnId: ColumnId         = ColumnId("gcal")
+  private[config] val RedGroupColumnId: ColumnId  = ColumnId("red")
+  private[config] val BlueGroupColumnId: ColumnId = ColumnId("blue")
+  private val groupColumnIds: Set[ColumnId]       =
+    Set(GcalGroupColumnId, RedGroupColumnId, BlueGroupColumnId)
+  private val LampColumnId: ColumnId              = ColumnId("lamp")
+  private val GcalFilterColumnId: ColumnId        = ColumnId("gcalFilter")
+  private val ShutterColumnId: ColumnId           = ColumnId("shutter")
+  private val DeleteColumnId: ColumnId            = ColumnId("delete")
 
   private val ArcGroups: NonEmptyList[(String, GcalArc => Boolean)] =
     NonEmptyList.one(("Arcs", _ => true))
@@ -161,17 +166,86 @@ object DaytimeCalibrationSetsTable:
       )
     )
 
-  private[config] def opticsCell(row: Row)(content: => VdomNode): VdomNode =
-    if usesOptics(row._1.kind) then content else EmptyVdom
+  private[config] val always: Row => Boolean       = _ => true
+  private[config] val withOptics: Row => Boolean   = r => usesOptics(r._1.kind)
+  private[config] val withExposure: Row => Boolean = r => usesExposure(r._1.kind)
+
+  private def cellColumn(id: ColumnId, header: String, size: Int, show: Row => Boolean)(
+    content: Row => VdomNode
+  ): ColDef.Type =
+    ColDef(
+      id,
+      header = header,
+      cell = c => if show(c.row.original) then content(c.row.original) else EmptyVdom
+    ).withSize(size.toPx)
+
+  private[config] def dropdownColumn[A: Enumerated: Display](
+    id:       ColumnId,
+    header:   String,
+    size:     Int,
+    editable: Boolean,
+    show:     Row => Boolean = always
+  )(view: Int => View[A]): ColDef.Type =
+    cellColumn(id, header, size, show)(r => dropdown(id, r._2, view(r._2), editable))
+
+  private[config] def optionalDropdownColumn[A: Enumerated: Display](
+    id:          ColumnId,
+    header:      String,
+    size:        Int,
+    editable:    Boolean,
+    placeholder: Row => String,
+    showClear:   Row => Boolean = always,
+    show:        Row => Boolean = always
+  )(view: Int => View[Option[A]]): ColDef.Type =
+    cellColumn(id, header, size, show): r =>
+      optionalDropdown(id, r._2, view(r._2), placeholder(r), editable, showClear(r))
+
+  private[config] def inputColumn[A: Eq](
+    id:       ColumnId,
+    header:   String,
+    size:     Int,
+    editable: Boolean,
+    codec:    InputCodec[A],
+    show:     Row => Boolean = always
+  )(view: Int => View[A]): ColDef.Type =
+    cellColumn(id, header, size, show): r =>
+      FormInputTextView(
+        id = cellId(id, r._2),
+        value = view(r._2),
+        codec = codec,
+        groupClass = SequenceStyles.SequenceInput,
+        disabled = !editable
+      )
+
+  private[config] def exposureColumn(
+    editable: Boolean,
+    codec:    InputCodec[TimeSpan] = ExposureSeconds
+  )(view: Int => View[TimeSpan]): ColDef.Type =
+    inputColumn(ExposureColumnId, "Exp Time (s)", 70, editable, codec, withExposure)(view)
+
+  /** Editable when the setup disperses, otherwise its fixed wavelength, read-only. */
+  private[config] def wavelengthColumn(units: WavelengthUnits, editable: Boolean)(
+    editableView: Int => Option[View[Wavelength]],
+    fixed:        Int => Option[Wavelength]
+  ): ColDef.Type =
+    cellColumn(WavelengthColumnId, s"λ (${units.symbol})", 80, withOptics): r =>
+      editableView(r._2).fold(
+        fixed(r._2).fold(EmptyVdom)(w => inputCodecs.wavelengthValid(units).reverseGet(w): VdomNode)
+      ): wavelength =>
+        FormInputTextView(
+          id = cellId(WavelengthColumnId, r._2),
+          value = wavelength,
+          codec = inputCodecs.wavelength(units),
+          groupClass = SequenceStyles.SequenceInput,
+          disabled = !editable
+        )
 
   /** The columns every instrument shares, around the columns of its own setup. */
   private[config] def columns(
-    instrument:    Instrument,
-    setsView:      View[List[DaytimeCalibrationSet]],
-    editable:      Boolean,
-    exposureView:  Int => View[TimeSpan],
-    setupColumns:  List[ColDef.Type],
-    exposureCodec: InputCodec[TimeSpan] = ExposureSeconds
+    instrument:   Instrument,
+    setsView:     View[List[DaytimeCalibrationSet]],
+    editable:     Boolean,
+    setupColumns: List[ColDef.Type]
   ): List[ColDef.Type] =
     def gcalView(idx: Int): View[StepConfig.Gcal] = rowView(setsView, idx).zoom(DefaultGcalLens)
 
@@ -222,21 +296,7 @@ object DaytimeCalibrationSetsTable:
               groupClass = SequenceStyles.SequenceInput,
               disabled = !editable
             )
-      ).withSize(60.toPx),
-      ColDef(
-        ExposureColumnId,
-        header = "Exp Time (s)",
-        cell = c =>
-          if usesExposure(c.row.original._1.kind) then
-            FormInputTextView(
-              id = cellId(ExposureColumnId, c.row.original._2),
-              value = exposureView(c.row.original._2),
-              codec = exposureCodec,
-              groupClass = SequenceStyles.SequenceInput,
-              disabled = !editable
-            )
-          else EmptyVdom
-      ).withSize(70.toPx)
+      ).withSize(60.toPx)
     ) ++ setupColumns ++ List(
       ColDef.group(
         GcalGroupColumnId,
@@ -354,18 +414,10 @@ object DaytimeCalibrationSetsTable:
                             Flamingos2DaytimeCalibrationColumns(props.setsView, editable)
                           case Instrument.Gnirs      =>
                             GnirsDaytimeCalibrationColumns(props.setsView, editable, units)
+                          case Instrument.Ghost      =>
+                            GhostDaytimeCalibrationColumns(props.setsView, editable)
                           case Instrument.Igrins2    =>
-                            columns(
-                              Instrument.Igrins2,
-                              props.setsView,
-                              editable,
-                              setupView(props.setsView,
-                                        Igrins2DaytimeSetup.setup,
-                                        Igrins2DaytimeSetup.default
-                              )(_).zoom(Igrins2DynamicConfig.exposure),
-                              Nil,
-                              inputCodecs.Igrins2CalibrationExposure
-                            )
+                            Igrins2DaytimeCalibrationColumns(props.setsView, editable)
                           case _                     => Nil
         table    <- useReactTable:
                       TableOptions(
@@ -396,7 +448,7 @@ object DaytimeCalibrationSetsTable:
             headerCellMod = _.column.id match
               case id if id == DragHandleColumnId || id == DeleteColumnId =>
                 SequenceStyles.HiddenColTableHeader
-              case id if id == GcalGroupColumnId                          =>
+              case id if groupColumnIds.contains(id)                      =>
                 ExploreStyles.DaytimeCalGroupHeader
               case _                                                      => TagMod.empty,
             rowMod = tableDnd.rowMod(),

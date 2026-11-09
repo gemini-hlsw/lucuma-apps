@@ -14,10 +14,12 @@ import lucuma.core.enums.CalibrationSetType
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.odb.json.flamingos2.given
+import lucuma.odb.json.ghost.decoder.given
 import lucuma.odb.json.gmos.given
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.igrins2.given
@@ -37,6 +39,7 @@ enum DaytimeCalibrationSetup derives Eq:
   case Flamingos2(config: Flamingos2DynamicConfig)
   case Igrins2(config: Igrins2DynamicConfig)
   case Gnirs(config: GnirsDynamicConfig)
+  case Ghost(config: GhostDynamicConfig)
 
   def instrument: Instrument = this match
     case GmosNorth(_)  => Instrument.GmosNorth
@@ -44,6 +47,7 @@ enum DaytimeCalibrationSetup derives Eq:
     case Flamingos2(_) => Instrument.Flamingos2
     case Igrins2(_)    => Instrument.Igrins2
     case Gnirs(_)      => Instrument.Gnirs
+    case Ghost(_)      => Instrument.Ghost
 
 object DaytimeCalibrationSetup:
   val gmosNorth: Prism[DaytimeCalibrationSetup, GmosNorth] =
@@ -61,6 +65,9 @@ object DaytimeCalibrationSetup:
   val gnirs: Prism[DaytimeCalibrationSetup, Gnirs] =
     GenPrism[DaytimeCalibrationSetup, Gnirs]
 
+  val ghost: Prism[DaytimeCalibrationSetup, Ghost] =
+    GenPrism[DaytimeCalibrationSetup, Ghost]
+
   object GmosNorth:
     val config: Lens[GmosNorth, DynamicConfig.GmosNorth] = Focus[GmosNorth](_.config)
 
@@ -75,6 +82,9 @@ object DaytimeCalibrationSetup:
 
   object Gnirs:
     val config: Lens[Gnirs, GnirsDynamicConfig] = Focus[Gnirs](_.config)
+
+  object Ghost:
+    val config: Lens[Ghost, GhostDynamicConfig] = Focus[Ghost](_.config)
 
 /**
  * One ordered row of a Daytime Calibration: a kind, an exposure count, the GCAL lamp setup of a
@@ -116,12 +126,14 @@ object DaytimeCalibrationSet:
       f2    <- c.downField("flamingos2").as[Option[Flamingos2DynamicConfig]]
       ig2   <- c.downField("igrins2").as[Option[Igrins2DynamicConfig]]
       gn    <- c.downField("gnirs").as[Option[GnirsDynamicConfig]]
+      gh    <- c.downField("ghost").as[Option[GhostDynamicConfig]]
       setup <- north
                  .map(DaytimeCalibrationSetup.GmosNorth(_))
                  .orElse(south.map(DaytimeCalibrationSetup.GmosSouth(_)))
                  .orElse(f2.map(DaytimeCalibrationSetup.Flamingos2(_)))
                  .orElse(ig2.map(DaytimeCalibrationSetup.Igrins2(_)))
                  .orElse(gn.map(DaytimeCalibrationSetup.Gnirs(_)))
+                 .orElse(gh.map(DaytimeCalibrationSetup.Ghost(_)))
                  .toRight(DecodingFailure("Calibration set has no instrument setup", c.history))
     yield DaytimeCalibrationSet(
       kind,
