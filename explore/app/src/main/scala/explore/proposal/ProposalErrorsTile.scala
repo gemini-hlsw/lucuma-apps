@@ -6,10 +6,10 @@ package explore.proposal
 import explore.Icons
 import explore.components.*
 import explore.components.ui.ExploreStyles
+import explore.model.ProposalError
 import explore.model.ProposalTabTileIds
 import explore.utils.testId
 import japgolly.scalajs.react.vdom.html_<^.*
-import explore.model.ProposalError
 
 final case class ProposalErrorsTile(errors: List[ProposalError])
     extends Tile[ProposalErrorsTile](

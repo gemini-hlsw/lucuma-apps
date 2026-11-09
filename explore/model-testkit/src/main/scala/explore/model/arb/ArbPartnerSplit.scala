@@ -4,16 +4,15 @@
 package explore.model.arb
 
 import eu.timepit.refined.scalacheck.all.*
-import lucuma.core.model.IntPercent
+import explore.model.PartnerSplit
 import lucuma.core.enums.Partner
+import lucuma.core.model.IntPercent
 import lucuma.core.model.ProgramUser
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbGid
 import org.scalacheck.*
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen.*
-
-import explore.model.PartnerSplit
 
 trait ArbPartnerSplit:
   import ArbEnumerated.given
