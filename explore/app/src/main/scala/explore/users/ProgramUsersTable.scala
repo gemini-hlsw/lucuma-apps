@@ -466,6 +466,7 @@ object ProgramUsersTable:
       ColDef(
         Column.Partner.id,
         _.zoom(ProgramUser.partnerLink),
+        Column.Partner.header,
         enableSorting = true,
         enableResizing = true,
         cell = c =>
@@ -479,9 +480,23 @@ object ProgramUsersTable:
 
             partnerSelector(cell.get, plOptView, !canEdit || meta.isActive.get.value)
       ).sortableBy(_.get.toString),
+      // Partner leads are chosen in the partner splits editor; here they are only shown.
+      ColDef(
+        Column.Lead.id,
+        _.get.id,
+        Column.Lead.header,
+        cell = c =>
+          c.table.options.meta.map: meta =>
+            if meta.partnerLeads.contains(c.value) then
+              <.span(Icons.Star).withTooltip("Partner lead"): VdomNode
+            else EmptyVdom,
+        enableSorting = false,
+        size = 55.toPx
+      ),
       ColDef(
         Column.EducationalStatus.id,
         _.zoom(ProgramUser.educationalStatus),
+        Column.EducationalStatus.header,
         enableSorting = true,
         enableResizing = true,
         cell = c =>
@@ -508,6 +523,7 @@ object ProgramUsersTable:
       ColDef(
         Column.Thesis.id,
         _.zoom(ProgramUser.thesis),
+        Column.Thesis.header,
         cell = c =>
           val cell                          = c.row.original
           val programUserId: ProgramUser.Id = cell.get.id
@@ -529,6 +545,7 @@ object ProgramUsersTable:
       ColDef(
         Column.Gender.id,
         _.zoom(ProgramUser.gender),
+        Column.Gender.header,
         cell = c =>
           val cell                          = c.row.original
           val programUserId: ProgramUser.Id = cell.get.id
@@ -553,6 +570,7 @@ object ProgramUsersTable:
       ColDef(
         Column.Affiliation.id,
         _.zoom(ProgramUser.affiliation),
+        Column.Affiliation.header,
         cell = c =>
           val cell                          = c.row.original
           val programUserId: ProgramUser.Id = cell.get.id
@@ -632,18 +650,6 @@ object ProgramUsersTable:
               onChange = r => view.set(r)
             )
       ).sortableBy(_.get),
-      // Partner leads are chosen in the partner splits editor; here they are only shown.
-      ColDef(
-        Column.Lead.id,
-        _.get.id,
-        Column.Lead.header,
-        cell = c =>
-          c.table.options.meta.map: meta =>
-            if meta.partnerLeads.contains(c.value) then
-              <.span(Icons.Star).withTooltip("Partner lead"): VdomNode
-            else EmptyVdom,
-        enableSorting = false
-      ),
       ColDef(
         Column.Status.id,
         _.get.status,
