@@ -663,7 +663,7 @@ object ConfigurationTile
                     props.permissions,
                     props.obsConf.cassRotator,
                     props.obsConf.mosMaskDesign,
-                    props.mode.get.exists(_.obsModeType.requiresFixedPosAngle)
+                    props.mode.get.exists(_.obsModeType.isMos)
                   )
                 ),
               props.altair.toOptionView.map: altair =>

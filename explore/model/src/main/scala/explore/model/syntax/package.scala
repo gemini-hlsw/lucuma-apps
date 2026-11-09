@@ -205,22 +205,13 @@ object all:
   extension (cr: Option[CalibrationRole]) def needsAcquisitionConfig: Boolean = cr.needsITC
 
   extension (bc: ObservingModeType)
-    // The ODB rejects a MOS observation as not Ready unless its position angle is Fixed.
-    def requiresFixedPosAngle: Boolean = bc match
-      case ObservingModeType.GmosNorthMos | ObservingModeType.GmosSouthMos |
-          ObservingModeType.Flamingos2Mos =>
-        true
-      case _ => false
-
     def defaultPosAngleOptions: PosAngleOptions =
-      if (requiresFixedPosAngle) PosAngleOptions.Fixed
-      else
-        bc.defaultPosAngleConstraint match
-          case PosAngleConstraint.Unbounded              => PosAngleOptions.Unconstrained
-          case PosAngleConstraint.Fixed(_)               => PosAngleOptions.Fixed
-          case PosAngleConstraint.AllowFlip(_)           => PosAngleOptions.AllowFlip
-          case PosAngleConstraint.ParallacticOverride(_) => PosAngleOptions.ParallacticOverride
-          case PosAngleConstraint.AverageParallactic     => PosAngleOptions.AverageParallactic
+      bc.defaultPosAngleConstraint match
+        case PosAngleConstraint.Unbounded              => PosAngleOptions.Unconstrained
+        case PosAngleConstraint.Fixed(_)               => PosAngleOptions.Fixed
+        case PosAngleConstraint.AllowFlip(_)           => PosAngleOptions.AllowFlip
+        case PosAngleConstraint.ParallacticOverride(_) => PosAngleOptions.ParallacticOverride
+        case PosAngleConstraint.AverageParallactic     => PosAngleOptions.AverageParallactic
 
   extension (pac: PosAngleConstraint)
     def fallbackPosAngle(averagePA: Option[Angle]): Angle =
