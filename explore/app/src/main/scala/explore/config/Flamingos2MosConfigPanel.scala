@@ -27,6 +27,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.flamingos2.Flamingos2AcquisitionMode
+import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -163,6 +165,22 @@ object Flamingos2MosConfigPanel
             )
             .view(_.orUnassign)
 
+        // In our local model, we use Flamingos2AcquisitionMode, which maps to 2 fields in the API.
+        val acquisitionModeView: View[Option[Flamingos2AcquisitionMode]] =
+          acquisition
+            .zoom(
+              ObservingMode.Flamingos2Mos.Acquisition.explicitAcquisitionMode,
+              Flamingos2MosAcquisitionInput.explicitAcquisitionType
+                .disjointZip(Flamingos2MosAcquisitionInput.skyOffset)
+                .modify
+            )
+            .view:
+              _.map: acqMode =>
+                (acqMode.acquisitionType.assign,
+                 Flamingos2AcquisitionMode.skyOffset.getOption(acqMode).map(_.toInput).orUnassign
+                )
+              .getOrElse((Input.unassign, Input.unassign))
+
         val defaultAcquisitionFilter =
           props.observingMode.get.acquisition.defaultFilter
 
@@ -260,6 +278,17 @@ object Flamingos2MosConfigPanel
                 ExploreStyles.AcquisitionCustomizationGrid,
                 <.div(
                   LucumaPrimeStyles.FormColumnCompact,
+                  // The brightness of the mask's acquisition stars is unknown, so there is no
+                  // automatic type: the ODB acquires as Faint unless told otherwise.
+                  Flamingos2AcquisitionModeEditor(
+                    mode = acquisitionModeView,
+                    defaultMode = Flamingos2AcquisitionMode.Faint.Default.some,
+                    idPrefix = "f2-mos-acq".refined,
+                    disabled = disableAdvancedAcqEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization =
+                      allowRevertCustomization || props.permissions.isOnlyForOngoing
+                  ),
                   CustomizableEnumSelectOptional(
                     id = "f2-mos-acq-filter".refined,
                     view = explicitAcquisitionFilterView.withDefault(defaultAcquisitionFilter),

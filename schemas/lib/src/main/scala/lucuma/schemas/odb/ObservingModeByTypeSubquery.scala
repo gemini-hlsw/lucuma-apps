@@ -302,6 +302,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               defaultFilter
               explicitFilter
               exposureTimeMode $ExposureTimeModeSubquery
+              explicitAcquisitionType
+              skyOffset $OffsetSubquery
             }
           }
           flamingos2Mos @include(if: $$includeFlamingos2Mos) {
@@ -332,6 +334,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
               defaultFilter
               explicitFilter
               exposureTimeMode $ExposureTimeModeSubquery
+              explicitAcquisitionType
+              skyOffset $OffsetSubquery
             }
           }
           igrins2LongSlit @include(if: $$includeIgrins2LongSlit) {

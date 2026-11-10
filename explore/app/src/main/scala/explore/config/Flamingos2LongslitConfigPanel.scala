@@ -29,6 +29,8 @@ import lucuma.core.enums.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.flamingos2.Flamingos2AcquisitionMode
+import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
@@ -153,6 +155,22 @@ object Flamingos2LongslitConfigPanel
             )
             .view(_.orUnassign)
 
+        // In our local model, we use Flamingos2AcquisitionMode, which maps to 2 fields in the API.
+        val acquisitionModeView: View[Option[Flamingos2AcquisitionMode]] =
+          acquisition
+            .zoom(
+              ObservingMode.Flamingos2LongSlit.Acquisition.explicitAcquisitionMode,
+              Flamingos2LongSlitAcquisitionInput.explicitAcquisitionType
+                .disjointZip(Flamingos2LongSlitAcquisitionInput.skyOffset)
+                .modify
+            )
+            .view:
+              _.map: acqMode =>
+                (acqMode.acquisitionType.assign,
+                 Flamingos2AcquisitionMode.skyOffset.getOption(acqMode).map(_.toInput).orUnassign
+                )
+              .getOrElse((Input.unassign, Input.unassign))
+
         val defaultAcquisitionFilter =
           props.observingMode.get.acquisition.defaultFilter
 
@@ -225,6 +243,15 @@ object Flamingos2LongslitConfigPanel
                 ExploreStyles.AcquisitionCustomizationGrid,
                 <.div(
                   LucumaPrimeStyles.FormColumnCompact,
+                  Flamingos2AcquisitionModeEditor(
+                    mode = acquisitionModeView,
+                    defaultMode = none,
+                    idPrefix = "f2-acq".refined,
+                    disabled = disableAdvancedAcqEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization =
+                      allowRevertCustomization || props.permissions.isOnlyForOngoing
+                  ),
                   CustomizableEnumSelectOptional(
                     id = "f2-acq-filter".refined,
                     view = explicitAcquisitionFilterView.withDefault(

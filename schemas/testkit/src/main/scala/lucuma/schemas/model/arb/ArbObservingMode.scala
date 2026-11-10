@@ -32,7 +32,9 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
 import lucuma.core.model.sequence.arb.ArbStepConfig
 import lucuma.core.model.sequence.arb.ArbTelescopeConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2AcquisitionMode
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.flamingos2.arb.ArbFlamingos2AcquisitionMode
 import lucuma.core.model.sequence.flamingos2.arb.ArbFlamingos2DynamicConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.arb.ArbGhostDynamicConfig
@@ -89,6 +91,7 @@ trait ArbObservingMode {
   import ArbExposureTimeMode.given
   import ArbGid.given
   import ArbImagingVariant.given
+  import ArbFlamingos2AcquisitionMode.given
   import ArbGnirsAcquisitionMode.given
   import ArbOffset.given
   import ArbSlitTelescopeConfigs.given
@@ -973,13 +976,15 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition] =
     Arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition](
       for {
-        defaultFilter    <- arbitrary[Flamingos2Filter]
-        explicitFilter   <- arbitrary[Option[Flamingos2Filter]]
-        exposureTimeMode <- arbitrary[ExposureTimeMode]
+        defaultFilter           <- arbitrary[Flamingos2Filter]
+        explicitFilter          <- arbitrary[Option[Flamingos2Filter]]
+        exposureTimeMode        <- arbitrary[ExposureTimeMode]
+        explicitAcquisitionMode <- arbitrary[Option[Flamingos2AcquisitionMode]]
       } yield ObservingMode.Flamingos2LongSlit.Acquisition(
         defaultFilter,
         explicitFilter,
-        exposureTimeMode
+        exposureTimeMode,
+        explicitAcquisitionMode
       )
     )
 
@@ -1026,9 +1031,15 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.Flamingos2LongSlit.Acquisition] =
     Cogen[
-      (Flamingos2Filter, Option[Flamingos2Filter], ExposureTimeMode)
+      (Flamingos2Filter,
+       Option[Flamingos2Filter],
+       ExposureTimeMode,
+       Option[Flamingos2AcquisitionMode]
+      )
     ]
-      .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.exposureTimeMode, a.explicitAcquisitionMode)
+      )
 
   given Cogen[ObservingMode.Flamingos2LongSlit] =
     Cogen[
@@ -1086,21 +1097,29 @@ trait ArbObservingMode {
   given arbFlamingos2MosAcquisition: Arbitrary[ObservingMode.Flamingos2Mos.Acquisition] =
     Arbitrary[ObservingMode.Flamingos2Mos.Acquisition](
       for {
-        defaultFilter    <- arbitrary[Flamingos2Filter]
-        explicitFilter   <- arbitrary[Option[Flamingos2Filter]]
-        exposureTimeMode <- arbitrary[ExposureTimeMode]
+        defaultFilter           <- arbitrary[Flamingos2Filter]
+        explicitFilter          <- arbitrary[Option[Flamingos2Filter]]
+        exposureTimeMode        <- arbitrary[ExposureTimeMode]
+        explicitAcquisitionMode <- arbitrary[Option[Flamingos2AcquisitionMode]]
       } yield ObservingMode.Flamingos2Mos.Acquisition(
         defaultFilter,
         explicitFilter,
-        exposureTimeMode
+        exposureTimeMode,
+        explicitAcquisitionMode
       )
     )
 
   given cogenFlamingos2MosAcquisition: Cogen[ObservingMode.Flamingos2Mos.Acquisition] =
     Cogen[
-      (Flamingos2Filter, Option[Flamingos2Filter], ExposureTimeMode)
+      (Flamingos2Filter,
+       Option[Flamingos2Filter],
+       ExposureTimeMode,
+       Option[Flamingos2AcquisitionMode]
+      )
     ]
-      .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.exposureTimeMode, a.explicitAcquisitionMode)
+      )
 
   given Arbitrary[ObservingMode.Flamingos2Mos] =
     Arbitrary[ObservingMode.Flamingos2Mos](
