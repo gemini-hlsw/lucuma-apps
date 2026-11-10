@@ -3485,22 +3485,27 @@ type Mutation {
   """
   Sets, or updates, the TAC feedback of a time accounting category for a
   program.  The program must have a proposal whose status is SUBMITTED.
-
+  
   For a category that belongs to a partner, the user must be staff or an NGO
   user of that partner who can read the program.  The partner must have a
   non-zero time split in the proposal or, when the proposal's call for
   proposals is of type FAST_TURNAROUND or POOR_WEATHER, be the PI's partner.
-
+  
   Only staff may set feedback for the other categories, which are limited as
   follows:
-
+  
   * CAL, ENG and CFHT never have TAC feedback.
   * GT and LTP may provide feedback for any proposal.
-  * JP and KECK may provide feedback when the PI is affiliated with Subaru or
-    Keck, respectively.
+  * JP and KECK may provide feedback when the proposal requests time on behalf
+    of Subaru or Keck, respectively.
   * DD, DS, LP and SV may provide feedback when the proposal's call for
     proposals is of type DIRECTORS_TIME, DEMO_SCIENCE, LARGE_PROGRAM or
     SYSTEM_VERIFICATION, respectively.
+  
+  When recommended times are supplied, observations without a science band are
+  given the program's only allocated band, if it has just one, and a warning
+  lists observations whose band no longer has time allocated, as for
+  `setAllocations`.
   """
   setTacFeedback(input: SetTacFeedbackInput!): TacFeedbackResult!
 
@@ -3509,7 +3514,9 @@ type Mutation {
   with the allocations that carry its recommended times.  The program must have
   a proposal whose status is SUBMITTED.  For a category that belongs to a
   partner, the user must be staff or an NGO user of that partner who can read
-  the program.  Only staff may delete feedback for the other categories.
+  the program.  Only staff may delete feedback for the other categories.  As
+  for `setTacFeedback`, observations are then brought in line with the
+  remaining allocations, which may produce a warning.
   """
   deleteTacFeedback(input: DeleteTacFeedbackInput!): DeleteTacFeedbackResult!
 
@@ -18352,7 +18359,7 @@ input TacFeedbackInput {
   once.  When supplied, the list (even an empty one) replaces all existing
   recommended times.  When omitted, existing recommended times are kept, or
   none are recorded for new feedback.
-
+  
   Each recommended time is stored with the program's allocation for the
   category and band.  Setting a recommended time also sets the allocated
   duration to the same time, and removing a recommended time removes the
@@ -18402,7 +18409,7 @@ type TacRecommendedTime {
   """The science band for which the time is recommended."""
   band: ScienceBand!
 
-  """The time recommended for this band."""
+  """The time recommended for this band, which is always positive."""
   time: TimeSpan!
 }
 
@@ -18411,7 +18418,7 @@ input TacRecommendedTimeInput {
   """The science band for which the time is recommended."""
   band: ScienceBand!
 
-  """The time recommended for this band."""
+  """The time recommended for this band, which must be positive."""
   time: TimeSpanInput!
 }
 
