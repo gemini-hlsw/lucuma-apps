@@ -551,7 +551,7 @@ lazy val explore_workers = project
 
 lazy val explore_app: Project = project
   .in(file("explore/app"))
-  .dependsOn(explore_model, explore_common)
+  .dependsOn(explore_model, explore_common, explore_modelTestkit % Test)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
