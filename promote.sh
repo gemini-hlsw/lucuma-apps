@@ -129,8 +129,10 @@ map_aws_explore_distribution() {
 # every build under builds/<git-sha>/ in the dev bucket, so the copy always comes from there,
 # whatever the source environment: the promoted content is exactly the recorded sha even if dev
 # moved on meanwhile.
-# Assets are copied first so the new index.html never references bundles that don't exist yet;
-# the old index.html referencing removed bundles is harmless, caches still hold them. Tags are
+# The copy uses `cp`, not `sync`: sync skips files of the same size when the source is older,
+# which is always the case when going back to an earlier build, and would keep the newer
+# index.html and sw.js. Assets are copied first so the new index.html never references bundles
+# that don't exist yet, and stale files are only removed once the new build is complete. Tags are
 # not copied: we don't use them, and copying them on large objects needs s3:GetObjectTagging,
 # which developers don't have.
 promote_explore_aws() {
@@ -154,8 +156,11 @@ promote_explore_aws() {
   fi
 
   echo "  Copying $archive to $target..."
-  if aws s3 sync "$archive/assets" "$target/assets" --delete --copy-props metadata-directive &&
-     aws s3 sync "$archive" "$target" --delete --exclude "assets/*" --copy-props metadata-directive; then
+  if aws s3 cp "$archive/assets" "$target/assets" --recursive --only-show-errors \
+       --copy-props metadata-directive &&
+     aws s3 cp "$archive" "$target" --recursive --only-show-errors --exclude "assets/*" \
+       --copy-props metadata-directive &&
+     aws s3 sync "$archive" "$target" --delete --only-show-errors --copy-props metadata-directive; then
     echo "  ✓ Explore build $sha copied to $target"
   else
     echo "  ! Explore AWS copy FAILED"
