@@ -505,7 +505,7 @@ final case class Observation(
   val isInactive = workflow.value.state === ObservationWorkflowState.Inactive
 
   inline def isCalibration: Boolean        = calibrationRole.isDefined
-  // The observation an observation calibration group belongs to, eg: science or its specphot.
+  // Whether this can own an observation calibration group, ie: science or a specphot standard.
   lazy val isObsCalibrationParent: Boolean =
     calibrationRole.forall(_ === CalibrationRole.SpectroPhotometric)
   // Daytime calibrations are created and edited by staff, not by the ODB.
