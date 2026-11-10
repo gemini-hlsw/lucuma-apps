@@ -5392,9 +5392,8 @@ input DaytimeCalibrationInput {
 
   """
   Calibration sets, in order.  On an edit the whole list is replaced; omit it
-  to keep the existing rows.  Rows may only be set for GMOS_NORTH, GMOS_SOUTH
-  and FLAMINGOS2, and are rejected once the sequence has been materialized
-  (first visit or a hand edit).
+  to keep the existing rows.  Rows are rejected once the sequence has been
+  materialized (first visit or a hand edit).
   """
   calibrationSets: [CalibrationSetInput!]
 }
@@ -11068,6 +11067,9 @@ enum GmosNorthBuiltinFpu {
 
   """GmosNorthBuiltinFpu IfuRed"""
   IFU_RED
+
+  """GmosNorthBuiltinFpu Pinhole"""
+  PINHOLE
 }
 
 """GMOS North Filter"""
@@ -11772,6 +11774,9 @@ enum GmosSouthBuiltinFpu {
 
   """GmosSouthBuiltinFpu IfuNSRed"""
   IFU_NS_RED
+
+  """GmosSouthBuiltinFpu Pinhole"""
+  PINHOLE
 }
 
 """GMOS South Filter"""
