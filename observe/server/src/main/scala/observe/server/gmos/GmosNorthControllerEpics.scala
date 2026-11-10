@@ -49,7 +49,7 @@ object GmosNorthEncoders extends GmosControllerEpics.Encoders[GmosSite.North.typ
     }
 
   override val fpu: EpicsCodex.EncodeEpicsValue[GmosSite.FPU[GmosSite.North.type], String] =
-    EncodeEpicsValue {
+    EncodeEpicsValue:
       case GmosNorthFpu.LongSlit_0_25 => "0.25arcsec"
       case GmosNorthFpu.LongSlit_0_50 => "0.5arcsec"
       case GmosNorthFpu.LongSlit_0_75 => "0.75arcsec"
@@ -66,7 +66,7 @@ object GmosNorthEncoders extends GmosControllerEpics.Encoders[GmosSite.North.typ
       case GmosNorthFpu.Ns3           => "NS1.0arcsec"
       case GmosNorthFpu.Ns4           => "NS1.5arcsec"
       case GmosNorthFpu.Ns5           => "NS2.0arcsec"
-    }
+      case GmosNorthFpu.Pinhole       => "focus_array_new"
 
   override val stageMode
     : EpicsCodex.EncodeEpicsValue[GmosSite.StageMode[GmosSite.North.type], String] =
