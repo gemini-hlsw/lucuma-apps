@@ -46,6 +46,7 @@ val testId         = VdomAttr("data-testid")
 val dataProgramId  = VdomAttr("data-program-id")
 val dataInstrument = VdomAttr("data-instrument")
 val dataFocalPlane = VdomAttr("data-focal-plane")
+val dataObsId      = VdomAttr("data-obs-id")
 
 val gitHash = BuildInfo.gitHeadCommit
 
