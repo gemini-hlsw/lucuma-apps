@@ -7,7 +7,6 @@ import cats.Order.*
 import cats.data.NonEmptySet
 import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.types.numeric.PosInt
 import explore.model.*
 import explore.model.Page.*
 import explore.modes.ScienceModes
@@ -20,7 +19,6 @@ import japgolly.scalajs.react.extra.router.*
 import japgolly.scalajs.react.extra.router.StaticDsl.Route
 import japgolly.scalajs.react.vdom.VdomElement
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.Instrument
 import lucuma.core.model.Group
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.Program
@@ -36,8 +34,6 @@ import lucuma.ui.undo.UndoContext
 import lucuma.ui.undo.Undoer
 
 import scala.collection.immutable.SortedSet
-import scala.scalajs.LinkingInfo
-import scala.util.Random
 
 object Routing:
 
@@ -332,58 +328,7 @@ object Routing:
               .xmapL(SchedulingObsPage.iso)
           ) ~> dynRenderP { case (p, m) => schedulingTab(p, m) })
 
-      val configuration =
-        rules
-          .notFound(redirectToPage(NoProgramPage)(using SetRouteVia.HistoryPush))
-          .renderWithP((_, resolution) => ExploreLayout(resolution))
-      // .logToConsole
-
-      // Only link and run this in dev mode. Works since calling `verify` trigger verification immediately.
-      if (LinkingInfo.developmentMode) {
-        def randomId[Id](fromLong: Long => Option[Id]): Id =
-          fromLong(Random.nextLong().abs).get
-
-        def pid      = randomId(Program.Id.fromLong)
-        def oid      = randomId(Observation.Id.fromLong)
-        def tid      = randomId(Target.Id.fromLong)
-        def oneObs   = ObsIdSet.one(oid)
-        def twoObs   = oneObs.add(oid)
-        def threeObs = oneObs.add(oid)
-
-        configuration
-          .verify(
-            NoProgramPage,
-            HomePage(pid),
-            ProgramPage(pid),
-            ProposalPage(pid),
-            ObservationsBasePage(pid),
-            ObsPage(pid, oid),
-            ObsTargetPage(pid, oid, tid),
-            TargetsBasePage(pid),
-            TargetWithObsPage(pid, oneObs, tid),
-            TargetWithObsPage(pid, twoObs, tid),
-            TargetWithObsPage(pid, threeObs, tid),
-            TargetsObsPage(pid, oneObs),
-            TargetsObsPage(pid, twoObs),
-            TargetsObsPage(pid, threeObs),
-            TargetPage(pid, tid),
-            // ConfigurationsPage(pid),
-            ConstraintsBasePage(pid),
-            ConstraintsObsPage(pid, oneObs),
-            ConstraintsObsPage(pid, twoObs),
-            ConstraintsObsPage(pid, threeObs),
-            SchedulingBasePage(pid),
-            SchedulingObsPage(pid, oneObs),
-            SchedulingObsPage(pid, twoObs),
-            SchedulingObsPage(pid, threeObs),
-            ObservationReferenceResolverPage(
-              ObservationReference(
-                ProgramReference.Example(Instrument.GmosSouth),
-                PosInt.unsafeFrom(1)
-              )
-            )
-          )
-        ()
-      }
-
-      configuration
+      // Append `.logToConsole` to debug routing.
+      rules
+        .notFound(redirectToPage(NoProgramPage)(using SetRouteVia.HistoryPush))
+        .renderWithP((_, resolution) => ExploreLayout(resolution))
