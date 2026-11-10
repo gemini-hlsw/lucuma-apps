@@ -163,13 +163,13 @@ case class ObsTree(
   // For a little way we have an orphan observation calibration when the group is dissolved
   private def isOrphanObservationCalibration(g: Group): Boolean =
     g.isObsCalibration &&
-      !groupsChildren.get(g.id.some).orEmpty.exists(_.left.exists(_.calibrationRole.isEmpty))
+      !groupsChildren.get(g.id.some).orEmpty.exists(_.left.exists(_.isObsCalibrationParent))
 
   private def isVisibleInTree(value: Either[Observation, Group]): Boolean =
     value.fold(_ => true, g => !isOrphanObservationCalibration(g))
 
-  // The science observation of an observation calibration group, plus its calibrations (eg:
-  // telluric standards), which are rendered within the science observation's badge.
+  // The parent observation of an observation calibration group (science or specphot standard),
+  // plus its calibrations (eg: tellurics, daytime arcs), rendered within the parent's badge.
   private def mainAndAssociatedObs(groupId: Group.Id): (Option[Observation], List[Observation]) =
     val groupObservations: List[Observation] =
       groupsChildren
@@ -177,7 +177,7 @@ case class ObsTree(
         .orEmpty
         .collect:
           case Left(obs) => obs
-    val mainObs: Option[Observation]         = groupObservations.find(_.calibrationRole.isEmpty)
+    val mainObs: Option[Observation]         = groupObservations.find(_.isObsCalibrationParent)
     (mainObs, groupObservations.filterNot(o => mainObs.exists(_.id === o.id)))
 
   /**
