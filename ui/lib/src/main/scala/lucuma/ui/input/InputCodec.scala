@@ -13,8 +13,16 @@ import lucuma.core.validation.InputValidSplitEpi
 /**
  * Everything a text input needs for a value of type `A`: the codec between the text and `A`, used
  * on blur to parse and to print the canonical text, and the Inputmask options constraining the text
- * while typing, if any. `valid` is an `InputValidFormat`, lucuma-core's name for a validating
- * parse/print pair.
+ * while typing, if any.
+ *
+ * `valid` is an `InputValidFormat`, which is a validating parse/print pair, and comes in two
+ * variants:
+ *   - An `InputValidSplitEpi` results in a strict codec: every value prints to text that parses
+ *     back to the same value, so after blur the field only reformats what the user typed.
+ *   - An `InputValidWedge` results in a lossy codec: parsing normalizes the value to one the codec
+ *     can print exactly, so the text shown after blur can represent a different value from the one
+ *     the user typed, usually a rounded one. A more precise value set elsewhere is kept until the
+ *     user edits it.
  *
  * Build one from the parser with `toCodec`, then pick the typing constraint: `withIntegerMask`,
  * `withDecimalMask`, `withUnboundedDecimalMask`, `withScientificMask`, or `withRegexMask` with a

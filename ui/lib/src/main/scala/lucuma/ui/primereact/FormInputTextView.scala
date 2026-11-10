@@ -130,9 +130,14 @@ object FormInputTextView:
             { validated =>
               val validatedCB: Callback = validated match
                 case Right(a) =>
-                  // Only set if resulting A changed. Always redisplay the formatted string, since
-                  // the external update is skipped when the typed text parses to the same value.
-                  Option.when(props.value.get.exists(_ =!= a))(props.value.set(a)).orEmpty >>
+                  // Only set if resulting A changed. Compare against the stored value as the codec
+                  // reads it back, so a lossy codec (an `InputValidWedge`) doesn't overwrite a more
+                  // precise stored value when the field is blurred without edits. Always redisplay
+                  // the formatted string, since the external update is skipped when the typed text
+                  // parses to the same value.
+                  val changed: Boolean = props.value.get.exists: b =>
+                    props.codec.valid.getValid(props.codec.valid.reverseGet(b)).toOption =!= a.some
+                  Option.when(changed)(props.value.set(a)).orEmpty >>
                     displayValue.setState(props.codec.valid.reverseGet(a))
                 case Left(e)  =>
                   errors.setState(e.some)
