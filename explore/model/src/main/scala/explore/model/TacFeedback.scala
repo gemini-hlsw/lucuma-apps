@@ -10,23 +10,24 @@ import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
-import lucuma.core.enums.Partner
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TacPartnerDecision
+import lucuma.core.enums.TimeAccountingCategory
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
 
-/** The time a partner TAC recommends for a science band. */
+/** The time a TAC recommends for a science band. */
 case class TacRecommendedTime(band: ScienceBand, time: TimeSpan) derives Eq, Decoder
 
 /**
- * A partner TAC's feedback on a proposal. The ODB returns the recommended times sorted by band.
+ * The feedback of a time accounting category's TAC on a proposal. The ODB returns the recommended
+ * times sorted by band.
  */
 case class TacFeedback(
-  partner:          Partner,
-  decision:         TacPartnerDecision,
-  ranking:          PosBigDecimal,
-  recommendedTimes: List[TacRecommendedTime],
-  comments:         Option[NonEmptyString]
+  timeAccountingCategory: TimeAccountingCategory,
+  decision:               TacPartnerDecision,
+  ranking:                PosBigDecimal,
+  recommendedTimes:       List[TacRecommendedTime],
+  comments:               Option[NonEmptyString]
 ) derives Eq,
       Decoder

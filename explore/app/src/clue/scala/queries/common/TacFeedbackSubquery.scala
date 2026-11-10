@@ -15,7 +15,7 @@ import lucuma.schemas.odb.TimeSpanSubquery
 object TacFeedbackSubquery extends GraphQLSubquery.Typed[ObservationDB, TacFeedback]:
   override val subquery = gql"""
     {
-      partner
+      timeAccountingCategory
       decision
       ranking
       recommendedTimes {

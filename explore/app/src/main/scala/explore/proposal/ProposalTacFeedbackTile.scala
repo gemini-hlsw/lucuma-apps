@@ -7,11 +7,11 @@ import explore.components.Tile
 import explore.components.TileComponent
 import explore.components.TileContents
 import explore.components.ui.ExploreStyles
-import explore.components.ui.PartnerFlags
 import explore.model.ProposalTabTileIds
 import explore.model.TacFeedback
 import explore.model.TacRecommendedTime
 import explore.model.display.given
+import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.syntax.display.*
@@ -40,14 +40,11 @@ object ProposalTacFeedbackTile
       // The headings of all partners share the columns of a single grid, so
       // they line up when laid out on one line.
       def partnerFeedback(f: TacFeedback): VdomNode =
-        React.Fragment.withKey(f.partner.tag)(
+        React.Fragment.withKey(f.timeAccountingCategory.tag)(
+          // Only the categories that belong to a partner have a flag.
           <.span(ExploreStyles.ProposalTacFeedbackPartner)(
-            <.img(
-              ^.src := PartnerFlags.smallFlag(f.partner),
-              ^.alt := s"${f.partner.shortName} Flag",
-              ExploreStyles.PartnerSplitFlag
-            ),
-            f.partner.longName
+            f.timeAccountingCategory.renderFlag,
+            f.timeAccountingCategory.description
           ),
           label("Decision:"),
           <.span(f.decision.shortName),
