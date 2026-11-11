@@ -3,6 +3,7 @@
 
 package explore.model
 
+import cats.data.NonEmptyList
 import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.numeric.PosInt
@@ -15,6 +16,7 @@ import lucuma.core.math.BrightnessValue
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
+import lucuma.core.math.WavelengthDither
 import lucuma.core.math.arb.ArbAngle.given
 import lucuma.core.math.arb.ArbDeclination.given
 import lucuma.core.math.arb.ArbEpoch.given
@@ -23,7 +25,9 @@ import lucuma.core.math.arb.ArbProperMotion.given
 import lucuma.core.math.arb.ArbRadialVelocity.given
 import lucuma.core.math.arb.ArbRedshift.given
 import lucuma.core.math.arb.ArbRightAscension.given
+import lucuma.core.syntax.validation.*
 import lucuma.core.util.TimeSpan
+import lucuma.refined.*
 import lucuma.ui.input.InputCodecTests
 import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
@@ -79,6 +83,13 @@ final class InputCodecsSuite extends DisciplineSuite:
     yield EmailAddress.unsafeFrom(s"$user@$domain.org")
   )
 
+  // Dithers within the three integer digits and one decimal that the mask accepts.
+  private val dithers: Arbitrary[Option[NonEmptyList[WavelengthDither]]] =
+    val dither: Gen[WavelengthDither] =
+      Gen.choose(-9999, 9999).map(tenthsNm => WavelengthDither.intPicometers.get(tenthsNm * 100))
+
+    Arbitrary(Gen.option(Gen.nonEmptyListOf(dither).map(NonEmptyList.fromListUnsafe)))
+
   checkAll("Ra", InputCodecTests(inputCodecs.Ra))
   checkAll("Dec", InputCodecTests(inputCodecs.Dec))
   checkAll("EpochNoScheme", InputCodecTests(inputCodecs.EpochNoScheme))
@@ -128,6 +139,14 @@ final class InputCodecsSuite extends DisciplineSuite:
   checkAll("NonEmptyText", InputCodecTests(inputCodecs.NonEmptyText))
   checkAll("NonEmptyTextOptional", InputCodecTests(inputCodecs.NonEmptyTextOptional))
   checkAll("EmailOptional", InputCodecTests(inputCodecs.EmailOptional))
+  checkAll(
+    "wavelengthDithers",
+    InputCodecTests(
+      inputCodecs.wavelengthDithers(
+        ExploreModelValidators.ditherValidWedge.toNel(",".refined).optional
+      )
+    )(using dithers)
+  )
   WavelengthUnits.values.foreach: units =>
     checkAll(s"wavelength($units)", InputCodecTests(inputCodecs.wavelength(units)))
     checkAll(s"wavelengthOptional($units)", InputCodecTests(inputCodecs.wavelengthOptional(units)))

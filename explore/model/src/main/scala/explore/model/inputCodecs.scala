@@ -253,7 +253,8 @@ trait inputCodecs:
 
   /** Comma separated dithers in nm; the parser depends on the mode, so it is supplied. */
   def wavelengthDithers[A](valid: InputValidFormat[A]): InputCodec[A] =
-    valid.toCodec.withRegexMask(Masks.commaList(Masks.decimalPattern(3, 1, allowMinus = true)))
+    valid.toCodec.withRegexMask:
+      Masks.commaList(Masks.nonEmptyDecimalPattern(3, 1, allowMinus = true))
 
   // Text
   val Text: InputCodec[String]                                 = InputCodec.Text
