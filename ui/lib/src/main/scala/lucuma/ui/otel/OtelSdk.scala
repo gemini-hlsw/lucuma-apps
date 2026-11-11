@@ -10,16 +10,22 @@ import lucuma.core.enums.ExecutionEnvironment
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
-import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
+import org.http4s.otel4s.middleware.client.ClientInstrumentation
+import org.http4s.otel4s.middleware.client.ClientTracingConfig
+import org.http4s.otel4s.middleware.metrics.client.ClientMetricsConfig
 import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
 import org.http4s.otel4s.middleware.trace.client.UriRedactor
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.Attributes
+import org.typelevel.otel4s.context.ContextManager
 import org.typelevel.otel4s.context.LocalProvider
+import org.typelevel.otel4s.metrics.MeterProvider
+import org.typelevel.otel4s.sdk.OpenTelemetrySdk
 import org.typelevel.otel4s.sdk.TelemetryResource
 import org.typelevel.otel4s.sdk.context.Context
 import org.typelevel.otel4s.sdk.context.LocalContext
+import org.typelevel.otel4s.sdk.context.LocalContextProvider
 import org.typelevel.otel4s.sdk.exporter.otlp.trace.OtlpSpanExporter
 import org.typelevel.otel4s.sdk.trace.SdkTracerProvider
 import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
@@ -42,11 +48,21 @@ object OtelSdk:
   case class OtelResources(
     tracer:         Tracer[IO],
     tracerProvider: TracerProvider[IO],
-    localCtx:       LocalContext[IO]
+    localCtx:       LocalContext[IO],
+    contextManager: ContextManager[IO]
   )
 
-  private def noop(localCtx: LocalContext[IO]): OtelResources =
-    OtelResources(Tracer.noop[IO], TracerProvider.noop[IO], localCtx)
+  /**
+   * A context manager over `local`, the context that the tracer uses. otel4s only exposes a context
+   * manager through an sdk, so we take it from a no-op sdk on the same local.
+   */
+  private def contextManager(local: LocalContext[IO]): IO[ContextManager[IO]] =
+    given LocalContextProvider[IO] = LocalProvider.fromLocal(local)
+    OpenTelemetrySdk.noop[IO].map(_.contextManager)
+
+  private def noop(localCtx: LocalContext[IO]): IO[OtelResources] =
+    contextManager(localCtx).map:
+      OtelResources(Tracer.noop[IO], TracerProvider.noop[IO], localCtx, _)
 
   /**
    * Build the sdk, tracing to `endpoint`, identifying itself as `serviceName`.
@@ -76,12 +92,12 @@ object OtelSdk:
       .eval(LocalProvider[IO, Context].local)
       .flatMap: local =>
         endpoint
-          .fold(Resource.pure(noop(local))): uri =>
+          .fold(Resource.eval(noop(local))): uri =>
             buildSdk(uri, serviceName, telemetryResource, scheduleDelay, local)
           .handleErrorWith: (t: Throwable) =>
             Resource
               .eval(Logger[IO].warn(t)("Error initializing tracing, continuing without it"))
-              .as(noop(local))
+              .flatMap(_ => Resource.eval(noop(local)))
 
   private def buildSdk(
     uri:               Uri,
@@ -110,7 +126,8 @@ object OtelSdk:
                                    .addTextMapPropagators(W3CTraceContextPropagator.default)
                                    .build
       tracer                <- Resource.eval(traceProvider.tracer(serviceName).get)
-    yield OtelResources(tracer, traceProvider, local)
+      contextManager        <- Resource.eval(contextManager(local))
+    yield OtelResources(tracer, traceProvider, local, contextManager)
 
   private def resourceAttr(
     serviceName:     String,
@@ -127,10 +144,13 @@ object OtelSdk:
 
   /**
    * Middleware tracing outgoing http calls, propagating the current span context so that the server
-   * side of the call joins the same trace.
+   * side of the call joins the same trace. The browser exports no metrics.
    */
-  def traceMiddleware[F[_]: {Async, TracerProvider}]: F[Client[F] => Client[F]] =
-    ClientMiddleware
-      .builder[F](ClientSpanDataProvider.openTelemetry(new UriRedactor.OnlyRedactUserInfo {}))
-      .build
-      .map(middleware => (client: Client[F]) => middleware(client))
+  def traceMiddleware[F[_]: {Async, TracerProvider, ContextManager}]: F[Client[F] => Client[F]] =
+    given MeterProvider[F] = MeterProvider.noop
+    ClientInstrumentation.middleware[F](
+      ClientMetricsConfig.default,
+      ClientTracingConfig(
+        ClientSpanDataProvider.openTelemetry(new UriRedactor.OnlyRedactUserInfo {})
+      )
+    )
