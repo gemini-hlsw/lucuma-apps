@@ -115,6 +115,7 @@ trait ObservationDB {
     type EphemerisKeyType                    = enums.EphemerisKeyType
     type FieldLens                           = enums.FieldLens
     type FilterType                          = enums.FilterType
+    type Flamingos2AcquisitionType           = enums.Flamingos2AcquisitionType
     type Flamingos2CustomSlitWidth           = enums.Flamingos2CustomSlitWidth
     type Flamingos2Decker                    = enums.Flamingos2Decker
     type Flamingos2Disperser                 = enums.Flamingos2Disperser

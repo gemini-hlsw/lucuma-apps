@@ -27,6 +27,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.TelescopeConfigAlongSlit
+import lucuma.core.model.sequence.flamingos2.Flamingos2AcquisitionMode
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -789,7 +790,12 @@ extension (t: TelluricType)
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
   def toInput: Flamingos2LongSlitAcquisitionInput = Flamingos2LongSlitAcquisitionInput(
-    exposureTimeMode = a.exposureTimeMode.toInput.assign
+    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    explicitAcquisitionType = a.explicitAcquisitionMode.map(_.acquisitionType).orUnassign,
+    skyOffset = a.explicitAcquisitionMode
+      .flatMap(Flamingos2AcquisitionMode.skyOffset.getOption)
+      .map(_.toInput)
+      .orUnassign
   )
 
 extension (o: ObservingMode.Flamingos2LongSlit)
@@ -814,7 +820,12 @@ extension (m: ObservingMode.Flamingos2CustomMask)
 extension (a: ObservingMode.Flamingos2Mos.Acquisition)
   def toInput: Flamingos2MosAcquisitionInput = Flamingos2MosAcquisitionInput(
     explicitFilter = a.explicitFilter.orUnassign,
-    exposureTimeMode = a.exposureTimeMode.toInput.assign
+    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    explicitAcquisitionType = a.explicitAcquisitionMode.map(_.acquisitionType).orUnassign,
+    skyOffset = a.explicitAcquisitionMode
+      .flatMap(Flamingos2AcquisitionMode.skyOffset.getOption)
+      .map(_.toInput)
+      .orUnassign
   )
 
 extension (o: ObservingMode.Flamingos2Mos)

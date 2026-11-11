@@ -12,6 +12,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.DecodingFailure
+import io.circe.HCursor
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
 import lucuma.core.enums.*
@@ -26,6 +27,7 @@ import lucuma.core.model.GmosIfuAnalysis
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.TelluricType
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2AcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
@@ -1426,25 +1428,50 @@ object ObservingMode:
         acquisition = acquisition.revertCustomizations
       )
 
+  // The API splits the acquisition mode across `explicitAcquisitionType` and `skyOffset`.
+  // The ODB sends a sky offset exactly when the type is FAINT, so the default is unused.
+  private def decodeFlamingos2AcquisitionMode(
+    c: HCursor
+  ): Decoder.Result[Option[Flamingos2AcquisitionMode]] =
+    for
+      acquisitionType <-
+        c.downField("explicitAcquisitionType").as[Option[Flamingos2AcquisitionType]]
+      skyOffset       <- c.downField("skyOffset").as[Option[Offset]]
+    yield acquisitionType.map:
+      Flamingos2AcquisitionMode.forTypeAndOffset(
+        _,
+        skyOffset.getOrElse(Flamingos2AcquisitionMode.Faint.DefaultSkyOffset)
+      )
+
   object Flamingos2LongSlit:
     case class Acquisition(
-      defaultFilter:    Flamingos2Filter,
-      explicitFilter:   Option[Flamingos2Filter],
-      exposureTimeMode: ExposureTimeMode
-    ) derives Decoder,
-          Eq:
+      defaultFilter:           Flamingos2Filter,
+      explicitFilter:          Option[Flamingos2Filter],
+      exposureTimeMode:        ExposureTimeMode,
+      explicitAcquisitionMode: Option[Flamingos2AcquisitionMode]
+    ) derives Eq:
       def isCustomized: Boolean             =
-        explicitFilter.exists(_ =!= defaultFilter)
+        explicitFilter.exists(_ =!= defaultFilter) || explicitAcquisitionMode.isDefined
       def revertCustomizations: Acquisition =
-        this.copy(explicitFilter = None)
+        this.copy(explicitFilter = None, explicitAcquisitionMode = None)
 
     object Acquisition:
-      val defaultFilter: Lens[Acquisition, Flamingos2Filter]          =
+      given Decoder[Acquisition] = Decoder.instance: c =>
+        for
+          defaultFilter           <- c.downField("defaultFilter").as[Flamingos2Filter]
+          explicitFilter          <- c.downField("explicitFilter").as[Option[Flamingos2Filter]]
+          exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+          explicitAcquisitionMode <- decodeFlamingos2AcquisitionMode(c)
+        yield Acquisition(defaultFilter, explicitFilter, exposureTimeMode, explicitAcquisitionMode)
+
+      val defaultFilter: Lens[Acquisition, Flamingos2Filter]                            =
         Focus[Acquisition](_.defaultFilter)
-      val explicitFilter: Lens[Acquisition, Option[Flamingos2Filter]] =
+      val explicitFilter: Lens[Acquisition, Option[Flamingos2Filter]]                   =
         Focus[Acquisition](_.explicitFilter)
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]       =
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                         =
         Focus[Acquisition](_.exposureTimeMode)
+      val explicitAcquisitionMode: Lens[Acquisition, Option[Flamingos2AcquisitionMode]] =
+        Focus[Acquisition](_.explicitAcquisitionMode)
 
     given Decoder[Flamingos2LongSlit] = deriveDecoder
 
@@ -1554,23 +1581,33 @@ object ObservingMode:
 
   object Flamingos2Mos:
     case class Acquisition(
-      defaultFilter:    Flamingos2Filter,
-      explicitFilter:   Option[Flamingos2Filter],
-      exposureTimeMode: ExposureTimeMode
-    ) derives Decoder,
-          Eq:
+      defaultFilter:           Flamingos2Filter,
+      explicitFilter:          Option[Flamingos2Filter],
+      exposureTimeMode:        ExposureTimeMode,
+      explicitAcquisitionMode: Option[Flamingos2AcquisitionMode]
+    ) derives Eq:
       def isCustomized: Boolean             =
-        explicitFilter.exists(_ =!= defaultFilter)
+        explicitFilter.exists(_ =!= defaultFilter) || explicitAcquisitionMode.isDefined
       def revertCustomizations: Acquisition =
-        this.copy(explicitFilter = None)
+        this.copy(explicitFilter = None, explicitAcquisitionMode = None)
 
     object Acquisition:
-      val defaultFilter: Lens[Acquisition, Flamingos2Filter]          =
+      given Decoder[Acquisition] = Decoder.instance: c =>
+        for
+          defaultFilter           <- c.downField("defaultFilter").as[Flamingos2Filter]
+          explicitFilter          <- c.downField("explicitFilter").as[Option[Flamingos2Filter]]
+          exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+          explicitAcquisitionMode <- decodeFlamingos2AcquisitionMode(c)
+        yield Acquisition(defaultFilter, explicitFilter, exposureTimeMode, explicitAcquisitionMode)
+
+      val defaultFilter: Lens[Acquisition, Flamingos2Filter]                            =
         Focus[Acquisition](_.defaultFilter)
-      val explicitFilter: Lens[Acquisition, Option[Flamingos2Filter]] =
+      val explicitFilter: Lens[Acquisition, Option[Flamingos2Filter]]                   =
         Focus[Acquisition](_.explicitFilter)
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]       =
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                         =
         Focus[Acquisition](_.exposureTimeMode)
+      val explicitAcquisitionMode: Lens[Acquisition, Option[Flamingos2AcquisitionMode]] =
+        Focus[Acquisition](_.explicitAcquisitionMode)
 
     given Decoder[Flamingos2Mos] = deriveDecoder
 
