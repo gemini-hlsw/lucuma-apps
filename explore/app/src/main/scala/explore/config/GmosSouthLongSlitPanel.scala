@@ -87,7 +87,10 @@ case class GmosSouthLongSlitPanel(
     (readMode, ampGain)
 
   def excludedFpus: Set[GmosSouthFpu] =
-    Enumerated[GmosSouthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
+    val (mos, others) = Enumerated[GmosSouthFpu].all
+      .filter(_.fpuType =!= GmosFpuType.LongSlit)
+      .partition(_.fpuType === GmosFpuType.MOS)
+    others.toSet ++ mos.toSet.excludedUnless(isStaff, fpuView.get.some)
 
   def revertCustomizations: Callback = observingMode.view(_.toInput).mod(_.revertCustomizations)
 

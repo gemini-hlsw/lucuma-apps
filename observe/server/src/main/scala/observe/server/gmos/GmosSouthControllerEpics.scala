@@ -23,7 +23,7 @@ object GmosSouthEncoders extends GmosControllerEpics.Encoders[GmosSite.South.typ
     }
 
   override val fpu: EncodeEpicsValue[GmosSite.FPU[GmosSite.South.type], String] =
-    EncodeEpicsValue {
+    EncodeEpicsValue:
       case GmosSouthFpu.LongSlit_0_25 => "0.25arcsec"
       case GmosSouthFpu.LongSlit_0_50 => "0.5arcsec"
       case GmosSouthFpu.LongSlit_0_75 => "0.75arcsec"
@@ -42,7 +42,7 @@ object GmosSouthEncoders extends GmosControllerEpics.Encoders[GmosSite.South.typ
       case GmosSouthFpu.Ns3           => "NS1.0arcsec"
       case GmosSouthFpu.Ns4           => "NS1.5arcsec"
       case GmosSouthFpu.Ns5           => "NS2.0arcsec"
-    }
+      case GmosSouthFpu.Pinhole       => "PinholeC"
 
   override val filter
     : EncodeEpicsValue[Option[GmosSite.Filter[GmosSite.South.type]], (String, String)] =
