@@ -57,6 +57,14 @@ final class MasksSuite extends FunSuite:
     assert(!matches(Masks.integerPattern(allowMinus = false, integerDigits = Some(4)), "20480"))
   }
 
+  // Inputmask doubles the commas after an element with decimals when the element can be empty.
+  test("comma list of decimals") {
+    val dithers: String = Masks.commaList(Masks.nonEmptyDecimalPattern(3, 1, allowMinus = true))
+    List("3.0,5.0,-3.0,-0.5,0.0", "3,5,-3", "3.0, 5.0", ".5,1", "-.5,.5", "-7.5").foreach: s =>
+      assert(matches(dithers, s), s)
+    List("3,,5", "3.05,1", "1234,5", "3,").foreach(s => assert(!matches(dithers, s), s))
+  }
+
   test("Ra accepts canonical and short forms") {
     List("03:39:59.344", "3:9:5.5", "23:59:59", "00:00:00.1").foreach: s =>
       assert(matches(Masks.Ra, s), s)

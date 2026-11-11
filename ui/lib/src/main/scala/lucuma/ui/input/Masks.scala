@@ -107,6 +107,15 @@ object Masks:
   def decimalPattern(integerDigits: Int, decimalDigits: Int, allowMinus: Boolean): String =
     s"(${sign(allowMinus)}[0-9]{0,$integerDigits}${decimals(decimalDigits)})"
 
+  /**
+   * A decimal number that cannot be empty, for use as a [[commaList]] element: an integer part with
+   * optional decimals, or the decimals alone so that ".5" can still be typed.
+   */
+  def nonEmptyDecimalPattern(integerDigits: Int, decimalDigits: Int, allowMinus: Boolean): String =
+    val integerFirst: String = s"[0-9]{1,$integerDigits}${decimals(decimalDigits)}"
+    val decimalsOnly: String = s"\\.[0-9]{1,$decimalDigits}"
+    s"(${sign(allowMinus)}($integerFirst|$decimalsOnly))"
+
   /** A decimal with an optional exponent: `-?d.ddde-dd`. */
   def scientific(
     integerDigits:  Int,
@@ -116,7 +125,12 @@ object Masks:
   ): String =
     s"${decimalPattern(integerDigits, decimalDigits, allowMinus)}(e[+-]?[0-9]{1,$exponentDigits})?"
 
-  /** One or more `element`s separated by commas, with an optional space after each comma. */
+  /**
+   * One or more `element`s separated by commas, with an optional space after each comma.
+   *
+   * `element` must not match the empty text. When it can, like [[decimalPattern]], Inputmask
+   * inserts a second comma after every element that has decimals ("3.0,5" becomes "3.0,,5").
+   */
   def commaList(element: String): String = s"$element(,\\s?$element)*"
 
   /**
