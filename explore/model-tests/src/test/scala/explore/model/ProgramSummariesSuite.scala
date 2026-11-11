@@ -137,6 +137,18 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
         emptyPS.upsertObs(obsWith(obs, none, ObservationWorkflowState.Ready, isCalibration = false))
       assert(ps.aeonEligibleInstruments.isEmpty)
 
+  test("schedulableChildrenCount: inactive, undefined and suspended observations don't count"):
+    forAll: (obs: Observation, state: ObservationWorkflowState) =>
+      val ps       = emptyPS.upsertObs(
+        Observation.groupId.replace(none).andThen(Observation.workflowState.replace(state))(obs)
+      )
+      val excluded = Set(
+        ObservationWorkflowState.Inactive,
+        ObservationWorkflowState.Undefined,
+        ObservationWorkflowState.Suspended
+      )
+      assertEquals(ps.schedulableChildrenCount(none), if excluded.contains(state) then 0 else 1)
+
   def obsWithToo(obs: Observation, too: TooActivation, isCalibration: Boolean): Observation =
     Observation.tooActivation
       .replace(too)

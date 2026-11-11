@@ -301,7 +301,7 @@ case class ProgramSummaries(
       .toMap
   end groupsChildren
 
-  // Inactive and Undefined observations will never be scheduled, so they don't count towards
+  // Inactive, Undefined and Suspended observations won't be scheduled, so they don't count towards
   // the elements an OR group can choose from. Subgroups always count.
   def schedulableChildrenCount(groupId: Option[Group.Id]): Int =
     groupsChildren
@@ -372,8 +372,13 @@ case class ProgramSummaries(
       .toMap
 
 object ProgramSummaries:
+  // Suspended observations are set aside, like inactive ones, until resumed.
   private val nonSchedulableStates: Set[ObservationWorkflowState] =
-    Set(ObservationWorkflowState.Inactive, ObservationWorkflowState.Undefined)
+    Set(
+      ObservationWorkflowState.Inactive,
+      ObservationWorkflowState.Undefined,
+      ObservationWorkflowState.Suspended
+    )
 
   val optProgramDetails: Lens[ProgramSummaries, Option[ProgramDetails]]        =
     Focus[ProgramSummaries](_.optProgramDetails)
