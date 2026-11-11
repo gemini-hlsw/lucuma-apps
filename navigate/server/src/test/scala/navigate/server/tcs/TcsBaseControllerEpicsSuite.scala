@@ -6,6 +6,7 @@ package navigate.server.tcs
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.std.Dispatcher
+import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import lucuma.core.enums
 import lucuma.core.enums.ComaOption
@@ -141,7 +142,16 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("navigate-engine")
 
-  test("Mount commands") {
+  // Runs the test on a virtual clock, so the controller's settle times, timeouts and fixed waits
+  // don't take real time, with a Dispatcher scoped to the test.
+  private def epicsTest(
+    name: String
+  )(body: Dispatcher[IO] ?=> IO[Any])(using munit.Location): Unit =
+    test(name)(
+      TestControl.executeEmbed(Dispatcher.parallel[IO](await = true).use(d => body(using d).void))
+    )
+
+  epicsTest("Mount commands") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.mcsPark
@@ -155,7 +165,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("SCS commands") {
+  epicsTest("SCS commands") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.scsFollow(enable = true)
@@ -166,7 +176,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Rotator commands") {
+  epicsTest("Rotator commands") {
     val testAngle = RotatorAngle.fromDoubleDegrees(123.456)
 
     for {
@@ -191,7 +201,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   }
 
-  test("Enclosure commands") {
+  epicsTest("Enclosure commands") {
     val testHeight   = 12345.6
     val testVentEast = 0.3
     val testVentWest = 0.2
@@ -236,7 +246,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Slew command") {
+  epicsTest("Slew command") {
     val targetRa  = "17:01:00.000000"
     val targetDec = "-21:10:59.999999"
 
@@ -542,7 +552,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("InstrumentSpecifics command") {
+  epicsTest("InstrumentSpecifics command") {
     val instrumentSpecifics: InstrumentSpecifics = InstrumentSpecifics(
       iaa = Angle.fromDoubleDegrees(123.45),
       focusOffset = Distance.fromLongMicrometers(2344),
@@ -676,7 +686,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   private def testTarget(
     applyCmdL: Getter[TcsBaseController[IO], Target => IO[ApplyCommandResult]],
     l:         Getter[State, TargetChannelsState]
-  ): IO[Unit] = {
+  )(using Dispatcher[IO]): IO[Unit] = {
     val target = SiderealTarget(
       objectName = "Dummy",
       wavelength = none,
@@ -694,19 +704,19 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkTarget(l.get(rs), target)
   }
 
-  test("pwfs1Target command") {
+  epicsTest("pwfs1Target command") {
     testTarget(Getter[TcsBaseController[IO], Target => IO[ApplyCommandResult]](_.pwfs1Target),
                Getter[State, TargetChannelsState](_.pwfs1Target)
     )
   }
 
-  test("pwfs2Target command") {
+  epicsTest("pwfs2Target command") {
     testTarget(Getter[TcsBaseController[IO], Target => IO[ApplyCommandResult]](_.pwfs2Target),
                Getter[State, TargetChannelsState](_.pwfs2Target)
     )
   }
 
-  test("oiwfsTarget command") {
+  epicsTest("oiwfsTarget command") {
     testTarget(Getter[TcsBaseController[IO], Target => IO[ApplyCommandResult]](_.oiwfsTarget),
                Getter[State, TargetChannelsState](_.oiwfsTarget)
     )
@@ -716,7 +726,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     cmdL:   Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]],
     l:      Getter[State, ProbeTrackingState],
     others: List[Getter[State, ProbeTrackingState]]
-  ): IO[Unit] = {
+  )(using Dispatcher[IO]): IO[Unit] = {
     val trackingConfig = TrackingConfig(true, false, false, true)
 
     for {
@@ -744,7 +754,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("pwfs1 probe tracking command") {
+  epicsTest("pwfs1 probe tracking command") {
     testTracking(
       Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]](_.pwfs1ProbeTracking),
       Getter[State, ProbeTrackingState](_.pwfs1Tracking),
@@ -754,7 +764,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("pwfs2 probe tracking command") {
+  epicsTest("pwfs2 probe tracking command") {
     testTracking(
       Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]](_.pwfs2ProbeTracking),
       Getter[State, ProbeTrackingState](_.pwfs2Tracking),
@@ -764,7 +774,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("oiwfs probe tracking command") {
+  epicsTest("oiwfs probe tracking command") {
     testTracking(
       Getter[TcsBaseController[IO], TrackingConfig => IO[ApplyCommandResult]](_.oiwfsProbeTracking),
       Getter[State, ProbeTrackingState](_.oiwfsTracking),
@@ -777,7 +787,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   private def testPark(
     cmdL: Getter[TcsBaseController[IO], IO[ApplyCommandResult]],
     l:    Getter[State, ProbeState]
-  ): IO[Unit] =
+  )(using Dispatcher[IO]): IO[Unit] =
     for {
       (st, ctr) <- createController()
       _         <- cmdL.get(ctr)
@@ -787,19 +797,19 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(l.get(rs).parkDir.value, CadDirective.MARK.some)
     }
 
-  test("pwfs1 probe park command") {
+  epicsTest("pwfs1 probe park command") {
     testPark(Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.pwfs1Park),
              Getter[State, ProbeState](_.pwfs1Probe)
     )
   }
 
-  test("pwfs2 probe park command") {
+  epicsTest("pwfs2 probe park command") {
     testPark(Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.pwfs2Park),
              Getter[State, ProbeState](_.pwfs2Probe)
     )
   }
 
-  test("oiwfs probe park command") {
+  epicsTest("oiwfs probe park command") {
     testPark(Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.oiwfsPark),
              Getter[State, ProbeState](_.oiwfsProbe)
     )
@@ -808,7 +818,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   private def testProbeFollow(
     cmdL: Getter[TcsBaseController[IO], Boolean => IO[ApplyCommandResult]],
     l:    Getter[State, ProbeState]
-  ): IO[Unit] =
+  )(using Dispatcher[IO]): IO[Unit] =
     for {
       (st, ctr) <- createController()
       _         <- cmdL.get(ctr)(true)
@@ -825,19 +835,19 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       )
     }
 
-  test("pwfs1 probe follow command") {
+  epicsTest("pwfs1 probe follow command") {
     testProbeFollow(Getter[TcsBaseController[IO], Boolean => IO[ApplyCommandResult]](_.pwfs1Follow),
                     Getter[State, ProbeState](_.pwfs1Probe)
     )
   }
 
-  test("pwfs2 probe follow command") {
+  epicsTest("pwfs2 probe follow command") {
     testProbeFollow(Getter[TcsBaseController[IO], Boolean => IO[ApplyCommandResult]](_.pwfs2Follow),
                     Getter[State, ProbeState](_.pwfs2Probe)
     )
   }
 
-  test("oiwfs probe follow command") {
+  epicsTest("oiwfs probe follow command") {
     testProbeFollow(Getter[TcsBaseController[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsFollow),
                     Getter[State, ProbeState](_.oiwfsProbe)
     )
@@ -1009,7 +1019,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       probeGuide = none
     )
 
-  test("Enable and disable guiding with default gains") {
+  epicsTest("Enable and disable guiding with default gains") {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
@@ -1032,7 +1042,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Enable and disable guiding in day mode at GS") {
+  epicsTest("Enable and disable guiding in day mode at GS") {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(dayTimeMode = true.some)
 
     for {
@@ -1076,7 +1086,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Enable and disable guiding in day mode at GN") {
+  epicsTest("Enable and disable guiding in day mode at GN") {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(dayTimeMode = true.some)
 
     for {
@@ -1120,7 +1130,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     m2Source: TipTiltSource,
     m1Source: M1Source,
     l:        Lens[State, ProbeTrackingStateState]
-  ): IO[Unit] = for {
+  )(using Dispatcher[IO]): IO[Unit] = for {
     (st, ctr) <- createController()
     _         <- setWfsTrackingState(st.tcs, l)
     _         <- ctr.enableGuide(guideConfig(m2Source, m1Source))
@@ -1132,19 +1142,19 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     checkGuide(r2, noGuideConfig)
   }
 
-  test("Enable and disable OI guiding") {
+  epicsTest("Enable and disable OI guiding") {
     testGuiding(TipTiltSource.OIWFS, M1Source.OIWFS, Focus[State](_.oiwfsTrackingState))
   }
 
-  test("Enable and disable P1 guiding") {
+  epicsTest("Enable and disable P1 guiding") {
     testGuiding(TipTiltSource.PWFS1, M1Source.PWFS1, Focus[State](_.pwfs1TrackingState))
   }
 
-  test("Enable and disable P2 guiding") {
+  epicsTest("Enable and disable P2 guiding") {
     testGuiding(TipTiltSource.PWFS2, M1Source.PWFS2, Focus[State](_.pwfs2TrackingState))
   }
 
-  test("Set guide mode OIWFS to OIWFS") {
+  epicsTest("Set guide mode OIWFS to OIWFS") {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(
       probeGuide = ProbeGuide(GuideProbe.GmosOIWFS, GuideProbe.GmosOIWFS).some
     )
@@ -1164,7 +1174,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Set guide mode PWFS1 to PWFS2") {
+  epicsTest("Set guide mode PWFS1 to PWFS2") {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(
       probeGuide = ProbeGuide(GuideProbe.PWFS1, GuideProbe.PWFS2).some
     )
@@ -1189,7 +1199,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     l:      Getter[State, WfsObserveChannelState],
     fnL:    Getter[StateRefs[IO], IO[TestChannel.State[String]]],
     prefix: String = ""
-  ): IO[Unit] = {
+  )(using Dispatcher[IO]): IO[Unit] = {
     val testVal          = TimeSpan.unsafeFromMicroseconds(5000)
     val expectedFilename = s"data/${prefix}200Hz.fits"
 
@@ -1221,7 +1231,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Start PWFS1 readout") {
+  epicsTest("Start PWFS1 readout") {
     testWfsStart(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs1Observe),
       Getter[State, WfsObserveChannelState](_.pwfs1.observe),
@@ -1230,7 +1240,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Start PWFS2 readout") {
+  epicsTest("Start PWFS2 readout") {
     testWfsStart(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs2Observe),
       Getter[State, WfsObserveChannelState](_.pwfs2.observe),
@@ -1239,7 +1249,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Start OIWFS readout") {
+  epicsTest("Start OIWFS readout") {
     testWfsStart(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.oiwfsObserve),
       Getter[State, WfsObserveChannelState](_.oiwfs.observe),
@@ -1250,7 +1260,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   private def testWfsStop(
     cmdL: Getter[TcsBaseController[IO], IO[ApplyCommandResult]],
     l:    Getter[State, WfsChannelState]
-  ): IO[Unit] =
+  )(using Dispatcher[IO]): IO[Unit] =
     for {
       (st, ctr) <- createController()
       _         <- cmdL.get(ctr)
@@ -1260,25 +1270,25 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(l.get(rs).stop.value, CadDirective.MARK.some)
     }
 
-  test("Stop PWFS1 readout") {
+  epicsTest("Stop PWFS1 readout") {
     testWfsStop(Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.pwfs1StopObserve),
                 Getter[State, WfsChannelState](_.pwfs1)
     )
   }
 
-  test("Stop PWFS2 readout") {
+  epicsTest("Stop PWFS2 readout") {
     testWfsStop(Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.pwfs2StopObserve),
                 Getter[State, WfsChannelState](_.pwfs2)
     )
   }
 
-  test("Stop OIWFS readout") {
+  epicsTest("Stop OIWFS readout") {
     testWfsStop(Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.oiwfsStopObserve),
                 Getter[State, WfsChannelState](_.oiwfs)
     )
   }
 
-  test("Start HRWFS exposures") {
+  epicsTest("Start HRWFS exposures") {
     val testVal = TimeSpan.unsafeFromMicroseconds(12345)
 
     for {
@@ -1296,7 +1306,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Stop HRWFS exposures") {
+  epicsTest("Stop HRWFS exposures") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.hrwfsStopObserve
@@ -1339,7 +1349,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     m2OiGuide = TestChannel.State.of("RAW A-AUTO B-OFF C-OFF")
   )
 
-  test("Read guide state") {
+  epicsTest("Read guide state") {
     val testGuide = GuideState(
       MountGuideOption.MountGuideOn,
       M1GuideConfig.M1GuideOn(M1Source.OIWFS),
@@ -1367,7 +1377,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Read telescope state") {
+  epicsTest("Read telescope state") {
     val testTelState = TelescopeState(
       mount = MechSystemState(NotParked, Following),
       scs = MechSystemState(NotParked, Following),
@@ -1433,7 +1443,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Read guide quality values") {
+  epicsTest("Read guide quality values") {
     val testGuideQuality = GuidersQualityValues(
       GuidersQualityValues.GuiderQuality(1000, false),
       GuidersQualityValues.GuiderQuality(500, true),
@@ -1480,7 +1490,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     obStL:         Getter[State, WfsObserveChannelState],
     z2m2L:         Getter[StateRefs[IO], IO[TestChannel.State[String]]],
     guideCfgState: GuideConfigState
-  ): IO[Unit] = {
+  )(using Dispatcher[IO]): IO[Unit] = {
     val testExpTime = TimeSpan.unsafeFromMicroseconds(12345)
     val guideCfg    = TelescopeGuideConfig(
       mountGuide = MountGuideOption.MountGuideOn,
@@ -1551,7 +1561,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Automatically set PWFS1 QL") {
+  epicsTest("Automatically set PWFS1 QL") {
     testAutoQl(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs1Observe),
       Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.pwfs1StopObserve),
@@ -1563,7 +1573,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Automatically set PWFS2 QL") {
+  epicsTest("Automatically set PWFS2 QL") {
     testAutoQl(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs2Observe),
       Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.pwfs2StopObserve),
@@ -1575,7 +1585,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Automatically set OIWFS QL") {
+  epicsTest("Automatically set OIWFS QL") {
     testAutoQl(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.oiwfsObserve),
       Getter[TcsBaseController[IO], IO[ApplyCommandResult]](_.oiwfsStopObserve),
@@ -1585,7 +1595,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Set baffles") {
+  epicsTest("Set baffles") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.baffles(CentralBafflePosition.Open, DeployableBafflePosition.ThermalIr)
@@ -1608,7 +1618,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Park M1") {
+  epicsTest("Park M1") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1Park
@@ -1619,7 +1629,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Unpark M1") {
+  epicsTest("Unpark M1") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1Unpark
@@ -1630,7 +1640,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Zero M1 figure") {
+  epicsTest("Zero M1 figure") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1ZeroFigure
@@ -1641,7 +1651,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Enable M1 updates") {
+  epicsTest("Enable M1 updates") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1UpdateOn
@@ -1654,7 +1664,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Disable M1 updates") {
+  epicsTest("Disable M1 updates") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1UpdateOff
@@ -1665,7 +1675,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Load M1 AO figure") {
+  epicsTest("Load M1 AO figure") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1LoadAoFigure
@@ -1676,7 +1686,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Load M1 non-AO figure") {
+  epicsTest("Load M1 non-AO figure") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.m1LoadNonAoFigure
@@ -1687,7 +1697,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Don't try to read GN instruments ports at GS") {
+  epicsTest("Don't try to read GN instruments ports at GS") {
     for {
       x        <- createController(site = Site.GS)
       (st, ctr) = x
@@ -1706,7 +1716,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Don't try to read GS instruments ports at GN") {
+  epicsTest("Don't try to read GS instruments ports at GN") {
     for {
       x        <- createController(site = Site.GN)
       (st, ctr) = x
@@ -1725,7 +1735,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Configure light path") {
+  epicsTest("Configure light path") {
     for {
       x        <- createController(site = Site.GN)
       (st, ctr) = x
@@ -1811,7 +1821,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Don't reconfigure light path") {
+  epicsTest("Don't reconfigure light path") {
     for {
       x        <- createController(site = Site.GN)
       (st, ctr) = x
@@ -1890,7 +1900,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Light path special cases for Alopeke and Maroonx at GN") {
+  epicsTest("Light path special cases for Alopeke and Maroonx at GN") {
     for {
       x        <- createController(site = Site.GN)
       (st, ctr) = x
@@ -1916,7 +1926,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Light path special cases for Zorro at GS") {
+  epicsTest("Light path special cases for Zorro at GS") {
     for {
       x        <- createController(site = Site.GS)
       (st, ctr) = x
@@ -1937,7 +1947,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("SC-7053 Don't park HR pickoff mirror unless light goes to instrument in bottom port") {
+  epicsTest("SC-7053 Don't park HR pickoff mirror unless light goes to instrument in bottom port") {
     for {
       x        <- createController(site = Site.GS)
       (st, ctr) = x
@@ -1966,7 +1976,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Apply acquisition offset") {
+  epicsTest("Apply acquisition offset") {
     val pOffset  = Angle.fromMicroarcseconds(4000000)
     val qOffset  = Angle.fromMicroarcseconds(-3000000)
     val expFrame = 2
@@ -2016,7 +2026,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     dfn:        Getter[StateRefs[IO], IO[TestChannel.State[String]]],
     guideState: GuideConfigState,
     prefix:     String = ""
-  ): IO[Unit] = {
+  )(using Dispatcher[IO]): IO[Unit] = {
     val expTime = TimeSpan.unsafeFromMicroseconds(50000)
 
     for {
@@ -2046,7 +2056,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Take PWFS1 sky") {
+  epicsTest("Take PWFS1 sky") {
     testWfsSky(
       guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1),
       Focus[State](_.pwfs1TrackingState),
@@ -2057,7 +2067,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Take PWFS2 sky") {
+  epicsTest("Take PWFS2 sky") {
     testWfsSky(
       guideConfig(TipTiltSource.PWFS2, M1Source.PWFS2),
       Focus[State](_.pwfs2TrackingState),
@@ -2068,7 +2078,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Take OIWFS sky") {
+  epicsTest("Take OIWFS sky") {
     testWfsSky(
       guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS),
       Focus[State](_.oiwfsTrackingState),
@@ -2078,7 +2088,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Apply target correction") {
+  epicsTest("Apply target correction") {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
@@ -2132,7 +2142,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Apply origin correction") {
+  epicsTest("Apply origin correction") {
     val guideCfg = TelescopeGuideConfig(
       mountGuide = MountGuideOption.MountGuideOn,
       m1Guide = M1GuideConfig.M1GuideOn(M1Source.OIWFS),
@@ -2221,7 +2231,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Offset command disables guiding and PWFS1 probe tracking when guiding is false") {
+  epicsTest("Offset command disables guiding and PWFS1 probe tracking when guiding is false") {
     val guideCfg    = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
     val offsetP     = Angle.fromBigDecimalArcseconds(5.0)
     val offsetQ     = Angle.fromBigDecimalArcseconds(0.0)
@@ -2263,7 +2273,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Offset command restores guiding and PWFS1 probe tracking when guiding is true") {
+  epicsTest("Offset command restores guiding and PWFS1 probe tracking when guiding is true") {
     val guideCfg      = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
     val offsetP       = Angle.fromBigDecimalArcseconds(5.0)
     val offsetQ       = Angle.fromBigDecimalArcseconds(0.0)
@@ -2312,7 +2322,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Offset command does not reapply an offset when the telescope is already there") {
+  epicsTest("Offset command does not reapply an offset when the telescope is already there") {
     val offsetP     = Angle.fromBigDecimalArcseconds(5.0)
     val expectedXmm =
       Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
@@ -2339,7 +2349,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Offset command sends the absolute offset, not the displacement from the current one") {
+  epicsTest("Offset command sends the absolute offset, not the displacement from the current one") {
     val offsetP     = Angle.fromBigDecimalArcseconds(5.0)
     val expectedXmm =
       Angle.fromBigDecimalArcseconds(-5.0).toLengthInFocalPlane.toMillimeters.value.toDouble
@@ -2370,7 +2380,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Central wavelength command waits for the telescope to be in position if it changed") {
+  epicsTest("Central wavelength command waits for the telescope to be in position if it changed") {
     val wavelength = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
 
     for {
@@ -2384,7 +2394,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   private def lightPathAtGnPort3(
     sfParked: Int,
     sfName:   Option[String]
-  ): IO[(StateRefs[IO], TcsBaseControllerEpics[IO])] =
+  )(using Dispatcher[IO]): IO[(StateRefs[IO], TcsBaseControllerEpics[IO])] =
     for {
       x        <- createController(site = Site.GN)
       (st, ctr) = x
@@ -2403,7 +2413,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _        <- st.tcs.update(_.focus(_.agInPosition.value).replace(0.0.some))
     } yield (st, ctr)
 
-  test("Light path command waits for the A&G mechanisms to be in position if one moves") {
+  epicsTest("Light path command waits for the A&G mechanisms to be in position if one moves") {
     for {
       (_, ctr) <- lightPathAtGnPort3(sfParked = 1, sfName = none)
       r        <- ctr
@@ -2413,7 +2423,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield assert(r.left.exists(_.isInstanceOf[java.util.concurrent.TimeoutException]))
   }
 
-  test("Light path command does not wait for the A&G mechanisms if none has to move") {
+  epicsTest("Light path command does not wait for the A&G mechanisms if none has to move") {
     for {
       (_, ctr) <- lightPathAtGnPort3(sfParked = 0, sfName = "gmos3".some)
       r        <- ctr
@@ -2438,7 +2448,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     (-10.0, -10.0, 33.0),
     (-10.0, 5.0, -45.0)
   ).foreach { case (p, q, iaaDeg) =>
-    test(s"Offset command writes the right focal plane offset for p=$p, q=$q, iaa=$iaaDeg") {
+    epicsTest(s"Offset command writes the right focal plane offset for p=$p, q=$q, iaa=$iaaDeg") {
       val (expectedX, expectedY) = expectedFocalPlaneMm(p, q, iaaDeg)
 
       for {
@@ -2473,7 +2483,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Central wavelength command sets the same wavelength on both source A and B beams") {
+  epicsTest("Central wavelength command sets the same wavelength on both source A and B beams") {
     val wavelength      = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
     val expectedWavelµm = Wavelength.decimalMicrometers.reverseGet(wavelength).doubleValue
 
@@ -2495,7 +2505,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test(
+  epicsTest(
     "Central wavelength command does not wait for the telescope if the wavelength is unchanged"
   ) {
     val wavelength = Wavelength.decimalMicrometers.getOption(BigDecimal(0.5)).get
@@ -2508,7 +2518,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield assertEquals(r, ApplyCommandResult.Completed)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command applies offset, wavelength and light path together, and pauses guiding when guiding is false"
   ) {
     val guideCfg        = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
@@ -2581,7 +2591,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command resumes guiding and restores tracking when guiding is true, with no offset/wavelength/lightPath change requested"
   ) {
     val guideCfg      = guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1)
@@ -2621,7 +2631,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   // A&G mechanisms do.
   private def configureStepWithTcsNeverInPosition(
     mountFollow: String
-  ): IO[(StateRefs[IO], IO[ApplyCommandResult])] =
+  )(using Dispatcher[IO]): IO[(StateRefs[IO], IO[ApplyCommandResult])] =
     for {
       x        <- lightPathAtGnPort3(sfParked = 1, sfName = none)
       (st, ctr) = x
@@ -2641,21 +2651,21 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
              )(GuideConfig(noGuideConfig, none), WfsGuideStates.noTracking)
     )
 
-  test("ConfigureStep command only waits for the A&G mechanisms if nothing is tracking") {
+  epicsTest("ConfigureStep command only waits for the A&G mechanisms if nothing is tracking") {
     for {
       (_, configure) <- configureStepWithTcsNeverInPosition("OFF")
       r              <- configure.timeout(FiniteDuration(10, TimeUnit.SECONDS))
     } yield assertEquals(r, ApplyCommandResult.Completed)
   }
 
-  test("ConfigureStep command waits for the TCS to be in position if the mount is tracking") {
+  epicsTest("ConfigureStep command waits for the TCS to be in position if the mount is tracking") {
     for {
       (_, configure) <- configureStepWithTcsNeverInPosition("ON")
       r              <- configure.timeout(FiniteDuration(5, TimeUnit.SECONDS)).attempt
     } yield assert(r.left.exists(_.isInstanceOf[java.util.concurrent.TimeoutException]))
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command applies the instrument defocus as focus offset B, leaving focus offset A unchanged"
   ) {
     val defocus = Distance.fromLongMicrometers(250)
@@ -2680,7 +2690,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command leaves focus offset B unchanged when no defocus is requested"
   ) {
     for {
@@ -2696,7 +2706,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield assertEquals(r1.focusOffsetB.value, none)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command pauses guiding, and keeps it paused, when OIWFS is an active guider and the light path does not route starlight to OIWFS's instrument"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2725,7 +2735,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, noGuideConfig)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command enables guiding when OIWFS is an active guider and the light path routes starlight to OIWFS's instrument"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2752,7 +2762,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, guideCfg)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command keeps guiding disabled when OIWFS is an active guider, no light path change is requested, and the light path currently in effect routes starlight elsewhere"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2781,7 +2791,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, noGuideConfig)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command enables guiding when OIWFS is an active guider, no light path change is requested, and the light path currently in effect routes starlight to OIWFS's instrument"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2808,7 +2818,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, guideCfg)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command enables guiding when OIWFS is an active guider, the science fold is parked, and OIWFS's instrument is at the bottom port with the AO fold in"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2838,7 +2848,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, guideCfg)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command enables guiding when OIWFS is an active guider, the science fold is parked, and OIWFS's instrument is at the bottom port with the AO fold out"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2861,7 +2871,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, guideCfg)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command keeps guiding disabled when OIWFS is an active guider, the science fold is parked, and OIWFS's instrument is not at the bottom port"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2884,7 +2894,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, noGuideConfig)
   }
 
-  test(
+  epicsTest(
     "ConfigureStep command keeps guiding disabled when OIWFS is an active guider, the science fold is parked, and the HR pickoff mirror diverts starlight to the acquisition camera"
   ) {
     val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS)
@@ -2914,7 +2924,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield checkPauseResumeGuide(r1, noGuideConfig)
   }
 
-  test("Apply pointing correction") {
+  epicsTest("Apply pointing correction") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
@@ -3000,7 +3010,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Absorb target correction") {
+  epicsTest("Absorb target correction") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
@@ -3018,7 +3028,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Clear target correction") {
+  epicsTest("Clear target correction") {
     val guideCfg = TelescopeGuideConfig(
       mountGuide = MountGuideOption.MountGuideOn,
       m1Guide = M1GuideConfig.M1GuideOn(M1Source.OIWFS),
@@ -3044,7 +3054,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Absorb origin correction") {
+  epicsTest("Absorb origin correction") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
@@ -3058,7 +3068,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Clear origin correction") {
+  epicsTest("Clear origin correction") {
     val guideCfg = TelescopeGuideConfig(
       mountGuide = MountGuideOption.MountGuideOn,
       m1Guide = M1GuideConfig.M1GuideOn(M1Source.OIWFS),
@@ -3084,7 +3094,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Clear local pointing correction") {
+  epicsTest("Clear local pointing correction") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
@@ -3100,7 +3110,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Clear guide pointing correction") {
+  epicsTest("Clear guide pointing correction") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
@@ -3112,7 +3122,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Absorb guide pointing correction") {
+  epicsTest("Absorb guide pointing correction") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
@@ -3124,7 +3134,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Retrieve AC mechanism positions") {
+  epicsTest("Retrieve AC mechanism positions") {
     val result = AcMechsState(AcLens.Hrwfs.some, AcNdFilter.Nd1.some, AcFilter.Neutral.some)
     for {
       (st, ctr) <- createController()
@@ -3135,7 +3145,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield assertEquals(a, result)
   }
 
-  test("Retrieve AC mechanism positions with undefined values") {
+  epicsTest("Retrieve AC mechanism positions with undefined values") {
     val result = AcMechsState(none, none, none)
     for {
       (st, ctr) <- createController()
@@ -3146,7 +3156,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield assertEquals(a, result)
   }
 
-  test("Set AC filter") {
+  epicsTest("Set AC filter") {
     Enumerated[AcFilter].all.map { v =>
       for {
         (st, ctr) <- createController()
@@ -3159,7 +3169,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }.sequence
   }
 
-  test("Set AC lens") {
+  epicsTest("Set AC lens") {
     Enumerated[AcLens].all.map { v =>
       for {
         (st, ctr) <- createController()
@@ -3172,7 +3182,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }.sequence
   }
 
-  test("Set AC ND filter") {
+  epicsTest("Set AC ND filter") {
     Enumerated[AcNdFilter].all.map { v =>
       for {
         (st, ctr) <- createController()
@@ -3185,7 +3195,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }.sequence
   }
 
-  test("Set AC window") {
+  epicsTest("Set AC window") {
     val v = AcWindow.Square200(489, 377)
     for {
       (st, ctr) <- createController()
@@ -3207,7 +3217,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Set PWFS1 filter") {
+  epicsTest("Set PWFS1 filter") {
     val v = PwfsFilter.Neutral
 
     for {
@@ -3221,7 +3231,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   }
 
-  test("Set PWFS1 field stop") {
+  epicsTest("Set PWFS1 field stop") {
     val v = PwfsFieldStop.Fs3_2
 
     for {
@@ -3235,7 +3245,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   }
 
-  test("Set PWFS2 filter") {
+  epicsTest("Set PWFS2 filter") {
     val v = PwfsFilter.Green
 
     for {
@@ -3249,7 +3259,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   }
 
-  test("Set PWFS2 field stop") {
+  epicsTest("Set PWFS2 field stop") {
     val v = PwfsFieldStop.Fs1_6
 
     for {
@@ -3263,7 +3273,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   }
 
-  test("Get PWFS1 mechanisms state") {
+  epicsTest("Get PWFS1 mechanisms state") {
 
     createController().flatMap { (st, ctr) =>
       Enumerated[PwfsFilter].all.map { v =>
@@ -3283,7 +3293,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Get PWFS2 mechanisms state") {
+  epicsTest("Get PWFS2 mechanisms state") {
 
     createController().flatMap { (st, ctr) =>
       Enumerated[PwfsFilter].all.map { v =>
@@ -3308,7 +3318,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     cmd:    Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]],
     oiName: String = "None",
     site:   Site = Site.GS
-  ): IO[Unit] = for {
+  )(using Dispatcher[IO]): IO[Unit] = for {
     (st, ctr) <- createController(site)
     _         <- st.ags.update(_.focus(_.oiName.value).replace(oiName.some))
     _         <- l.get(st).update(_.focus(_.circularBufferImageEnabled.value).replace("FALSE".some))
@@ -3333,7 +3343,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     assertEquals(r2.circularBufferFg.value, "0".some)
   }
 
-  test("Configure GMOS OIWFS circular buffer at GS") {
+  epicsTest("Configure GMOS OIWFS circular buffer at GS") {
     circularBufferTest(
       Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.gmoi),
       Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsCircularBuffer),
@@ -3341,7 +3351,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Configure F2 OIWFS circular buffer at GS") {
+  epicsTest("Configure F2 OIWFS circular buffer at GS") {
     circularBufferTest(
       Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.f2oi),
       Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsCircularBuffer),
@@ -3349,7 +3359,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Configure OIWFS circular buffer at GN") {
+  epicsTest("Configure OIWFS circular buffer at GN") {
     circularBufferTest(
       Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.oiw),
       Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsCircularBuffer),
@@ -3358,21 +3368,21 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     )
   }
 
-  test("Configure PWFS1 circular buffer") {
+  epicsTest("Configure PWFS1 circular buffer") {
     circularBufferTest(
       Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.p1),
       Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.pwfs1CircularBuffer)
     )
   }
 
-  test("Configure PWFS2 circular buffer") {
+  epicsTest("Configure PWFS2 circular buffer") {
     circularBufferTest(
       Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.p2),
       Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.pwfs2CircularBuffer)
     )
   }
 
-  test("Unwrap azimuth") {
+  epicsTest("Unwrap azimuth") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(
@@ -3394,7 +3404,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Unwrap rotator") {
+  epicsTest("Unwrap rotator") {
     for {
       (st, ctr) <- createController()
       _         <-
@@ -3416,7 +3426,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Unwrap PWFS1") {
+  epicsTest("Unwrap PWFS1") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.pwfs1Unwrap
@@ -3427,7 +3437,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Unwrap PWFS2") {
+  epicsTest("Unwrap PWFS2") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.pwfs2Unwrap
@@ -3438,7 +3448,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Setup ventilation gates") {
+  epicsTest("Setup ventilation gates") {
     val eastVentPos = 0.5
     val westVentPos = 0.1
     for {
@@ -3458,7 +3468,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Close ventilation gates") {
+  epicsTest("Close ventilation gates") {
     for {
       (st, ctr) <- createController()
       _         <- ctr.ecsCloseEastVentGate
@@ -3473,7 +3483,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Park shutters disables tracking and closes them") {
+  epicsTest("Park shutters disables tracking and closes them") {
     for {
       (st, ctr) <- createController()
       _         <- st.tcs.update(
@@ -3517,80 +3527,79 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     ecs:  Ref[F, TestEcsEpicsSystem.State]
   )
 
-  def createController(site: Site = Site.GS): IO[(StateRefs[IO], TcsBaseControllerEpics[IO])] =
-    Dispatcher.parallel[IO](true).use { dispatcher =>
-      given Dispatcher[IO] = dispatcher
-      for {
-        tcs  <- Ref.of[IO, TestTcsEpicsSystem.State](
-                  TestTcsEpicsSystem.defaultState
-                    .focus(_.inPosition.value)
-                    .replace("TRUE".some)
-                    .focus(_.agInPosition.value)
-                    .replace(1.0.some)
-                )
-        p1   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
-        p2   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
-        oiw  <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
-        gmoi <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
-        f2oi <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
-        oi   <- Ref.of[IO, TestOiwfsEpicsSystem.State](TestOiwfsEpicsSystem.defaultState)
-        mcs  <- Ref.of[IO, TestMcsEpicsSystem.State](TestMcsEpicsSystem.defaultState)
-        scs  <- Ref.of[IO, TestScsEpicsSystem.State](TestScsEpicsSystem.defaultState)
-        crcs <- Ref.of[IO, TestCrcsEpicsSystem.State](TestCrcsEpicsSystem.defaultState)
-        ags  <- Ref.of[IO, TestAgsEpicsSystem.State](TestAgsEpicsSystem.defaultState)
-        st   <- Ref.of[IO, TcsBaseControllerEpics.State](TcsBaseControllerEpics.State.default)
-        ac   <- Ref.of[IO, TestAcquisitionCameraEpicsSystem.State](
-                  TestAcquisitionCameraEpicsSystem.defaultState
-                )
-        ecs  <- Ref.of[IO, TestEcsEpicsSystem.State](TestEcsEpicsSystem.defaultState)
-      } yield {
-        val oiSys = TestOiwfsEpicsSystem.build(oiw, oi)
+  def createController(site: Site = Site.GS)(using
+    Dispatcher[IO]
+  ): IO[(StateRefs[IO], TcsBaseControllerEpics[IO])] =
+    for {
+      tcs  <- Ref.of[IO, TestTcsEpicsSystem.State](
+                TestTcsEpicsSystem.defaultState
+                  .focus(_.inPosition.value)
+                  .replace("TRUE".some)
+                  .focus(_.agInPosition.value)
+                  .replace(1.0.some)
+              )
+      p1   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+      p2   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+      oiw  <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+      gmoi <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+      f2oi <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+      oi   <- Ref.of[IO, TestOiwfsEpicsSystem.State](TestOiwfsEpicsSystem.defaultState)
+      mcs  <- Ref.of[IO, TestMcsEpicsSystem.State](TestMcsEpicsSystem.defaultState)
+      scs  <- Ref.of[IO, TestScsEpicsSystem.State](TestScsEpicsSystem.defaultState)
+      crcs <- Ref.of[IO, TestCrcsEpicsSystem.State](TestCrcsEpicsSystem.defaultState)
+      ags  <- Ref.of[IO, TestAgsEpicsSystem.State](TestAgsEpicsSystem.defaultState)
+      st   <- Ref.of[IO, TcsBaseControllerEpics.State](TcsBaseControllerEpics.State.default)
+      ac   <- Ref.of[IO, TestAcquisitionCameraEpicsSystem.State](
+                TestAcquisitionCameraEpicsSystem.defaultState
+              )
+      ecs  <- Ref.of[IO, TestEcsEpicsSystem.State](TestEcsEpicsSystem.defaultState)
+    } yield {
+      val oiSys = TestOiwfsEpicsSystem.build(oiw, oi)
 
-        (
-          StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac, ecs),
-          (site === Site.GS).fold(
-            new TcsSouthControllerEpics[IO](
-              EpicsSystemsSouth(
-                TestWfsEpicsSystem.build("GMOS OI", gmoi),
-                TestWfsEpicsSystem.build("F2 OI", f2oi),
-                BaseEpicsSystems(
-                  TestTcsEpicsSystem.build(tcs),
-                  TestWfsEpicsSystem.build("PWFS1", p1),
-                  TestWfsEpicsSystem.build("PWFS2", p2),
-                  TestOiwfsEpicsSystem.build(oiw, oi),
-                  TestMcsEpicsSystem.build(mcs),
-                  TestScsEpicsSystem.build(scs),
-                  TestCrcsEpicsSystem.build(crcs),
-                  TestAgsEpicsSystem.build(ags, Site.GS),
-                  TestAcquisitionCameraEpicsSystem.build(ac),
-                  TestEcsEpicsSystem.build(ecs)
-                )
-              ),
-              DefaultTimeout,
-              st
-            ),
-            new TcsNorthControllerEpics[IO](
-              EpicsSystemsNorth(
+      (
+        StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac, ecs),
+        (site === Site.GS).fold(
+          new TcsSouthControllerEpics[IO](
+            EpicsSystemsSouth(
+              TestWfsEpicsSystem.build("GMOS OI", gmoi),
+              TestWfsEpicsSystem.build("F2 OI", f2oi),
+              BaseEpicsSystems(
+                TestTcsEpicsSystem.build(tcs),
+                TestWfsEpicsSystem.build("PWFS1", p1),
+                TestWfsEpicsSystem.build("PWFS2", p2),
                 oiSys,
-                BaseEpicsSystems(
-                  TestTcsEpicsSystem.build(tcs),
-                  TestWfsEpicsSystem.build("PWFS1", p1),
-                  TestWfsEpicsSystem.build("PWFS2", p2),
-                  oiSys,
-                  TestMcsEpicsSystem.build(mcs),
-                  TestScsEpicsSystem.build(scs),
-                  TestCrcsEpicsSystem.build(crcs),
-                  TestAgsEpicsSystem.build(ags, Site.GN),
-                  TestAcquisitionCameraEpicsSystem.build(ac),
-                  TestEcsEpicsSystem.build(ecs)
-                )
-              ),
-              DefaultTimeout,
-              st
-            )
+                TestMcsEpicsSystem.build(mcs),
+                TestScsEpicsSystem.build(scs),
+                TestCrcsEpicsSystem.build(crcs),
+                TestAgsEpicsSystem.build(ags, Site.GS),
+                TestAcquisitionCameraEpicsSystem.build(ac),
+                TestEcsEpicsSystem.build(ecs)
+              )
+            ),
+            DefaultTimeout,
+            st
+          ),
+          new TcsNorthControllerEpics[IO](
+            EpicsSystemsNorth(
+              oiSys,
+              BaseEpicsSystems(
+                TestTcsEpicsSystem.build(tcs),
+                TestWfsEpicsSystem.build("PWFS1", p1),
+                TestWfsEpicsSystem.build("PWFS2", p2),
+                oiSys,
+                TestMcsEpicsSystem.build(mcs),
+                TestScsEpicsSystem.build(scs),
+                TestCrcsEpicsSystem.build(crcs),
+                TestAgsEpicsSystem.build(ags, Site.GN),
+                TestAcquisitionCameraEpicsSystem.build(ac),
+                TestEcsEpicsSystem.build(ecs)
+              )
+            ),
+            DefaultTimeout,
+            st
           )
         )
-      }
+      )
     }
 
   def normalizeAnglePosDegree(a: Double): Double =
