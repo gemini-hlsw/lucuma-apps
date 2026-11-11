@@ -36,6 +36,7 @@ import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.otel4s.context.ContextManager
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
 
@@ -144,7 +145,7 @@ object ExploreMain {
       workerClients: WorkerClients[IO],
       bc:            BroadcastChannel[IO, ExploreEvent],
       configJson:    String
-    )(using Logger[IO], Tracer[IO], TracerProvider[IO]): IO[Unit] = {
+    )(using Logger[IO], Tracer[IO], TracerProvider[IO], ContextManager[IO]): IO[Unit] = {
       given FetchJsBackend[IO]     = FetchJsBackend[IO]()
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
 
@@ -195,6 +196,7 @@ object ExploreMain {
       otel                    <- setupOtel(appConfig)
       given Tracer[IO]         = otel.tracer
       given TracerProvider[IO] = otel.tracerProvider
+      given ContextManager[IO] = otel.contextManager
       workerClients           <- WorkerClients.build[IO](dispatcher)
       bc                      <- BroadcastChannel[IO, ExploreEvent]("explore")
       _                       <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))

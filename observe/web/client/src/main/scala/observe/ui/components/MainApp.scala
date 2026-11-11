@@ -82,6 +82,7 @@ import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.Attributes
+import org.typelevel.otel4s.context.ContextManager
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
 import retry.*
@@ -248,6 +249,7 @@ object MainApp extends ServerEventHandler:
                   )
                 given Tracer[IO]                        = otel.tracer
                 given TracerProvider[IO]                = otel.tracerProvider
+                given ContextManager[IO]                = otel.contextManager
                 traceMiddleware                        <- Resource.eval(OtelSdk.traceMiddleware[IO])
                 odbClient                              <- Resource.eval(
                                                             WebSocketJsClient.of[IO, ObservationDB](

@@ -50,6 +50,7 @@ import org.http4s.dom.FetchClientBuilder
 import org.http4s.implicits.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.context.ContextManager
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
 import queries.schemas.SSO
@@ -153,7 +154,7 @@ object AppContext:
     F[
       _
     ]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom, Tracer,
-      TracerProvider}
+      TracerProvider, ContextManager}
   ](
     config:               AppConfig,
     reconnectionStrategy: ReconnectionStrategy,

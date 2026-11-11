@@ -3,13 +3,14 @@
 
 package observe.web.server.otel
 
-import cats.Applicative
 import cats.effect.*
 import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import io.opentelemetry.instrumentation.runtimetelemetry.RuntimeTelemetry
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Site
+import lucuma.otel.OtelServices
+import lucuma.otel.OtelSetup
 import observe.model.config.OtelConfiguration
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.context.LocalProvider
@@ -17,25 +18,10 @@ import org.typelevel.otel4s.instrumentation.ce.IORuntimeMetrics
 import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.oteljava.OtelJava
 import org.typelevel.otel4s.oteljava.context.Context
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.trace.TracerProvider
 
 import scala.jdk.CollectionConverters.*
 
-case class OtelServices[F[_]](
-  tracer:         Tracer[F],
-  tracerProvider: TracerProvider[F],
-  meterProvider:  MeterProvider[F]
-)
-
 object ObserveOtel:
-
-  private def noop[F[_]: Applicative]: OtelServices[F] =
-    OtelServices(
-      tracer = Tracer.noop,
-      tracerProvider = TracerProvider.noop,
-      meterProvider = MeterProvider.noop
-    )
 
   def resource[F[_]: {Async, LiftIO, Logger as L}](
     serviceName:    String,
@@ -48,7 +34,7 @@ object ObserveOtel:
       .handleErrorWith: (t: Throwable) =>
         Resource
           .eval(L.warn(t)("Error initializing telemetry, continuing without it"))
-          .as(noop)
+          .flatMap(_ => Resource.eval(OtelSetup.noop[F](serviceName)))
 
   private def build[F[_]: Async: LiftIO](
     serviceName:    String,
@@ -80,14 +66,6 @@ object ObserveOtel:
           .flatTap: otel =>
             given MeterProvider[F] = otel.meterProvider
             IORuntimeMetrics.register[F](IORuntime.global.metrics, IORuntimeMetrics.Config.default)
-          .evalMap: otel =>
-            otel.tracerProvider
-              .get(serviceName)
-              .map: tracer =>
-                OtelServices(
-                  tracer = tracer,
-                  tracerProvider = otel.tracerProvider,
-                  meterProvider = otel.meterProvider
-                )
+          .evalMap(OtelServices.fromOtelJava(serviceName, _))
       case None                  =>
-        Resource.pure(noop)
+        Resource.eval(OtelSetup.noop[F](serviceName))

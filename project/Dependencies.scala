@@ -188,15 +188,11 @@ object Dependencies {
   )
 
   val Http4sOtel4sClient = Def.setting(
-    deps("org.http4s" %%% "http4s-otel4s-middleware-trace-client")(http4sOtel4s)
+    deps("org.http4s" %%% "http4s-otel4s-middleware-client")(http4sOtel4s)
   )
 
   val Http4sOtel4sServer = Def.setting(
-    depsJVM("org.http4s" %% "http4s-otel4s-middleware-trace-server")(http4sOtel4s)
-  )
-
-  val Http4sOtel4sMetrics = Def.setting(
-    depsJVM("org.http4s" %% "http4s-otel4s-middleware-metrics")(http4sOtel4s)
+    depsJVM("org.http4s" %% "http4s-otel4s-middleware-server")(http4sOtel4s)
   )
 
   val Otel4sOtelJava = Def.setting(
@@ -350,6 +346,10 @@ object Dependencies {
 
   val LucumaCommonMiddleware = Def.setting(
     depsJVM("edu.gemini" %% "lucuma-common-middleware")(lucumaServers)
+  )
+
+  val LucumaOdbOtel = Def.setting(
+    depsJVM("edu.gemini" %% "lucuma-odb-otel")(lucumaServers)
   )
 
   val LucumaItcClient = Def.setting(
