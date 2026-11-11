@@ -21957,6 +21957,7 @@ enum ObservationWorkflowState {
   DEFINED
   READY
   ONGOING
+  SUSPENDED
   COMPLETED
 }
 

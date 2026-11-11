@@ -150,6 +150,7 @@ object ObsBadge:
       case ObservationWorkflowState.Defined    => "D"
       case ObservationWorkflowState.Ready      => "R"
       case ObservationWorkflowState.Ongoing    => "O"
+      case ObservationWorkflowState.Suspended  => "S"
       case ObservationWorkflowState.Completed  => "C"
 
   private def stateTag(state: ObservationWorkflowState): VdomNode =
