@@ -7,9 +7,9 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
-import lucuma.core.enums.Partner
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TacPartnerDecision
+import lucuma.core.enums.TimeAccountingCategory
 import lucuma.core.util.TimeSpan
 import munit.FunSuite
 
@@ -19,7 +19,7 @@ class TacFeedbackSuite extends FunSuite:
     val json = """
       [
         {
-          "partner": "CA",
+          "timeAccountingCategory": "CA",
           "decision": "ACCEPTED",
           "ranking": 6,
           "recommendedTimes": [
@@ -29,7 +29,7 @@ class TacFeedbackSuite extends FunSuite:
           "comments": "Great science."
         },
         {
-          "partner": "US",
+          "timeAccountingCategory": "DD",
           "decision": "REJECTED",
           "ranking": 2.5,
           "recommendedTimes": [],
@@ -42,7 +42,7 @@ class TacFeedbackSuite extends FunSuite:
       decode[List[TacFeedback]](json),
       List(
         TacFeedback(
-          Partner.CA,
+          TimeAccountingCategory.CA,
           TacPartnerDecision.Accepted,
           PosBigDecimal.unsafeFrom(BigDecimal(6)),
           List(
@@ -52,7 +52,7 @@ class TacFeedbackSuite extends FunSuite:
           NonEmptyString.unsafeFrom("Great science.").some
         ),
         TacFeedback(
-          Partner.US,
+          TimeAccountingCategory.DD,
           TacPartnerDecision.Rejected,
           PosBigDecimal.unsafeFrom(BigDecimal("2.5")),
           Nil,
