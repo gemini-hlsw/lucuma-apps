@@ -37,9 +37,9 @@ object ProposalTacFeedbackTile
             .map(t => s"${TimeSpanFormatter.DecimalHours.format(t.time)} ${t.band.shortName}")
             .mkString(", ")
 
-      // The headings of all partners share the columns of a single grid, so
+      // The headings of all categories share the columns of a single grid, so
       // they line up when laid out on one line.
-      def partnerFeedback(f: TacFeedback): VdomNode =
+      def categoryFeedback(f: TacFeedback): VdomNode =
         React.Fragment.withKey(f.timeAccountingCategory.tag)(
           // Only the categories that belong to a partner have a flag.
           <.span(ExploreStyles.ProposalTacFeedbackPartner)(
@@ -48,7 +48,7 @@ object ProposalTacFeedbackTile
           ),
           label("Decision:"),
           <.span(f.decision.shortName),
-          label("Partner Ranking:"),
+          label("Ranking:"),
           <.span(f.ranking.value.bigDecimal.stripTrailingZeros.toPlainString),
           label("Recommended Time:"),
           <.span(recommendedTimes(f.recommendedTimes)),
@@ -61,7 +61,7 @@ object ProposalTacFeedbackTile
             <.div(ExploreStyles.ProposalTacFeedbackEmpty, "No TAC feedback yet.")
           else
             <.div(ExploreStyles.ProposalTacFeedbackGrid)(
-              props.feedback.map(partnerFeedback).toVdomArray
+              props.feedback.map(categoryFeedback).toVdomArray
             )
         )
       )
