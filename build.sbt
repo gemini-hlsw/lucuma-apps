@@ -1237,35 +1237,7 @@ lazy val exploreBundlemon = WorkflowStep.Use(
   )
 )
 
-def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use(
-  UseRef.Public("FirebaseExtended", "action-hosting-deploy", "v0"),
-  name = Some(name),
-  cond = Some(cond),
-  params = Map(
-    "firebaseServiceAccount" -> "${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}",
-    "projectId"              -> "explore-gemini",
-    "target"                 -> "dev",
-    "entryPoint"             -> "./explore"
-  ) ++ (if (live) Map("channelId" -> "live") else Map.empty)
-)
-
-// lazy val firebaseDeployReview = firebaseDeploy(
-//   "Deploy review app to Firebase",
-//   allConds(
-//     prCond,
-//     notBotCond,
-//     "github.event.pull_request.head.repo.full_name == github.repository"
-//   ),
-//   live = false
-// )
-
-lazy val firebaseDeployDev = firebaseDeploy(
-  "Deploy dev app to Firebase",
-  mainCond,
-  live = true
-)
-
-// Explore is deployed to both Firebase and AWS until the AWS deploy is verified and the domains move.
+// Deploys the Explore build to the S3 bucket and CloudFront distribution serving explore-dev.gemini.edu.
 lazy val awsDeployDev = List(
   WorkflowStep.Use(
     UseRef.Public("aws-actions", "configure-aws-credentials", "v5"),
@@ -1288,7 +1260,7 @@ lazy val awsDeployDev = List(
 lazy val recordExploreDeploymentMetadata = WorkflowStep.Run(
   List(
     "# Create a deployment record with commit SHA for tracking",
-    """echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"""",
+    """echo "Recording deployment: ${{ github.sha }} to Explore dev"""",
     """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' """
   ),
   name = Some("Record Explore deployment SHA"),
@@ -1321,10 +1293,7 @@ ThisBuild / githubWorkflowAddedJobs += lucumaAffectedJob(
       exploreNpmBuild ::
       overrideCiCommit ::
       exploreBundlemon ::
-      // firebaseDeployReview ::
-      firebaseDeployDev ::
-      recordExploreDeploymentMetadata ::
-      awsDeployDev,
+      awsDeployDev ::: List(recordExploreDeploymentMetadata),
     // Only 1 scalaVersion, so no need for matrix
     sbtStepPreamble = Nil,
     scalas = Nil,

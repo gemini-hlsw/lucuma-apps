@@ -10,9 +10,9 @@
 # records the GitHub deployment, sends the Slack message and prints the command the operator
 # must run.
 #
-# Explore is hosted on both Firebase and AWS (S3 + CloudFront) while the migration to AWS lasts,
-# so it is promoted on both. The AWS part needs the `aws` CLI and credentials in the environment
-# (AWS_PROFILE or the default profile) with access to the Explore buckets and distributions.
+# Explore is hosted on AWS (S3 + CloudFront). Promoting it needs the `aws` CLI and credentials in
+# the environment (AWS_PROFILE or the default profile) with access to the Explore buckets and
+# distributions.
 
 set -e
 
@@ -88,16 +88,6 @@ map_github_deploy_env() {
     "dev") echo "development" ;;
     "staging") echo "staging" ;;
     "production") echo "production" ;;
-    *) echo "${env}" ;;
-  esac
-}
-
-map_firebase_deploy_env() {
-  local env=$1
-    case $env in
-    "dev") echo "dev" ;;
-    "staging") echo "stage" ;;
-    "production") echo "prod" ;;
     *) echo "${env}" ;;
   esac
 }
@@ -851,18 +841,9 @@ else
   echo
 fi
 
-# Promote Firebase hosting
+# Promote Explore
 if [ "${promote["Explore"]}" = true ]; then
   echo "## Promote Explore from $SOURCE_ENV to $TARGET_ENV"
-
-  source_deploy_env=$(map_firebase_deploy_env "$SOURCE_ENV")
-  target_deploy_env=$(map_firebase_deploy_env "$TARGET_ENV")
-  if firebase hosting:clone explore-gemini-$source_deploy_env:live explore-gemini-$target_deploy_env:live; then
-    echo "  ✓ Explore promoted on Firebase"
-  else
-    echo "  ! Explore Firebase promotion FAILED"
-    exit 1
-  fi
 
   promote_explore_aws
 
