@@ -345,6 +345,7 @@ object ExploreGridLayouts:
         case Some(CalibrationRole.Twilight)                              => TwilightRemovedIds
         case Some(CalibrationRole.SpectroPhotometric)                    => SpecPhotoRemovedIds
         case Some(CalibrationRole.Telluric)                              => TelluricRemovedIds
+        case Some(CalibrationRole.MosMaskFlat)                           => GeneratedDaytimeRemovedIds
         case Some(calibrationRole) if calibrationRole.isGeneratedDaytime =>
           GeneratedDaytimeRemovedIds
         case Some(CalibrationRole.DaytimeCalibration)                    => DaytimeCalibrationRemovedIds
