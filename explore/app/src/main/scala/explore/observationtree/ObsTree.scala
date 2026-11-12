@@ -15,6 +15,7 @@ import explore.ObsGroupHelper
 import explore.components.ActionButtons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.AttachmentList
 import explore.model.DismissedWarnings
 import explore.model.Focused
 import explore.model.Group
@@ -82,6 +83,7 @@ case class ObsTree(
   clipboardObsContents:  Option[ObsIdSet],
   allocatedScienceBands: SortedSet[ScienceBand],
   dismissedWarnings:     DismissedWarnings,
+  attachments:           AttachmentList,
   addingObservation:     View[AddingObservation],
   readonly:              Boolean,
   isStaffOrAdmin:        Boolean
@@ -496,7 +498,8 @@ object ObsTree:
                   programId = props.programId,
                   hasBlindOffset = obs.hasBlindOffset,
                   focusedObs = props.focusedObsId,
-                  readonly = props.readonly
+                  readonly = props.readonly,
+                  maskName = obs.maskAttachmentId.flatMap(props.attachments.get).flatMap(_.maskName)
                 )
               )
 

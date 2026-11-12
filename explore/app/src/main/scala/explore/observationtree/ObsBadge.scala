@@ -47,6 +47,7 @@ import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.calibration.isDaytimeRole
 import lucuma.ui.utils.*
 
 import scala.collection.immutable.SortedSet
@@ -68,8 +69,10 @@ final case class ObsBadge(
   programId:             Program.Id,
   hasBlindOffset:        Boolean = false,
   focusedObs:            Option[Observation.Id] = none,
-  readonly:              Boolean = false
+  readonly:              Boolean = false,
+  maskName:              Option[NonEmptyString] = none
 ) extends ReactFnProps(ObsBadge.component):
+  val isMosMaskFlat: Boolean      = obs.calibrationRole.contains(CalibrationRole.MosMaskFlat)
   val isDisabled: Boolean         = readonly || obs.isOdbCalibration
   val isDisabledExecuted: Boolean = isDisabled || obs.isExecuted
   val nonEmptyAllocatedBands      = NonEmptySet.fromSet(allocatedScienceBands)
@@ -163,7 +166,7 @@ object ObsBadge:
     ).withTooltip(content = state.shortName)
 
   // Daytime calibrations have no meaningful target, so we label them by role.
-  private def badgeTitle(obs: Observation): VdomNode =
+  private def badgeTitle(obs: Observation, maskName: Option[NonEmptyString] = none): VdomNode =
     obs.calibrationRole match
       case Some(CalibrationRole.DaytimePinhole)     => "Daytime Pinhole"
       case Some(CalibrationRole.DaytimeFlat)        => "Daytime Flat"
@@ -171,7 +174,9 @@ object ObsBadge:
       case Some(CalibrationRole.DaytimeCalibration) =>
         <.span(ThemeIcons.SunBright, " Daytime Calibration")
       case Some(CalibrationRole.MosMaskFlat)        =>
-        <.span(ThemeIcons.SunBright, " MOS Mask Flat")
+        val instrument =
+          obs.basicConfiguration.flatMap(_.instrument).foldMap(i => s"${i.shortName} ")
+        <.span(ThemeIcons.SunBright, s" ${instrument}mask flat${maskName.foldMap(n => s" ($n)")}")
       case _                                        => obs.title
 
   private def estimateView(obs: Observation): TagMod =
@@ -254,9 +259,9 @@ object ObsBadge:
       val header =
         <.div(ExploreStyles.ObsBadgeHeader)(
           <.div(ExploreStyles.ObsBadgeTargetAndId)(
-            <.div(badgeTitle(obs)).when(layout.showTitle),
+            <.div(badgeTitle(obs, props.maskName)).when(layout.showTitle),
             <.div(obs.configurationSummary.map(configLabel(obs, _)).getOrElse("-"))
-              .when(layout.showConfiguration === Section.Header),
+              .when(layout.showConfiguration === Section.Header && !props.isMosMaskFlat),
             <.div(
               ExploreStyles.ObsBadgeId,
               scienceBandButton.when(props.showScienceBand),
@@ -398,8 +403,9 @@ object ObsBadge:
                 obs.observingModeSummaryLabel
                   .map(label => <.div(configLabel(obs, label)))
                   .whenDefined
-                  .when(layout.showConfiguration === Section.Detail),
-                <.div(obs.constraintsSummary).when(layout.showConstraints)
+                  .when(layout.showConfiguration === Section.Detail && !props.isMosMaskFlat),
+                <.div(obs.constraintsSummary)
+                  .when(layout.showConstraints && !obs.calibrationRole.exists(_.isDaytimeRole))
               ),
               <.span(Icons.LocationDot)
                 .withTooltip(content = "Blind Offset")
