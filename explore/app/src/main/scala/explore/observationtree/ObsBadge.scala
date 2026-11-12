@@ -166,7 +166,7 @@ object ObsBadge:
     ).withTooltip(content = state.shortName)
 
   // Daytime calibrations have no meaningful target, so we label them by role.
-  private def badgeTitle(obs: Observation, maskName: Option[NonEmptyString] = none): VdomNode =
+  private def badgeTitle(obs: Observation): VdomNode =
     obs.calibrationRole match
       case Some(CalibrationRole.DaytimePinhole)     => "Daytime Pinhole"
       case Some(CalibrationRole.DaytimeFlat)        => "Daytime Flat"
@@ -176,7 +176,7 @@ object ObsBadge:
       case Some(CalibrationRole.MosMaskFlat)        =>
         val instrument =
           obs.basicConfiguration.flatMap(_.instrument).foldMap(i => s"${i.shortName} ")
-        <.span(ThemeIcons.SunBright, s" ${instrument}mask flat${maskName.foldMap(n => s" ($n)")}")
+        <.span(ThemeIcons.SunBright, s" ${instrument}mask flat")
       case _                                        => obs.title
 
   private def estimateView(obs: Observation): TagMod =
@@ -256,12 +256,21 @@ object ObsBadge:
               menuRef.toggle(e).when(props.setScienceBandCB.isDefined).void
         )
 
+      // A MOS mask flat shows the id of the mask it images in place of the configuration.
+      val maskId: Option[String]              = props.maskName.map(_.value)
+      val headerConfiguration: Option[String] =
+        if props.isMosMaskFlat then maskId
+        else obs.configurationSummary.map(configLabel(obs, _))
+      val detailConfiguration: Option[String] =
+        if props.isMosMaskFlat then maskId
+        else obs.observingModeSummaryLabel.map(configLabel(obs, _))
+
       val header =
         <.div(ExploreStyles.ObsBadgeHeader)(
           <.div(ExploreStyles.ObsBadgeTargetAndId)(
-            <.div(badgeTitle(obs, props.maskName)).when(layout.showTitle),
-            <.div(obs.configurationSummary.map(configLabel(obs, _)).getOrElse("-"))
-              .when(layout.showConfiguration === Section.Header && !props.isMosMaskFlat),
+            <.div(badgeTitle(obs)).when(layout.showTitle),
+            <.div(headerConfiguration.getOrElse("-"))
+              .when(layout.showConfiguration === Section.Header),
             <.div(
               ExploreStyles.ObsBadgeId,
               scienceBandButton.when(props.showScienceBand),
@@ -400,10 +409,10 @@ object ObsBadge:
             meta,
             <.div(ExploreStyles.ObsBadgeDescription)(
               <.span(ExploreStyles.ObsBadgeDescriptionTitles)(
-                obs.observingModeSummaryLabel
-                  .map(label => <.div(configLabel(obs, label)))
+                detailConfiguration
+                  .map(label => <.div(label))
                   .whenDefined
-                  .when(layout.showConfiguration === Section.Detail && !props.isMosMaskFlat),
+                  .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary)
                   .when(layout.showConstraints && !obs.calibrationRole.exists(_.isDaytimeRole))
               ),
