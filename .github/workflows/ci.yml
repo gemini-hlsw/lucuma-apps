@@ -284,23 +284,6 @@ jobs:
         with:
           bundlemon-args: '--config explore/.bundlemonrc.json --subProject "Explore"'
 
-      - name: Deploy dev app to Firebase
-        if: github.ref == 'refs/heads/main'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}
-          entryPoint: ./explore
-          projectId: explore-gemini
-          target: dev
-          channelId: live
-
-      - name: Record Explore deployment SHA
-        if: github.ref == 'refs/heads/main'
-        run: |
-          # Create a deployment record with commit SHA for tracking
-          echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"
-          curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' 
-
       - name: Configure AWS credentials
         if: github.ref == 'refs/heads/main'
         uses: aws-actions/configure-aws-credentials@v5
@@ -311,6 +294,13 @@ jobs:
       - name: Deploy dev app to AWS
         if: github.ref == 'refs/heads/main'
         run: ./explore/deploy-aws.sh "$AWS_EXPLORE_DEV_BUCKET" "$AWS_EXPLORE_DEV_CLOUDFRONT_ID"
+
+      - name: Record Explore deployment SHA
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Create a deployment record with commit SHA for tracking
+          echo "Recording deployment: ${{ github.sha }} to Explore dev"
+          curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' 
 
   observe-deploy:
     name: Build and publish Observe Docker image / Deploy to Heroku
