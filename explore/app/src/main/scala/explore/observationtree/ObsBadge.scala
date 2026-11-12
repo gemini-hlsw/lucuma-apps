@@ -170,6 +170,8 @@ object ObsBadge:
       case Some(CalibrationRole.DaytimeArc)         => "Daytime Arc"
       case Some(CalibrationRole.DaytimeCalibration) =>
         <.span(ThemeIcons.SunBright, " Daytime Calibration")
+      case Some(CalibrationRole.MosMaskFlat)        =>
+        <.span(ThemeIcons.SunBright, " MOS Mask Flat")
       case _                                        => obs.title
 
   private def estimateView(obs: Observation): TagMod =
