@@ -7,6 +7,7 @@ import cats.MonadThrow
 import cats.effect.Sync
 import cats.syntax.all.*
 import fs2.Stream
+import grackle.GraphQLParser
 import grackle.Query.Binding
 import grackle.QueryCompiler.Elab
 import grackle.QueryCompiler.SelectElaborator
@@ -44,6 +45,10 @@ class NavigateMappings[F[_]: Sync](
   override val schema: Schema
 ) extends CirceMapping[F] {
   import NavigateMappings._
+
+  override val parserConfig = GraphQLParser.defaultConfig.copy(
+    maxInputValueDepth = 10 // Default is 5, which is too low
+  )
 
   val QueryType: TypeRef        = schema.ref("Query")
   val MutationType: TypeRef     = schema.ref("Mutation")
