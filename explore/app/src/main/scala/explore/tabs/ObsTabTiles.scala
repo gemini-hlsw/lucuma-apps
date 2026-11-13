@@ -118,13 +118,24 @@ case class ObsTabTiles(
   selectedGSName:    View[Option[NonEmptyString]],
   resize:            UseResizeDetectorReturn,
   userPreferences:   View[UserPreferences],
-  readonly:          Boolean,
+  editIsReadonly:    Boolean,
   programIsReadonly: Boolean
 ) extends ReactFnProps(ObsTabTiles.component):
   val isStaffOrAdminUser: Boolean = vault.isStaffOrAdmin
-  val obsIsReadonly: Boolean      =
-    readonly || (observation.get.isExecuted && !isStaffOrAdminUser) || observation.get.isCompleted
-  val obsId: Observation.Id       = observation.get.id
+  val readonly: Boolean           = editIsReadonly || observation.get.isLockedCalibration
+
+  private val executionIsReadonly: Boolean =
+    (observation.get.isExecuted && !isStaffOrAdminUser) || observation.get.isCompleted
+
+  val obsIsReadonly: Boolean = readonly || executionIsReadonly
+  val obsId: Observation.Id  = observation.get.id
+
+  /** Staff can edit the conditions of spectrophotometric standards, which are otherwise locked. */
+  val constraintsReadonly: Boolean =
+    if observation.get.calibrationRole.contains(CalibrationRole.SpectroPhotometric) &&
+      isStaffOrAdminUser
+    then editIsReadonly || executionIsReadonly
+    else obsIsReadonly
 
   val allConstraintSets: Set[ConstraintSet] = programSummaries.constraintGroups.map(_._2).toSet
 
@@ -843,7 +854,7 @@ object ObsTabTiles:
             props.obsIQLikelihood(optAsterismCoords),
             conditionsLikelihood,
             props.centralWavelength,
-            props.obsIsReadonly
+            props.constraintsReadonly
           )
 
         val schedulingWindowsTile =
