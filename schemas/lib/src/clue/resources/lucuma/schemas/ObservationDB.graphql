@@ -3502,10 +3502,8 @@ type Mutation {
     proposals is of type DIRECTORS_TIME, DEMO_SCIENCE, LARGE_PROGRAM or
     SYSTEM_VERIFICATION, respectively.
   
-  When recommended times are supplied, observations without a science band are
-  given the program's only allocated band, if it has just one, and a warning
-  lists observations whose band no longer has time allocated, as for
-  `setAllocations`.
+  Recommended times do not change observation science bands, which follow the
+  allocations once the proposal is accepted.
   """
   setTacFeedback(input: SetTacFeedbackInput!): TacFeedbackResult!
 
@@ -3514,9 +3512,7 @@ type Mutation {
   with the allocations that carry its recommended times.  The program must have
   a proposal whose status is SUBMITTED.  For a category that belongs to a
   partner, the user must be staff or an NGO user of that partner who can read
-  the program.  Only staff may delete feedback for the other categories.  As
-  for `setTacFeedback`, observations are then brought in line with the
-  remaining allocations, which may produce a warning.
+  the program.  Only staff may delete feedback for the other categories.
   """
   deleteTacFeedback(input: DeleteTacFeedbackInput!): DeleteTacFeedbackResult!
 
@@ -3549,7 +3545,13 @@ type Mutation {
   """
   regenerateProposalSummaries(input: RegenerateProposalSummariesInput!): RegenerateProposalSummariesResult!
 
-  """Set the proposal status."""
+  """
+  Set the proposal status.  NGO users may not set the proposal status.
+  
+  When the proposal is accepted, observations without a science band are given
+  the program's only allocated band, if it has just one, and a warning lists
+  observations whose band has no time allocated, as for `setAllocations`.
+  """
   setProposalStatus(input: SetProposalStatusInput!): SetProposalStatusResult!
 
   """Unlink a user from a program."""
@@ -5443,17 +5445,20 @@ enum CalibrationSetType {
 One row of a daytime calibration: a kind, an exposure count, the GCAL
 configuration (flats and arcs only) and one instrument setup.  The generator
 expands it into one atom: `count` identical DAY_CAL steps for a manual kind,
-the steps the Smart GCAL lookup returns for a smart kind.
+the steps the Smart GCAL lookup returns for a smart kind.  A smart kind whose
+lookup finds no mapping is left out and reported as MISSING_SMART_GCAL.
 """
 type CalibrationSet {
   kind: CalibrationSetType!
 
   """
   Steps this set contributes to the sequence: `explicitCount` for a manual
-  step, the number of steps the Smart GCAL lookup returns for a smart step, or
-  null when the lookup finds no mapping for the setup.
+  step, the number of steps the Smart GCAL lookup returns for a smart step
+  (zero when the setup is marked as having no calibration), or null when the
+  lookup finds no mapping for the setup.  A smart set that contributes no
+  steps is left out of the sequence.
   """
-  count: PosInt
+  count: NonNegInt
 
   """
   Exposures requested for this setup, as given on input.  Always present for
@@ -9287,8 +9292,8 @@ type Flamingos2LongSlitAcquisition {
 
   """
   An explicitly specified acquisition type (if any). When null, the ITC
-  classifies the target: BRIGHT when it reaches a signal-to-noise of 10 in an
-  exposure of at most 2 seconds, FAINT otherwise.
+  classifies the target: BRIGHT when it reaches a signal-to-noise of 10 in a
+  total exposure time of at most 2 seconds, FAINT otherwise.
   """
   explicitAcquisitionType: Flamingos2AcquisitionType
 
@@ -15686,6 +15691,13 @@ enum ObservationValidationCode {
   wavelength reaching the grating.  An order-blocking filter may be needed.
   """
   SECOND_ORDER_OVERLAP
+
+  """
+  A calibration was left out of the generated sequence because no Smart GCAL
+  entry is defined for its configuration.  The rest of the sequence is
+  unaffected.  The message names the calibration and the configuration.
+  """
+  MISSING_SMART_GCAL
 }
 
 """
@@ -17165,7 +17177,10 @@ type SequenceDigest {
   that steps violate (CONFIGURATION_ERROR for exposures that cannot be taken,
   EXPOSURE_TIME_WARNING for those merely outside the recommended range, which
   are reported for science steps alone) and, for GMOS spectroscopy, science
-  steps exposed to second order light (SECOND_ORDER_OVERLAP).
+  steps exposed to second order light (SECOND_ORDER_OVERLAP).  They also
+  include the calibrations left out of a generated sequence because no Smart
+  GCAL entry is defined for their configuration (MISSING_SMART_GCAL), which no
+  step shows.
   """
   stepViolations: [StepViolation!]!
 }
@@ -18473,6 +18488,9 @@ enum CalibrationRole {
 
   """CalibrationRole DaytimeCalibration"""
   DAYTIME_CALIBRATION
+
+  """CalibrationRole MosMaskFlat"""
+  MOS_MASK_FLAT
 }
 
 """Target description"""
