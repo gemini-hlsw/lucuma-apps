@@ -232,6 +232,7 @@ object ObsTabContents extends TwoPanels:
               shadowClipboardObs.value,
               props.programSummaries.get.allocatedScienceBands,
               props.programSummaries.get.dismissedWarnings,
+              props.programSummaries.get.attachments,
               addingObservation,
               props.readonly,
               props.vault.isStaffOrAdmin

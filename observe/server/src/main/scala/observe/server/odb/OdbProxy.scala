@@ -56,7 +56,8 @@ object OdbProxy {
               val skipTargets: Boolean =
                 calibrationRole.exists:
                   case CalibrationRole.DaytimeArc | CalibrationRole.DaytimeCalibration |
-                      CalibrationRole.DaytimeFlat | CalibrationRole.DaytimePinhole =>
+                      CalibrationRole.DaytimeFlat | CalibrationRole.DaytimePinhole |
+                      CalibrationRole.MosMaskFlat =>
                     true
                   case _ => false
               ObsQuery[F]
