@@ -52,6 +52,7 @@ object ConstraintsTile
                 odbApi
                   .updateObservationConstraintSet(List(props.obsId), cs)
                   .runAsyncAndForget,
+            // allConstraintSets leaves out calibrations, so add this observation's own set.
             options = (props.allConstraintSets + props.constraintSet.get)
               .map(cs => new SelectItem[ConstraintSet](value = cs, label = cs.shortName))
               .toList
