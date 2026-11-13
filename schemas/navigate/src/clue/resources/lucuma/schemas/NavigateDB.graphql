@@ -49,6 +49,36 @@ input ProperMotionComponentInput @oneOf {
 }
 "A String value that cannot be empty"
 scalar NonEmptyString
+"Altair (Gemini North adaptive optics) guiding mode."
+enum AltairMode {
+  "Natural guide star drives both high order correction and tip/tilt."
+  NGS
+  "Laser drives high order correction, a natural star on the Altair WFS provides tip/tilt/focus."
+  LGS
+  "Laser drives high order correction, a natural star on PWFS1 provides tip/tilt/focus."
+  LGS_P1
+}
+"Altair field lens position."
+enum FieldLens {
+  IN
+  OUT
+}
+"Cassegrain rotator tracking mode"
+enum CassRotator {
+  "The cass rotator is held at a fixed angle."
+  FIXED
+  "The cass rotator follows the field."
+  FOLLOWING
+}
+"""
+Altair neutral density filter position. The filter attenuates only the Altair
+wavefront sensor path, never the science beam, and is used for very bright
+natural guide stars.
+"""
+enum AltairNdFilter {
+  IN
+  OUT
+}
 "Ephemeris key type options"
 enum EphemerisKeyType {
   "EphemerisKeyType Comet"
@@ -182,6 +212,24 @@ input CatalogInfoInput {
 scalar PosInt
 "A `BigDecimal` greater than 0"
 scalar PosBigDecimal
+"""
+Altair configuration creation and editing parameters. The value replaces the
+observation's entire Altair configuration.
+"""
+input AltairInput {
+  "The Altair guiding mode."
+  mode: AltairMode!
+  """
+  Overrides the automatic field lens choice. Omit (or assign null) for AUTO, in
+  which case the field lens follows the guide star separation. The LGS modes
+  always use the field lens, so OUT is rejected for them.
+  """
+  fieldLens: FieldLens
+  "The cassegrain rotator tracking mode used while observing behind Altair."
+  cassRotator: CassRotator = FOLLOWING
+  "The Altair neutral density filter position."
+  ndFilter: AltairNdFilter = OUT
+}
 """
 An angle in a variety of units.  Values are normalized to [0, 360°) unless
 the field documents a signed quantity, in which case negative values are
@@ -531,6 +579,9 @@ input TcsConfigInput {
   lightSinkVariant: LightSinkVariant
   baffles: BaffleConfigInput
   programLabel: ProgramReferenceLabel
+  altair: AltairInput
+  "Altair guide star. Required when Altair is in NGS mode."
+  aowfs: GuiderConfig
 }
 input SwapConfigInput {
   guideTarget: TargetPropertiesInput!

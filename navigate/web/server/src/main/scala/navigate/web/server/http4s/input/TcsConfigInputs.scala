@@ -4,6 +4,11 @@
 package navigate.web.server.http4s.input
 
 import cats.syntax.all.*
+import grackle.Result
+import lucuma.core.enums.AltairMode
+import lucuma.core.enums.AltairNdFilter
+import lucuma.core.enums.CassRotator
+import lucuma.odb.data.AltairConfiguration
 import lucuma.odb.graphql.binding.*
 import lucuma.odb.graphql.input.AngleInput
 import lucuma.odb.graphql.input.WavelengthInput
@@ -103,7 +108,29 @@ object BaffleConfigInput:
   val Binding: Matcher[BafflesConfig] =
     OneOfBinding("autoConfig" -> AutoBinding, "manualConfig" -> ManualBinding)
 
+object AltairInput:
+
+  val Binding: Matcher[AltairConfiguration] =
+    ObjectFieldsBinding.rmap:
+      case List(
+            AltairModeBinding("mode", rMode),
+            FieldLensBinding.Option("fieldLens", rFieldLens),
+            CassRotatorBinding.Option("cassRotator", rCassRotator),
+            AltairNdFilterBinding.Option("ndFilter", rNdFilter)
+          ) =>
+        (rMode,
+         rFieldLens,
+         rCassRotator.map(_.getOrElse(CassRotator.Following)),
+         rNdFilter.map(_.getOrElse(AltairNdFilter.Out))
+        ).parMapN(AltairConfiguration.apply)
+
 object TcsConfigInput:
+
+  // In NGS mode Altair needs the guide star to configure the AO target
+  private def requireAowfsForNgs(config: TcsConfig): Result[TcsConfig] =
+    if (config.altair.exists(_.mode === AltairMode.Ngs) && config.aowfs.isEmpty)
+      Result.failure("aowfs is required when Altair is in NGS mode")
+    else Result.success(config)
 
   val Binding: Matcher[TcsConfig] =
     ObjectFieldsBinding.rmap:
@@ -117,7 +144,9 @@ object TcsConfigInput:
             InstrumentBinding("instrument", rInstrument),
             LightSinkVariantBinding.Option("lightSinkVariant", rLightSinkVariant),
             BaffleConfigInput.Binding.Option("baffles", rBaffles),
-            ProgramReferenceBinding.Option("programLabel", rProgramLabel)
+            ProgramReferenceBinding.Option("programLabel", rProgramLabel),
+            AltairInput.Binding.Option("altair", rAltair),
+            GuiderConfigInput.Binding.Option("aowfs", rAowfs)
           ) =>
         (rTarget,
          rInstParams,
@@ -127,9 +156,12 @@ object TcsConfigInput:
          rRotator,
          LightPathInput.lightSink(rInstrument, rLightSinkVariant),
          rBaffles,
-         rProgramLabel
+         rProgramLabel,
+         rAltair,
+         rAowfs
         )
           .parMapN(TcsConfig.apply)
+          .flatMap(requireAowfsForNgs)
 
 object SwapConfigInput:
 

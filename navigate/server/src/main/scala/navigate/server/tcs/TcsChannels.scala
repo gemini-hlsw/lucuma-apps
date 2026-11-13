@@ -108,7 +108,10 @@ case class TcsChannels[F[_]](
   focalPlaneOffsetAX:       Channel[F, Double],
   focalPlaneOffsetAY:       Channel[F, Double],
   sourceAWavelength:        Channel[F, Double],
-  programId:                Channel[F, String]
+  programId:                Channel[F, String],
+  useAo:                    Channel[F, String],
+  aoFieldLens:              Channel[F, String],
+  aoFieldLensPrepare:       Channel[F, String]
 )
 
 object TcsChannels {
@@ -1006,6 +1009,9 @@ object TcsChannels {
       ioay  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALB")
       swa   <- service.getChannel[Double](tcsTop.value, "sad:sourceAWavelength.VAL")
       pid   <- service.getChannel[String](tcsTop.value, "sad:programID.VAL")
+      uao   <- service.getChannel[String](tcsTop.value, "configureForAO.A")
+      aofl  <- service.getChannel[String](tcsTop.value, "aoMoveAStar.A")
+      aoflp <- service.getChannel[String](tcsTop.value, "aoPrepareCm.F")
     } yield TcsChannels[F](
       tt,
       tpd,
@@ -1094,7 +1100,10 @@ object TcsChannels {
       focalPlaneOffsetAX = ioax,
       focalPlaneOffsetAY = ioay,
       sourceAWavelength = swa,
-      programId = pid
+      programId = pid,
+      useAo = uao,
+      aoFieldLens = aofl,
+      aoFieldLensPrepare = aoflp
     )
   }
 }

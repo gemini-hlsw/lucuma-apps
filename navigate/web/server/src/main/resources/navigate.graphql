@@ -1,7 +1,7 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, ProgramReferenceLabel, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput, IntPercent from "lucuma/schemas/ObservationDB.graphql"
-#import Instrument, Site, TimeSpan, Date  from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site, TimeSpan, Date, AltairInput  from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
 input TargetPropertiesInput {
@@ -156,6 +156,9 @@ input TcsConfigInput {
     lightSinkVariant: LightSinkVariant
     baffles: BaffleConfigInput
     programLabel: ProgramReferenceLabel
+    altair: AltairInput
+    """Altair guide star. Required when Altair is in NGS mode."""
+    aowfs: GuiderConfig
 }
 
 input SwapConfigInput {

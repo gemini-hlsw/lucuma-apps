@@ -14,6 +14,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import fs2.Stream
+import lucuma.core.enums.FieldLens
 import lucuma.core.enums.GuideProbe
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -118,6 +119,8 @@ object TcsEpicsSystem {
     val ventGatesMoveCmd: Command2Channels[F, Double, Double]
     val slewCmd: SlewCommandChannels[F]
     val programIdCmd: ProgramIdCommandChannels[F]
+    val aoUseCmd: Command1Channels[F, BinaryYesNo]
+    val aoFieldLensCmd: AoFieldLensCommandChannels[F]
     val rotatorConfigCmd: Command4Channels[F, Double, String, String, Double]
     val originCmd: Command6Channels[F, Double, Double, Double, Double, Double, Double]
     val focusOffsetCmd: Command2Channels[F, Double, Double]
@@ -908,6 +911,15 @@ object TcsEpicsSystem {
 
     override val programIdCommand: ProgramIdCommand[F, TcsCommands[F]] =
       (v: Option[ProgramReference]) => addParam(tcsEpics.programIdCmd(v))
+
+    override val aoConfigCommand: AoConfigCommand[F, TcsCommands[F]] =
+      new AoConfigCommand[F, TcsCommands[F]] {
+        override def useAo(v: Boolean): TcsCommands[F] =
+          addParam(tcsEpics.aoUseCmd.setParam1(v.fold(BinaryYesNo.Yes, BinaryYesNo.No)))
+
+        override def fieldLens(v: FieldLens): TcsCommands[F] =
+          addParam(tcsEpics.aoFieldLensCmd(v))
+      }
 
     override val slewOptionsCommand: SlewOptionsCommand[F, TcsCommands[F]] =
       new SlewOptionsCommand[F, TcsCommands[F]] {
@@ -1717,6 +1729,15 @@ object TcsEpicsSystem {
     override val slewCmd: SlewCommandChannels[F] =
       SlewCommandChannels(channels.telltale, channels.slew)
 
+    override val aoUseCmd: Command1Channels[F, BinaryYesNo] =
+      Command1Channels(channels.telltale, channels.useAo)
+
+    override val aoFieldLensCmd: AoFieldLensCommandChannels[F] =
+      AoFieldLensCommandChannels(channels.telltale,
+                                 channels.aoFieldLens,
+                                 channels.aoFieldLensPrepare
+      )
+
     override val programIdCmd: ProgramIdCommandChannels[F] =
       ProgramIdCommandChannels(channels.telltale, channels.programId)
 
@@ -1904,6 +1925,25 @@ object TcsEpicsSystem {
       writeCadParam[F, BinaryOnOff](tt, slewChannels.autoparkGems)(v)
     def autoparkAowfs(v: BinaryOnOff): VerifiedEpics[F, F, Unit]            =
       writeCadParam[F, BinaryOnOff](tt, slewChannels.autoparkAowfs)(v)
+  }
+
+  /**
+   * Moves the Altair field lens. The position is demanded to the TCS, and the control matrix
+   * preparation has to be told too.
+   */
+  case class AoFieldLensCommandChannels[F[_]: Monad](
+    tt:       TelltaleChannel[F],
+    position: Channel[F, String],
+    prepare:  Channel[F, String]
+  ) {
+    def apply(v: FieldLens): VerifiedEpics[F, F, Unit] =
+      writeCadParam[F, String](tt, position)(v match {
+        case FieldLens.In  => "FLENS"
+        case FieldLens.Out => "PARK"
+      }) *> writeCadParam[F, Int](tt, prepare)(v match {
+        case FieldLens.In  => 1
+        case FieldLens.Out => 0
+      })
   }
 
   case class ProgramIdCommandChannels[F[_]: Monad](
@@ -2286,6 +2326,13 @@ object TcsEpicsSystem {
     def programId(v: Option[ProgramReference]): S
   }
 
+  trait AoConfigCommand[F[_], +S] {
+
+    /** Tell the TCS whether it is used with Altair. */
+    def useAo(v:     Boolean): S
+    def fieldLens(v: FieldLens): S
+  }
+
   trait SlewOptionsCommand[F[_], +S] {
     def zeroChopThrow(v:            Boolean): S
     def zeroSourceOffset(v:         Boolean): S
@@ -2508,6 +2555,7 @@ object TcsEpicsSystem {
     val oiwfsWavel: WavelengthCommand[F, TcsCommands[F]]
     val slewOptionsCommand: SlewOptionsCommand[F, TcsCommands[F]]
     val programIdCommand: ProgramIdCommand[F, TcsCommands[F]]
+    val aoConfigCommand: AoConfigCommand[F, TcsCommands[F]]
     val rotatorCommand: RotatorCommand[F, TcsCommands[F]]
     val originCommand: OriginCommand[F, TcsCommands[F]]
     val focusOffsetCommand: FocusOffsetCommand[F, TcsCommands[F]]
