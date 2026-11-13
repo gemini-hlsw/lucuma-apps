@@ -91,6 +91,6 @@ trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB])
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, GroupEditSubscription.Data.GroupEdit]] =
     GroupEditSubscription
-      .subscribe[F](programId.toProgramEditInput)
+      .subscribe[F](programId.toGroupEditInput)
       .processErrors("GroupEditSubscription")
       .map(_.map(_.groupEdit))

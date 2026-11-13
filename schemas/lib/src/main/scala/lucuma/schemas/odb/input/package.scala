@@ -94,6 +94,8 @@ extension (id: Program.Id)
     WhereTarget(program = toWhereProgram.assign)
   def toTargetEditInput: TargetEditInput           =
     TargetEditInput(programId = id.assign)
+  def toGroupEditInput: GroupEditInput             =
+    GroupEditInput(programId = id.assign)
 
 extension (id: ProgramNote.Id)
   def toWhereProgramNote: WhereProgramNote =
