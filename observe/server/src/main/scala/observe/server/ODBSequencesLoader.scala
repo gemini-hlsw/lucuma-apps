@@ -121,23 +121,22 @@ object ODBSequencesLoader {
     instrumentSequenceLens.replace(seqData.some)(st)
 
   /**
-   * Reload the step definition for an existing sequence. Preserves observer, overrides, etc.
-   */
-  /**
-   * Reloads an already loaded observation. The breakpoints are those of the newly read config (the
-   * sequence may have been edited in Explore, so step ids and breakpoints may have changed).
+   * Reloads an already loaded observation, keeping its overrides. The breakpoints are those of the
+   * newly read config (the sequence may have been edited in Explore, so step ids and breakpoints
+   * may have changed). Whoever reloads it becomes the observer.
    */
   private[server] def reloadSequenceMod[F[_]](
+    observer:    Option[Observer],
     stepGen:     Option[StepGen[F]],
     breakpoints: Breakpoints,
     l:           Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>
     l.some
       .modify { sd =>
-        val headerExtra = HeaderExtraData(st.conditions, st.operator, sd.observer)
-        val newSeqState =
+        val headerExtra: HeaderExtraData  = HeaderExtraData(st.conditions, st.operator, observer)
+        val newSeqState: SequenceState[F] =
           SequenceState.reload(stepGen, sd.overrides, headerExtra, sd.seq, breakpoints)
-        SequenceData.seq.replace(newSeqState)(sd)
+        SequenceData.observer.replace(observer)(SequenceData.seq.replace(newSeqState)(sd))
       }(st)
 
 }

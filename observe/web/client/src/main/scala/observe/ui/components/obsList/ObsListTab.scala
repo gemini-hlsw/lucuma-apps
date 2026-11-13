@@ -43,7 +43,6 @@ object ObsListTab
             ObsList(
               observations,
               rootModelData.executionState,
-              rootModelData.observer,
               rootModelData.loadedObservations,
               rootModelDataView.zoom(RootModelData.obsListGlobalFilter),
               rootModelDataView.zoom(RootModelData.obsListColumnFilters),
