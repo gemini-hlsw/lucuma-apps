@@ -84,14 +84,9 @@ The image is automatically pushed to Heroku and to the `nlsoftware` account in D
 
 The image is not release automatically in these environments.
 
-There are a bunch of shell scripts in `deploy/scripts` that should be copied on the `~/observe` directory on each server. Then the correct site needs to be configured in `config.sh`. These scripts are:
+A version reaches these environments when it is promoted with the scripts in [lucuma-deploy](https://github.com/gemini-hlsw/lucuma-deploy). The promotion does not touch the servers: `observe update` has to be run on each of them afterwards, and it deploys the promoted version.
 
-- `update.sh` (will automatically stop and restart a running server).
-- `start.sh`
-- `stop.sh`
-- `restart.sh`
-
-A Dockerhub access token has to be configured in `config.sh` too. Ideally, a read-only token should be used.
+The scripts that install and run Observe on the servers (`install.sh` and the `observe` command) live in [lucuma-deploy](https://github.com/gemini-hlsw/lucuma-deploy/tree/main/servers/observe) too. See the [README](https://github.com/gemini-hlsw/lucuma-deploy/blob/main/servers/observe/README.md) there to install or update a server.
 
 # Configuration
 
