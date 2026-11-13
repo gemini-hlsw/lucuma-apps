@@ -320,7 +320,7 @@ object UserPreferencesQueriesGQL {
     val document = gql"""
       mutation userPreferencesUpsert(
         $$userId: String = "",
-        $$wavelengthUnits: LucumaWavelengthUnitsEnum = "",
+        $$wavelengthUnits: LucumaWavelengthUnitsEnum,
       ) {
         insertLucumaUserPreferencesOne(
           object: {
@@ -345,7 +345,7 @@ object UserPreferencesQueriesGQL {
     val document = gql"""
       mutation userPreferencesUpsert(
         $$userId: String = "",
-        $$theme: LucumaThemeEnum = "",
+        $$theme: LucumaThemeEnum,
       ) {
         insertLucumaUserPreferencesOne(
           object: {
