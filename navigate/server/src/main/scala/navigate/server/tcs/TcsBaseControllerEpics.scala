@@ -1045,6 +1045,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       }
       val expTimeChange = state.get(st).period.forall(_ =!= exposureTime).option(exposureTime)
       val qlChange      = state.get(st).configuredForQl.forall(_ =!= actualQl).option(actualQl)
+      // Signal processing (zernikes to M2) must be reconfigured whenever guiding changes,
+      // independently of the QL mode.
+      val guidingChange = state.get(st).configuredForGuiding.forall(_ =!= isGuiding)
 
       val setSigProc  = expTimeChange
         .map(t => darkFileProc(darkFileName(dataFolderName, prefix, t)))
@@ -1074,11 +1077,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         (state.andThen(Focus[WfsConfigState](_.period)).replace(exposureTime.some) >>>
           state
             .andThen(Focus[WfsConfigState](_.configuredForQl))
-            .replace(actualQl.some))(st),
+            .replace(actualQl.some) >>>
+          state
+            .andThen(Focus[WfsConfigState](_.configuredForGuiding))
+            .replace(isGuiding.some))(st),
         (for {
           wfsActive <- active.map(_.map(_ === BinaryYesNo.Yes))
           ret       <- VerifiedEpics.ifF[F, F, ApplyCommandResult](
-                         wfsActive.map(_ && qlChange.isEmpty && expTimeChange.isEmpty)
+                         wfsActive.map(_ && qlChange.isEmpty && expTimeChange.isEmpty && !guidingChange)
                        ) {
                          VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
                        } {
@@ -1167,6 +1173,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         .replace(None)
         .focus(_.pwfs1.configuredForQl)
         .replace(None)
+        .focus(_.pwfs1.configuredForGuiding)
+        .replace(None)
     )
 
   override def pwfs2StopObserve: F[ApplyCommandResult] = sys.pwfs2.circularBufferStatus
@@ -1187,6 +1195,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         .replace(None)
         .focus(_.pwfs2.configuredForQl)
         .replace(None)
+        .focus(_.pwfs2.configuredForGuiding)
+        .replace(None)
     )
 
   override def oiwfsStopObserve: F[ApplyCommandResult] = getOiwfsConfig.flatMap(s =>
@@ -1201,6 +1211,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       _.focus(_.oiwfs.period)
         .replace(None)
         .focus(_.oiwfs.configuredForQl)
+        .replace(None)
+        .focus(_.oiwfs.configuredForGuiding)
         .replace(None)
     )
 
@@ -1349,7 +1361,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                      .interval(exposureTime.toSeconds.toDouble)
                      .post(ObserveCommand.CommandType.TemporarlyOn)
                      .verifiedRun(ConnectionTimeout) <* Temporal[F].sleep(postObserveDelay)
-      _         <- stateRef.update(state.modify(_.copy(period = none, configuredForQl = none)))
+      _         <-
+        stateRef.update(
+          state.modify(_.copy(period = none, configuredForQl = none, configuredForGuiding = none))
+        )
       _         <- observeCmd(exposureTime).whenA(wfsActive)
     } yield ret
   }
@@ -3135,9 +3150,10 @@ object TcsBaseControllerEpics {
       .getOrElse("None")
 
   case class WfsConfigState(
-    period:          Option[TimeSpan],
-    qlMode:          QlMode,
-    configuredForQl: Option[Boolean]
+    period:               Option[TimeSpan],
+    qlMode:               QlMode,
+    configuredForQl:      Option[Boolean],
+    configuredForGuiding: Option[Boolean]
   )
 
   case class State(
@@ -3148,9 +3164,9 @@ object TcsBaseControllerEpics {
 
   object State {
     val default: State = State(
-      WfsConfigState(None, QlMode.default, None),
-      WfsConfigState(None, QlMode.default, None),
-      WfsConfigState(None, QlMode.default, None)
+      WfsConfigState(None, QlMode.default, None, None),
+      WfsConfigState(None, QlMode.default, None, None),
+      WfsConfigState(None, QlMode.default, None, None)
     )
   }
 
