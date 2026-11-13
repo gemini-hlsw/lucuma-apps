@@ -56,7 +56,6 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.SelectItem
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.ui.display.given
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -857,7 +856,7 @@ object ProposalDetailsBody:
               cfp.keck.map(keck =>
                 React.Fragment(
                   FormInfo(
-                    keck.instruments.map(_.longName).mkString(", "),
+                    keck.instruments.map(_.name).mkString(", "),
                     "Available Instruments"
                   ),
                   FormInfo(keck.coordinateLimits.format, "Coordinate Limits")
@@ -867,7 +866,7 @@ object ProposalDetailsBody:
                 React.Fragment(
                   FormInfo(subaru.cfpType.shortName, "Proposal Type"),
                   FormInfo(
-                    subaru.instruments.map(_.longName).mkString(", "),
+                    subaru.instruments.map(_.name).mkString(", "),
                     "Available Instruments"
                   ),
                   FormInfo(subaru.coordinateLimits.format, "Coordinate Limits")
