@@ -59,7 +59,7 @@ object ProgramQueriesGQL:
   @GraphQL
   trait GroupEditSubscription extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      subscription($$input: ProgramEditInput!) {
+      subscription($$input: GroupEditInput!) {
         groupEdit(input: $$input) {
           value $GroupSubQuery
           meta:value { existence }
