@@ -584,7 +584,8 @@ object ItcInstrumentConfig:
         case _                                    => false
   }
 
-  // SCORPIO has no observing mode or ITC support yet, so its rows are shown but cannot be picked.
+  // SCORPIO has no ITC yet. The ODB copies the requirements exposure time mode into every
+  // channel, and only accepts time and count.
   case class ScorpioSpectroscopy(
     fpu:              ScorpioFpu,
     disperserLabel:   NonEmptyString,
@@ -609,8 +610,12 @@ object ItcInstrumentConfig:
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
 
-    override def needsItc: Boolean      = false
-    override def canBeAccepted: Boolean = false
+    override def needsItc: Boolean = false
+
+    override def acceptsEtm(etm: Option[ExposureTimeMode]): Boolean =
+      etm.exists:
+        case _: ExposureTimeMode.TimeAndCountMode => true
+        case _                                    => false
   }
 
   // Used for spectroscopy instruments (MaroonX)

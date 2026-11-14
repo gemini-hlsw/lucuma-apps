@@ -196,6 +196,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         )
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                               =>
         BasicConfiguration.Igrins2LongSlit.some
+      case ItcInstrumentConfig.ScorpioSpectroscopy(fpu = fpu)                       =>
+        BasicConfiguration.ScorpioLongSlit(fpu).some
       case ItcInstrumentConfig.GhostIfu(
             resolutionMode = res,
             signalToNoiseAt = snAt,

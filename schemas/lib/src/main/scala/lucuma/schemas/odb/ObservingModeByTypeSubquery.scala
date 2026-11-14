@@ -15,7 +15,7 @@ import lucuma.schemas.model.ObservingMode
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   type VariableDefs =
-    "($includeGmosNorthIfu: Boolean!, $includeGmosSouthIfu: Boolean!, $includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!, $includeDaytimeCalibration: Boolean!)"
+    "($includeGmosNorthIfu: Boolean!, $includeGmosSouthIfu: Boolean!, $includeGmosNorthLongSlit: Boolean!, $includeGmosSouthLongSlit: Boolean!, $includeGmosNorthImaging: Boolean!, $includeGmosSouthImaging: Boolean!, $includeGmosNorthMos: Boolean!, $includeGmosSouthMos: Boolean!, $includeFlamingos2LongSlit: Boolean!, $includeFlamingos2Mos: Boolean!, $includeFlamingos2Imaging: Boolean!, $includeGnirsLongSlit: Boolean!, $includeGnirsIfu: Boolean!, $includeGnirsImaging: Boolean!, $includeIgrins2LongSlit: Boolean!, $includeGhostIfu: Boolean!, $includeScorpioLongSlit: Boolean!, $includeVisitor: Boolean!, $includeExchange: Boolean!, $includeDaytimeCalibration: Boolean!)"
 
   override val subquery = gql"""
         {
@@ -486,6 +486,15 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             defaultIfu2Agitator
             explicitIfu2Agitator
             skyPosition $CoordinatesSubquery
+          }
+          scorpioLongSlit @include(if: $$includeScorpioLongSlit) {
+            fpu
+            g $ExposureTimeModeSubquery
+            r $ExposureTimeModeSubquery
+            i $ExposureTimeModeSubquery
+            z $ExposureTimeModeSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
           }
           visitor @include(if: $$includeVisitor) {
             mode

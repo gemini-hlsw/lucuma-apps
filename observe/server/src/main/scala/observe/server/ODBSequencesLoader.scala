@@ -41,7 +41,7 @@ object ODBSequencesLoader {
         case InstrumentExecutionConfig.Exchange       =>
           throw new NotImplementedError("Exchange instrument not supported")
         case InstrumentExecutionConfig.Scorpio(_)     =>
-          throw new NotImplementedError("Scorpio instrument not supported")
+          throw new NotImplementedError("SCORPIO not supported")
 
     val initialBreakpoints: Breakpoints =
       Breakpoints.fromInstrumentExecutionConfig(odbData.executionConfig)
@@ -120,7 +120,7 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.Exchange       =>
         throw new NotImplementedError("Exchange instrument not supported")
       case InstrumentExecutionConfig.Scorpio(_)     =>
-        throw new NotImplementedError("Scorpio instrument not supported")
+        throw new NotImplementedError("SCORPIO not supported")
 
     instrumentSequenceLens.replace(seqData.some)(st)
 

@@ -851,6 +851,16 @@ extension (o: ObservingMode.Igrins2LongSlit)
     explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign
   )
 
+extension (o: ObservingMode.ScorpioLongSlit)
+  def toInput: ScorpioLongSlitInput = ScorpioLongSlitInput(
+    fpu = o.fpu.assign,
+    g = o.g.toInput.assign,
+    r = o.r.toInput.assign,
+    i = o.i.toInput.assign,
+    z = o.z.toInput.assign,
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign
+  )
+
 extension (svc: ObservingMode.Igrins2LongSlit.Svc)
   def toInput: Igrins2SvcInput = Igrins2SvcInput(
     explicitExposure = svc.explicitExposure.map(_.toInput).orUnassign,
@@ -994,6 +1004,8 @@ extension (b: ObservingMode)
       ObservingModeInput.GnirsIfu(o.toInput)
     case o: ObservingMode.GhostIfu           =>
       ObservingModeInput.GhostIfu(o.toInput)
+    case o: ObservingMode.ScorpioLongSlit    =>
+      ObservingModeInput.ScorpioLongSlit(o.toInput)
     case v: ObservingMode.Visitor            =>
       ObservingModeInput.Visitor:
         VisitorInput(
@@ -1131,6 +1143,9 @@ extension (i: BasicConfiguration)
     case BasicConfiguration.Igrins2LongSlit                                                       =>
       ObservingModeInput.Igrins2LongSlit:
         Igrins2LongSlitInput()
+    case BasicConfiguration.ScorpioLongSlit(fpu)                                                  =>
+      ObservingModeInput.ScorpioLongSlit:
+        ScorpioLongSlitInput(fpu = fpu.assign)
     case BasicConfiguration.GhostIfu(resolutionMode = res,
                                      stepCount = sc,
                                      red = red,

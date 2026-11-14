@@ -75,6 +75,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case _: ObservingMode.GnirsLongSlit      => ObservingModeType.GnirsLongSlit
     case _: ObservingMode.GnirsIfu           => ObservingModeType.GnirsIfu
     case _: ObservingMode.GhostIfu           => ObservingModeType.GhostIfu
+    case _: ObservingMode.ScorpioLongSlit    => ObservingModeType.ScorpioLongSlit
     case v: ObservingMode.Visitor            => v.mode
     case _: ObservingMode.KeckExchange       => ObservingModeType.ExchangeKeck
     case _: ObservingMode.SubaruExchange     => ObservingModeType.ExchangeSubaru
@@ -102,6 +103,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case _: ObservingMode.GnirsLongSlit      => Site.GN.some
     case _: ObservingMode.GnirsIfu           => Site.GN.some
     case _: ObservingMode.GhostIfu           => Site.GS.some
+    case _: ObservingMode.ScorpioLongSlit    => Site.GS.some
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
     case _: ObservingMode.KeckExchange       => none
     case _: ObservingMode.SubaruExchange     => none
@@ -182,6 +184,8 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
         red = red,
         blue = blue
       )
+    case s: ObservingMode.ScorpioLongSlit                           =>
+      BasicConfiguration.ScorpioLongSlit(s.fpu)
     case v: ObservingMode.Visitor                                   =>
       BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.scienceFovDiameter)
     case ObservingMode.KeckExchange(keckInstrument, requested)      =>
@@ -239,6 +243,8 @@ object ObservingMode:
             c.downField("gnirsIfu").as[GnirsIfu]
           .orElse:
             c.downField("ghostIfu").as[GhostIfu]
+          .orElse:
+            c.downField("scorpioLongSlit").as[ScorpioLongSlit]
           .orElse:
             c.downField("visitor").as[Visitor]
           .orElse:
@@ -1719,6 +1725,42 @@ object ObservingMode:
     val variant: Lens[Flamingos2Imaging, ImagingVariant]                            =
       Focus[Flamingos2Imaging](_.variant)
 
+  case class ScorpioLongSlit(
+    fpu:                      ScorpioFpu,
+    g:                        ExposureTimeMode,
+    r:                        ExposureTimeMode,
+    i:                        ExposureTimeMode,
+    z:                        ExposureTimeMode,
+    defaultTelescopeConfigs:  SlitTelescopeConfigs,
+    explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
+  ) extends ObservingMode(Instrument.Scorpio.some) derives Eq:
+    val telescopeConfigs: SlitTelescopeConfigs =
+      explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
+
+    def isCustomized: Boolean =
+      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+
+    def revertCustomizations: ScorpioLongSlit =
+      copy(explicitTelescopeConfigs = none)
+
+  object ScorpioLongSlit:
+    given Decoder[ScorpioLongSlit] = deriveDecoder
+
+    val fpu: Lens[ScorpioLongSlit, ScorpioFpu]                                        =
+      Focus[ScorpioLongSlit](_.fpu)
+    val g: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+      Focus[ScorpioLongSlit](_.g)
+    val r: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+      Focus[ScorpioLongSlit](_.r)
+    val i: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+      Focus[ScorpioLongSlit](_.i)
+    val z: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+      Focus[ScorpioLongSlit](_.z)
+    val defaultTelescopeConfigs: Lens[ScorpioLongSlit, SlitTelescopeConfigs]          =
+      Focus[ScorpioLongSlit](_.defaultTelescopeConfigs)
+    val explicitTelescopeConfigs: Lens[ScorpioLongSlit, Option[SlitTelescopeConfigs]] =
+      Focus[ScorpioLongSlit](_.explicitTelescopeConfigs)
+
   case class Igrins2LongSlit(
     exposureTimeMode:         ExposureTimeMode,
     svc:                      Option[Igrins2LongSlit.Svc],
@@ -2525,6 +2567,9 @@ object ObservingMode:
 
   val ghostIfu: Prism[ObservingMode, GhostIfu] =
     GenPrism[ObservingMode, GhostIfu]
+
+  val scorpioLongSlit: Prism[ObservingMode, ScorpioLongSlit] =
+    GenPrism[ObservingMode, ScorpioLongSlit]
 
   val visitor: Prism[ObservingMode, Visitor] =
     GenPrism[ObservingMode, Visitor]

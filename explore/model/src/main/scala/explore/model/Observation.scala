@@ -488,6 +488,7 @@ final case class Observation(
               blue
             )
           )
+        case _: ObservingMode.ScorpioLongSlit    => List.empty
         case _: ObservingMode.Visitor            => List.empty
         case _: ObservingMode.KeckExchange       => List.empty
         case _: ObservingMode.SubaruExchange     => List.empty

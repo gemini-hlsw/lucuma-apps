@@ -257,7 +257,7 @@ private object BasicConfigurationPanel:
           else if (awaitingAltairGuideStar)
             AltairControls.AwaitingAltairGuideStarMessage.some
           else if (props.selectedConfig.get.isVisitor && isNotTimeAndCount)
-            "Use Time and Count mode for Visitor instruments.".some
+            "Use Time and Count mode for instruments without ITC.".some
           else none
 
         // Accepteance workflow steps

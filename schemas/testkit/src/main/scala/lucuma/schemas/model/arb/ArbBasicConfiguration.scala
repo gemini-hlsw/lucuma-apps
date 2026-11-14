@@ -192,6 +192,11 @@ trait ArbBasicConfiguration {
       Gen.const(BasicConfiguration.Igrins2LongSlit)
     )
 
+  given Arbitrary[BasicConfiguration.ScorpioLongSlit] =
+    Arbitrary[BasicConfiguration.ScorpioLongSlit](
+      arbitrary[ScorpioFpu].map(BasicConfiguration.ScorpioLongSlit(_))
+    )
+
   given Arbitrary[BasicConfiguration.GnirsSpectroscopy] =
     Arbitrary[BasicConfiguration.GnirsSpectroscopy](
       for {
@@ -270,6 +275,7 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GnirsImaging],
       arbitrary[BasicConfiguration.Igrins2LongSlit.type],
       arbitrary[BasicConfiguration.GhostIfu],
+      arbitrary[BasicConfiguration.ScorpioLongSlit],
       arbitrary[BasicConfiguration.Visitor],
       arbitrary[BasicConfiguration.KeckExchange],
       arbitrary[BasicConfiguration.SubaruExchange],
@@ -354,6 +360,9 @@ trait ArbBasicConfiguration {
   given Cogen[BasicConfiguration.Igrins2LongSlit.type] =
     Cogen[Unit].contramap(_ => ())
 
+  given Cogen[BasicConfiguration.ScorpioLongSlit] =
+    Cogen[ScorpioFpu].contramap(_.fpu)
+
   given Cogen[BasicConfiguration.GnirsSpectroscopy] =
     Cogen[(GnirsFilter, GnirsFpu.Spectroscopy, GnirsPrism, GnirsGrating, GnirsCamera, Wavelength)]
       .contramap(o => (o.filter, o.fpu, o.prism, o.grating, o.camera, o.centralWavelength.value))
@@ -432,7 +441,10 @@ trait ArbBasicConfiguration {
                                       BasicConfiguration.GmosNorthIfu,
                                       Either[
                                         BasicConfiguration.GmosSouthIfu,
-                                        BasicConfiguration.DaytimeCalibration
+                                        Either[
+                                          BasicConfiguration.DaytimeCalibration,
+                                          BasicConfiguration.ScorpioLongSlit
+                                        ]
                                       ]
                                     ]
                                   ]
@@ -484,6 +496,8 @@ trait ArbBasicConfiguration {
         case s: BasicConfiguration.GmosSouthIfu       =>
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case d: BasicConfiguration.DaytimeCalibration =>
-          d.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          d.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: BasicConfiguration.ScorpioLongSlit    =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 }
 object ArbBasicConfiguration extends ArbBasicConfiguration

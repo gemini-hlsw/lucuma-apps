@@ -1433,6 +1433,40 @@ trait ArbObservingMode {
       (s.defaultExposure, s.explicitExposure, s.defaultTelescopeConfigs, s.explicitTelescopeConfigs)
     )
 
+  given Arbitrary[ObservingMode.ScorpioLongSlit] = Arbitrary[ObservingMode.ScorpioLongSlit](
+    for {
+      fpu                      <- arbitrary[ScorpioFpu]
+      g                        <- arbitrary[ExposureTimeMode]
+      r                        <- arbitrary[ExposureTimeMode]
+      i                        <- arbitrary[ExposureTimeMode]
+      z                        <- arbitrary[ExposureTimeMode]
+      defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
+      explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
+    } yield ObservingMode.ScorpioLongSlit(
+      fpu,
+      g,
+      r,
+      i,
+      z,
+      defaultTelescopeConfigs,
+      explicitTelescopeConfigs
+    )
+  )
+
+  given Cogen[ObservingMode.ScorpioLongSlit] =
+    Cogen[
+      (ScorpioFpu,
+       ExposureTimeMode,
+       ExposureTimeMode,
+       ExposureTimeMode,
+       ExposureTimeMode,
+       SlitTelescopeConfigs,
+       Option[SlitTelescopeConfigs]
+      )
+    ].contramap(o =>
+      (o.fpu, o.g, o.r, o.i, o.z, o.defaultTelescopeConfigs, o.explicitTelescopeConfigs)
+    )
+
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
     for {
       exposureTimeMode         <- arbitrary[ExposureTimeMode]
@@ -1911,6 +1945,7 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GnirsLongSlit],
       arbitrary[ObservingMode.GnirsIfu],
       arbitrary[ObservingMode.GhostIfu],
+      arbitrary[ObservingMode.ScorpioLongSlit],
       arbitrary[ObservingMode.Visitor],
       arbitrary[ObservingMode.KeckExchange],
       arbitrary[ObservingMode.SubaruExchange],
@@ -1949,12 +1984,14 @@ trait ArbObservingMode {
                                 ObservingMode.GmosNorthMos,
                                 Either[
                                   ObservingMode.GmosSouthMos,
-                                  Either[ObservingMode.Flamingos2Mos,
-                                         Either[ObservingMode.GmosNorthIfu,
-                                                Either[ObservingMode.GmosSouthIfu,
-                                                       ObservingMode.DaytimeCalibration
-                                                ]
-                                         ]
+                                  Either[
+                                    ObservingMode.Flamingos2Mos,
+                                    Either[ObservingMode.GmosNorthIfu,
+                                           Either[ObservingMode.GmosSouthIfu, Either[
+                                             ObservingMode.DaytimeCalibration,
+                                             ObservingMode.ScorpioLongSlit
+                                           ]]
+                                    ]
                                   ]
                                 ]
                               ]
@@ -2005,7 +2042,9 @@ trait ArbObservingMode {
         case s: ObservingMode.GmosSouthIfu       =>
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case d: ObservingMode.DaytimeCalibration =>
-          d.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          d.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: ObservingMode.ScorpioLongSlit    =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 }
 

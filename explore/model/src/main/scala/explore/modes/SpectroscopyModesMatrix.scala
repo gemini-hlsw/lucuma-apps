@@ -568,6 +568,11 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
           row.instrumentConfig match
             case _: ItcInstrumentConfig.Igrins2Spectroscopy => true
             case _                                          => false
+      case ObservingMode.ScorpioLongSlit(fpu = fpu)                                               =>
+        matrix.find: row =>
+          row.instrumentConfig match
+            case ItcInstrumentConfig.ScorpioSpectroscopy(fpu = rFpu) => rFpu === fpu
+            case _                                                   => false
       case _                                                                                      => none
 
   def filtered(

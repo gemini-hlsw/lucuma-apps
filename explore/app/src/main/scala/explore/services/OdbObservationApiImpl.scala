@@ -478,6 +478,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         includeGnirsLongSlit = flags.gnirsLongSlit,
         includeGnirsIfu = flags.gnirsIfu,
         includeGhostIfu = flags.ghostIfu,
+        includeScorpioLongSlit = flags.scorpioLongSlit,
         includeVisitor = flags.visitor,
         includeExchange = flags.exchange,
         includeDaytimeCalibration = flags.daytimeCalibration
@@ -549,6 +550,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     gnirsLongSlit:      Boolean = false,
     gnirsIfu:           Boolean = false,
     ghostIfu:           Boolean = false,
+    scorpioLongSlit:    Boolean = false,
     visitor:            Boolean = false,
     exchange:           Boolean = false,
     daytimeCalibration: Boolean = false
@@ -627,7 +629,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case ObservingModeType.GhostIfu                                        =>
         ModeViewFlags(ghostIfu = true)
       case ObservingModeType.ScorpioLongSlit                                 =>
-        ModeViewFlags()
+        ModeViewFlags(scorpioLongSlit = true)
       case ObservingModeType.ExchangeKeck | ObservingModeType.ExchangeSubaru =>
         ModeViewFlags(exchange = true)
       case ObservingModeType.AlopekeSpeckle | ObservingModeType.AlopekeWideField |
@@ -665,6 +667,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeGnirsLongSlit = flags.gnirsLongSlit,
             includeGnirsIfu = flags.gnirsIfu,
             includeGhostIfu = flags.ghostIfu,
+            includeScorpioLongSlit = flags.scorpioLongSlit,
             includeVisitor = flags.visitor,
             includeExchange = flags.exchange,
             includeDaytimeCalibration = flags.daytimeCalibration
