@@ -197,6 +197,8 @@ def usePatrolFieldShapes(
             agsParams.patrolFieldShape.some
           case _: VisitorObservingModeType                                               =>
             pwfs.patrolField.patrolField.some
+          case ObservingModeType.ScorpioLongSlit                                         =>
+            none
           case _: ExchangeObservingModeType | _: DaytimeCalibrationObservingModeType     =>
             none // We won't get this far for exchange or daytime observations, anyway
 
@@ -530,6 +532,8 @@ def useVisualizationShapes(
                candidatesVisibilityCss
              )
             ).some
+          case ObservingModeType.ScorpioLongSlit                                         =>
+            none
           case _: ExchangeObservingModeType | _: DaytimeCalibrationObservingModeType     =>
             none
   }.map(_.value)

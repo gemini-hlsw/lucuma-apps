@@ -585,6 +585,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case ObservingModeInput.GnirsSpectroscopy(_)  =>
         sys.error("Deprecated gnirsSpectroscopy input; use gnirsLongSlit or gnirsIfu")
       case ObservingModeInput.GhostIfu(_)           => ObservingModeType.GhostIfu.some
+      case ObservingModeInput.ScorpioLongSlit(_)    => ObservingModeType.ScorpioLongSlit.some
       case ObservingModeInput.Visitor(_)            => none
       case ObservingModeInput.Exchange(_)           => none
       case ObservingModeInput.DaytimeCalibration(_) => none
@@ -625,6 +626,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(gnirsIfu = true)
       case ObservingModeType.GhostIfu                                        =>
         ModeViewFlags(ghostIfu = true)
+      case ObservingModeType.ScorpioLongSlit                                 =>
+        ModeViewFlags()
       case ObservingModeType.ExchangeKeck | ObservingModeType.ExchangeSubaru =>
         ModeViewFlags(exchange = true)
       case ObservingModeType.AlopekeSpeckle | ObservingModeType.AlopekeWideField |
