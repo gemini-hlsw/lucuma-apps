@@ -29,8 +29,9 @@ case class ProgramListCacheController(
 object ProgramListCacheController
     extends CacheControllerComponent[ProgramInfoList, ProgramListCacheController]:
 
-  override protected val initial
-    : ProgramListCacheController => IO[(ProgramInfoList, Stream[IO, ProgramInfoList => ProgramInfoList])] =
+  override protected val initial: ProgramListCacheController => IO[
+    (ProgramInfoList, Stream[IO, ProgramInfoList => ProgramInfoList])
+  ] =
     props =>
       props.odbApi.allPrograms
         .map(_.toSortedMap(_.id))
