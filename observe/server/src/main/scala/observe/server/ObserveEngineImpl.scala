@@ -684,6 +684,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                                  )
                              )(_ =>
                                ODBSequencesLoader.reloadSequenceMod(
+                                 observer.some,
                                  stepGen,
                                  Breakpoints.fromInstrumentExecutionConfig(odbData.executionConfig),
                                  instrumentSequenceLens

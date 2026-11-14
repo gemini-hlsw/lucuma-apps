@@ -20,6 +20,7 @@ import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
+import observe.model.Observer
 import observe.model.StepProgress
 import observe.model.Subsystem
 import observe.model.enums.SubsystemControlMode
@@ -44,6 +45,14 @@ object ObservationExecutionDisplay
       val executionStateOpt: ViewOpt[ExecutionState] =
         props.rootModelData
           .zoom(RootModelData.executionState.index(selectedObsId))
+
+      val localObserver: View[Option[Observer]] =
+        props.rootModelData.zoom(RootModelData.observer)
+
+      // The observer the server holds for this observation. An edit also becomes the name we send.
+      val observer: Option[View[Option[Observer]]] =
+        executionStateOpt.toOptionView
+          .map(_.zoom(ExecutionState.observer).withOnMod(localObserver.set))
 
       val loadedObsViewPot: Pot[View[LoadedObservation]] =
         props.rootModelData
@@ -83,7 +92,7 @@ object ObservationExecutionDisplay
           executionStateAndConfig.map(_.map(_._1)),
           executionStateAndConfig
             .flatMap(_.toOption.map(_._4.zoom(ExecutionState.subsystemOverrides))),
-          props.rootModelData.zoom(RootModelData.observer),
+          observer,
           props.rootModelData.zoom(RootModelData.operator),
           props.rootModelData.zoom(RootModelData.conditions),
           props.subsystemControlModes,

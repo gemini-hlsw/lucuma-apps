@@ -217,6 +217,39 @@ class ObserveEngineSuite extends TestCommon {
       }).assert
   }
 
+  test("ObserveEngine loadSequence on an already loaded observation should set the new observer") {
+    val reloader: Observer = Observer("Jane".refined)
+
+    def load(eo: EngineObserver[IO], by: Observer): IO[EngineState[IO]] =
+      eo.executeAndWaitResult(
+        _.loadSequence(Instrument.GmosNorth, seqObsId1, by, user, clientId),
+        { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
+      )
+
+    def observerOf(st: EngineState[IO]): Option[Observer] =
+      EngineState.atSequence[IO](seqObsId1).getOption(st).flatMap(_.observer)
+
+    for {
+      odb                <-
+        TestOdbProxy.build[IO](
+          Map(
+            Instrument.GmosNorth -> TestOdbProxy.InstrumentState(
+              seqObsId1,
+              staticCfg1,
+              TestOdbProxy.SequenceState(none, List.empty)
+            )
+          )
+        )
+      (_, observeEngine) <- bothEngines(defaultServices.map(_.copy(odb = odb)))
+      eo                  = EngineObserver(observeEngine)
+      loaded             <- load(eo, observer)
+      reloaded           <- load(eo, reloader)
+    } yield {
+      assertEquals(observerOf(loaded), observer.some)
+      assertEquals(observerOf(reloaded), reloader.some)
+    }
+  }
+
   test("ObserveEngine should not run 2nd sequence because it's using the same subsystem") {
     for {
       odb                  <-

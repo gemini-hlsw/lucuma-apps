@@ -31,7 +31,7 @@ import observe.ui.services.ConfigApi
 
 case class ConfigPanel(
   obsId:      Option[Observation.Id],
-  observer:   View[Option[Observer]],
+  observer:   Option[View[Option[Observer]]],
   operator:   View[Option[Operator]],
   conditions: View[CurrentConditions]
 ) extends ReactFnProps(ConfigPanel)
@@ -129,9 +129,9 @@ object ConfigPanel
               )
             ),
             <.div(ObserveStyles.ObserverArea)(
-              props.obsId.map: obsId =>
+              (props.obsId, props.observer).mapN: (obsId, observer) =>
                 val obs: View[Option[Observer]] =
-                  props.observer.withOnMod(configApi.setObserver(obsId, _).runAsync)
+                  observer.withOnMod(configApi.setObserver(obsId, _).runAsync)
 
                 FormInputTextView(
                   id = "observer".refined,

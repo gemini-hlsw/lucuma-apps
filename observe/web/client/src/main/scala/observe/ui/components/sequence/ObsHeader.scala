@@ -23,7 +23,7 @@ case class ObsHeader(
   observation:           ObsSummary,
   loadedObsId:           Option[Pot[Observation.Id]],
   overrides:             Option[View[SubsystemOverrides]],
-  observer:              View[Option[Observer]],
+  observer:              Option[View[Option[Observer]]],
   operator:              View[Option[Operator]],
   conditions:            View[CurrentConditions],
   subsystemControlModes: Map[Subsystem, SubsystemControlMode],

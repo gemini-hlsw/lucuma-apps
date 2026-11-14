@@ -25,7 +25,6 @@ import lucuma.ui.primereact.DebouncedInputText
 import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import observe.model.ExecutionState
-import observe.model.Observer
 import observe.model.SequenceStatus
 import observe.model.UnknownTargetName
 import observe.ui.Icons
@@ -38,7 +37,6 @@ import observe.ui.model.enums.ObsClass
 case class ObsList(
   readyObservations:    List[ObsSummary],
   executionState:       Map[Observation.Id, ExecutionState],
-  observer:             Option[Observer],
   loadedObss:           LoadedObservations,
   obsListGlobalFilter:  View[String],
   obsListColumnFilters: View[ColumnFilters],
@@ -55,7 +53,7 @@ case class ObsList(
             .get(obs.obsId)
             .map(_.sequenceStatus)
             .getOrElse(SequenceStatus.Idle),
-          observer,
+          executionState.get(obs.obsId).flatMap(_.observer),
           loadedObss.value.contains(obs.obsId),
           // We can't easily know step numbers nor the total number of steps.
           // Maybe we want to show pending and total times instead?
