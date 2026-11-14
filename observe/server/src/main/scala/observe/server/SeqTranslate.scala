@@ -727,6 +727,8 @@ object SeqTranslate {
         case InstrumentExecutionConfig.Visitor(_)                  => ???
         case InstrumentExecutionConfig.Exchange                    =>
           throw new NotImplementedError("Exchange instrument not supported")
+        case InstrumentExecutionConfig.Scorpio(_)                  =>
+          throw new NotImplementedError("Scorpio instrument not supported")
       }
   }
 
