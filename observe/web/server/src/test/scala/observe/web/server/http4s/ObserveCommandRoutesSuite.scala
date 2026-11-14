@@ -108,6 +108,20 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
+  test("unload sequence"):
+    val r = for
+      engine <- TestObserveEngine.build[IO]
+      s      <- commandRoutes(engine)
+      wsb    <- WebSocketBuilder2[IO]
+      l      <- s(
+                  Request[IO](
+                    method = Method.POST,
+                    uri = Uri.unsafeFromString(s"/unload/${obsId.show}/${clientId.value}")
+                  )
+                ).value
+    yield l.map(_.status)
+    assertIO(r, Some(Status.NoContent))
+
   test("execute sequence step/subsystem"):
     val r = for
       engine <- TestObserveEngine.build[IO]

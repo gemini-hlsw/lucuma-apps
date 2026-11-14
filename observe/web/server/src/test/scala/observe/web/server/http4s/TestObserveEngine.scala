@@ -232,6 +232,9 @@ class TestObserveEngine[F[_]: Sync](sys: Services[F]) extends ObserveEngine[F] {
     observer: Observer,
     clientId: ClientId
   ): F[Unit] = Applicative[F].unit
+
+  override def unloadSequence(obsId: Observation.Id, user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
 }
 
 object TestObserveEngine {

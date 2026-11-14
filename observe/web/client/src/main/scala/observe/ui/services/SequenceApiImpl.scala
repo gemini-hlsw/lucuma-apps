@@ -39,6 +39,10 @@ case class SequenceApiImpl(
     client.postNoData:
       Uri.Path.empty / "load" / instrument.tag / obsId.toString / client.clientId.value / observer.toString
 
+  override def unloadObservation(obsId: Observation.Id): IO[Unit] =
+    client.postNoData:
+      Uri.Path.empty / "unload" / obsId.toString / client.clientId.value
+
   override def setBreakpoint(
     obsId:  Observation.Id,
     stepId: Step.Id,

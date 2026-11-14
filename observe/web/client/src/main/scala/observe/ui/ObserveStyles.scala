@@ -82,6 +82,7 @@ object ObserveStyles:
   val RewindButton: Css               = Css("observe-rewind-button")
   val SkipAcquisitionButton: Css      = Css("observe-skip-acquisition-button")
   val ResetAcquisitionButton: Css     = Css("observe-reset-acquisition-button")
+  val UnloadButton: Css               = Css("observe-unload-button")
   val SequenceHoldButton: Css         = Css("observe-sequence-hold-button")
   val CancelSequenceHoldButton: Css   = Css("observe-cancel-sequence-hold-button")
   val CancelRewindButton: Css         = Css("observe-cancel-rewind-button")

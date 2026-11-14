@@ -17,6 +17,7 @@ import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
 import lucuma.core.model.ImageQuality
+import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.Atom
@@ -1833,5 +1834,80 @@ class ObserveEngineSuite extends TestCommon {
           assertEquals(cid, clientId)
           assertEquals(reasons, NonEmptyList.one(s"Sequence $seqObsId1 is running"))
         case other => fail(s"Unexpected result: $other")
+  }
+
+  private val unloadDone: PartialFunction[(EventResult, EngineState[IO]), Boolean] =
+    case (EventResult.UserCommandResponse(_, _, Some(_)), _) => true
+
+  private def unloadState(status: SequenceStatus): EngineState[IO] =
+    (loadDefaultSequence(seqObsId1) >>>
+      ODBSequencesLoader.loadSequenceMod[IO](
+        None,
+        gmosSouthOdbData(seqObsId2),
+        EngineState.instrumentLoaded[IO](Instrument.GmosSouth)
+      ) >>>
+      EngineState.sequenceStateAt[IO](seqObsId1).modify(_.copy(status = status)))
+      .apply(EngineState.default[IO])
+
+  private def runUnload(
+    s0:    EngineState[IO],
+    obsId: Observation.Id
+  ): IO[(EventResult, EngineState[IO])] =
+    for
+      (_, oe) <- bothEngines()
+      res     <-
+        EngineObserver(oe, s0).executeAndWait(_.unloadSequence(obsId, user, clientId), unloadDone)
+    yield res
+
+  test("ObserveEngine unloadSequence empties the slot of an idle observation") {
+    val s0: EngineState[IO] = unloadState(SequenceStatus.Idle)
+    runUnload(s0, seqObsId1).map: (res, sf) =>
+      assertEquals(sf.selected.gmosNorth, none)
+      assertEquals(sf.selected.gmosSouth.map(_.obsId), seqObsId2.some)
+      res match
+        case EventResult.UserCommandResponse(_, _, Some(SeqEvent.UnloadSequence(id))) =>
+          assertEquals(id, seqObsId1)
+        case other                                                                    => fail(s"Unexpected result: $other")
+  }
+
+  test("ObserveEngine unloadSequence is refused while the sequence is running") {
+    val s0: EngineState[IO] = unloadState(SequenceStatus.Running.Init)
+    runUnload(s0, seqObsId1).map: (res, sf) =>
+      assertEquals(sf.selected.gmosNorth.map(_.obsId), seqObsId1.some)
+      assertEquals(sf.selected.gmosSouth.map(_.obsId), seqObsId2.some)
+      res match
+        case EventResult.UserCommandResponse(
+              _,
+              _,
+              Some(SeqEvent.NotifyUser(Notification.SequenceNotIdle(id, "unload"), cid))
+            ) =>
+          assertEquals(id, seqObsId1)
+          assertEquals(cid, clientId)
+        case other => fail(s"Unexpected result: $other")
+  }
+
+  test("ObserveEngine unloadSequence is allowed while the sequence waits at the user prompt") {
+    val s0: EngineState[IO] =
+      unloadState(
+        SequenceStatus.Running.Init
+          .copy(waitingUserPrompt = SequenceStatus.IsWaitingUserPrompt.Yes)
+      )
+    runUnload(s0, seqObsId1).map: (res, sf) =>
+      assertEquals(sf.selected.gmosNorth, none)
+      assertEquals(sf.selected.gmosSouth.map(_.obsId), seqObsId2.some)
+      res match
+        case EventResult.UserCommandResponse(_, _, Some(SeqEvent.UnloadSequence(id))) =>
+          assertEquals(id, seqObsId1)
+        case other                                                                    => fail(s"Unexpected result: $other")
+  }
+
+  test("ObserveEngine unloadSequence changes nothing for an observation that is not loaded") {
+    val s0: EngineState[IO] = unloadState(SequenceStatus.Idle)
+    runUnload(s0, seqObsId3).map: (res, sf) =>
+      assertEquals(sf.selected.gmosNorth.map(_.obsId), seqObsId1.some)
+      assertEquals(sf.selected.gmosSouth.map(_.obsId), seqObsId2.some)
+      res match
+        case EventResult.UserCommandResponse(_, _, Some(SeqEvent.NullSeqEvent)) => ()
+        case other                                                              => fail(s"Unexpected result: $other")
   }
 }

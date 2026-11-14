@@ -106,6 +106,10 @@ object Icons:
   private val faFileCross: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faEject")
+  private val faEject: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faForward")
   private val faForward: FAIcon = js.native
 
@@ -207,6 +211,7 @@ object Icons:
     faCircleSolid,
     faClock,
     faCrosshairs,
+    faEject,
     faExternalLink,
     faFileArrowUp,
     faFileCheck,
@@ -253,6 +258,7 @@ object Icons:
   inline def CircleSolid         = FontAwesomeIcon(faCircleSolid)
   inline def Clock               = FontAwesomeIcon(faClock)
   inline def Crosshairs          = FontAwesomeIcon(faCrosshairs)
+  inline def Eject               = FontAwesomeIcon(faEject)
   inline def ExternalLink        = FontAwesomeIcon(faExternalLink)
   inline def FileArrowUp         = FontAwesomeIcon(faFileArrowUp)
   inline def FileCheck           = FontAwesomeIcon(faFileCheck)

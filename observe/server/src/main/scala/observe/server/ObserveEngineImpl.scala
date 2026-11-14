@@ -739,6 +739,25 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                   EngineHandle.pure[F, SeqEvent]:
                     SeqEvent.NotifyUser(Notification.RestartRefused(reasons), clientId)
 
+  override def unloadSequence(obsId: Observation.Id, user: User, clientId: ClientId): F[Unit] =
+    L.info(
+      s"Sequence $obsId: Unload requested by ${user.displayName} on client ${clientId.value}"
+    ) *>
+      executeEngine.offer:
+        Event.modifyState[F]:
+          EngineHandle.getState.flatMap: st =>
+            st.sequencesByInstrument.values
+              .find(_.obsId === obsId)
+              .fold(EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)): seqData =>
+                if executeEngine.canUnload(seqData.seq) then
+                  EngineHandle.modifyState_[F](
+                    EngineState.instrumentLoaded[F](seqData.instrument).replace(none)
+                  ) >>
+                    EngineHandle.pure[F, SeqEvent](SeqEvent.UnloadSequence(obsId))
+                else
+                  EngineHandle.pure[F, SeqEvent]:
+                    SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, "unload"), clientId)
+
   override def clearLoadedSequences(user: User): F[Unit] =
     logDebugEvent("ObserveEngine: Updating loaded sequences") *>
       executeEngine.offer:
@@ -907,6 +926,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         Stream.emit[F, TargetedClientEvent](
           SingleActionEvent(oid, stepId, res, ClientEvent.SingleActionState.Started, none)
         ) ++ buildObserveStateStream(svs, odbProxy)
+      case NotifyUser(memo, clientId)                                            =>
+        Stream.emit(UserNotification(memo).forClient(clientId))
       case Busy(obsId, clientId)                                                 =>
         Stream.emit:
           ClientEvent
