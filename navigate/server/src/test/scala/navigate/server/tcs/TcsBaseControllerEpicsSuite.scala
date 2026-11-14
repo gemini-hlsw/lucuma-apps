@@ -102,6 +102,7 @@ import navigate.model.enums.ParkStatus.NotParked
 import navigate.model.enums.ParkStatus.Parked
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
@@ -1593,6 +1594,93 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.oi.get.map(_.z2m2)),
       guideWithOiState
     )
+  }
+
+  private def testFixedQl(
+    qlModeL:       Getter[TcsBaseController[IO], QlMode => IO[ApplyCommandResult]],
+    obsCmdL:       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]],
+    obStL:         Getter[State, WfsObserveChannelState],
+    z2m2L:         Getter[StateRefs[IO], IO[TestChannel.State[String]]],
+    guideCfgState: GuideConfigState,
+    mode:          QlMode
+  )(using Dispatcher[IO]): IO[Unit] = {
+    val testExpTime = TimeSpan.unsafeFromMicroseconds(12345)
+    val guideCfg    = TelescopeGuideConfig(
+      mountGuide = MountGuideOption.MountGuideOn,
+      m1Guide = M1GuideConfig.M1GuideOn(M1Source.OIWFS),
+      m2Guide = M2GuideOn(ComaOption.ComaOn,
+                          Set(TipTiltSource.PWFS1, TipTiltSource.PWFS2, TipTiltSource.OIWFS)
+      ),
+      dayTimeMode = Some(false),
+      probeGuide = none
+    )
+    val (out, opt)  = (mode === QlMode.On).fold(("QL", "DHS"), ("", "NONE"))
+
+    for {
+      (st, ctr) <- createController()
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(defaultGuideState))
+      _         <- qlModeL.get(ctr)(mode)
+      _         <- obsCmdL.get(ctr)(testExpTime)
+      r0        <- st.tcs.get
+      s0        <- z2m2L.get(st)
+      // The WFS is now running, and guiding starts with it using the same settings
+      _         <- st.tcs.update(_.focus(_.guideStatus).replace(guideCfgState))
+      _         <- ctr.enableGuide(guideCfg)
+      r1        <- st.tcs.get
+      s1        <- z2m2L.get(st)
+      _         <- ctr.disableGuide
+      r2        <- st.tcs.get
+      s2        <- z2m2L.get(st)
+    } yield {
+      assertEquals(obStL.get(r0).output.value, out.some)
+      assertEquals(obStL.get(r0).options.value, opt.some)
+      assertEquals(s0.value, "0".some)
+      assertEquals(obStL.get(r1).output.value, out.some)
+      assertEquals(obStL.get(r1).options.value, opt.some)
+      assertEquals(s1.value, "1".some)
+      assertEquals(obStL.get(r2).output.value, out.some)
+      assertEquals(obStL.get(r2).options.value, opt.some)
+      assertEquals(s2.value, "0".some)
+    }
+  }
+
+  List(QlMode.Off, QlMode.On).foreach { mode =>
+    epicsTest(s"Reconfigure PWFS1 signal processing when guiding starts with QL ${mode.tag}") {
+      testFixedQl(
+        Getter[TcsBaseController[IO], QlMode => IO[ApplyCommandResult]](_.pwfs1QlMode),
+        Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs1Observe),
+        Getter[State, WfsObserveChannelState](_.pwfs1.observe),
+        Getter[StateRefs[IO], IO[TestChannel.State[String]]](
+          _.tcs.get.map(_.pwfs1.closedLoop.zernikes2m2)
+        ),
+        guideWithP1State,
+        mode
+      )
+    }
+
+    epicsTest(s"Reconfigure PWFS2 signal processing when guiding starts with QL ${mode.tag}") {
+      testFixedQl(
+        Getter[TcsBaseController[IO], QlMode => IO[ApplyCommandResult]](_.pwfs2QlMode),
+        Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs2Observe),
+        Getter[State, WfsObserveChannelState](_.pwfs2.observe),
+        Getter[StateRefs[IO], IO[TestChannel.State[String]]](
+          _.tcs.get.map(_.pwfs2.closedLoop.zernikes2m2)
+        ),
+        guideWithP2State,
+        mode
+      )
+    }
+
+    epicsTest(s"Reconfigure OIWFS signal processing when guiding starts with QL ${mode.tag}") {
+      testFixedQl(
+        Getter[TcsBaseController[IO], QlMode => IO[ApplyCommandResult]](_.oiwfsQlMode),
+        Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.oiwfsObserve),
+        Getter[State, WfsObserveChannelState](_.oiwfs.observe),
+        Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.oi.get.map(_.z2m2)),
+        guideWithOiState,
+        mode
+      )
+    }
   }
 
   epicsTest("Set baffles") {
