@@ -119,4 +119,5 @@ trait OdbProgramApi[F[_]]:
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ProgramAttachments]]
 
-  def programDeltaSubscription(programId: Program.Id): Resource[F, fs2.Stream[F, ProgramInfo]]
+  // Edits to any program visible to the user, for the user-level program list.
+  def programDeltaSubscription: Resource[F, fs2.Stream[F, ProgramInfo]]

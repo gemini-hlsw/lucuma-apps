@@ -9,7 +9,6 @@ import explore.model.ConfigurationRequest
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ProgramAttachments
-import explore.model.ProgramInfo
 import explore.model.ProgramSummaries
 import explore.model.syntax.all.*
 import lucuma.core.model.Group
@@ -122,9 +121,6 @@ trait CacheModifierUpdaters {
     ProgramSummaries.attachments
       .replace(attachments.attachments.toSortedMap(_.id))
       .andThen(ProgramSummaries.summaryGeneration.replace(attachments.proposalSummaryGeneration))
-
-  protected def modifyPrograms(programInfo: ProgramInfo): ProgramSummaries => ProgramSummaries =
-    ProgramSummaries.programs.modify(_.updated(programInfo.id, programInfo))
 
   protected def modifyConfigurationRequests(
     cr: ConfigurationRequest

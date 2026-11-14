@@ -32,14 +32,14 @@ import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 
 class ProgramSummariesSuite extends ScalaCheckSuite:
-  val emptyPS = ProgramSummaries(none,
-                                 SortedMap.empty,
-                                 SortedMap.empty,
-                                 SortedMap.empty,
-                                 SortedMap.empty,
-                                 ProposalSummaryGeneration.Idle,
-                                 SortedMap.empty,
-                                 SortedMap.empty
+  val emptyPS = ProgramSummaries(
+    none,
+    SortedMap.empty,
+    SortedMap.empty,
+    SortedMap.empty,
+    SortedMap.empty,
+    ProposalSummaryGeneration.Idle,
+    SortedMap.empty
   )
 
   def obsCalcValues(obs: Observation)                           = Observation.calculatedValues.get(obs)

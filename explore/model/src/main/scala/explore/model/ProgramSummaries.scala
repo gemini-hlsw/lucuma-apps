@@ -45,7 +45,6 @@ case class ProgramSummaries(
   groups:                 GroupList,
   attachments:            AttachmentList,
   summaryGeneration:      ProposalSummaryGeneration,
-  programs:               ProgramInfoList,
   configurationRequests:  ConfigurationRequestList,
   calculatedValueOrphans: CalculatedValueOrphanMap = Map.empty
 ) derives Eq:
@@ -391,7 +390,6 @@ object ProgramSummaries:
   val attachments: Lens[ProgramSummaries, AttachmentList]                      = Focus[ProgramSummaries](_.attachments)
   val summaryGeneration: Lens[ProgramSummaries, ProposalSummaryGeneration]     =
     Focus[ProgramSummaries](_.summaryGeneration)
-  val programs: Lens[ProgramSummaries, ProgramInfoList]                        = Focus[ProgramSummaries](_.programs)
   val configurationRequests: Lens[ProgramSummaries, ConfigurationRequestList]  =
     Focus[ProgramSummaries](_.configurationRequests)
   val calculatedValueOrphans: Lens[ProgramSummaries, CalculatedValueOrphanMap] =
@@ -420,7 +418,6 @@ object ProgramSummaries:
     obsList:           List[Observation],
     groupList:         List[Group],
     attachments:       ProgramAttachments,
-    programs:          List[ProgramInfo],
     configRequests:    List[ConfigurationRequest]
   ): ProgramSummaries =
     ProgramSummaries(
@@ -430,6 +427,5 @@ object ProgramSummaries:
       groupList.toSortedMap(_.id),
       attachments.attachments.toSortedMap(_.id),
       attachments.proposalSummaryGeneration,
-      programs.toSortedMap(_.id),
       configRequests.toSortedMap(_.id)
     )
