@@ -171,6 +171,9 @@ trait ObserveEngine[F[_]] {
     clientId: ClientId
   ): F[Unit]
 
+  /** Empties the instrument slot of a loaded observation unless it is running. */
+  def unloadSequence(obsId: Observation.Id, user: User, clientId: ClientId): F[Unit]
+
   def clearLoadedSequences(user: User): F[Unit]
 
   def resetConditions: F[Unit]

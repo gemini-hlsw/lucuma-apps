@@ -30,13 +30,12 @@ object SequenceTab
         ctx         <- useContext(AppContext.ctx)
         sequenceApi <- useContext(SequenceApi.ctx)
         obsListReady = props.rootModel.data.get.obsList.void
-        _           <- // Once obs list is loaded, if the current instrument is not loaded, go to obs list.
-          useEffectWithDeps(obsListReady.toOption):
-            _.foldMap: _ =>
-              ctx
-                .replacePage(AppTab.ObsList)
-                .unless_ :
-                  props.rootModel.data.get.readyObsByInstrument.contains(props.instrument)
+        isLoaded     = props.rootModel.data.get.readyObsByInstrument.contains(props.instrument)
+        // Once obs list is loaded, if the current instrument is not loaded (or gets unloaded), go to obs list.
+        _           <- useEffectWithDeps((obsListReady.toOption, isLoaded)):
+                         case (obsListReadyOpt, _) =>
+                           obsListReadyOpt.foldMap: _ =>
+                             ctx.replacePage(AppTab.ObsList).unless_(isLoaded)
       yield
         val clientConfigPot: Pot[ClientConfig] = props.rootModel.clientConfig
         val rootModelData: RootModelData       = props.rootModel.data.get

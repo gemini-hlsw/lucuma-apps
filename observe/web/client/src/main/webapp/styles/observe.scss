@@ -837,6 +837,16 @@ body {
     }
   }
 
+  &.observe-unload-button {
+    @include control-button;
+
+    background-color: var(--red-600);
+
+    &:enabled:hover {
+      background-color: var(--red-700);
+    }
+  }
+
   &.observe-cancel-sequence-hold-button {
     @include control-button;
 

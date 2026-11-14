@@ -42,6 +42,7 @@ case class SeqControlButtons(
   val isCancelSequenceHoldInFlight: Boolean =
     requests.cancelSequenceHold === OperationRequest.InFlight
   val isRunning: Boolean                    = sequenceStatus.isRunning
+  val canUnload: Boolean                    = sequenceStatus.canUnload
   val isWaitingUserPrompt: Boolean          = sequenceStatus.isWaitingUserPrompt
   val isRefreshing: Boolean                 = refreshing.exists(_.get)
   // A completed sequence can be started again once it is given new steps.
@@ -124,6 +125,14 @@ object SeqControlButtons
             onClick = sequenceApi.resetAcquisition(props.obsId).runAsync,
             disabled =
               !props.isIdleOrError || props.isRefreshing || props.isResetAcquisitionInFlight
-          ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science)
+          ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science),
+          Button(
+            clazz = ObserveStyles.UnloadButton |+| ObserveStyles.ObsSummaryButton,
+            icon = Icons.Eject.withSize(IconSize.LG),
+            tooltip = "Unload observation",
+            tooltipOptions = tooltipOptions,
+            onClick = sequenceApi.unloadObservation(props.obsId).runAsync,
+            disabled = !props.canUnload || props.isRefreshing
+          )
         )
     )

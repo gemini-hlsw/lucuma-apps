@@ -234,6 +234,10 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
       ssoClient.require(req): user =>
         oe.loadSequence(i, obsId, observer, user, clientId) *> NoContent()
 
+    case req @ POST -> Root / "unload" / ObsIdVar(obsId) / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.unloadSequence(obsId, user, clientId) *> NoContent()
+
     // case POST -> Root / "unload" / "all" as user         =>
     //   oe.clearLoadedSequences(inputQueue, user) *> Ok(s"Queue cleared")
 

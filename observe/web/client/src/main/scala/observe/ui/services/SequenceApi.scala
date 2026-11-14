@@ -22,6 +22,9 @@ trait SequenceApi[F[_]: MonadThrow]:
   def loadObservation(@unused obsId: Observation.Id, @unused instrument: Instrument): F[Unit] =
     NotAuthorized
 
+  /** Unload an observation from the server */
+  def unloadObservation(@unused obsId: Observation.Id): F[Unit] = NotAuthorized
+
   /** Set or unset a single breakpoint */
   def setBreakpoint(
     @unused obsId:  Observation.Id,
