@@ -20,7 +20,7 @@ import lucuma.core.model.sequence.SequenceDigest
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
-import lucuma.schemas.decoders.given
+import lucuma.odb.json.calculatedValue.given
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional

@@ -66,6 +66,23 @@ class OdbEventSenderSuite extends CatsEffectSuite:
             // Serially this would be 11 seconds.
             assertEquals(now, 1.second)
 
+  test("awaitIdle waits for the events and leaves their failure for flush"):
+    TestControl.executeEmbed:
+      sender.use: s =>
+        for
+          _      <- s.submit(
+                      obs1,
+                      "failing",
+                      IO.sleep(1.second) >> IO.raiseError(new RuntimeException("The ODB is down"))
+                    )
+          _      <- s.awaitIdle(obs1)
+          now    <- IO.monotonic
+          _      <- s.awaitIdle(obs1)
+          result <- s.flush(obs1).attempt
+        yield
+          assertEquals(now, 1.second)
+          assertEquals(result.leftMap(_.getMessage), "The ODB is down".asLeft)
+
   test("flush awaits the slowest event in flight"):
     TestControl.executeEmbed:
       sender.use: s =>

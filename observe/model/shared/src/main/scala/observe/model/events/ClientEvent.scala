@@ -108,3 +108,7 @@ object ClientEvent:
 
   case class SubsystemControlModesSaved(config: SubsystemControlModes) extends AllClientEvent
       derives Eq
+
+  /** A sequence was held before a step because other sequences are using its subsystems. */
+  case class SubsystemClash(obsId: Observation.Id, stepId: Step.Id, subsystems: List[Subsystem])
+      extends AllClientEvent derives Eq

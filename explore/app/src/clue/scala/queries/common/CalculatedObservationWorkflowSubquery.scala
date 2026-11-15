@@ -9,7 +9,7 @@ import clue.annotation.GraphQL
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.util.CalculatedValue
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.decoders.given
+import lucuma.odb.json.calculatedValue.given
 
 @GraphQL
 @GraphQLType("CalculatedObservationWorkflow")

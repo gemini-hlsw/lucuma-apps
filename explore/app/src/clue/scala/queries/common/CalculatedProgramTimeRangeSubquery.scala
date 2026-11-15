@@ -9,7 +9,7 @@ import clue.annotation.GraphQL
 import explore.model.ProgramTimeRange
 import lucuma.core.util.CalculatedValue
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.decoders.given
+import lucuma.odb.json.calculatedValue.given
 
 @GraphQL
 @GraphQLType("CalculatedCategorizedTimeRange")

@@ -57,6 +57,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.data.AltairConfiguration
+import lucuma.odb.json.calculatedValue.given
 import lucuma.odb.json.configurationrequest.query.given
 import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.time.decoder.given

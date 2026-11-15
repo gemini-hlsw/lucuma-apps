@@ -59,6 +59,9 @@ trait OdbEventSender[F[_]] private[odb] ():
    */
   def flush(obsId: Observation.Id): F[Unit]
 
+  /** As `flush`, but leaves a failure in place for the next `flush` to raise. */
+  def awaitIdle(obsId: Observation.Id): F[Unit]
+
 object OdbEventSender:
 
   /**
@@ -148,9 +151,11 @@ object OdbEventSender:
               )
         .flatMap(_.traverse_(_.complete(()).void))
 
+    override def awaitIdle(obsId: Observation.Id): F[Unit] =
+      obsStates.get.flatMap(_.get(obsId).filter(_.outstanding > 0).fold(F.unit)(_.idle.get))
+
     override def flush(obsId: Observation.Id): F[Unit] =
-      obsStates.get
-        .flatMap(_.get(obsId).filter(_.outstanding > 0).fold(F.unit)(_.idle.get)) >>
+      awaitIdle(obsId) >>
         obsStates
           .modify: states =>
             (

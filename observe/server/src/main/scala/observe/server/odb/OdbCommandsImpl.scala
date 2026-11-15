@@ -70,6 +70,9 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   private def addIdempotencyKey(idempotencyKey: IdempotencyKey): Endo[Request[F]] = req =>
     req.putHeaders(`Idempotency-Key`(idempotencyKey.toString))
 
+  override def awaitEvents(obsId: Observation.Id): F[Unit] =
+    stepSpans.wait(StepSpans.Flush, obsId)(eventSender.awaitIdle(obsId))
+
   override def flushEvents(obsId: Observation.Id): F[Unit] =
     L.debug(s"Awaiting pending ODB events for obsId: $obsId") >>
       stepSpans.wait(StepSpans.Flush, obsId)(eventSender.flush(obsId)) >>

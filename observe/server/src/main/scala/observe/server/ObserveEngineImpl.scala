@@ -71,26 +71,51 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   @unused conditionsRef: Ref[F, CurrentConditions]
 ) extends ObserveEngine[F] {
 
-  /**
-   * Check if the subsystems to run a sequence are available
-   * @return
-   *   true if subsystems are available
-   */
-  private def checkSubsystems(obsId: Observation.Id)(st: EngineState[F]): Boolean = {
-    // Subsystems used by running sequences
+  /** The subsystems `obsId` needs that running sequences, manual configs or queues hold. */
+  private def subsystemConflict(
+    obsId:  Observation.Id,
+    needed: Set[Subsystem]
+  )(st: EngineState[F]): Set[Subsystem] = {
+    // Subsystems held by running sequences
     val used: Set[Subsystem] = ObserveEngine.subsystemsInUse(st, excludeObs = obsId.some)
 
     // Subsystems that will be used by sequences in running queues
     val reservedByQueues: Set[Subsystem] = ObserveEngine.subsystemsReserved(st)
 
-    st.sequences
-      .get(obsId)
-      .exists: seqData =>
-        seqData.subsystems.intersect(used).isEmpty && (
-          st.queues.values.filter(_.status.running).exists(_.queue.contains(obsId)) ||
-            seqData.subsystems.intersect(reservedByQueues).isEmpty
-        )
+    val inRunningQueue: Boolean =
+      st.queues.values.filter(_.status.running).exists(_.queue.contains(obsId))
+
+    needed.intersect(if inRunningQueue then used else used ++ reservedByQueues)
   }
+
+  private def busy(
+    st:       EngineState[F],
+    obsId:    Observation.Id,
+    clientId: ClientId,
+    conflict: Set[Subsystem]
+  ): SeqEvent =
+    Busy(obsId, clientId, conflict.toList, ObserveEngine.heldByOther(st, obsId, conflict))
+
+  /** Tells the client the claim falls back to TCS and GCAL, whether or not the start goes on. */
+  private def notifyFallback(
+    obsId:      Observation.Id,
+    clientId:   ClientId,
+    digestRead: SequenceSubsystems.DigestRead
+  ): F[Unit] =
+    digestRead.fallback.traverse_ : reason =>
+      executeEngine.offer:
+        Event.modifyState[F]:
+          EngineHandle.pure[F, SeqEvent](
+            NotifyUser(Notification.DigestUnavailable(obsId, reason), clientId)
+          )
+
+  private def storeSequenceSubsystems(
+    obsId: Observation.Id,
+    claim: Set[Subsystem]
+  ): EngineHandle[F, Unit] =
+    EngineHandle.modifyState_[F](
+      EngineState.atSequence[F](obsId).modify(SequenceData.sequenceSubsystems[F].replace(claim))
+    )
 
   /**
    * Check if the target on the TCS matches the Observe target.
@@ -268,7 +293,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     obsId:          Observation.Id,
     clientId:       ClientId,
     @unused stepId: Option[Step.Id],
-    runOverride:    RunOverride
+    runOverride:    RunOverride,
+    digest:         Option[OdbProxy.Digest]
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st =>
       EngineState
@@ -307,12 +333,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             resultEvent    <-
               EngineHandle.getState
                 .flatMap: newState =>
-                  (checkSubsystems(obsId)(newState), stpg, checks, runOverride) match
+                  val needed: Set[Subsystem]   =
+                    SequenceSubsystems.fromDigest(seq.instrument, digest) ++
+                      newState.sequences.get(obsId).foldMap(_.stepSubsystems)
+                  val conflict: Set[Subsystem] = subsystemConflict(obsId, needed)(newState)
+                  (conflict.isEmpty, stpg, checks, runOverride) match
                     // Resource check fails
                     case (false, _, _, _)                           =>
                       EngineHandle
                         .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
-                        .as[SeqEvent](Busy(obsId, clientId))
+                        .as[SeqEvent](busy(newState, obsId, clientId, conflict))
                     // Target check fails and no override
                     case (_, Some(_), x :: xs, RunOverride.Default) =>
                       EngineHandle
@@ -329,7 +359,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                         )
                     // Allowed to run
                     case _                                          =>
-                      startAfterCheck(startAction, obsId)
+                      storeSequenceSubsystems(obsId, needed) >> startAfterCheck(startAction, obsId)
           } yield resultEvent).handleErrorWith(e =>
             EngineHandle
               .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage))
@@ -356,12 +386,24 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     runOverride: RunOverride
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Start requested by ${user.displayName}") *>
-      executeEngine.offer:
-        Event.modifyState[F](
-          setObserver(obsId, observer) *>
-            clearObsCmd(obsId) *>
-            startChecks(executeEngine.startLoadedStep(obsId), obsId, clientId, none, runOverride)
-        )
+      // Read before the step, and outside the handle so the wait does not stall other sequences.
+      SequenceSubsystems
+        .readDigest(services.odb, obsId)
+        .flatMap: digestRead =>
+          notifyFallback(obsId, clientId, digestRead) *>
+            executeEngine.offer:
+              Event.modifyState[F](
+                setObserver(obsId, observer) *>
+                  clearObsCmd(obsId) *>
+                  startChecks(
+                    executeEngine.startLoadedStep(obsId),
+                    obsId,
+                    clientId,
+                    none,
+                    runOverride,
+                    digestRead.digest
+                  )
+              )
 
   override def proceedAfterPrompt(
     id:          Observation.Id,
@@ -929,10 +971,14 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         ) ++ buildObserveStateStream(svs, odbProxy)
       case NotifyUser(memo, clientId)                                            =>
         Stream.emit(UserNotification(memo).forClient(clientId))
-      case Busy(obsId, clientId)                                                 =>
+      case SeqEvent.SubsystemClash(obsId, stepId, subsystems)                    =>
+        Stream.emit[F, TargetedClientEvent](
+          ClientEvent.SubsystemClash(obsId, stepId, subsystems.toList)
+        ) ++ buildObserveStateStream(svs, odbProxy)
+      case Busy(obsId, clientId, subsystems, heldBy)                             =>
         Stream.emit:
           ClientEvent
-            .UserNotification(Notification.SubsystemConflict(obsId))
+            .UserNotification(Notification.SubsystemConflict(obsId, subsystems, heldBy))
             .forClient(clientId)
       case LoadSequence(obsId, clientId)                                         =>
         buildObserveStateStream(svs, odbProxy) ++

@@ -21,6 +21,7 @@ import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
+import lucuma.core.util.Display
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.MessageItem
 import lucuma.react.primereact.ToastRef
@@ -35,12 +36,14 @@ import observe.model.LogMessage
 import observe.model.Notification
 import observe.model.ObservationProgress
 import observe.model.ObserveStep
+import observe.model.Subsystem
 import observe.model.enums.ActionStatus
 import observe.model.enums.ObserveLogLevel
 import observe.model.events.ClientEvent
 import observe.model.events.ClientEvent.LogEvent
 import observe.model.events.ClientEvent.SingleActionState
 import observe.model.events.ClientEvent.UserNotification
+import observe.ui.display.given
 import observe.ui.model.IsAudioActivated
 import observe.ui.model.LoadedObservation
 import observe.ui.model.LoadedObservations
@@ -53,6 +56,9 @@ import observe.ui.model.enums.SyncStatus
 import observe.ui.utils.Audio
 
 trait ServerEventHandler:
+  private def subsystemNames(subsystems: List[Subsystem]): String =
+    subsystems.map(Display[Subsystem].shortName).mkString(", ")
+
   private def logMessage(
     rootModelDataMod: (RootModelData => RootModelData) => IO[Unit],
     logLevel:         ObserveLogLevel,
@@ -157,13 +163,17 @@ trait ServerEventHandler:
             )(loadedObservation)
         .getOrElse(loadedObservation)
 
-  private def showToast(toast: ToastRef, msgs: List[String]): IO[Unit] =
+  private def showToast(
+    toast:    ToastRef,
+    msgs:     List[String],
+    severity: Message.Severity = Message.Severity.Error
+  ): IO[Unit] =
     val node: VdomNode = <.span(msgs.mkTagMod(<.br))
     toast
       .show:
         MessageItem(
           content = node,
-          severity = Message.Severity.Error,
+          severity = severity,
           sticky = true,
           clazz = LucumaStyles.Toast
         )
@@ -284,6 +294,9 @@ trait ServerEventHandler:
         playAudio(Audio.SequenceComplete)
       case ClientEvent.SequenceFailed(_, errorMsg)                                        =>
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
+      // The message arrives as a server error log, which shows the toast and the log line.
+      case ClientEvent.SubsystemClash(_, _, _)                                            =>
+        playAudio(Audio.SequenceError)
       case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))            =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
       case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId) =>
@@ -313,11 +326,22 @@ trait ServerEventHandler:
 
         val msgs: IO[List[String]] =
           notification match
-            case Notification.SubsystemConflict(obsId)                =>
-              List(s"Error in observation $obsId: Subsystem already in use").pure[IO]
-            case Notification.InstrumentInUse(obsId, ins)             =>
+            case Notification.SubsystemConflict(obsId, subsystems, heldBy) =>
+              val holders: String =
+                if heldBy.isEmpty then "use"
+                else s"use by running observation ${heldBy.mkString(", ")}"
+              List(
+                s"Observation $obsId cannot start: ${subsystemNames(subsystems)} in $holders"
+              ).pure[IO]
+            case Notification.DigestUnavailable(obsId, reason)             =>
+              List(
+                s"Observation $obsId will keep TCS and GCAL to itself while it runs, because " +
+                  s"$reason.",
+                "To try again, hold the sequence and start it again."
+              ).pure[IO]
+            case Notification.InstrumentInUse(obsId, ins)                  =>
               List(s"Error in observation $obsId: Instrument $ins already in use").pure[IO]
-            case Notification.LoadingFailed(obsId, msgs)              =>
+            case Notification.LoadingFailed(obsId, msgs)                   =>
               rootModelDataMod:
                 RootModelData.loadedObservations
                   .andThen(LoadedObservations.Value)
@@ -325,22 +349,33 @@ trait ServerEventHandler:
                   .replace:
                     Pot.error(new RuntimeException(msgs.mkString("; ")))
               .as(msgs)
-            case Notification.SequenceNotIdle(obsId, action)          =>
+            case Notification.SequenceNotIdle(obsId, action)               =>
               clearAcquisitionRequests(obsId).as(List(s"Sequence $obsId must be idle to $action"))
-            case Notification.ActionFailed(obsId, action, msg)        =>
+            case Notification.ActionFailed(obsId, action, msg)             =>
               clearAcquisitionRequests(obsId)
                 .as(List(s"Could not $action for observation $obsId: $msg"))
-            case Notification.RestartRefused(reasons)                 =>
+            case Notification.RestartRefused(reasons)                      =>
               ("Restart refused" :: reasons.toList).pure[IO]
-            case Notification.SubsystemBusy(obsId, stepId, subsystem) =>
+            case Notification.SubsystemBusy(obsId, stepId, subsystem)      =>
               List(
                 s"Error in observation $obsId, step $stepId: Subsystem $subsystem already in use"
               )
                 .pure[IO]
 
+        val isWarning: Boolean =
+          notification match
+            case Notification.DigestUnavailable(_, _) => true
+            case _                                    => false
+
         msgs.flatMap: ms =>
-          showToast(toast, ms) >>
+          showToast(
+            toast,
+            ms,
+            if isWarning then Message.Severity.Warning else Message.Severity.Error
+          ) >>
+            // A warning is already in the log panel, from the server log.
             logMessage(rootModelDataMod, ObserveLogLevel.Error, ms.mkString("; "))
+              .unlessA(isWarning)
       case LogEvent(msg)                                               =>
         showToast(toast, List(msg.msg)).whenA(msg.level === ObserveLogLevel.Error) >>
           logMessage(rootModelDataMod, msg.level, msg.msg)

@@ -15,8 +15,8 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
+import lucuma.odb.json.calculatedValue.given
 import lucuma.odb.json.time.decoder.given
-import lucuma.schemas.decoders.given
 import lucuma.ui.syntax.calibration.isGeneratedDaytime
 import monocle.Focus
 import monocle.Lens

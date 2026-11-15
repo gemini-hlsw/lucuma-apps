@@ -20,6 +20,9 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
   override def read(oid: Observation.Id): F[OdbObservationData] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.read: Not implemented."))
 
+  override def readDigest(oid: Observation.Id): F[OdbProxy.Digest] =
+    F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.readDigest: Not implemented."))
+
   override def readExecutionConfig(
     oid:         Observation.Id,
     instrument:  Instrument,
@@ -70,4 +73,6 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
   override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure
 
   override def flushEvents(obsId: Observation.Id): F[Unit] = F.unit
+
+  override def awaitEvents(obsId: Observation.Id): F[Unit] = F.unit
 }

@@ -8,7 +8,7 @@ import cats.derived.*
 import io.circe.Decoder
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
-import lucuma.schemas.decoders.given
+import lucuma.odb.json.calculatedValue.given
 
 case class ProgramTimes(
   timeEstimateRange:  CalculatedValue[Option[ProgramTimeRange]],

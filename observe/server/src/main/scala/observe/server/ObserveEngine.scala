@@ -305,22 +305,74 @@ object ObserveEngine {
       )
       .toSet
 
+  /** What a running sequence holds, also while it waits at the user prompt. */
+  private def heldSubsystems[F[_]](s: SequenceData[F]): Set[Subsystem] =
+    s.sequenceSubsystems ++ s.stepSubsystems
+
   /**
-   * Subsystems in use = Subsystems used by running sequences, plus the subsystems that are being
-   * configured because a user commanded a manual configuration apply.
+   * Subsystems in use = Subsystems held by running sequences (claim plus loaded step), plus the
+   * subsystems that are being configured because a user commanded a manual configuration apply.
    */
   def subsystemsInUse[F[_]](
     st:         EngineState[F],
     excludeObs: Option[Observation.Id] = none
   ): Set[Subsystem] =
     observations(st)
-      .mapFilter(s =>
-        s.subsystems.some
-          .filterNot(_ => excludeObs.contains_(s.obsId))
-          .filter(_ => s.seq.status.isRunning)
-      )
-      .foldK ++
+      .filter(s => !excludeObs.contains_(s.obsId) && s.seq.status.isRunning)
+      .foldMap(heldSubsystems(_)) ++
       subsystemsBeingConfigured(st)
+
+  /** The running observations, other than `obsId`, holding any of `subsystems`. */
+  def heldByOther[F[_]](
+    st:         EngineState[F],
+    obsId:      Observation.Id,
+    subsystems: Set[Subsystem]
+  ): List[Observation.Id] =
+    observations(st)
+      .filter: s =>
+        s.obsId =!= obsId && s.seq.status.isRunning &&
+          heldSubsystems(s).intersect(subsystems).nonEmpty
+      .map(_.obsId)
+
+  /** Subsystems the loaded step of `obsId` needs that other running sequences hold. */
+  def stepClash[F[_]](st: EngineState[F], obsId: Observation.Id): Set[Subsystem] =
+    st.sequences
+      .get(obsId)
+      .foldMap(_.stepSubsystems)
+      .intersect(subsystemsInUse(st, excludeObs = obsId.some))
+
+  /**
+   * Runs `start` unless the loaded step of `obsId` clashes with what others hold. On a clash the
+   * sequence is held with its step still loaded and the clash is reported; otherwise the step's
+   * subsystems are added to the claim.
+   */
+  def unlessStepClash[F[_]: {MonadCancelThrow, Logger}](obsId: Observation.Id)(
+    start: EngineHandle[F, SeqEvent]
+  ): EngineHandle[F, SeqEvent] =
+    EngineHandle
+      .getState[F]
+      .flatMap: st =>
+        val clash: Set[Subsystem] = stepClash(st, obsId)
+        st.sequences.get(obsId).flatMap(_.loadedStep) match
+          case None                        => start
+          case Some(step) if clash.isEmpty =>
+            EngineHandle.modifyState_[F](
+              EngineState
+                .atSequence[F](obsId)
+                .modify(SequenceData.sequenceSubsystems[F].modify(_ ++ step.subsystems))
+            ) >> start
+          case Some(step)                  =>
+            // An error log reaches every client as a toast and a log line.
+            EngineHandle.liftF(
+              Logger[F].error(
+                s"Observation $obsId was held before step ${step.id}: " +
+                  s"${clash.toList.map(Enumerated[Subsystem].tag).mkString(", ")} in use by another " +
+                  "sequence. Start it again when they are free."
+              )
+            ) >>
+              modifySequenceStatus(obsId)(_ => SequenceStatus.Idle) >>
+              EngineHandle.fromSingleEvent(Event.sequenceHeld(obsId)) >>
+              EngineHandle.pure(SeqEvent.SubsystemClash(obsId, step.id, clash))
 
   /**
    * Subsystems reserved by running queues.
@@ -509,15 +561,16 @@ object ObserveEngine {
                 .fromSingleEvent(Event.sequenceComplete(obsId))
                 .as(SeqEvent.SequenceCompleted(obsId))
         case Some(newStepGen) =>
-          executeEngine
-            .startLoadedStep(obsId)
-            .as:
-              SeqEvent.NewStepLoaded(
-                obsId,
-                newStepGen.sequenceType,
-                newStepGen.atomId,
-                newStepGen.id
-              )
+          unlessStepClash(obsId):
+            executeEngine
+              .startLoadedStep(obsId)
+              .as:
+                SeqEvent.NewStepLoaded(
+                  obsId,
+                  newStepGen.sequenceType,
+                  newStepGen.atomId,
+                  newStepGen.id
+                )
 
   def tryNewStep[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
@@ -535,16 +588,17 @@ object ObserveEngine {
                 // The observer explicitly requested this step at the "proceed to science?"
                 // prompt, so a breakpoint on it must not stop the sequence, the same as a Run
                 // click would.
-                modifySequenceStatus(obsId)(_.withStarting(true)) *>
-                  executeEngine
-                    .startLoadedStep(obsId)
-                    .as:
-                      SeqEvent.NewStepLoaded(
-                        obsId,
-                        stepGen.sequenceType,
-                        stepGen.atomId,
-                        stepGen.id
-                      )
+                unlessStepClash(obsId):
+                  modifySequenceStatus(obsId)(_.withStarting(true)) *>
+                    executeEngine
+                      .startLoadedStep(obsId)
+                      .as:
+                        SeqEvent.NewStepLoaded(
+                          obsId,
+                          stepGen.sequenceType,
+                          stepGen.atomId,
+                          stepGen.id
+                        )
               .getOrElse:
                 EngineHandle
                   .fromSingleEvent(Event.sequenceComplete(obsId))

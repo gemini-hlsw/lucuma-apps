@@ -3,7 +3,9 @@
 
 package observe.server.odb
 
+import cats.Eq
 import cats.data.NonEmptyList
+import cats.derived.*
 import cats.effect.Async
 import cats.effect.Ref
 import cats.syntax.all.*
@@ -20,15 +22,20 @@ import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
+import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
+import lucuma.core.model.sequence.SequenceDigest
 import lucuma.core.model.sequence.Step
+import lucuma.core.model.sequence.StepDigests
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
+import lucuma.core.util.CalculatedValue
+import lucuma.core.util.CalculationState
 import lucuma.core.util.Timestamp
 import monocle.Lens
 import monocle.syntax.all.focus
@@ -43,6 +50,9 @@ import java.time.Instant
 
 trait TestOdbProxy[F[_]] extends OdbProxy[F]:
   def outCapture: F[List[TestOdbProxy.OdbEvent]]
+
+  /** Every digest and step read, in call order. */
+  def readLog: F[List[TestOdbProxy.OdbRead]]
 
 object TestOdbProxy {
 
@@ -67,6 +77,30 @@ object TestOdbProxy {
     def resetAcquisition(original: Option[Atom[?]]): SequenceState =
       copy(acquisition = original)
 
+    /** What the ODB digest reports for the steps still to execute. */
+    def digest: ExecutionDigest =
+      ExecutionDigest.Zero.copy(
+        acquisition = sequenceDigestOf(acquisition.toList),
+        science = sequenceDigestOf(science)
+      )
+
+  /** How the test ODB reports the execution digest of an observation. */
+  enum DigestMode:
+    case UpToDate, Stale, Missing, Failing
+    case UpToDateAfter(reads: Int)
+    case FailingFirst(reads: Int)
+    case Overridden(digest: ExecutionDigest)
+
+  /** An ODB read made by the engine. */
+  enum OdbRead derives Eq:
+    case Digest(obsId: Observation.Id)
+    case Step(obsId: Observation.Id)
+
+  private def sequenceDigestOf(atoms: List[Atom[?]]): SequenceDigest =
+    SequenceDigest.Zero.copy(steps =
+      atoms.flatMap(_.steps.toList).foldLeft(StepDigests.Zero)((digests, step) => digests.add(step))
+    )
+
   case class InstrumentState(
     obsId:     Observation.Id,
     staticCfg: Any,
@@ -88,8 +122,10 @@ object TestOdbProxy {
         .getOrElse(sequences)
 
   case class State(
-    sequences: Map[Instrument, InstrumentState],
-    out:       List[OdbEvent]
+    sequences:   Map[Instrument, InstrumentState],
+    out:         List[OdbEvent],
+    reads:       List[OdbRead] = Nil,
+    digestReads: Map[Observation.Id, Int] = Map.empty
   ):
     def updateObs(obsId: Observation.Id)(f: SequenceState => SequenceState): State =
       copy(sequences = sequences.updateObs(obsId)(f))
@@ -194,7 +230,8 @@ object TestOdbProxy {
     sequences:               Map[Instrument, InstrumentState],
     obsData:                 Option[ODBObservation] = None,
     updateStartObserve:      State => State = identity,
-    resetAcquisitionFailure: Option[Throwable] = None // When set, `resetAcquisition` fails with it
+    resetAcquisitionFailure: Option[Throwable] = None, // When set, `resetAcquisition` fails with it
+    digestModes:             Map[Observation.Id, DigestMode] = Map.empty
   ): F[TestOdbProxy[F]] =
     Ref
       .of[F, State](State(sequences, List.empty))
@@ -211,8 +248,48 @@ object TestOdbProxy {
               >> addEvent(ResetAcquisition(obsId))
             )(Async[F].raiseError)
 
+          override def readDigest(obsId: Observation.Id): F[OdbProxy.Digest] =
+            rf.modify: s =>
+              val reads: Int = s.digestReads.getOrElse(obsId, 0) + 1
+              (
+                s.copy(
+                  reads = s.reads :+ OdbRead.Digest(obsId),
+                  digestReads = s.digestReads.updated(obsId, reads)
+                ),
+                (s, reads)
+              )
+            .flatMap: (s, reads) =>
+                val st: SequenceState               =
+                  s.sequences
+                    .sequenceForObs(obsId)
+                    .map(_._2)
+                    .getOrElse(sys.error(s"Observation $obsId not found in test ODB state"))
+                val mode: DigestMode                = digestModes.getOrElse(obsId, DigestMode.UpToDate)
+                val upToDate: Boolean               =
+                  mode match
+                    case DigestMode.UpToDate             => true
+                    case DigestMode.Overridden(_)        => true
+                    case DigestMode.UpToDateAfter(after) => reads > after
+                    case DigestMode.FailingFirst(_)      => true
+                    case _                               => false
+                val digest: Option[ExecutionDigest] =
+                  mode match
+                    case DigestMode.Missing       => none
+                    case DigestMode.Overridden(d) => d.some
+                    case _                        => st.digest.some
+                mode match
+                  case DigestMode.FailingFirst(first) if reads <= first =>
+                    Async[F].raiseError(new RuntimeException("The ODB is down"))
+                  case DigestMode.Failing                               =>
+                    Async[F].raiseError(new RuntimeException("The ODB is down"))
+                  case _                                                =>
+                    CalculatedValue(
+                      if upToDate then CalculationState.Ready else CalculationState.Pending,
+                      digest
+                    ).pure[F]
+
           override def read(obsId: Observation.Id): F[OdbObservationData] =
-            rf.get.map { s =>
+            rf.updateAndGet(s => s.copy(reads = s.reads :+ OdbRead.Step(obsId))).map { s =>
               val (i: Instrument, st: SequenceState, staticCfg) =
                 s.sequences
                   .sequenceForObs(obsId)
@@ -345,9 +422,13 @@ object TestOdbProxy {
 
           override def outCapture: F[List[OdbEvent]] = rf.get.map(_.out)
 
+          override def readLog: F[List[OdbRead]] = rf.get.map(_.reads)
+
           override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure[F]
 
           override def flushEvents(obsId: Observation.Id): F[Unit] = Async[F].unit
+
+          override def awaitEvents(obsId: Observation.Id): F[Unit] = Async[F].unit
         }
       )
 

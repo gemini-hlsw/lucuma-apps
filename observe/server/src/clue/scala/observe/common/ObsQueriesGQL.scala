@@ -153,6 +153,19 @@ object ObsQueriesGql:
       }
       """
 
+  // The observing mode and execution digest of an observation, without reading its steps.
+  @GraphQL
+  trait ObsDigestQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          execution {
+            digest $CalculatedExecutionDigestSubquery
+          }
+        }
+      }
+      """
+
   @GraphQL
   trait ResetAcquisitionMutation extends GraphQLOperation[ObservationDB]:
     val document = gql"""

@@ -12,7 +12,9 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.InstrumentExecutionConfig
+import lucuma.core.util.CalculatedValue
 import lucuma.schemas.ObservationDB
 import observe.common.ObsQueriesGql.*
 import observe.model.dhs.*
@@ -21,6 +23,9 @@ import observe.server.ObserveFailure
 trait OdbProxy[F[_]] private[odb] () extends OdbCommands[F] {
   def read(oid:               Observation.Id): F[OdbObservationData]
   def resetAcquisition(obsId: Observation.Id): F[Unit]
+
+  /** Reads the execution digest of an observation, without its steps. */
+  def readDigest(oid: Observation.Id): F[OdbProxy.Digest]
 
   /**
    * Reads `instrument`'s execution config with up to `futureLimit` atoms beyond the next one in
@@ -37,6 +42,9 @@ object OdbProxy {
 
   /** Enough to run the next step: the engine only needs `nextAtom` after a step completes. */
   val NextAtomOnly: NonNegInt = NonNegInt.unsafeFrom(0)
+
+  /** An execution digest and whether the ODB has finished calculating it. */
+  type Digest = CalculatedValue[Option[ExecutionDigest]]
 
   /** The whole sequence, for loading it or jumping to a step the user picked. */
   val FullFuture: NonNegInt = NonNegInt.unsafeFrom(100)
@@ -69,6 +77,18 @@ object OdbProxy {
                       F.raiseError[OdbObservationData]:
                         ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
                     )((obs, ec) => OdbObservationData(obs, ec).pure[F])
+
+      override def readDigest(oid: Observation.Id): F[Digest] =
+        // Waits for the events so the digest is current; the step read reports their failures.
+        evCmds.awaitEvents(oid) >>
+          ObsDigestQuery[F]
+            .query(oid)
+            .raiseGraphQLErrors
+            .flatMap:
+              _.observation
+                .flatMap(_.execution.digest)
+                .liftTo[F]:
+                  ObserveFailure.Unexpected(s"OdbProxy: No execution digest for observation $oid")
 
       override def readExecutionConfig(
         oid:         Observation.Id,

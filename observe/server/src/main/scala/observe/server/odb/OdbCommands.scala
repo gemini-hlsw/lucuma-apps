@@ -45,4 +45,7 @@ trait OdbCommands[F[_]] private[odb] () {
    * since events are sent in the background.
    */
   def flushEvents(obsId: Observation.Id): F[Unit]
+
+  /** As `flushEvents`, but leaves a failure in place for the next `flushEvents` to raise. */
+  def awaitEvents(obsId: Observation.Id): F[Unit]
 }

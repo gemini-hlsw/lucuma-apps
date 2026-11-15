@@ -20,8 +20,8 @@ import lucuma.core.model.PartnerLink
 import lucuma.core.model.ProgramReference
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.DateInterval
+import lucuma.odb.json.calculatedValue.given
 import lucuma.odb.json.time.decoder.given
-import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional

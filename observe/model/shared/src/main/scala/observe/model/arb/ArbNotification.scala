@@ -23,13 +23,16 @@ import org.scalacheck.Gen
 trait ArbNotification {
 
   given rcArb: Arbitrary[SubsystemConflict] = Arbitrary[SubsystemConflict] {
-    for {
-      obsId <- arbitrary[Observation.Id]
-    } yield SubsystemConflict(obsId)
+    for
+      obsId      <- arbitrary[Observation.Id]
+      subsystems <- arbitrary[List[ObservatorySubsystem]]
+      heldBy     <- arbitrary[List[Observation.Id]]
+    yield SubsystemConflict(obsId, subsystems, heldBy)
   }
 
   given rcCogen: Cogen[SubsystemConflict] =
-    Cogen[Observation.Id].contramap(_.obsId)
+    Cogen[(Observation.Id, List[Subsystem], List[Observation.Id])]
+      .contramap(x => (x.obsId, x.subsystems, x.heldBy))
 
   given rfArb: Arbitrary[LoadingFailed] = Arbitrary[LoadingFailed] {
     for
@@ -93,6 +96,16 @@ trait ArbNotification {
   given rrCogen: Cogen[RestartRefused] =
     Cogen[List[String]].contramap(_.reasons.toList)
 
+  given cfArb: Arbitrary[DigestUnavailable] = Arbitrary[DigestUnavailable] {
+    for
+      id <- arbitrary[Observation.Id]
+      r  <- arbitrary[String]
+    yield DigestUnavailable(id, r)
+  }
+
+  given cfCogen: Cogen[DigestUnavailable] =
+    Cogen[(Observation.Id, String)].contramap(x => (x.obsId, x.reason))
+
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {
       r <- arbitrary[SubsystemConflict]
@@ -102,7 +115,8 @@ trait ArbNotification {
       n <- arbitrary[SequenceNotIdle]
       x <- arbitrary[ActionFailed]
       y <- arbitrary[RestartRefused]
-      s <- Gen.oneOf(r, a, f, b, n, x, y)
+      c <- arbitrary[DigestUnavailable]
+      s <- Gen.oneOf(r, a, f, b, n, x, y, c)
     } yield s
   }
 
@@ -112,9 +126,13 @@ trait ArbNotification {
         SubsystemConflict,
         Either[
           InstrumentInUse,
-          Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle, Either[ActionFailed,
-                                                                                     RestartRefused
-          ]]]]
+          Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle,
+                                                             Either[ActionFailed,
+                                                                    Either[RestartRefused,
+                                                                           DigestUnavailable
+                                                                    ]
+                                                             ]
+          ]]]
         ]
       ]
     ]
@@ -125,7 +143,8 @@ trait ArbNotification {
         case b: SubsystemBusy     => Right(Right(Right(Left(b))))
         case n: SequenceNotIdle   => Right(Right(Right(Right(Left(n)))))
         case x: ActionFailed      => Right(Right(Right(Right(Right(Left(x))))))
-        case y: RestartRefused    => Right(Right(Right(Right(Right(Right(y))))))
+        case y: RestartRefused    => Right(Right(Right(Right(Right(Right(Left(y)))))))
+        case c: DigestUnavailable => Right(Right(Right(Right(Right(Right(Right(c)))))))
       }
 
 }

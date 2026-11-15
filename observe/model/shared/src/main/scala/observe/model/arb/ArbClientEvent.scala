@@ -169,6 +169,13 @@ trait ArbClientEvent:
   given Cogen[ClientEvent.SubsystemControlModesSaved] =
     Cogen[SubsystemControlModes].contramap(_.config)
 
+  given Arbitrary[ClientEvent.SubsystemClash] = Arbitrary:
+    arbitrary[(Observation.Id, Step.Id, List[Subsystem])].map(ClientEvent.SubsystemClash(_, _, _))
+
+  given Cogen[ClientEvent.SubsystemClash] =
+    Cogen[(Observation.Id, Step.Id, List[Subsystem])].contramap: x =>
+      (x.obsId, x.stepId, x.subsystems)
+
   given Arbitrary[ClientEvent] = Arbitrary:
     Gen.oneOf(
       arbitrary[ClientEvent.InitialEvent],
@@ -186,7 +193,8 @@ trait ArbClientEvent:
       arbitrary[ClientEvent.SequenceComplete],
       arbitrary[ClientEvent.SequenceFailed],
       arbitrary[ClientEvent.GuideConfigEvent],
-      arbitrary[ClientEvent.SubsystemControlModesSaved]
+      arbitrary[ClientEvent.SubsystemControlModesSaved],
+      arbitrary[ClientEvent.SubsystemClash]
     )
 
   given Cogen[ClientEvent] =
@@ -224,7 +232,10 @@ trait ArbClientEvent:
                                     ClientEvent.SequenceFailed,
                                     Either[
                                       ClientEvent.GuideConfigEvent,
-                                      ClientEvent.SubsystemControlModesSaved
+                                      Either[
+                                        ClientEvent.SubsystemControlModesSaved,
+                                        ClientEvent.SubsystemClash
+                                      ]
                                     ]
                                   ]
                                 ]
@@ -306,7 +317,25 @@ trait ArbClientEvent:
               Right(
                 Right(
                   Right(
-                    Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(e)))))))))))
+                    Right(
+                      Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e)))))))))))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      case e @ ClientEvent.SubsystemClash(_, _, _)          =>
+        Right(
+          Right(
+            Right(
+              Right(
+                Right(
+                  Right(
+                    Right(
+                      Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(e)))))))))))
+                    )
                   )
                 )
               )
