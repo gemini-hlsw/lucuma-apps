@@ -923,3 +923,59 @@ class SequenceSubsystemsSuite extends TestCommon:
             case ClientEvent.ObserveState(_, _, _, _) => true
             case _                                    => false
       assert(hasState, s"No state among $events")
+
+  test("a subsystem of a sequence that is starting cannot be configured, and the start goes on"):
+    TestControl.executeEmbed:
+      for
+        f         <- fixture(
+                       List(gmosNorthObs(obs1, 2, scienceConfig)),
+                       Map(obs1 -> DigestMode.Hanging)
+                     )
+        _         <- load(f, Instrument.GmosNorth, obs1)
+        refused   <- Ref.of[IO, List[(Observation.Id, String)]](Nil)
+        configure <- onStartPending(f.runner):
+                       _.configureSubsystem(obs1, observer, user, testStepId(100), Tcs, clientId)
+        r         <- f.runner.run(
+                       start(obs1),
+                       (r, _) => isExecuting(obs1)(r),
+                       (r, st) => refused.update(_ ++ startingRefusal(r).toList) >> configure(r, st)
+                     )
+        refusals  <- refused.get
+      yield
+        assertEquals(refusals, List(obs1 -> "configure a subsystem of"))
+        assert(sequenceOf(r._2, obs1).seq.status.isRunning)
+
+  test("a subsystem of a running sequence cannot be configured, and its step is left alone"):
+    for
+      f  <- fixture(List(gmosNorthObs(obs1, 2, darkConfig)))
+      _  <- load(f, Instrument.GmosNorth, obs1)
+      _  <- f.runner.modify(runningWith(obs1, North))
+      s0 <- f.runner.state.get
+      r  <- f.runner.run(
+              _.configureSubsystem(obs1, observer, user, testStepId(101), Gcal, clientId),
+              (r, _) =>
+                r match
+                  case EventResult.UserCommandResponse(_, _, Some(SeqEvent.NotifyUser(_, _))) =>
+                    true
+                  case EventResult
+                        .UserCommandResponse(_, _, Some(SeqEvent.StartSubsystemConfig(_, _, _))) =>
+                    true
+                  case EventResult
+                        .UserCommandResponse(_, _, Some(SeqEvent.SubsystemBusy(_, _, _, _))) =>
+                    true
+                  case _                                                                      => false
+            )
+    yield
+      r._1 match
+        case EventResult.UserCommandResponse(
+              _,
+              _,
+              Some(SeqEvent.NotifyUser(Notification.SequenceNotIdle(id, _), _))
+            ) =>
+          assertEquals(id, obs1)
+        case other => fail(s"Expected the configuration to be refused: $other")
+      assertEquals(
+        sequenceOf(r._2, obs1).loadedStep.map(_.id),
+        sequenceOf(s0, obs1).loadedStep.map(_.id)
+      )
+      assert(sequenceOf(r._2, obs1).seq.status.isRunning)

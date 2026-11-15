@@ -1314,25 +1314,35 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     subsystem: Subsystem,
     clientId:  ClientId
   ): EngineHandle[F, SeqEvent] =
-    EngineHandle.getState.flatMap { st0 =>
-      if (configureSubsystemCheck(subsystem, st0))
-        ObserveEngine                          // Load new step and reload state
-          .retrieveStep(services.odb, translator, obsId, stepId.asRight)
-          .flatMap(_ => EngineHandle.getState) // A new step may have loaded, so reload state
-          .flatMap: st =>
-            st.sequences
-              .get(obsId)
-              .flatMap(_.configActionCoord(stepId, subsystem))
-              .map: c =>
-                executeEngine
-                  .startSingle(ActionCoords(obsId, c))
-                  .map[SeqEvent]:
-                    case EventResult.Outcome.Ok => StartSubsystemConfig(obsId, stepId, subsystem)
-                    case _                      => NullSeqEvent
-              .getOrElse:
-                EngineHandle.pure(NullSeqEvent)
-      else EngineHandle.pure(SubsystemBusy(obsId, stepId, subsystem, clientId))
-    }
+    // Checked before the step is read: reading it replaces the state of the sequence.
+    unlessStarting(obsId, clientId, "configure a subsystem of"):
+      EngineHandle.getState.flatMap { st0 =>
+        val canConfigure: Boolean =
+          st0.sequences
+            .get(obsId)
+            .map(_.seq.status)
+            .forall(status => status.isIdle || status.isError || status.isCompleted)
+        if (!canConfigure)
+          EngineHandle.pure[F, SeqEvent]:
+            NotifyUser(Notification.SequenceNotIdle(obsId, "configure a subsystem"), clientId)
+        else if (configureSubsystemCheck(subsystem, st0))
+          ObserveEngine                          // Load new step and reload state
+            .retrieveStep(services.odb, translator, obsId, stepId.asRight)
+            .flatMap(_ => EngineHandle.getState) // A new step may have loaded, so reload state
+            .flatMap: st =>
+              st.sequences
+                .get(obsId)
+                .flatMap(_.configActionCoord(stepId, subsystem))
+                .map: c =>
+                  executeEngine
+                    .startSingle(ActionCoords(obsId, c))
+                    .map[SeqEvent]:
+                      case EventResult.Outcome.Ok => StartSubsystemConfig(obsId, stepId, subsystem)
+                      case _                      => NullSeqEvent
+                .getOrElse:
+                  EngineHandle.pure(NullSeqEvent)
+        else EngineHandle.pure(SubsystemBusy(obsId, stepId, subsystem, clientId))
+      }
 
     // EngineHandle.getState.flatMap { st0 =>
     //   if (configureSubsystemCheck(subsystem, st0))
