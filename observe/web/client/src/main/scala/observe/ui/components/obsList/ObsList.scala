@@ -107,7 +107,7 @@ object ObsList
 
         if (row.status === SequenceStatus.Completed)
           ObserveStyles.RowPositive
-        else if (row.status.isRunning)
+        else if (row.status.isRunning || row.status.isStartPending)
           ObserveStyles.RowWarning
         else if (row.status.isError || (isLoaded && loadingPotOpt.exists(_.isError)))
           ObserveStyles.RowNegative
@@ -128,6 +128,8 @@ object ObsList
             case (Some(Pot.Ready(_)), Some(SequenceStatus.Completed))                           =>
               Icons.FileCheck
             case (Some(Pot.Ready(_)), Some(SequenceStatus.Running(_, _, _, _, _, _)))           =>
+              LucumaIcons.CircleNotch
+            case (Some(Pot.Ready(_)), Some(SequenceStatus.StartPending))                        =>
               LucumaIcons.CircleNotch
             case (Some(Pot.Ready(_)), Some(SequenceStatus.Failed(_))) | (Some(Pot.Error(_)), _) =>
               Icons.FileCross

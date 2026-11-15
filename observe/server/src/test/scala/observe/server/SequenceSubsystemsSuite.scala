@@ -67,12 +67,12 @@ class SequenceSubsystemsSuite extends TestCommon:
   private val Tcs: Subsystem  = ObservatorySubsystem.Tcs
   private val Gcal: Subsystem = ObservatorySubsystem.Gcal
 
-  private val North: Set[Subsystem]         = Set[Subsystem](Instrument.GmosNorth)
-  private val South: Set[Subsystem]         = Set[Subsystem](Instrument.GmosSouth)
-  private val NorthTcsGcal: Set[Subsystem]  = North ++ Set(Tcs, Gcal)
-  private val SouthTcsGcal: Set[Subsystem]  = South ++ Set(Tcs, Gcal)
-  private val TcsAndGcal: Set[Subsystem]    = Set(Tcs, Gcal)
-  private val NoSubsystems: Set[Subsystem]  = Set.empty
+  private val North: Set[Subsystem]        = Set[Subsystem](Instrument.GmosNorth)
+  private val South: Set[Subsystem]        = Set[Subsystem](Instrument.GmosSouth)
+  private val NorthTcsGcal: Set[Subsystem] = North ++ Set(Tcs, Gcal)
+  private val SouthTcsGcal: Set[Subsystem] = South ++ Set(Tcs, Gcal)
+  private val TcsAndGcal: Set[Subsystem]   = Set(Tcs, Gcal)
+  private val NoSubsystems: Set[Subsystem] = Set.empty
 
   private val darkConfig: StepConfig    = StepConfig.Dark
   private val scienceConfig: StepConfig = StepConfig.Science
@@ -232,13 +232,21 @@ class SequenceSubsystemsSuite extends TestCommon:
     yield Fixture(Runner(oe, state), odb)
 
   private def load(f: Fixture, instrument: Instrument, obsId: Observation.Id): IO[Unit] =
-    f.runner.run(_.loadSequence(instrument, obsId, observer, user, clientId), (r, _) => isLoaded(r)).void
+    f.runner
+      .run(_.loadSequence(instrument, obsId, observer, user, clientId), (r, _) => isLoaded(r))
+      .void
 
   private def start(obsId: Observation.Id)(oe: ObserveEngine[IO]): IO[Unit] =
     oe.startSequence(obsId, user, observer, clientId, RunOverride.Override)
 
   private def proceed(obsId: Observation.Id)(oe: ObserveEngine[IO]): IO[Unit] =
-    oe.proceedAfterPrompt(obsId, user, observer, SequenceType.Science, clientId, RunOverride.Override)
+    oe.proceedAfterPrompt(obsId,
+                          user,
+                          observer,
+                          SequenceType.Science,
+                          clientId,
+                          RunOverride.Override
+    )
 
   private def sequenceOf(st: EngineState[IO], obsId: Observation.Id): SequenceData[IO] =
     st.sequences.getOrElse(obsId, fail(s"Observation $obsId is not loaded"))
@@ -342,7 +350,9 @@ class SequenceSubsystemsSuite extends TestCommon:
       Set[Subsystem](Instrument.Igrins2, Tcs, Gcal)
     )
     assertEquals(
-      SequenceSubsystems.fromDigest(Instrument.Igrins2, digestOf(counts(), counts()).copy(value = none).some),
+      SequenceSubsystems.fromDigest(Instrument.Igrins2,
+                                    digestOf(counts(), counts()).copy(value = none).some
+      ),
       Set[Subsystem](Instrument.Igrins2, Tcs, Gcal)
     )
 
@@ -375,7 +385,10 @@ class SequenceSubsystemsSuite extends TestCommon:
       st <- f.runner.drain
     yield
       r._1 match
-        case EventResult.UserCommandResponse(_, _, Some(SeqEvent.Busy(id, _, subsystems, heldBy))) =>
+        case EventResult.UserCommandResponse(_,
+                                             _,
+                                             Some(SeqEvent.Busy(id, _, subsystems, heldBy))
+            ) =>
           assertEquals(id, obs2)
           assertEquals(subsystems.toSet, TcsAndGcal)
           assertEquals(heldBy, List(obs1))
@@ -386,13 +399,13 @@ class SequenceSubsystemsSuite extends TestCommon:
 
   test("two dark-only sequences on different instruments run in parallel"):
     for
-      f  <- fixture(
-              List(gmosNorthObs(obs1, 2, darkConfig), gmosSouthObs(obs2, 2, darkConfig))
-            )
-      _  <- load(f, Instrument.GmosNorth, obs1)
-      _  <- load(f, Instrument.GmosSouth, obs2)
-      _  <- f.runner.modify(runningWith(obs1, North))
-      r  <- f.runner.run(start(obs2), (r, _) => isExecuting(obs2)(r) || isBusy(r))
+      f <- fixture(
+             List(gmosNorthObs(obs1, 2, darkConfig), gmosSouthObs(obs2, 2, darkConfig))
+           )
+      _ <- load(f, Instrument.GmosNorth, obs1)
+      _ <- load(f, Instrument.GmosSouth, obs2)
+      _ <- f.runner.modify(runningWith(obs1, North))
+      r <- f.runner.run(start(obs2), (r, _) => isExecuting(obs2)(r) || isBusy(r))
     yield
       assert(isExecuting(obs2)(r._1), s"Expected the second sequence to run: ${r._1}")
       assertEquals(sequenceOf(r._2, obs2).sequenceSubsystems, South)
@@ -523,7 +536,9 @@ class SequenceSubsystemsSuite extends TestCommon:
       .map: count =>
         (count, (r, _) => count.update(_ + 1).whenA(isFallback(r)))
 
-  test("a digest that never gets up to date is polled until the max wait, then claims conservatively"):
+  test(
+    "a digest that never gets up to date is polled until the max wait, then claims conservatively"
+  ):
     TestControl.executeEmbed:
       for
         f        <- fixture(
@@ -536,13 +551,112 @@ class SequenceSubsystemsSuite extends TestCommon:
         log      <- f.odb.readLog
         notified <- n.get
       yield
-        val maxReads: Int =
-          1 + (SequenceSubsystems.DigestMaxWait.toMillis / SequenceSubsystems.DigestPollInterval.toMillis).toInt
-        assertEquals(digestReads(log, obs1), maxReads)
+        // The last read and the time limit fall on the same instant.
+        val reads: Int =
+          (SequenceSubsystems.DigestMaxWait.toMillis / SequenceSubsystems.DigestPollInterval.toMillis).toInt
+        assert(Set(reads, reads + 1).contains(digestReads(log, obs1)))
         assertEquals(sequenceOf(r._2, obs1).sequenceSubsystems, NorthTcsGcal)
         assertEquals(notified, 1)
 
-  test("an unreadable or missing digest does not stop the start, claims conservatively and notifies"):
+  test("a digest read that hangs is given up at the max wait"):
+    TestControl.executeEmbed:
+      for
+        f        <- fixture(
+                      List(gmosNorthObs(obs1, 2, darkConfig)),
+                      Map(obs1 -> DigestMode.Hanging)
+                    )
+        _        <- load(f, Instrument.GmosNorth, obs1)
+        (n, tap) <- countingFallbacks
+        r        <- f.runner.run(start(obs1), (r, _) => isExecuting(obs1)(r), tap)
+        log      <- f.odb.readLog
+        notified <- n.get
+      yield
+        assertEquals(digestReads(log, obs1), 1)
+        assertEquals(sequenceOf(r._2, obs1).sequenceSubsystems, NorthTcsGcal)
+        assertEquals(notified, 1)
+
+  private def isStartPending(result: EventResult): Boolean =
+    result match
+      case EventResult.UserCommandResponse(_, _, Some(SeqEvent.StartPending(_))) => true
+      case _                                                                     => false
+
+  /** The commands refused because the sequence is starting, as (observation, action). */
+  private def startingRefusal(result: EventResult): Option[(Observation.Id, String)] =
+    result match
+      case EventResult.UserCommandResponse(
+            _,
+            _,
+            Some(SeqEvent.NotifyUser(Notification.SequenceStarting(obsId, action), _))
+          ) =>
+        (obsId, action).some
+      case _ => none
+
+  /** Calls `f` once, when the start of a sequence becomes pending. */
+  private def onStartPending(runner: Runner)(
+    f: ObserveEngine[IO] => IO[Unit]
+  ): IO[(EventResult, EngineState[IO]) => IO[Unit]] =
+    Ref
+      .of[IO, Boolean](false)
+      .map: done =>
+        (result, _) =>
+          done.getAndSet(true).flatMap(f(runner.oe).unlessA).whenA(isStartPending(result))
+
+  test(
+    "while a start waits for the digest the sequence holds nothing and refuses commands"
+  ):
+    TestControl.executeEmbed:
+      for
+        f        <- fixture(
+                      List(gmosNorthObs(obs1, 2, scienceConfig)),
+                      Map(obs1 -> DigestMode.Hanging)
+                    )
+        _        <- load(f, Instrument.GmosNorth, obs1)
+        refused  <- Ref.of[IO, List[(Observation.Id, String)]](Nil)
+        pending  <- Ref.of[IO, Option[EngineState[IO]]](none)
+        commands <- onStartPending(f.runner): oe =>
+                      start(obs1)(oe) >> oe.unloadSequence(obs1, user, clientId)
+        r        <- f.runner.run(
+                      start(obs1),
+                      (r, _) => isExecuting(obs1)(r),
+                      (r, st) =>
+                        pending.update(_.orElse(st.some)).whenA(isStartPending(r)) >>
+                          refused.update(_ ++ startingRefusal(r).toList) >>
+                          commands(r, st)
+                    )
+        waiting  <- pending.get
+        refusals <- refused.get
+      yield
+        val st: EngineState[IO] = waiting.getOrElse(fail("The start never became pending"))
+        assert(sequenceOf(st, obs1).seq.status.isStartPending)
+        assertEquals(ObserveEngine.subsystemsInUse(st), NoSubsystems)
+        assertEquals(refusals.toSet, Set(obs1 -> "start", obs1 -> "unload"))
+        assert(sequenceOf(r._2, obs1).seq.status.isRunning)
+        assertEquals(sequenceOf(r._2, obs1).sequenceSubsystems, NorthTcsGcal)
+
+  test("other sequences run while a start waits for the digest"):
+    TestControl.executeEmbed:
+      for
+        f     <- fixture(
+                   List(gmosNorthObs(obs1, 1, darkConfig), gmosSouthObs(obs2, 1, darkConfig)),
+                   Map(obs1 -> DigestMode.Hanging)
+                 )
+        _     <- load(f, Instrument.GmosNorth, obs1)
+        _     <- load(f, Instrument.GmosSouth, obs2)
+        order <- Ref.of[IO, List[Observation.Id]](Nil)
+        other <- onStartPending(f.runner)(start(obs2))
+        _     <- f.runner.run(
+                   start(obs1),
+                   (r, _) => isExecuting(obs1)(r),
+                   (r, st) =>
+                     order.update(_ ++ List(obs1, obs2).filter(id => isExecuting(id)(r))) >>
+                       other(r, st)
+                 )
+        seen  <- order.get
+      yield assertEquals(seen.headOption, obs2.some)
+
+  test(
+    "an unreadable or missing digest does not stop the start, claims conservatively and notifies"
+  ):
     TestControl.executeEmbed:
       List(DigestMode.Failing, DigestMode.Missing).traverse: mode =>
         for
@@ -601,14 +715,17 @@ class SequenceSubsystemsSuite extends TestCommon:
 
   /** The step loaded in a running sequence waiting for nothing. */
   private def loadedStepSubsystems(s: SequenceData[IO]): Set[Subsystem] =
-    if s.seq.status.isRunning && !s.seq.status.isWaitingUserPrompt then s.stepSubsystems else Set.empty
+    if s.seq.status.isRunning && !s.seq.status.isWaitingUserPrompt then s.stepSubsystems
+    else Set.empty
 
   /** 1 if two running sequences have loaded steps sharing a subsystem. */
   private def stepOverlap(st: EngineState[IO]): Int =
     val steps: List[(Observation.Id, Set[Subsystem])] =
       st.sequences.values.toList.map(s => (s.obsId, loadedStepSubsystems(s)))
     val overlapping: Boolean                          =
-      steps.exists((id, ss) => steps.exists((other, os) => id =!= other && ss.intersect(os).nonEmpty))
+      steps.exists((id, ss) =>
+        steps.exists((other, os) => id =!= other && ss.intersect(os).nonEmpty)
+      )
     if overlapping then 1 else 0
 
   /** Marks a sequence as running with a loaded step needing `subsystems`, holding `claim`. */
@@ -633,7 +750,9 @@ class SequenceSubsystemsSuite extends TestCommon:
     val prompt: EngineState[IO]  = statusMod(obs2)(_.withWaitingUserPrompt(true))(both)
     val claimed: EngineState[IO] =
       claimMod(obs2, South ++ gcal)
-        .andThen(EngineState.sequenceStateAt[IO](obs2).andThen(SequenceState.loadedStep[IO]).replace(none))
+        .andThen(
+          EngineState.sequenceStateAt[IO](obs2).andThen(SequenceState.loadedStep[IO]).replace(none)
+        )
         .apply(both)
     assertEquals(ObserveEngine.stepClash(both, obs1), gcal)
     assertEquals(ObserveEngine.stepClash(both, obs2), gcal)
@@ -658,14 +777,21 @@ class SequenceSubsystemsSuite extends TestCommon:
                    tap(r, st) >>
                      started
                        .getAndSet(true)
-                       .flatMap(done => f.runner.oe.startSequence(obs1, user, observer, clientId, RunOverride.Override).unlessA(done))
+                       .flatMap(done =>
+                         f.runner.oe
+                           .startSequence(obs1, user, observer, clientId, RunOverride.Override)
+                           .unlessA(done)
+                       )
                        .whenA(isExecuting(obs2)(r))
       r       <- f.runner.run(start(obs2), (r, _) => isClash(r) || isBusy(r), tapBoth)
       st      <- f.runner.drain
       overlap <- tracker.get
     yield
       r._1 match
-        case EventResult.UserCommandResponse(_, _, Some(SeqEvent.SubsystemClash(id, _, subsystems))) =>
+        case EventResult.UserCommandResponse(_,
+                                             _,
+                                             Some(SeqEvent.SubsystemClash(id, _, subsystems))
+            ) =>
           // Either one may reach its step second; that one is held.
           assert(Set(obs1, obs2).contains(id))
           assertEquals(subsystems, TcsAndGcal)
@@ -683,7 +809,9 @@ class SequenceSubsystemsSuite extends TestCommon:
       _       <- load(f, Instrument.GmosSouth, obs2)
       first   <- Ref.of[IO, Option[Set[Subsystem]]](none)
       tap      = (r: EventResult, st: EngineState[IO]) =>
-                   first.update(_.orElse(st.sequences.get(obs2).map(_.sequenceSubsystems))).whenA(isExecuting(obs2)(r))
+                   first
+                     .update(_.orElse(st.sequences.get(obs2).map(_.sequenceSubsystems)))
+                     .whenA(isExecuting(obs2)(r))
       r       <- f.runner.run(start(obs2), (r, _) => isComplete(obs2)(r), tap)
       initial <- first.get
     yield
@@ -721,7 +849,10 @@ class SequenceSubsystemsSuite extends TestCommon:
              _.configureSubsystem(obs2, observer, user, testStepId(200), Tcs, clientId),
              (r, _) =>
                r match
-                 case EventResult.UserCommandResponse(_, _, Some(SeqEvent.SubsystemBusy(_, _, _, _))) =>
+                 case EventResult.UserCommandResponse(_,
+                                                      _,
+                                                      Some(SeqEvent.SubsystemBusy(_, _, _, _))
+                     ) =>
                    true
                  case EventResult
                        .UserCommandResponse(_, _, Some(SeqEvent.StartSubsystemConfig(_, _, _))) =>
@@ -729,7 +860,17 @@ class SequenceSubsystemsSuite extends TestCommon:
                  case _ => false
            )
     yield r._1 match
-      case EventResult.UserCommandResponse(_, _, Some(SeqEvent.SubsystemBusy(id, _, subsystem, _))) =>
+      case EventResult.UserCommandResponse(_,
+                                           _,
+                                           Some(SeqEvent.SubsystemBusy(id, _, subsystem, _))
+          ) =>
         assertEquals(id, obs2)
         assertEquals(subsystem, Tcs)
       case other => fail(s"Expected the configuration to be refused: $other")
+
+  test("a pending start is neither idle nor running and cannot be unloaded"):
+    val status: SequenceStatus = SequenceStatus.StartPending
+    assert(!status.isIdle)
+    assert(!status.isRunning)
+    assert(!status.canUnload)
+    assert(status.isInProcess)

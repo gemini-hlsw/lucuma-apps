@@ -18,6 +18,9 @@ import monocle.macros.GenPrism
 enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
   case Idle extends SequenceStatus("Idle")
 
+  /** A start was requested and waits for the ODB digest: not running yet, and it holds nothing. */
+  case StartPending extends SequenceStatus("Starting")
+
   /**
    * The sequence is running.
    *
@@ -74,9 +77,13 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
       case SequenceStatus.Running(_, _, _, waitingUserPrompt, _, _) => waitingUserPrompt
       case _                                                        => false
 
-  // A sequence can be unloaded if it's not running or if it's running but waiting for user prompt.
+  def isStartPending: Boolean =
+    this === SequenceStatus.StartPending
+
+  // A sequence can be unloaded if it's neither running nor starting, or if it's running but
+  // waiting for user prompt.
   def canUnload: Boolean =
-    !isRunning || isWaitingUserPrompt
+    (!isRunning && !isStartPending) || isWaitingUserPrompt
 
   def isStarting: Boolean =
     this match

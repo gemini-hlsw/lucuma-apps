@@ -35,9 +35,9 @@ case class ExecutionState(
   lazy val stepSubsystems: Option[Map[Subsystem, ActionStatus]] =
     loadedStep.map(_.configStatus)
 
-  // If there's a running step or subsystem, the step is considered locked.
+  // If the sequence is running or starting, or there's a running subsystem, the step is locked.
   lazy val isLocked: Boolean =
-    sequenceStatus.isRunning ||
+    sequenceStatus.isRunning || sequenceStatus.isStartPending ||
       stepSubsystems.exists:
         _.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
 

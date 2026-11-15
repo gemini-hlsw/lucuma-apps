@@ -86,7 +86,7 @@ object TestOdbProxy {
 
   /** How the test ODB reports the execution digest of an observation. */
   enum DigestMode:
-    case UpToDate, Stale, Missing, Failing
+    case UpToDate, Stale, Missing, Failing, Hanging
     case UpToDateAfter(reads: Int)
     case FailingFirst(reads: Int)
     case Overridden(digest: ExecutionDigest)
@@ -280,6 +280,8 @@ object TestOdbProxy {
                 mode match
                   case DigestMode.FailingFirst(first) if reads <= first =>
                     Async[F].raiseError(new RuntimeException("The ODB is down"))
+                  case DigestMode.Hanging                               =>
+                    Async[F].never
                   case DigestMode.Failing                               =>
                     Async[F].raiseError(new RuntimeException("The ODB is down"))
                   case _                                                =>

@@ -339,6 +339,9 @@ trait ServerEventHandler:
                   s"$reason.",
                 "To try again, hold the sequence and start it again."
               ).pure[IO]
+            case Notification.SequenceStarting(obsId, action)              =>
+              clearAcquisitionRequests(obsId)
+                .as(List(s"Cannot $action observation $obsId while it is starting"))
             case Notification.InstrumentInUse(obsId, ins)                  =>
               List(s"Error in observation $obsId: Instrument $ins already in use").pure[IO]
             case Notification.LoadingFailed(obsId, msgs)                   =>

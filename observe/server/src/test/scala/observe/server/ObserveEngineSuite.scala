@@ -936,7 +936,7 @@ class ObserveEngineSuite extends TestCommon {
                if isScience then List(atom) else List.empty
              )
       oe  <- observeEngineWithODB(odb, servicesWithTargetName(tcsTarget), settings)
-      sf  <- advanceOne(
+      sf  <- advanceStart(
                oe,
                s0,
                oe.startSequence(seqObsId1, user, observer, clientId, runOverride)
@@ -1170,7 +1170,7 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
       observeEngine <- observeEngineWithODB(odb)
-      sf            <- advanceOne(
+      sf            <- advanceStart(
                          observeEngine,
                          s0,
                          observeEngine.startSequence(
@@ -1223,7 +1223,7 @@ class ObserveEngineSuite extends TestCommon {
           clientId,
           RunOverride.Default
         ) *>
-          observeEngine.eventResultStream(s0).take(1).compile.last
+          observeEngine.eventResultStream(s0).take(2).compile.last
     } yield result
       .map { case (out, sf) =>
         assert(EngineState.sequenceStateAt[IO](seqObsId1).getOption(sf).exists(_.status.isIdle))
@@ -1274,7 +1274,7 @@ class ObserveEngineSuite extends TestCommon {
           s0,
           observeEngine
             .startSequence(seqObsId1, user, observer, clientId, RunOverride.Override),
-          3
+          4
         )
     } yield {
       assert(

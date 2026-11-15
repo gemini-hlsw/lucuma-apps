@@ -82,10 +82,11 @@ private trait SequenceTable[S, D](
   // in the current visit, we remove the 1st future step.
   private def shouldHideFirstFutureStep(secondStepId: Option[Step.Id]): Boolean =
     (loadedStepId, secondStepId, executionState.sequenceStatus) match
-      case (Some(runStepId), Some(secStepId), _)               => runStepId === secStepId
-      case (None, None, _)                                     => true
-      case (None, _, status) if status =!= SequenceStatus.Idle => true // Avoid glitch
-      case _                                                   => false
+      case (Some(runStepId), Some(secStepId), _)                                         => runStepId === secStepId
+      case (None, None, _)                                                               => true
+      // Avoid glitch. A pending start is like idle: no step is about to load yet.
+      case (None, _, status) if status =!= SequenceStatus.Idle && !status.isStartPending => true
+      case _                                                                             => false
 
   private def futureSteps(
     atoms:   List[Atom[D]],

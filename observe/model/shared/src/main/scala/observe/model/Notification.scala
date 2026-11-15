@@ -33,3 +33,5 @@ enum Notification derives Eq, Encoder, Decoder:
   case RestartRefused(reasons: NonEmptyList[String])                    extends Notification
   // Notification that the ODB could not say what a sequence needs, so it also holds TCS and GCAL
   case DigestUnavailable(obsId: Observation.Id, reason: String)         extends Notification
+  // Notification that a command was refused because the sequence is starting
+  case SequenceStarting(obsId: Observation.Id, action: String)          extends Notification

@@ -33,6 +33,7 @@ extension (e: SeqEvent)
       case StartQueue(_, _, _)           => true
       case StopQueue(_, _)               => true
       case StartSubsystemConfig(_, _, _) => true
+      case StartPending(_)               => true
       case SequenceStart(_, _)           => true
       case SequencesStart(_)             => true
       case SequenceTypeChanged(_)        => true

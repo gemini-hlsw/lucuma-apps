@@ -3,7 +3,9 @@
 
 package observe.server
 
+import cats.effect.Ref
 import cats.effect.Temporal
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
@@ -23,7 +25,7 @@ object SequenceSubsystems:
   /** How often a digest that is not up to date is read again. */
   val DigestPollInterval: FiniteDuration = 1.second
 
-  /** How long to wait for the digest to be up to date before claiming conservatively. */
+  /** How long to try for an up to date digest, reads included, before claiming conservatively. */
   val DigestMaxWait: FiniteDuration = 10.seconds
 
   private val CouldNotCalculate: String =
@@ -31,6 +33,9 @@ object SequenceSubsystems:
 
   private def didNotAnswer(e: Throwable): String =
     s"the ODB didn't answer which subsystems it needs (${e.getMessage})"
+
+  private val NoAnswerInTime: String =
+    s"the ODB didn't answer which subsystems it needs within ${DigestMaxWait.toSeconds} seconds"
 
   private val StillCalculating: String =
     s"the ODB was still working out which subsystems it needs after ${DigestMaxWait.toSeconds} seconds"
@@ -73,8 +78,8 @@ object SequenceSubsystems:
     odb:   OdbProxy[F],
     obsId: Observation.Id
   ): F[DigestRead] =
-    // `waited` counts the pauses only, not the time the reads take.
-    def poll(waited: FiniteDuration): F[DigestRead] =
+    // `reason` keeps why the last try was not good enough, for when the time runs out.
+    def untilUpToDate(reason: Ref[F, String]): F[DigestRead] =
       odb
         .readDigest(obsId)
         .attempt
@@ -83,13 +88,16 @@ object SequenceSubsystems:
             DigestRead(digest.some, CouldNotCalculate.some).pure[F]
           case Right(digest) if isUpToDate(digest)                         =>
             DigestRead(digest.some, none).pure[F]
-          case Right(digest) if waited >= DigestMaxWait                    =>
-            DigestRead(digest.some, StillCalculating.some).pure[F]
-          case Left(e) if waited >= DigestMaxWait                          =>
-            DigestRead(none, didNotAnswer(e).some).pure[F]
-          case _                                                           =>
-            Temporal[F].sleep(DigestPollInterval) *> poll(waited + DigestPollInterval)
-    poll(0.millis)
+          case result                                                      =>
+            reason.set(result.fold(didNotAnswer, _ => StillCalculating)) >>
+              Temporal[F].sleep(DigestPollInterval) >>
+              untilUpToDate(reason)
+    Ref
+      .of[F, String](NoAnswerInTime)
+      .flatMap: reason =>
+        // The limit covers the reads too, so a read that hangs cannot hold the start back.
+        untilUpToDate(reason)
+          .timeoutTo(DigestMaxWait, reason.get.map(r => DigestRead(none, r.some)))
       .flatTap: cd =>
         cd.fallback.traverse_ : reason =>
           Logger[F].warn(

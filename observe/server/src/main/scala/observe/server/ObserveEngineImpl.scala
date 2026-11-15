@@ -96,18 +96,59 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): SeqEvent =
     Busy(obsId, clientId, conflict.toList, ObserveEngine.heldByOther(st, obsId, conflict))
 
-  /** Tells the client the claim falls back to TCS and GCAL, whether or not the start goes on. */
-  private def notifyFallback(
-    obsId:      Observation.Id,
-    clientId:   ClientId,
-    digestRead: SequenceSubsystems.DigestRead
-  ): F[Unit] =
-    digestRead.fallback.traverse_ : reason =>
-      executeEngine.offer:
-        Event.modifyState[F]:
-          EngineHandle.pure[F, SeqEvent](
-            NotifyUser(Notification.DigestUnavailable(obsId, reason), clientId)
+  private def isStarting(st: EngineState[F], obsId: Observation.Id): Boolean =
+    st.sequences.get(obsId).exists(_.seq.status.isStartPending)
+
+  /** Runs `handle` unless `obsId` is starting, which the client is told instead. */
+  private def unlessStarting(obsId: Observation.Id, clientId: ClientId, action: String)(
+    handle: EngineHandle[F, SeqEvent]
+  ): EngineHandle[F, SeqEvent] =
+    EngineHandle.getState.flatMap: st =>
+      if isStarting(st, obsId) then
+        EngineHandle.pure[F, SeqEvent]:
+          NotifyUser(Notification.SequenceStarting(obsId, action), clientId)
+      else handle
+
+  /** For the commands that carry no client: logged as a warning, which shows no toast. */
+  private def reportIfStarting(obsId: Observation.Id, action: String): F[Unit] =
+    executeEngine.offer:
+      Event.modifyState[F]:
+        EngineHandle.getState.flatMap: st =>
+          EngineHandle
+            .liftF:
+              L.warn(s"Cannot $action observation $obsId while it is starting")
+                .whenA(isStarting(st, obsId))
+            .as[SeqEvent](NullSeqEvent)
+
+  /** Reads the digest, then starts the sequence with it; the fallback is told to the client. */
+  private def startWithDigest(
+    obsId:       Observation.Id,
+    observer:    Observer,
+    clientId:    ClientId,
+    runOverride: RunOverride
+  ): Stream[F, Event[F]] =
+    Stream
+      .eval(SequenceSubsystems.readDigest(services.odb, obsId))
+      .flatMap: digestRead =>
+        val fallback: List[Event[F]] =
+          digestRead.fallback.toList.map: reason =>
+            Event.modifyState[F]:
+              EngineHandle.pure[F, SeqEvent]:
+                NotifyUser(Notification.DigestUnavailable(obsId, reason), clientId)
+        val start: Event[F]          =
+          Event.modifyState[F](
+            setObserver(obsId, observer) *>
+              clearObsCmd(obsId) *>
+              startChecks(
+                executeEngine.startLoadedStep(obsId),
+                obsId,
+                clientId,
+                none,
+                runOverride,
+                digestRead.digest
+              )
           )
+        Stream.emits(fallback) ++ Stream.emit(start)
 
   private def storeSequenceSubsystems(
     obsId: Observation.Id,
@@ -300,12 +341,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       EngineState
         .atSequence(obsId)
         .getOption(st)
-        // A completed sequence may have been given new steps (e.g. edited in Explore). Starting
-        // it reads the next step from the ODB, which runs it, or completes the sequence again
-        // if there is none.
-        .filter: seqData =>
-          seqData.seq.status.isIdle || seqData.seq.status.isError ||
-            seqData.seq.status.isCompleted
+        // Only a sequence whose start is pending gets here: see `startSequence`.
+        .filter(_.seq.status.isStartPending)
         .map: seq =>
           (for {
             _              <- EngineHandle.modifySequenceState[F](obsId): seq =>
@@ -386,24 +423,28 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     runOverride: RunOverride
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Start requested by ${user.displayName}") *>
-      // Read before the step, and outside the handle so the wait does not stall other sequences.
-      SequenceSubsystems
-        .readDigest(services.odb, obsId)
-        .flatMap: digestRead =>
-          notifyFallback(obsId, clientId, digestRead) *>
-            executeEngine.offer:
-              Event.modifyState[F](
-                setObserver(obsId, observer) *>
-                  clearObsCmd(obsId) *>
-                  startChecks(
-                    executeEngine.startLoadedStep(obsId),
-                    obsId,
-                    clientId,
-                    none,
-                    runOverride,
-                    digestRead.digest
-                  )
-              )
+      executeEngine.offer:
+        Event.modifyState[F]:
+          unlessStarting(obsId, clientId, "start"):
+            EngineHandle.getState.flatMap: st =>
+              // A completed sequence may have been given new steps (e.g. edited in Explore).
+              // Starting it reads the next step from the ODB, which runs it, or completes the
+              // sequence again if there is none.
+              val startable: Boolean =
+                st.sequences
+                  .get(obsId)
+                  .map(_.seq.status)
+                  .exists(status => status.isIdle || status.isError || status.isCompleted)
+              if !startable then EngineHandle.pure[F, SeqEvent](NullSeqEvent)
+              else
+                // The digest is read before the step, and as an engine stream so that its wait
+                // does not stall the other sequences. Until it arrives the start is pending.
+                EngineHandle.modifySequenceState[F](obsId)(
+                  SequenceState.status.replace(SequenceStatus.StartPending)
+                ) >>
+                  EngineHandle
+                    .fromEventStream[F](startWithDigest(obsId, observer, clientId, runOverride))
+                    .as[SeqEvent](SeqEvent.StartPending(obsId))
 
   override def proceedAfterPrompt(
     id:          Observation.Id,
@@ -491,60 +532,64 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     clientId:         ClientId,
     actionName:       String
   ): EngineHandle[F, SeqEvent] =
-    EngineHandle.getState.flatMap: st =>
-      EngineState
-        .atSequence(obsId)
-        .getOption(st)
-        .map: seqData =>
-          if !(seqData.seq.status.isIdle || seqData.seq.status.isError) then
-            EngineHandle.pure[F, SeqEvent]:
-              SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
-          else
-            def failed(msg: String): SeqEvent =
-              SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
+    unlessStarting(obsId, clientId, actionName):
+      EngineHandle.getState.flatMap: st =>
+        EngineState
+          .atSequence(obsId)
+          .getOption(st)
+          .map: seqData =>
+            if !(seqData.seq.status.isIdle || seqData.seq.status.isError) then
+              EngineHandle.pure[F, SeqEvent]:
+                SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
+            else
+              def failed(msg: String): SeqEvent =
+                SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
 
-            // A reset regenerates the acquisition steps with new ids, so their breakpoints are not
-            // in the sequence's set yet (which is only built on load). The regenerated acquisition
-            // is read in the same round trip as the step to load, and its breakpoints are
-            // registered only once that step is known, so a failure leaves the sequence as it was.
-            val read: EngineHandle[F, (Option[StepGen[F]], Option[InstrumentExecutionConfig])] =
-              if resetAcquisition then
-                EngineHandle.liftF(services.odb.resetAcquisition(obsId)) >>
+              // A reset regenerates the acquisition steps with new ids, so their breakpoints are not
+              // in the sequence's set yet (which is only built on load). The regenerated acquisition
+              // is read in the same round trip as the step to load, and its breakpoints are
+              // registered only once that step is known, so a failure leaves the sequence as it was.
+              val read: EngineHandle[F, (Option[StepGen[F]], Option[InstrumentExecutionConfig])] =
+                if resetAcquisition then
+                  EngineHandle.liftF(services.odb.resetAcquisition(obsId)) >>
+                    ObserveEngine
+                      .readConfigAndStep(
+                        services.odb,
+                        translator,
+                        obsId,
+                        seqType.asLeft,
+                        OdbProxy.FullFuture
+                      )
+                      .map(_.fold((none, none))((config, stepGen) => (stepGen, config.some)))
+                else
+                  // `readStep` (unlike `retrieveStep`) neither swallows errors nor touches the state,
+                  // so a failure can be reported without having changed anything.
                   ObserveEngine
-                    .readConfigAndStep(
-                      services.odb,
-                      translator,
-                      obsId,
-                      seqType.asLeft,
-                      OdbProxy.FullFuture
-                    )
-                    .map(_.fold((none, none))((config, stepGen) => (stepGen, config.some)))
-              else
-                // `readStep` (unlike `retrieveStep`) neither swallows errors nor touches the state,
-                // so a failure can be reported without having changed anything.
-                ObserveEngine
-                  .readStep(services.odb, translator, obsId, seqType.asLeft)
-                  .map((_, none))
+                    .readStep(services.odb, translator, obsId, seqType.asLeft)
+                    .map((_, none))
 
-            read
-              .flatMap:
-                // The translator falls back to science when there's no acquisition; that's no reset.
-                case (Some(stepGen), config) if stepGen.sequenceType === seqType =>
-                  for
-                    _ <- EngineHandle.modifyState_(
-                           ObserveEngine.updateStep(obsId, stepGen.some, seqType.asLeft)
-                         )
-                    _ <- config.traverse_ { c =>
-                           EngineHandle.modifySequenceState[F](obsId) { s =>
-                             s.copy(breakpoints = Breakpoints.withAcquisitionFrom(s.breakpoints, c))
-                           }
-                         }
-                  yield SeqEvent.SequenceTypeChanged(obsId): SeqEvent
-                case _                                                           =>
-                  EngineHandle.pure[F, SeqEvent](failed(s"There is no ${seqType.tag} step to load"))
-              .handleErrorWith: e =>
-                EngineHandle.pure[F, SeqEvent](failed(e.getMessage))
-        .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
+              read
+                .flatMap:
+                  // The translator falls back to science when there's no acquisition; that's no reset.
+                  case (Some(stepGen), config) if stepGen.sequenceType === seqType =>
+                    for
+                      _ <- EngineHandle.modifyState_(
+                             ObserveEngine.updateStep(obsId, stepGen.some, seqType.asLeft)
+                           )
+                      _ <-
+                        config.traverse_ { c =>
+                          EngineHandle.modifySequenceState[F](obsId) { s =>
+                            s.copy(breakpoints = Breakpoints.withAcquisitionFrom(s.breakpoints, c))
+                          }
+                        }
+                    yield SeqEvent.SequenceTypeChanged(obsId): SeqEvent
+                  case _                                                           =>
+                    EngineHandle.pure[F, SeqEvent](
+                      failed(s"There is no ${seqType.tag} step to load")
+                    )
+                .handleErrorWith: e =>
+                  EngineHandle.pure[F, SeqEvent](failed(e.getMessage))
+          .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
 
   override def skipAcquisition(
     obsId:    Observation.Id,
@@ -590,6 +635,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     user:     User
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
+      reportIfStarting(obsId, "hold") *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer(Event.requestSequenceHold(obsId, user))
 
@@ -713,7 +759,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                       EngineHandle.modifyState { (st: EngineState[F]) =>
                         val instrumentSequenceLens = EngineState.instrumentLoaded[F](i)
                         if (
-                          instrumentSequenceLens.get(st).forall(s => executeEngine.canUnload(s.seq))
+                          instrumentSequenceLens
+                            .get(st)
+                            .forall(s => executeEngine.canUnload(s.seq))
                         ) {
                           (st.sequences
                              .get(obsId)
@@ -788,18 +836,19 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     ) *>
       executeEngine.offer:
         Event.modifyState[F]:
-          EngineHandle.getState.flatMap: st =>
-            st.sequencesByInstrument.values
-              .find(_.obsId === obsId)
-              .fold(EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)): seqData =>
-                if executeEngine.canUnload(seqData.seq) then
-                  EngineHandle.modifyState_[F](
-                    EngineState.instrumentLoaded[F](seqData.instrument).replace(none)
-                  ) >>
-                    EngineHandle.pure[F, SeqEvent](SeqEvent.UnloadSequence(obsId))
-                else
-                  EngineHandle.pure[F, SeqEvent]:
-                    SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, "unload"), clientId)
+          unlessStarting(obsId, clientId, "unload"):
+            EngineHandle.getState.flatMap: st =>
+              st.sequencesByInstrument.values
+                .find(_.obsId === obsId)
+                .fold(EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)): seqData =>
+                  if executeEngine.canUnload(seqData.seq) then
+                    EngineHandle.modifyState_[F](
+                      EngineState.instrumentLoaded[F](seqData.instrument).replace(none)
+                    ) >>
+                      EngineHandle.pure[F, SeqEvent](SeqEvent.UnloadSequence(obsId))
+                  else
+                    EngineHandle.pure[F, SeqEvent]:
+                      SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, "unload"), clientId)
 
   override def clearLoadedSequences(user: User): F[Unit] =
     logDebugEvent("ObserveEngine: Updating loaded sequences") *>
@@ -1133,6 +1182,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     graceful: Boolean
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Stop requested by ${user.displayName}") *>
+      reportIfStarting(obsId, "stop") *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer(
         Event.getState: engineState =>
@@ -1156,6 +1206,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     user:     User
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Abort requested by ${user.displayName}") *>
+      reportIfStarting(obsId, "abort") *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer:
         Event.actionStop(obsId, translator.abortExposure(obsId))

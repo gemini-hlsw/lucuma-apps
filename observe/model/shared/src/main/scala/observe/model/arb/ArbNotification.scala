@@ -106,6 +106,16 @@ trait ArbNotification {
   given cfCogen: Cogen[DigestUnavailable] =
     Cogen[(Observation.Id, String)].contramap(x => (x.obsId, x.reason))
 
+  given ssArb: Arbitrary[SequenceStarting] = Arbitrary[SequenceStarting] {
+    for
+      id <- arbitrary[Observation.Id]
+      a  <- arbitrary[String]
+    yield SequenceStarting(id, a)
+  }
+
+  given ssCogen: Cogen[SequenceStarting] =
+    Cogen[(Observation.Id, String)].contramap(x => (x.obsId, x.action))
+
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {
       r <- arbitrary[SubsystemConflict]
@@ -116,7 +126,8 @@ trait ArbNotification {
       x <- arbitrary[ActionFailed]
       y <- arbitrary[RestartRefused]
       c <- arbitrary[DigestUnavailable]
-      s <- Gen.oneOf(r, a, f, b, n, x, y, c)
+      t <- arbitrary[SequenceStarting]
+      s <- Gen.oneOf(r, a, f, b, n, x, y, c, t)
     } yield s
   }
 
@@ -129,7 +140,9 @@ trait ArbNotification {
           Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle,
                                                              Either[ActionFailed,
                                                                     Either[RestartRefused,
-                                                                           DigestUnavailable
+                                                                           Either[DigestUnavailable,
+                                                                                  SequenceStarting
+                                                                           ]
                                                                     ]
                                                              ]
           ]]]
@@ -144,7 +157,8 @@ trait ArbNotification {
         case n: SequenceNotIdle   => Right(Right(Right(Right(Left(n)))))
         case x: ActionFailed      => Right(Right(Right(Right(Right(Left(x))))))
         case y: RestartRefused    => Right(Right(Right(Right(Right(Right(Left(y)))))))
-        case c: DigestUnavailable => Right(Right(Right(Right(Right(Right(Right(c)))))))
+        case c: DigestUnavailable => Right(Right(Right(Right(Right(Right(Right(Left(c))))))))
+        case t: SequenceStarting  => Right(Right(Right(Right(Right(Right(Right(Right(t))))))))
       }
 
 }

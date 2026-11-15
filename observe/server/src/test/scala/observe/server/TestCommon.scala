@@ -135,6 +135,14 @@ trait TestCommon extends munit.CatsEffectSuite {
   ): IO[Option[EngineState[IO]]] =
     advanceN(oe, s0, put, 1L)
 
+  /** A start takes two events: the pending mark and, once the digest is read, the start itself. */
+  def advanceStart(
+    oe:  ObserveEngine[IO],
+    s0:  EngineState[IO],
+    put: IO[Unit]
+  ): IO[Option[EngineState[IO]]] =
+    advanceN(oe, s0, put, 2L)
+
   def advanceN(
     oe:  ObserveEngine[IO],
     s0:  EngineState[IO],

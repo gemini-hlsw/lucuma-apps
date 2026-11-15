@@ -82,6 +82,7 @@ object SeqEvent:
   ) extends SeqEvent
   case class SubsystemClash(obsId: Observation.Id, stepId: Step.Id, subsystems: Set[Subsystem])
       extends SeqEvent
+  case class StartPending(obsId: Observation.Id)                                 extends SeqEvent
   case class SequenceStart(sid: Observation.Id, stepId: Step.Id)                 extends SeqEvent
   case class SequencesStart(startedSeqs: List[(Observation.Id, Step.Id)])        extends SeqEvent
   case class SubsystemBusy(

@@ -42,6 +42,7 @@ case class SeqControlButtons(
   val isCancelSequenceHoldInFlight: Boolean =
     requests.cancelSequenceHold === OperationRequest.InFlight
   val isRunning: Boolean                    = sequenceStatus.isRunning
+  val isStartPending: Boolean               = sequenceStatus.isStartPending
   val canUnload: Boolean                    = sequenceStatus.canUnload
   val isWaitingUserPrompt: Boolean          = sequenceStatus.isWaitingUserPrompt
   val isRefreshing: Boolean                 = refreshing.exists(_.get)
@@ -73,7 +74,7 @@ object SeqControlButtons
             tooltipOptions = tooltipOptions,
             onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
               sequenceApi.startSequence(props.obsId).runAsync,
-            disabled = props.isRefreshing || !props.hasPendingSteps
+            disabled = props.isRefreshing || !props.hasPendingSteps || props.isStartPending
           ).when(!props.isRunning),
           Button(
             clazz = ObserveStyles.SequenceHoldButton |+| ObserveStyles.ObsSummaryButton,

@@ -295,7 +295,8 @@ object ObserveEngine {
 
   private def subsystemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
     observations(st)
-      .filter(d => d.seq.status.isError || d.seq.status.isIdle)
+      // A manual configuration may still be running when its sequence is asked to start.
+      .filter(d => d.seq.status.isError || d.seq.status.isIdle || d.seq.status.isStartPending)
       .flatMap(s =>
         s.seq.getSingleActionStates
           .filter(_._2.started)
@@ -394,7 +395,10 @@ object ObserveEngine {
    */
   def restartBlockers[F[_]](st: EngineState[F]): Option[NonEmptyList[String]] =
     val sequences: List[String]   =
-      observations(st).filter(_.seq.status.isRunning).map(s => s"Sequence ${s.obsId} is running")
+      observations(st)
+        .filter(s => s.seq.status.isRunning || s.seq.status.isStartPending)
+        .map: s =>
+          s"Sequence ${s.obsId} is ${if s.seq.status.isStartPending then "starting" else "running"}"
     val configuring: List[String] =
       subsystemsBeingConfigured(st).toList.map: subsystem =>
         s"${Enumerated[Subsystem].tag(subsystem)} is being configured"
