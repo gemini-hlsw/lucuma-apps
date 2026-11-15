@@ -212,8 +212,8 @@ importers:
         specifier: 3.4.5
         version: 3.4.5(@types/react@19.2.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)
       '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator':
-        specifier: 4.2.4
-        version: 4.2.4(react@19.3.1)(supports-color@10.2.2)
+        specifier: 4.3.0
+        version: 4.3.0(react@19.3.1)(supports-color@10.2.2)
       '@floating-ui/react':
         specifier: 0.27.20
         version: 0.27.20(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -590,8 +590,8 @@ packages:
       react: ^18.2.0 || ^19.0.0
       react-dom: ^18.2.0 || ^19.0.0
 
-  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@4.2.4':
-    resolution: {integrity: sha512-jCo1gHLIXaS/GWIlU4qQHAgLQnyEVlnbAuJ+ziRy25aqGurvqrz22Y1tGz7/i5ecDdQpDMDElxOC5kFOhOR6kQ==}
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@4.3.0':
+    resolution: {integrity: sha512-0jOj3UdQUEA9mtU3omOBmKg+JYArZGz+mhZi386tWcDKNVPtckRJtg8GVhPH1FjTcYhai+ik4HXpN0U0l/S+2w==}
     peerDependencies:
       react: ^18.2.0 || ^19.0.0
 
@@ -600,6 +600,11 @@ packages:
 
   '@atlaskit/react-compiler-gating@0.2.4':
     resolution: {integrity: sha512-lcAfuofZrxa1f7g/Ik6XlJbr2RYu/nBM6ck+krElsNzjwT1ytuf5mW//BZHeyfIwI5sKL88bV6yZpQ2K9TaJCg==}
+
+  '@atlaskit/tokens@20.12.0':
+    resolution: {integrity: sha512-Z2CRo5p3H/Ydcf4pwnxHGjDPw4EAMGG0Kr0ZszAlsRpEXNernNIo3RT0SjUmIwrUbjLWAz8hEA8i5QQKG23P4Q==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
 
   '@atlaskit/tokens@20.6.0':
     resolution: {integrity: sha512-dyaZ+EwmzOKHCAVW3R+h/g5xyqpIJshKlK8oW2pC37MCQs2k7Bzr7IC+/s1QQN2Ir81GR+c+BJTztrRZQEp/FA==}
@@ -4114,12 +4119,12 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@4.2.4(react@19.3.1)(supports-color@10.2.2)':
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@4.3.0(react@19.3.1)(supports-color@10.2.2)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 4.0.0
       '@atlaskit/pragmatic-drag-and-drop-hitbox': 3.0.0
       '@atlaskit/react-compiler-gating': 0.2.4(react@19.3.1)
-      '@atlaskit/tokens': 20.6.0(react@19.3.1)(supports-color@10.2.2)
+      '@atlaskit/tokens': 20.12.0(react@19.3.1)(supports-color@10.2.2)
       '@babel/runtime': 7.28.6
       '@compiled/react': 1.0.2(react@19.3.1)
       react: 19.3.1
@@ -4138,6 +4143,19 @@ snapshots:
       '@babel/runtime': 7.28.6
     transitivePeerDependencies:
       - react
+
+  '@atlaskit/tokens@20.12.0(react@19.3.1)(supports-color@10.2.2)':
+    dependencies:
+      '@atlaskit/ds-lib': 8.0.0(react@19.3.1)
+      '@atlaskit/platform-feature-flags': 2.2.1(react@19.3.1)
+      '@atlaskit/react-compiler-gating': 0.2.4(react@19.3.1)
+      '@babel/runtime': 7.28.6
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
+      '@babel/types': 7.29.0
+      bind-event-listener: 3.0.0
+      react: 19.3.1
+    transitivePeerDependencies:
+      - supports-color
 
   '@atlaskit/tokens@20.6.0(react@19.3.1)(supports-color@10.2.2)':
     dependencies:
