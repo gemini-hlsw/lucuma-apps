@@ -13,7 +13,6 @@ import explore.model.Group
 import explore.model.Observation
 import explore.model.ProgramAttachments
 import explore.model.ProgramDetails
-import explore.model.ProgramInfo
 import explore.model.ProgramSummaries
 import explore.model.ProgramTimes
 import explore.services.OdbApi
@@ -159,10 +158,7 @@ object ProgramCacheController
       whenProgramSelected(empty = ProgramAttachments.Empty):
         tracked(LoadStage.Attachments)(props.odbApi.allProgramAttachments(props.programId))
 
-    val programs: IO[List[ProgramInfo]] =
-      tracked(LoadStage.Programs)(props.odbApi.allPrograms)
-
-    // The seven queries are independent; run them concurrently so the load costs their maximum, not their sum.
+    // The six queries are independent; run them concurrently so the load costs their maximum, not their sum.
     val initializeSummaries: IO[(ProgramSummaries, List[Observation])] =
       (
         observations,
@@ -170,11 +166,10 @@ object ProgramCacheController
         optProgramDetails,
         targets,
         attachments,
-        programs,
         configurationRequests
-      ).parFlatMapN: (obs, grps, pd, ts, as, ps, crs) =>
+      ).parFlatMapN: (obs, grps, pd, ts, as, crs) =>
         tracked(LoadStage.Preparing, clearOthers = true):
-          afterNextPaint >> IO(ProgramSummaries.fromLists(pd, ts, obs, grps, as, ps, crs))
+          afterNextPaint >> IO(ProgramSummaries.fromLists(pd, ts, obs, grps, as, crs))
         .map((_, obs))
 
     // load the details for each mode separately
@@ -347,11 +342,6 @@ object ProgramCacheController
                 .programAttachmentsDeltaSubscription(props.programId)
                 .map(_.map(modifyAttachments(_)))
 
-            val updatePrograms: Resource[IO, Stream[IO, ProgramSummaries => ProgramSummaries]] =
-              props.odbApi
-                .programDeltaSubscription(props.programId)
-                .map(_.map(modifyPrograms(_)))
-
             val updateObsCalc: Resource[IO, Stream[IO, ProgramSummaries => ProgramSummaries]] =
               odbApi
                 .obsCalcSubscription(props.programId)
@@ -368,7 +358,6 @@ object ProgramCacheController
               updateObservations,
               updateGroups,
               updateAttachments,
-              updatePrograms,
               updateConfigurationRequests,
               updateObsCalc
             ).sequence.map: updateStreams =>

@@ -327,9 +327,7 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
                            v.programEdit.value.proposalSummaryGeneration
         ))
 
-  def programDeltaSubscription(
-    programId: Program.Id
-  ): Resource[F, fs2.Stream[F, ProgramInfo]] =
+  def programDeltaSubscription: Resource[F, fs2.Stream[F, ProgramInfo]] =
     ProgramInfoDelta
       .subscribe[F]()
       .processErrors("ProgramInfoDelta")

@@ -13,7 +13,6 @@ enum LoadStage(val label: String) derives Eq:
   case ProgramDetails        extends LoadStage("Program details")
   case Targets               extends LoadStage("Targets")
   case Attachments           extends LoadStage("Attachments")
-  case Programs              extends LoadStage("Program list")
   case ConfigurationRequests extends LoadStage("Configuration requests")
   case Preparing             extends LoadStage("Preparing program")
 
