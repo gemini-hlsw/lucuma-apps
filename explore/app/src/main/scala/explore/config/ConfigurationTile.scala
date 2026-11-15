@@ -960,7 +960,13 @@ object ConfigurationTile
                     SubaruExchangeConfigPanel(subaruAligner, optRevertConfig, props.permissions),
                   // SCORPIO is read only until the ODB can edit it.
                   props.observingMode.collect:
-                    case _: ObservingMode.ScorpioLongSlit => <.div("SCORPIO configuration")
+                    case _: ObservingMode.ScorpioLongSlit =>
+                      <.div(
+                        "SCORPIO configuration",
+                        optRevertConfig
+                          .filter(_ => props.permissions.isFullEdit)
+                          .map(RollbackOnlyConfigButtons(_))
+                      )
                 )
             )
           )
