@@ -129,7 +129,10 @@ object ImagingVariantEditor
         React.Fragment(
           TelescopeConfigGeneratorEditor(
             id = "grouped-offsets".refined,
-            label = "Offsets",
+            label = React.Fragment(
+              "Offsets",
+              HelpIcon("configuration/imaging/offsets.md".refined)
+            ),
             value = offsets,
             showCenter = false,
             readonly = props.readonly
