@@ -37,9 +37,14 @@ import observe.model.Notification
 import observe.model.Observation
 import observe.model.Observer
 import observe.model.SequenceStatus
+import observe.model.SequenceView
+import observe.model.SequencesQueue
 import observe.model.Subsystem
+import observe.model.UserPrompt
 import observe.model.enums.ObservatorySubsystem
 import observe.model.enums.RunOverride
+import observe.model.events.ClientEvent
+import observe.server.engine.Engine
 import observe.server.engine.EngineEvent
 import observe.server.engine.EventResult
 import observe.server.engine.SequenceState
@@ -50,6 +55,7 @@ import observe.server.odb.TestOdbProxy.DigestMode
 import observe.server.odb.TestOdbProxy.OdbRead
 
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 
 class SequenceSubsystemsSuite extends TestCommon:
@@ -874,3 +880,46 @@ class SequenceSubsystemsSuite extends TestCommon:
     assert(!status.isRunning)
     assert(!status.canUnload)
     assert(status.isInProcess)
+
+  test("a hold requested while a start is pending is refused and never applied"):
+    TestControl.executeEmbed:
+      for
+        f    <- fixture(
+                  List(gmosNorthObs(obs1, 2, darkConfig)),
+                  Map(obs1 -> DigestMode.Hanging)
+                )
+        _    <- load(f, Instrument.GmosNorth, obs1)
+        hold <- onStartPending(f.runner)(_.requestSequenceHold(obs1, observer, user))
+        r    <- f.runner.run(start(obs1), (r, _) => isComplete(obs1)(r), hold)
+      yield assertEquals(sequenceOf(r._2, obs1).seq.status, SequenceStatus.Completed)
+
+  test("a refused start sends the state to the clients along with the refusal"):
+    val svs: SequencesQueue[SequenceView] =
+      SequencesQueue(Map.empty, CurrentConditions.Default, none, SortedMap.empty, Nil)
+    val prompt: UserPrompt.ChecksOverride =
+      UserPrompt.ChecksOverride(
+        obs1,
+        UserPrompt.ChecksOverride.Action.StartSequence,
+        NonEmptyList.one(UserPrompt.TargetCheckOverride(UserPrompt.Discrepancy("here", "there")))
+      )
+    val refusals: List[SeqEvent]          =
+      List(
+        SeqEvent.Busy(obs1, clientId, Nil, Nil),
+        SeqEvent.RequestConfirmation(prompt, clientId),
+        SeqEvent.NotifyUser(Notification.LoadingFailed(obs1, List("error")), clientId)
+      )
+    for
+      f        <- fixture(Nil)
+      services <- defaultServices.map(_.copy(odb = f.odb))
+      rc       <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
+      tr       <- ObserveEngine.createTranslator(Site.GS, services, rc, ExecutionEnvironment.Development)
+      eng      <- Engine.build[IO](ObserveEngine.onStepComplete[IO](services.odb, tr))
+      impl      = new ObserveEngineImpl[IO](eng, services, defaultSettings, tr, rc)
+      sent     <- refusals.traverse(e => impl.toClientModifyEventStream(e, svs, f.odb).compile.toList)
+    yield sent.foreach: events =>
+      val hasState: Boolean =
+        events.exists: e =>
+          e.event match
+            case ClientEvent.ObserveState(_, _, _, _) => true
+            case _                                    => false
+      assert(hasState, s"No state among $events")

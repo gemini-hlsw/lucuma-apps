@@ -109,16 +109,21 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           NotifyUser(Notification.SequenceStarting(obsId, action), clientId)
       else handle
 
-  /** For the commands that carry no client: logged as a warning, which shows no toast. */
-  private def reportIfStarting(obsId: Observation.Id, action: String): F[Unit] =
+  /**
+   * Sends `events` unless `obsId` is starting, which is logged as a warning (no toast) since these
+   * commands carry no client. Decided in one engine step, so a refusal cannot race the start.
+   */
+  private def unlessStartingSend(obsId: Observation.Id, action: String)(
+    events: List[Event[F]]
+  ): F[Unit] =
     executeEngine.offer:
       Event.modifyState[F]:
         EngineHandle.getState.flatMap: st =>
-          EngineHandle
-            .liftF:
-              L.warn(s"Cannot $action observation $obsId while it is starting")
-                .whenA(isStarting(st, obsId))
-            .as[SeqEvent](NullSeqEvent)
+          if isStarting(st, obsId) then
+            EngineHandle
+              .liftF(L.warn(s"Cannot $action observation $obsId while it is starting"))
+              .as[SeqEvent](NullSeqEvent)
+          else EngineHandle.fromEvents[F](events*).as[SeqEvent](NullSeqEvent)
 
   /** Reads the digest, then starts the sequence with it; the fallback is told to the client. */
   private def startWithDigest(
@@ -635,9 +640,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     user:     User
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
-      reportIfStarting(obsId, "hold") *>
       setObserver(obsId, user, observer) *>
-      executeEngine.offer(Event.requestSequenceHold(obsId, user))
+      unlessStartingSend(obsId, "hold")(List(Event.requestSequenceHold(obsId, user)))
 
   override def cancelSequenceHoldRequest(
     obsId:    Observation.Id,
@@ -1005,30 +1009,37 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       odbProxy.getCurrentRecordedIds.map: recordedIds =>
         ObserveState.fromSequenceViewQueue(svs, recordedIds)
 
-  private def toClientModifyEventStream(
+  private[server] def toClientModifyEventStream(
     v:        SeqEvent,
     svs:      => SequencesQueue[SequenceView],
     odbProxy: OdbProxy[F]
   ): Stream[F, TargetedClientEvent] =
     v match
+      // A refused start ends `StartPending`, which every client has to see: the three cases below
+      // send the state too.
       case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), clientId) =>
-        Stream.emit(ClientEvent.ChecksOverrideEvent(c).forClient(clientId))
+        Stream.emit[F, TargetedClientEvent](
+          ClientEvent.ChecksOverrideEvent(c).forClient(clientId)
+        ) ++
+          buildObserveStateStream(svs, odbProxy)
       // case RequestConfirmation(m, clientId)        => Stream.emit(UserPromptNotification(m, clientId))
       case StartSubsystemConfig(oid, stepId, res)                                =>
         Stream.emit[F, TargetedClientEvent](
           SingleActionEvent(oid, stepId, res, ClientEvent.SingleActionState.Started, none)
         ) ++ buildObserveStateStream(svs, odbProxy)
       case NotifyUser(memo, clientId)                                            =>
-        Stream.emit(UserNotification(memo).forClient(clientId))
+        Stream.emit[F, TargetedClientEvent](UserNotification(memo).forClient(clientId)) ++
+          buildObserveStateStream(svs, odbProxy)
       case SeqEvent.SubsystemClash(obsId, stepId, subsystems)                    =>
         Stream.emit[F, TargetedClientEvent](
           ClientEvent.SubsystemClash(obsId, stepId, subsystems.toList)
         ) ++ buildObserveStateStream(svs, odbProxy)
       case Busy(obsId, clientId, subsystems, heldBy)                             =>
-        Stream.emit:
+        Stream.emit[F, TargetedClientEvent](
           ClientEvent
             .UserNotification(Notification.SubsystemConflict(obsId, subsystems, heldBy))
             .forClient(clientId)
+        ) ++ buildObserveStateStream(svs, odbProxy)
       case LoadSequence(obsId, clientId)                                         =>
         buildObserveStateStream(svs, odbProxy) ++
           svs.loaded
@@ -1182,23 +1193,20 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     graceful: Boolean
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Stop requested by ${user.displayName}") *>
-      reportIfStarting(obsId, "stop") *>
       setObserver(obsId, user, observer) *>
-      executeEngine.offer(
-        Event.getState: engineState =>
-          EngineState
-            .atSequence(obsId)
-            .andThen(SequenceData.seq)
-            .getOption(engineState)
-            .flatMap(_.loadedStep)
-            .foldMap(step => Stream.eval(services.odb.stepStop(obsId, step.id)))
-            .as(Event.nullEvent)
-      ) *>
-      executeEngine
-        .offer(Event.modifyState(setObsCmd(obsId, StopGracefully)))
-        .whenA(graceful) *>
-      executeEngine.offer:
-        Event.actionStop(obsId, translator.stopExposure(obsId, graceful))
+      unlessStartingSend(obsId, "stop"):
+        List(
+          Event.getState[F]: engineState =>
+            EngineState
+              .atSequence(obsId)
+              .andThen(SequenceData.seq)
+              .getOption(engineState)
+              .flatMap(_.loadedStep)
+              .foldMap(step => Stream.eval(services.odb.stepStop(obsId, step.id)))
+              .as(Event.nullEvent)
+        ) ++
+          Option.when(graceful)(Event.modifyState[F](setObsCmd(obsId, StopGracefully))).toList ++
+          List(Event.actionStop[F](obsId, translator.stopExposure(obsId, graceful)))
 
   override def abortExposure(
     obsId:    Observation.Id,
@@ -1206,10 +1214,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     user:     User
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Abort requested by ${user.displayName}") *>
-      reportIfStarting(obsId, "abort") *>
       setObserver(obsId, user, observer) *>
-      executeEngine.offer:
-        Event.actionStop(obsId, translator.abortExposure(obsId))
+      unlessStartingSend(obsId, "abort"):
+        List(Event.actionStop[F](obsId, translator.abortExposure(obsId)))
 
   override def pauseExposure(
     obsId:    Observation.Id,
