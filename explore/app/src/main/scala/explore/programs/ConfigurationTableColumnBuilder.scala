@@ -30,8 +30,8 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
       accessor: Configuration => V
     ) = colDef(id, r => accessor(getConfiguration(r)), ColumnNames(id))
 
-    val raFormat  = MathValidators.truncatedRA.reverseGet
-    val decFormat = MathValidators.truncatedDec.reverseGet
+    val raFormat  = MathValidators.roundedRA.reverseGet
+    val decFormat = MathValidators.roundedDec.reverseGet
 
     List(
       configurationColumn(RAColumnId, _.target.bimap(_.ra, _.raArc))

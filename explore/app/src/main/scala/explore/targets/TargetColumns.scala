@@ -181,11 +181,11 @@ object TargetColumns:
       val RaDecColumns: List[colDef.Type] =
         List(
           colDef(RAColumnId, d => getLocation(d).ra, RaDecColNames(RAColumnId))
-            .withCell(_.value.format(MathValidators.truncatedRA.reverseGet))
+            .withCell(_.value.format(MathValidators.roundedRA.reverseGet))
             .withSize(100.toPx)
             .sortable,
           colDef(DecColumnId, d => getLocation(d).dec, RaDecColNames(DecColumnId))
-            .withCell(_.value.format(MathValidators.truncatedDec.reverseGet))
+            .withCell(_.value.format(MathValidators.roundedDec.reverseGet))
             .withSize(100.toPx)
             .sortable,
           colDef(EpochColumnId, d => getLocation(d).epoch, RaDecColNames(EpochColumnId))

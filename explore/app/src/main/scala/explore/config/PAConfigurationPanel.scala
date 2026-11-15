@@ -174,7 +174,7 @@ object PAConfigurationPanel:
             disabled = finalReadOnly,
             codec = inputCodecs.PositionAngleDegrees,
             onTextChange = text =>
-              MathValidators.truncatedAngleDegrees
+              MathValidators.roundedAngleDegrees
                 .getValid(text)
                 .toOption
                 .filter(_ =!= pa.get)

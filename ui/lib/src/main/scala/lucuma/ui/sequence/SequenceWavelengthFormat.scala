@@ -28,7 +28,7 @@ object SequenceWavelengthFormat:
       "nm",
       SequenceRowFormatters.FormatWavelength(_).value,
       InputValidWedge
-        .truncatedBigDecimal(1.refined)
+        .roundedBigDecimal(1.refined)
         .andThen(
           ValidWedge
             .fromFormat(Wavelength.decimalNanometers, _ => "Invalid Wavelength".refined[NonEmpty])

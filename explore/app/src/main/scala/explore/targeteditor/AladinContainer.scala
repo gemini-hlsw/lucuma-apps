@@ -733,8 +733,8 @@ object AladinContainer extends AladinCommon {
 
         val skyPositionTargets: List[SvgTarget] =
           props.obsTimeCoords.skySlots.map: (slot, c) =>
-            val raStr  = MathValidators.truncatedRA.reverseGet(c.ra)
-            val decStr = MathValidators.truncatedDec.reverseGet(c.dec)
+            val raStr  = MathValidators.roundedRA.reverseGet(c.ra)
+            val decStr = MathValidators.roundedDec.reverseGet(c.dec)
             // Dim/dash the marker while its assignment is still optimistic (mutation in flight).
             val css    = ExploreStyles.SkyPositionPending.when_(props.pendingSlots.contains(slot))
             SvgTarget

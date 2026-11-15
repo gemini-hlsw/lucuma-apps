@@ -15,8 +15,8 @@ case class MaskSlitTooltip(slit: MaskDesignSlit) extends ReactFnProps(MaskSlitTo
 object MaskSlitTooltip
     extends ReactFnComponent[MaskSlitTooltip](p =>
       val role   = if (p.slit.isAcquisition) "Acquisition" else "Science"
-      val raStr  = MathValidators.truncatedRA.reverseGet(p.slit.coordinates.ra)
-      val decStr = MathValidators.truncatedDec.reverseGet(p.slit.coordinates.dec)
+      val raStr  = MathValidators.roundedRA.reverseGet(p.slit.coordinates.ra)
+      val decStr = MathValidators.roundedDec.reverseGet(p.slit.coordinates.dec)
 
       <.div(
         <.div(s"Slit ${p.slit.id} · $role"),

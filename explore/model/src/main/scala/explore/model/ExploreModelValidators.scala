@@ -70,7 +70,7 @@ object ExploreModelValidators:
 
   val ditherValidWedge: InputValidWedge[WavelengthDither] =
     InputValidWedge
-      .truncatedBigDecimal(decimals = 1.refined)
+      .roundedBigDecimal(decimals = 1.refined)
       .andThen(
         WavelengthDither.decimalNanometers,
         _ => NonEmptyChain("Invalid dither value".refined[NonEmpty])
@@ -85,7 +85,7 @@ object ExploreModelValidators:
 
   val hoursValidWedge: InputValidWedge[BigDecimal Refined HourRange] =
     InputValidWedge
-      .truncatedBigDecimal(decimals = 2.refined)
+      .roundedBigDecimal(decimals = 2.refined)
       .andThen(
         ValidSplitEpi
           .forRefined[String, BigDecimal, HourRange](_ => "Invalid hour value")
@@ -94,7 +94,7 @@ object ExploreModelValidators:
 
   val wavelengthMicroValidWedge: InputValidWedge[Wavelength] =
     InputValidWedge
-      .truncatedBigDecimal(4.refined)
+      .roundedBigDecimal(4.refined)
       .andThen(
         ValidWedge
           .fromFormat(Wavelength.decimalMicrometers, _ => "Invalid Wavelength".refined[NonEmpty])
@@ -103,7 +103,7 @@ object ExploreModelValidators:
 
   val wavelengthNanoValidWedge: InputValidWedge[Wavelength] =
     InputValidWedge
-      .truncatedBigDecimal(1.refined)
+      .roundedBigDecimal(1.refined)
       .andThen(
         ValidWedge
           .fromFormat(Wavelength.decimalNanometers, _ => "Invalid Wavelength".refined[NonEmpty])
@@ -112,7 +112,7 @@ object ExploreModelValidators:
 
   val wavelengthAngstromValidWedge: InputValidWedge[Wavelength] =
     InputValidWedge
-      .truncatedBigDecimal(0.refined)
+      .roundedBigDecimal(0.refined)
       .andThen(
         ValidWedge
           .fromFormat(Wavelength.decimalAngstroms, _ => "Invalid Wavelength".refined[NonEmpty])
@@ -129,7 +129,7 @@ object ExploreModelValidators:
       )(Angle.signedDecimalArcseconds.get)
 
     InputValidWedge
-      .truncatedBigDecimal(2.refined)
+      .roundedBigDecimal(2.refined)
       .andThen(ValidWedge.fromPrism(prism, _ => message).toErrorsValidWedge)
 
   val decimalArcsecondsValidWedge: InputValidWedge[Angle] =
@@ -186,7 +186,7 @@ object ExploreModelValidators:
   val pxValidWedge: InputValidWedge[Parallax] =
     compactDecimalStringValidWedge.andThen(
       InputValidWedge
-        .truncatedBigDecimal(3.refined)
+        .roundedBigDecimal(3.refined)
         .andThen(
           Parallax.milliarcseconds.reverse,
           _ => NonEmptyChain("Invalid parallax".refined[NonEmpty])
@@ -196,7 +196,7 @@ object ExploreModelValidators:
   val pmRAValidWedge: InputValidWedge[ProperMotion.RA] =
     compactDecimalStringValidWedge.andThen(
       InputValidWedge
-        .truncatedBigDecimal(3.refined)
+        .roundedBigDecimal(3.refined)
         .andThen(
           ProperMotion.RA.milliarcsecondsPerYear.reverse,
           _ => NonEmptyChain("Invalid right ascencion velocity".refined[NonEmpty])
@@ -206,7 +206,7 @@ object ExploreModelValidators:
   val pmDecValidWedge: InputValidWedge[ProperMotion.Dec] =
     compactDecimalStringValidWedge.andThen(
       InputValidWedge
-        .truncatedBigDecimal(3.refined)
+        .roundedBigDecimal(3.refined)
         .andThen(
           ProperMotion.Dec.milliarcsecondsPerYear.reverse,
           _ => NonEmptyChain("Invalid declination velocity".refined[NonEmpty])

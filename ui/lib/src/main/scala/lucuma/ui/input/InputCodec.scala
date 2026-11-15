@@ -71,10 +71,10 @@ object InputCodec:
   /** Plain text, no parsing and no mask. */
   val Text: InputCodec[String] = InputCodec(InputValidSplitEpi.id)
 
-  val TruncatedRa: InputCodec[RightAscension] =
-    MathValidators.truncatedRA.toCodec.withRegexMask(Masks.Ra)
+  val RoundedRa: InputCodec[RightAscension] =
+    MathValidators.roundedRA.toCodec.withRegexMask(Masks.Ra)
 
-  val TruncatedDec: InputCodec[Declination] =
-    MathValidators.truncatedDec.toCodec.withRegexMask(Masks.Dec)
+  val RoundedDec: InputCodec[Declination] =
+    MathValidators.roundedDec.toCodec.withRegexMask(Masks.Dec)
 
 extension [A](valid: InputValidFormat[A]) def toCodec: InputCodec[A] = InputCodec(valid)
