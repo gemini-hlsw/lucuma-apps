@@ -533,7 +533,23 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.ScorpioLongSlit                                         =>
-            none
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                Css.Empty
+
+            (probeVisibilityCss,
+             ScorpioGeometry.scorpioGeometry(
+               baseCoords,
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               vizConf.flatMap(_.guideProbe),
+               selectedGS,
+               patrolFieldIntersection,
+               candidatesVisibilityCss
+             )
+            ).some
           case _: ExchangeObservingModeType | _: DaytimeCalibrationObservingModeType     =>
             none
   }.map(_.value)

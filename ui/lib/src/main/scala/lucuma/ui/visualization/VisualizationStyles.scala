@@ -68,6 +68,11 @@ object VisualizationStyles:
   val Igrins2CandidatesArea: Css        = Css("igrins2-candidates-area")
   val Igrins2CandidatesAreaVisible: Css = Css("igrins2-candidates-area-visible")
 
+  // SCORPIO-specific styles
+  val ScorpioScienceSlit: Css           = Css("scorpio-science-slit")
+  val ScorpioCandidatesArea: Css        = Css("scorpio-candidates-area")
+  val ScorpioCandidatesAreaVisible: Css = Css("scorpio-candidates-area-visible")
+
   // GNIRS-specific styles
   val GnirsScienceSlit: Css           = Css("gnirs-science-slit")
   val GnirsCandidatesArea: Css        = Css("gnirs-candidates-area")
