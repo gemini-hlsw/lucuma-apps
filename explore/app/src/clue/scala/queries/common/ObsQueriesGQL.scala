@@ -74,6 +74,7 @@ object ObsQueriesGQL:
         $$includeGnirsLongSlit: Boolean!,
         $$includeGnirsIfu: Boolean!,
         $$includeGhostIfu: Boolean!,
+        $$includeScorpioLongSlit: Boolean!,
         $$includeVisitor: Boolean!,
         $$includeExchange: Boolean!,
         $$includeDaytimeCalibration: Boolean!

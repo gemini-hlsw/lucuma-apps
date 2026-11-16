@@ -7,6 +7,7 @@ import io.circe.parser.decode
 import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.ScorpioFpu
 import munit.FunSuite
 
 class BasicConfigurationSuite extends FunSuite:
@@ -48,6 +49,23 @@ class BasicConfigurationSuite extends FunSuite:
     decode[BasicConfiguration](json) match
       case Right(_: BasicConfiguration.GhostIfu) => ()
       case other                                 => fail(s"Expected GhostIfu, got: $other")
+
+  test("scorpioLongSlit decodes as ScorpioLongSlit"):
+    val json = """{
+      "igrins2LongSlit": null,
+      "ghostIfu": null,
+      "scorpioLongSlit": { "fpu": "LONG_SLIT_0_72" },
+      "visitor": null,
+      "exchange": null
+    }"""
+    assertEquals(
+      decode[BasicConfiguration](json),
+      Right(BasicConfiguration.ScorpioLongSlit(ScorpioFpu.LongSlit_0_72))
+    )
+
+  test("a null scorpioLongSlit is not decoded as ScorpioLongSlit"):
+    val json = """{ "igrins2LongSlit": null, "ghostIfu": null, "scorpioLongSlit": null }"""
+    assert(decode[BasicConfiguration](json).isLeft)
 
   test("exchange decodes as KeckExchange"):
     val json = """{

@@ -123,6 +123,9 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
               binning
             }
           }
+          scorpioLongSlit {
+            fpu
+          }
           visitor {
             mode
             centralWavelength $WavelengthSubquery

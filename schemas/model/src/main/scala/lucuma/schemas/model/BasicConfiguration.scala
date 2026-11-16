@@ -70,6 +70,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GnirsImaging       => Site.GN.some
     case _: BasicConfiguration.GnirsSpectroscopy  => Site.GN.some
     case BasicConfiguration.Igrins2LongSlit       => Site.GN.some
+    case _: BasicConfiguration.ScorpioLongSlit    => Site.GS.some
     case v: BasicConfiguration.Visitor            => v.site.some
     case _: BasicConfiguration.KeckExchange       => none
     case _: BasicConfiguration.SubaruExchange     => none
@@ -91,6 +92,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GnirsImaging       => ObservingModeType.GnirsImaging
     case g: BasicConfiguration.GnirsSpectroscopy  => g.gnirsObsModeType
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
+    case _: BasicConfiguration.ScorpioLongSlit    => ObservingModeType.ScorpioLongSlit
     case v: BasicConfiguration.Visitor            => v.mode
     case _: BasicConfiguration.KeckExchange       => ObservingModeType.ExchangeKeck
     case _: BasicConfiguration.SubaruExchange     => ObservingModeType.ExchangeSubaru
@@ -115,6 +117,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       CentralWavelength(filter.wavelength).some
     case BasicConfiguration.Igrins2LongSlit                           =>
       CentralWavelength(Igrins2CentralWavelength).some
+    case _: BasicConfiguration.ScorpioLongSlit                        =>
+      CentralWavelength(ScorpioFilter.R.wavelength).some
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       CentralWavelength(GhostCentralWavelength).some
     case BasicConfiguration.GnirsSpectroscopy(centralWavelength = cw) =>
@@ -189,6 +193,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
       AGSWavelength(Igrins2CentralWavelength)
+    case _: BasicConfiguration.ScorpioLongSlit                        =>
+      AGSWavelength(ScorpioFilter.R.wavelength)
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       AGSWavelength(GhostCentralWavelength)
     case gnirs: BasicConfiguration.GnirsSpectroscopy                  =>
@@ -229,6 +235,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       filter.wavelength
     case BasicConfiguration.Igrins2LongSlit                           =>
       Igrins2CentralWavelength
+    case _: BasicConfiguration.ScorpioLongSlit                        =>
+      ScorpioFilter.R.wavelength
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       GhostCentralWavelength
     case gnirs: BasicConfiguration.GnirsSpectroscopy                  =>
@@ -315,6 +323,8 @@ object BasicConfiguration:
             c.downField("gnirsIfu").as[GnirsSpectroscopy]
           .orElse:
             c.downField("ghostIfu").as[GhostIfu]
+          .orElse:
+            c.downField("scorpioLongSlit").as[ScorpioLongSlit]
           .orElse:
             c.downField("visitor").as[Visitor]
           .orElse:
@@ -477,6 +487,12 @@ object BasicConfiguration:
     given Decoder[Igrins2LongSlit.type] = Decoder.instance: c =>
       if c.value.isNull then DecodingFailure("igrins2LongSlit is null", c.history).asLeft
       else Igrins2LongSlit.asRight
+
+  case class ScorpioLongSlit(fpu: ScorpioFpu) extends BasicConfiguration derives Eq
+
+  object ScorpioLongSlit:
+    given Decoder[ScorpioLongSlit] = Decoder.instance: c =>
+      c.downField("fpu").as[ScorpioFpu].map(ScorpioLongSlit(_))
 
   case class GnirsSpectroscopy(
     filter:            GnirsFilter,
@@ -685,6 +701,9 @@ object BasicConfiguration:
 
   val ghostIfu: Prism[BasicConfiguration, GhostIfu] =
     GenPrism[BasicConfiguration, GhostIfu]
+
+  val scorpioLongSlit: Prism[BasicConfiguration, ScorpioLongSlit] =
+    GenPrism[BasicConfiguration, ScorpioLongSlit]
 
   val visitor: Prism[BasicConfiguration, Visitor] =
     GenPrism[BasicConfiguration, Visitor]

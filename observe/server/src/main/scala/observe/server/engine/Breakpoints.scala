@@ -59,6 +59,7 @@ object Breakpoints:
       case InstrumentExecutionConfig.Gnirs(ec)      => f(ec)
       case InstrumentExecutionConfig.Visitor(_)     => default
       case InstrumentExecutionConfig.Exchange       => default
+      case InstrumentExecutionConfig.Scorpio(_)     => default
 
   /** The breakpoints of both sequences of `config`, as on load. */
   def fromInstrumentExecutionConfig(config: InstrumentExecutionConfig): Breakpoints =

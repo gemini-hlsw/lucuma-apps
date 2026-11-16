@@ -406,6 +406,8 @@ trait DisplayImplicits:
       s"IGRINS-2"
     case BasicConfiguration.GhostIfu(resolutionMode = rm)                          =>
       s"GHOST IFU ${rm.shortName}"
+    case BasicConfiguration.ScorpioLongSlit(fpu)                                   =>
+      s"SCORPIO ${fpu.shortName}"
     case BasicConfiguration.GnirsSpectroscopy(_, fpu, prism, grating, camera, cwl) =>
       // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU> <IF Altair AO:mode>
       // For example:

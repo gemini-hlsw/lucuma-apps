@@ -144,6 +144,7 @@ object ConfigurationTableColumnBuilder {
       case GnirsLongSlit(_, _, _) => "LongSlit"
       case GnirsIfu(_, _)         => "IFU"
       case GnirsImaging(_, _)     => "Imaging"
+      case ScorpioLongSlit(_)     => "LongSlit"
       case Visitor(_, _)          => ""
 
     /**
@@ -168,6 +169,7 @@ object ConfigurationTableColumnBuilder {
       case GnirsImaging(camera, filters)         =>
         s"${camera.shortName}: ${filters.map(_.shortName).mkString(", ")}"
       case Igrins2LongSlit                       => ""
+      case ScorpioLongSlit(fpu)                  => fpu.shortName
       case Visitor(_, _)                         => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =

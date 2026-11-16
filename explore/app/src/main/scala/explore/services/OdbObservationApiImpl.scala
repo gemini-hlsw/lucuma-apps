@@ -478,6 +478,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         includeGnirsLongSlit = flags.gnirsLongSlit,
         includeGnirsIfu = flags.gnirsIfu,
         includeGhostIfu = flags.ghostIfu,
+        includeScorpioLongSlit = flags.scorpioLongSlit,
         includeVisitor = flags.visitor,
         includeExchange = flags.exchange,
         includeDaytimeCalibration = flags.daytimeCalibration
@@ -549,6 +550,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     gnirsLongSlit:      Boolean = false,
     gnirsIfu:           Boolean = false,
     ghostIfu:           Boolean = false,
+    scorpioLongSlit:    Boolean = false,
     visitor:            Boolean = false,
     exchange:           Boolean = false,
     daytimeCalibration: Boolean = false
@@ -585,6 +587,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       case ObservingModeInput.GnirsSpectroscopy(_)  =>
         sys.error("Deprecated gnirsSpectroscopy input; use gnirsLongSlit or gnirsIfu")
       case ObservingModeInput.GhostIfu(_)           => ObservingModeType.GhostIfu.some
+      case ObservingModeInput.ScorpioLongSlit(_)    => ObservingModeType.ScorpioLongSlit.some
       case ObservingModeInput.Visitor(_)            => none
       case ObservingModeInput.Exchange(_)           => none
       case ObservingModeInput.DaytimeCalibration(_) => none
@@ -625,6 +628,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(gnirsIfu = true)
       case ObservingModeType.GhostIfu                                        =>
         ModeViewFlags(ghostIfu = true)
+      case ObservingModeType.ScorpioLongSlit                                 =>
+        ModeViewFlags(scorpioLongSlit = true)
       case ObservingModeType.ExchangeKeck | ObservingModeType.ExchangeSubaru =>
         ModeViewFlags(exchange = true)
       case ObservingModeType.AlopekeSpeckle | ObservingModeType.AlopekeWideField |
@@ -662,6 +667,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeGnirsLongSlit = flags.gnirsLongSlit,
             includeGnirsIfu = flags.gnirsIfu,
             includeGhostIfu = flags.ghostIfu,
+            includeScorpioLongSlit = flags.scorpioLongSlit,
             includeVisitor = flags.visitor,
             includeExchange = flags.exchange,
             includeDaytimeCalibration = flags.daytimeCalibration

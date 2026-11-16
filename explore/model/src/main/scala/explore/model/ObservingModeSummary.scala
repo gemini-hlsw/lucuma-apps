@@ -34,6 +34,7 @@ import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.KeckInstrument
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.ScorpioFpu
 import lucuma.core.enums.SubaruInstrument
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
@@ -66,6 +67,7 @@ import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
 import lucuma.schemas.ObservationDB.Types.GnirsLongSlitInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
+import lucuma.schemas.ObservationDB.Types.ScorpioLongSlitInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ImagingVariant
@@ -174,6 +176,13 @@ enum ObservingModeSummary derives Order:
     red:            ObservingMode.GhostIfu.GhostDetector,
     blue:           ObservingMode.GhostIfu.GhostDetector
   )                                                        extends ObservingModeSummary
+  case ScorpioLongSlit(
+    fpu: ScorpioFpu,
+    g:   ExposureTimeMode,
+    r:   ExposureTimeMode,
+    i:   ExposureTimeMode,
+    z:   ExposureTimeMode
+  )                                                        extends ObservingModeSummary
   case Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
@@ -207,6 +216,7 @@ enum ObservingModeSummary derives Order:
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(_)) => ObservingModeType.GnirsLongSlit
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(_))  => ObservingModeType.GnirsIfu
     case GhostIfu(_, _, _, _)                                   => ObservingModeType.GhostIfu
+    case ScorpioLongSlit(_, _, _, _, _)                         => ObservingModeType.ScorpioLongSlit
     case Visitor(mode, _, _, _)                                 => mode
     case KeckExchange(_)                                        => ObservingModeType.ExchangeKeck
     case SubaruExchange(_)                                      => ObservingModeType.ExchangeSubaru
@@ -372,6 +382,16 @@ enum ObservingModeSummary derives Order:
           blue = blue.toInput.assign
         )
       )
+    case ScorpioLongSlit(fpu, g, r, i, z)                                                  =>
+      ObservingModeInput.ScorpioLongSlit(
+        ScorpioLongSlitInput(
+          fpu = fpu.assign,
+          g = g.toInput.assign,
+          r = r.toInput.assign,
+          i = i.toInput.assign,
+          z = z.toInput.assign
+        )
+      )
     case Visitor(mode, centralWavelength, agsDiameter, name)                               =>
       ObservingModeInput.Visitor(
         VisitorInput(
@@ -496,6 +516,8 @@ enum ObservingModeSummary derives Order:
               s"(${tAndC.count} x ${tAndC.time.toSeconds.toInt}s/step ${formatAt(tAndC.at)})"
             s"${detector.readMode.shortName} ${detector.binning.shortName} $tAndCSummary"
         s"GHOST IFU ${resolutionMode.shortName}\n${steps.value} steps\nBlue: ${blue.summary}\nRed: ${red.summary}"
+      case ScorpioLongSlit(fpu, g, r, i, z)                                                  =>
+        s"SCORPIO Longslit ${fpu.shortName}\ng: ${g.formatSpec}\nr: ${r.formatSpec}\ni: ${i.formatSpec}\nz: ${z.formatSpec}"
       case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                  =>
         s"Gemini North Visitor: ${name.value}"
       case Visitor(VisitorObservingModeType.VisitorSouth, _, _, Some(name))                  =>
@@ -640,6 +662,8 @@ object ObservingModeSummary:
         )
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)
+      case s: ObservingMode.ScorpioLongSlit    =>
+        ScorpioLongSlit(s.fpu, s.g, s.r, s.i, s.z)
       case v: ObservingMode.Visitor            =>
         Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.name)
       case k: ObservingMode.KeckExchange       =>
@@ -707,6 +731,8 @@ object ObservingModeSummary:
       s"GNIRS Spec ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
     case GhostIfu(resolutionMode, _, _, _)                                               =>
       s"GHOST IFU ${resolutionMode.shortName}"
+    case ScorpioLongSlit(fpu = fpu)                                                      =>
+      s"SCORPIO Longslit ${fpu.shortName}"
     case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                =>
       s"Gemini North Visitor: ${name.value}"
     case Visitor(VisitorObservingModeType.VisitorSouth, _, _, Some(name))                =>

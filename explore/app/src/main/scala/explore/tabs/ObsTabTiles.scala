@@ -593,6 +593,10 @@ object ObsTabTiles:
         val isVisitorMode: Boolean =
           props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
 
+        // TODO Remove once the ODB generates SCORPIO sequences.
+        val isScorpioMode: Boolean =
+          props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.ScorpioLongSlit])
+
         val awaitingAltairGuideStar: Boolean =
           AltairControls.itcAwaitingGuideStar(obsConf.altair, altairItcParameters)
 
@@ -633,10 +637,11 @@ object ObsTabTiles:
                 awaitingAltairGuideStar,
                 globalPreferences
               ).some
-            // Visitor, exchange and daytime calibration modes have no ITC, hide the itc tile.
+            // Visitor, exchange, daytime calibration and SCORPIO modes have no ITC.
             case Some(_: BasicConfiguration.Visitor) | Some(_: BasicConfiguration.KeckExchange) |
                 Some(_: BasicConfiguration.SubaruExchange) |
-                Some(_: BasicConfiguration.DaytimeCalibration) =>
+                Some(_: BasicConfiguration.DaytimeCalibration) |
+                Some(_: BasicConfiguration.ScorpioLongSlit) =>
               none
             case None => ItcEmptyTile().some
 
@@ -950,7 +955,7 @@ object ObsTabTiles:
             section,
             props.backButton.some
           ),
-          if isVisitorMode then EmptyVdom // Visitors have no sequences
+          if isVisitorMode || isScorpioMode then EmptyVdom // Visitors have no sequences
           else
             TileController(
               props.vault.userId,

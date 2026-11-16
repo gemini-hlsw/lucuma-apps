@@ -87,6 +87,8 @@ case class ObsSummary(
           s"${camera.shortName} ${filters.map(_.shortName).toList.mkString(", ")}".some
         case BasicConfiguration.Igrins2LongSlit                       =>
           none
+        case BasicConfiguration.ScorpioLongSlit(fpu)                  =>
+          fpu.shortName.some
         case BasicConfiguration.GhostIfu(resolutionMode, _, _, _, _)  =>
           resolutionMode.shortName.some
         case BasicConfiguration.Visitor(mode, _, _, _)                =>
