@@ -143,34 +143,44 @@ object ObsQueriesGql:
     """
 
   // Only what classifying the steps left to execute needs, for the subsystems a sequence holds.
+  // The caller includes only its instrument, so the server resolves a single branch.
   @GraphQL
   trait RemainingStepsQuery extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+      query(
+        $$obsId: ObservationId!,
+        $$futureLimit: NonNegInt!,
+        $$includeGmosNorth: Boolean!,
+        $$includeGmosSouth: Boolean!,
+        $$includeFlamingos2: Boolean!,
+        $$includeIgrins2: Boolean!,
+        $$includeGnirs: Boolean!,
+        $$includeGhost: Boolean!
+      ) {
         executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
-          gmosNorth {
+          gmosNorth @include(if: $$includeGmosNorth) {
             static { nodAndShuffle { shuffleCycles } }
             acquisition $RemainingSequenceSubquery
             science $RemainingSequenceSubquery
           }
-          gmosSouth {
+          gmosSouth @include(if: $$includeGmosSouth) {
             static { nodAndShuffle { shuffleCycles } }
             acquisition $RemainingSequenceSubquery
             science $RemainingSequenceSubquery
           }
-          flamingos2 {
+          flamingos2 @include(if: $$includeFlamingos2) {
             acquisition $RemainingSequenceSubquery
             science $RemainingSequenceSubquery
           }
-          igrins2 {
+          igrins2 @include(if: $$includeIgrins2) {
             acquisition $RemainingSequenceSubquery
             science $RemainingSequenceSubquery
           }
-          gnirs {
+          gnirs @include(if: $$includeGnirs) {
             acquisition $RemainingSequenceSubquery
             science $RemainingSequenceSubquery
           }
-          ghost {
+          ghost @include(if: $$includeGhost) {
             science $RemainingSequenceSubquery
           }
         }

@@ -14,9 +14,9 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.RemainingSequenceSubquery
+import lucuma.schemas.odb.RemainingStepSubquery
 import observe.common.ObsQueriesGql.*
-import observe.common.RemainingSequenceSubquery
-import observe.common.RemainingStepSubquery
 import observe.model.dhs.*
 import observe.server.ObserveFailure
 
@@ -180,7 +180,16 @@ object OdbProxy {
       ): F[RemainingSteps] =
         evCmds.flushEvents(oid) >>
           RemainingStepsQuery[F]
-            .query(oid, FullFuture)
+            .query(
+              oid,
+              FullFuture,
+              includeGmosNorth = instrument === Instrument.GmosNorth,
+              includeGmosSouth = instrument === Instrument.GmosSouth,
+              includeFlamingos2 = instrument === Instrument.Flamingos2,
+              includeIgrins2 = instrument === Instrument.Igrins2,
+              includeGnirs = instrument === Instrument.Gnirs,
+              includeGhost = instrument === Instrument.Ghost
+            )
             .raiseGraphQLErrors
             .flatMap:
               _.executionConfig

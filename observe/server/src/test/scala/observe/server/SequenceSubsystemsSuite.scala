@@ -30,7 +30,7 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.syntax.timespan.*
-import observe.common.RemainingStepSubquery
+import lucuma.schemas.odb.RemainingStepSubquery
 import observe.common.test.*
 import observe.model.CurrentConditions
 import observe.model.Notification
