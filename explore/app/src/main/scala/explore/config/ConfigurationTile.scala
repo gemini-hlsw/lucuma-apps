@@ -973,10 +973,12 @@ object ConfigurationTile
                   // SCORPIO Long Slit
                   optScorpioAligner.map: scorpioAligner =>
                     ScorpioLongSlitConfigPanel(
+                      props.obsConf.calibrationRole,
                       scorpioAligner,
                       optRevertConfig,
                       props.sequenceChanged,
-                      props.permissions
+                      props.permissions,
+                      props.units
                     )
                 )
             )

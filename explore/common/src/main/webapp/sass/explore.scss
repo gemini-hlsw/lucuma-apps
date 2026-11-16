@@ -2321,6 +2321,37 @@ svg.fa-check.explore-success-icon {
     border-bottom: 1px solid var(--site-border-color);
   }
 
+  .explore-scorpio-channel-grid {
+    display: grid;
+    gap: 0.5em;
+    align-items: center;
+    align-self: start;
+
+    // Equal rows make the title as tall as an input, matching the offsets header next to it.
+    grid-auto-rows: 1fr;
+    grid-template-columns: [channel] auto [time] 1fr [count] 1fr;
+
+    .pl-form-field {
+      width: 100%;
+    }
+
+    .explore-scorpio-channel-title {
+      grid-column: 1 / -1;
+    }
+
+    .explore-scorpio-channel-label {
+      grid-column: channel;
+    }
+
+    .explore-etm-time {
+      grid-column: time;
+    }
+
+    .explore-etm-count {
+      grid-column: count;
+    }
+  }
+
   // Read only generated daytime calibrations have no acquisition nor buttons below the divider
   .explore-gmos-spectroscopy-upper-grid,
   .explore-imaging-upper-grid,
