@@ -21,7 +21,7 @@ import lucuma.ui.primereact.given
 
 final case class TelescopeConfigGeneratorEditor(
   id:          NonEmptyString,
-  label:       String,
+  label:       VdomNode,
   value:       View[Option[TelescopeConfigGenerator]],
   showCenter:  Boolean,
   readonly:    Boolean,
