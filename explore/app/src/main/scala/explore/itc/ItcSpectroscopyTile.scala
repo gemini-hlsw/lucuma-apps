@@ -294,7 +294,8 @@ object ItcSpectroscopyTile
               showCoadds,
               graphResult.graphCcds,
               graphResult.finalSNRatio,
-              graphResult.singleSNRatio
+              graphResult.singleSNRatio,
+              ccdLabels
             ),
             ItcSpectroscopyPlot(
               graphResult.graphCcds,

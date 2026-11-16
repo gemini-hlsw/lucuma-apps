@@ -5,6 +5,7 @@ package explore.itc
 
 import cats.data.NonEmptyChain
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.components.ui.ExploreStyles
 import explore.model.itc.ItcExposureTime
 import explore.model.itc.math.*
@@ -24,7 +25,8 @@ case class ItcSpectroscopyPlotDescription(
   showCoadds:   Boolean,
   ccds:         NonEmptyChain[ItcCcd],
   finalSN:      TotalSN,
-  singleSN:     SingleSN
+  singleSN:     SingleSN,
+  ccdLabels:    Map[NonNegInt, String]
 ) extends ReactFnProps[ItcSpectroscopyPlotDescription](ItcSpectroscopyPlotDescription)
 
 object ItcSpectroscopyPlotDescription
@@ -43,9 +45,15 @@ object ItcSpectroscopyPlotDescription
 
       val ccds: String = s"${props.ccds.maxPeakPixelFlux} 𝐞⁻ (${props.ccds.maxADU} ADU)"
 
-      val warningsWithCcd: List[(Int, String)] =
+      // Instruments with one CCD per arm (GHOST, IGRINS-2) label the warnings by arm.
+      def ccdLabel(index: Int): String =
+        props.ccdLabels
+          .collectFirst { case (i, label) if i.value === index => label }
+          .getOrElse(s"CCD ${index + 1}")
+
+      val warningsWithCcd: List[(String, String)] =
         props.ccds.toNonEmptyList.toList.zipWithIndex.flatMap { case (ccd, index) =>
-          ccd.warnings.map(w => (index + 1, w.msg))
+          ccd.warnings.map(w => (ccdLabel(index), w.msg))
         }.distinct
 
       <.div(
@@ -64,8 +72,8 @@ object ItcSpectroscopyPlotDescription
           .when(warningsWithCcd.nonEmpty),
         <.span(
           ExploreStyles.ItcPlotDescriptionWarnings,
-          warningsWithCcd.map { case (ccdIndex, msg) =>
-            <.div(ExploreStyles.WarningIcon, s"CCD $ccdIndex: $msg")
+          warningsWithCcd.map { case (ccd, msg) =>
+            <.div(ExploreStyles.WarningIcon, s"$ccd: $msg")
           }.toReactFragment
         )
       )
