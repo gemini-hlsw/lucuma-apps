@@ -96,7 +96,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): SeqEvent =
     Busy(obsId, clientId, conflict.toList, ObserveEngine.heldByOther(st, obsId, conflict))
 
-  private def isStarting(st: EngineState[F], obsId: Observation.Id): Boolean =
+  private def isStartPending(st: EngineState[F], obsId: Observation.Id): Boolean =
     st.sequences.get(obsId).exists(_.seq.status.isStartPending)
 
   /** Runs `handle` unless `obsId` is starting, which the client is told instead. */
@@ -104,7 +104,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     handle: EngineHandle[F, SeqEvent]
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap: st =>
-      if isStarting(st, obsId) then
+      if isStartPending(st, obsId) then
         EngineHandle.pure[F, SeqEvent]:
           NotifyUser(Notification.SequenceStarting(obsId, action), clientId)
       else handle
@@ -119,7 +119,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     executeEngine.offer:
       Event.modifyState[F]:
         EngineHandle.getState.flatMap: st =>
-          if isStarting(st, obsId) then
+          if isStartPending(st, obsId) then
             EngineHandle
               .liftF(L.warn(s"Cannot $action observation $obsId while it is starting"))
               .as[SeqEvent](NullSeqEvent)
@@ -440,7 +440,20 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                   .get(obsId)
                   .map(_.seq.status)
                   .exists(status => status.isIdle || status.isError || status.isCompleted)
+              // Starting again would run the step's actions next to the ones still in flight.
+              val finishing: Boolean =
+                st.sequences.get(obsId).exists(ObserveEngine.hasActionsInFlight)
               if !startable then EngineHandle.pure[F, SeqEvent](NullSeqEvent)
+              else if finishing then
+                EngineHandle.pure[F, SeqEvent]:
+                  NotifyUser(
+                    Notification.ActionFailed(
+                      obsId,
+                      "start the sequence",
+                      "an action of its previous step is still running"
+                    ),
+                    clientId
+                  )
               else
                 // The digest is read before the step, and as an engine stream so that its wait
                 // does not stall the other sequences. Until it arrives the start is pending.

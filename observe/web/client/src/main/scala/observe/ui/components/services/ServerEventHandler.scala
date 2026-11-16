@@ -294,9 +294,12 @@ trait ServerEventHandler:
         playAudio(Audio.SequenceComplete)
       case ClientEvent.SequenceFailed(_, errorMsg)                                        =>
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
-      // The message arrives as a server error log, which shows the toast and the log line.
-      case ClientEvent.SubsystemClash(_, _, _)                                            =>
-        playAudio(Audio.SequenceError)
+      // The server logs it as a warning, which gives the line in the log panel.
+      case ClientEvent.SubsystemClash(obsId, stepId, subsystems)                          =>
+        val msg: String =
+          s"Observation $obsId was held before step $stepId: ${subsystemNames(subsystems)} in " +
+            "use by another sequence. Start it again when they are free."
+        showToast(toast, List(msg)) >> playAudio(Audio.SequenceError)
       case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))            =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
       case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId) =>

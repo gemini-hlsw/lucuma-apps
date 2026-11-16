@@ -47,6 +47,8 @@ import observe.model.events.ClientEvent
 import observe.server.engine.Engine
 import observe.server.engine.EngineEvent
 import observe.server.engine.EventResult
+import observe.server.engine.Response
+import observe.server.engine.Result
 import observe.server.engine.SequenceState
 import observe.server.engine.user
 import observe.server.odb.OdbProxy
@@ -979,3 +981,19 @@ class SequenceSubsystemsSuite extends TestCommon:
         sequenceOf(s0, obs1).loadedStep.map(_.id)
       )
       assert(sequenceOf(r._2, obs1).seq.status.isRunning)
+
+  test("a failed sequence keeps what it holds until the actions of its step have finished"):
+    val started: Endo[EngineState[IO]]  =
+      EngineState.sequenceStateAt[IO](obs1).modify(_.start(0))
+    val finished: Endo[EngineState[IO]] =
+      EngineState
+        .sequenceStateAt[IO](obs1)
+        .modify(_.mark(0)(Result.OK(Response.Configured(Instrument.GmosNorth))))
+    val failed: EngineState[IO]         =
+      runningWithStep(obs1, Instrument.GmosNorth, NorthTcsGcal, NorthTcsGcal)
+        .andThen(started)
+        .andThen(statusMod(obs1)(_ => SequenceStatus.Failed("error")))
+        .apply(EngineState.default[IO])
+    assertEquals(ObserveEngine.subsystemsInUse(failed), NorthTcsGcal)
+    assertEquals(ObserveEngine.heldByOther(failed, obs2, TcsAndGcal), List(obs1))
+    assertEquals(ObserveEngine.subsystemsInUse(finished(failed)), NoSubsystems)

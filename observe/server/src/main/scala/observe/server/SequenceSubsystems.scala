@@ -95,9 +95,11 @@ object SequenceSubsystems:
     Ref
       .of[F, String](NoAnswerInTime)
       .flatMap: reason =>
-        // The limit covers the reads too, so a read that hangs cannot hold the start back.
+        // The limit covers the reads too. A read still in flight is abandoned, not awaited, so
+        // that one whose cancellation hangs cannot keep the start pending.
         untilUpToDate(reason)
-          .timeoutTo(DigestMaxWait, reason.get.map(r => DigestRead(none, r.some)))
+          .timeoutAndForget(DigestMaxWait)
+          .handleErrorWith(_ => reason.get.map(r => DigestRead(none, r.some)))
       .flatTap: cd =>
         cd.fallback.traverse_ : reason =>
           Logger[F].warn(

@@ -176,7 +176,7 @@ object SequenceData:
     seq:                SequenceState[F],
     pendingObsCmd:      Option[PendingObserveCmd],
     visitStartDone:     Boolean,
-    sequenceSubsystems: Set[Subsystem] = Set.empty
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = gmos.DynamicConfig.GmosNorth
     val instrument: Instrument = Instrument.GmosNorth
@@ -190,7 +190,7 @@ object SequenceData:
     seq:                SequenceState[F],
     pendingObsCmd:      Option[PendingObserveCmd],
     visitStartDone:     Boolean,
-    sequenceSubsystems: Set[Subsystem] = Set.empty
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = gmos.DynamicConfig.GmosSouth
     val instrument: Instrument = Instrument.GmosSouth
@@ -204,7 +204,7 @@ object SequenceData:
     seq:                SequenceState[F],
     pendingObsCmd:      Option[PendingObserveCmd],
     visitStartDone:     Boolean,
-    sequenceSubsystems: Set[Subsystem] = Set.empty
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = Flamingos2DynamicConfig
     val instrument: Instrument = Instrument.Flamingos2
@@ -218,7 +218,7 @@ object SequenceData:
     seq:                SequenceState[F],
     pendingObsCmd:      Option[PendingObserveCmd],
     visitStartDone:     Boolean,
-    sequenceSubsystems: Set[Subsystem] = Set.empty
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = Igrins2DynamicConfig
     val instrument: Instrument = Instrument.Igrins2
@@ -232,7 +232,7 @@ object SequenceData:
     seq:                SequenceState[F],
     pendingObsCmd:      Option[PendingObserveCmd],
     visitStartDone:     Boolean,
-    sequenceSubsystems: Set[Subsystem] = Set.empty
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = GnirsDynamicConfig
     val instrument: Instrument = Instrument.Gnirs
@@ -246,7 +246,7 @@ object SequenceData:
     seq:                SequenceState[F],
     pendingObsCmd:      Option[PendingObserveCmd],
     visitStartDone:     Boolean,
-    sequenceSubsystems: Set[Subsystem] = Set.empty
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = GhostDynamicConfig
     val instrument: Instrument = Instrument.Ghost

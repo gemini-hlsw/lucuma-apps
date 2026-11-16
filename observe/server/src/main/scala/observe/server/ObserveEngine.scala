@@ -306,6 +306,14 @@ object ObserveEngine {
       )
       .toSet
 
+  /** A failed step's other actions run on until they finish. */
+  def hasActionsInFlight[F[_]](s: SequenceData[F]): Boolean =
+    s.seq.currentExecution.execution.exists(_.state.runState.started)
+
+  /** A sequence holds its subsystems while it runs and while actions of a failed step run on. */
+  private def isHolding[F[_]](s: SequenceData[F]): Boolean =
+    s.seq.status.isRunning || hasActionsInFlight(s)
+
   /** What a running sequence holds, also while it waits at the user prompt. */
   private def heldSubsystems[F[_]](s: SequenceData[F]): Set[Subsystem] =
     s.sequenceSubsystems ++ s.stepSubsystems
@@ -319,7 +327,7 @@ object ObserveEngine {
     excludeObs: Option[Observation.Id] = none
   ): Set[Subsystem] =
     observations(st)
-      .filter(s => !excludeObs.contains_(s.obsId) && s.seq.status.isRunning)
+      .filter(s => !excludeObs.contains_(s.obsId) && isHolding(s))
       .foldMap(heldSubsystems(_)) ++
       subsystemsBeingConfigured(st)
 
@@ -331,8 +339,7 @@ object ObserveEngine {
   ): List[Observation.Id] =
     observations(st)
       .filter: s =>
-        s.obsId =!= obsId && s.seq.status.isRunning &&
-          heldSubsystems(s).intersect(subsystems).nonEmpty
+        s.obsId =!= obsId && isHolding(s) && heldSubsystems(s).intersect(subsystems).nonEmpty
       .map(_.obsId)
 
   /** Subsystems the loaded step of `obsId` needs that other running sequences hold. */
@@ -363,9 +370,9 @@ object ObserveEngine {
                 .modify(SequenceData.sequenceSubsystems[F].modify(_ ++ step.subsystems))
             ) >> start
           case Some(step)                  =>
-            // An error log reaches every client as a toast and a log line.
+            // The clients show the toast from the event; this is the line in their log panel.
             EngineHandle.liftF(
-              Logger[F].error(
+              Logger[F].warn(
                 s"Observation $obsId was held before step ${step.id}: " +
                   s"${clash.toList.map(Enumerated[Subsystem].tag).mkString(", ")} in use by another " +
                   "sequence. Start it again when they are free."
@@ -395,10 +402,8 @@ object ObserveEngine {
    */
   def restartBlockers[F[_]](st: EngineState[F]): Option[NonEmptyList[String]] =
     val sequences: List[String]   =
-      observations(st)
-        .filter(s => s.seq.status.isRunning || s.seq.status.isStartPending)
-        .map: s =>
-          s"Sequence ${s.obsId} is ${if s.seq.status.isStartPending then "starting" else "running"}"
+      // A pending start does not block: a restart is the way out if its digest read gets stuck.
+      observations(st).filter(_.seq.status.isRunning).map(s => s"Sequence ${s.obsId} is running")
     val configuring: List[String] =
       subsystemsBeingConfigured(st).toList.map: subsystem =>
         s"${Enumerated[Subsystem].tag(subsystem)} is being configured"
