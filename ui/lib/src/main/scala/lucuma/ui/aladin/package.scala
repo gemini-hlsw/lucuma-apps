@@ -92,6 +92,7 @@ object CooFrame:
 enum HipsServer(val tag: String, val name: String, val baseUrl: String) derives Enumerated:
   case Cds  extends HipsServer("cds", "CDS", "https://alasky.cds.unistra.fr")
   case Esac extends HipsServer("esac", "ESAC", "https://skies.esac.esa.int")
+  case Irsa extends HipsServer("irsa", "IRSA", "https://irsa.ipac.caltech.edu/data/hips")
 
 case class HipsMirror(server: HipsServer, path: String) derives Eq:
   val url: String = s"${server.baseUrl}/$path"
@@ -108,7 +109,11 @@ enum ImageSurvey(
         "dss_color",
         "DSS",
         NonEmptyList
-          .of(HipsMirror(HipsServer.Cds, "DSS/DSSColor"), HipsMirror(HipsServer.Esac, "DSSColor")),
+          .of(
+            HipsMirror(HipsServer.Cds, "DSS/DSSColor"),
+            HipsMirror(HipsServer.Esac, "DSSColor"),
+            HipsMirror(HipsServer.Irsa, "CDS/DSS2/color")
+          ),
         Epoch.Julian.fromIntMilliyears(1990000).get
       )
   case TWOMASS
@@ -116,7 +121,11 @@ enum ImageSurvey(
         "twomass_color",
         "2MASS",
         NonEmptyList
-          .of(HipsMirror(HipsServer.Cds, "2MASS/Color"), HipsMirror(HipsServer.Esac, "2MASSColor")),
+          .of(
+            HipsMirror(HipsServer.Cds, "2MASS/Color"),
+            HipsMirror(HipsServer.Esac, "2MASSColor"),
+            HipsMirror(HipsServer.Irsa, "CDS/2MASS/Color")
+          ),
         Epoch.Julian.fromIntMilliyears(1999000).get
       )
 

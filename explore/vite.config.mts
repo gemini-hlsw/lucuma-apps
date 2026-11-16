@@ -328,6 +328,10 @@ export default defineConfig(async ({ mode }) => {
               pattern: /^https:\/\/skies\.esac\.esa\.int\/.*\/Norder\d+\/.*\.jpg$/,
               name: 'esac-hips',
             }),
+            imageCache({
+              pattern: /^https:\/\/irsa\.ipac\.caltech\.edu\/data\/hips\/.*\/Norder\d+\/.*\.jpg$/,
+              name: 'irsa-hips',
+            }),
           ],
         },
       }),
