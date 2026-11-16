@@ -97,8 +97,15 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     Busy(obsId, clientId, conflict.toList, ObserveEngine.heldByOther(st, obsId, conflict))
 
   /** A failed step's actions still running keep their sequence loaded, or nothing would hold. */
+  /** Why the state of an idle or failed sequence cannot be replaced yet, if it cannot. */
+  private def stillRunningReason(seqData: SequenceData[F]): Option[String] =
+    if ObserveEngine.hasActionsInFlight(seqData) then
+      "an action of its previous step is still running".some
+    else if ObserveEngine.isConfiguring(seqData) then "a subsystem is still being configured".some
+    else none
+
   private def canLeaveSlot(seqData: SequenceData[F]): Boolean =
-    executeEngine.canUnload(seqData.seq) && !ObserveEngine.hasActionsInFlight(seqData)
+    executeEngine.canUnload(seqData.seq) && !ObserveEngine.isBusy(seqData)
 
   private def storeSequenceSubsystems(
     obsId:      Observation.Id,
@@ -398,23 +405,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         Event.modifyState[F]:
           EngineHandle.getState.flatMap: st =>
             // Starting again would run the step's actions next to the ones still in flight.
-            val finishing: Boolean =
+            val stillRunning: Option[String] =
               st.sequences
                 .get(obsId)
-                .exists: s =>
-                  (s.seq.status.isIdle || s.seq.status.isError || s.seq.status.isCompleted) &&
-                    ObserveEngine.hasActionsInFlight(s)
-            if finishing then
-              EngineHandle.pure[F, SeqEvent]:
-                NotifyUser(
-                  Notification.ActionFailed(
-                    obsId,
-                    "start the sequence",
-                    "an action of its previous step is still running"
-                  ),
-                  clientId
-                )
-            else
+                .filter: s =>
+                  s.seq.status.isIdle || s.seq.status.isError || s.seq.status.isCompleted
+                .flatMap(stillRunningReason)
+            stillRunning.fold(
               setObserver(obsId, observer) *>
                 clearObsCmd(obsId) *>
                 startChecks(
@@ -424,6 +421,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                   none,
                   runOverride
                 )
+            ): reason =>
+              EngineHandle.pure[F, SeqEvent]:
+                NotifyUser(Notification.ActionFailed(obsId, "start the sequence", reason), clientId)
 
   override def proceedAfterPrompt(
     id:          Observation.Id,
@@ -519,6 +519,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           if !(seqData.seq.status.isIdle || seqData.seq.status.isError) then
             EngineHandle.pure[F, SeqEvent]:
               SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
+          else if ObserveEngine.isBusy(seqData) then
+            // Checked before the ODB reset: loading another step replaces the sequence state.
+            EngineHandle.pure[F, SeqEvent]:
+              SeqEvent.NotifyUser(
+                Notification.ActionFailed(obsId, actionName, stillRunningReason(seqData).orEmpty),
+                clientId
+              )
           else
             def failed(msg: String): SeqEvent =
               SeqEvent.NotifyUser(Notification.ActionFailed(obsId, actionName, msg), clientId)
@@ -987,17 +994,20 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         Stream.emit[F, TargetedClientEvent](
           SingleActionEvent(oid, stepId, res, ClientEvent.SingleActionState.Started, none)
         ) ++ buildObserveStateStream(svs, odbProxy)
+      // The state follows a refusal so the client stops waiting for the command to take effect.
       case NotifyUser(memo, clientId)                                            =>
-        Stream.emit(UserNotification(memo).forClient(clientId))
+        Stream.emit[F, TargetedClientEvent](UserNotification(memo).forClient(clientId)) ++
+          buildObserveStateStream(svs, odbProxy)
       case SeqEvent.SubsystemClash(obsId, stepId, subsystems)                    =>
         Stream.emit[F, TargetedClientEvent](
           ClientEvent.SubsystemClash(obsId, stepId, subsystems.toList)
         ) ++ buildObserveStateStream(svs, odbProxy)
       case Busy(obsId, clientId, subsystems, heldBy)                             =>
-        Stream.emit:
+        Stream.emit[F, TargetedClientEvent](
           ClientEvent
             .UserNotification(Notification.SubsystemConflict(obsId, subsystems, heldBy))
             .forClient(clientId)
+        ) ++ buildObserveStateStream(svs, odbProxy)
       case LoadSequence(obsId, clientId)                                         =>
         buildObserveStateStream(svs, odbProxy) ++
           svs.loaded
@@ -1276,17 +1286,37 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st0 =>
       // Checked before the step is read: reading it replaces the state of the sequence.
-      val canConfigure: Boolean =
+      val canConfigure: Boolean           =
         st0.sequences
           .get(obsId)
           .map(_.seq.status)
           .forall(status => status.isIdle || status.isError || status.isCompleted)
+      // Another subsystem of the step being configured can be configured without reading it.
+      val sameStep: Boolean               =
+        st0.sequences
+          .get(obsId)
+          .exists: s =>
+            ObserveEngine.isConfiguring(s) && s.seq.loadedStep.exists(_.id === stepId)
+      // Reading another step, or resetting a failed one, forgets the actions still running.
+      val stillRunning: Option[String]    =
+        st0.sequences
+          .get(obsId)
+          .filter(s => ObserveEngine.hasActionsInFlight(s) || !sameStep)
+          .flatMap(stillRunningReason)
+      val readStep: EngineHandle[F, Unit] =
+        if sameStep then EngineHandle.unit
+        else ObserveEngine.retrieveStep(services.odb, translator, obsId, stepId.asRight).void
       if (!canConfigure)
         EngineHandle.pure[F, SeqEvent]:
           NotifyUser(Notification.SequenceNotIdle(obsId, "configure a subsystem"), clientId)
+      else if (stillRunning.isDefined)
+        EngineHandle.pure[F, SeqEvent]:
+          NotifyUser(
+            Notification.ActionFailed(obsId, "configure a subsystem", stillRunning.orEmpty),
+            clientId
+          )
       else if (configureSubsystemCheck(subsystem, st0))
-        ObserveEngine                          // Load new step and reload state
-          .retrieveStep(services.odb, translator, obsId, stepId.asRight)
+        readStep                               // Load new step and reload state
           .flatMap(_ => EngineHandle.getState) // A new step may have loaded, so reload state
           .flatMap: st =>
             st.sequences

@@ -61,7 +61,7 @@ class CalcSubsystemsSuite extends TestCommon:
       override def applyConfig(
         subsystems: NonEmptySet[TcsController.Subsystem],
         tc:         TcsSouthConfig
-      ): IO[Unit] =
+      ): IO[Unit]                               =
         applied.update(_ :+ Applied.Tcs(Site.GS, subsystems.toSortedSet, tc.lightPath.source))
       override def notifyObserveStart: IO[Unit] = IO.unit
       override def notifyObserveEnd: IO[Unit]   = IO.unit
@@ -69,14 +69,14 @@ class CalcSubsystemsSuite extends TestCommon:
         stage:  NodAndShuffleStage,
         offset: InstrumentOffset,
         guided: Boolean
-      ): IO[Unit] = IO.unit
+      ): IO[Unit]                               = IO.unit
 
   private def tcsNorth(applied: Ref[IO, List[Applied]]): TcsNorthController[IO] =
     new TcsNorthController[IO]:
       override def applyConfig(
         subsystems: NonEmptySet[TcsController.Subsystem],
         tc:         TcsNorthConfig
-      ): IO[Unit] =
+      ): IO[Unit]                               =
         applied.update(_ :+ Applied.Tcs(Site.GN, subsystems.toSortedSet, tc.lightPath.source))
       override def notifyObserveStart: IO[Unit] = IO.unit
       override def notifyObserveEnd: IO[Unit]   = IO.unit
@@ -84,7 +84,7 @@ class CalcSubsystemsSuite extends TestCommon:
         stage:  NodAndShuffleStage,
         offset: InstrumentOffset,
         guided: Boolean
-      ): IO[Unit] = IO.unit
+      ): IO[Unit]                               = IO.unit
 
   private def gcal(applied: Ref[IO, List[Applied]]): GcalController[IO] =
     new GcalController[IO]:
@@ -94,14 +94,17 @@ class CalcSubsystemsSuite extends TestCommon:
   /** Only what `calcSubsystems` reads of the step. */
   private def instrumentStep(kind: StepKind): InstrumentStep[IO] =
     new InstrumentStep[IO]:
-      override def instrument: Instrument                                   = kind.instrument
-      override def stepType: StepKind                                       = kind
-      override def sfName: LightSinkName                                    = LightSinkName.Gmos
-      override def centralWavelength: Option[Wavelength]                    = none
-      override def instrumentHandler(ov: SubsystemOverrides): InstrumentHandler[IO] = ???
-      override def instrumentHeader(client: KeywordsClient[IO]): Header[IO]         = ???
+      override def instrument: Instrument                                              = kind.instrument
+      override def stepType: StepKind                                                  = kind
+      override def sfName: LightSinkName                                               = LightSinkName.Gmos
+      override def centralWavelength: Option[Wavelength]                               = none
+      override def instrumentHandler(ov:    SubsystemOverrides): InstrumentHandler[IO] = ???
+      override def instrumentHeader(client: KeywordsClient[IO]): Header[IO]            = ???
 
-  private def translator(site: Site, applied: Ref[IO, List[Applied]]): IO[SeqTranslate.SeqTranslateImpl[IO]] =
+  private def translator(
+    site:    Site,
+    applied: Ref[IO, List[Applied]]
+  ): IO[SeqTranslate.SeqTranslateImpl[IO]] =
     for
       services   <- defaultServices
       conditions <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
@@ -113,7 +116,10 @@ class CalcSubsystemsSuite extends TestCommon:
       gnirs      <- Gnirs.build[IO]
     yield new SeqTranslate.SeqTranslateImpl[IO](
       site,
-      services.copy(tcsSouth = tcsSouth(applied), tcsNorth = tcsNorth(applied), gcal = gcal(applied)),
+      services.copy(tcsSouth = tcsSouth(applied),
+                    tcsNorth = tcsNorth(applied),
+                    gcal = gcal(applied)
+      ),
       ExecutionEnvironment.Development,
       InstrumentStepBuilders[IO](f2, gmosN, gmosS, ghost, igrins2, gnirs)
     )
@@ -161,32 +167,32 @@ class CalcSubsystemsSuite extends TestCommon:
   private val DefaultGcal: Option[Applied.Gcal] = Applied.Gcal(GcalConfig.GcalOffIgnoringIr).some
 
   private def expected(site: Site, kind: StepKind): Outcome =
-    val hasOi: Boolean                         = kind.instrument === Instrument.GmosSouth ||
+    val hasOi: Boolean                                                                          = kind.instrument === Instrument.GmosSouth ||
       kind.instrument === Instrument.GmosNorth
-    val onSky: Set[TcsController.Subsystem]    =
+    val onSky: Set[TcsController.Subsystem]                                                     =
       if hasOi then Set(OIWFS, PWFS1, PWFS2, AGUnit, Mount, M1, M2)
       else Set(PWFS1, PWFS2, AGUnit, Mount, M1, M2)
-    val lightPath: Set[TcsController.Subsystem] = if hasOi then Set(AGUnit, OIWFS) else Set(AGUnit)
+    val lightPath: Set[TcsController.Subsystem]                                                 = if hasOi then Set(AGUnit, OIWFS) else Set(AGUnit)
     def tcs(subsystems: Set[TcsController.Subsystem], source: LightSource): Option[Applied.Tcs] =
       Applied.Tcs(site, subsystems, source).some
     kind match
-      case StepKind.CelestialObject(_) | StepKind.NodAndShuffle(_)   =>
+      case StepKind.CelestialObject(_) | StepKind.NodAndShuffle(_)    =>
         Outcome(TcsAndGcal, tcs(onSky, LightSource.Sky), DefaultGcal)
-      case StepKind.DayCalObject(_)                                  =>
+      case StepKind.DayCalObject(_)                                   =>
         Outcome(TcsAndGcal, tcs(lightPath, LightSource.Sky), DefaultGcal)
-      case StepKind.FlatOrArc(_, _)                                  =>
+      case StepKind.FlatOrArc(_, _)                                   =>
         Outcome(TcsAndGcal, tcs(lightPath, LightSource.GCAL), Applied.Gcal(gcalFromStep(site)).some)
-      case StepKind.NightFlatOrArc(_, _)                             =>
+      case StepKind.NightFlatOrArc(_, _)                              =>
         Outcome(
           TcsAndGcal,
           tcs(Set(AGUnit, OIWFS, M2, M1, Mount), LightSource.GCAL),
           Applied.Gcal(gcalFromStep(site)).some
         )
-      case StepKind.DarkOrBias(_)                                    =>
+      case StepKind.DarkOrBias(_)                                     =>
         Outcome(Set.empty, none, none)
       case StepKind.ExclusiveDarkOrBias(_) | StepKind.DarkOrBiasNS(_) =>
         Outcome(Set(ObservatorySubsystem.Gcal), none, DefaultGcal)
-      case StepKind.AltairObs(_) | StepKind.Gems(_)                  =>
+      case StepKind.AltairObs(_) | StepKind.Gems(_)                   =>
         Outcome(TcsAndGcal, tcs(onSky + Gaos, LightSource.AO), DefaultGcal)
 
   private def allKinds(instrument: Instrument): List[StepKind] =

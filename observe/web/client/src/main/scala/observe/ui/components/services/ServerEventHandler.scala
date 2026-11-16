@@ -311,7 +311,7 @@ trait ServerEventHandler:
       // and in SequenceTable it's being done once per step.
       // However, we need to turn the app initialization on its head in MainApp to achieve this.
       case UserNotification(notification)                              =>
-        // A rejected or failed skip/reset acquisition never produces a state update, so its
+        // A rejected or failed skip/reset acquisition leaves the sequence as it was, so its
         // in-flight request must be cleared here.
         def clearAcquisitionRequests(obsId: Observation.Id): IO[Unit] =
           rootModelDataMod:

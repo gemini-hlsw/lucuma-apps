@@ -40,6 +40,8 @@ import observe.model.SequenceStatus
 import observe.model.Subsystem
 import observe.model.enums.ObservatorySubsystem
 import observe.model.enums.RunOverride
+import observe.server.engine.Action.ActionState
+import observe.server.engine.ActionCoordsInSeq
 import observe.server.engine.EngineEvent
 import observe.server.engine.EventResult
 import observe.server.engine.Response
@@ -439,7 +441,10 @@ class SequenceSubsystemsSuite extends TestCommon:
         // Running with no step loaded is what the gap between two steps looks like.
         _  <- f.runner.modify(
                 runningWith(obs1, NorthTcsGcal).andThen(
-                  EngineState.sequenceStateAt[IO](obs1).andThen(SequenceState.loadedStep[IO]).replace(none)
+                  EngineState
+                    .sequenceStateAt[IO](obs1)
+                    .andThen(SequenceState.loadedStep[IO])
+                    .replace(none)
                 )
               )
         s0 <- f.runner.state.get
@@ -568,15 +573,15 @@ class SequenceSubsystemsSuite extends TestCommon:
       .andThen(runningWith(obsId, hold))
 
   test("a step clashes with the loaded steps and holds of the other running sequences"):
-    val gcal: Set[Subsystem]    = Set(Gcal)
-    val north: Set[Subsystem]   = Set(Instrument.GmosNorth, Gcal)
-    val south: Set[Subsystem]   = Set(Instrument.GmosSouth, Gcal)
-    val both: EngineState[IO]   =
+    val gcal: Set[Subsystem]     = Set(Gcal)
+    val north: Set[Subsystem]    = Set(Instrument.GmosNorth, Gcal)
+    val south: Set[Subsystem]    = Set(Instrument.GmosSouth, Gcal)
+    val both: EngineState[IO]    =
       runningWithStep(obs1, Instrument.GmosNorth, north, North)
         .andThen(runningWithStep(obs2, Instrument.GmosSouth, south, South))
         .apply(EngineState.default[IO])
-    val held: EngineState[IO]   = statusMod(obs2)(_ => SequenceStatus.Idle)(both)
-    val prompt: EngineState[IO] = statusMod(obs2)(_.withWaitingUserPrompt(true))(both)
+    val held: EngineState[IO]    = statusMod(obs2)(_ => SequenceStatus.Idle)(both)
+    val prompt: EngineState[IO]  = statusMod(obs2)(_.withWaitingUserPrompt(true))(both)
     val holding: EngineState[IO] =
       holdMod(obs2, South ++ gcal)
         .andThen(
@@ -602,19 +607,18 @@ class SequenceSubsystemsSuite extends TestCommon:
         _  <- f.runner.modify(runningWith(obs1, NorthTcsGcal))
         r  <- f.runner.run(start(obs2), (r, _) => isClash(r) || isBusy(r) || isComplete(obs2)(r))
         st <- f.runner.drain
-      yield
-        r._1 match
-          case EventResult.UserCommandResponse(
-                _,
-                _,
-                Some(SeqEvent.SubsystemClash(id, stepId, subsystems))
-              ) =>
-            assertEquals(id, obs2)
-            assertEquals(subsystems, TcsAndGcal)
-            assertEquals(sequenceOf(st, obs2).seq.status, SequenceStatus.Idle)
-            assertEquals(sequenceOf(st, obs2).loadedStep.map(_.id), stepId.some)
-            assertEquals(ObserveEngine.subsystemsInUse(st), NorthTcsGcal)
-          case other => fail(s"Expected a subsystem clash: $other")
+      yield r._1 match
+        case EventResult.UserCommandResponse(
+              _,
+              _,
+              Some(SeqEvent.SubsystemClash(id, stepId, subsystems))
+            ) =>
+          assertEquals(id, obs2)
+          assertEquals(subsystems, TcsAndGcal)
+          assertEquals(sequenceOf(st, obs2).seq.status, SequenceStatus.Idle)
+          assertEquals(sequenceOf(st, obs2).loadedStep.map(_.id), stepId.some)
+          assertEquals(ObserveEngine.subsystemsInUse(st), NorthTcsGcal)
+        case other => fail(s"Expected a subsystem clash: $other")
 
   test("two sequences racing for TCS and GCAL never run overlapping steps"):
     // obs2's read says dark-only, but a science step follows its dark one.
@@ -757,7 +761,7 @@ class SequenceSubsystemsSuite extends TestCommon:
                           Some(SeqEvent.SubsystemBusy(_, _, _, _))
                         ) =>
                       true
-                    case _ => false
+                    case _                                                                      => false
               )
       yield
         r._1 match
@@ -821,3 +825,146 @@ class SequenceSubsystemsSuite extends TestCommon:
         assert(refused._2.sequences.contains(obs1), "It was unloaded with an action still running")
         assertEquals(ObserveEngine.subsystemsInUse(refused._2), NorthTcsGcal)
         assert(!done._2.sequences.contains(obs1))
+
+  private def configCoords(
+    st:        EngineState[IO],
+    obsId:     Observation.Id,
+    subsystem: Subsystem
+  ): ActionCoordsInSeq =
+    val s: SequenceData[IO] = sequenceOf(st, obsId)
+    s.seq.loadedStep
+      .flatMap(step => s.configActionCoord(step.id, subsystem))
+      .getOrElse(fail(s"The loaded step of $obsId does not configure $subsystem"))
+
+  /** Loads `obsId` and its first step, which only a start or a manual configuration reads. */
+  private def loadWithStep(f: Fixture, obsId: Observation.Id): IO[Unit] =
+    load(f, Instrument.GmosSouth, obsId) >>
+      f.runner
+        .run(
+          _.configureSubsystem(obsId, observer, user, testStepId(100), Tcs, clientId),
+          (_, st) =>
+            val runs: List[ActionState] =
+              sequenceOf(st, obsId).seq.getSingleActionStates.values.toList
+            runs.nonEmpty && !runs.exists(_.started)
+        )
+        .void
+
+  /** Marks the manual configuration of `subsystem` in the loaded step as running. */
+  private def configuring(obsId: Observation.Id, subsystem: Subsystem): Endo[EngineState[IO]] =
+    st =>
+      EngineState
+        .sequenceStateAt[IO](obsId)
+        .modify(_.startSingle(configCoords(st, obsId, subsystem)))(st)
+
+  private def configured(obsId: Observation.Id, subsystem: Subsystem): Endo[EngineState[IO]] =
+    st =>
+      EngineState
+        .sequenceStateAt[IO](obsId)
+        .modify(
+          _.completeSingle(configCoords(st, obsId, subsystem), Response.Configured(subsystem))
+        )(
+          st
+        )
+
+  private def refusal(result: EventResult): Option[Notification] =
+    result match
+      case EventResult.UserCommandResponse(_, _, Some(SeqEvent.NotifyUser(n, _))) => n.some
+      case _                                                                      => none
+
+  private def assertStillRunning(result: EventResult, action: String): Unit =
+    refusal(result) match
+      case Some(Notification.ActionFailed(id, refused, _)) =>
+        assertEquals(id, obs1)
+        assertEquals(refused, action)
+      case other                                           => fail(s"Expected a refusal to $action: $other")
+
+  test("an observation is not unloaded while one of its subsystems is being configured by hand"):
+    def unload(f: Fixture): IO[(EventResult, EngineState[IO])] =
+      f.runner.run(
+        _.unloadSequence(obs1, user, clientId),
+        (r, st) => refusal(r).isDefined || !st.sequences.contains(obs1)
+      )
+    TestControl.executeEmbed:
+      for
+        f       <- fixture(List(gmosSouthObs(obs1, 1, scienceConfig)))
+        _       <- loadWithStep(f, obs1)
+        _       <- f.runner.modify(configuring(obs1, Tcs))
+        refused <- unload(f)
+        _       <- f.runner.modify(configured(obs1, Tcs))
+        done    <- unload(f)
+      yield
+        assert(refused._2.sequences.contains(obs1), "It was unloaded while configuring TCS")
+        assertEquals(ObserveEngine.subsystemsInUse(refused._2), Set(Tcs))
+        assert(!done._2.sequences.contains(obs1))
+
+  test("a sequence is not started while one of its subsystems is being configured by hand"):
+    TestControl.executeEmbed:
+      for
+        f <- fixture(List(gmosSouthObs(obs1, 1, scienceConfig)))
+        _ <- loadWithStep(f, obs1)
+        _ <- f.runner.modify(configuring(obs1, Tcs))
+        r <- f.runner.run(
+               start(obs1),
+               (r, st) => refusal(r).isDefined || ObserveEngine.subsystemsInUse(st) =!= Set(Tcs)
+             )
+      yield
+        assertStillRunning(r._1, "start the sequence")
+        assertEquals(ObserveEngine.subsystemsInUse(r._2), Set(Tcs))
+        assert(!sequenceOf(r._2, obs1).seq.status.isRunning)
+
+  test("another step is not configured by hand while a subsystem is being configured"):
+    def configure(f: Fixture, step: Int): IO[(EventResult, EngineState[IO])] =
+      f.runner.run(
+        _.configureSubsystem(obs1, observer, user, testStepId(step), Gcal, clientId),
+        (r, st) => refusal(r).isDefined || ObserveEngine.subsystemsInUse(st) =!= Set(Tcs)
+      )
+    TestControl.executeEmbed:
+      for
+        f        <- fixture(List(gmosSouthObs(obs1, 2, scienceConfig)))
+        _        <- loadWithStep(f, obs1)
+        _        <- f.runner.modify(configuring(obs1, Tcs))
+        refused  <- configure(f, 101)
+        sameStep <- configure(f, 100)
+      yield
+        assertStillRunning(refused._1, "configure a subsystem")
+        assertEquals(ObserveEngine.subsystemsInUse(refused._2), Set(Tcs))
+        assertEquals(ObserveEngine.subsystemsInUse(sameStep._2), TcsAndGcal)
+
+  test("acquisition is not skipped while a subsystem is being configured by hand"):
+    TestControl.executeEmbed:
+      for
+        f <- fixture(List(gmosSouthObs(obs1, 1, scienceConfig)))
+        _ <- loadWithStep(f, obs1)
+        _ <- f.runner.modify(configuring(obs1, Tcs))
+        r <- f.runner.run(
+               _.skipAcquisition(obs1, user, observer, clientId),
+               (r, st) =>
+                 r match
+                   case EventResult.UserCommandResponse(_,
+                                                        _,
+                                                        Some(SeqEvent.SequenceTypeChanged(_))
+                       ) =>
+                     true
+                   case _ =>
+                     refusal(r).isDefined || ObserveEngine.subsystemsInUse(st) =!= Set(Tcs)
+             )
+      yield
+        assertStillRunning(r._1, "skip acquisition")
+        assertEquals(ObserveEngine.subsystemsInUse(r._2), Set(Tcs))
+
+  test("a failed sequence is not configured by hand while an action of its step is still running"):
+    val failed: Endo[EngineState[IO]] =
+      runningWithStep(obs1, Instrument.GmosNorth, North, North)
+        .andThen(EngineState.sequenceStateAt[IO](obs1).modify(_.start(0)))
+        .andThen(statusMod(obs1)(_ => SequenceStatus.Failed("error")))
+    TestControl.executeEmbed:
+      for
+        f <- fixture(Nil)
+        _ <- f.runner.modify(failed)
+        r <- f.runner.run(
+               _.configureSubsystem(obs1, observer, user, testStepId(100), Gcal, clientId),
+               (r, st) => refusal(r).isDefined || ObserveEngine.subsystemsInUse(st) =!= North
+             )
+      yield
+        assertStillRunning(r._1, "configure a subsystem")
+        assertEquals(ObserveEngine.subsystemsInUse(r._2), North)

@@ -309,6 +309,14 @@ object ObserveEngine {
   def hasActionsInFlight[F[_]](s: SequenceData[F]): Boolean =
     s.seq.currentExecution.execution.exists(_.state.runState.started)
 
+  /** A manual configuration of one of its subsystems is still running. */
+  def isConfiguring[F[_]](s: SequenceData[F]): Boolean =
+    s.seq.getSingleActionStates.exists(_._2.started)
+
+  /** Replacing or removing its state now would forget an action that is still running. */
+  def isBusy[F[_]](s: SequenceData[F]): Boolean =
+    hasActionsInFlight(s) || isConfiguring(s)
+
   /** A sequence holds its subsystems while it runs and while actions of a failed step run on. */
   private def isHolding[F[_]](s: SequenceData[F]): Boolean =
     s.seq.status.isRunning || hasActionsInFlight(s)
