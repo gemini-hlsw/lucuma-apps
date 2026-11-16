@@ -12,6 +12,7 @@ import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.igrins2
+import lucuma.core.model.sequence.scorpio
 
 /** Plain positions, for modes with no slit to nod along. */
 type TelescopeConfigPresets = PresetList[String, NonEmptyList[TelescopeConfig]]
@@ -38,6 +39,9 @@ object TelescopeConfigPresets:
 
   val Igrins2LongSlit: SlitTelescopeConfigPresets[Igrins2SlitOffsetPreset] =
     PresetList.fromEnumerated(igrins2.defaultSlitTelescopeConfigs)
+
+  val ScorpioLongSlit: SlitTelescopeConfigPresets[ScorpioSlitOffsetPreset] =
+    PresetList.fromEnumerated(scorpio.defaultSlitTelescopeConfigs)
 
   def gnirsLongSlit(
     prism:      GnirsPrism,

@@ -1737,11 +1737,16 @@ object ObservingMode:
     val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[ScorpioSlitOffsetPreset] =
+      TelescopeConfigPresets.ScorpioLongSlit
+
     def isCustomized: Boolean =
-      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+      telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs)
 
     def revertCustomizations: ScorpioLongSlit =
-      copy(explicitTelescopeConfigs = none)
+      copy(explicitTelescopeConfigs =
+        telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
+      )
 
   object ScorpioLongSlit:
     given Decoder[ScorpioLongSlit] = deriveDecoder
