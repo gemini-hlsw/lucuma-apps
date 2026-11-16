@@ -254,6 +254,7 @@
     fill: var(--science-slit-fill);
   }
 
+  .scorpio-science-slit,
   .gnirs-science-slit {
     stroke: var(--science-slit-stroke);
     stroke-width: var(--science-slit-stroke-width);
@@ -278,6 +279,7 @@
 
   &.igrins2-candidates-area-visible .igrins2-candidates-area,
   &.gnirs-candidates-area-visible .gnirs-candidates-area,
+  &.scorpio-candidates-area-visible .scorpio-candidates-area,
   &.flamingos2-candidates-area-visible .flamingos2-candidates-area,
   &.ghost-candidates-area-visible .ghost-candidates-area,
   &.visitor-candidates-area-visible .visitor-candidates-area,
@@ -287,6 +289,7 @@
 
   .igrins2-candidates-area,
   .gnirs-candidates-area,
+  .scorpio-candidates-area,
   .flamingos2-candidates-area,
   .ghost-candidates-area,
   .visitor-candidates-area,
