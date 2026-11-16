@@ -230,6 +230,14 @@ See https://github.com/highcharts/highcharts/issues/13320 */
     .itc-plot-description-warnings {
       grid-column: 1 / -1;
     }
+
+    // Warnings can be long. Let them wrap within the width the other rows set, rather than
+    // being cut off or widening the panel (its column is sized to max-content).
+    span.itc-plot-description-warnings {
+      width: 0;
+      min-width: 100%;
+      white-space: normal;
+    }
   }
 
   .itc-plot-section {
