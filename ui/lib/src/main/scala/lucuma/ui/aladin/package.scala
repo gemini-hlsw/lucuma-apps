@@ -92,6 +92,7 @@ object CooFrame:
 enum HipsServer(val tag: String, val name: String, val baseUrl: String) derives Enumerated:
   case Cds  extends HipsServer("cds", "CDS", "https://alasky.cds.unistra.fr")
   case Esac extends HipsServer("esac", "ESAC", "https://skies.esac.esa.int")
+  case Irsa extends HipsServer("irsa", "IRSA", "https://irsa.ipac.caltech.edu/data/hips")
 
 case class HipsMirror(server: HipsServer, path: String) derives Eq:
   val url: String = s"${server.baseUrl}/$path"
@@ -108,7 +109,11 @@ enum ImageSurvey(
         "dss_color",
         "DSS",
         NonEmptyList
-          .of(HipsMirror(HipsServer.Cds, "DSS/DSSColor"), HipsMirror(HipsServer.Esac, "DSSColor")),
+          .of(
+            HipsMirror(HipsServer.Cds, "DSS/DSSColor"),
+            HipsMirror(HipsServer.Esac, "DSSColor"),
+            HipsMirror(HipsServer.Irsa, "CDS/DSS2/color")
+          ),
         Epoch.Julian.fromIntMilliyears(1990000).get
       )
   case TWOMASS
@@ -116,7 +121,11 @@ enum ImageSurvey(
         "twomass_color",
         "2MASS",
         NonEmptyList
-          .of(HipsMirror(HipsServer.Cds, "2MASS/Color"), HipsMirror(HipsServer.Esac, "2MASSColor")),
+          .of(
+            HipsMirror(HipsServer.Cds, "2MASS/Color"),
+            HipsMirror(HipsServer.Esac, "2MASSColor"),
+            HipsMirror(HipsServer.Irsa, "CDS/2MASS/Color")
+          ),
         Epoch.Julian.fromIntMilliyears(1999000).get
       )
 
@@ -124,12 +133,14 @@ object AladinOptions:
   val Default: AladinOptions = apply()
 
   /**
-   * A copy of `options` that loads the survey from `mirror`, leaving `options` untouched.
+   * A copy of `options` that loads the survey from `mirror`, or no images at all if there is none,
+   * leaving `options` untouched.
    */
-  def withSurvey(options: AladinOptions, mirror: HipsMirror): AladinOptions =
-    val p = js.Object.assign(new js.Object, options).asInstanceOf[AladinOptions]
-    p.survey = mirror.url
-    p
+  def withSurvey(options: AladinOptions, mirror: Option[HipsMirror]): AladinOptions =
+    val p = js.Object.assign(new js.Object, options)
+    // An empty list is the only value that stops aladin from loading its default survey.
+    p.asInstanceOf[js.Dynamic].survey = mirror.fold[js.Any](js.Array[String]())(_.url)
+    p.asInstanceOf[AladinOptions]
 
   def apply(
     fov:                      js.UndefOr[Angle] = js.undefined,

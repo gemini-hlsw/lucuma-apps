@@ -175,7 +175,7 @@ object ReactAladin
         instance:  Hooks.UseRef[Option[Aladin]],
         abortRef:  UseState[Option[AbortController]],
         props:     ReactAladin,
-        mirror:    HipsMirror
+        mirror:    Option[HipsMirror]
       ): Callback =
         CallbackTo(A.aladin(e, AladinOptions.withSurvey(props.options, mirror))).flatMap { a =>
           aladinRef.setState(Some(a)) *>
@@ -183,6 +183,9 @@ object ReactAladin
             props.customize.fold(Callback.empty)(f => f(a)) *>
             disablePanning(a, abortRef).unless_(props.panningEnabled)
         }
+
+      def clearImageLayers(a: Aladin): Callback =
+        Callback(a.getStackLayers().toList.foreach(a.removeImageLayer))
 
       for {
         aladinRef    <- useState(none[Aladin])
@@ -198,28 +201,22 @@ object ReactAladin
                           // Cleanup listeners on unmount.
                           CallbackTo(instance.get.flatMap(_.map(disposeAladin).getOrEmpty))
                         )
-        // Aladin is created only once a mirror answers, so it never falls back to its CDS default.
+        // Aladin waits for the probe, so it never falls back to its CDS default. With no mirror up
+        // it starts without images and still draws the overlays.
         _            <- useEffectWithDeps(mirror):
-                          case None          => Callback.empty
-                          case Some(None)    =>
-                            // The view shows the unavailable message, so drop Aladin and start over.
-                            instance.get.flatMap(_.foldMap(disposeAladin)) *>
-                              instance.set(none) *>
-                              aladinRef.setState(none) *>
-                              started.set(false) *>
-                              latestMirror.set(none) *>
-                              props.onMirror(none)
-                          case Some(Some(m)) =>
+                          case None    => Callback.empty
+                          case Some(m) =>
                             val create: Callback =
                               (instance.get, latestMirror.get, r.get).tupled.flatMap:
-                                case (None, Some(latest), Some(e)) =>
+                                case (None, latest, Some(e)) =>
                                   createAladin(e, aladinRef, instance, abortRef, props, latest)
-                                case (None, _, _)                  => started.set(false)
-                                case _                             => Callback.empty
-                            latestMirror.set(m.some) *>
-                              props.onMirror(m.some) *>
+                                case (None, _, _)            => started.set(false)
+                                case _                       => Callback.empty
+                            latestMirror.set(m) *>
+                              props.onMirror(m) *>
                               instance.get.flatMap:
-                                case Some(a)               => Callback(a.setBaseImageLayer(m.url))
+                                case Some(a)               =>
+                                  m.fold(clearImageLayers(a))(u => Callback(a.setBaseImageLayer(u.url)))
                                 case None if started.value => Callback.empty
                                 case None                  =>
                                   started.set(true) *>
@@ -246,10 +243,6 @@ object ReactAladin
               ),
               "."
             )
-          )
-        else if mirror.exists(_.isEmpty) then
-          <.div(props.clazz |+| AladinStyles.AladinLoadError, ^.key := "aladin-no-survey")(
-            <.span("Sky images unavailable: no survey server responded.")
           )
         else <.div(props.clazz, ^.untypedRef := r)
     )

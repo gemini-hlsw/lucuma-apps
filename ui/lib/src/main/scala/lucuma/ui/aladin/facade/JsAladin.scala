@@ -16,6 +16,8 @@ class JsAladin(val aladinDiv: Element, val options: AladinOptions) extends js.Ob
   def getBaseImageLayer(): HpxImageSurvey                                                 = js.native
   def setOverlayImageLayer(i:     HpxImageSurvey): Unit                                   = js.native
   def getOverlayImageLayer(): HpxImageSurvey                                              = js.native
+  def getStackLayers(): js.Array[String]                                                  = js.native
+  def removeImageLayer(layer:     String): Unit                                           = js.native
   def getFovForObject(objectName: String, callback: js.Function1[Double, Unit]): Unit     = js.native
   def createImageSurvey(
     id:       String,
