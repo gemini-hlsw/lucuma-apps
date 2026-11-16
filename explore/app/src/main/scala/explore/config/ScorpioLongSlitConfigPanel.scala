@@ -9,6 +9,7 @@ import clue.data.syntax.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.Icons
 import explore.common.Aligner
 import explore.components.ui.ExploreStyles
 import explore.config.offsets.SlitTelescopeConfigsEditor
@@ -23,6 +24,7 @@ import lucuma.core.enums.ScienceMode
 import lucuma.core.enums.ScorpioFpu
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.react.common.Css
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -95,6 +97,14 @@ object ScorpioLongSlitConfigPanel
             )
           )
 
+        def pairLink(a: String, b: String, rows: Css): VdomNode =
+          <.span(
+            ExploreStyles.ScorpioChannelLink,
+            rows,
+            ^.title := s"$a and $b share a detector controller, so their exposures are always equal",
+            Icons.LockKeyhole
+          )
+
         React.Fragment(
           <.div(ExploreStyles.Igrins2UpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -114,7 +124,9 @@ object ScorpioLongSlitConfigPanel
               channelRow("g", grView),
               channelRow("r", rgView),
               channelRow("i", izView),
-              channelRow("z", ziView)
+              channelRow("z", ziView),
+              pairLink("g", "r", ExploreStyles.ScorpioChannelLinkGR),
+              pairLink("i", "z", ExploreStyles.ScorpioChannelLinkIZ)
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
               SlitTelescopeConfigsEditor(
