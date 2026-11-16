@@ -195,10 +195,8 @@ def usePatrolFieldShapes(
               ObservingModeType.GnirsIfu =>
             // PWFS or, behind Altair, the AOWFS patrol field.
             agsParams.patrolFieldShape.some
-          case _: VisitorObservingModeType                                               =>
+          case _: VisitorObservingModeType | ObservingModeType.ScorpioLongSlit           =>
             pwfs.patrolField.patrolField.some
-          case ObservingModeType.ScorpioLongSlit                                         =>
-            none
           case _: ExchangeObservingModeType | _: DaytimeCalibrationObservingModeType     =>
             none // We won't get this far for exchange or daytime observations, anyway
 

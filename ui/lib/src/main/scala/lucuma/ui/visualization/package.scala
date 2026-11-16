@@ -294,8 +294,10 @@ extension (conf: BasicConfiguration)
           AgsParams.GhostIfu().some
         case BasicConfiguration.Visitor(agsDiameter = ags, scienceFovDiameter = fov)         =>
           AgsParams.Visitor(ags, fov, port).some
+        case BasicConfiguration.ScorpioLongSlit(fpu)                                         =>
+          AgsParams.ScorpioLongSlit(fpu, port).some
         case BasicConfiguration.KeckExchange(_, _) | BasicConfiguration.SubaruExchange(_, _) |
-            BasicConfiguration.DaytimeCalibration(_) | BasicConfiguration.ScorpioLongSlit(_) =>
+            BasicConfiguration.DaytimeCalibration(_) =>
           none
 
     // Re-selecting a PWFS would drop the Altair mode `guidedBy` already applied.
