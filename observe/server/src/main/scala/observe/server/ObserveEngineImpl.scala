@@ -71,26 +71,44 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   @unused conditionsRef: Ref[F, CurrentConditions]
 ) extends ObserveEngine[F] {
 
-  /**
-   * Check if the subsystems to run a sequence are available
-   * @return
-   *   true if subsystems are available
-   */
-  private def checkSubsystems(obsId: Observation.Id)(st: EngineState[F]): Boolean = {
-    // Subsystems used by running sequences
+  /** The subsystems `obsId` needs that running sequences, manual configs or queues hold. */
+  private def subsystemConflict(
+    obsId:  Observation.Id,
+    needed: Set[Subsystem]
+  )(st: EngineState[F]): Set[Subsystem] = {
+    // Subsystems held by running sequences
     val used: Set[Subsystem] = ObserveEngine.subsystemsInUse(st, excludeObs = obsId.some)
 
     // Subsystems that will be used by sequences in running queues
     val reservedByQueues: Set[Subsystem] = ObserveEngine.subsystemsReserved(st)
 
-    st.sequences
-      .get(obsId)
-      .exists: seqData =>
-        seqData.subsystems.intersect(used).isEmpty && (
-          st.queues.values.filter(_.status.running).exists(_.queue.contains(obsId)) ||
-            seqData.subsystems.intersect(reservedByQueues).isEmpty
-        )
+    val inRunningQueue: Boolean =
+      st.queues.values.filter(_.status.running).exists(_.queue.contains(obsId))
+
+    needed.intersect(if inRunningQueue then used else used ++ reservedByQueues)
   }
+
+  private def busy(
+    st:       EngineState[F],
+    obsId:    Observation.Id,
+    clientId: ClientId,
+    conflict: Set[Subsystem]
+  ): SeqEvent =
+    Busy(obsId, clientId, conflict.toList, ObserveEngine.heldByOther(st, obsId, conflict))
+
+  /** A failed step's actions still running keep their sequence loaded, or nothing would hold. */
+  private def canLeaveSlot(seqData: SequenceData[F]): Boolean =
+    executeEngine.canUnload(seqData.seq) && !ObserveEngine.hasActionsInFlight(seqData)
+
+  private def storeSequenceSubsystems(
+    obsId:      Observation.Id,
+    subsystems: Set[Subsystem]
+  ): EngineHandle[F, Unit] =
+    EngineHandle.modifyState_[F](
+      EngineState
+        .atSequence[F](obsId)
+        .modify(SequenceData.sequenceSubsystems[F].replace(subsystems))
+    )
 
   /**
    * Check if the target on the TCS matches the Observe target.
@@ -281,55 +299,75 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           seqData.seq.status.isIdle || seqData.seq.status.isError ||
             seqData.seq.status.isCompleted
         .map: seq =>
-          (for {
-            _              <- EngineHandle.modifySequenceState[F](obsId): seq =>
-                                SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
-            startingStep   <-
-              ObserveEngine.retrieveStep(
-                services.odb,
-                translator,
-                seq.obsId,
-                seq.currentSequenceType.asLeft
-              )
-            checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
-            (stpg, checks) <-
-              EngineHandle.liftF:
-                checkedStepOpt
-                  .map: checkedStep =>
-                    sequenceTcsTargetMatch(seq, seq.currentSequenceType).map: tchk =>
-                      (checkedStep.some,
-                       List(
-                         tchk,
-                         observingConditionsMatch(st.conditions, seq.constraintSet)
-                       ).flattenOption
-                      )
-                  .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
-            resultEvent    <-
-              EngineHandle.getState
-                .flatMap: newState =>
-                  (checkSubsystems(obsId)(newState), stpg, checks, runOverride) match
-                    // Resource check fails
-                    case (false, _, _, _)                           =>
-                      EngineHandle
-                        .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
-                        .as[SeqEvent](Busy(obsId, clientId))
-                    // Target check fails and no override
-                    case (_, Some(_), x :: xs, RunOverride.Default) =>
-                      EngineHandle
-                        .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
-                        .as[SeqEvent](
-                          RequestConfirmation(
-                            UserPrompt.ChecksOverride(
-                              obsId,
-                              UserPrompt.ChecksOverride.Action.StartSequence,
-                              NonEmptyList(x, xs)
-                            ),
-                            clientId
-                          )
+          // Read before the step, in the same handle, so no other start comes in between.
+          def startHolding(hold: Set[Subsystem]): EngineHandle[F, SeqEvent] =
+            for {
+              startingStep   <-
+                ObserveEngine.retrieveStep(
+                  services.odb,
+                  translator,
+                  seq.obsId,
+                  seq.currentSequenceType.asLeft
+                )
+              checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
+              (stpg, checks) <-
+                EngineHandle.liftF:
+                  checkedStepOpt
+                    .map: checkedStep =>
+                      sequenceTcsTargetMatch(seq, seq.currentSequenceType).map: tchk =>
+                        (checkedStep.some,
+                         List(
+                           tchk,
+                           observingConditionsMatch(st.conditions, seq.constraintSet)
+                         ).flattenOption
                         )
-                    // Allowed to run
-                    case _                                          =>
-                      startAfterCheck(startAction, obsId)
+                    .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
+              resultEvent    <-
+                EngineHandle.getState
+                  .flatMap: newState =>
+                    val needed: Set[Subsystem]   =
+                      hold ++ newState.sequences.get(obsId).foldMap(_.stepSubsystems)
+                    val conflict: Set[Subsystem] = subsystemConflict(obsId, needed)(newState)
+                    (conflict.isEmpty, stpg, checks, runOverride) match
+                      // Resource check fails
+                      case (false, _, _, _)                           =>
+                        EngineHandle
+                          .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
+                          .as[SeqEvent](busy(newState, obsId, clientId, conflict))
+                      // Target check fails and no override
+                      case (_, Some(_), x :: xs, RunOverride.Default) =>
+                        EngineHandle
+                          .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
+                          .as[SeqEvent](
+                            RequestConfirmation(
+                              UserPrompt.ChecksOverride(
+                                obsId,
+                                UserPrompt.ChecksOverride.Action.StartSequence,
+                                NonEmptyList(x, xs)
+                              ),
+                              clientId
+                            )
+                          )
+                      // Allowed to run
+                      case _                                          =>
+                        storeSequenceSubsystems(obsId, needed) >>
+                          startAfterCheck(startAction, obsId)
+            } yield resultEvent
+
+          (for {
+            _           <- EngineHandle.modifySequenceState[F](obsId): seq =>
+                             SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
+            holdRead    <- EngineHandle.liftF:
+                             SequenceSubsystems.read(services.odb, obsId, seq.instrument).attempt
+            resultEvent <-
+              holdRead.fold(
+                // Fails the start as a failed read of its step would.
+                e =>
+                  ObserveEngine
+                    .failLoading[F](obsId, s"Error reading the steps left in [$obsId]")(e)
+                    .as[SeqEvent](NullSeqEvent),
+                startHolding
+              )
           } yield resultEvent).handleErrorWith(e =>
             EngineHandle
               .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage))
@@ -357,11 +395,35 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   ): F[Unit] =
     logInfoEvent(s"Sequence $obsId: Start requested by ${user.displayName}") *>
       executeEngine.offer:
-        Event.modifyState[F](
-          setObserver(obsId, observer) *>
-            clearObsCmd(obsId) *>
-            startChecks(executeEngine.startLoadedStep(obsId), obsId, clientId, none, runOverride)
-        )
+        Event.modifyState[F]:
+          EngineHandle.getState.flatMap: st =>
+            // Starting again would run the step's actions next to the ones still in flight.
+            val finishing: Boolean =
+              st.sequences
+                .get(obsId)
+                .exists: s =>
+                  (s.seq.status.isIdle || s.seq.status.isError || s.seq.status.isCompleted) &&
+                    ObserveEngine.hasActionsInFlight(s)
+            if finishing then
+              EngineHandle.pure[F, SeqEvent]:
+                NotifyUser(
+                  Notification.ActionFailed(
+                    obsId,
+                    "start the sequence",
+                    "an action of its previous step is still running"
+                  ),
+                  clientId
+                )
+            else
+              setObserver(obsId, observer) *>
+                clearObsCmd(obsId) *>
+                startChecks(
+                  executeEngine.startLoadedStep(obsId),
+                  obsId,
+                  clientId,
+                  none,
+                  runOverride
+                )
 
   override def proceedAfterPrompt(
     id:          Observation.Id,
@@ -670,9 +732,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                     Event.modifyState {
                       EngineHandle.modifyState { (st: EngineState[F]) =>
                         val instrumentSequenceLens = EngineState.instrumentLoaded[F](i)
-                        if (
-                          instrumentSequenceLens.get(st).forall(s => executeEngine.canUnload(s.seq))
-                        ) {
+                        if (instrumentSequenceLens.get(st).forall(canLeaveSlot)) {
                           (st.sequences
                              .get(obsId)
                              .fold(
@@ -750,7 +810,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             st.sequencesByInstrument.values
               .find(_.obsId === obsId)
               .fold(EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)): seqData =>
-                if executeEngine.canUnload(seqData.seq) then
+                if canLeaveSlot(seqData) then
                   EngineHandle.modifyState_[F](
                     EngineState.instrumentLoaded[F](seqData.instrument).replace(none)
                   ) >>
@@ -929,10 +989,14 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         ) ++ buildObserveStateStream(svs, odbProxy)
       case NotifyUser(memo, clientId)                                            =>
         Stream.emit(UserNotification(memo).forClient(clientId))
-      case Busy(obsId, clientId)                                                 =>
+      case SeqEvent.SubsystemClash(obsId, stepId, subsystems)                    =>
+        Stream.emit[F, TargetedClientEvent](
+          ClientEvent.SubsystemClash(obsId, stepId, subsystems.toList)
+        ) ++ buildObserveStateStream(svs, odbProxy)
+      case Busy(obsId, clientId, subsystems, heldBy)                             =>
         Stream.emit:
           ClientEvent
-            .UserNotification(Notification.SubsystemConflict(obsId))
+            .UserNotification(Notification.SubsystemConflict(obsId, subsystems, heldBy))
             .forClient(clientId)
       case LoadSequence(obsId, clientId)                                         =>
         buildObserveStateStream(svs, odbProxy) ++
@@ -1211,7 +1275,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     clientId:  ClientId
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st0 =>
-      if (configureSubsystemCheck(subsystem, st0))
+      // Checked before the step is read: reading it replaces the state of the sequence.
+      val canConfigure: Boolean =
+        st0.sequences
+          .get(obsId)
+          .map(_.seq.status)
+          .forall(status => status.isIdle || status.isError || status.isCompleted)
+      if (!canConfigure)
+        EngineHandle.pure[F, SeqEvent]:
+          NotifyUser(Notification.SequenceNotIdle(obsId, "configure a subsystem"), clientId)
+      else if (configureSubsystemCheck(subsystem, st0))
         ObserveEngine                          // Load new step and reload state
           .retrieveStep(services.odb, translator, obsId, stepId.asRight)
           .flatMap(_ => EngineHandle.getState) // A new step may have loaded, so reload state

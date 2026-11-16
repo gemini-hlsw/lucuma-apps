@@ -23,13 +23,16 @@ import org.scalacheck.Gen
 trait ArbNotification {
 
   given rcArb: Arbitrary[SubsystemConflict] = Arbitrary[SubsystemConflict] {
-    for {
-      obsId <- arbitrary[Observation.Id]
-    } yield SubsystemConflict(obsId)
+    for
+      obsId      <- arbitrary[Observation.Id]
+      subsystems <- arbitrary[List[ObservatorySubsystem]]
+      heldBy     <- arbitrary[List[Observation.Id]]
+    yield SubsystemConflict(obsId, subsystems, heldBy)
   }
 
   given rcCogen: Cogen[SubsystemConflict] =
-    Cogen[Observation.Id].contramap(_.obsId)
+    Cogen[(Observation.Id, List[Subsystem], List[Observation.Id])]
+      .contramap(x => (x.obsId, x.subsystems, x.heldBy))
 
   given rfArb: Arbitrary[LoadingFailed] = Arbitrary[LoadingFailed] {
     for

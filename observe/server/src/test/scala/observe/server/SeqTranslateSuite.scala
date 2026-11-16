@@ -231,12 +231,17 @@ class SeqTranslateSuite extends TestCommon {
 
   test("SeqTranslate classifies science steps of a daytime calibration apart from sky ones") {
     assertEquals(
-      SeqTranslate.calcStepType(Instrument.GmosSouth, StepConfig.Science, ObserveClass.DayCal),
+      StepKind.classify(
+        Instrument.GmosSouth,
+        StepConfig.Science,
+        ObserveClass.DayCal,
+        isNodAndShuffle = false
+      ),
       StepKind.DayCalObject(Instrument.GmosSouth).asRight
     )
     List(ObserveClass.Science, ObserveClass.NightCal, ObserveClass.Acquisition).foreach { c =>
       assertEquals(
-        SeqTranslate.calcStepType(Instrument.GmosSouth, StepConfig.Science, c),
+        StepKind.classify(Instrument.GmosSouth, StepConfig.Science, c, isNodAndShuffle = false),
         StepKind.CelestialObject(Instrument.GmosSouth).asRight
       )
     }

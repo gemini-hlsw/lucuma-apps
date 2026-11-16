@@ -142,6 +142,41 @@ object ObsQueriesGql:
       }
     """
 
+  // Only what classifying the steps left to execute needs, for the subsystems a sequence holds.
+  @GraphQL
+  trait RemainingStepsQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!, $$futureLimit: NonNegInt!) {
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
+          gmosNorth {
+            static { nodAndShuffle { shuffleCycles } }
+            acquisition $RemainingSequenceSubquery
+            science $RemainingSequenceSubquery
+          }
+          gmosSouth {
+            static { nodAndShuffle { shuffleCycles } }
+            acquisition $RemainingSequenceSubquery
+            science $RemainingSequenceSubquery
+          }
+          flamingos2 {
+            acquisition $RemainingSequenceSubquery
+            science $RemainingSequenceSubquery
+          }
+          igrins2 {
+            acquisition $RemainingSequenceSubquery
+            science $RemainingSequenceSubquery
+          }
+          gnirs {
+            acquisition $RemainingSequenceSubquery
+            science $RemainingSequenceSubquery
+          }
+          ghost {
+            science $RemainingSequenceSubquery
+          }
+        }
+      }
+    """
+
   // Lightweight query to determine the skipTargets parameter in the query above.
   @GraphQL
   trait ObsCalibrationRoleQuery extends GraphQLOperation[ObservationDB]:

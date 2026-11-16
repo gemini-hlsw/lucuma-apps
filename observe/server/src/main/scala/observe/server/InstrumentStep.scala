@@ -18,7 +18,7 @@ trait InstrumentStep[F[_]] {
   def instrument: Instrument
 
   def stepType: StepKind
-  // SeqTranslate.calcStepType(instrument, stepConfig, obsClass)
+  // StepKind.classify(instrument, stepConfig, obsClass, isNodAndShuffle)
 
   // The name used for this instrument in the science fold configuration
   def sfName: LightSinkName
