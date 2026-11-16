@@ -245,15 +245,15 @@ object ArchiveDuplicationColumns:
       col(
         RAColumnId,
         _.fold(_.entry.basePosition.map(_.ra), _.archiveMatch.coordinates.map(_.ra), _ => none)
-      ).withFilterMethod(FilterMethod.Text(_.foldMap(MathValidators.truncatedRA.reverseGet)))
-        .withCell(_.value.map(MathValidators.truncatedRA.reverseGet).orEmpty)
+      ).withFilterMethod(FilterMethod.Text(_.foldMap(MathValidators.roundedRA.reverseGet)))
+        .withCell(_.value.map(MathValidators.roundedRA.reverseGet).orEmpty)
         .sortable
         .withSize(95.toPx),
       col(
         DecColumnId,
         _.fold(_.entry.basePosition.map(_.dec), _.archiveMatch.coordinates.map(_.dec), _ => none)
-      ).withFilterMethod(FilterMethod.Text(_.foldMap(MathValidators.truncatedDec.reverseGet)))
-        .withCell(_.value.map(MathValidators.truncatedDec.reverseGet).orEmpty)
+      ).withFilterMethod(FilterMethod.Text(_.foldMap(MathValidators.roundedDec.reverseGet)))
+        .withCell(_.value.map(MathValidators.roundedDec.reverseGet).orEmpty)
         .sortable
         .withSize(95.toPx),
       textCol(

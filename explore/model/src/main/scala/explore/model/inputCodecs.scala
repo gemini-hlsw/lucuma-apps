@@ -57,8 +57,8 @@ import java.time.LocalTime
  */
 trait inputCodecs:
   // Coordinates
-  val Ra: InputCodec[RightAscension]                = InputCodec.TruncatedRa
-  val Dec: InputCodec[Declination]                  = InputCodec.TruncatedDec
+  val Ra: InputCodec[RightAscension]                = InputCodec.RoundedRa
+  val Dec: InputCodec[Declination]                  = InputCodec.RoundedDec
   val EpochNoScheme: InputCodec[Epoch]              =
     MathValidators.epochNoScheme.toCodec.withDecimalMask(
       3,
@@ -82,7 +82,7 @@ trait inputCodecs:
 
   // Angles
   val PositionAngleDegrees: InputCodec[Angle]                  =
-    MathValidators.truncatedAngleDegrees.toCodec.withDecimalMask(2, integerDigits = 3.some)
+    MathValidators.roundedAngleDegrees.toCodec.withDecimalMask(2, integerDigits = 3.some)
   val Fwhm: InputCodec[Angle]                                  =
     MathValidators.angleArcSec.toCodec.withUnboundedDecimalMask(allowMinus = false)
   val DecimalArcseconds: InputCodec[Angle]                     =
@@ -101,7 +101,7 @@ trait inputCodecs:
 
   /** Finder chart zoom factor. */
   val FinderChartZoom: InputCodec[BigDecimal] =
-    InputValidWedge.truncatedBigDecimal(2.refined).toCodec.withDecimalMask(2)
+    InputValidWedge.roundedBigDecimal(2.refined).toCodec.withDecimalMask(2)
 
   /** IFU field sizes vary by kind, so the parser is supplied; the mask is shared. */
   def ifuArcseconds(valid: InputValidFormat[Angle]): InputCodec[Angle] =

@@ -221,12 +221,12 @@ object ObsSummaryColumns:
             v.foldMap(
               _.fold(_ => "",
                      _.fold(
-                       _.format(MathValidators.truncatedRA.reverseGet),
-                       MathValidators.truncatedRA.reverseGet(_)
+                       _.format(MathValidators.roundedRA.reverseGet),
+                       MathValidators.roundedRA.reverseGet(_)
                      )
               )
             )
-        .withCell(_.value.format(MathValidators.truncatedRA.reverseGet))
+        .withCell(_.value.format(MathValidators.roundedRA.reverseGet))
         .sortable,
       mixedColumn(
         DecColumnId,
@@ -239,12 +239,12 @@ object ObsSummaryColumns:
             v.foldMap(
               _.fold(_ => "",
                      _.fold(
-                       _.format(MathValidators.truncatedDec.reverseGet),
-                       MathValidators.truncatedDec.reverseGet(_)
+                       _.format(MathValidators.roundedDec.reverseGet),
+                       MathValidators.roundedDec.reverseGet(_)
                      )
               )
             )
-        .withCell(_.value.format(MathValidators.truncatedDec.reverseGet))
+        .withCell(_.value.format(MathValidators.roundedDec.reverseGet))
         .sortable,
       // TODO: TimingColumnId
       ColDef(

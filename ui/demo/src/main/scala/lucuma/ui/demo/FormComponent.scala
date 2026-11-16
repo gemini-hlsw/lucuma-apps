@@ -204,13 +204,13 @@ object FormComponent {
               id = "ra".refined,
               label = "RA",
               value = root.zoom(RootModel.ra),
-              codec = InputCodec.TruncatedRa
+              codec = InputCodec.RoundedRa
             ),
             FormInputTextView(
               id = "dec".refined,
               label = "Dec",
               value = root.zoom(RootModel.dec),
-              codec = InputCodec.TruncatedDec
+              codec = InputCodec.RoundedDec
             ),
             FormInputTextView(
               id = "epoch".refined,

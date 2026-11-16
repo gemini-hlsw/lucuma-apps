@@ -41,7 +41,7 @@ import org.scalacheck.Gen
  *     lucuma-core release with those fixes is in use.
  *   - `BrightnessValue`, `SignalToNoise`, `Wavelength`, `WavelengthDelta`: domain restrictions. The
  *     core generators cover the whole type (40-decimal brightnesses, picometer wavelengths), whose
- *     canonical text the Explore wedges themselves truncate away.
+ *     canonical text the Explore wedges themselves round away.
  *   - `TimeSpan`: the duration masks accept at most 5 hour digits.
  */
 final class InputCodecsSuite extends DisciplineSuite:

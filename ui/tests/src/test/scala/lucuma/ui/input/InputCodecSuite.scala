@@ -8,5 +8,5 @@ import lucuma.core.math.arb.ArbRightAscension.given
 import munit.DisciplineSuite
 
 final class InputCodecSuite extends DisciplineSuite:
-  checkAll("InputCodec.TruncatedRa", InputCodecTests(InputCodec.TruncatedRa))
-  checkAll("InputCodec.TruncatedDec", InputCodecTests(InputCodec.TruncatedDec))
+  checkAll("InputCodec.RoundedRa", InputCodecTests(InputCodec.RoundedRa))
+  checkAll("InputCodec.RoundedDec", InputCodecTests(InputCodec.RoundedDec))

@@ -703,7 +703,7 @@ object SequenceColumns:
 
   private[sequence] val DecimalArcsecondsValidWedge: InputValidWedge[Angle] =
     InputValidWedge
-      .truncatedBigDecimal(2.refined)
+      .roundedBigDecimal(2.refined)
       .andThen(
         ValidWedge
           .fromPrism(decimalArcsecondsPrism, _ => "Invalid Angle".refined[NonEmpty])
