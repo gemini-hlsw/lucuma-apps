@@ -3,8 +3,10 @@
 
 package explore.config
 
+import cats.Endo
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.*
 import crystal.react.hooks.*
@@ -67,17 +69,23 @@ object ScorpioLongSlitConfigPanel
           )
           .view(_.map(_.toInput).orUnassign)
 
-        val modeView: View[ObservingMode.ScorpioLongSlit] = props.observingMode.view(_.toInput)
+        // g/r and i/z share a detector controller: each pair is edited as one value, and only that
+        // pair is sent to the ODB.
+        val grView: View[ExposureTimeMode] = props.observingMode
+          .zoom(
+            ObservingMode.ScorpioLongSlit.gr,
+            (f: Endo[Input[ExposureTimeModeInput]]) =>
+              (in: ScorpioLongSlitInput) => f(in.g).pipe(etm => in.copy(g = etm, r = etm))
+          )
+          .view(_.toInput.assign)
 
-        // g/r and i/z share a detector controller, the ODB requires each pair to be equal.
-        val grView: View[ExposureTimeMode] =
-          modeView.zoom(_.g)(f => m => f(m.g).pipe(etm => m.copy(g = etm, r = etm)))
-        val rgView: View[ExposureTimeMode] =
-          modeView.zoom(_.r)(f => m => f(m.r).pipe(etm => m.copy(g = etm, r = etm)))
-        val izView: View[ExposureTimeMode] =
-          modeView.zoom(_.i)(f => m => f(m.i).pipe(etm => m.copy(i = etm, z = etm)))
-        val ziView: View[ExposureTimeMode] =
-          modeView.zoom(_.z)(f => m => f(m.z).pipe(etm => m.copy(i = etm, z = etm)))
+        val izView: View[ExposureTimeMode] = props.observingMode
+          .zoom(
+            ObservingMode.ScorpioLongSlit.iz,
+            (f: Endo[Input[ExposureTimeModeInput]]) =>
+              (in: ScorpioLongSlitInput) => f(in.i).pipe(etm => in.copy(i = etm, z = etm))
+          )
+          .view(_.toInput.assign)
 
         def channelRow(name: String, etm: View[ExposureTimeMode]): VdomNode =
           React.Fragment.withKey(name)(
@@ -122,9 +130,9 @@ object ScorpioLongSlitConfigPanel
                 "Exposure Times"
               ),
               channelRow("g", grView),
-              channelRow("r", rgView),
+              channelRow("r", grView),
               channelRow("i", izView),
-              channelRow("z", ziView),
+              channelRow("z", izView),
               pairLink("g", "r", ExploreStyles.ScorpioChannelLinkGR),
               pairLink("i", "z", ExploreStyles.ScorpioChannelLinkIZ)
             ),
