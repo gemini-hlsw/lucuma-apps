@@ -17,3 +17,4 @@ object all
     with ArbObsRecordedIds
     with ArbObservationProgress
     with ArbUserPrompt
+    with ArbDaytimeQueue

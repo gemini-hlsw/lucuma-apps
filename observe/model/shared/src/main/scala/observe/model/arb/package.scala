@@ -21,3 +21,4 @@ object all
     with ArbObservationProgress
     with ArbUserPrompt
     with ArbSubsystem
+    with ArbDaytimeQueue

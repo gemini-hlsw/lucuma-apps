@@ -9,7 +9,8 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.core.enums.CalibrationRole
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.ui.syntax.calibration.*
+import lucuma.schemas.model.syntax.isDaytime
+import lucuma.ui.syntax.calibration.needsITC
 
 enum SequenceKind derives Eq:
   case Science, Calibration

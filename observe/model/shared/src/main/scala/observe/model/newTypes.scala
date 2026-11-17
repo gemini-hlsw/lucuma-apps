@@ -16,8 +16,8 @@ type Version = Version.Type
 object ClientId extends NewType[UUID]
 type ClientId = ClientId.Type
 
-object QueueId extends NewType[UUID]
-type QueueId = QueueId.Type
+object QueuePauseId extends NewType[UUID]
+type QueuePauseId = QueuePauseId.Type
 
 object Observer extends NewType[NonEmptyString]
 type Observer = Observer.Type

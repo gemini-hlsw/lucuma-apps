@@ -17,7 +17,7 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
-import lucuma.ui.syntax.calibration.isGeneratedDaytime
+import lucuma.schemas.model.syntax.isGeneratedDaytime
 import monocle.Focus
 import monocle.Lens
 

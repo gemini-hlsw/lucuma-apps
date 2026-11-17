@@ -49,7 +49,7 @@ import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
-import lucuma.ui.syntax.calibration.isDaytimeRole
+import lucuma.schemas.model.syntax.isDaytimeRole
 import lucuma.ui.utils.*
 
 import scala.collection.immutable.SortedSet

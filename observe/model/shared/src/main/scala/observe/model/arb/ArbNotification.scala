@@ -96,6 +96,16 @@ trait ArbNotification {
   given rrCogen: Cogen[RestartRefused] =
     Cogen[List[String]].contramap(_.reasons.toList)
 
+  given dqrArb: Arbitrary[DaytimeQueueRejected] = Arbitrary[DaytimeQueueRejected] {
+    for
+      id <- arbitrary[Observation.Id]
+      r  <- arbitrary[String]
+    yield DaytimeQueueRejected(id, r)
+  }
+
+  given dqrCogen: Cogen[DaytimeQueueRejected] =
+    Cogen[(Observation.Id, String)].contramap(x => (x.obsId, x.reason))
+
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {
       r <- arbitrary[SubsystemConflict]
@@ -105,7 +115,8 @@ trait ArbNotification {
       n <- arbitrary[SequenceNotIdle]
       x <- arbitrary[ActionFailed]
       y <- arbitrary[RestartRefused]
-      s <- Gen.oneOf(r, a, f, b, n, x, y)
+      d <- arbitrary[DaytimeQueueRejected]
+      s <- Gen.oneOf(r, a, f, b, n, x, y, d)
     } yield s
   }
 
@@ -115,20 +126,28 @@ trait ArbNotification {
         SubsystemConflict,
         Either[
           InstrumentInUse,
-          Either[LoadingFailed, Either[SubsystemBusy, Either[SequenceNotIdle, Either[ActionFailed,
-                                                                                     RestartRefused
-          ]]]]
+          Either[
+            LoadingFailed,
+            Either[
+              SubsystemBusy,
+              Either[
+                SequenceNotIdle,
+                Either[ActionFailed, Either[RestartRefused, DaytimeQueueRejected]]
+              ]
+            ]
+          ]
         ]
       ]
     ]
       .contramap {
-        case r: SubsystemConflict => Left(r)
-        case i: InstrumentInUse   => Right(Left(i))
-        case f: LoadingFailed     => Right(Right(Left(f)))
-        case b: SubsystemBusy     => Right(Right(Right(Left(b))))
-        case n: SequenceNotIdle   => Right(Right(Right(Right(Left(n)))))
-        case x: ActionFailed      => Right(Right(Right(Right(Right(Left(x))))))
-        case y: RestartRefused    => Right(Right(Right(Right(Right(Right(y))))))
+        case r: SubsystemConflict           => Left(r)
+        case i: InstrumentInUse             => Right(Left(i))
+        case f: LoadingFailed               => Right(Right(Left(f)))
+        case b: SubsystemBusy               => Right(Right(Right(Left(b))))
+        case n: SequenceNotIdle             => Right(Right(Right(Right(Left(n)))))
+        case x: ActionFailed                => Right(Right(Right(Right(Right(Left(x))))))
+        case y: RestartRefused              => Right(Right(Right(Right(Right(Right(Left(y)))))))
+        case d @ DaytimeQueueRejected(_, _) => Right(Right(Right(Right(Right(Right(Right(d)))))))
       }
 
 }

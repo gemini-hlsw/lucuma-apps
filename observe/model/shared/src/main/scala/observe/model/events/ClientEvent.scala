@@ -19,6 +19,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.util.Enumerated
 import observe.model.ClientConfig
 import observe.model.CurrentConditions
+import observe.model.DaytimeQueueView
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
@@ -55,7 +56,8 @@ object ClientEvent:
     sequenceExecution:  Map[Observation.Id, ExecutionState],
     conditions:         CurrentConditions,
     operator:           Option[Operator],
-    currentRecordedIds: ObsRecordedIds
+    currentRecordedIds: ObsRecordedIds,
+    daytimeQueue:       DaytimeQueueView
   ) extends AllClientEvent derives Eq
 
   object ObserveState:
@@ -63,7 +65,13 @@ object ClientEvent:
       view:        SequencesQueue[SequenceView],
       recordedIds: ObsRecordedIds
     ): ObserveState =
-      ObserveState(view.sequencesState, view.conditions, view.operator, recordedIds)
+      ObserveState(
+        view.sequencesState,
+        view.conditions,
+        view.operator,
+        recordedIds,
+        view.daytimeQueue
+      )
 
   // Used to notify the client that sent the load request to switch to the instrument tab.
   case class ObsLoaded(instrument: Instrument) extends SingleClientEvent derives Eq
