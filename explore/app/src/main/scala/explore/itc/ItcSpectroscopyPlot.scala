@@ -293,7 +293,7 @@ object ItcSpectroscopyPlot {
                 .map(label => s"$label $seriesName")
                 .getOrElse(seriesName)
             val id                                              = s"series-$idx"
-            SeriesLineOptions((), ())
+            SeriesLineOptions()
               .setName(mkName(series.title, ccdIdx))
               .setYAxis(0)
               .setData(

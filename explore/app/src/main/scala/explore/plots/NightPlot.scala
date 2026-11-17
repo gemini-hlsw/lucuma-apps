@@ -443,7 +443,7 @@ object NightPlot:
                  else s" highcharts-color-${seriesData.objectIndex % 10}")
 
               val baseSeries: SeriesAreaOptions =
-                SeriesAreaOptions((), (), ())
+                SeriesAreaOptions()
                   .setName(if (seriesData.showLabel) seriesData.name else "")
                   .setLabel:
                     SeriesLabelOptionsObject()
