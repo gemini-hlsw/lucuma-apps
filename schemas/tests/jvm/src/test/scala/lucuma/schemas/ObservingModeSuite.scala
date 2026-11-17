@@ -7,6 +7,7 @@ import cats.data.NonEmptyList
 import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.PosInt
 import io.circe.parser.decode
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScorpioFpu
 import lucuma.core.enums.StepGuideState
 import lucuma.core.enums.WavelengthOrder
@@ -128,3 +129,14 @@ class ObservingModeSuite extends FunSuite:
         assert(s.isCustomized)
       case other                                   =>
         fail(s"Expected ScorpioLongSlit, got: $other")
+
+  test("daytime calibration without calibrationSets does not decode"):
+    val json = """{ "daytimeCalibration": { "instrument": "GMOS_NORTH" } }"""
+    assert(decode[ObservingMode](json).isLeft)
+
+  test("daytime calibration with calibrationSets decodes"):
+    val json = """{ "daytimeCalibration": { "instrument": "GMOS_NORTH", "calibrationSets": [] } }"""
+    assertEquals(
+      decode[ObservingMode](json),
+      Right(ObservingMode.DaytimeCalibration(Instrument.GmosNorth, Nil))
+    )

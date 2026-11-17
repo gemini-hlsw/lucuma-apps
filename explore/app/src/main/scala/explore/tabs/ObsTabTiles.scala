@@ -930,6 +930,9 @@ object ObsTabTiles:
                 props.obsId,
                 props.observation.zoom(Observation.observingModeOption),
                 props.observation.get.observingMode.isPending,
+                props.basicConfiguration.collect { case BasicConfiguration.DaytimeCalibration(i) =>
+                  i
+                },
                 props.observation.get.execution.digest.fullTimeEstimate,
                 props.observation.get.hasMaterializedSequence,
                 props.readonly || props.daytimeCalIsReadonly,

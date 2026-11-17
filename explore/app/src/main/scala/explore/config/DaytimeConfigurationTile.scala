@@ -45,6 +45,7 @@ final case class DaytimeConfigurationTile(
   obsId:                   Observation.Id,
   mode:                    UndoSetter[Option[ObservingMode]],
   modePending:             Boolean,
+  pendingInstrument:       Option[Instrument],
   executionTime:           CalculatedValue[Option[TimeSpan]],
   hasMaterializedSequence: Boolean,
   readonly:                Boolean,
@@ -104,11 +105,22 @@ object DaytimeConfigurationTile
               )
             )
 
+        // Until the sets are hydrated, show the editor read-only and empty for the instrument
+        // the summary already knows.
+        val placeholder: TagMod =
+          props.pendingInstrument
+            .filter(_ => props.modePending)
+            .fold(EmptyVdom): i =>
+              DaytimeCalibrationEditor(
+                View(ObservingMode.DaytimeCalibration(i, Nil), (_, _) => Callback.empty),
+                editable = false,
+                hasMaterializedSequence = props.hasMaterializedSequence,
+                units = props.units,
+                loading = true
+              )
+
         val body: TagMod =
-          daytimeView.fold(
-            if props.modePending then <.div(ExploreStyles.DaytimeCalMessage, "Loading...")
-            else EmptyVdom
-          ): view =>
+          daytimeView.fold(placeholder): view =>
             DaytimeCalibrationEditor(view,
                                      props.editable,
                                      props.hasMaterializedSequence,
@@ -123,7 +135,8 @@ case class DaytimeCalibrationEditor(
   daytime:                 View[ObservingMode.DaytimeCalibration],
   editable:                Boolean,
   hasMaterializedSequence: Boolean,
-  units:                   WavelengthUnits
+  units:                   WavelengthUnits,
+  loading:                 Boolean = false
 ) extends ReactFnProps(DaytimeCalibrationEditor.component)
 
 object DaytimeCalibrationEditor:
@@ -147,7 +160,12 @@ object DaytimeCalibrationEditor:
 
       val table: VdomNode =
         if DaytimeCalibrationSets.supports(instrument) then
-          DaytimeCalibrationSetsTable(instrument, setsView, props.editable, props.units)
+          DaytimeCalibrationSetsTable(instrument,
+                                      setsView,
+                                      props.editable,
+                                      props.units,
+                                      props.loading
+          )
         else
           <.div(
             ExploreStyles.DaytimeCalMessage,

@@ -5,9 +5,14 @@ package explore.model
 
 import cats.kernel.laws.discipline.EqTests
 import cats.syntax.all.*
+import crystal.Pot
 import explore.model.arb.ArbObservation
+import io.circe.parser.parse
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.ObservingMode
 import munit.DisciplineSuite
 import org.scalacheck.Prop.*
 
@@ -24,3 +29,24 @@ class ObservationSuite extends DisciplineSuite:
         state === ObservationWorkflowState.Ongoing || state === ObservationWorkflowState.Suspended
       )
       assertEquals(o.isExecuted, o.isOngoing || state === ObservationWorkflowState.Completed)
+
+  private def decodeModes(json: String) =
+    Observation.decodeObservingModes(parse(json).toOption.get.hcursor)
+
+  test("a summary-only daytime calibration mode is pending"):
+    assertEquals(
+      decodeModes("""{ "daytimeCalibration": { "instrument": "GMOS_NORTH" } }"""),
+      Right((BasicConfiguration.DaytimeCalibration(Instrument.GmosNorth).some, Pot.Pending))
+    )
+
+  test("a hydrated daytime calibration mode is ready"):
+    assertEquals(
+      decodeModes(
+        """{ "daytimeCalibration": { "instrument": "GMOS_NORTH", "calibrationSets": [] } }"""
+      ),
+      Right(
+        (BasicConfiguration.DaytimeCalibration(Instrument.GmosNorth).some,
+         Pot.Ready(ObservingMode.DaytimeCalibration(Instrument.GmosNorth, Nil).some)
+        )
+      )
+    )
