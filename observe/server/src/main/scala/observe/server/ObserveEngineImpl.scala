@@ -368,11 +368,17 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                              SequenceSubsystems.read(services.odb, obsId, seq.instrument).attempt
             resultEvent <-
               holdRead.fold(
-                // Fails the start as a failed read of its step would.
+                // Nothing has run yet, so the start is refused and the sequence is left idle.
                 e =>
-                  ObserveEngine
-                    .failLoading[F](obsId, s"Error reading the steps left in [$obsId]")(e)
-                    .as[SeqEvent](NullSeqEvent),
+                  EngineHandle.logError(e)(s"Error reading the steps left in [$obsId]") >>
+                    EngineHandle
+                      .modifySequenceState[F](obsId)(_.withIdleStatus)
+                      .as[SeqEvent](
+                        SeqEvent.NotifyUser(
+                          Notification.ActionFailed(obsId, "start the sequence", e.getMessage),
+                          clientId
+                        )
+                      ),
                 startHolding
               )
           } yield resultEvent).handleErrorWith(e =>

@@ -30,7 +30,8 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.syntax.timespan.*
-import lucuma.schemas.odb.RemainingStepSubquery
+import lucuma.core.util.TimeSpan
+import observe.common.RemainingStepSubquery
 import observe.common.test.*
 import observe.model.CurrentConditions
 import observe.model.Notification
@@ -276,7 +277,10 @@ class SequenceSubsystemsSuite extends TestCommon:
     log.count(_ === OdbRead.RemainingSteps(obsId))
 
   private def step(config: StepConfig, observeClass: ObserveClass): RemainingStepSubquery.Data =
-    RemainingStepSubquery.Data(config, observeClass)
+    RemainingStepSubquery.Data(config,
+                               observeClass,
+                               RemainingStepSubquery.Data.Estimate(TimeSpan.Zero)
+    )
 
   private def holdOf(
     instrument:      Instrument,
@@ -510,25 +514,27 @@ class SequenceSubsystemsSuite extends TestCommon:
         log <- f.odb.readLog
       yield assertEquals(log.drop(n), List(OdbRead.RemainingSteps(obs1), OdbRead.Step(obs1)))
 
-  test("a failed remaining-steps read fails the start, reads no step and holds nothing"):
+  test("a failed remaining-steps read refuses the start and leaves the sequence idle"):
     TestControl.executeEmbed:
       for
-        f   <- fixture(
-                 List(gmosNorthObs(obs1, 2, scienceConfig)),
-                 Map(obs1 -> RemainingStepsMode.Failing)
-               )
-        _   <- load(f, Instrument.GmosNorth, obs1)
-        n   <- f.odb.readLog.map(_.length)
-        r   <- f.runner.run(start(obs1), (_, st) => sequenceOf(st, obs1).seq.status.isError)
-        st  <- f.runner.drain
-        log <- f.odb.readLog
+        f      <- fixture(
+                    List(gmosNorthObs(obs1, 2, scienceConfig)),
+                    Map(obs1 -> RemainingStepsMode.Failing)
+                  )
+        _      <- load(f, Instrument.GmosNorth, obs1)
+        n      <- f.odb.readLog.map(_.length)
+        sent   <- f.odb.outCapture.map(_.length)
+        r      <- f.runner.run(start(obs1), (r, _) => refusal(r).isDefined)
+        st     <- f.runner.drain
+        log    <- f.odb.readLog
+        events <- f.odb.outCapture
       yield
+        assertStillRunning(r._1, "start the sequence")
         assertEquals(log.drop(n), List(OdbRead.RemainingSteps(obs1)))
-        assert(sequenceOf(st, obs1).seq.status.isError, s"${sequenceOf(st, obs1).seq.status}")
-        assert(sequenceOf(st, obs1).loadedStep.isEmpty)
+        assert(sequenceOf(st, obs1).seq.status.isIdle, s"${sequenceOf(st, obs1).seq.status}")
         assertEquals(sequenceOf(st, obs1).sequenceSubsystems, NoSubsystems)
         assertEquals(ObserveEngine.subsystemsInUse(st), NoSubsystems)
-        assert(!r._2.sequences.values.exists(_.seq.status.isRunning))
+        assertEquals(events.drop(sent), Nil)
 
   test("a newly loaded sequence holds nothing"):
     TestControl.executeEmbed:
@@ -793,6 +799,17 @@ class SequenceSubsystemsSuite extends TestCommon:
     assertEquals(ObserveEngine.subsystemsInUse(failed), NorthTcsGcal)
     assertEquals(ObserveEngine.heldByOther(failed, obs2, TcsAndGcal), List(obs1))
     assertEquals(ObserveEngine.subsystemsInUse(finished(failed)), NoSubsystems)
+
+  test("a failed sequence with an action still running does not block a restart"):
+    val started: Endo[EngineState[IO]] =
+      EngineState.sequenceStateAt[IO](obs1).modify(_.start(0))
+    val failed: EngineState[IO]        =
+      runningWithStep(obs1, Instrument.GmosNorth, NorthTcsGcal, NorthTcsGcal)
+        .andThen(started)
+        .andThen(statusMod(obs1)(_ => SequenceStatus.Failed("error")))
+        .apply(EngineState.default[IO])
+    assertEquals(ObserveEngine.subsystemsInUse(failed), NorthTcsGcal)
+    assertEquals(ObserveEngine.restartBlockers(failed), none)
 
   test("a failed sequence cannot be unloaded while an action of its step is still running"):
     val started: Endo[EngineState[IO]]                         =

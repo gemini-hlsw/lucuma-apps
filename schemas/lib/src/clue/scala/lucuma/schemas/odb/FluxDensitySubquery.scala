@@ -6,6 +6,7 @@ package lucuma.schemas.odb
 import clue.GraphQLSubquery
 import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
+import clue.annotation.GraphQLStub
 import lucuma.schemas.ObservationDB
 // gql: import io.circe.refined.*
 
@@ -22,5 +23,5 @@ abstract class FluxDensitySubquery extends GraphQLSubquery[ObservationDB]:
         }
       """
 
-@clue.annotation.GraphQLStub
+@GraphQLStub
 object FluxDensitiesSubquery

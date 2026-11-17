@@ -14,9 +14,9 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.odb.RemainingSequenceSubquery
-import lucuma.schemas.odb.RemainingStepSubquery
 import observe.common.ObsQueriesGql.*
+import observe.common.RemainingSequenceSubquery
+import observe.common.RemainingStepSubquery
 import observe.model.dhs.*
 import observe.server.ObserveFailure
 

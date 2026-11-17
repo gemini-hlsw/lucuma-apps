@@ -32,12 +32,12 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.Timestamp
-import lucuma.schemas.odb.RemainingStepSubquery
 import monocle.Lens
 import monocle.syntax.all.focus
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.common.ObsQueriesGql.ObsQuery.Data
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
+import observe.common.RemainingStepSubquery
 import observe.model.dhs.ImageFileId
 import observe.model.odb.ObsRecordedIds
 import observe.server.TestCommon
@@ -77,7 +77,12 @@ object TestOdbProxy {
     def remainingSteps: List[RemainingStepSubquery.Data] =
       (acquisition.toList ++ science)
         .flatMap(_.steps.toList)
-        .map(step => RemainingStepSubquery.Data(step.stepConfig, step.observeClass))
+        .map: step =>
+          RemainingStepSubquery.Data(
+            step.stepConfig,
+            step.observeClass,
+            RemainingStepSubquery.Data.Estimate(step.estimate.total)
+          )
 
   /** How the test ODB answers the remaining-steps read of an observation. */
   enum RemainingStepsMode:

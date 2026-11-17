@@ -419,7 +419,9 @@ object ObserveEngine {
     NonEmptyList
       .fromList(sequences ++ configuring ++ queues)
       .orElse:
-        Option.when(subsystemsInUse(st).nonEmpty || subsystemsReserved(st).nonEmpty):
+        // The actions a failed step left running do not count: restarting is the way out of one
+        // that never returns.
+        Option.when(subsystemsReserved(st).nonEmpty):
           NonEmptyList.one("The server is busy")
 
   /**
@@ -709,7 +711,7 @@ object ObserveEngine {
         .as(none)
 
   /** Fails the sequence after an ODB read for its next step failed. */
-  private[server] def failLoading[F[_]: {MonadCancelThrow, Logger}](
+  private def failLoading[F[_]: {MonadCancelThrow, Logger}](
     obsId: Observation.Id,
     msg:   String
   )(e: Throwable): EngineHandle[F, Unit] =
