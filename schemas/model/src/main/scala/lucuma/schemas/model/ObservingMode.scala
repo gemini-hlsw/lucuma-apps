@@ -2517,7 +2517,7 @@ object ObservingMode:
 
   case class DaytimeCalibration(
     calibrationInstrument: Instrument,
-    calibrationSets:       List[DaytimeCalibrationSet] = Nil
+    calibrationSets:       List[DaytimeCalibrationSet]
   ) extends ObservingMode(calibrationInstrument.some) derives Eq:
     val isCustomized: Boolean = false
 

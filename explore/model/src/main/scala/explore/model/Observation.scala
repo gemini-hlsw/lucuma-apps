@@ -17,6 +17,7 @@ import explore.model.enums.ObsValidationSeverity
 import explore.model.syntax.all.*
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
+import io.circe.ACursor
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
@@ -702,6 +703,17 @@ object Observation:
   private case class AttachmentIdWrapper(id: Attachment.Id) derives Decoder
   private case class ConfigurationRequestIdWrapper(id: ConfigurationRequest.Id) derives Decoder
 
+  // The bulk-summary query returns only BasicConfiguration fields for `observingMode`, which
+  // must fail the full decode so the mode stays Pending until it is hydrated.
+  private[model] def decodeObservingModes(
+    c: ACursor
+  ): Decoder.Result[(Option[BasicConfiguration], Pot[Option[ObservingMode]])] =
+    val fullMode: Pot[Option[ObservingMode]] =
+      c.as[Option[ObservingMode]].fold(_ => Pot.Pending, Pot.Ready(_))
+    fullMode.toOption.flatten match
+      case Some(mode) => (mode.toBasicConfiguration.some, fullMode).asRight
+      case None       => c.as[Option[BasicConfiguration]].map((_, fullMode))
+
   given Decoder[Observation] = Decoder.instance(c =>
     for {
       id                    <- c.get[Observation.Id]("id")
@@ -719,14 +731,7 @@ object Observation:
       tooActivation         <- c.downField("schedulingConstraints").get[TooActivation]("tooActivation")
       attachmentIds         <- c.get[List[AttachmentIdWrapper]]("attachments")
       scienceRequirements   <- c.get[ScienceRequirements]("scienceRequirements")
-      // The bulk-summary query returns only BasicConfiguration fields for `observingMode`
-      fullMode              <- c.downField("observingMode").as[Option[ObservingMode]] match
-                                 case Right(opt) => Pot.Ready(opt).asRight
-                                 case Left(_)    => Pot.Pending.asRight
-      basicConfigSummary    <- fullMode.toOption.flatten match
-                                 case Some(mode) => mode.toBasicConfiguration.some.asRight
-                                 case None       =>
-                                   c.get[Option[BasicConfiguration]]("observingMode")
+      modes                 <- decodeObservingModes(c.downField("observingMode"))
       observationTime       <- c.get[Option[Timestamp]]("observationTime")
       observationDur        <- c.get[Option[TimeSpan]]("observationDuration")
       posAngleConstraint    <- c.get[PosAngleConstraint]("posAngleConstraint")
@@ -758,8 +763,8 @@ object Observation:
       tooActivation,
       SortedSet.from(attachmentIds.map(_.id)),
       scienceRequirements,
-      basicConfigSummary,
-      fullMode,
+      modes._1,
+      modes._2,
       observationTime.map(_.toInstant),
       observationDur,
       posAngleConstraint,
