@@ -25,7 +25,7 @@ final case class StepBuildContext[F[_], S, D](
    * nod and shuffle steps apart.
    */
   def stepKind(instrument: Instrument): Either[ObserveFailure, StepKind] =
-    SeqTranslate.calcStepType(instrument, step.stepConfig, step.observeClass)
+    StepKind.classify(instrument, step.stepConfig, step.observeClass, isNodAndShuffle = false)
 }
 
 trait InstrumentStepBuilder[F[_], S, D] {

@@ -31,7 +31,8 @@ object TestUtil {
             staticCfg = staticCfg1,
             seq = seq,
             pendingObsCmd = none,
-            visitStartDone = false
+            visitStartDone = false,
+            sequenceSubsystems = Set.empty
           )
           .some,
         gmosSouth = none,

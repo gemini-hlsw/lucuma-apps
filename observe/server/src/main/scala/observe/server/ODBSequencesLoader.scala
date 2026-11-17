@@ -59,7 +59,8 @@ object ODBSequencesLoader {
           staticCfg = ec.static,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false
+          visitStartDone = false,
+          sequenceSubsystems = Set.empty
         )
       case InstrumentExecutionConfig.GmosSouth(ec)  =>
         SequenceData.GmosSouth(
@@ -70,7 +71,8 @@ object ODBSequencesLoader {
           staticCfg = ec.static,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false
+          visitStartDone = false,
+          sequenceSubsystems = Set.empty
         )
       case InstrumentExecutionConfig.Flamingos2(ec) =>
         SequenceData.Flamingos2(
@@ -81,7 +83,8 @@ object ODBSequencesLoader {
           staticCfg = ec.static,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false
+          visitStartDone = false,
+          sequenceSubsystems = Set.empty
         )
       case InstrumentExecutionConfig.Igrins2(ec)    =>
         SequenceData.Igrins2(
@@ -92,7 +95,8 @@ object ODBSequencesLoader {
           staticCfg = ec.static,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false
+          visitStartDone = false,
+          sequenceSubsystems = Set.empty
         )
       case InstrumentExecutionConfig.Ghost(ec)      =>
         SequenceData.Ghost(
@@ -103,7 +107,8 @@ object ODBSequencesLoader {
           staticCfg = ec.static,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false
+          visitStartDone = false,
+          sequenceSubsystems = Set.empty
         )
       case InstrumentExecutionConfig.Gnirs(ec)      =>
         SequenceData.Gnirs(
@@ -114,7 +119,8 @@ object ODBSequencesLoader {
           staticCfg = ec.static,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false
+          visitStartDone = false,
+          sequenceSubsystems = Set.empty
         )
       case InstrumentExecutionConfig.Visitor(_)     => ???
       case InstrumentExecutionConfig.Exchange       =>

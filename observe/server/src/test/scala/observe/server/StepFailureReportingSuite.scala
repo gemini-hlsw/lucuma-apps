@@ -8,6 +8,7 @@ import cats.effect.Deferred
 import cats.effect.IO
 import cats.effect.Ref
 import cats.syntax.all.*
+import eu.timepit.refined.types.string.NonEmptyString
 import fs2.concurrent.SignallingRef
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.ExecutionEnvironment
@@ -25,6 +26,7 @@ import observe.model.ActionType
 import observe.model.ClientId
 import observe.model.CurrentConditions
 import observe.model.Observer
+import observe.model.Operator
 import observe.model.SequenceStatus
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
@@ -32,6 +34,7 @@ import observe.model.enums.RunOverride
 import observe.server.engine.Action.ActionState
 import observe.server.engine.Engine
 import observe.server.engine.user
+import observe.server.gcal.GcalController
 import observe.server.gmos.GmosController
 import observe.server.gmos.GmosControllerDisabled
 import observe.server.gmos.GmosNorthController
@@ -149,11 +152,13 @@ class StepFailureReportingSuite extends TestCommon {
       sendAndSelect(cmd)(_.dropWhile(finished).find(finished))
 
   private def withRunningEngine[A](
-    gmos: GmosNorthController[IO]
+    gmos: GmosNorthController[IO],
+    gcal: Option[GcalController[IO]] = none
   )(body: RunningEngine => IO[A]): IO[A] =
     for
       odb      <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, none, List(singleStep))
-      services <- defaultServices.map(_.copy(odb = odb, gmosNorth = gmos))
+      services <- defaultServices.map: s =>
+                    s.copy(odb = odb, gmosNorth = gmos, gcal = gcal.getOrElse(s.gcal))
       oseq     <- odb.read(seqObsId1)
       s0        = ODBSequencesLoader
                     .loadSequenceMod[IO](None, oseq, EngineState.instrumentLoaded(Instrument.GmosNorth))
@@ -284,4 +289,50 @@ class StepFailureReportingSuite extends TestCommon {
           assert(evs.contains(StepPause(seqObsId1)), s"step pause was not sent: $evs")
           assert(!evs.contains(StepAbort(seqObsId1)), s"step abort was sent: $evs")
   }
+
+  private def actionInFlight(st: EngineState[IO]): Boolean =
+    st.sequences
+      .get(seqObsId1)
+      .exists(_.seq.currentExecution.execution.exists(_.state.runState.started))
+
+  /**
+   * A command whose effect shows in the state, to know that what was sent before it was handled.
+   */
+  private def marker(name: String)(oe: ObserveEngine[IO]): IO[Unit] =
+    oe.setOperator(user, Operator(NonEmptyString.unsafeFrom(name)))
+
+  private def markerSeen(name: String)(st: EngineState[IO]): Boolean =
+    st.operator.exists(_.value.value === name)
+
+  test("a failed sequence is not started again while an action of its step is still running"):
+    for
+      failed   <- Ref.of[IO, Boolean](false)
+      release  <- Deferred[IO, Unit]
+      calls    <- Ref.of[IO, Int](0)
+      inFlight <- Ref.of[IO, Int](0)
+      maxSeen  <- Ref.of[IO, Int](0)
+      // GCAL whose first configuration stays in flight until released.
+      gcal      = new GcalController[IO]:
+                    override def applyConfig(config: GcalController.GcalConfig): IO[Unit] =
+                      inFlight.updateAndGet(_ + 1).flatMap(n => maxSeen.update(_.max(n))) >>
+                        calls.getAndUpdate(_ + 1).flatMap(n => release.get.whenA(n === 0)) >>
+                        inFlight.update(_ - 1)
+      result   <- withRunningEngine(gmosFailingOnce(failed), gcal.some): engine =>
+                    for
+                      s1 <- engine.sendAndAwait(start)(st => sequenceStatus(st).exists(_.isError))
+                      // GMOS failed while GCAL is still being configured; start again right away.
+                      s2 <- engine.sendAndAwait(oe => start(oe) >> marker("second")(oe)):
+                              markerSeen("second")
+                      _  <- release.complete(())
+                      _  <- engine.sendAndAwait(marker("released")): st =>
+                              markerSeen("released")(st) && !actionInFlight(st)
+                      s3 <- engine.sendAndAwaitFinished(start)
+                    yield (s1, s2, s3)
+      twice    <- maxSeen.get
+    yield
+      val (s1: EngineState[IO], s2: EngineState[IO], s3: EngineState[IO]) = result
+      assert(actionInFlight(s1), "GCAL should still be configuring when GMOS fails")
+      assertEquals(twice, 1, "GCAL was configured twice at once")
+      assert(sequenceStatus(s2).exists(_.isError), s"it was started again: ${sequenceStatus(s2)}")
+      assertEquals(sequenceStatus(s3), SequenceStatus.Completed.some)
 }

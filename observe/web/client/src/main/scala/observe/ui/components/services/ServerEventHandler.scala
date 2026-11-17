@@ -21,6 +21,7 @@ import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
+import lucuma.core.util.Display
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.MessageItem
 import lucuma.react.primereact.ToastRef
@@ -35,12 +36,14 @@ import observe.model.LogMessage
 import observe.model.Notification
 import observe.model.ObservationProgress
 import observe.model.ObserveStep
+import observe.model.Subsystem
 import observe.model.enums.ActionStatus
 import observe.model.enums.ObserveLogLevel
 import observe.model.events.ClientEvent
 import observe.model.events.ClientEvent.LogEvent
 import observe.model.events.ClientEvent.SingleActionState
 import observe.model.events.ClientEvent.UserNotification
+import observe.ui.display.given
 import observe.ui.model.IsAudioActivated
 import observe.ui.model.LoadedObservation
 import observe.ui.model.LoadedObservations
@@ -53,6 +56,9 @@ import observe.ui.model.enums.SyncStatus
 import observe.ui.utils.Audio
 
 trait ServerEventHandler:
+  private def subsystemNames(subsystems: List[Subsystem]): String =
+    subsystems.map(Display[Subsystem].shortName).mkString(", ")
+
   private def logMessage(
     rootModelDataMod: (RootModelData => RootModelData) => IO[Unit],
     logLevel:         ObserveLogLevel,
@@ -284,6 +290,12 @@ trait ServerEventHandler:
         playAudio(Audio.SequenceComplete)
       case ClientEvent.SequenceFailed(_, errorMsg)                                        =>
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
+      // The server logs it as a warning, which gives the line in the log panel.
+      case ClientEvent.SubsystemClash(obsId, stepId, subsystems)                          =>
+        val msg: String =
+          s"Observation $obsId was held before step $stepId: ${subsystemNames(subsystems)} in " +
+            "use by another sequence. Start it again when they are free."
+        showToast(toast, List(msg)) >> playAudio(Audio.SequenceError)
       case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))            =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
       case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId) =>
@@ -299,7 +311,7 @@ trait ServerEventHandler:
       // and in SequenceTable it's being done once per step.
       // However, we need to turn the app initialization on its head in MainApp to achieve this.
       case UserNotification(notification)                              =>
-        // A rejected or failed skip/reset acquisition never produces a state update, so its
+        // A rejected or failed skip/reset acquisition leaves the sequence as it was, so its
         // in-flight request must be cleared here.
         def clearAcquisitionRequests(obsId: Observation.Id): IO[Unit] =
           rootModelDataMod:
@@ -313,11 +325,16 @@ trait ServerEventHandler:
 
         val msgs: IO[List[String]] =
           notification match
-            case Notification.SubsystemConflict(obsId)                =>
-              List(s"Error in observation $obsId: Subsystem already in use").pure[IO]
-            case Notification.InstrumentInUse(obsId, ins)             =>
+            case Notification.SubsystemConflict(obsId, subsystems, heldBy) =>
+              val holders: String =
+                if heldBy.isEmpty then "use"
+                else s"use by running observation ${heldBy.mkString(", ")}"
+              List(
+                s"Observation $obsId cannot start: ${subsystemNames(subsystems)} in $holders"
+              ).pure[IO]
+            case Notification.InstrumentInUse(obsId, ins)                  =>
               List(s"Error in observation $obsId: Instrument $ins already in use").pure[IO]
-            case Notification.LoadingFailed(obsId, msgs)              =>
+            case Notification.LoadingFailed(obsId, msgs)                   =>
               rootModelDataMod:
                 RootModelData.loadedObservations
                   .andThen(LoadedObservations.Value)
@@ -325,14 +342,14 @@ trait ServerEventHandler:
                   .replace:
                     Pot.error(new RuntimeException(msgs.mkString("; ")))
               .as(msgs)
-            case Notification.SequenceNotIdle(obsId, action)          =>
+            case Notification.SequenceNotIdle(obsId, action)               =>
               clearAcquisitionRequests(obsId).as(List(s"Sequence $obsId must be idle to $action"))
-            case Notification.ActionFailed(obsId, action, msg)        =>
+            case Notification.ActionFailed(obsId, action, msg)             =>
               clearAcquisitionRequests(obsId)
                 .as(List(s"Could not $action for observation $obsId: $msg"))
-            case Notification.RestartRefused(reasons)                 =>
+            case Notification.RestartRefused(reasons)                      =>
               ("Restart refused" :: reasons.toList).pure[IO]
-            case Notification.SubsystemBusy(obsId, stepId, subsystem) =>
+            case Notification.SubsystemBusy(obsId, stepId, subsystem)      =>
               List(
                 s"Error in observation $obsId, step $stepId: Subsystem $subsystem already in use"
               )

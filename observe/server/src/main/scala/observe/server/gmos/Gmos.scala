@@ -17,10 +17,8 @@ import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MosPreImaging
-import lucuma.core.enums.ObserveClass
 import lucuma.core.math.Wavelength
 import lucuma.core.model.MaskDefinition
-import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.gmos.StaticConfig
@@ -291,23 +289,6 @@ object Gmos {
   ): Boolean =
     l.get(staticConfig).isDefined
 
-  def calcStepType[S <: StaticConfig](
-    instrument: Instrument,
-    stepCfg:    StepConfig,
-    staticCfg:  S,
-    obsClass:   ObserveClass,
-    l:          Getter[S, Option[GmosNodAndShuffle]]
-  ): Either[ObserveFailure, StepKind] = {
-    val stdType = SeqTranslate.calcStepType(instrument, stepCfg, obsClass)
-    if (Gmos.isNodAndShuffle(staticCfg, l)) {
-      stdType.flatMap {
-        case StepKind.DarkOrBias(_)      => StepKind.DarkOrBiasNS(instrument).asRight
-        case StepKind.CelestialObject(_) => StepKind.NodAndShuffle(instrument).asRight
-        case st                          => ObserveFailure.Unexpected(s"N&S is not supported for steps of type $st").asLeft
-      }
-    } else stdType
-  }
-
   def instrumentStepBuilder[F[_]: {Async, Logger}, T <: GmosSite](
     gmosInstrument: Instrument,
     sysBuilder:     (
@@ -330,12 +311,11 @@ object Gmos {
           ): Either[ObserveFailure, InstrumentStep[F]] =
             import ctx.*
             for
-              kind   <- Gmos.calcStepType[S](
+              kind   <- StepKind.classify(
                           gmosInstrument,
                           step.stepConfig,
-                          staticConf,
                           step.observeClass,
-                          getters.nodAndShuffle
+                          Gmos.isNodAndShuffle(staticConf, getters.nodAndShuffle)
                         )
               config <- Gmos.buildConfig[F, T](kind, staticConf, step.instrumentConfig, customMasks)
             yield new InstrumentStep[F]:

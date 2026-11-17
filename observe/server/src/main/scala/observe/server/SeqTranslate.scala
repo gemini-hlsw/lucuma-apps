@@ -13,7 +13,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import fs2.Stream
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.model.sequence
@@ -22,7 +21,6 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step as OdbStep
-import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -42,7 +40,6 @@ import observe.model.dhs.*
 import observe.model.enums.ObservatorySubsystem
 import observe.model.extensions.*
 import observe.server.InstrumentHandler.*
-import observe.server.ObserveFailure.Unexpected
 import observe.server.Services.OverriddenSubsystems
 import observe.server.engine.*
 import observe.server.engine.Action.ActionState
@@ -449,7 +446,7 @@ object SeqTranslate {
           ): SubsystemHandler[F]
     }
 
-    private def calcSubsystems[S](
+    private[server] def calcSubsystems[S](
       telescopeConfig: TelescopeConfig,
       insStep:         InstrumentStep[F]
     ): Map[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]] = {
@@ -459,97 +456,65 @@ object SeqTranslate {
 
       def defaultGcal: SubsystemOverrides => Gcal[F] = adaptGcal(Gcal.defaultGcal)
 
-      insStep.stepType match {
-        case StepKind.CelestialObject(inst) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              inst.hasOI.fold(allButGaos, allButGaosNorOi),
-              insStep,
-              LightSource.Sky,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> defaultGcal
-          )
+      // The TCS subsystems to configure and where the light comes from, for kinds that use the TCS.
+      val tcsSetup: Option[(NonEmptySet[TcsController.Subsystem], LightSource)] =
+        insStep.stepType match {
+          case StepKind.CelestialObject(inst) =>
+            (inst.hasOI.fold(allButGaos, allButGaosNorOi), LightSource.Sky).some
 
-        case StepKind.NodAndShuffle(inst) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              inst.hasOI.fold(allButGaos, allButGaosNorOi),
-              insStep,
-              LightSource.Sky,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> defaultGcal
-          )
+          case StepKind.NodAndShuffle(inst) =>
+            (inst.hasOI.fold(allButGaos, allButGaosNorOi), LightSource.Sky).some
 
-        // Only the light path is configured, as the telescope is not pointing at a target
-        case StepKind.DayCalObject(inst) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              flatOrArcTcsSubsystems(inst),
-              insStep,
-              LightSource.Sky,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> defaultGcal
-          )
+          // Only the light path is configured, as the telescope is not pointing at a target
+          case StepKind.DayCalObject(inst) =>
+            (flatOrArcTcsSubsystems(inst), LightSource.Sky).some
 
-        case StepKind.FlatOrArc(inst, gcalCfg) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              flatOrArcTcsSubsystems(inst),
-              insStep,
-              LightSource.GCAL,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
-          )
+          case StepKind.FlatOrArc(inst, _) =>
+            (flatOrArcTcsSubsystems(inst), LightSource.GCAL).some
 
-        case StepKind.NightFlatOrArc(_, gcalCfg) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              NonEmptySet.of(AGUnit, OIWFS, M2, M1, Mount),
-              insStep,
-              LightSource.GCAL,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
-          )
+          case StepKind.NightFlatOrArc(_, _) =>
+            (NonEmptySet.of[TcsController.Subsystem](AGUnit, OIWFS, M2, M1, Mount),
+             LightSource.GCAL
+            ).some
 
-        case StepKind.DarkOrBias(_) =>
-          Map.empty[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]]
+          case StepKind.DarkOrBias(_) | StepKind.ExclusiveDarkOrBias(_) |
+              StepKind.DarkOrBiasNS(_) =>
+            none
 
-        case StepKind.ExclusiveDarkOrBias(_) | StepKind.DarkOrBiasNS(_) =>
-          Map[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]](
-            ObservatorySubsystem.Gcal -> defaultGcal
-          )
+          // Only the telescope is configured for AO steps, with the light coming from the AO system.
+          // The AO systems themselves are not configured, until they are supported through Navigate.
+          case StepKind.AltairObs(inst) =>
+            (inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos), LightSource.AO).some
 
-        // Only the telescope is configured for AO steps, with the light coming from the AO system.
-        // The AO systems themselves are not configured, until they are supported through Navigate.
-        case StepKind.AltairObs(inst) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
-              insStep,
-              LightSource.AO,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> defaultGcal
-          )
+          // case StepType.AlignAndCalib => none
 
-        // case StepType.AlignAndCalib => Map.empty[ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F]]
+          case StepKind.Gems(inst) =>
+            (inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos), LightSource.AO).some
+        }
 
-        case StepKind.Gems(inst) =>
-          Map(
-            ObservatorySubsystem.Tcs  -> getTcs(
-              inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
-              insStep,
-              LightSource.AO,
-              telescopeConfig
-            ),
-            ObservatorySubsystem.Gcal -> defaultGcal
-          )
-      }
+      // Flats and arcs set GCAL from the step; every other kind turns its lamps off.
+      val gcal: SubsystemOverrides => Gcal[F] =
+        insStep.stepType match {
+          case StepKind.FlatOrArc(_, gcalCfg)      =>
+            adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
+          case StepKind.NightFlatOrArc(_, gcalCfg) =>
+            adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
+          case _                                   => defaultGcal
+        }
+
+      // Which subsystems the step uses comes from StepKind, as for what a sequence holds.
+      StepKind
+        .observatorySubsystems(insStep.stepType)
+        .toList
+        .mapFilter[(ObservatorySubsystem, SubsystemOverrides => SubsystemHandler[F])] {
+          case ObservatorySubsystem.Tcs  =>
+            tcsSetup.map((subs, lsource) =>
+              ObservatorySubsystem.Tcs -> getTcs(subs, insStep, lsource, telescopeConfig)
+            )
+          case ObservatorySubsystem.Gcal => (ObservatorySubsystem.Gcal -> gcal).some
+          case _                         => none
+        }
+        .toMap
     }
 
     private def commonHeaders[D](
@@ -754,22 +719,6 @@ object SeqTranslate {
       gnirs
     )
   ).map(x => new SeqTranslateImpl(site, services, environment, x))
-
-  def calcStepType(
-    inst:       Instrument,
-    stepConfig: StepConfig,
-    obsClass:   ObserveClass
-  ): Either[ObserveFailure, StepKind] = stepConfig match {
-    case StepConfig.Bias | StepConfig.Dark => StepKind.DarkOrBias(inst).asRight
-    case c: StepConfig.Gcal                =>
-      if (obsClass =!= ObserveClass.DayCal && inst.hasOI) StepKind.NightFlatOrArc(inst, c).asRight
-      else StepKind.FlatOrArc(inst, c).asRight
-    case StepConfig.Science                =>
-      // TODO: Here goes the logic to differentiate between a non GAOS, GeMS ot Altair observation.
-      if (obsClass === ObserveClass.DayCal) StepKind.DayCalObject(inst).asRight
-      else StepKind.CelestialObject(inst).asRight
-    case StepConfig.SmartGcal(_)           => Unexpected("Smart GCAL is not supported").asLeft
-  }
 
   case class InstrumentStepBuilders[F[_]](
     flamingos2: InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig],

@@ -27,6 +27,12 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
   ): F[InstrumentExecutionConfig] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.readExecutionConfig: Not implemented."))
 
+  override def readRemainingSteps(
+    oid:        Observation.Id,
+    instrument: Instrument
+  ): F[OdbProxy.RemainingSteps] =
+    F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.readRemainingSteps: Not implemented."))
+
   override def resetAcquisition(obsId: Observation.Id): F[Unit] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.resetAcquisition: Not implemented."))
 

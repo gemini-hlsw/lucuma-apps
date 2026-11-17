@@ -326,7 +326,7 @@ class ObserveEngineSuite extends TestCommon {
             case (EventResult.UserCommandResponse(
                     _,
                     Outcome.Ok,
-                    Some(SeqEvent.Busy(seqObsId1, clientId))
+                    Some(SeqEvent.Busy(seqObsId1, clientId, _, _))
                   ),
                   state
                 ) => // Loaded step should have been cleared

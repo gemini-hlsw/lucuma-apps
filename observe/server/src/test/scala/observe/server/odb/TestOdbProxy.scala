@@ -3,7 +3,9 @@
 
 package observe.server.odb
 
+import cats.Eq
 import cats.data.NonEmptyList
+import cats.derived.*
 import cats.effect.Async
 import cats.effect.Ref
 import cats.syntax.all.*
@@ -30,6 +32,7 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.Timestamp
+import lucuma.schemas.odb.RemainingStepSubquery
 import monocle.Lens
 import monocle.syntax.all.focus
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
@@ -43,6 +46,9 @@ import java.time.Instant
 
 trait TestOdbProxy[F[_]] extends OdbProxy[F]:
   def outCapture: F[List[TestOdbProxy.OdbEvent]]
+
+  /** Every remaining-steps and step read, in call order. */
+  def readLog: F[List[TestOdbProxy.OdbRead]]
 
 object TestOdbProxy {
 
@@ -67,6 +73,22 @@ object TestOdbProxy {
     def resetAcquisition(original: Option[Atom[?]]): SequenceState =
       copy(acquisition = original)
 
+    /** The steps still to execute, as the remaining-steps read reports them. */
+    def remainingSteps: List[RemainingStepSubquery.Data] =
+      (acquisition.toList ++ science)
+        .flatMap(_.steps.toList)
+        .map(step => RemainingStepSubquery.Data(step.stepConfig, step.observeClass))
+
+  /** How the test ODB answers the remaining-steps read of an observation. */
+  enum RemainingStepsMode:
+    case FromState, Failing
+    case Overridden(steps: OdbProxy.RemainingSteps)
+
+  /** An ODB read made by the engine. */
+  enum OdbRead derives Eq:
+    case RemainingSteps(obsId: Observation.Id)
+    case Step(obsId: Observation.Id)
+
   case class InstrumentState(
     obsId:     Observation.Id,
     staticCfg: Any,
@@ -89,7 +111,8 @@ object TestOdbProxy {
 
   case class State(
     sequences: Map[Instrument, InstrumentState],
-    out:       List[OdbEvent]
+    out:       List[OdbEvent],
+    reads:     List[OdbRead] = Nil
   ):
     def updateObs(obsId: Observation.Id)(f: SequenceState => SequenceState): State =
       copy(sequences = sequences.updateObs(obsId)(f))
@@ -194,7 +217,8 @@ object TestOdbProxy {
     sequences:               Map[Instrument, InstrumentState],
     obsData:                 Option[ODBObservation] = None,
     updateStartObserve:      State => State = identity,
-    resetAcquisitionFailure: Option[Throwable] = None // When set, `resetAcquisition` fails with it
+    resetAcquisitionFailure: Option[Throwable] = None, // When set, `resetAcquisition` fails with it
+    remainingStepsModes:     Map[Observation.Id, RemainingStepsMode] = Map.empty
   ): F[TestOdbProxy[F]] =
     Ref
       .of[F, State](State(sequences, List.empty))
@@ -262,7 +286,38 @@ object TestOdbProxy {
             instrument:  Instrument,
             futureLimit: NonNegInt
           ): F[InstrumentExecutionConfig] =
-            read(obsId).map(_.executionConfig)
+            rf.update(s => s.copy(reads = s.reads :+ OdbRead.Step(obsId))) >>
+              read(obsId).map(_.executionConfig)
+
+          override def readRemainingSteps(
+            obsId:      Observation.Id,
+            instrument: Instrument
+          ): F[OdbProxy.RemainingSteps] =
+            rf.updateAndGet(s => s.copy(reads = s.reads :+ OdbRead.RemainingSteps(obsId)))
+              .flatMap: s =>
+                remainingStepsModes.getOrElse(obsId, RemainingStepsMode.FromState) match
+                  case RemainingStepsMode.Failing           =>
+                    Async[F].raiseError(new RuntimeException("The ODB is down"))
+                  case RemainingStepsMode.Overridden(steps) => steps.pure[F]
+                  case RemainingStepsMode.FromState         =>
+                    val (i: Instrument, st: SequenceState, staticCfg: Any) =
+                      s.sequences
+                        .sequenceForObs(obsId)
+                        .getOrElse(sys.error(s"Observation $obsId not found in test ODB state"))
+                    val isNodAndShuffle: Boolean                           =
+                      i match
+                        case Instrument.GmosNorth =>
+                          staticCfg
+                            .asInstanceOf[gmos.StaticConfig.GmosNorth]
+                            .nodAndShuffle
+                            .isDefined
+                        case Instrument.GmosSouth =>
+                          staticCfg
+                            .asInstanceOf[gmos.StaticConfig.GmosSouth]
+                            .nodAndShuffle
+                            .isDefined
+                        case _                    => false
+                    OdbProxy.RemainingSteps(isNodAndShuffle, st.remainingSteps).pure[F]
 
           override def visitStart(obsId: Observation.Id): F[Unit] = addEvent(
             VisitStart(obsId)
@@ -344,6 +399,8 @@ object TestOdbProxy {
             addEvent(ObsStop(obsId)).as(true)
 
           override def outCapture: F[List[OdbEvent]] = rf.get.map(_.out)
+
+          override def readLog: F[List[OdbRead]] = rf.get.map(_.reads)
 
           override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure[F]
 

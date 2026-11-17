@@ -14,6 +14,8 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.RemainingSequenceSubquery
+import lucuma.schemas.odb.RemainingStepSubquery
 import observe.common.ObsQueriesGql.*
 import observe.model.dhs.*
 import observe.server.ObserveFailure
@@ -31,6 +33,9 @@ trait OdbProxy[F[_]] private[odb] () extends OdbCommands[F] {
     instrument:  Instrument,
     futureLimit: NonNegInt
   ): F[InstrumentExecutionConfig]
+
+  /** Reads the steps left in both sequences, with only what classifying each of them needs. */
+  def readRemainingSteps(oid: Observation.Id, instrument: Instrument): F[OdbProxy.RemainingSteps]
 }
 
 object OdbProxy {
@@ -40,6 +45,43 @@ object OdbProxy {
 
   /** The whole sequence, for loading it or jumping to a step the user picked. */
   val FullFuture: NonNegInt = NonNegInt.unsafeFrom(100)
+
+  /**
+   * The steps left to execute, and whether the sequence is Nod&Shuffle, which changes their kind.
+   */
+  case class RemainingSteps(isNodAndShuffle: Boolean, steps: List[RemainingStepSubquery.Data])
+
+  private def stepsOf(
+    sequence: Option[RemainingSequenceSubquery.Data]
+  ): List[RemainingStepSubquery.Data] =
+    sequence.foldMap(s => s.nextAtom.steps ++ s.possibleFuture.flatMap(_.steps))
+
+  private def remainingSteps(
+    instrument: Instrument,
+    config:     RemainingStepsQuery.Data.ExecutionConfig
+  ): Option[RemainingSteps] =
+    instrument match
+      case Instrument.GmosNorth  =>
+        config.gmosNorth.map: c =>
+          RemainingSteps(c.static.nodAndShuffle.isDefined,
+                         stepsOf(c.acquisition) ++ stepsOf(c.science)
+          )
+      case Instrument.GmosSouth  =>
+        config.gmosSouth.map: c =>
+          RemainingSteps(c.static.nodAndShuffle.isDefined,
+                         stepsOf(c.acquisition) ++ stepsOf(c.science)
+          )
+      case Instrument.Flamingos2 =>
+        config.flamingos2.map(c =>
+          RemainingSteps(false, stepsOf(c.acquisition) ++ stepsOf(c.science))
+        )
+      case Instrument.Igrins2    =>
+        config.igrins2.map(c => RemainingSteps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
+      case Instrument.Gnirs      =>
+        config.gnirs.map(c => RemainingSteps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
+      case Instrument.Ghost      =>
+        config.ghost.map(c => RemainingSteps(false, stepsOf(c.science)))
+      case _                     => none
 
   def apply[F[_]](
     evCmds:    OdbCommands[F],
@@ -131,6 +173,29 @@ object OdbProxy {
                     ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
                 )(_.pure[F])
           .guarantee(stepSpans.endCurrent(oid))
+
+      override def readRemainingSteps(
+        oid:        Observation.Id,
+        instrument: Instrument
+      ): F[RemainingSteps] =
+        evCmds.flushEvents(oid) >>
+          RemainingStepsQuery[F]
+            .query(
+              oid,
+              FullFuture,
+              includeGmosNorth = instrument === Instrument.GmosNorth,
+              includeGmosSouth = instrument === Instrument.GmosSouth,
+              includeFlamingos2 = instrument === Instrument.Flamingos2,
+              includeIgrins2 = instrument === Instrument.Igrins2,
+              includeGnirs = instrument === Instrument.Gnirs,
+              includeGhost = instrument === Instrument.Ghost
+            )
+            .raiseGraphQLErrors
+            .flatMap:
+              _.executionConfig
+                .flatMap(remainingSteps(instrument, _))
+                .liftTo[F]:
+                  ObserveFailure.Unexpected(s"OdbProxy: Unable to read the steps left in $oid")
 
       override def resetAcquisition(obsId: Observation.Id): F[Unit] =
         evCmds.flushEvents(obsId) >>

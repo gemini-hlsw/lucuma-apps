@@ -46,13 +46,16 @@ sealed trait SequenceData[F[_]]:
   def pendingObsCmd: Option[PendingObserveCmd]
   def visitStartDone: Boolean
 
+  /** What the sequence holds while it runs: set at every start, grown by each step it reaches. */
+  def sequenceSubsystems: Set[Subsystem]
+
   lazy val obsId: Observation.Id             = seq.obsId
   lazy val currentSequenceType: SequenceType = seq.currentSequenceType
   lazy val loadedStep: Option[LoadedStep[F]] = seq.loadedStep
 
   def withCompleteVisitStart: SequenceData[F] = SequenceData.visitStartDone.replace(true)(this)
 
-  lazy val subsystems: Set[Subsystem] =
+  lazy val stepSubsystems: Set[Subsystem] =
     loadedStep.map(_.subsystems).getOrElse(Set.empty)
 
   def configActionCoord(
@@ -153,80 +156,97 @@ object SequenceData:
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
+  def sequenceSubsystems[F[_]]: Lens[SequenceData[F], Set[Subsystem]] =
+    Lens[SequenceData[F], Set[Subsystem]](_.sequenceSubsystems)(subsystems => {
+      case gmosNorth(s)  => s.copy(sequenceSubsystems = subsystems)
+      case gmosSouth(s)  => s.copy(sequenceSubsystems = subsystems)
+      case flamingos2(s) => s.copy(sequenceSubsystems = subsystems)
+      case igrins2(s)    => s.copy(sequenceSubsystems = subsystems)
+      case gnirs(s)      => s.copy(sequenceSubsystems = subsystems)
+      case ghost(s)      => s.copy(sequenceSubsystems = subsystems)
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
+    })
+
   case class GmosNorth[F[_]](
-    observer:       Option[Observer],
-    overrides:      SubsystemOverrides,
-    observation:    OdbObservation,
-    constraintSet:  ConstraintSet,
-    staticCfg:      gmos.StaticConfig.GmosNorth,
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean
+    observer:           Option[Observer],
+    overrides:          SubsystemOverrides,
+    observation:        OdbObservation,
+    constraintSet:      ConstraintSet,
+    staticCfg:          gmos.StaticConfig.GmosNorth,
+    seq:                SequenceState[F],
+    pendingObsCmd:      Option[PendingObserveCmd],
+    visitStartDone:     Boolean,
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = gmos.DynamicConfig.GmosNorth
     val instrument: Instrument = Instrument.GmosNorth
 
   case class GmosSouth[F[_]](
-    observer:       Option[Observer],
-    overrides:      SubsystemOverrides,
-    observation:    OdbObservation,
-    constraintSet:  ConstraintSet,
-    staticCfg:      gmos.StaticConfig.GmosSouth,
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean
+    observer:           Option[Observer],
+    overrides:          SubsystemOverrides,
+    observation:        OdbObservation,
+    constraintSet:      ConstraintSet,
+    staticCfg:          gmos.StaticConfig.GmosSouth,
+    seq:                SequenceState[F],
+    pendingObsCmd:      Option[PendingObserveCmd],
+    visitStartDone:     Boolean,
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = gmos.DynamicConfig.GmosSouth
     val instrument: Instrument = Instrument.GmosSouth
 
   case class Flamingos2[F[_]](
-    observer:       Option[Observer],
-    overrides:      SubsystemOverrides,
-    observation:    OdbObservation,
-    constraintSet:  ConstraintSet,
-    staticCfg:      Flamingos2StaticConfig,
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean
+    observer:           Option[Observer],
+    overrides:          SubsystemOverrides,
+    observation:        OdbObservation,
+    constraintSet:      ConstraintSet,
+    staticCfg:          Flamingos2StaticConfig,
+    seq:                SequenceState[F],
+    pendingObsCmd:      Option[PendingObserveCmd],
+    visitStartDone:     Boolean,
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = Flamingos2DynamicConfig
     val instrument: Instrument = Instrument.Flamingos2
 
   case class Igrins2[F[_]](
-    observer:       Option[Observer],
-    overrides:      SubsystemOverrides,
-    observation:    OdbObservation,
-    constraintSet:  ConstraintSet,
-    staticCfg:      Igrins2StaticConfig,
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean
+    observer:           Option[Observer],
+    overrides:          SubsystemOverrides,
+    observation:        OdbObservation,
+    constraintSet:      ConstraintSet,
+    staticCfg:          Igrins2StaticConfig,
+    seq:                SequenceState[F],
+    pendingObsCmd:      Option[PendingObserveCmd],
+    visitStartDone:     Boolean,
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = Igrins2DynamicConfig
     val instrument: Instrument = Instrument.Igrins2
 
   case class Gnirs[F[_]](
-    observer:       Option[Observer],
-    overrides:      SubsystemOverrides,
-    observation:    OdbObservation,
-    constraintSet:  ConstraintSet,
-    staticCfg:      GnirsStaticConfig,
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean
+    observer:           Option[Observer],
+    overrides:          SubsystemOverrides,
+    observation:        OdbObservation,
+    constraintSet:      ConstraintSet,
+    staticCfg:          GnirsStaticConfig,
+    seq:                SequenceState[F],
+    pendingObsCmd:      Option[PendingObserveCmd],
+    visitStartDone:     Boolean,
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = GnirsDynamicConfig
     val instrument: Instrument = Instrument.Gnirs
 
   case class Ghost[F[_]](
-    observer:       Option[Observer],
-    overrides:      SubsystemOverrides,
-    observation:    OdbObservation,
-    constraintSet:  ConstraintSet,
-    staticCfg:      GhostStaticConfig,
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean
+    observer:           Option[Observer],
+    overrides:          SubsystemOverrides,
+    observation:        OdbObservation,
+    constraintSet:      ConstraintSet,
+    staticCfg:          GhostStaticConfig,
+    seq:                SequenceState[F],
+    pendingObsCmd:      Option[PendingObserveCmd],
+    visitStartDone:     Boolean,
+    sequenceSubsystems: Set[Subsystem]
   ) extends SequenceData[F]:
     type D = GhostDynamicConfig
     val instrument: Instrument = Instrument.Ghost

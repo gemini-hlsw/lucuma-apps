@@ -74,7 +74,14 @@ object SeqEvent:
   case class UpdateQueueClear(qid: QueueId)                                      extends SeqEvent
   case class StartSubsystemConfig(obsId: Observation.Id, stepId: Step.Id, res: Subsystem)
       extends SeqEvent
-  case class Busy(obsId: Observation.Id, cid: ClientId)                          extends SeqEvent
+  case class Busy(
+    obsId:      Observation.Id,
+    cid:        ClientId,
+    subsystems: List[Subsystem],
+    heldBy:     List[Observation.Id]
+  ) extends SeqEvent
+  case class SubsystemClash(obsId: Observation.Id, stepId: Step.Id, subsystems: Set[Subsystem])
+      extends SeqEvent
   case class SequenceStart(sid: Observation.Id, stepId: Step.Id)                 extends SeqEvent
   case class SequencesStart(startedSeqs: List[(Observation.Id, Step.Id)])        extends SeqEvent
   case class SubsystemBusy(

@@ -13,7 +13,11 @@ import lucuma.core.model.sequence.Step
 
 enum Notification derives Eq, Encoder, Decoder:
   // Notification that user tried to run a sequence that used subsystem already in use
-  case SubsystemConflict(obsId: Observation.Id)                         extends Notification
+  case SubsystemConflict(
+    obsId:      Observation.Id,
+    subsystems: List[Subsystem],
+    heldBy:     List[Observation.Id]
+  )                                                                     extends Notification
   // Notification that user tried to select a sequence for an instrument for which a sequence was already running
   case InstrumentInUse(obsId: Observation.Id, ins: Instrument)          extends Notification
   // Notification that a request to load a sequence in the backend failed
