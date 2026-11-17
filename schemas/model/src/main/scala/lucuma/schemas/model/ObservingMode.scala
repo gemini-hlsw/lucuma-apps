@@ -2530,8 +2530,8 @@ object ObservingMode:
     given Decoder[DaytimeCalibration] = Decoder.instance: c =>
       for
         instrument <- c.downField("instrument").as[Instrument]
-        sets       <- c.downField("calibrationSets").as[Option[List[DaytimeCalibrationSet]]]
-      yield DaytimeCalibration(instrument, sets.orEmpty)
+        sets       <- c.downField("calibrationSets").as[List[DaytimeCalibrationSet]]
+      yield DaytimeCalibration(instrument, sets)
 
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
