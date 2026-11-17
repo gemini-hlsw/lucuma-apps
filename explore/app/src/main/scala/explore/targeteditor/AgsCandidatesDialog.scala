@@ -6,14 +6,14 @@ package explore.targeteditor
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.GuideStarId
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
@@ -25,10 +25,10 @@ import lucuma.react.table.*
 import lucuma.refined.*
 import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.primereact.*
-import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
+import lucuma.ui.visualization.displayLabel
 
 /**
  * The list icon by the guide star arrows, and the dialog it opens. The dialog lists the usable
@@ -36,17 +36,17 @@ import lucuma.ui.table.ColumnSize.*
  * one picked without stepping through them. Select is enabled for any star except the current
  * manual pick: picking the current automatic star keeps it as a manual pick.
  *
- * `current` is the star in use, `isManual` whether it was picked by hand, and `currentProblem` why
- * it can't be used when it is a manual pick that isn't among the candidates.
+ * `current` is the selection in use, `isManual` whether it was picked by hand, and `currentProblem`
+ * why it can't be used when it is a manual pick that isn't among the candidates.
  */
 case class AgsCandidatesDialog(
   enabled:        Boolean,
   candidates:     List[AgsAnalysis.Usable],
-  current:        Option[NonEmptyString],
+  current:        Option[GuideStarId],
   isManual:       Boolean,
   currentProblem: Option[String],
   readonly:       Boolean,
-  onSelect:       NonEmptyString => Callback
+  onSelect:       GuideStarId => Callback
 ) extends ReactFnProps(AgsCandidatesDialog.component)
 
 object AgsCandidatesDialog:
@@ -56,19 +56,23 @@ object AgsCandidatesDialog:
     ScalaFnComponent[Props]: props =>
       for
         open   <- useStateView(false)
-        chosen <- useStateView(none[NonEmptyString])
+        chosen <- useStateView(none[GuideStarId])
       yield
         val close: Callback = open.set(false)
 
         // An automatic star is the best one, at the top, so it isn't highlighted: that would offer
         // keeping it as soon as the dialog opens
-        val highlighted: Option[NonEmptyString] = props.current.filter(_ => props.isManual)
+        val highlighted: Option[GuideStarId] =
+          props.current
+            .filter(_ => props.isManual)
+            .flatMap(selection => props.candidates.find(a => selection.selects(a.target.id)))
+            .map(_.target.id)
 
         val canSelect: Boolean =
           !props.readonly &&
-            chosen.get.exists: name =>
-              props.candidates.exists(_.target.name === name) &&
-                !(props.isManual && props.current.contains(name))
+            chosen.get.exists: id =>
+              props.candidates.exists(_.target.id === id) &&
+                !(props.isManual && props.current.exists(_.selects(id)))
 
         val footer: VdomNode =
           <.div(
@@ -101,11 +105,11 @@ object AgsCandidatesDialog:
               resizable = false,
               clazz = ExploreStyles.AgsCandidatesDialog
             )(
-              (props.current, props.currentProblem).mapN: (name, problem) =>
+              (props.current, props.currentProblem).mapN: (selection, problem) =>
                 <.div(
                   ExploreStyles.AgsCandidatesMissing,
                   Icons.ExclamationTriangle,
-                  s"${name.value}: $problem"
+                  s"${selection.displayLabel}: $problem"
                 ),
               <.div(
                 ExploreStyles.AgsCandidatesTable,
@@ -126,9 +130,9 @@ object AgsCandidatesDialog:
 // A separate component so it mounts with the dialog's content, when the table can be scrolled.
 private case class AgsCandidatesTable(
   candidates: List[AgsAnalysis.Usable],
-  current:    Option[NonEmptyString],
+  current:    Option[GuideStarId],
   isManual:   Boolean,
-  chosen:     View[Option[NonEmptyString]]
+  chosen:     View[Option[GuideStarId]]
 ) extends ReactFnProps(AgsCandidatesTable.component)
 
 private object AgsCandidatesTable:
@@ -149,7 +153,7 @@ private object AgsCandidatesTable:
       .setAlign(rawVirtual.mod.ScrollAlignment.center)
 
   private def columns(
-    current:  Option[NonEmptyString],
+    current:  Option[GuideStarId],
     isManual: Boolean
   ): List[ColumnDef[AgsAnalysis.Usable, ?, Nothing, Nothing, Nothing, Any, Nothing]] =
     val currentTitle: String =
@@ -159,16 +163,16 @@ private object AgsCandidatesTable:
     List(
       ColDef(
         CurrentColumnId,
-        _.target.name,
+        _.target.id,
         "",
         cell =>
-          if current.contains(cell.value) then
+          if current.exists(_.selects(cell.value)) then
             <.span(Icons.Bahai).withTooltip(currentTitle, Placement.Right)
           else EmptyVdom
       ).withColumnSize(FixedSize(30.toPx)),
       ColDef(
         NameColumnId,
-        _.target.name.value,
+        _.target.id.displayLabel,
         "Name"
       ).withColumnSize(FixedSize(280.toPx)),
       ColDef(
@@ -206,7 +210,7 @@ private object AgsCandidatesTable:
         // Opens on the current star
         _              <- useEffectOnMount:
                             props.current
-                              .map(name => props.candidates.indexWhere(_.target.name === name))
+                              .map(selection => props.candidates.indexWhere(a => selection.selects(a.target.id)))
                               .filter(_ >= 0)
                               .foldMap: i =>
                                 virtualizerRef.get.map(_.foreach(_.scrollToIndex(i, ScrollOptions)))
@@ -218,12 +222,12 @@ private object AgsCandidatesTable:
         tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable,
         virtualizerRef = virtualizerRef,
         rowMod = rowTagMod: row =>
-          val name = row.original.target.name
+          val id: GuideStarId = row.original.target.id
           TagMod(
-            ExploreStyles.TableRowSelected.when(props.chosen.get.contains(name)),
-            ExploreStyles.AgsCandidateCurrent.when(props.current.contains(name)),
+            ExploreStyles.TableRowSelected.when(props.chosen.get.contains(id)),
+            ExploreStyles.AgsCandidateCurrent.when(props.current.exists(_.selects(id))),
             ^.cursor.pointer,
-            ^.onClick --> props.chosen.set(name.some)
+            ^.onClick --> props.chosen.set(id.some)
           )
         ,
         emptyMessage = "No guide star candidates"

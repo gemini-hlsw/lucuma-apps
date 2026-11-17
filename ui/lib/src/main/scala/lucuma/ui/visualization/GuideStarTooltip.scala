@@ -24,7 +24,7 @@ object GuideStarTooltip
         private def toSentenceCase: String =
           s"${s.charAt(0).toUpper}${s.substring(1)}"
 
-      val id = s"Gaia DR3 ${p.analysis.target.id}"
+      val label: String = p.analysis.target.id.displayLabel
 
       def speedIcon(guideSpeed: GuideSpeed) = guideSpeed match
         case GuideSpeed.Fast   =>
@@ -40,7 +40,7 @@ object GuideStarTooltip
       val area = p.analysis.vignetting.toMicroarcsecondsSquared / 1e12
 
       <.div(VisualizationStyles.AgsTooltip)(
-        <.div(id),
+        <.div(label),
         <.div(
           p.analysis.target
             .brightnessIn(probeBands(p.analysis.guideProbe))

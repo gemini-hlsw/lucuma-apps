@@ -24,6 +24,7 @@ import lucuma.react.primereact.Button
 import lucuma.ui.aladin.Fov
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.visualization.displayLabel
 
 case class AladinToolbar(
   fov:               Fov,
@@ -70,7 +71,7 @@ object AladinToolbar:
         <.div(
           ExploreStyles.AladinGuideStar,
           props.selectedGuideStar
-            .map { case g => s"GS: ${g.target.name.value}" }
+            .map(g => s"GS: ${g.target.id.displayLabel}")
             .unless(props.agsOverlay || !usableGuideStar),
           Constants.NoGuideStarMessage.when(!usableGuideStar && props.agsState === AgsState.Idle),
           Constants.Calculating.when(props.agsState.isCalculating),

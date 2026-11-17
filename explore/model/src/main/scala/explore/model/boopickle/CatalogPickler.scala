@@ -4,12 +4,15 @@
 package explore.model.boopickle
 
 import boopickle.DefaultBasic.*
+import cats.syntax.all.*
 import eu.timepit.refined.*
 import explore.model.AgsResult
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
+import lucuma.ags.GuideStarName
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.catalog.AngularSize
@@ -29,6 +32,15 @@ import lucuma.schemas.model.CoordinatesAt
 
 // Boopicklers for catalog related types
 trait CatalogPicklers extends ItcPicklers:
+
+  given Pickler[GuideStarName] = picklerNewType(GuideStarName)
+
+  given Pickler[GuideStarId] =
+    transformPickler[GuideStarId, Either[GuideStarName, Option[Target.Id]]](
+      _.fold(GuideStarId.Catalog(_), GuideStarId.ObservationTarget(_))
+    ):
+      case GuideStarId.Catalog(name)               => name.asLeft
+      case GuideStarId.ObservationTarget(targetId) => targetId.asRight
 
   given Pickler[GuideStarCandidate] = generatePickler
 

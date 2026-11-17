@@ -50,8 +50,6 @@ import scala.concurrent.duration.*
 object UseAltairModesAgs:
   private val AgsDebounceDelay: FiniteDuration = 500.millis
 
-  private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
-
   // The Altair WFS patrol field does not depend on the GNIRS slit, prism, grating or camera; only
   // the wavelength matters, through the R limits. So any GNIRS long slit setup will do.
   private def representativeGnirs(wavelength: Wavelength): BasicConfiguration =
@@ -75,14 +73,24 @@ object UseAltairModesAgs:
     obsCoords:   ObservationTargetsCoordinatesAt,
     wavelength:  Option[Wavelength],
     angles:      NonEmptyList[Angle],
-    candidates:  List[GuideStarCandidate]
+    candidates:  List[GuideStarCandidate],
+    obsTargets:  Option[ObservationTargets]
   )(ctx: AppContext[IO]): IO[Map[AltairMode, AltairParameters]] =
     val configuration = representativeGnirs(wavelength.getOrElse(FallbackWavelength))
 
     AltairModeRows.GuideStarAltairModes
       .traverseFilter: mode =>
+        // Behind Altair the science targets are candidates too; they are not cached with the catalog.
+        val modeCandidates: List[GuideStarCandidate] =
+          candidates ++
+            ObservationGuideStars.candidatesFor(mode.guideProbe.some,
+                                                obsTargets,
+                                                obsCoords.forTarget
+            )
+
         configuration
           .agsParams(PortDisposition.Side, mode.guideProbe.some, mode.some)
+          .filter(_ => modeCandidates.nonEmpty)
           .flatTraverse: params =>
             ctx.workerClients.ags
               .requestSingle:
@@ -99,7 +107,7 @@ object UseAltairModesAgs:
                   none,
                   none,
                   params,
-                  candidates
+                  modeCandidates
                 )
               .map:
                 _.flatMap(_.usable.headOption).flatMap: usable =>
@@ -163,6 +171,18 @@ object UseAltairModesAgs:
                   )
             .filter(_ => enabled)
             .getOrElse(none.pure[IO])
+      hasTargetCands  = obsCoords.exists: coords =>
+                          ObservationGuideStars
+                            .candidatesFor(GuideProbe.AltairAOWFS.some, obsTargets, coords.forTarget)
+                            .nonEmpty
+      // A failed catalog search still leaves the observation targets to guide on.
+      catalogPot      = candidates.value.value.fold(
+                          Pot.pending,
+                          t =>
+                            if hasTargetCands then Pot(List.empty[GuideStarCandidate].some)
+                            else Pot.error(t),
+                          Pot(_)
+                        )
       anglesDebounce <- useDebounce(obsConf.anglesToTest, AgsDebounceDelay.toMillis.toInt)
       _              <- useEffectWithDeps(obsConf.anglesToTest): v =>
                           anglesDebounce.set(v)
@@ -174,8 +194,9 @@ object UseAltairModesAgs:
            obsCoords,
            requirementsWavelength,
            anglesDebounce.debouncedValue,
-           candidates.value.toOption.flatten,
-           enabled
+           catalogPot.toOption.flatten,
+           enabled,
+           obsTargets
           )
         ):
           case (Some(targetId),
@@ -185,8 +206,9 @@ object UseAltairModesAgs:
                 wavelength,
                 angles,
                 Some(candidates),
-                true
-              ) if candidates.nonEmpty =>
+                true,
+                obsTargets
+              ) =>
             obsCoords.baseCoords.fold(Map.empty.pure[IO]): baseCoords =>
               altairParameters(
                 targetId,
@@ -196,10 +218,11 @@ object UseAltairModesAgs:
                 obsCoords,
                 wavelength,
                 angles.getOrElse(UnconstrainedAngles),
-                candidates
+                candidates,
+                obsTargets
               )(ctx)
           case _ =>
             Map.empty.pure[IO]
     // Pending while either search runs: the parameters keep their last value until the candidates
     // arrive, so they cannot tell on their own.
-    yield if enabled then candidates.value.value >> parameters.value.value else Pot(Map.empty)
+    yield if enabled then catalogPot >> parameters.value.value else Pot(Map.empty)

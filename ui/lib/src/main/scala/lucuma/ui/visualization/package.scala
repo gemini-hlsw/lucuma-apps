@@ -11,6 +11,7 @@ import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.AltairMode
 import lucuma.core.enums.Flamingos2LyotWheel
@@ -175,9 +176,22 @@ def textDomSize(textValue: String): (Double, Double) =
   document.body.removeChild(text)
   (width, height)
 
+val ScienceTargetGuideStarLabel: String = "Science Target"
+
+extension (id: GuideStarId)
+  /** What the UI calls a guide star; never an identity. */
+  def displayLabel: String =
+    id match
+      case GuideStarId.Catalog(name)        => name.value.value
+      case GuideStarId.ObservationTarget(_) => ScienceTargetGuideStarLabel
+
 extension (target: GuideStarCandidate)
   protected def selector: Css =
-    Css(s"guide-star-${target.id}")
+    target.id match
+      case GuideStarId.Catalog(name)               =>
+        Css(s"guide-star-${name.toGaiaSourceId.foldMap(_.toString)}")
+      case GuideStarId.ObservationTarget(targetId) =>
+        Css(s"guide-star-target-${targetId.foldMap(_.show)}")
 
 def offsetIndicators(
   offsets:         Option[NonEmptyList[Offset]],

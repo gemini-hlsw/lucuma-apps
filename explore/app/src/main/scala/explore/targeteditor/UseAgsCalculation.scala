@@ -48,7 +48,13 @@ case class AgsCalcProps(
 )
 
 object AgsCalcProps:
-  given Reusability[AgsCalcProps] = Reusability.by: p =>
+  // Observation target candidates may move or change brightness, so they are compared in full.
+  private val observationTargetsReuse: Reusability[AgsCalcProps] =
+    Reusability.by((p: AgsCalcProps) => p.candidates.filter(_.id.isObservationTarget))(using
+      Reusability.byEq
+    )
+
+  given Reusability[AgsCalcProps] = observationTargetsReuse && Reusability.by: p =>
     (p.focusedId,
      p.obsTime,
      p.constraints,
@@ -147,13 +153,13 @@ object UseAgsCalculation:
                                       _ <-
                                         guideStarSelection
                                           .mod:
-                                            case _: AgsSelection               =>
-                                              r.fold(Default)(_.usable.select(none))
-                                            case rem @ RemoteGSSelection(name) =>
-                                              r.fold(rem)(_.usable.select(name.some))
+                                            case AgsSelection(_)                    =>
+                                              r.fold(Default)(_.usable.select(none, props.candidates))
+                                            case rem @ RemoteGSSelection(selection) =>
+                                              r.fold(rem)(_.usable.select(selection.some, props.candidates))
                                             // Re-resolved, the pick may have moved or become unusable
-                                            case a: AgsOverride                =>
-                                              r.fold(a)(_.usable.pick(a.selectedGSName))
+                                            case a @ AgsOverride(selection, _, _)   =>
+                                              r.fold(a)(_.usable.pick(selection, props.candidates))
                                     yield ()).toAsync
 
                                   val query = agsState.map: state =>
@@ -164,7 +170,7 @@ object UseAgsCalculation:
                                     process.guarantee(state.async.set(AgsState.Idle))
 
                                   // A manual pick is checked again too, since the change may make it unusable.
-                                  guideStarSelection.mod(_.resetKeepingName).toAsync *> query.orEmpty
+                                  guideStarSelection.mod(_.resetKeepingSelection).toAsync *> query.orEmpty
 
                                 case _ =>
                                   // When reverting config we should reset the results
@@ -172,7 +178,7 @@ object UseAgsCalculation:
                                     .setState(Pot.pending[List[AgsAnalysis.Usable]])
                                     .to[IO] *>
                                     constrainedPF.setState(Map.empty).to[IO] *>
-                                    guideStarSelection.mod(_.resetKeepingName).toAsync
+                                    guideStarSelection.mod(_.resetKeepingSelection).toAsync
       // AGS for uconstrained angles
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, hasConstraint, needsAGS)

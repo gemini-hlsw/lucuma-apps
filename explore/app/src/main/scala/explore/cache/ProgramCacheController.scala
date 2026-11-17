@@ -257,7 +257,7 @@ object ProgramCacheController
                 oid => updateGroupTimeRange(oid.some)
               )
 
-            // Picks the edited observation ids from the delta to drive a `guideTargetName`
+            // Picks the edited observation ids from the delta to drive a `guideTargetSelection`
             // re-fetch, keeping remote changes current with the local cache.
             val obsEditIdPipe: Pipe[
               IO,
@@ -266,16 +266,16 @@ object ProgramCacheController
             ] =
               _.filter(_.meta.exists(_.existence === Existence.Present)).map(_.observationId)
 
-            val guideTargetNameUpdate
+            val guideTargetSelectionUpdate
               : Pipe[IO, Observation.Id, ProgramSummaries => ProgramSummaries] =
               keyedSwitchEvalMap(
                 identity,
                 oid =>
                   odbApi
-                    .guideTargetName(oid)
-                    .map: name =>
+                    .guideTargetSelection(oid)
+                    .map: selection =>
                       ProgramSummaries.observations.modify:
-                        _.updatedWith(oid)(_.map(Observation.selectedGSName.replace(name)))
+                        _.updatedWith(oid)(_.map(Observation.selectedGuideStar.replace(selection)))
               )
 
             // The observationEdit subscription is lightweight: it carries only BasicConfiguration,
@@ -313,7 +313,7 @@ object ProgramCacheController
                 .map:
                   _.broadcastThrough(
                     _.map(modifyObservations(_)),
-                    obsEditIdPipe.andThen(guideTargetNameUpdate),
+                    obsEditIdPipe.andThen(guideTargetSelectionUpdate),
                     obsEditModeTypePipe.andThen(observingModeUpdate)
                   )
 

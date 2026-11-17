@@ -11,18 +11,22 @@ import explore.model.boopickle.Boopickle.asKeyBytes
 import explore.model.boopickle.CatalogPicklers
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.ags.arb.ArbGuideStarCandidate.given
 import lucuma.core.enums.AltairMode
+import lucuma.core.enums.Band
 import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.PortDisposition
 import lucuma.core.math.Angle
+import lucuma.core.math.BrightnessValue
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbCoordinates.given
 import lucuma.core.math.arb.ArbWavelength.given
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.arb.ArbConstraintSet.given
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -32,6 +36,7 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Prop.forAll
 
 import java.time.Instant
+import scala.collection.immutable.SortedMap
 
 // Regression test for the duplicated AGS worker cache-key bug fix.
 // Don't ever revert to identity-sensitive key derivation.
@@ -102,3 +107,33 @@ class AgsRequestKeySuite extends ScalaCheckSuite, CatalogPicklers:
         assert(asKeyBytes(unpickled).sameElements(asKeyBytes(altair)))
         val plain: AgsMessage.AgsRequest     = agsRequest(id, cs, w, base, List(gs), gnirs)
         assert(!asKeyBytes(plain).sameElements(asKeyBytes(altair)))
+
+  property("an observation target candidate that moves or changes brightness changes the key"):
+    forAll:
+      (
+        id:       Target.Id,
+        gs:       GuideStarCandidate,
+        cs:       ConstraintSet,
+        w:        Wavelength,
+        base:     Coordinates,
+        moved:    Coordinates,
+        targetId: Target.Id
+      ) =>
+        val params: AgsParams                      = AgsParams.GmosImaging(PortDisposition.Side)
+        val science: GuideStarCandidate            =
+          GuideStarCandidate(GuideStarId.ObservationTarget(targetId.some),
+                             SiderealTracking.const(base),
+                             SortedMap(Band.R -> BrightnessValue.unsafeFrom(12.0))
+          )
+        val brighter: GuideStarCandidate           =
+          GuideStarCandidate.brightnesses.replace(
+            SortedMap(Band.R -> BrightnessValue.unsafeFrom(11.0))
+          )(
+            science
+          )
+        val elsewhere: GuideStarCandidate          =
+          GuideStarCandidate.tracking.replace(SiderealTracking.const(moved))(science)
+        val key: GuideStarCandidate => Array[Byte] =
+          candidate => asKeyBytes(agsRequest(id, cs, w, base, List(gs, candidate), params))
+        assert(!key(science).sameElements(key(brighter)))
+        assert(moved === base || !key(science).sameElements(key(elsewhere)))

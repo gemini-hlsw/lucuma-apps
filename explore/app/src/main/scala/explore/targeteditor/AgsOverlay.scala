@@ -5,7 +5,6 @@ package explore.targeteditor
 
 import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.*
@@ -15,6 +14,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.GuideStarId
 import lucuma.ags.probeBands
 import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
@@ -23,6 +23,7 @@ import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.visualization.displayLabel
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -36,7 +37,7 @@ case class AgsOverlay(
   anglesAvailable:     Boolean,
   targetNotObservable: Boolean,
   manualGuideStar:     Option[ManualGuideStar],
-  guideStarName:       Option[NonEmptyString],
+  remoteSelection:     Option[GuideStarId],
   readonly:            Boolean,
   onRevert:            Callback
 ) extends ReactFnProps[AgsOverlay](AgsOverlay.component) {
@@ -117,11 +118,11 @@ object AgsOverlay:
               TagMod.devOnly(s"${props.agsState} ${props.selectedGS.get}")
         )
 
-      def nameRow(name: NonEmptyString): VdomNode =
+      def nameRow(guideStar: GuideStarId): VdomNode =
         <.div(
           ExploreStyles.AgsDescription,
           Icons.Bahai,
-          <.span(name.value),
+          <.span(guideStar.displayLabel),
           <.div(
             ExploreStyles.AgsNavigation,
             <.span(
@@ -140,11 +141,12 @@ object AgsOverlay:
             AgsCandidatesDialog(
               enabled = props.agsState === AgsState.Idle && maxIndex > 0,
               candidates = props.agsResults,
-              current = props.selectedGS.get.targetName,
+              current = props.selectedGS.get.selectedId,
               isManual = props.selectedGS.get.fold(_ => false, _ => true, _ => true),
               currentProblem = manualInfo.filter(_ => props.manualProblem).map(_._2),
               readonly = props.readonly,
-              onSelect = name => props.selectedGS.set(props.agsResults.pick(name))
+              // A candidate's own id is never ambiguous, so no candidates are needed.
+              onSelect = id => props.selectedGS.set(props.agsResults.pick(id, Nil))
             )
           )
         )
@@ -171,7 +173,7 @@ object AgsOverlay:
       props.selectedGS.get.analysis
         .map { case analysis =>
           ReactFragment(
-            nameRow(analysis.target.name),
+            nameRow(analysis.target.id),
             <.div(
               ExploreStyles.AgsDescription,
               devOnly,
@@ -188,9 +190,9 @@ object AgsOverlay:
           )
         }
         .orElse(
-          props.guideStarName
+          props.remoteSelection
             .filter(_ => props.manualProblem)
-            .map(name => ReactFragment(nameRow(name), devOnly, manualRow))
+            .map(selection => ReactFragment(nameRow(selection), devOnly, manualRow))
         )
         .getOrElse {
           <.div(

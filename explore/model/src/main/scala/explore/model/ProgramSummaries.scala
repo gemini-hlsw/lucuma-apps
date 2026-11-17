@@ -216,7 +216,7 @@ case class ProgramSummaries(
               else identity
             Observation.calculatedValues
               .replace(Observation.calculatedValues.get(o))
-              .andThen(Observation.selectedGSName.replace(o.selectedGSName))
+              .andThen(Observation.selectedGuideStar.replace(o.selectedGuideStar))
               .andThen(modeReplace)(observation)
           )
           .orElse(

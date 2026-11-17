@@ -350,7 +350,7 @@ object ObsTabContents extends TwoPanels:
                   props.focusedTarget,
                   props.searching,
                   // We need this as a separate view so it doesn't get in the way of undo and can be easily updated by AGS
-                  obsView.zoom(Observation.selectedGSName),
+                  obsView.zoom(Observation.selectedGuideStar),
                   resize,
                   props.userPreferences,
                   props.readonly || addingObservation.get.value,

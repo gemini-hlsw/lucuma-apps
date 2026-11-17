@@ -6,9 +6,9 @@ package explore.model
 import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.core.math.Angle
 
 sealed trait GuideStarSelection derives Eq
@@ -18,12 +18,12 @@ object GuideStarSelection:
   case class AgsSelection(index: Option[(Int, AgsAnalysis.Usable)]) extends GuideStarSelection
       derives Eq
 
-  // Remote selection based on the name
-  case class RemoteGSSelection(name: NonEmptyString) extends GuideStarSelection derives Eq
+  // Remote selection, as stored in the ODB
+  case class RemoteGSSelection(selection: GuideStarId) extends GuideStarSelection derives Eq
 
   // Fully developed override, include analysis and location on list of candidates
   case class AgsOverride(
-    selectedGSName:  NonEmptyString,
+    selection:       GuideStarId,
     selectedGSIndex: Int,
     analysis:        AgsAnalysis.Usable
   ) extends GuideStarSelection derives Eq
@@ -37,17 +37,17 @@ object GuideStarSelection:
         case a @ RemoteGSSelection(_) => g(a)
         case a @ AgsOverride(_, _, _) => h(a)
 
-    // Drops a stale analysis, keeping a manual pick as a name for `pick` to re-resolve. Going
+    // Drops a stale analysis, keeping a manual pick as a selection for `pick` to re-resolve. Going
     // straight to AgsSelection would lose the pick.
-    def resetKeepingName: GuideStarSelection = gs match
-      case AgsOverride(name, _, _)  => RemoteGSSelection(name)
-      case r @ RemoteGSSelection(_) => r
-      case _: AgsSelection          => Default
+    def resetKeepingSelection: GuideStarSelection = gs match
+      case AgsOverride(selection, _, _) => RemoteGSSelection(selection)
+      case r @ RemoteGSSelection(_)     => r
+      case AgsSelection(_)              => Default
 
     def idx: Option[Int] = fold(_.index.map(_._1), _ => none, _.selectedGSIndex.some)
 
-    def targetName: Option[NonEmptyString] =
-      fold(_.index.map(_._2.target.name), _.name.some, _.selectedGSName.some)
+    def selectedId: Option[GuideStarId] =
+      fold(_.index.map(_._2.target.id), _.selection.some, _.selection.some)
 
     def analysis: Option[AgsAnalysis.Usable] = gs match
       case AgsSelection(Some((_, a))) => a.some
@@ -61,19 +61,31 @@ enum ManualGuideStar derives Eq:
   case Selected, Unusable, NotFound, LookupFailed
 
 extension (r: List[AgsAnalysis.Usable])
-  // The star the ODB names when it names one, else the best candidate.
-  def select(name: Option[NonEmptyString]): GuideStarSelection =
-    name.fold(GuideStarSelection.AgsSelection(r.headOption.tupleLeft(0)))(pick)
+  // The star the ODB selects when it selects one, else the best candidate.
+  def select(
+    selection:  Option[GuideStarId],
+    candidates: List[GuideStarCandidate]
+  ): GuideStarSelection =
+    selection.fold(GuideStarSelection.AgsSelection(r.headOption.tupleLeft(0)))(pick(_, candidates))
 
   def pick(i: Int): GuideStarSelection =
     r.lift(i)
       .fold[GuideStarSelection](GuideStarSelection.AgsSelection(none))(a =>
-        GuideStarSelection.AgsOverride(a.target.name, i, a)
+        GuideStarSelection.AgsOverride(a.target.id, i, a)
       )
 
-  def pick(s: NonEmptyString): GuideStarSelection =
+  // The first result, in ranking order, the selection picks; kept as remote when there is none or
+  // the selection is ambiguous among the candidates AGS ran on.
+  def pick(selection: GuideStarId, candidates: List[GuideStarCandidate]): GuideStarSelection =
     r.zipWithIndex
-      .collectFirst { case (a, i) if a.target.name === s => i }
-      .fold[GuideStarSelection](GuideStarSelection.RemoteGSSelection(s))(i =>
-        GuideStarSelection.AgsOverride(s, i, r(i))
+      .collectFirst { case (a, i) if selection.selects(a.target.id) => i }
+      .filterNot(_ => selection.isAmbiguousAmong(candidates))
+      .fold[GuideStarSelection](GuideStarSelection.RemoteGSSelection(selection))(i =>
+        GuideStarSelection.AgsOverride(selection, i, r(i))
       )
+
+extension (selection: GuideStarId)
+  // As in the ODB, the id-less selection picks nothing when there are several observation targets.
+  def isAmbiguousAmong(candidates: List[GuideStarCandidate]): Boolean =
+    selection.isObservationTarget && selection.observationTargetId.isEmpty &&
+      candidates.count(_.id.isObservationTarget) > 1

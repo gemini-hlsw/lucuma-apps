@@ -21,6 +21,7 @@ import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
+import lucuma.ags.GuideStarId
 import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.FacilityObservingModeType
 import lucuma.core.enums.Instrument
@@ -46,7 +47,7 @@ import lucuma.schemas.odb.input.*
 import queries.common.ObsQueriesGQL.*
 import queries.common.ProgramSummaryQueriesGQL.AllProgramObservations
 import queries.common.ProgramSummaryQueriesGQL.AllProgramObservationsObservingMode
-import queries.common.TargetQueriesGQL.SetGuideTargetName
+import queries.common.TargetQueriesGQL.SetGuideTarget
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -395,21 +396,30 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     )
     UpdateObservationMutation[F].execute(input).processErrors.void
 
-  def setGuideTargetName(
-    obsId:      Observation.Id,
-    targetName: Option[NonEmptyString]
-  ): F[Unit] =
-    val input = SetGuideTargetNameInput(
+  def setGuideTarget(obsId: Observation.Id, selection: Option[GuideStarId]): F[Unit] =
+    val input = SetGuideTargetInput(
       observationId = obsId.assign,
-      targetName = targetName.orUnassign
+      guideTarget = selection
+        .map:
+          case GuideStarId.Catalog(name)               =>
+            GuideTargetSelectionInput.CatalogName(name.toNonEmptyString)
+          case GuideStarId.ObservationTarget(targetId) =>
+            GuideTargetSelectionInput.ObservationTarget(
+              ObservationGuideTargetSelectionInput(targetId = targetId.orIgnore)
+            )
+        .orUnassign
     )
-    SetGuideTargetName[F].execute(input).processErrors.void
+    SetGuideTarget[F].execute(input).processErrors.void
 
-  def guideTargetName(obsId: Observation.Id): F[Option[NonEmptyString]] =
+  def guideTargetSelection(obsId: Observation.Id): F[Option[GuideStarId]] =
     ObservationLoadedElements[F]
       .query(obsId)
       .processErrors
-      .map(_.observation.flatMap(_.targetEnvironment.guideTargetName))
+      .map:
+        _.observation
+          .flatMap(_.targetEnvironment.guideTargetSelection)
+          .flatMap: s =>
+            Observation.guideStarSelection(s.catalogName, s.observationTarget.map(_.targetId))
 
   def maskDesign(obsId: Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]] =
     ObservationMaskDesignQuery[F]

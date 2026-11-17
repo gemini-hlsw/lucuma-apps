@@ -9,11 +9,10 @@ import cats.data.NonEmptySet
 import cats.derived.*
 import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.enums.AgsState
 import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
+import lucuma.ags.GuideStarId
 import lucuma.ags.syntax.*
 import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
@@ -51,7 +50,7 @@ final case class ObsConfiguration(
   averagePA:           Option[AveragePABasis],
   obsDuration:         Option[Duration],
   needGuideStar:       Boolean,
-  remoteGSName:        Option[NonEmptyString],
+  remoteGSSelection:   Option[GuideStarId],
   calibrationRole:     Option[CalibrationRole],
   trackType:           Option[TrackType],
   targetViz:           TargetVisualization,

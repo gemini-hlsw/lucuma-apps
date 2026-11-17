@@ -14,6 +14,7 @@ import explore.model.GuidingConfiguration
 import explore.model.MaskDesign
 import explore.model.Observation
 import explore.model.SchedulingConstraints
+import lucuma.ags.GuideStarId
 import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
@@ -112,9 +113,9 @@ trait OdbObservationApi[F[_]]:
     groupId:    Option[Group.Id],
     groupIndex: NonNegShort
   ): F[Unit]
-  def setGuideTargetName(obsId: Observation.Id, targetName:   Option[NonEmptyString]): F[Unit]
-  def guideTargetName(obsId:    Observation.Id): F[Option[NonEmptyString]]
-  def maskDesign(obsId:         Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]]
+  def setGuideTarget(obsId:       Observation.Id, selection:    Option[GuideStarId]): F[Unit]
+  def guideTargetSelection(obsId: Observation.Id): F[Option[GuideStarId]]
+  def maskDesign(obsId:           Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]]
 
   def createConfigurationRequest(
     obsId:         Observation.Id,

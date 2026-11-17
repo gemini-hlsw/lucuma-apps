@@ -24,6 +24,7 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.catalog.AngularSize
 import lucuma.catalog.BlindOffsetCandidate
 import lucuma.catalog.CatalogTargetResult
@@ -112,7 +113,10 @@ object reusability:
   given Reusability[BasicConfiguration]                                = Reusability.byEq
   given Reusability[TargetVisualization]                               = Reusability.byEq
   given Reusability[InstrumentConfigAndItcResult]                      = Reusability.byEq
-  given Reusability[GuideStarCandidate]                                = Reusability.by(_.name.value)
+  given Reusability[GuideStarId]                                       = Reusability.byEq
+  // Catalog stars by id; observation targets in full, as they may move or change brightness.
+  given Reusability[GuideStarCandidate]                                =
+    Reusability((a, b) => if a.id.isObservationTarget then a === b else a.id === b.id)
   given Reusability[ShapePolygon]                                      = Reusability.byEq
   given patrolFieldsReuse: Reusability[Map[Angle, List[ShapePolygon]]] = Reusability.byEq
   given Reusability[OffsetPosition]                                    = Reusability.byEq

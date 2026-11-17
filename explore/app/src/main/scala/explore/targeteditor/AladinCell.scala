@@ -422,7 +422,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                     props.anglesToTest.isDefined,
                     props.targetNotObservable,
                     props.ags.manualGuideStar,
-                    props.obsConf.flatMap(_.remoteGSName),
+                    props.obsConf.flatMap(_.remoteGSSelection),
                     props.guideStarReadonly,
                     props.revertGuideStar
                   )

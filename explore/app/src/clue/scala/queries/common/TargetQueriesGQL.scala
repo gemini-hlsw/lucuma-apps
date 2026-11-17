@@ -46,10 +46,10 @@ object TargetQueriesGQL:
     """
 
   @GraphQL
-  trait SetGuideTargetName extends GraphQLOperation[ObservationDB]:
+  trait SetGuideTarget extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      mutation($$input: SetGuideTargetNameInput!) {
-        setGuideTargetName(input: $$input) {
+      mutation($$input: SetGuideTargetInput!) {
+        setGuideTarget(input: $$input) {
           observation {
             id
           }

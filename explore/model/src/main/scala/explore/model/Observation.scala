@@ -20,6 +20,8 @@ import explore.modes.ItcInstrumentConfig
 import io.circe.ACursor
 import io.circe.Decoder
 import io.circe.refined.given
+import lucuma.ags.GuideStarId
+import lucuma.ags.GuideStarName
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CassRotator
 import lucuma.core.enums.GmosAmpGain
@@ -80,7 +82,7 @@ final case class Observation(
   title:                   String,
   subtitle:                Option[NonEmptyString],
   scienceTargetIds:        SortedSet[Target.Id],
-  selectedGSName:          Option[NonEmptyString],
+  selectedGuideStar:       Option[GuideStarId],
   constraints:             ConstraintSet,
   schedulingConstraints:   SchedulingConstraints,
   tooActivation:           TooActivation,
@@ -607,7 +609,7 @@ object Observation:
   val title                    = Focus[Observation](_.title)
   val subtitle                 = Focus[Observation](_.subtitle)
   val scienceTargetIds         = Focus[Observation](_.scienceTargetIds)
-  val selectedGSName           = Focus[Observation](_.selectedGSName)
+  val selectedGuideStar        = Focus[Observation](_.selectedGuideStar)
   val constraints              = Focus[Observation](_.constraints)
   val centralWavelength        = Focus[Observation](_.centralWavelength)
   val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
@@ -702,6 +704,30 @@ object Observation:
     )
 
   private case class TargetIdWrapper(id: Target.Id) derives Decoder
+
+  /**
+   * The guide star selected by hand, from the fields of a `GuideTargetSelection`. A catalog name
+   * that is not a `GuideStarName` is read as no selection, so it can't break the observation.
+   */
+  def guideStarSelection(
+    catalogName:       Option[NonEmptyString],
+    observationTarget: Option[Option[Target.Id]]
+  ): Option[GuideStarId] =
+    catalogName.fold(observationTarget.map(GuideStarId.ObservationTarget(_))): name =>
+      GuideStarName.from(name.value).toOption.map(GuideStarId.Catalog(_))
+
+  private case class ObservationGuideTargetSelection(targetId: Option[Target.Id]) derives Decoder
+
+  private val GuideTargetSelectionObjectDecoder: Decoder[Option[GuideStarId]] =
+    Decoder.instance: c =>
+      for
+        catalogName       <- c.get[Option[NonEmptyString]]("catalogName")
+        observationTarget <- c.get[Option[ObservationGuideTargetSelection]]("observationTarget")
+      yield guideStarSelection(catalogName, observationTarget.map(_.targetId))
+
+  /** A nullable `GuideTargetSelection`; null or missing is automatic selection. */
+  val GuideTargetSelectionDecoder: Decoder[Option[GuideStarId]] =
+    Decoder.decodeOption(using GuideTargetSelectionObjectDecoder).map(_.flatten)
   private case class AttachmentIdWrapper(id: Attachment.Id) derives Decoder
   private case class ConfigurationRequestIdWrapper(id: ConfigurationRequest.Id) derives Decoder
 
@@ -727,7 +753,9 @@ object Observation:
       subtitle              <- c.get[Option[NonEmptyString]]("subtitle")
       targetEnv              = c.downField("targetEnvironment")
       scienceTargetIds      <- targetEnv.get[List[TargetIdWrapper]]("asterism")
-      selectedGSName        <- targetEnv.downField("guideTargetName").as[Option[NonEmptyString]]
+      selectedGuideStar     <- targetEnv
+                                 .downField("guideTargetSelection")
+                                 .as[Option[GuideStarId]](using GuideTargetSelectionDecoder)
       constraints           <- c.get[ConstraintSet]("constraintSet")
       schedulingConstraints <- c.get[SchedulingConstraints]("schedulingConstraints")
       tooActivation         <- c.downField("schedulingConstraints").get[TooActivation]("tooActivation")
@@ -760,7 +788,7 @@ object Observation:
       title,
       subtitle,
       SortedSet.from(scienceTargetIds.map(_.id)),
-      selectedGSName,
+      selectedGuideStar,
       constraints,
       schedulingConstraints,
       tooActivation,
