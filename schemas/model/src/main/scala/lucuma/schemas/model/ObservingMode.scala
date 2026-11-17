@@ -1737,25 +1737,38 @@ object ObservingMode:
     val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
+    val telescopeConfigPresets: SlitTelescopeConfigPresets[ScorpioSlitOffsetPreset] =
+      TelescopeConfigPresets.ScorpioLongSlit
+
     def isCustomized: Boolean =
-      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+      telescopeConfigPresets.isCustomized(explicitTelescopeConfigs, defaultTelescopeConfigs)
 
     def revertCustomizations: ScorpioLongSlit =
-      copy(explicitTelescopeConfigs = none)
+      copy(explicitTelescopeConfigs =
+        telescopeConfigPresets.retain(explicitTelescopeConfigs, defaultTelescopeConfigs)
+      )
 
   object ScorpioLongSlit:
     given Decoder[ScorpioLongSlit] = deriveDecoder
 
-    val fpu: Lens[ScorpioLongSlit, ScorpioFpu]                                        =
+    val fpu: Lens[ScorpioLongSlit, ScorpioFpu]     =
       Focus[ScorpioLongSlit](_.fpu)
-    val g: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+    val g: Lens[ScorpioLongSlit, ExposureTimeMode] =
       Focus[ScorpioLongSlit](_.g)
-    val r: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+    val r: Lens[ScorpioLongSlit, ExposureTimeMode] =
       Focus[ScorpioLongSlit](_.r)
-    val i: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+    val i: Lens[ScorpioLongSlit, ExposureTimeMode] =
       Focus[ScorpioLongSlit](_.i)
-    val z: Lens[ScorpioLongSlit, ExposureTimeMode]                                    =
+    val z: Lens[ScorpioLongSlit, ExposureTimeMode] =
       Focus[ScorpioLongSlit](_.z)
+
+    /** g and r share a detector controller and always hold the same exposure time mode. */
+    val gr: Lens[ScorpioLongSlit, ExposureTimeMode] =
+      Lens[ScorpioLongSlit, ExposureTimeMode](_.g)(etm => _.copy(g = etm, r = etm))
+
+    /** i and z share a detector controller and always hold the same exposure time mode. */
+    val iz: Lens[ScorpioLongSlit, ExposureTimeMode]                                   =
+      Lens[ScorpioLongSlit, ExposureTimeMode](_.i)(etm => _.copy(i = etm, z = etm))
     val defaultTelescopeConfigs: Lens[ScorpioLongSlit, SlitTelescopeConfigs]          =
       Focus[ScorpioLongSlit](_.defaultTelescopeConfigs)
     val explicitTelescopeConfigs: Lens[ScorpioLongSlit, Option[SlitTelescopeConfigs]] =

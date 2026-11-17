@@ -324,6 +324,8 @@ object ConfigurationTile
         ObservingModeInput.Flamingos2Mos(Flamingos2MosInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
+      val EmptyScorpioLongSlitInput: ObservingModeInput   =
+        ObservingModeInput.ScorpioLongSlit(ScorpioLongSlitInput())
       val EmptyGnirsLongSlitInput: ObservingModeInput     =
         ObservingModeInput.GnirsLongSlit(GnirsLongSlitInput())
       val EmptyGnirsIfuInput: ObservingModeInput          =
@@ -533,6 +535,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.igrins2LongSlit
                   .andThen(ObservingModeInput.Igrins2LongSlit.value)
+                  .modify
+            )
+
+        val optScorpioAligner: Option[Aligner[ScorpioLongSlit, ScorpioLongSlitInput]] =
+          optModeAligner(EmptyScorpioLongSlitInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.scorpioLongSlit,
+              modInput:
+                ObservingModeInput.scorpioLongSlit
+                  .andThen(ObservingModeInput.ScorpioLongSlit.value)
                   .modify
             )
 
@@ -958,15 +970,16 @@ object ConfigurationTile
                   // Subaru exchange.
                   optSubaruExchangeAligner.map: subaruAligner =>
                     SubaruExchangeConfigPanel(subaruAligner, optRevertConfig, props.permissions),
-                  // SCORPIO is read only until the ODB can edit it.
-                  props.observingMode.collect:
-                    case _: ObservingMode.ScorpioLongSlit =>
-                      <.div(
-                        "SCORPIO configuration",
-                        optRevertConfig
-                          .filter(_ => props.permissions.isFullEdit)
-                          .map(RollbackOnlyConfigButtons(_))
-                      )
+                  // SCORPIO Long Slit
+                  optScorpioAligner.map: scorpioAligner =>
+                    ScorpioLongSlitConfigPanel(
+                      props.obsConf.calibrationRole,
+                      scorpioAligner,
+                      optRevertConfig,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    )
                 )
             )
           )

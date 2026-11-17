@@ -2311,7 +2311,8 @@ svg.fa-check.explore-success-icon {
     border-bottom: 1px solid var(--site-border-color);
   }
 
-  .explore-igrins2-upper-grid {
+  .explore-igrins2-upper-grid,
+  .explore-scorpio-upper-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -2321,12 +2322,72 @@ svg.fa-check.explore-success-icon {
     border-bottom: 1px solid var(--site-border-color);
   }
 
+  .explore-scorpio-channel-grid {
+    display: grid;
+    gap: 0.5em;
+    align-items: center;
+    align-self: start;
+
+    // Equal rows make the title as tall as an input, matching the offsets header next to it.
+    grid-auto-rows: 1fr;
+    grid-template-columns: [channel] auto [time] 1fr [count] 1fr [link] auto;
+
+    .pl-form-field {
+      width: 100%;
+    }
+
+    // A bracket joining two paired rows, with a padlock beside it.
+    .explore-scorpio-channel-link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      align-self: stretch;
+      grid-column: link;
+      padding-left: 1em;
+      color: var(--text-color-secondary);
+
+      &::before {
+        position: absolute;
+        left: 0;
+        width: 0.6em;
+
+        // Each arm ends at the middle of its row: a quarter of the two rows, less the gap.
+        inset-block: calc((100% - 0.5em) / 4);
+        border: 1px solid var(--text-color-secondary);
+        border-left: none;
+        border-radius: 0 3px 3px 0;
+        content: '';
+      }
+    }
+
+    .explore-scorpio-channel-link-gr {
+      grid-row: 2 / span 2;
+    }
+
+    .explore-scorpio-channel-link-iz {
+      grid-row: 4 / span 2;
+    }
+
+    .explore-scorpio-channel-label {
+      grid-column: channel;
+    }
+
+    .explore-etm-time {
+      grid-column: time;
+    }
+
+    .explore-etm-count {
+      grid-column: count;
+    }
+  }
+
   // Read only generated daytime calibrations have no acquisition nor buttons below the divider
   .explore-gmos-spectroscopy-upper-grid,
   .explore-imaging-upper-grid,
   .explore-flamingos2-upper-grid,
   .explore-gnirs-upper-grid,
   .explore-igrins2-upper-grid,
+  .explore-scorpio-upper-grid,
   .explore-ghost-upper-grid,
   .explore-visitor-upper-grid {
     &:has(+ :empty) {
@@ -2339,6 +2400,7 @@ svg.fa-check.explore-success-icon {
   .explore-flamingos2-lower-grid,
   .explore-gnirs-lower-grid,
   .explore-igrins2-lower-grid,
+  .explore-scorpio-lower-grid,
   .explore-ghost-lower-grid,
   .explore-visitor-lower-grid {
     &:empty {
@@ -2346,7 +2408,8 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  .explore-igrins2-lower-grid {
+  .explore-igrins2-lower-grid,
+  .explore-scorpio-lower-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -2684,7 +2747,8 @@ svg.fa-check.explore-success-icon {
         / auto;
     }
 
-    .explore-igrins2-upper-grid {
+    .explore-igrins2-upper-grid,
+    .explore-scorpio-upper-grid {
       grid-template:
         'col1' auto
         'col2' auto
