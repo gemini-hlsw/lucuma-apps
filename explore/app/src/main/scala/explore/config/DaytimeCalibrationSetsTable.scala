@@ -61,7 +61,8 @@ case class DaytimeCalibrationSetsTable(
   instrument: Instrument,
   setsView:   View[List[DaytimeCalibrationSet]],
   editable:   Boolean,
-  units:      WavelengthUnits
+  units:      WavelengthUnits,
+  loading:    Boolean = false
 ) extends ReactFnProps(DaytimeCalibrationSetsTable.component)
 
 object DaytimeCalibrationSetsTable:
@@ -459,7 +460,7 @@ object DaytimeCalibrationSetsTable:
                 case _                                                      => TagMod.empty,
             emptyMessage = <.div(
               ExploreStyles.DaytimeCalMessage,
-              "No calibration sets."
+              if props.loading then "Loading..." else "No calibration sets."
             )
           ),
           Button(
