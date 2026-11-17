@@ -14,9 +14,11 @@ import lucuma.core.util.Enumerated
 import observe.model.ClientId
 import observe.model.Observer
 import observe.model.Operator
+import observe.model.QueuePauseId
 import observe.model.Subsystem
 import observe.model.SubsystemEnabled
 import observe.model.enums.ObservatorySubsystem
+import observe.model.enums.QueueOrderingMode
 import observe.model.enums.RunOverride
 import observe.model.given
 import org.http4s.QueryParamDecoder
@@ -79,6 +81,12 @@ object BreakpointVar extends BooleanBasedVar[Breakpoint]:
 
 object SubsystemEnabledVar extends BooleanBasedVar[SubsystemEnabled]:
   def item(b: Boolean) = if b then SubsystemEnabled.Enabled else SubsystemEnabled.Disabled
+
+object QueuePauseIdVar:
+  def unapply(str: String): Option[QueuePauseId] =
+    Either.catchNonFatal(QueuePauseId(java.util.UUID.fromString(str))).toOption
+
+object QueueOrderingModeVar extends EnumeratedVar[QueueOrderingMode]
 
 object SequenceTypeVar:
   def unapply(str: String): Option[SequenceType] = Enumerated[SequenceType].fromTag(str)

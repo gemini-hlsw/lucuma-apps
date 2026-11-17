@@ -20,7 +20,7 @@ object ObsQueriesGql:
   @GraphQL
   trait ObsQuery extends GraphQLOperation[ObservationDB]:
     val document = gql"""
-      query($$obsId: ObservationId!, $$skipTargets: Boolean!) {
+      query($$obsId: ObservationId!, $$skipTargets: Boolean!, $$futureLimit: NonNegInt!) {
         observation(observationId: $$obsId) {
           id
           title
@@ -67,7 +67,7 @@ object ObsQueriesGql:
           }
         }
 
-        executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery
+        executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) $ExecutionConfigSubquery
       }
     """
 
@@ -194,6 +194,18 @@ object ObsQueriesGql:
       query($$obsId: ObservationId!) {
         observation(observationId: $$obsId) {
           calibrationRole
+        }
+      }
+      """
+
+  // What says whether the daytime queue accepts an observation.
+  @GraphQL
+  trait ObsQueueQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          calibrationRole
+          observingMode $BasicConfigurationSubquery
         }
       }
       """

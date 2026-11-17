@@ -35,7 +35,9 @@ import monocle.Lens
 import mouse.all.*
 import observe.model.*
 import observe.model.config.*
-import observe.model.enums.BatchExecState
+import observe.model.enums.ObservatorySubsystem
+import observe.model.enums.QueueDispatchState
+import observe.model.enums.QueueOrderingMode
 import observe.model.enums.RunOverride
 import observe.model.given
 import observe.server.engine.*
@@ -47,7 +49,6 @@ import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
 
-import scala.annotation.unused
 import scala.concurrent.duration.*
 
 // import SeqEvent.*
@@ -216,29 +217,78 @@ trait ObserveEngine[F[_]] {
     user:     User
   ): F[Unit]
 
-  def addSequencesToQueue(qid: QueueId, obsIds: List[Observation.Id]): F[Unit]
+  /**
+   * Reads `obsId` from the ODB and appends it to the daytime queue as Waiting. Rejected with a
+   * `DaytimeQueueRejected` notification if it is already in the queue or is not a daytime
+   * calibration. Nothing is loaded into an instrument slot.
+   */
+  def addToDaytimeQueue(obsId: Observation.Id, user: User, clientId: ClientId): F[Unit]
 
-  def addSequenceToQueue(qid: QueueId, obsId: Observation.Id): F[Unit]
+  /** Removes an observation or a pause; a Running observation stays. */
+  def removeFromDaytimeQueue(itemId: QueueItemId, user: User, clientId: ClientId): F[Unit]
 
-  def removeSequenceFromQueue(qid: QueueId, obsId: Observation.Id): F[Unit]
-
-  def moveSequenceInQueue(
-    qid:   QueueId,
-    obsId: Observation.Id,
-    delta: Int,
-    cid:   ClientId
+  /** Moves an observation or a pause to `toIndex`; a Running observation stays. */
+  def moveInDaytimeQueue(
+    itemId:   QueueItemId,
+    toIndex:  Int,
+    user:     User,
+    clientId: ClientId
   ): F[Unit]
 
-  def clearQueue(qid: QueueId): F[Unit]
+  /** Inserts a pause at `atIndex`; nothing below it is dispatched until it is removed. */
+  def addDaytimeQueuePause(atIndex: Int, user: User, clientId: ClientId): F[Unit]
 
-  def startQueue(
-    qid:      QueueId,
+  /** Removes the top-most pause. */
+  def continueDaytimeQueuePastPause(user: User, clientId: ClientId): F[Unit]
+
+  def setDaytimeQueueOrderingMode(
+    mode:     QueueOrderingMode,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit]
+
+  /** Removes the Completed observations. */
+  def clearCompletedDaytimeQueue(user: User, clientId: ClientId): F[Unit]
+
+  /** Cancels the countdown to turn the GCAL lamps off, which are then left as they are. */
+  def cancelDaytimeQueueLampsOff(user: User, clientId: ClientId): F[Unit]
+
+  /** Puts a Failed or Aborted observation back to Waiting. */
+  def retryDaytimeQueueItem(obsId: Observation.Id, user: User, clientId: ClientId): F[Unit]
+
+  /**
+   * Runs the queue: Stopped observations go back to Waiting and Waiting ones are started, on behalf
+   * of `observer`, as their subsystems become available.
+   */
+  def runDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit]
+
+  /** Halts the queue and holds every running observation after its current step. */
+  def holdDaytimeQueueAfterCurrentSteps(user: User, clientId: ClientId): F[Unit]
+
+  /** Halts the queue, letting the running observations finish. */
+  def holdDaytimeQueueAfterCurrentObservations(user: User, clientId: ClientId): F[Unit]
+
+  /** Halts the queue and aborts every running observation. */
+  def abortDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit]
+
+  /**
+   * Starts one observation of the queue now, whatever its position, the pauses or the queue state,
+   * if its subsystems are free; nothing else is started.
+   */
+  def runDaytimeQueueItem(
+    obsId:    Observation.Id,
     observer: Observer,
     user:     User,
     clientId: ClientId
   ): F[Unit]
 
-  def stopQueue(qid: QueueId, clientId: ClientId): F[Unit]
+  /** Aborts a running observation of the queue; it ends Aborted. */
+  def abortDaytimeQueueItem(
+    obsId:    Observation.Id,
+    observer: Observer,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit]
 
   /**
    * Triggers the application of a specific step configuration to a system
@@ -254,7 +304,7 @@ trait ObserveEngine[F[_]] {
 
   /**
    * Requests a server restart. `shutdown` is run, inside the engine, only if nothing is running or
-   * reserved; otherwise the client gets a `RestartRefused` notification and nothing happens.
+   * busy; otherwise the client gets a `RestartRefused` notification and nothing happens.
    */
   def requestRestart(user: User, clientId: ClientId, shutdown: F[Unit]): F[Unit]
 
@@ -293,7 +343,7 @@ object ObserveEngine {
       st.selected.ghost
     ).flattenOption
 
-  private def subsystemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
+  private[server] def subsystemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
     observations(st)
       .filter(d => d.seq.status.isError || d.seq.status.isIdle)
       .flatMap(s =>
@@ -391,22 +441,20 @@ object ObserveEngine {
               EngineHandle.pure(SeqEvent.SubsystemClash(obsId, step.id, clash))
 
   /**
-   * Subsystems reserved by running queues.
+   * Subsystems that nothing else may start on: those held by running sequences, those of the
+   * Running daytime queue observations, and GCAL while the queue is turning its lamps off.
    */
-  def subsystemsReserved[F[_]](st: EngineState[F]): Set[Subsystem] = {
-    def reserved(q: ExecutionQueue): Set[Subsystem] = q.queue.collect {
-      case s if !s.state.isCompleted => s.subsystems
-    }.foldK
-
-    val runningQs = st.queues.values.filter(_.status.running)
-
-    runningQs.map(reserved).toList.foldK
-
-  }
+  def busySubsystems[F[_]](
+    st:         EngineState[F],
+    excludeObs: Option[Observation.Id] = none
+  ): Set[Subsystem] =
+    val lampsOff: Set[Subsystem] =
+      if st.daytimeQueueLampsOff then Set(ObservatorySubsystem.Gcal) else Set.empty
+    subsystemsInUse(st, excludeObs) ++ st.daytimeQueue.runningSubsystems(excludeObs) ++ lampsOff
 
   /**
-   * Human readable reasons why the server cannot be restarted right now. None if nothing is
-   * running, being configured or reserved by a running queue.
+   * Human readable reasons why the server cannot be restarted right now. None if nothing is running
+   * or being configured and the daytime queue is not running.
    */
   def restartBlockers[F[_]](st: EngineState[F]): Option[NonEmptyList[String]] =
     val sequences: List[String]   =
@@ -414,14 +462,16 @@ object ObserveEngine {
     val configuring: List[String] =
       subsystemsBeingConfigured(st).toList.map: subsystem =>
         s"${Enumerated[Subsystem].tag(subsystem)} is being configured"
-    val queues: List[String]      =
-      if st.queues.values.exists(_.status.running) then List("A queue is running") else Nil
+    val queue: List[String]       =
+      if st.daytimeQueue.dispatchState === QueueDispatchState.Running then
+        List("The daytime queue is running")
+      else Nil
     NonEmptyList
-      .fromList(sequences ++ configuring ++ queues)
+      .fromList(sequences ++ configuring ++ queue)
       .orElse:
         // The actions a failed step left running do not count: restarting is the way out of one
         // that never returns.
-        Option.when(subsystemsReserved(st).nonEmpty):
+        Option.when(st.daytimeQueue.runningSubsystems().nonEmpty || st.daytimeQueueLampsOff):
           NonEmptyList.one("The server is busy")
 
   /**
@@ -455,95 +505,6 @@ object ObserveEngine {
         }
     }
   }
-
-  /**
-   * Find the observations in an execution queue that would be run next, taking into account the
-   * subsystems required by each observation and the subsystems currently in use. The order in the
-   * queue defines the priority of the observations. Failed or stopped sequences in the queue keep
-   * their instruments taken, preventing that the queue starts other sequences for those
-   * instruments.
-   * @param qid
-   *   The execution queue id
-   * @param st
-   *   The current engine state
-   * @return
-   *   The set of all observations in the execution queue `qid` that can be started to run in
-   *   parallel.
-   */
-  def findRunnableObservations[F[_]](qid: QueueId)(st: EngineState[F]): Set[Observation.Id] = {
-    // Set of all subsystems in use
-    val used = subsystemsInUse(st)
-    // For each observation in the queue that is not yet run, retrieve the required subsystems
-    val obs  = st.queues
-      .get(qid)
-      .map(_.queue.collect {
-        case s if !s.state.isRunning && !s.state.isCompleted =>
-          s.obsId -> s.subsystems
-      })
-      .orEmpty
-
-    obs
-      .foldLeft((used, Set.empty[Observation.Id])) { case ((u, a), (oid, res)) =>
-        if (u.intersect(res).isEmpty)
-          (u ++ res, a + oid)
-        else (u, a)
-      }
-      ._2
-  }
-
-  /**
-   * Find next runnable observations given that a set of subsystems has just being released
-   * @param qid
-   *   The execution queue id
-   * @param st
-   *   The current engine state
-   * @param freed
-   *   Subsystems that were freed
-   * @return
-   *   The set of all observations in the execution queue `qid` that can be started to run in
-   *   parallel.
-   */
-  @unused
-  private def nextRunnableObservations[F[_]](qid: QueueId, freed: Set[Subsystem])(
-    st: EngineState[F]
-  ): Set[Observation.Id] = {
-    // Set of all subsystems in use
-    val used = subsystemsInUse(st)
-    // For each observation in the queue that is not yet run, retrieve the required subsystems
-    val obs  = st.queues
-      .get(qid)
-      .map(_.queue.collect {
-        case s if !s.state.isRunning && !s.state.isCompleted =>
-          s.obsId -> s.subsystems
-      })
-      .orEmpty
-
-    // Calculate instruments reserved by failed sequences in the queue
-    val resFailed: Set[Instrument] = st.queues
-      .get(qid)
-      .map(
-        _.queue.mapFilter(s => s.state.isError.option(s.instrument))
-      )
-      .orEmpty
-      .toSet
-
-    obs
-      .foldLeft((used ++ resFailed, Set[Observation.Id]())) { case ((u, a), (oid, res)) =>
-        if (u.intersect(res).isEmpty && freed.intersect(res).nonEmpty) (u ++ res, a + oid)
-        else (u, a)
-      }
-      ._2
-  }
-
-  /**
-   * shouldSchedule checks if a set of sequences are candidates for been run in a queue. It is used
-   * to check if sequences added to a queue should be started.
-   */
-  @annotation.unused
-  private def shouldSchedule[F[_]](qid: QueueId, sids: Set[Observation.Id])(
-    st: EngineState[F]
-  ): Set[Observation.Id] =
-    findRunnableObservations(qid)(st).intersect(sids)
 
   private def modifySequenceStatus[F[_]: Monad](
     obsId: Observation.Id

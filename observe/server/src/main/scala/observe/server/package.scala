@@ -22,7 +22,6 @@ import observe.common.ObsQueriesGql.ObsQuery
 import observe.model.CurrentConditions
 import observe.model.Observer
 import observe.model.Operator
-import observe.model.QueueId
 import observe.model.SubsystemOverrides
 import observe.server.InstrumentHandler.ElapsedTime
 import observe.server.engine.Event
@@ -59,8 +58,6 @@ case class ObserveContext[F[_]](
   abortPaused:  Stream[F, Result],
   expTime:      TimeSpan
 ) extends PauseContext
-
-type ExecutionQueues = Map[QueueId, ExecutionQueue]
 
 // This is far from ideal but we'll address this in another refactoring
 private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe-engine")

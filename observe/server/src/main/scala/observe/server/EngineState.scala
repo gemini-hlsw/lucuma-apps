@@ -10,19 +10,21 @@ import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 import monocle.syntax.all.*
-import observe.model.CalibrationQueueId
-import observe.model.CalibrationQueueName
 import observe.model.CurrentConditions
+import observe.model.DaytimeQueue
 import observe.model.Observation
+import observe.model.Observer
 import observe.model.Operator
 import observe.server.engine.Engine
 import observe.server.engine.SequenceState
 
 case class EngineState[F[_]](
-  queues:     ExecutionQueues,
-  selected:   Selected[F],
-  conditions: CurrentConditions,
-  operator:   Option[Operator]
+  selected:             Selected[F],
+  conditions:           CurrentConditions,
+  operator:             Option[Operator],
+  daytimeQueue:         DaytimeQueue,
+  daytimeQueueObserver: Option[Observer],
+  daytimeQueueLampsOff: Boolean
 ) {
   lazy val sequences: Map[Observation.Id, SequenceData[F]] =
     List(
@@ -70,10 +72,12 @@ object EngineState {
 
   def default[F[_]]: EngineState[F] =
     EngineState[F](
-      Map(CalibrationQueueId -> ExecutionQueue.init(CalibrationQueueName)),
       Selected.none,
       CurrentConditions.Default,
-      None
+      None,
+      DaytimeQueue.Empty,
+      none,
+      false
     )
 
   def instrumentLoaded[F[_]](
@@ -195,7 +199,16 @@ object EngineState {
   extension [F[_]](f: Endo[EngineState[F]])
     def withEvent(ev: SeqEvent): EngineState[F] => (EngineState[F], SeqEvent) = f >>> { (_, ev) }
 
-  def queues[F[_]]: Lens[EngineState[F], ExecutionQueues] = Focus[EngineState[F]](_.queues)
+  def daytimeQueue[F[_]]: Lens[EngineState[F], DaytimeQueue] =
+    Focus[EngineState[F]](_.daytimeQueue)
+
+  /** Observer who requested Run Queue; the queue starts its observations on their behalf. */
+  def daytimeQueueObserver[F[_]]: Lens[EngineState[F], Option[Observer]] =
+    Focus[EngineState[F]](_.daytimeQueueObserver)
+
+  /** True while the queue's command to turn the GCAL lamps off runs: GCAL is busy meanwhile. */
+  def daytimeQueueLampsOff[F[_]]: Lens[EngineState[F], Boolean] =
+    Focus[EngineState[F]](_.daytimeQueueLampsOff)
 
   def selected[F[_]]: Lens[EngineState[F], Selected[F]] = Focus[EngineState[F]](_.selected)
 

@@ -6,6 +6,7 @@ package observe.server.engine
 import cats.effect.IO
 import cats.syntax.option.*
 import observe.model.CurrentConditions
+import observe.model.DaytimeQueue
 import observe.model.Observation
 import observe.model.SubsystemOverrides
 import observe.server.EngineState
@@ -20,7 +21,6 @@ object TestUtil {
   ): EngineState[IO] =
     val odbObs = odbObservation(obsId)
     EngineState[IO](
-      queues = Map.empty,
       selected = Selected(
         gmosNorth = SequenceData
           .GmosNorth[IO](
@@ -42,6 +42,9 @@ object TestUtil {
         gnirs = none
       ),
       conditions = CurrentConditions.Default,
-      operator = None
+      operator = None,
+      daytimeQueue = DaytimeQueue.Empty,
+      daytimeQueueObserver = none,
+      daytimeQueueLampsOff = false
     )
 }

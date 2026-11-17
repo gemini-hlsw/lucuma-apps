@@ -5,47 +5,13 @@ package observe.server
 
 import lucuma.core.enums.Instrument
 import lucuma.core.util.arb.ArbEnumerated.given
-import lucuma.core.util.arb.ArbGid.given
-import observe.model.BatchCommandState
 import observe.model.Observation
-import observe.model.SequenceStatus
-import observe.model.Subsystem
-import observe.model.arb.ArbSubsystem.given
-import observe.model.arb.ObserveModelArbitraries.given
-import observe.server.ExecutionQueue.SequenceInQueue
-import org.scalacheck.Arbitrary
-import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 
 trait ObserveServerArbitraries {
 
   given Cogen[Map[Instrument, Observation.Name]] =
     Cogen[List[(Instrument, Observation.Name)]].contramap(_.toList)
-
-  given Arbitrary[SequenceInQueue] = Arbitrary {
-    for {
-      o <- arbitrary[Observation.Id]
-      i <- arbitrary[Instrument]
-      s <- arbitrary[SequenceStatus]
-      r <- arbitrary[Set[Subsystem]]
-    } yield SequenceInQueue(o, i, s, r)
-  }
-
-  given Cogen[SequenceInQueue] =
-    Cogen[(Observation.Id, Instrument, SequenceStatus, List[Subsystem])]
-      .contramap(x => (x.obsId, x.instrument, x.state, x.subsystems.toList))
-
-  given Arbitrary[ExecutionQueue] = Arbitrary {
-    for {
-      n <- arbitrary[String]
-      s <- arbitrary[BatchCommandState]
-      q <- arbitrary[List[SequenceInQueue]]
-    } yield ExecutionQueue(n, s, q)
-  }
-
-  given Cogen[ExecutionQueue] =
-    Cogen[(String, BatchCommandState, List[SequenceInQueue])]
-      .contramap(x => (x.name, x.cmdState, x.queue))
 
 }
 
