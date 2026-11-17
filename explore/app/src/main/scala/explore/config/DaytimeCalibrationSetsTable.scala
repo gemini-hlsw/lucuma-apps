@@ -101,6 +101,9 @@ object DaytimeCalibrationSetsTable:
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
+  private[config] val ExposureFractionalSeconds: InputCodec[TimeSpan] =
+    formats.durationMs.toCodec.withDecimalMask(2, allowMinus = false)
+
   private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
     Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
       _.copy(explicitCount = n.some)

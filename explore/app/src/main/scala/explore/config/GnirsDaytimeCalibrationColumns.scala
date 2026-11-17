@@ -37,7 +37,9 @@ private[config] object GnirsDaytimeCalibrationColumns:
       setsView,
       editable,
       List(
-        exposureColumn(editable)(setup(_).zoom(GnirsDaytimeSetup.exposure)),
+        exposureColumn(editable, ExposureFractionalSeconds)(
+          setup(_).zoom(GnirsDaytimeSetup.exposure)
+        ),
         // Smart GCAL supplies a smart row's coadds, like its exposure.
         inputColumn(CoaddsColumnId, "Coadds", 60, editable, inputCodecs.PositiveInt, withExposure)(
           setup(_).zoom(GnirsDynamicConfig.coadds)
