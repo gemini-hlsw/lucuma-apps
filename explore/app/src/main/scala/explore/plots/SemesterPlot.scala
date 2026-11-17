@@ -22,6 +22,8 @@ import lucuma.core.model.Tracking
 import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
+import lucuma.react.highcharts.addPlotLine
+import lucuma.react.highcharts.removePlotLine
 import lucuma.react.primereact.Message
 import lucuma.typed.highcharts.mod.*
 import lucuma.typed.highcharts.mod.Point
