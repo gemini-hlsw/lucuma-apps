@@ -12,6 +12,7 @@ import explore.model.enums.WavelengthUnits
 import explore.model.inputCodecs
 import japgolly.scalajs.react.ReactCats.*
 import lucuma.core.enums.Instrument
+import lucuma.core.model.sequence.exposure.ExposureRules
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
@@ -37,9 +38,13 @@ private[config] object GnirsDaytimeCalibrationColumns:
       setsView,
       editable,
       List(
-        exposureColumn(editable, ExposureFractionalSeconds)(
-          setup(_).zoom(GnirsDaytimeSetup.exposure)
-        ),
+        exposureColumn(
+          editable,
+          idx =>
+            inputCodecs.calibrationExposureMilliseconds(
+              ExposureRules.gnirs(setup(idx).get.readMode)
+            )
+        )(setup(_).zoom(GnirsDaytimeSetup.exposure)),
         // Smart GCAL supplies a smart row's coadds, like its exposure.
         inputColumn(CoaddsColumnId, "Coadds", 60, editable, inputCodecs.PositiveInt, withExposure)(
           setup(_).zoom(GnirsDynamicConfig.coadds)

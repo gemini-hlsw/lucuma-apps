@@ -101,9 +101,6 @@ object DaytimeCalibrationSetsTable:
   private val ExposureSeconds =
     formats.durationS.toCodec.withIntegerMask(allowMinus = false)
 
-  private[config] val ExposureFractionalSeconds: InputCodec[TimeSpan] =
-    formats.durationMs.toCodec.withDecimalMask(2, allowMinus = false)
-
   private val DefaultCountLens: Lens[DaytimeCalibrationSet, PosInt] =
     Lens[DaytimeCalibrationSet, PosInt](_.explicitCount.getOrElse(DefaultCount))(n =>
       _.copy(explicitCount = n.some)
@@ -220,11 +217,19 @@ object DaytimeCalibrationSetsTable:
         disabled = !editable
       )
 
+  /** The codec is picked per row, as the exposure limits can depend on the row's setup. */
   private[config] def exposureColumn(
     editable: Boolean,
-    codec:    InputCodec[TimeSpan] = ExposureSeconds
+    codec:    Int => InputCodec[TimeSpan] = _ => ExposureSeconds
   )(view: Int => View[TimeSpan]): ColDef.Type =
-    inputColumn(ExposureColumnId, "Exp Time (s)", 70, editable, codec, withExposure)(view)
+    cellColumn(ExposureColumnId, "Exp Time (s)", 70, withExposure): r =>
+      FormInputTextView(
+        id = cellId(ExposureColumnId, r._2),
+        value = view(r._2),
+        codec = codec(r._2),
+        groupClass = SequenceStyles.SequenceInput,
+        disabled = !editable
+      )
 
   /** Editable when the setup disperses, otherwise its fixed wavelength, read-only. */
   private[config] def wavelengthColumn(units: WavelengthUnits, editable: Boolean)(

@@ -24,7 +24,7 @@ private[config] object Igrins2DaytimeCalibrationColumns:
       setsView,
       editable,
       List(
-        exposureColumn(editable, inputCodecs.Igrins2CalibrationExposure)(
+        exposureColumn(editable, _ => inputCodecs.Igrins2CalibrationExposure)(
           setup(_).zoom(Igrins2DynamicConfig.exposure)
         )
       )

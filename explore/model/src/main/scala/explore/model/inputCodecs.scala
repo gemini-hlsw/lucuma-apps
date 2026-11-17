@@ -141,10 +141,10 @@ trait inputCodecs:
   // Exposure times, checked against the instrument's error rules (see `ExposureTimeRules`): a
   // value the rules reject never leaves the field, so the ODB does not get to flag it. Warnings
   // are left to the ODB.
-  private def exposureTime(
+  private def checkedExposure(
     base:  InputValidWedge[TimeSpan],
     rules: List[ExposureRule]
-  ): InputValidWedge[Option[TimeSpan]] =
+  ): InputValidWedge[TimeSpan] =
     InputValidWedge[TimeSpan](
       base
         .getValid(_)
@@ -156,13 +156,22 @@ trait inputCodecs:
                 .flatMap(v => NonEmptyString.from(v.message).toOption)
             .toLeft(t),
       base.reverseGet
-    ).optional
+    )
+
+  private def exposureTime(
+    base:  InputValidWedge[TimeSpan],
+    rules: List[ExposureRule]
+  ): InputValidWedge[Option[TimeSpan]] =
+    checkedExposure(base, rules).optional
 
   def exposureTimeSeconds(rules: List[ExposureRule]): InputCodec[Option[TimeSpan]] =
     exposureTime(durationS, rules).toCodec.withIntegerMask(allowMinus = false)
 
   def exposureTimeMilliseconds(rules: List[ExposureRule]): InputCodec[Option[TimeSpan]] =
     exposureTime(durationMs, rules).toCodec.withDecimalMask(2, allowMinus = false)
+
+  def calibrationExposureMilliseconds(rules: List[ExposureRule]): InputCodec[TimeSpan] =
+    checkedExposure(durationMs, rules).toCodec.withDecimalMask(2, allowMinus = false)
 
   // Counts and numbers
   val Integer: InputCodec[Int]                                                    = InputValidSplitEpi.int.toCodec.withIntegerMask()
