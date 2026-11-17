@@ -7,6 +7,8 @@ import japgolly.scalajs.react.*
 import lucuma.react.common.style.Css
 import lucuma.typed.highcharts.mod.*
 
+import scalajs.js
+
 extension (c: Chart_)
   inline def showLoadingCB: Callback              = CallbackTo(c.showLoading())
   inline def showLoadingCB(str: String): Callback = CallbackTo(c.showLoading(str))
@@ -21,6 +23,16 @@ extension (c: ChartOptions)
     )
 
 extension (c: XAxisPlotLinesOptions) inline def clazz(s: Css) = c.setClassName(s.htmlClass)
+
+// Highcharts 13 typings dropped these Axis methods, but they still exist at runtime.
+extension (a: Axis)
+  def addPlotLine(options: AxisPlotLinesOptions): Unit =
+    a.asInstanceOf[js.Dynamic].addPlotLine(options)
+    ()
+
+  def removePlotLine(id: String): Unit =
+    a.asInstanceOf[js.Dynamic].removePlotLine(id)
+    ()
 
 val CommonOptions: ChartOptions =
   ChartOptions()

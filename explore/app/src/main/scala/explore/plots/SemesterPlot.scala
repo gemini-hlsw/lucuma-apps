@@ -268,7 +268,7 @@ object SemesterPlot:
                             )
                         .setSeries:
                           List(
-                            SeriesLineOptions((), ())
+                            SeriesLineOptions()
                               .setName("Visibility")
                               .setYAxis(0)
                               .setAnimation(false)
