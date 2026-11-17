@@ -114,7 +114,7 @@ object ScorpioLongSlitConfigPanel
           )
 
         React.Fragment(
-          <.div(ExploreStyles.Igrins2UpperGrid)(
+          <.div(ExploreStyles.ScorpioUpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               FormEnumDropdownView(
                 id = "scorpio-fpu".refined,
@@ -126,8 +126,13 @@ object ScorpioLongSlitConfigPanel
             <.div(ExploreStyles.ScorpioChannelGrid)(
               <.label(
                 LucumaPrimeStyles.FormFieldLabel,
-                ExploreStyles.ScorpioChannelTitle,
-                "Exposure Times"
+                ExploreStyles.ExposureTimeModeTime,
+                "Exp. Time"
+              ),
+              <.label(
+                LucumaPrimeStyles.FormFieldLabel,
+                ExploreStyles.ExposureTimeModeCount,
+                "Number of Exp."
               ),
               channelRow("g", grView),
               channelRow("r", grView),
@@ -147,7 +152,7 @@ object ScorpioLongSlitConfigPanel
               )
             )
           ),
-          <.div(ExploreStyles.Igrins2LowerGrid)(
+          <.div(ExploreStyles.ScorpioLowerGrid)(
             AdvancedConfigButtons(
               editState = editState,
               isCustomized = props.observingMode.get.isCustomized,

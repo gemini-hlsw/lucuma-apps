@@ -2311,7 +2311,8 @@ svg.fa-check.explore-success-icon {
     border-bottom: 1px solid var(--site-border-color);
   }
 
-  .explore-igrins2-upper-grid {
+  .explore-igrins2-upper-grid,
+  .explore-scorpio-upper-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -2367,10 +2368,6 @@ svg.fa-check.explore-success-icon {
       grid-row: 4 / span 2;
     }
 
-    .explore-scorpio-channel-title {
-      grid-column: 1 / -1;
-    }
-
     .explore-scorpio-channel-label {
       grid-column: channel;
     }
@@ -2390,6 +2387,7 @@ svg.fa-check.explore-success-icon {
   .explore-flamingos2-upper-grid,
   .explore-gnirs-upper-grid,
   .explore-igrins2-upper-grid,
+  .explore-scorpio-upper-grid,
   .explore-ghost-upper-grid,
   .explore-visitor-upper-grid {
     &:has(+ :empty) {
@@ -2402,6 +2400,7 @@ svg.fa-check.explore-success-icon {
   .explore-flamingos2-lower-grid,
   .explore-gnirs-lower-grid,
   .explore-igrins2-lower-grid,
+  .explore-scorpio-lower-grid,
   .explore-ghost-lower-grid,
   .explore-visitor-lower-grid {
     &:empty {
@@ -2409,7 +2408,8 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  .explore-igrins2-lower-grid {
+  .explore-igrins2-lower-grid,
+  .explore-scorpio-lower-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -2747,7 +2747,8 @@ svg.fa-check.explore-success-icon {
         / auto;
     }
 
-    .explore-igrins2-upper-grid {
+    .explore-igrins2-upper-grid,
+    .explore-scorpio-upper-grid {
       grid-template:
         'col1' auto
         'col2' auto
