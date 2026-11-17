@@ -44,12 +44,12 @@ import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.syntax.isDaytimeRole
 import lucuma.ui.components.ThemeIcons
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
-import lucuma.schemas.model.syntax.isDaytimeRole
 import lucuma.ui.utils.*
 
 import scala.collection.immutable.SortedSet
