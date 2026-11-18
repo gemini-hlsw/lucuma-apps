@@ -39,6 +39,12 @@ trait OdbObservationApi[F[_]]:
   def updateObservations(input:        UpdateObservationsInput): F[Unit]
   def updateObservations(obsIds:       List[Observation.Id], input: ObservationPropertiesInput): F[Unit]
   def updateTelluricObservation(obsId: Observation.Id, input:       UpdateObservationsInput): F[Unit]
+
+  /**
+   * Replaces the daytime calibration mode. An ODB rejection of the input, such as an unusable mask,
+   * is raised without resetting the program cache.
+   */
+  def updateDaytimeCalibration(obsId: Observation.Id, input: DaytimeCalibrationInput): F[Unit]
   def updateObservationConstraintSet(
     obsIds:      List[Observation.Id],
     constraints: ConstraintSet

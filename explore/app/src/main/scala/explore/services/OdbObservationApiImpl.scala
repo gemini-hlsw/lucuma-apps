@@ -38,6 +38,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.odb.data.OdbError
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
@@ -82,6 +83,18 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         WHERE = obsIds.toWhereObservation.assign,
         SET = input
       )
+
+  def updateDaytimeCalibration(obsId: Observation.Id, input: DaytimeCalibrationInput): F[Unit] =
+    UpdateObservationMutation[F]
+      .execute:
+        UpdateObservationsInput(
+          WHERE = List(obsId).toWhereObservation.assign,
+          SET = ObservationPropertiesInput(observingMode =
+            ObservingModeInput.DaytimeCalibration(input).assign
+          )
+        )
+      .processErrorsKeepingCache { case _: OdbError.InvalidArgument => }
+      .void
 
   def updateObservationConstraintSet(
     obsIds:      List[Observation.Id],

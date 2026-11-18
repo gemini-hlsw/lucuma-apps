@@ -35,6 +35,7 @@ case class RootModel(
   scienceModes:         Pot[ScienceModes] = pending,
   cfps:                 Pot[List[CallForProposal]] = pending,
   programs:             Pot[ProgramInfoList] = pending,
+  mosMasks:             MosMasks = Map.empty,
   undoStacks:           UndoStacks[IO, ProgramSummaries] = UndoStacks.empty[IO, ProgramSummaries],
   otherUndoStacks:      ModelUndoStacks[IO] = ModelUndoStacks[IO]()
 ) derives Eq:
@@ -49,6 +50,7 @@ object RootModel:
   val scienceModes         = Focus[RootModel](_.scienceModes)
   val cfps                 = Focus[RootModel](_.cfps)
   val programs             = Focus[RootModel](_.programs)
+  val mosMasks             = Focus[RootModel](_.mosMasks)
   val undoStacks           = Focus[RootModel](_.undoStacks)
   val otherUndoStacks      = Focus[RootModel](_.otherUndoStacks)
 

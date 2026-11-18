@@ -533,7 +533,7 @@ extension (o: ObservingMode.GmosSouthLongSlit)
 extension (m: ObservingMode.GmosCustomMask)
   def toInput: GmosCustomMaskInput = GmosCustomMaskInput(
     attachmentId = m.attachmentId.orUnassign,
-    slitWidth = m.slitWidth
+    slitWidth = m.slitWidth.assign
   )
 
 extension (a: ObservingMode.GmosNorthMos.Acquisition)
@@ -816,7 +816,7 @@ extension (o: ObservingMode.Flamingos2LongSlit)
 extension (m: ObservingMode.Flamingos2CustomMask)
   def toInput: Flamingos2CustomMaskInput = Flamingos2CustomMaskInput(
     attachmentId = m.attachmentId.orUnassign,
-    slitWidth = m.slitWidth
+    slitWidth = m.slitWidth.assign
   )
 
 extension (a: ObservingMode.Flamingos2Mos.Acquisition)
@@ -1062,7 +1062,7 @@ extension (i: BasicConfiguration)
         GmosNorthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth.assign).assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.GmosSouthMos(
@@ -1075,7 +1075,7 @@ extension (i: BasicConfiguration)
         GmosSouthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth.assign).assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.GmosNorthIfu(
@@ -1137,7 +1137,7 @@ extension (i: BasicConfiguration)
         Flamingos2MosInput(
           disperser = disperser.assign,
           filter = filter.assign,
-          customMask = Flamingos2CustomMaskInput(slitWidth = slitWidth).assign
+          customMask = Flamingos2CustomMaskInput(slitWidth = slitWidth.assign).assign
         )
     // TODO: should we consider offset mode and saveSVCImages?
     case BasicConfiguration.Igrins2LongSlit                                                       =>
@@ -1243,15 +1243,15 @@ extension (s: DaytimeCalibrationSet)
       gcal = s.gcal.map(_.toCalibrationSetGcalInput).orUnassign,
       gmosNorth = DaytimeCalibrationSetup.gmosNorth
         .getOption(s.setup)
-        .map(_.config.toInput)
+        .map(c => c.config.toInput.copy(fpu = c.config.fpu.map(_.toDaytimeInput).orUnassign))
         .orUnassign,
       gmosSouth = DaytimeCalibrationSetup.gmosSouth
         .getOption(s.setup)
-        .map(_.config.toInput)
+        .map(c => c.config.toInput.copy(fpu = c.config.fpu.map(_.toDaytimeInput).orUnassign))
         .orUnassign,
       flamingos2 = DaytimeCalibrationSetup.flamingos2
         .getOption(s.setup)
-        .map(_.config.toInput)
+        .map(c => c.config.toInput.copy(fpu = c.config.fpu.toDaytimeInput))
         .orUnassign,
       igrins2 = DaytimeCalibrationSetup.igrins2
         .getOption(s.setup)
@@ -1367,27 +1367,52 @@ extension (m: MaskDefinition)
       case ToBeDefined => Input.unassign
       case Defined(id) => id.assign
 
+// A daytime calibration set leaves the slit width out while its mask exists: the ODB takes it
+// from the mask. A deleted mask has no design to take it from, so the stored width is sent.
+private def daytimeSlitWidth[W](mask: MaskDefinition, width: W): Input[W] =
+  mask match
+    case ToBeDefined => width.assign
+    case Defined(_)  => Input.ignore
+
 extension (g: GmosFpuMask.Custom)
   def toInput: GmosCustomMaskInput =
     GmosCustomMaskInput(
       attachmentId = g.mask.toInput,
-      slitWidth = g.slitWidth
+      slitWidth = g.slitWidth.assign
     )
+
+  def toDaytimeInput: GmosCustomMaskInput =
+    g.toInput.copy(slitWidth = daytimeSlitWidth(g.mask, g.slitWidth))
 
 extension (f2: Flamingos2FpuMask.Custom)
   def toInput: Flamingos2CustomMaskInput =
     Flamingos2CustomMaskInput(
       attachmentId = f2.mask.toInput,
-      slitWidth = f2.slitWidth
+      slitWidth = f2.slitWidth.assign
     )
+
+  def toDaytimeInput: Flamingos2CustomMaskInput =
+    f2.toInput.copy(slitWidth = daytimeSlitWidth(f2.mask, f2.slitWidth))
 
 extension (g: GmosFpuMask[GmosSouthFpu])
   def toInput: GmosSouthFpuInput =
     g.fold(b => GmosSouthFpuInput.Builtin(b.value), c => GmosSouthFpuInput.CustomMask(c.toInput))
 
+  def toDaytimeInput: GmosSouthFpuInput =
+    g.fold(
+      b => GmosSouthFpuInput.Builtin(b.value),
+      c => GmosSouthFpuInput.CustomMask(c.toDaytimeInput)
+    )
+
 extension (g: GmosFpuMask[GmosNorthFpu])
   def toInput: GmosNorthFpuInput =
     g.fold(b => GmosNorthFpuInput.Builtin(b.value), c => GmosNorthFpuInput.CustomMask(c.toInput))
+
+  def toDaytimeInput: GmosNorthFpuInput =
+    g.fold(
+      b => GmosNorthFpuInput.Builtin(b.value),
+      c => GmosNorthFpuInput.CustomMask(c.toDaytimeInput)
+    )
 
 extension (mask: Flamingos2FpuMask)
   def toInput: Input[Flamingos2FpuMaskInput] =
@@ -1397,6 +1422,9 @@ extension (mask: Flamingos2FpuMask)
         customMask = mask.custom.map(_.toInput).orUnassign,
         builtin = mask.builtinFpu.orUnassign
       ).assign
+
+  def toDaytimeInput: Input[Flamingos2FpuMaskInput] =
+    mask.toInput.map(_.copy(customMask = mask.custom.map(_.toDaytimeInput).orUnassign))
 
 extension (ns: GmosNodAndShuffle)
   def toInput: GmosNodAndShuffleInput = GmosNodAndShuffleInput(

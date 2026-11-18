@@ -5,7 +5,9 @@ package explore.services
 
 import cats.effect.Resource
 import explore.model.ConfigurationRequest
+import explore.model.MosMask
 import explore.modes.ScienceModes
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Program
 
 trait OdbConfigApi[F[_]]:
@@ -16,3 +18,4 @@ trait OdbConfigApi[F[_]]:
   def programConfigurationRequestsDeltaSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ConfigurationRequest]]
+  def mosMasks(instrument: Instrument): F[List[MosMask]]

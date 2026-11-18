@@ -99,7 +99,7 @@ object Flamingos2MosConfigPanel
             ObservingMode.Flamingos2CustomMask.slitWidth,
             Flamingos2CustomMaskInput.slitWidth.modify
           )
-          .view(identity)
+          .view(_.assign)
 
         val attachmentIdView: View[Option[Attachment.Id]] = customMask
           .zoom(
