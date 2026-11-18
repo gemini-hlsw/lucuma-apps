@@ -18,7 +18,8 @@ import monocle.Lens
 final case class ObservationQa(
   computed:      Option[ObservationQaState],
   stateOverride: Option[ObservationQaState]
-) derives Eq, Decoder:
+) derives Eq,
+      Decoder:
   val state: Option[ObservationQaState] = stateOverride.orElse(computed)
 
 object ObservationQa:
