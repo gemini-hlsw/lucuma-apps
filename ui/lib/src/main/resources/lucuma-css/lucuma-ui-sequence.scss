@@ -61,6 +61,11 @@
     text-align: center;
   }
 
+  // The border above beats the layered PrimeReact .p-invalid one, hiding rejected values.
+  .lucuma-sequence-input input.p-invalid {
+    border-color: var(--red-500);
+  }
+
   .lucuma-sequence-dropdown {
     width: 100%;
 
