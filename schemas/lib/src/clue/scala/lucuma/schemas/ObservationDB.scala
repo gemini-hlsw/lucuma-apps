@@ -191,6 +191,7 @@ trait ObservationDB {
     type ObsActiveStatus                     = enums.ObsActiveStatus
     type ObservationWorkflowState            = enums.ObservationWorkflowState
     type ObservationPriority                 = enums.ObservationPriority
+    type ObservationQaState                  = enums.ObservationQaState
     type ObsStatus                           = enums.ObsStatus
     type ObserveClass                        = enums.ObserveClass
     type ObservationValidationCode           = enums.ObservationValidationCode

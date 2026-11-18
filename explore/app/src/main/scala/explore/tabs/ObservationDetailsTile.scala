@@ -11,8 +11,10 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.Help
 import explore.model.ObsTabTileIds
 import explore.model.Observation
+import explore.model.ObservationQa
 import explore.model.VisitTimeCharge
 import explore.model.display.given
 import explore.model.formats.*
@@ -20,6 +22,7 @@ import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationPriority
+import lucuma.core.enums.ObservationQaState
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
@@ -49,7 +52,7 @@ final case class ObservationDetailsTile(
   timeCharges:           Option[List[VisitTimeCharge]],
   refreshingCharges:     Boolean,
   refreshTimeCharges:    Callback,
-  canCorrectTime:        Boolean,
+  isStaffOrAdmin:        Boolean,
   readonly:              Boolean
 ) extends Tile[ObservationDetailsTile](
       ObsTabTileIds.DetailsId.id,
@@ -161,6 +164,38 @@ object ObservationDetailsTile
             clazz = ExploreStyles.ObservationDetailsSelect
           )
 
+        // Only staff may override the QA state. Completed observations are readonly, but that is
+        // when an override is most likely, so `readonly` does not apply here.
+        val qaOverrideView: View[Option[ObservationQaState]] =
+          props.observation
+            .zoom(Observation.qa.andThen(ObservationQa.stateOverride))
+            .undoableView(Iso.id[Option[ObservationQaState]].asLens)
+            .withOnMod: qaOverride =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(qaStateOverride = qaOverride.orUnassign)
+                )
+                .runAsync
+
+        val qaHelpId: Help.Id = "observation/qa-state.md".refined
+
+        // Shown only once there is a QA state: there is none until the datasets are assessed.
+        val qaStateRow: Option[VdomNode] =
+          val qa = props.observation.get.qa
+          qa.state.map: state =>
+            if props.isStaffOrAdmin then
+              OverridableEnumSelect(
+                id = NonEmptyString.unsafeFrom(s"qa-state-${props.observation.get.id}"),
+                overrideView = qaOverrideView,
+                defaultValue = qa.computed,
+                noDefaultText = "Not assessed",
+                label = "QA State".some,
+                helpId = qaHelpId.some,
+                clazz = ExploreStyles.ObservationDetailsSelect
+              )
+            else FormInfo(state.shortName, React.Fragment("QA State", HelpIcon(qaHelpId)))
+
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
             val setupCount: Int = d.setupCount.value
@@ -230,17 +265,18 @@ object ObservationDetailsTile
               FormInfo(props.observation.get.referenceWithId, "Observation"),
               scienceBandSelector.when(props.showScienceBand),
               prioritySelector,
-              tooActivationSelector.unless(props.observation.get.isCalibration)
+              tooActivationSelector.unless(props.observation.get.isCalibration),
+              qaStateRow
             ),
             estimatedDuration,
             TimeChargesTable(props.userId,
                              props.timeCharges,
                              props.refreshingCharges,
                              props.refreshTimeCharges,
-                             Option.when(props.canCorrectTime)(v => selectedVisit.set(v.some))
+                             Option.when(props.isStaffOrAdmin)(v => selectedVisit.set(v.some))
             ),
             props.timeCharges
-              .filter(_ => props.canCorrectTime)
+              .filter(_ => props.isStaffOrAdmin)
               .filter(_.exists(_.nightRow.isDefined))
               .map(TimeCorrectionsForm(_, selectedVisit, props.refreshTimeCharges))
           )
