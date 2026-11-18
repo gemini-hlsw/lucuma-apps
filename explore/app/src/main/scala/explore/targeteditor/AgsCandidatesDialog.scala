@@ -10,6 +10,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import explore.model.isAmbiguousWith
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -65,9 +66,7 @@ object AgsCandidatesDialog:
 
         // An id-less selection with several science targets points at none of them.
         val current: Option[GuideStarId] =
-          props.current.filterNot: selection =>
-            selection.isObservationTarget && selection.observationTargetId.isEmpty &&
-              props.scienceTargetNames.sizeIs > 1
+          props.current.filterNot(_.isAmbiguousWith(props.scienceTargetNames.size))
 
         // An automatic star is the best one, at the top, so it isn't highlighted: that would offer
         // keeping it as soon as the dialog opens

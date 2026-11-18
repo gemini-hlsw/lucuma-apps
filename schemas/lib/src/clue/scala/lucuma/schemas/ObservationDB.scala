@@ -8,6 +8,7 @@ import lucuma.core.enums
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.math.dimensional.*
 import lucuma.core.model.*
+import lucuma.core.model.group.GroupConstraintWaiver
 import lucuma.core.model.sequence.*
 import lucuma.core.util
 import lucuma.core.util.Of
@@ -29,6 +30,7 @@ trait ObservationDB {
     type ConfigurationRequestId    = ConfigurationRequest.Id
     type DatasetId                 = Dataset.Id
     type ExecutionEventId          = ExecutionEvent.Id
+    type GroupConstraintWaiverId   = GroupConstraintWaiver.Id
     type GroupId                   = Group.Id
     type IdempotencyKey            = util.IdempotencyKey
     type ObservationId             = Observation.Id

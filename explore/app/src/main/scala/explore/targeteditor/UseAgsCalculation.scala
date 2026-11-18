@@ -34,17 +34,18 @@ import workers.WorkerClient
 import java.time.Instant
 
 case class AgsCalcProps(
-  focusedId:     Target.Id,
-  obsTime:       Instant,
-  constraints:   ConstraintSet,
-  agsWavelength: AGSWavelength,
-  observingMode: Option[BasicConfiguration],
-  obsModeType:   ObservingModeType,
-  acqOffsets:    Option[AcquisitionOffsets],
-  sciOffsets:    Option[ScienceOffsets],
-  candidates:    List[GuideStarCandidate],
-  guideProbe:    Option[GuideProbe],
-  altairMode:    Option[AltairMode]
+  focusedId:          Target.Id,
+  obsTime:            Instant,
+  constraints:        ConstraintSet,
+  agsWavelength:      AGSWavelength,
+  observingMode:      Option[BasicConfiguration],
+  obsModeType:        ObservingModeType,
+  acqOffsets:         Option[AcquisitionOffsets],
+  sciOffsets:         Option[ScienceOffsets],
+  candidates:         List[GuideStarCandidate],
+  observationTargets: Int,
+  guideProbe:         Option[GuideProbe],
+  altairMode:         Option[AltairMode]
 )
 
 object AgsCalcProps:
@@ -64,6 +65,7 @@ object AgsCalcProps:
      p.acqOffsets,
      p.sciOffsets,
      p.candidates.length,
+     p.observationTargets,
      p.guideProbe,
      p.altairMode
     )
@@ -154,12 +156,12 @@ object UseAgsCalculation:
                                         guideStarSelection
                                           .mod:
                                             case AgsSelection(_)                    =>
-                                              r.fold(Default)(_.usable.select(none, props.candidates))
+                                              r.fold(Default)(_.usable.select(none, props.observationTargets))
                                             case rem @ RemoteGSSelection(selection) =>
-                                              r.fold(rem)(_.usable.select(selection.some, props.candidates))
+                                              r.fold(rem)(_.usable.select(selection.some, props.observationTargets))
                                             // Re-resolved, the pick may have moved or become unusable
                                             case a @ AgsOverride(selection, _, _)   =>
-                                              r.fold(a)(_.usable.pick(selection, props.candidates))
+                                              r.fold(a)(_.usable.pick(selection, props.observationTargets))
                                     yield ()).toAsync
 
                                   val query = agsState.map: state =>

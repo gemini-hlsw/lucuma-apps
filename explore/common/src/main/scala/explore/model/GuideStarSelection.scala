@@ -7,7 +7,6 @@ import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuideStarId
 import lucuma.core.math.Angle
 
@@ -58,15 +57,16 @@ object GuideStarSelection:
 
 // The state of a guide star the user picked by hand, as reported in the AGS overlay.
 enum ManualGuideStar derives Eq:
-  case Selected, Unusable, NotFound, LookupFailed
+  case Selected, Unusable, Ambiguous, NotFound, LookupFailed
 
 extension (r: List[AgsAnalysis.Usable])
   // The star the ODB selects when it selects one, else the best candidate.
   def select(
-    selection:  Option[GuideStarId],
-    candidates: List[GuideStarCandidate]
+    selection:          Option[GuideStarId],
+    observationTargets: Int
   ): GuideStarSelection =
-    selection.fold(GuideStarSelection.AgsSelection(r.headOption.tupleLeft(0)))(pick(_, candidates))
+    selection.fold(GuideStarSelection.AgsSelection(r.headOption.tupleLeft(0))):
+      pick(_, observationTargets)
 
   def pick(i: Int): GuideStarSelection =
     r.lift(i)
@@ -75,17 +75,17 @@ extension (r: List[AgsAnalysis.Usable])
       )
 
   // The first result, in ranking order, the selection picks; kept as remote when there is none or
-  // the selection is ambiguous among the candidates AGS ran on.
-  def pick(selection: GuideStarId, candidates: List[GuideStarCandidate]): GuideStarSelection =
+  // the selection is ambiguous for the number of targets the observation has.
+  def pick(selection: GuideStarId, observationTargets: Int): GuideStarSelection =
     r.zipWithIndex
       .collectFirst { case (a, i) if selection.selects(a.target.id) => i }
-      .filterNot(_ => selection.isAmbiguousAmong(candidates))
+      .filterNot(_ => selection.isAmbiguousWith(observationTargets))
       .fold[GuideStarSelection](GuideStarSelection.RemoteGSSelection(selection))(i =>
         GuideStarSelection.AgsOverride(selection, i, r(i))
       )
 
 extension (selection: GuideStarId)
-  // As in the ODB, the id-less selection picks nothing when there are several observation targets.
-  def isAmbiguousAmong(candidates: List[GuideStarCandidate]): Boolean =
-    selection.isObservationTarget && selection.observationTargetId.isEmpty &&
-      candidates.count(_.id.isObservationTarget) > 1
+  // As in the ODB, the id-less selection picks nothing when the observation has several targets,
+  // whether or not each of them has a position.
+  def isAmbiguousWith(observationTargets: Int): Boolean =
+    selection.isObservationTarget && selection.observationTargetId.isEmpty && observationTargets > 1

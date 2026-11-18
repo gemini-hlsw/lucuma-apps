@@ -90,6 +90,9 @@ class ObservationGuideStarsSuite extends FunSuite:
       none
     )
 
+  private val Calibration: TargetWithId =
+    Sidereal.copy(id = targetId(5L), disposition = TargetDisposition.Calibration)
+
   private def targets(ts: TargetWithId*): ObservationTargets =
     ObservationTargets.fromTargets(ts.toList).get
 
@@ -122,7 +125,14 @@ class ObservationGuideStarsSuite extends FunSuite:
     assertEquals(ObservationGuideStars.candidates(targets(Nonsidereal), NoPositions), Nil)
     assertEquals(ObservationGuideStars.candidates(targets(Opportunity), NonsiderealAt), Nil)
 
-  test("only science targets are candidates"):
+  test("a calibration target is a candidate, as in the ODB"):
+    assertEquals(
+      ObservationGuideStars.candidates(targets(Calibration), NoPositions).map(_.id),
+      List(GuideStarId.ObservationTarget(Calibration.id.some))
+    )
+    assertEquals(ObservationGuideStars.count(targets(Calibration, Sidereal, BlindOffset).some), 2)
+
+  test("the blind offset target is not a candidate"):
     val candidates: List[GuideStarCandidate] =
       ObservationGuideStars.candidates(targets(BlindOffset, Sidereal, Nonsidereal), NonsiderealAt)
     assertEquals(

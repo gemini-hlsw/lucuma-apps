@@ -39,6 +39,7 @@ case class AgsOverlay(
   anglesAvailable:     Boolean,
   targetNotObservable: Boolean,
   manualGuideStar:     Option[ManualGuideStar],
+  catalogFailed:       Boolean,
   remoteSelection:     Option[GuideStarId],
   scienceTargetNames:  Map[Target.Id, NonEmptyString],
   readonly:            Boolean,
@@ -107,6 +108,8 @@ object AgsOverlay:
             (EmptyVdom, Constants.ManualGSSelected, Button.Severity.Primary)
           case ManualGuideStar.Unusable     =>
             (manualErrorIcon, Constants.ManualGSUnusable, Button.Severity.Danger)
+          case ManualGuideStar.Ambiguous    =>
+            (manualErrorIcon, Constants.ManualGSAmbiguous, Button.Severity.Danger)
           case ManualGuideStar.NotFound     =>
             (manualErrorIcon, Constants.ManualGSNotFound, Button.Severity.Danger)
           case ManualGuideStar.LookupFailed =>
@@ -149,8 +152,8 @@ object AgsOverlay:
               currentProblem = manualInfo.filter(_ => props.manualProblem).map(_._2),
               readonly = props.readonly,
               scienceTargetNames = props.scienceTargetNames,
-              // A candidate's own id is never ambiguous, so no candidates are needed.
-              onSelect = id => props.selectedGS.set(props.agsResults.pick(id, Nil))
+              // A candidate's own id is never ambiguous, so the number of targets doesn't matter.
+              onSelect = id => props.selectedGS.set(props.agsResults.pick(id, 0))
             )
           )
         )
@@ -174,7 +177,17 @@ object AgsOverlay:
             ): VdomNode
           .getOrElse(EmptyVdom)
 
-      props.selectedGS.get.analysis
+      // A guide star may still be found among the observation targets, so this only warns
+      val catalogWarningRow: VdomNode =
+        if props.catalogFailed then
+          <.div(
+            ExploreStyles.AgsDescription |+| ExploreStyles.AgsManual,
+            Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
+            <.span(Constants.CatalogSearchFailed)
+          )
+        else EmptyVdom
+
+      val description: VdomNode = props.selectedGS.get.analysis
         .map { case analysis =>
           ReactFragment(
             nameRow(analysis.target.id),
@@ -236,3 +249,5 @@ object AgsOverlay:
             }
           )
         }
+
+      ReactFragment(description, catalogWarningRow)

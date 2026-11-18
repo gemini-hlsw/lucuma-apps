@@ -353,32 +353,35 @@ object ObsTabTiles:
                                   // stored selection, or one set elsewhere, never writes it back.
                                   // Picking the current automatic star does store it.
                                   // The selection is never cleared here, see `revertGuideStar`.
-                                  // If the backend refuses it, the previous selection is restored.
+                                  // If the backend refuses it, the previous selection is restored,
+                                  // unless another star was picked in the meantime.
                                   gss.withOnMod {
-                                    case AgsOverride(selection = picked)
-                                        if !props.selectedGuideStar.get.contains(picked) &&
-                                          !props.selectedGuideStar.get.contains(
-                                            ObservationGuideStars
-                                              .selectionToStore(picked, props.asterismAsNel)
-                                          ) =>
+                                    case AgsOverride(selection = picked) =>
                                       val previous: Option[GuideStarId] = props.selectedGuideStar.get
                                       val stored: GuideStarId           =
                                         ObservationGuideStars.selectionToStore(picked,
                                                                                props.asterismAsNel
                                         )
-                                      props.selectedGuideStar.set(stored.some) *>
+                                      val restore: Callback             =
+                                        props.selectedGuideStar.mod: current =>
+                                          if current.contains(stored) then previous else current
+                                        >>
+                                          gss.mod:
+                                            case AgsOverride(selection = current)
+                                                if current === picked =>
+                                              previous.fold(GuideStarSelection.Default)(
+                                                RemoteGSSelection.apply
+                                              )
+                                            case other => other
+                                      (props.selectedGuideStar.set(stored.some) *>
                                         odbApi
                                           .setGuideTarget(props.obsId, stored.some)
                                           .handleErrorWith: t =>
                                             ctx.logger.error(t)("Error selecting the guide star") >>
-                                              (props.selectedGuideStar.set(previous) >>
-                                                gss.set(
-                                                  previous.fold(GuideStarSelection.Default)(
-                                                    RemoteGSSelection.apply
-                                                  )
-                                                )).toAsync
-                                          .runAsyncAndForget
-                                    case _ =>
+                                              restore.toAsync
+                                          .runAsyncAndForget)
+                                        .unless_(previous.exists(s => s === picked || s === stored))
+                                    case _                               =>
                                       Callback.empty
                                   }
         // The only way the stored selection is cleared, at the user's request. Local state changes

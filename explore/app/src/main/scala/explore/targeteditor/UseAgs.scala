@@ -34,11 +34,13 @@ import scala.concurrent.duration.*
 /**
  * What AGS produced for an observation: the catalog candidates around the base, the analysis of
  * those candidates at the angles to test and, if the guide star was picked by hand, its state.
+ * `catalogFailed` says the catalog search failed and only the observation targets were analyzed.
  */
 case class AgsData(
   candidates:      Pot[Option[List[GuideStarCandidate]]],
   results:         AgsCalculationResults,
-  manualGuideStar: Option[ManualGuideStar] = none
+  manualGuideStar: Option[ManualGuideStar] = none,
+  catalogFailed:   Boolean = false
 )
 
 object AgsData:
@@ -49,7 +51,8 @@ object AgsData:
 
   given Reusability[AgsData] =
     // We don't want to check every candidate, the length is enough to know if the catalog changed.
-    Reusability.by(d => (d.candidates.map(_.map(_.length)), d.results, d.manualGuideStar))
+    Reusability.by: d =>
+      (d.candidates.map(_.map(_.length)), d.results, d.manualGuideStar, d.catalogFailed)
 
 object UseAgs:
   // Position-angle changes debouncing time
@@ -113,11 +116,14 @@ object UseAgs:
                             id =>
                               positions.coords.toOption.flatMap(_.toOption).flatMap(_.forTarget(id))
                           )
+      obsTargetCount    = ObservationGuideStars.count(obsTargets)
       // A failed catalog search still leaves the observation targets to guide on.
+      catalogFailed     = obsTargetCands.nonEmpty &&
+                            candidates.value.value.fold(false, _ => true, _ => false)
       catalogPot        = candidates.value.value.fold(
                             Pot.pending,
                             t =>
-                              if obsTargetCands.nonEmpty then Pot(List.empty[GuideStarCandidate].some)
+                              if catalogFailed then Pot(List.empty[GuideStarCandidate].some)
                               else Pot.error(t),
                             Pot(_)
                           )
@@ -187,6 +193,7 @@ object UseAgs:
                                 acqOffsets,
                                 sciOffsets,
                                 cands,
+                                obsTargetCount,
                                 guideProbe,
                                 altairMode
                               ).some
@@ -222,7 +229,7 @@ object UseAgs:
       _                <- useEffectWithDeps((obsConf.remoteGSSelection, results.constrained)):
                             (selection, resultsPot) =>
                               resultsPot.toOption.foldMap: results =>
-                                guideStarSelection.set(results.select(selection, obsTargetCands))
+                                guideStarSelection.set(results.select(selection, obsTargetCount))
       // Reported only once AGS and the lookup have settled, so a pick is not flagged while it is
       // being checked. A star that was looked up but not found can't be among the AGS results, so
       // that doesn't wait for them: with no candidates at all, AGS doesn't run.
@@ -235,8 +242,10 @@ object UseAgs:
               case Some(Right(None)) => ManualGuideStar.NotFound.some
               case _                 =>
                 results.constrained.toOption.map: usable =>
-                  if usable.exists(a => selection.selects(a.target.id)) &&
-                    !selection.isAmbiguousAmong(obsTargetCands)
+                  // As in the ODB, only ambiguous when there are observation targets to guide on.
+                  if obsTargetCands.nonEmpty && selection.isAmbiguousWith(obsTargetCount)
+                  then ManualGuideStar.Ambiguous
+                  else if usable.exists(a => selection.selects(a.target.id))
                   then ManualGuideStar.Selected
                   else ManualGuideStar.Unusable
-    yield AgsData(catalogPot, results, manualGuideStar)
+    yield AgsData(catalogPot, results, manualGuideStar, catalogFailed)

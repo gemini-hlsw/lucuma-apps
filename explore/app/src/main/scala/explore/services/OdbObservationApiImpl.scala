@@ -401,14 +401,12 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     val input = SetGuideTargetInput(
       observationId = obsId.assign,
       guideTarget = selection
-        .map:
-          case GuideStarId.GaiaDr3(sourceId)           =>
-            GuideTargetSelectionInput.CatalogName:
-              GuideStarName.gaiaSourceId.reverseGet(sourceId).toNonEmptyString
-          case GuideStarId.ObservationTarget(targetId) =>
+        .map: id =>
+          id.catalogName.fold(
             GuideTargetSelectionInput.ObservationTarget(
-              ObservationGuideTargetSelectionInput(targetId = targetId.orIgnore)
+              ObservationGuideTargetSelectionInput(targetId = id.observationTargetId.orIgnore)
             )
+          )(name => GuideTargetSelectionInput.CatalogName(name.toNonEmptyString))
         .orUnassign
     )
     SetGuideTarget[F].execute(input).processErrors.void

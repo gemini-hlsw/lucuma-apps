@@ -8,7 +8,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuideStarId
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Coordinates
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
@@ -19,8 +18,13 @@ import lucuma.schemas.model.TargetWithId
  */
 object ObservationGuideStars:
 
+  // As in the ODB, every target of the asterism: science and calibration, not the blind offset.
   private def scienceTargets(targets: ObservationTargets): List[TargetWithId] =
-    targets.allTargets.filter(_.disposition === TargetDisposition.Science)
+    targets.science
+
+  /** How many targets the observation has, to tell whether an id-less selection is ambiguous. */
+  def count(targets: Option[ObservationTargets]): Int =
+    targets.foldMap(scienceTargets(_).length)
 
   /** The science targets' names, to label them as guide stars. */
   def names(targets: ObservationTargets): Map[Target.Id, NonEmptyString] =
@@ -58,7 +62,6 @@ object ObservationGuideStars:
    */
   def selectionToStore(picked: GuideStarId, targets: Option[ObservationTargets]): GuideStarId =
     picked match
-      case GuideStarId.ObservationTarget(Some(_))
-          if targets.exists(ts => scienceTargets(ts).length === 1) =>
+      case GuideStarId.ObservationTarget(Some(_)) if count(targets) === 1 =>
         GuideStarId.ObservationTarget(none)
-      case other => other
+      case other                                                          => other

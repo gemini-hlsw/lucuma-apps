@@ -42,36 +42,33 @@ class GuideStarSelectionSuite extends FunSuite:
   private val Results: List[AgsAnalysis.Usable] =
     List(Gaia1, Target2, Target1, Gaia2).map(usable)
 
-  private val Candidates: List[GuideStarCandidate] = Results.map(_.target)
-
   // An observation with a single science target.
-  private val SingleTargetResults: List[AgsAnalysis.Usable]    =
+  private val SingleTargetResults: List[AgsAnalysis.Usable] =
     List(Gaia1, Target1, Gaia2).map(usable)
-  private val SingleTargetCandidates: List[GuideStarCandidate] = SingleTargetResults.map(_.target)
 
   test("no selection takes the best candidate"):
-    assertEquals(Results.select(none, Candidates), AgsSelection((0, Results.head).some))
+    assertEquals(Results.select(none, 2), AgsSelection((0, Results.head).some))
 
   test("a catalog selection picks the same star"):
-    assertEquals(Results.select(Gaia2.some, Candidates), AgsOverride(Gaia2, 3, Results(3)))
+    assertEquals(Results.select(Gaia2.some, 2), AgsOverride(Gaia2, 3, Results(3)))
 
   test("an observation target selection with an id picks that target"):
-    assertEquals(Results.pick(Target1, Candidates), AgsOverride(Target1, 2, Results(2)))
+    assertEquals(Results.pick(Target1, 2), AgsOverride(Target1, 2, Results(2)))
 
   test("the id-less observation target selection picks the only observation target"):
     val selection: GuideStarId     = GuideStarId.ObservationTarget(none)
-    val picked: GuideStarSelection = SingleTargetResults.pick(selection, SingleTargetCandidates)
+    val picked: GuideStarSelection = SingleTargetResults.pick(selection, 1)
     assertEquals(picked, AgsOverride(selection, 1, SingleTargetResults(1)))
     assertEquals(picked.selectedId, selection.some)
     assertEquals(picked.resetKeepingSelection, RemoteGSSelection(selection))
 
   test("a selection that is not found is kept as remote"):
     val missing: GuideStarId = GuideStarId.ObservationTarget(targetId(9L).some)
-    assertEquals(Results.pick(missing, Candidates), RemoteGSSelection(missing))
-    assertEquals(Results.pick(GuideStarId.GaiaDr3(9L), Candidates),
+    assertEquals(Results.pick(missing, 2), RemoteGSSelection(missing))
+    assertEquals(Results.pick(GuideStarId.GaiaDr3(9L), 2),
                  RemoteGSSelection(GuideStarId.GaiaDr3(9L))
     )
-    assertEquals(Nil.pick(GuideStarId.ObservationTarget(none), Nil),
+    assertEquals(Nil.pick(GuideStarId.ObservationTarget(none), 0),
                  RemoteGSSelection(GuideStarId.ObservationTarget(none))
     )
 
@@ -82,12 +79,12 @@ class GuideStarSelectionSuite extends FunSuite:
 
   test("the id-less selection is ambiguous with several observation targets, as in the ODB"):
     val selection: GuideStarId = GuideStarId.ObservationTarget(none)
-    assert(selection.isAmbiguousAmong(Candidates))
-    assert(!selection.isAmbiguousAmong(SingleTargetCandidates))
-    assert(!Target1.isAmbiguousAmong(Candidates))
-    assert(!Gaia1.isAmbiguousAmong(Candidates))
-    assertEquals(Results.pick(selection, Candidates), RemoteGSSelection(selection))
+    assert(selection.isAmbiguousWith(2))
+    assert(!selection.isAmbiguousWith(1))
+    assert(!Target1.isAmbiguousWith(2))
+    assert(!Gaia1.isAmbiguousWith(2))
+    assertEquals(Results.pick(selection, 2), RemoteGSSelection(selection))
 
-  test("it is ambiguous even when only one of the observation targets is usable"):
+  test("it is ambiguous even when only one of the observation targets is a candidate"):
     val selection: GuideStarId = GuideStarId.ObservationTarget(none)
-    assertEquals(SingleTargetResults.pick(selection, Candidates), RemoteGSSelection(selection))
+    assertEquals(SingleTargetResults.pick(selection, 2), RemoteGSSelection(selection))
