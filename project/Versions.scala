@@ -51,7 +51,7 @@ object Versions {
   val otel4sSdk              = "0.19.5"
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.11"
-  val sbtBuildInfo           = "0.13.2"
+  val sbtBuildInfo           = "0.14.0"
   val sbtLucuma              = "0.16.9"
   val sbtRevolver            = "0.10.0"
   val scalaCollectionContrib = "0.4.0"
