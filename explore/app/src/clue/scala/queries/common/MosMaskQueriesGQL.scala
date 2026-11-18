@@ -21,10 +21,6 @@ object MosMaskQueriesGQL:
             mask {
               name
             }
-            program {
-              id
-              reference $ProgramReferenceSubquery
-            }
           }
           hasMore
         }

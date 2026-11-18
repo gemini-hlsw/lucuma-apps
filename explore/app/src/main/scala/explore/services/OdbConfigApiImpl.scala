@@ -84,7 +84,7 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
       _.id
     ).map:
       _.flatMap: m =>
-        m.mask.map(k => MosMask(m.id, k.name, m.program.id, m.program.reference))
+        m.mask.map(k => MosMask(m.id, k.name))
 
   def programConfigurationRequestsDeltaSubscription(
     programId: Program.Id

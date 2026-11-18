@@ -5,7 +5,6 @@ package explore.config
 
 import cats.effect.IO
 import cats.syntax.all.*
-import clue.data.syntax.*
 import crystal.Pot
 import crystal.react.View
 import crystal.react.syntax.all.*
@@ -32,7 +31,6 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.refined.*
-import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
@@ -229,7 +227,7 @@ object DaytimeCalibrationEditor:
 
         val masksStatus: VdomNode =
           masksView.get match
-            case Pot.Ready(l) => s"${l.length} masks"
+            case Pot.Ready(l) => s"${l.distinctBy(_.name).length} masks"
             case Pot.Pending  => "Loading masks..."
             case Pot.Error(e) => s"Masks could not be loaded: ${e.getMessage}"
 
