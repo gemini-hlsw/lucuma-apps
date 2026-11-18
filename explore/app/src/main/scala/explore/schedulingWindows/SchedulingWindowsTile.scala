@@ -30,6 +30,7 @@ import explore.model.syntax.all.*
 import explore.render.*
 import explore.render.given
 import explore.services.OdbObservationApi
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect.Dispatch
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -163,7 +164,9 @@ object SchedulingWindowsTile
                                         sws.take(cell.value) ++ sws.drop(cell.value + 1)
                                       )
                                     .orEmpty
-                            ).compact.small(Icons.Trash)
+                            ).withMods(testId := "explore-scheduling-window-delete")
+                              .compact
+                              .small(Icons.Trash)
                         )
         // rows
         rows       <- useMemo(props.timingWindows.get):
@@ -205,7 +208,7 @@ object SchedulingWindowsTile
               ) >> table.setRowSelection(
                 RowSelection(RowId(props.timingWindows.get.size.toString) -> true)
               )
-            ).tiny.compact
+            ).withMods(testId := "explore-scheduling-add-window").tiny.compact
 
         val title =
           <.div(
@@ -255,6 +258,7 @@ object SchedulingWindowsTile
                     ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable |+| ExploreStyles.TimingWindowsTable,
                   rowMod = rowTagMod: row =>
                     TagMod(
+                      testId := "explore-scheduling-window-row",
                       ExploreStyles.TableRowSelected.when_(row.getIsSelected()),
                       ^.onClick --> (table.toggleAllRowsSelected(false) >> row.toggleSelected())
                     ),
