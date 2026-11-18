@@ -227,7 +227,7 @@ object DaytimeCalibrationEditor:
 
         val masksStatus: VdomNode =
           masksView.get match
-            case Pot.Ready(l) => s"${l.distinctBy(_.name).length} masks"
+            case Pot.Ready(l) => s"${l.distinctBy(_.name).length} MOS masks"
             case Pot.Pending  => "Loading masks..."
             case Pot.Error(e) => s"Masks could not be loaded: ${e.getMessage}"
 
