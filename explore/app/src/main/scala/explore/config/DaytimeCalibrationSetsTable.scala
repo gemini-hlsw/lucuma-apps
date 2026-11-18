@@ -237,6 +237,10 @@ object DaytimeCalibrationSetsTable:
         disabled = !editable
       )
 
+  /** A value that is never edited, grayed like the controls around it when the row is locked. */
+  private[config] def readOnlyCell(editable: Boolean)(content: VdomNode): VdomNode =
+    <.span(LucumaPrimeStyles.Disabled.unless(editable))(content)
+
   /** Editable when the setup disperses, otherwise its fixed wavelength, read-only. */
   private[config] def wavelengthColumn(units: WavelengthUnits, editable: Boolean)(
     editableView: Int => Option[View[Wavelength]],
@@ -244,7 +248,9 @@ object DaytimeCalibrationSetsTable:
   ): ColDef.Type =
     cellColumn(WavelengthColumnId, s"λ (${units.symbol})", 80, withOptics): r =>
       editableView(r._2).fold(
-        fixed(r._2).fold(EmptyVdom)(w => inputCodecs.wavelengthValid(units).reverseGet(w): VdomNode)
+        fixed(r._2).fold(EmptyVdom)(w =>
+          readOnlyCell(editable)(inputCodecs.wavelengthValid(units).reverseGet(w))
+        )
       ): wavelength =>
         FormInputTextView(
           id = cellId(WavelengthColumnId, r._2),
@@ -301,7 +307,8 @@ object DaytimeCalibrationSetsTable:
                   .withTooltip(
                     "No Smart GCAL mapping for this setup; the sequence cannot be generated"
                   )
-              case DaytimeCalibrationSet.Count.Resolved(n) => <.span(n.value.toString)
+              case DaytimeCalibrationSet.Count.Resolved(n) =>
+                readOnlyCell(editable)(n.value.toString)
           else
             FormInputTextView(
               id = cellId(CountColumnId, c.row.original._2),
