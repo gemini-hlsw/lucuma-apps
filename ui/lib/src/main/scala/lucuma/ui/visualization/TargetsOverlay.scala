@@ -4,8 +4,10 @@
 package lucuma.ui.visualization
 
 import cats.syntax.all.*
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.svg_<^.*
+import lucuma.core.model.Target
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -31,10 +33,11 @@ private def renderedRadius(target: SvgTarget): Option[Double] =
     case SvgTarget.LineTo(_, _, _, _)                   => none
 
 case class TargetsOverlay(
-  width:   Int,
-  height:  Int,
-  aladin:  Aladin,
-  targets: List[SvgTarget]
+  width:              Int,
+  height:             Int,
+  aladin:             Aladin,
+  targets:            List[SvgTarget],
+  scienceTargetNames: Map[Target.Id, NonEmptyString] = Map.empty
 ) extends ReactFnProps(TargetsOverlay)
 
 object TargetsOverlay
@@ -65,12 +68,12 @@ object TargetsOverlay
             Tooltip(
               clazz = VisualizationStyles.VisualizationTooltip,
               targetCss = ags.target.selector
-            )(GuideStarTooltip(ags))
+            )(GuideStarTooltip(ags, p.scienceTargetNames))
           case SvgTarget.GuideStarTarget(analysis = ags)          =>
             Tooltip(
               clazz = VisualizationStyles.VisualizationTooltip,
               targetCss = ags.target.selector
-            )(GuideStarTooltip(ags))
+            )(GuideStarTooltip(ags, p.scienceTargetNames))
 
       val svg: VdomNode = <.svg(
         VisualizationStyles.TargetsSvg,

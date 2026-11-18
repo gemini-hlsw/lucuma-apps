@@ -160,5 +160,5 @@ class ObservationGuideStarsSuite extends FunSuite:
     )
 
   test("a catalog pick is stored as it is"):
-    val gaia: GuideStarId = GuideStarId.gaia(123L)
+    val gaia: GuideStarId = GuideStarId.GaiaDr3(123L)
     assertEquals(ObservationGuideStars.selectionToStore(gaia, targets(Sidereal).some), gaia)

@@ -6,6 +6,7 @@ package explore.targeteditor
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
@@ -14,6 +15,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.GuideStarId
+import lucuma.core.model.Target
 import lucuma.react.common.ReactFnProps
 import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
@@ -40,13 +42,14 @@ import lucuma.ui.visualization.displayLabel
  * why it can't be used when it is a manual pick that isn't among the candidates.
  */
 case class AgsCandidatesDialog(
-  enabled:        Boolean,
-  candidates:     List[AgsAnalysis.Usable],
-  current:        Option[GuideStarId],
-  isManual:       Boolean,
-  currentProblem: Option[String],
-  readonly:       Boolean,
-  onSelect:       GuideStarId => Callback
+  enabled:            Boolean,
+  candidates:         List[AgsAnalysis.Usable],
+  current:            Option[GuideStarId],
+  isManual:           Boolean,
+  currentProblem:     Option[String],
+  readonly:           Boolean,
+  scienceTargetNames: Map[Target.Id, NonEmptyString],
+  onSelect:           GuideStarId => Callback
 ) extends ReactFnProps(AgsCandidatesDialog.component)
 
 object AgsCandidatesDialog:
@@ -60,10 +63,16 @@ object AgsCandidatesDialog:
       yield
         val close: Callback = open.set(false)
 
+        // An id-less selection with several science targets points at none of them.
+        val current: Option[GuideStarId] =
+          props.current.filterNot: selection =>
+            selection.isObservationTarget && selection.observationTargetId.isEmpty &&
+              props.scienceTargetNames.sizeIs > 1
+
         // An automatic star is the best one, at the top, so it isn't highlighted: that would offer
         // keeping it as soon as the dialog opens
         val highlighted: Option[GuideStarId] =
-          props.current
+          current
             .filter(_ => props.isManual)
             .flatMap(selection => props.candidates.find(a => selection.selects(a.target.id)))
             .map(_.target.id)
@@ -72,7 +81,7 @@ object AgsCandidatesDialog:
           !props.readonly &&
             chosen.get.exists: id =>
               props.candidates.exists(_.target.id === id) &&
-                !(props.isManual && props.current.exists(_.selects(id)))
+                !(props.isManual && current.exists(_.selects(id)))
 
         val footer: VdomNode =
           <.div(
@@ -109,11 +118,17 @@ object AgsCandidatesDialog:
                 <.div(
                   ExploreStyles.AgsCandidatesMissing,
                   Icons.ExclamationTriangle,
-                  s"${selection.displayLabel}: $problem"
+                  s"${selection.displayLabel(props.scienceTargetNames)}: $problem"
                 ),
               <.div(
                 ExploreStyles.AgsCandidatesTable,
-                AgsCandidatesTable(props.candidates, props.current, props.isManual, chosen)
+                AgsCandidatesTable(
+                  props.candidates,
+                  current,
+                  props.isManual,
+                  props.scienceTargetNames,
+                  chosen
+                )
               )
             )
 
@@ -129,10 +144,11 @@ object AgsCandidatesDialog:
 
 // A separate component so it mounts with the dialog's content, when the table can be scrolled.
 private case class AgsCandidatesTable(
-  candidates: List[AgsAnalysis.Usable],
-  current:    Option[GuideStarId],
-  isManual:   Boolean,
-  chosen:     View[Option[GuideStarId]]
+  candidates:         List[AgsAnalysis.Usable],
+  current:            Option[GuideStarId],
+  isManual:           Boolean,
+  scienceTargetNames: Map[Target.Id, NonEmptyString],
+  chosen:             View[Option[GuideStarId]]
 ) extends ReactFnProps(AgsCandidatesTable.component)
 
 private object AgsCandidatesTable:
@@ -152,9 +168,12 @@ private object AgsCandidatesTable:
       .setBehavior(rawVirtual.mod.ScrollBehavior.auto)
       .setAlign(rawVirtual.mod.ScrollAlignment.center)
 
+  private given Reusability[Map[Target.Id, NonEmptyString]] = Reusability.by_==
+
   private def columns(
-    current:  Option[GuideStarId],
-    isManual: Boolean
+    current:            Option[GuideStarId],
+    isManual:           Boolean,
+    scienceTargetNames: Map[Target.Id, NonEmptyString]
   ): List[ColumnDef[AgsAnalysis.Usable, ?, Nothing, Nothing, Nothing, Any, Nothing]] =
     val currentTitle: String =
       if isManual then "Current guide star, picked by hand"
@@ -172,7 +191,7 @@ private object AgsCandidatesTable:
       ).withColumnSize(FixedSize(30.toPx)),
       ColDef(
         NameColumnId,
-        _.target.id.displayLabel,
+        _.target.id.displayLabel(scienceTargetNames),
         "Name"
       ).withColumnSize(FixedSize(280.toPx)),
       ColDef(
@@ -202,7 +221,7 @@ private object AgsCandidatesTable:
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        cols           <- useMemo((props.current, props.isManual))(columns.tupled)
+        cols           <- useMemo((props.current, props.isManual, props.scienceTargetNames))(columns.tupled)
         rows           <- useMemo(props.candidates)(identity)
         table          <- useReactTable:
                             TableOptions(cols, rows, enableSorting = false, enableColumnResizing = false)

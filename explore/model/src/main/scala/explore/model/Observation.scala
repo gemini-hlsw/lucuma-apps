@@ -714,7 +714,7 @@ object Observation:
     observationTarget: Option[Option[Target.Id]]
   ): Option[GuideStarId] =
     catalogName.fold(observationTarget.map(GuideStarId.ObservationTarget(_))): name =>
-      GuideStarName.from(name.value).toOption.map(GuideStarId.Catalog(_))
+      GuideStarName.from(name.value).toOption.flatMap(GuideStarId.fromCatalogName)
 
   private case class ObservationGuideTargetSelection(targetId: Option[Target.Id]) derives Decoder
 

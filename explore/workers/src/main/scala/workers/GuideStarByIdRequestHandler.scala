@@ -15,7 +15,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 object GuideStarByIdRequestHandler:
-  val cacheVersion = CacheVersion(3)
+  val cacheVersion = CacheVersion(4)
 
   def apply[F[_]: {Concurrent, Logger}](
     client:   GaiaClient[F],

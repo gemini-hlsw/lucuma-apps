@@ -26,8 +26,10 @@ class GuideTargetSelectionDecoderSuite extends FunSuite:
 
   test("a catalog name"):
     assertEquals(
-      decode("""{ "guideTargetSelection": { "catalogName": "Gaia DR3 123", "observationTarget": null } }"""),
-      GuideStarId.gaia(123L).some.asRight
+      decode(
+        """{ "guideTargetSelection": { "catalogName": "Gaia DR3 123", "observationTarget": null } }"""
+      ),
+      GuideStarId.GaiaDr3(123L).some.asRight
     )
 
   test("an observation target with an id"):
@@ -48,6 +50,8 @@ class GuideTargetSelectionDecoderSuite extends FunSuite:
 
   test("a catalog name that is not a guide star name is no selection"):
     assertEquals(
-      decode("""{ "guideTargetSelection": { "catalogName": "Tycho 1-2-3", "observationTarget": null } }"""),
+      decode(
+        """{ "guideTargetSelection": { "catalogName": "Tycho 1-2-3", "observationTarget": null } }"""
+      ),
       none.asRight
     )

@@ -4,15 +4,31 @@
 package lucuma.ui.visualization
 
 import cats.syntax.all.*
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.ags.GuideStarId
 import lucuma.core.model.Target
 
 class GuideStarLabelSuite extends munit.FunSuite:
 
-  test("a catalog star is labelled by its catalog name"):
-    assertEquals(GuideStarId.gaia(123L).displayLabel, "Gaia DR3 123")
+  private val T1: Target.Id = Target.Id.fromLong(1L).get
+  private val T2: Target.Id = Target.Id.fromLong(2L).get
 
-  test("an observation target is labelled as the science target"):
-    val targetId: Target.Id = Target.Id.fromLong(1L).get
-    assertEquals(GuideStarId.ObservationTarget(targetId.some).displayLabel, "Science Target")
-    assertEquals(GuideStarId.ObservationTarget(none).displayLabel, "Science Target")
+  private val One: Map[Target.Id, NonEmptyString] =
+    Map(T1 -> NonEmptyString.unsafeFrom("Io"))
+  private val Two: Map[Target.Id, NonEmptyString] =
+    One + (T2 -> NonEmptyString.unsafeFrom("Titan"))
+
+  test("a catalog star is labelled by its catalog name"):
+    assertEquals(GuideStarId.GaiaDr3(123L).displayLabel(Two), "Gaia DR3 123")
+
+  test("a science target is labelled with its name"):
+    assertEquals(GuideStarId.ObservationTarget(T1.some).displayLabel(Two), "Science Target: Io")
+    assertEquals(GuideStarId.ObservationTarget(T2.some).displayLabel(Two), "Science Target: Titan")
+
+  test("a target that is not a science target gets the bare label"):
+    assertEquals(GuideStarId.ObservationTarget(T2.some).displayLabel(One), "Science Target")
+
+  test("the id-less selection is named only with a single science target"):
+    assertEquals(GuideStarId.ObservationTarget(none).displayLabel(One), "Science Target: Io")
+    assertEquals(GuideStarId.ObservationTarget(none).displayLabel(Two), "Science Target")
+    assertEquals(GuideStarId.ObservationTarget(none).displayLabel(Map.empty), "Science Target")

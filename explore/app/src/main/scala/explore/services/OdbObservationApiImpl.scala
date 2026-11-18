@@ -22,6 +22,7 @@ import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
 import lucuma.ags.GuideStarId
+import lucuma.ags.GuideStarName
 import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.FacilityObservingModeType
 import lucuma.core.enums.Instrument
@@ -401,8 +402,9 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       observationId = obsId.assign,
       guideTarget = selection
         .map:
-          case GuideStarId.Catalog(name)               =>
-            GuideTargetSelectionInput.CatalogName(name.toNonEmptyString)
+          case GuideStarId.GaiaDr3(sourceId)           =>
+            GuideTargetSelectionInput.CatalogName:
+              GuideStarName.gaiaSourceId.reverseGet(sourceId).toNonEmptyString
           case GuideStarId.ObservationTarget(targetId) =>
             GuideTargetSelectionInput.ObservationTarget(
               ObservationGuideTargetSelectionInput(targetId = targetId.orIgnore)

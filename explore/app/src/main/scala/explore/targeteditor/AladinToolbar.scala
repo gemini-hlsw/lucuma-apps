@@ -6,6 +6,7 @@ package explore.targeteditor
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.ViewOpt
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.Constants
@@ -17,6 +18,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
 import lucuma.core.math.*
+import lucuma.core.model.Target
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.Transform
 import lucuma.react.floatingui.syntax.*
@@ -27,12 +29,13 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.displayLabel
 
 case class AladinToolbar(
-  fov:               Fov,
-  mouseCoords:       SignallingRef[IO, Option[Coordinates]],
-  agsState:          AgsState,
-  selectedGuideStar: Option[AgsAnalysis.Usable],
-  agsOverlay:        Visible,
-  viewOffset:        ViewOpt[Offset]
+  fov:                Fov,
+  mouseCoords:        SignallingRef[IO, Option[Coordinates]],
+  agsState:           AgsState,
+  selectedGuideStar:  Option[AgsAnalysis.Usable],
+  scienceTargetNames: Map[Target.Id, NonEmptyString],
+  agsOverlay:         Visible,
+  viewOffset:         ViewOpt[Offset]
 ) extends ReactFnProps(AladinToolbar.component)
 
 object AladinToolbar:
@@ -71,7 +74,7 @@ object AladinToolbar:
         <.div(
           ExploreStyles.AladinGuideStar,
           props.selectedGuideStar
-            .map(g => s"GS: ${g.target.id.displayLabel}")
+            .map(g => s"GS: ${g.target.id.displayLabel(props.scienceTargetNames)}")
             .unless(props.agsOverlay || !usableGuideStar),
           Constants.NoGuideStarMessage.when(!usableGuideStar && props.agsState === AgsState.Idle),
           Constants.Calculating.when(props.agsState.isCalculating),

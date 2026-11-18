@@ -4,9 +4,9 @@
 package explore.model
 
 import cats.syntax.all.*
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuideStarId
-import lucuma.ags.guidesOnAxis
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Coordinates
@@ -21,6 +21,10 @@ object ObservationGuideStars:
 
   private def scienceTargets(targets: ObservationTargets): List[TargetWithId] =
     targets.allTargets.filter(_.disposition === TargetDisposition.Science)
+
+  /** The science targets' names, to label them as guide stars. */
+  def names(targets: ObservationTargets): Map[Target.Id, NonEmptyString] =
+    scienceTargets(targets).map(twid => twid.id -> twid.target.name).toMap
 
   /**
    * The science targets as guide star candidates. A sidereal target keeps its tracking; a

@@ -35,7 +35,7 @@ class AltairControlsSuite extends FunSuite:
     )
 
   private def candidateAt(coordinates: Coordinates): GuideStarCandidate =
-    GuideStarCandidate(GuideStarId.gaia(1L),
+    GuideStarCandidate(GuideStarId.GaiaDr3(1L),
                        SiderealTracking(coordinates, Epoch.J2000, none, none, none),
                        SortedMap.empty
     )
@@ -47,7 +47,7 @@ class AltairControlsSuite extends FunSuite:
   private val rBrightness: BrightnessValue = BrightnessValue.unsafeFrom(12.5)
 
   private val candidateWithR: GuideStarCandidate =
-    GuideStarCandidate(GuideStarId.gaia(1L),
+    GuideStarCandidate(GuideStarId.GaiaDr3(1L),
                        SiderealTracking(Coordinates.Zero, Epoch.J2000, none, none, none),
                        SortedMap(Band.R -> rBrightness)
     )

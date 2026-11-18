@@ -7,6 +7,7 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.refineV
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
 import lucuma.ags.AgsParams
@@ -23,6 +24,7 @@ import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
+import lucuma.core.model.Target
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.NewBoolean
@@ -179,17 +181,26 @@ def textDomSize(textValue: String): (Double, Double) =
 val ScienceTargetGuideStarLabel: String = "Science Target"
 
 extension (id: GuideStarId)
-  /** What the UI calls a guide star; never an identity. */
-  def displayLabel: String =
+  /**
+   * What the UI calls a guide star; never an identity. A science target shows its name, looked up
+   * in `scienceTargetNames`; the id-less one only when there is a single science target.
+   */
+  def displayLabel(scienceTargetNames: Map[Target.Id, NonEmptyString]): String =
     id match
-      case GuideStarId.Catalog(name)        => name.value.value
-      case GuideStarId.ObservationTarget(_) => ScienceTargetGuideStarLabel
+      case GuideStarId.GaiaDr3(sourceId = _)       =>
+        id.catalogName.foldMap(_.value.value)
+      case GuideStarId.ObservationTarget(targetId) =>
+        val name: Option[NonEmptyString] =
+          targetId.fold(scienceTargetNames.values.toList match
+            case only :: Nil => only.some
+            case _           => none)(scienceTargetNames.get)
+        name.fold(ScienceTargetGuideStarLabel)(n => s"$ScienceTargetGuideStarLabel: ${n.value}")
 
 extension (target: GuideStarCandidate)
   protected def selector: Css =
     target.id match
-      case GuideStarId.Catalog(name)               =>
-        Css(s"guide-star-${name.toGaiaSourceId.foldMap(_.toString)}")
+      case GuideStarId.GaiaDr3(sourceId)           =>
+        Css(s"guide-star-$sourceId")
       case GuideStarId.ObservationTarget(targetId) =>
         Css(s"guide-star-target-${targetId.foldMap(_.show)}")
 

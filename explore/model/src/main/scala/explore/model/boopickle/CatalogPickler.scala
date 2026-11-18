@@ -12,7 +12,6 @@ import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuideStarId
-import lucuma.ags.GuideStarName
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.catalog.AngularSize
@@ -33,13 +32,12 @@ import lucuma.schemas.model.CoordinatesAt
 // Boopicklers for catalog related types
 trait CatalogPicklers extends ItcPicklers:
 
-  given Pickler[GuideStarName] = picklerNewType(GuideStarName)
-
+  // A catalog star is pickled as its bare source id, to keep the cached candidates small.
   given Pickler[GuideStarId] =
-    transformPickler[GuideStarId, Either[GuideStarName, Option[Target.Id]]](
-      _.fold(GuideStarId.Catalog(_), GuideStarId.ObservationTarget(_))
+    transformPickler[GuideStarId, Either[Long, Option[Target.Id]]](
+      _.fold(GuideStarId.GaiaDr3(_), GuideStarId.ObservationTarget(_))
     ):
-      case GuideStarId.Catalog(name)               => name.asLeft
+      case GuideStarId.GaiaDr3(sourceId)           => sourceId.asLeft
       case GuideStarId.ObservationTarget(targetId) => targetId.asRight
 
   given Pickler[GuideStarCandidate] = generatePickler

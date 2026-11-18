@@ -33,8 +33,8 @@ class GuideStarSelectionSuite extends FunSuite:
       Area.MinArea
     )
 
-  private val Gaia1: GuideStarId   = GuideStarId.gaia(1L)
-  private val Gaia2: GuideStarId   = GuideStarId.gaia(2L)
+  private val Gaia1: GuideStarId   = GuideStarId.GaiaDr3(1L)
+  private val Gaia2: GuideStarId   = GuideStarId.GaiaDr3(2L)
   private val Target1: GuideStarId = GuideStarId.ObservationTarget(targetId(1L).some)
   private val Target2: GuideStarId = GuideStarId.ObservationTarget(targetId(2L).some)
 
@@ -45,7 +45,8 @@ class GuideStarSelectionSuite extends FunSuite:
   private val Candidates: List[GuideStarCandidate] = Results.map(_.target)
 
   // An observation with a single science target.
-  private val SingleTargetResults: List[AgsAnalysis.Usable]    = List(Gaia1, Target1, Gaia2).map(usable)
+  private val SingleTargetResults: List[AgsAnalysis.Usable]    =
+    List(Gaia1, Target1, Gaia2).map(usable)
   private val SingleTargetCandidates: List[GuideStarCandidate] = SingleTargetResults.map(_.target)
 
   test("no selection takes the best candidate"):
@@ -58,7 +59,7 @@ class GuideStarSelectionSuite extends FunSuite:
     assertEquals(Results.pick(Target1, Candidates), AgsOverride(Target1, 2, Results(2)))
 
   test("the id-less observation target selection picks the only observation target"):
-    val selection: GuideStarId = GuideStarId.ObservationTarget(none)
+    val selection: GuideStarId     = GuideStarId.ObservationTarget(none)
     val picked: GuideStarSelection = SingleTargetResults.pick(selection, SingleTargetCandidates)
     assertEquals(picked, AgsOverride(selection, 1, SingleTargetResults(1)))
     assertEquals(picked.selectedId, selection.some)
@@ -67,7 +68,9 @@ class GuideStarSelectionSuite extends FunSuite:
   test("a selection that is not found is kept as remote"):
     val missing: GuideStarId = GuideStarId.ObservationTarget(targetId(9L).some)
     assertEquals(Results.pick(missing, Candidates), RemoteGSSelection(missing))
-    assertEquals(Results.pick(GuideStarId.gaia(9L), Candidates), RemoteGSSelection(GuideStarId.gaia(9L)))
+    assertEquals(Results.pick(GuideStarId.GaiaDr3(9L), Candidates),
+                 RemoteGSSelection(GuideStarId.GaiaDr3(9L))
+    )
     assertEquals(Nil.pick(GuideStarId.ObservationTarget(none), Nil),
                  RemoteGSSelection(GuideStarId.ObservationTarget(none))
     )

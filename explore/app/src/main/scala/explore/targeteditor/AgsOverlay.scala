@@ -5,6 +5,7 @@ package explore.targeteditor
 
 import cats.syntax.all.*
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.*
@@ -18,6 +19,7 @@ import lucuma.ags.GuideStarId
 import lucuma.ags.probeBands
 import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
+import lucuma.core.model.Target
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
@@ -38,6 +40,7 @@ case class AgsOverlay(
   targetNotObservable: Boolean,
   manualGuideStar:     Option[ManualGuideStar],
   remoteSelection:     Option[GuideStarId],
+  scienceTargetNames:  Map[Target.Id, NonEmptyString],
   readonly:            Boolean,
   onRevert:            Callback
 ) extends ReactFnProps[AgsOverlay](AgsOverlay.component) {
@@ -122,7 +125,7 @@ object AgsOverlay:
         <.div(
           ExploreStyles.AgsDescription,
           Icons.Bahai,
-          <.span(guideStar.displayLabel),
+          <.span(guideStar.displayLabel(props.scienceTargetNames)),
           <.div(
             ExploreStyles.AgsNavigation,
             <.span(
@@ -145,6 +148,7 @@ object AgsOverlay:
               isManual = props.selectedGS.get.fold(_ => false, _ => true, _ => true),
               currentProblem = manualInfo.filter(_ => props.manualProblem).map(_._2),
               readonly = props.readonly,
+              scienceTargetNames = props.scienceTargetNames,
               // A candidate's own id is never ambiguous, so no candidates are needed.
               onSelect = id => props.selectedGS.set(props.agsResults.pick(id, Nil))
             )

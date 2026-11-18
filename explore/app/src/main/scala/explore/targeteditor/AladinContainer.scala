@@ -20,6 +20,7 @@ import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
 import explore.model.InteractiveRegion
+import explore.model.ObservationGuideStars
 import explore.model.ObservationTargets
 import explore.model.ObservationTargetsCoordinatesAt
 import explore.model.RegionOrTrackingMap
@@ -786,7 +787,8 @@ object AladinContainer extends AladinCommon {
                     _,
                     // Order matters
                     candidates ++ blindOffsets ++ scienceTargets ++ skyPositionTargets ++
-                      basePosition(basePositionTitle) ++ configOffsets
+                      basePosition(basePositionTitle) ++ configOffsets,
+                    ObservationGuideStars.names(props.obsTargets)
                   )
                 ),
               // Separate overlay for unconstrained guide star candidates (available at other PAs)
@@ -797,7 +799,8 @@ object AladinContainer extends AladinCommon {
                       _,
                       _,
                       _,
-                      unconstrainedCandidates
+                      unconstrainedCandidates,
+                      ObservationGuideStars.names(props.obsTargets)
                     )
                   )
               ),
