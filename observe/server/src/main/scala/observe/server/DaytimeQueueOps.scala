@@ -54,29 +54,39 @@ object DaytimeQueueOps:
    */
   def nextItemStatus(
     item:      DaytimeQueueItem.Obs,
-    seqStatus: Option[SequenceStatus]
+    seqStatus: Option[SequenceStatus],
+    now:       Timestamp
   ): DaytimeQueueItem.Obs =
-    // Started outside the queue, which does not know when.
-    val running: DaytimeQueueItem.Obs =
+    // Started outside the queue: it runs on from what the queue last knew it had left.
+    val running: DaytimeQueueItem.Obs                        =
       item.copy(
         status = QueueItemStatus.Running,
         errorMsg = none,
         abortRequested = false,
-        startedAt = none
+        startedAt = now.some
       )
+    // It no longer runs: what it had left is kept, so its progress stays where it got to.
+    def ended(status: QueueItemStatus): DaytimeQueueItem.Obs =
+      item.copy(status = status, estimate = left(item, now), startedAt = none)
     item.status match
       case QueueItemStatus.Running =>
         seqStatus match
-          case None                             => item.copy(status = QueueItemStatus.Stopped)
-          case Some(SequenceStatus.Completed)   => item.copy(status = QueueItemStatus.Completed)
+          case None                             => ended(QueueItemStatus.Stopped)
+          case Some(SequenceStatus.Completed)   =>
+            ended(QueueItemStatus.Completed).copy(estimate = TimeSpan.Zero)
           case Some(SequenceStatus.Failed(msg)) =>
-            item.copy(status = QueueItemStatus.Failed, errorMsg = msg.some)
-          case Some(SequenceStatus.Aborted)     => item.copy(status = QueueItemStatus.Aborted)
+            ended(QueueItemStatus.Failed).copy(errorMsg = msg.some)
+          case Some(SequenceStatus.Aborted)     => ended(QueueItemStatus.Aborted)
           case Some(s) if s.isRunning           => item
-          case Some(_) if item.abortRequested   => item.copy(status = QueueItemStatus.Aborted)
-          case Some(_)                          => item.copy(status = QueueItemStatus.Stopped)
+          case Some(_) if item.abortRequested   => ended(QueueItemStatus.Aborted)
+          case Some(_)                          => ended(QueueItemStatus.Stopped)
       case _                       =>
         if seqStatus.exists(_.isRunning) then running else item
+
+  /** The estimate of an observation minus the time the queue has been running it. */
+  def left(item: DaytimeQueueItem.Obs, now: Timestamp): TimeSpan =
+    item.startedAt.fold(item.estimate): startedAt =>
+      if now > startedAt then item.estimate -| TimeSpan.between(startedAt, now) else item.estimate
 
   /**
    * The outcome of a start the queue asked for, which the engine decides in the same step. A
@@ -108,12 +118,12 @@ object DaytimeQueueOps:
    * Brings the queue observations in line with their loaded sequences. A Running queue whose
    * observations are all done goes back to Idle.
    */
-  def sync[F[_]](st: EngineState[F]): (EngineState[F], QueueSyncResult) =
+  def sync[F[_]](now: Timestamp)(st: EngineState[F]): (EngineState[F], QueueSyncResult) =
     val before: DaytimeQueue          = st.daytimeQueue
     val synced: DaytimeQueue          =
       before.copy(items = before.items.map:
         case o @ DaytimeQueueItem.Obs(obsId = obsId) =>
-          nextItemStatus(o, st.sequences.get(obsId).map(_.seq.status))
+          nextItemStatus(o, st.sequences.get(obsId).map(_.seq.status), now)
         case other                                   => other)
     val done: Boolean                 =
       synced.isFinished && synced.dispatchState === QueueDispatchState.Running
@@ -190,5 +200,6 @@ object DaytimeQueueOps:
       resources.estimate,
       none,
       abortRequested = false,
-      startedAt = none
+      startedAt = none,
+      total = resources.estimate
     )

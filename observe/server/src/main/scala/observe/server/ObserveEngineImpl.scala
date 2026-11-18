@@ -1240,7 +1240,11 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     modifyDaytimeQueue(_.modifyObs(obsId)(f))
 
   private def syncDaytimeQueue: EngineHandle[F, QueueSyncResult] =
-    EngineHandle.modifyState(DaytimeQueueOps.sync[F])
+    EngineHandle
+      .liftF(Clock[F].realTimeInstant)
+      .flatMap: now =>
+        EngineHandle.modifyState:
+          DaytimeQueueOps.sync[F](Timestamp.fromInstantTruncatedAndBounded(now))
 
   private def errorMessage(e: Throwable): String =
     Option(e.getMessage).getOrElse(e.toString)
@@ -1253,20 +1257,28 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
 
   /**
    * The queue only takes a slot that is empty, completed or holds a queue observation, and never
-   * one whose failed step still has actions running.
+   * one whose failed step still has actions running. A paused (Stopped) queue observation stays
+   * loaded: only `forObs`, the observation itself, may take its slot back.
    */
-  private def slotAvailable(st: EngineState[F], instrument: Instrument): Boolean =
+  private def slotAvailable(
+    st:         EngineState[F],
+    instrument: Instrument,
+    forObs:     Option[Observation.Id]
+  ): Boolean =
     EngineState
       .instrumentLoaded[F](instrument)
       .get(st)
       .forall: s =>
-        canLeaveSlot(s) && (s.seq.status.isCompleted || st.daytimeQueue.contains(s.obsId))
+        val replaceable: Boolean =
+          s.seq.status.isCompleted || forObs.contains_(s.obsId) ||
+            st.daytimeQueue.obs(s.obsId).exists(_.status =!= QueueItemStatus.Stopped)
+        canLeaveSlot(s) && replaceable
 
   /** Busy subsystems plus the instruments whose slot the queue may not take. */
   private def queueBusySubsystems(st: EngineState[F]): Set[Subsystem] =
     ObserveEngine.busySubsystems(st) ++
       st.sequencesByInstrument.keySet
-        .filterNot(slotAvailable(st, _))
+        .filterNot(slotAvailable(st, _, none))
         .map(instrument => instrument: Subsystem)
 
   /**
@@ -1324,7 +1336,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     EngineHandle.getState.flatMap: st0 =>
       st0.daytimeQueue
         .obs(obsId)
-        .filter(item => slotAvailable(st0, item.instrument))
+        .filter(item => slotAvailable(st0, item.instrument, obsId.some))
         .fold(EngineHandle.pure[F, Set[Subsystem]](nothing)): item =>
           EngineHandle
             .liftF(services.odb.readRemainingSteps(obsId, item.instrument).attempt)
@@ -1333,8 +1345,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
               case Right(remaining) =>
                 val resources: QueueItemResources =
                   DaytimeQueueOps.resources(item.instrument, remaining)
-                modifyQueueItem(obsId)(
-                  _.copy(subsystems = resources.subsystems, estimate = resources.estimate)
+                // The total only grows, so the progress of a resumed observation does not restart.
+                modifyQueueItem(obsId)(queued =>
+                  queued.copy(
+                    subsystems = resources.subsystems,
+                    estimate = resources.estimate,
+                    total = queued.total.max(resources.estimate)
+                  )
                 ) >>
                   EngineHandle.getState.flatMap: st =>
                     val conflict: Set[Subsystem] =
@@ -1604,7 +1621,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         st.daytimeQueue.obs(obsId) match
           case Some(item @ DaytimeQueueItem.Obs(status = status))
               if !item.isRunning && status =!= QueueItemStatus.Completed =>
-            if !slotAvailable(st, item.instrument) then
+            if !slotAvailable(st, item.instrument, obsId.some) then
               EngineHandle.pure[F, SeqEvent]:
                 SeqEvent.NotifyUser(Notification.InstrumentInUse(obsId, item.instrument), clientId)
             else

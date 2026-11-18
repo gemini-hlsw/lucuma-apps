@@ -21,6 +21,7 @@ import monocle.Lens
 import observe.common.FixedLengthBuffer
 import observe.model.ClientConfig
 import observe.model.CurrentConditions
+import observe.model.DaytimeQueueView
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Observer
@@ -46,7 +47,8 @@ case class RootModelData(
   userSelectionMessage:  Option[NonEmptyString],
   globalLog:             FixedLengthBuffer[LogMessage],
   userPreferences:       UserPreferences,
-  checksOverridePrompts: List[UserPrompt.ChecksOverride]      // Pending, oldest first
+  checksOverridePrompts: List[UserPrompt.ChecksOverride],     // Pending, oldest first
+  daytimeQueue:          DaytimeQueueView
 ) derives Eq:
   // TODO Readonly mode won't depend on user logged or not, but on their permissions.
   // For the moment we are requiring the STAFF role, so all logged users can operate.
@@ -139,7 +141,8 @@ object RootModelData:
       userSelectionMessage = none,
       globalLog = FixedLengthBuffer.unsafe(MaxGlobalLogEntries),
       userPreferences = UserPreferences.Default,
-      checksOverridePrompts = List.empty
+      checksOverridePrompts = List.empty,
+      daytimeQueue = DaytimeQueueView.Empty
     )
 
   val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                      =
@@ -174,6 +177,8 @@ object RootModelData:
     Focus[RootModelData](_.userPreferences)
   val checksOverridePrompts: Lens[RootModelData, List[UserPrompt.ChecksOverride]] =
     Focus[RootModelData](_.checksOverridePrompts)
+  val daytimeQueue: Lens[RootModelData, DaytimeQueueView]                         =
+    Focus[RootModelData](_.daytimeQueue)
   val isAudioActivated: Lens[RootModelData, IsAudioActivated]                     =
     userPreferences.andThen(UserPreferences.isAudioActivated)
   val obsListGlobalFilter: Lens[RootModelData, String]                            =

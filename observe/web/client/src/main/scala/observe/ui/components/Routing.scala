@@ -10,6 +10,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.util.Enumerated
 import lucuma.react.common.*
 import observe.ui.components.obsList.ObsListTab
+import observe.ui.components.queue.DaytimeQueueTab
 import observe.ui.model.Page
 import observe.ui.model.Page.*
 import observe.ui.model.RootModel
@@ -28,6 +29,7 @@ object Routing:
       val rules =
         (emptyRule
           | staticRoute(root, Observations) ~> renderP(p => ObsListTab(p))
+          | staticRoute(root / "queue", DaytimeQueue) ~> renderP(p => DaytimeQueueTab(p))
           | dynamicRouteCT((root / instrument).xmapL(LoadedInstrument.iso)) ~> dynRenderP {
             case (LoadedInstrument(i), m) => SequenceTab(m, i)
           })

@@ -34,7 +34,8 @@ class QueueDispatcherSuite extends munit.ScalaCheckSuite:
       TimeSpan.unsafeFromMicroseconds(seconds * 1000000L),
       none,
       false,
-      none
+      none,
+      TimeSpan.unsafeFromMicroseconds(seconds * 1000000L)
     )
 
   def pause: DaytimeQueueItem.Pause =

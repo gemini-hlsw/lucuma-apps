@@ -13,6 +13,7 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.ui.sequence.SequenceRow
 import observe.model.ClientConfig
+import observe.model.DaytimeQueueView
 import observe.model.ExecutionState
 import observe.model.NodAndShuffleStatus
 import observe.model.RunningStepProgress
@@ -43,6 +44,10 @@ object reusability:
   given Reusability[Map[Observation.Id, SequenceStatus]]   = Reusability.map
   given Reusability[UserPreferences]                       = Reusability.byEq
   given Reusability[RootModelData]                         = Reusability.byEq
+  given Reusability[Set[Observation.Id]]                   = Reusability.byEq
+  given Reusability[DaytimeQueueView]                      = Reusability.byEq
+  given Reusability[DaytimeQueueRow]                       = Reusability.byEq
+  given Reusability[DaytimeQueuePrediction]                = Reusability.byEq
   // TODO We don't extend the hierarchy anymore. We can use a sealed type, put reusability in ui
   given [D: Eq]: Reusability[SequenceRow[D]]               = Reusability:
     case (a: SequenceRow.FutureStep[D], b: SequenceRow.FutureStep[D])                         => a === b

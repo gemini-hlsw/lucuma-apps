@@ -45,7 +45,7 @@ trait ArbDaytimeQueue extends ArbSubsystem:
       err <- arbitrary[Option[String]]
       ab  <- arbitrary[Boolean]
       at  <- arbitrary[Option[Timestamp]]
-    yield DaytimeQueueItem.Obs(obsId, ins, st, ss + ins, est, err, ab, at)
+    yield DaytimeQueueItem.Obs(obsId, ins, st, ss + ins, est, err, ab, at, est)
 
   given Arbitrary[DaytimeQueueItem.Obs] = Arbitrary:
     arbitrary[Observation.Id].flatMap(genObs)
@@ -59,9 +59,9 @@ trait ArbDaytimeQueue extends ArbSubsystem:
   given Cogen[DaytimeQueueItem] =
     Cogen[(QueueItemId, Option[(Instrument, QueueItemStatus, List[Subsystem], TimeSpan)])]
       .contramap:
-        case DaytimeQueueItem.Obs(id, i, st, ss, est, _, _, _) =>
+        case DaytimeQueueItem.Obs(id, i, st, ss, est, _, _, _, _) =>
           (QueueItemId.Obs(id), Some((i, st, ss.toList, est)))
-        case DaytimeQueueItem.Pause(id)                        => (QueueItemId.Pause(id), None)
+        case DaytimeQueueItem.Pause(id)                           => (QueueItemId.Pause(id), None)
 
   given Cogen[DaytimeQueueItem.Obs] =
     Cogen[DaytimeQueueItem].contramap(identity)

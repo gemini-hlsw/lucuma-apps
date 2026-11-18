@@ -293,14 +293,15 @@ class DaytimeQueueEngineSuite extends TestCommon:
       TimeSpan.Zero,
       none,
       abortRequested = false,
-      startedAt = none
+      startedAt = none,
+      total = TimeSpan.Zero
     )
 
   private val running: DaytimeQueueItem.Obs = waiting.copy(status = QueueItemStatus.Running)
 
   test("[DQ-23, DQ-24, DQ-29] sync maps a running queue observation to the state of its sequence"):
     def next(item: DaytimeQueueItem.Obs, s: Option[SequenceStatus]): DaytimeQueueItem.Obs =
-      DaytimeQueueOps.nextItemStatus(item, s)
+      DaytimeQueueOps.nextItemStatus(item, s, Timestamp.Min)
     assertEquals(next(running, none).status, QueueItemStatus.Stopped)
     assertEquals(next(running, SequenceStatus.Completed.some).status, QueueItemStatus.Completed)
     assertEquals(
@@ -315,15 +316,39 @@ class DaytimeQueueEngineSuite extends TestCommon:
     )
     assertEquals(next(running, SequenceStatus.Running.Init.some), running)
 
+  test("[DQ-33] an observation that stops running keeps what it had left"):
+    val started: Timestamp            = Timestamp.Min
+    val item: DaytimeQueueItem.Obs    =
+      running.copy(
+        estimate = 10.minuteTimeSpan,
+        total = 10.minuteTimeSpan,
+        startedAt = started.some
+      )
+    val later: Timestamp              =
+      Timestamp.fromInstantTruncatedAndBounded(started.toInstant.plusSeconds(240))
+    val stopped: DaytimeQueueItem.Obs =
+      DaytimeQueueOps.nextItemStatus(item, SequenceStatus.Idle.some, later)
+    val done: DaytimeQueueItem.Obs    =
+      DaytimeQueueOps.nextItemStatus(item, SequenceStatus.Completed.some, later)
+    assertEquals(stopped.status, QueueItemStatus.Stopped)
+    assertEquals(stopped.estimate, 6.minuteTimeSpan)
+    assertEquals(stopped.total, 10.minuteTimeSpan)
+    assertEquals(stopped.startedAt, none)
+    assertEquals(done.estimate, TimeSpan.Zero)
+    assertEquals(
+      DaytimeQueueOps.nextItemStatus(item, SequenceStatus.Running.Init.some, later),
+      item
+    )
+
   test("[DQ-46] sync marks a queue observation started outside the queue as running"):
     def next(item: DaytimeQueueItem.Obs, s: Option[SequenceStatus]): DaytimeQueueItem.Obs =
-      DaytimeQueueOps.nextItemStatus(item, s)
+      DaytimeQueueOps.nextItemStatus(item, s, Timestamp.Min)
     assertEquals(
       next(
         waiting.copy(status = QueueItemStatus.Failed, errorMsg = "x".some, abortRequested = true),
         SequenceStatus.Running.Init.some
       ),
-      running
+      running.copy(startedAt = Timestamp.Min.some)
     )
     assertEquals(next(waiting, SequenceStatus.Idle.some), waiting)
     assertEquals(next(waiting, none), waiting)
@@ -347,7 +372,7 @@ class DaytimeQueueEngineSuite extends TestCommon:
         ),
         daytimeQueueObserver = observer.some
       )
-    val (synced: EngineState[IO], result: QueueSyncResult) = DaytimeQueueOps.sync(st)
+    val (synced: EngineState[IO], result: QueueSyncResult) = DaytimeQueueOps.sync(Timestamp.Min)(st)
     assertEquals(statusOf(synced, seqObsId1), QueueItemStatus.Completed.some)
     assertEquals(synced.daytimeQueue.dispatchState, QueueDispatchState.Idle)
     assertEquals(synced.daytimeQueueObserver, none)
@@ -904,6 +929,36 @@ class DaytimeQueueEngineSuite extends TestCommon:
         assertEquals(m._2.daytimeQueue.obsItems.map(_.obsId), List(obs2, obs1))
         assertEquals(rm._2.daytimeQueue.obsItems.map(_.obsId), List(obs2))
 
+  test("[DQ-23] a paused observation keeps its instrument until it is run again"):
+    TestControl.executeEmbed:
+      for
+        f       <- fixture(
+                     List(gmosSouthObs(obs1, 5, darkConfig), gmosSouthObs(obs2, 1, darkConfig)),
+                     daytime(obs1, obs2)
+                   )
+        _       <- f.runner.add(obs1)
+        _       <- f.runner.add(obs2)
+        tap     <- onFirstExecuting(obs1, f.runner)(_.requestSequenceHold(obs1, observer, user))
+        _       <- f.runner.run(
+                     _.runDaytimeQueue(observer, user, clientId),
+                     (r, _) => isSequenceHeld(obs1)(r),
+                     tap
+                   )
+        paused  <- f.runner.drain
+        refused <- f.runner.notification(_.runDaytimeQueueItem(obs2, observer, user, clientId))
+        done    <- f.runner.runUntilState(
+                     _.runDaytimeQueueItem(obs1, observer, user, clientId),
+                     allIn(QueueItemStatus.Completed, obs1, obs2)
+                   )
+      yield
+        // The dispatcher is still running, and leaves the instrument of the paused one alone.
+        assertEquals(paused.daytimeQueue.dispatchState, QueueDispatchState.Running)
+        assertEquals(statusOf(paused, obs1), QueueItemStatus.Stopped.some)
+        assertEquals(statusOf(paused, obs2), QueueItemStatus.Waiting.some)
+        assertEquals(paused.selected.gmosSouth.map(_.obsId), obs1.some)
+        assertEquals(refused, Notification.InstrumentInUse(obs2, Instrument.GmosSouth).some)
+        assertEquals(done.daytimeQueue.dispatchState, QueueDispatchState.Idle)
+
   test("[DQ-19] a partly executed observation continues from its first incomplete step"):
     TestControl.executeEmbed:
       for
@@ -998,10 +1053,10 @@ class DaytimeQueueEngineSuite extends TestCommon:
       EngineState.daytimeQueue[IO].modify(_.append(waiting))(counting)
     assert(!DaytimeQueueOps.gcalNeeded(loaded))
     assert(DaytimeQueueOps.gcalNeeded(usingGcal))
-    assertEquals(DaytimeQueueOps.sync(counting)._1.daytimeQueue.lampsOffAt, at.some)
-    assertEquals(DaytimeQueueOps.sync(loaded)._1.daytimeQueue.lampsOffAt, at.some)
-    assertEquals(DaytimeQueueOps.sync(usingGcal)._1.daytimeQueue.lampsOffAt, none)
-    assertEquals(DaytimeQueueOps.sync(moreToDo)._1.daytimeQueue.lampsOffAt, none)
+    assertEquals(DaytimeQueueOps.sync(Timestamp.Min)(counting)._1.daytimeQueue.lampsOffAt, at.some)
+    assertEquals(DaytimeQueueOps.sync(Timestamp.Min)(loaded)._1.daytimeQueue.lampsOffAt, at.some)
+    assertEquals(DaytimeQueueOps.sync(Timestamp.Min)(usingGcal)._1.daytimeQueue.lampsOffAt, none)
+    assertEquals(DaytimeQueueOps.sync(Timestamp.Min)(moreToDo)._1.daytimeQueue.lampsOffAt, none)
 
   test("[DQ-49] queue commands issued back to back are applied in the order received"):
     TestControl.executeEmbed:

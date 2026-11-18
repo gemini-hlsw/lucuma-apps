@@ -357,6 +357,16 @@ body {
           color: var(--negative-row-color);
         }
       }
+
+      &.observe-row-done {
+        background-color: var(--disabled-row-background);
+        color: var(--disabled-row-color);
+
+        &:not(.p-highlight, .p-datatable-emptymessage, .is-subcomponent):hover {
+          background-color: var(--disabled-row-background);
+          color: var(--disabled-row-color);
+        }
+      }
     }
   }
 
@@ -407,6 +417,59 @@ body {
       .observe-load-button.p-component.p-button {
         padding: 3px;
       }
+
+      .observe-load-button-group {
+        align-items: center;
+        gap: 3px;
+        justify-content: flex-start;
+        padding-left: 3px;
+      }
+
+      .observe-in-queue-icon {
+        color: var(--green-500);
+      }
+    }
+  }
+
+  &.observe-daytime-queue-table {
+    tr > td {
+      padding-top: 0.4em;
+      padding-bottom: 0.4em;
+      vertical-align: middle;
+    }
+
+    tr.observe-daytime-queue-pause-row > td {
+      background-color: var(--surface-ground);
+    }
+
+    .observe-daytime-queue-pause-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75em;
+      font-weight: bold;
+      text-transform: uppercase;
+
+      &::after {
+        content: '';
+        flex-grow: 1;
+        border-top: 2px dashed var(--surface-border);
+      }
+    }
+
+    .observe-daytime-queue-controls {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: 4px;
+    }
+
+    .p-progressbar.observe-daytime-queue-progress-bar {
+      height: 1.2em;
+    }
+
+    .observe-daytime-queue-empty {
+      padding: 2em;
+      text-align: center;
     }
   }
 
@@ -1366,4 +1429,54 @@ body {
   color: var(--orange-500);
   cursor: pointer;
   margin-right: 0.5em;
+}
+
+.observe-daytime-queue-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  width: 100%;
+  padding: 10px;
+  overflow: auto;
+}
+
+.observe-daytime-queue-toolbar {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.observe-daytime-queue-toolbar-group {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.observe-daytime-queue-prediction {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+
+  .p-progressbar.observe-daytime-queue-prediction-bar {
+    width: 12em;
+    height: 0.8em;
+  }
+}
+
+.observe-daytime-queue-lamps {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+
+  &.observe-daytime-queue-lamps-error {
+    color: var(--negative-row-color);
+    background-color: var(--negative-row-background);
+    padding: 0.4em 0.75em;
+  }
 }

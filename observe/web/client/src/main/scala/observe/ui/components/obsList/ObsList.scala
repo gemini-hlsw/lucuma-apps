@@ -41,6 +41,10 @@ case class ObsList(
   obsListGlobalFilter:  View[String],
   obsListColumnFilters: View[ColumnFilters],
   loadObs:              Reusable[Observation.Id => Callback],
+  queuedObsIds:         Set[Observation.Id],
+  queueObs:             Observation.Id => Callback,
+  queueAndOpenObs:      Observation.Id => Callback,
+  openQueue:            Callback,
   linkToExploreObs:     Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
 ) extends ReactFnProps(ObsList):
   val rows: List[SessionQueueRow] =
@@ -59,7 +63,7 @@ case class ObsList(
           // Maybe we want to show pending and total times instead?
           none,
           none,
-          false
+          queuedObsIds.contains(obs.obsId)
         )
 
   val obsStates: Map[Observation.Id, SequenceStatus] =
@@ -91,6 +95,9 @@ object ObsList
         pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
         obsIsProcessing:    Map[Observation.Id, Boolean],
         loadObs:            Observation.Id => Callback,
+        queueObs:           Observation.Id => Callback,
+        queueAndOpenObs:    Observation.Id => Callback,
+        openQueue:          Callback,
         linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
       )
 
@@ -134,12 +141,41 @@ object ObsList
             case _                                                                              => EmptyVdom
         icon
 
+      def queueControls(row: SessionQueueRow, meta: TableMeta): VdomNode =
+        if row.obsClass =!= ObsClass.Daytime then EmptyVdom
+        else if row.inDaytimeQueue then
+          Button(
+            icon = Icons.ListCheck,
+            size = Button.Size.Small,
+            text = true,
+            onClick = meta.openQueue,
+            clazz = ObserveStyles.LoadButton |+| ObserveStyles.InQueueIcon,
+            tooltip = "In the daytime queue: open it"
+          ).withMods(^.onDoubleClick ==> (_.stopPropagationCB))
+        else
+          React.Fragment(
+            Button(
+              icon = Icons.SquarePlus,
+              size = Button.Size.Small,
+              onClick = meta.queueObs(row.obsId),
+              clazz = ObserveStyles.LoadButton,
+              tooltip = "Add to the daytime queue"
+            ).withMods(^.onDoubleClick ==> (_.stopPropagationCB)),
+            Button(
+              icon = Icons.SquareArrowUpRight,
+              size = Button.Size.Small,
+              onClick = meta.queueAndOpenObs(row.obsId),
+              clazz = ObserveStyles.LoadButton,
+              tooltip = "Add to the daytime queue and open it"
+            ).withMods(^.onDoubleClick ==> (_.stopPropagationCB))
+          )
+
       val NotApplicable: String = "---"
 
       def nighttimeOnly(row: SessionQueueRow)(value: String): String =
         if row.obsClass === ObsClass.Daytime then NotApplicable else value
 
-      def renderCentered(node: VdomNode, css: Css = Css.Empty): VdomNode =
+      def renderCentered(node: VdomNode, css: Css): VdomNode =
         <.div(ObserveStyles.Centered |+| css)(node)
 
       val StatusIconColumnId: ColumnId  = ColumnId("statusIcon")
@@ -162,22 +198,26 @@ object ObsList
               cell = cell =>
                 cell.table.options.meta.map: meta =>
                   renderCentered(
-                    if (meta.pendingOrReadyObss.contains(cell.value))
-                      statusIconRenderer(
-                        meta.pendingOrReadyObss.get(cell.value),
-                        meta.obsStates.get(cell.value)
-                      )
-                    else
-                      Button(
-                        icon = Icons.FileArrowUp,
-                        size = Button.Size.Small,
-                        onClick = meta.loadObs(cell.value),
-                        clazz = ObserveStyles.LoadButton,
-                        disabled = meta.obsIsProcessing.get(cell.value).contains(true),
-                        tooltip = "Load observation"
-                      )
+                    React.Fragment(
+                      if (meta.pendingOrReadyObss.contains(cell.value))
+                        statusIconRenderer(
+                          meta.pendingOrReadyObss.get(cell.value),
+                          meta.obsStates.get(cell.value)
+                        )
+                      else
+                        Button(
+                          icon = Icons.FileArrowUp,
+                          size = Button.Size.Small,
+                          onClick = meta.loadObs(cell.value),
+                          clazz = ObserveStyles.LoadButton,
+                          disabled = meta.obsIsProcessing.get(cell.value).contains(true),
+                          tooltip = "Load observation"
+                        ),
+                      queueControls(cell.row.original, meta)
+                    ),
+                    ObserveStyles.LoadButtonGroup
                   ),
-              size = 25.toPx,
+              size = 75.toPx,
               enableResizing = false,
               enableSorting = false
             ),
@@ -248,6 +288,9 @@ object ObsList
                 props.pendingOrReadyObss,
                 props.obsIsProcessing,
                 props.loadObs,
+                props.queueObs,
+                props.queueAndOpenObs,
+                props.openQueue,
                 props.linkToExploreObs
               ),
               state = tableState,

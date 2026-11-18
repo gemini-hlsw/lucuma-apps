@@ -29,7 +29,8 @@ class DaytimeQueueSuite extends munit.FunSuite:
       60.secondTimeSpan,
       none,
       false,
-      none
+      none,
+      60.secondTimeSpan
     )
 
   def pause(n: Long): DaytimeQueueItem.Pause = DaytimeQueueItem.Pause(pid(n))
@@ -158,14 +159,18 @@ class DaytimeQueueSuite extends munit.FunSuite:
     assert(queue(pause(1)).isFinished)
 
   test("[DQ-37] obsBlockedBy"):
-    val w: DaytimeQueueItem.Obs =
+    val w: DaytimeQueueItem.Obs  =
       obs(1).copy(subsystems = Set[Subsystem](Instrument.GmosNorth, ObservatorySubsystem.Gcal))
-    val r: DaytimeQueueItem.Obs = obs(2, QueueItemStatus.Running)
-    val v: DaytimeQueueView     =
+    val r: DaytimeQueueItem.Obs  = obs(2, QueueItemStatus.Running)
+    val v: DaytimeQueueView      =
       DaytimeQueueView(queue(w, r), Set[Subsystem](ObservatorySubsystem.Gcal, Instrument.GmosNorth))
     assertEquals(
       v.obsBlockedBy(oid(1)),
       Set[Subsystem](ObservatorySubsystem.Gcal, Instrument.GmosNorth)
     )
     assertEquals(v.obsBlockedBy(oid(2)), Set.empty[Subsystem])
+    // A paused observation holds its own instrument, so only the rest can block it.
+    val paused: DaytimeQueueView =
+      DaytimeQueueView(queue(w.copy(status = QueueItemStatus.Stopped)), v.busySubsystems)
+    assertEquals(paused.obsBlockedBy(oid(1)), Set[Subsystem](ObservatorySubsystem.Gcal))
     assertEquals(v.obsBlockedBy(oid(9)), Set.empty[Subsystem])

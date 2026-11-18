@@ -25,8 +25,8 @@ enum QueueItemId derives Eq, Encoder.AsObject, Decoder:
 enum DaytimeQueueItem derives Eq, Encoder.AsObject, Decoder:
   /**
    * An observation. `subsystems` are all the subsystems it claims while running, its instrument
-   * included. `estimate` is the time its remaining steps take, as of `startedAt` once the queue has
-   * started it.
+   * included. `estimate` is the time its remaining steps take, as of `startedAt` while the queue
+   * runs it. `total` is the longest that has been, which its progress is measured against.
    */
   case Obs(
     obsId:          Observation.Id,
@@ -36,7 +36,8 @@ enum DaytimeQueueItem derives Eq, Encoder.AsObject, Decoder:
     estimate:       TimeSpan,
     errorMsg:       Option[String],
     abortRequested: Boolean,
-    startedAt:      Option[Timestamp]
+    startedAt:      Option[Timestamp],
+    total:          TimeSpan
   )
 
   /** A barrier: nothing below it is dispatched until it is removed. */
@@ -61,7 +62,7 @@ case class DaytimeQueue(
       Decoder:
 
   def obsItems: List[DaytimeQueueItem.Obs] =
-    items.collect { case o @ DaytimeQueueItem.Obs(_, _, _, _, _, _, _, _) => o }
+    items.collect { case o @ DaytimeQueueItem.Obs(_, _, _, _, _, _, _, _, _) => o }
 
   def obs(obsId: Observation.Id): Option[DaytimeQueueItem.Obs] =
     obsItems.find(_.obsId === obsId)
@@ -146,7 +147,7 @@ case class DaytimeQueue(
       .takeWhile:
         case DaytimeQueueItem.Pause(_) => false
         case _                         => true
-      .collect { case o @ DaytimeQueueItem.Obs(_, _, _, _, _, _, _, _) => o }
+      .collect { case o @ DaytimeQueueItem.Obs(_, _, _, _, _, _, _, _, _) => o }
 
   /** True when no observation is Running, Waiting or Stopped. */
   def isFinished: Boolean =
@@ -171,12 +172,17 @@ case class DaytimeQueueView(queue: DaytimeQueue, busySubsystems: Set[Subsystem])
       Encoder.AsObject,
       Decoder:
 
-  /** Busy subsystems this observation needs; empty when it is itself Running. */
+  /**
+   * Busy subsystems this observation needs; empty when it is itself Running. A Stopped one is what
+   * keeps its instrument busy, so its instrument does not block it.
+   */
   def obsBlockedBy(obsId: Observation.Id): Set[Subsystem] =
     queue.obs(obsId) match
-      case Some(o) if o.isRunning                     => Set.empty
-      case Some(DaytimeQueueItem.Obs(subsystems = s)) => s.intersect(busySubsystems)
-      case None                                       => Set.empty
+      case Some(o) if o.isRunning                          => Set.empty
+      case Some(o) if o.status === QueueItemStatus.Stopped =>
+        (o.subsystems - o.instrument).intersect(busySubsystems)
+      case Some(DaytimeQueueItem.Obs(subsystems = s))      => s.intersect(busySubsystems)
+      case None                                            => Set.empty
 
 object DaytimeQueueView:
   val Empty: DaytimeQueueView = DaytimeQueueView(DaytimeQueue.Empty, Set.empty)

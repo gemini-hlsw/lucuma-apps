@@ -2,6 +2,9 @@
   "name": "@gemini-hlsw/observe",
   "private": true,
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "4.0.0",
+    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "3.2.1",
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "3.0.0",
     "@floating-ui/react": "0.27.20",
     "@fontsource/lato": "5.3.0",
     "@fortawesome/fontawesome-svg-core": "7.3.1",
