@@ -20,6 +20,8 @@ import explore.model.display.given
 import explore.model.syntax.all.*
 import explore.render.*
 import explore.syntax.ui.*
+import explore.utils.dataObsId
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -216,7 +218,7 @@ object ObsBadge:
           icon = Icons.Trash,
           tooltip = "Delete",
           onClickE = e => e.preventDefaultCB *> e.stopPropagationCB *> props.deleteCB
-        ).small.unless(props.isDisabledExecuted)
+        ).withMods(testId := "explore-obs-badge-delete").small.unless(props.isDisabledExecuted)
 
       val duplicateButton =
         Button(
@@ -225,7 +227,7 @@ object ObsBadge:
           icon = Icons.Clone,
           tooltip = "Duplicate",
           onClickE = e => e.preventDefaultCB *> e.stopPropagationCB *> props.cloneCB.getOrEmpty
-        ).small.unless(props.isDisabled)
+        ).withMods(testId := "explore-obs-badge-duplicate").small.unless(props.isDisabled)
 
       val scienceBandIcon =
         LayeredIcon(fixedWidth = true)(
@@ -404,7 +406,12 @@ object ObsBadge:
 
       React.Fragment(
         <.div(
-          <.div(ExploreStyles.ObsBadge, ExploreStyles.ObsBadgeSelected.when(props.selected))(
+          <.div(
+            ExploreStyles.ObsBadge,
+            ExploreStyles.ObsBadgeSelected.when(props.selected),
+            testId    := "explore-obs-badge",
+            dataObsId := obs.id.show
+          )(
             header,
             meta,
             <.div(ExploreStyles.ObsBadgeDescription)(
@@ -423,7 +430,7 @@ object ObsBadge:
             <.div(ExploreStyles.ObsBadgeExtra)(
               <.div(ExploreStyles.ObsBadgeExtraStatus)(
                 props.setStateCB.map(setStatus =>
-                  <.span(ExploreStyles.ObsStateSelectWrapper)(
+                  <.span(ExploreStyles.ObsStateSelectWrapper, testId := "explore-obs-badge-state")(
                     EnumDropdownView(
                       id = NonEmptyString.unsafeFrom(s"obs-status-${obs.id}"),
                       value = View[ObservationWorkflowState](

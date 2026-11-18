@@ -61,6 +61,7 @@ Rules:
 The gpp-tests end-to-end suite locates elements through `data-testid` attributes,
 written as `testId := "explore-<area>-<element>"` (`testId` is in
 `explore/utils/package.scala`). Program table rows also carry `data-program-id`,
+obs tree cards carry `data-obs-id`,
 "Manage Programs" in the toolbar menu uses a plain menu item `id`, and the guest
 login button in `ui/lib` uses `ui-login-guest`. Find them all with
 `rg '"(explore|ui)-[a-z0-9-]+"' explore/app/src/main/scala ui/lib/src/main/scala`.
