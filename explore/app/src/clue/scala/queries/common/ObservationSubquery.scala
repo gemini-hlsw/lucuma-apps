@@ -80,5 +80,9 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           groupIndex
           reference { label }
           execution $ExecutionSubquery
+          qa {
+            computed
+            stateOverride: override
+          }
         }
       """

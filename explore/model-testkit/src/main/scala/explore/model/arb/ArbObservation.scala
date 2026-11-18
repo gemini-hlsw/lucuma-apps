@@ -12,6 +12,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.BlindOffset
 import explore.model.Execution
 import explore.model.Observation
+import explore.model.ObservationQa
 import explore.model.SchedulingConstraints
 import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
@@ -68,6 +69,7 @@ trait ArbObservation:
   import ArbScienceRequirements.given
   import ArbObservingMode.given
   import ArbAltairConfiguration.given
+  import ArbObservationQa.given
 
   given Arbitrary[Observation] =
     Arbitrary(
@@ -105,6 +107,7 @@ trait ArbObservation:
         cassRotator           <- arbitrary[CassRotator]
         explicitGuideProbe    <- arbitrary[Option[GuideProbe]]
         altair                <- arbitrary[Option[AltairConfiguration]]
+        qa                    <- arbitrary[ObservationQa]
       yield Observation(
         id,
         reference,
@@ -138,7 +141,8 @@ trait ArbObservation:
         blindOffset,
         cassRotator,
         explicitGuideProbe,
-        altair
+        altair,
+        qa
       )
     )
 
@@ -174,7 +178,8 @@ trait ArbObservation:
         BlindOffset,
         Option[GuideProbe],
         Option[AltairConfiguration],
-        Boolean
+        Boolean,
+        ObservationQa
        )
       )
     ]
@@ -209,7 +214,8 @@ trait ArbObservation:
           o.blindOffset,
           o.explicitGuideProbe,
           o.altair,
-          o.isUserDefinedTelluric.value
+          o.isUserDefinedTelluric.value,
+          o.qa
          )
         )
       )

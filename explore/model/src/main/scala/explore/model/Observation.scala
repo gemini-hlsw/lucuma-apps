@@ -107,7 +107,8 @@ final case class Observation(
   blindOffset:             BlindOffset,
   cassRotator:             CassRotator,
   explicitGuideProbe:      Option[GuideProbe],
-  altair:                  Option[AltairConfiguration]
+  altair:                  Option[AltairConfiguration],
+  qa:                      ObservationQa
 ) derives Eq:
   // Altair carries its own rotator setting, which wins over the observation's.
   def effectiveCassRotator: CassRotator =
@@ -675,6 +676,7 @@ object Observation:
     Focus[Observation](_.explicitGuideProbe)
   // None when the observation does not observe behind Altair.
   val altair: Lens[Observation, Option[AltairConfiguration]]    = Focus[Observation](_.altair)
+  val qa: Lens[Observation, ObservationQa]                      = Focus[Observation](_.qa)
 
   val guiding: Lens[Observation, GuidingConfiguration] =
     Lens[Observation, GuidingConfiguration](o =>
@@ -751,6 +753,7 @@ object Observation:
       cassRotator           <- targetEnv.get[CassRotator]("cassRotator")
       explicitGuideProbe    <- targetEnv.get[Option[GuideProbe]]("explicitGuideProbe")
       altair                <- targetEnv.get[Option[AltairConfiguration]]("altair")
+      qa                    <- c.get[ObservationQa]("qa")
     } yield Observation(
       id,
       reference.flatten,
@@ -787,6 +790,7 @@ object Observation:
       blindOffset,
       cassRotator,
       explicitGuideProbe,
-      altair
+      altair,
+      qa
     )
   )
