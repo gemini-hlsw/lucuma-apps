@@ -5,9 +5,9 @@ package explore.config.sequence.byInstrument
 
 import cats.effect.IO
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
-import explore.model.AttachmentList
 import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
@@ -38,7 +38,7 @@ final case class Flamingos2SequenceTable(
   remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
     List[Atom[Flamingos2DynamicConfig]]
   ],
-  attachments:          AttachmentList,
+  maskNames:            Map[Attachment.Id, NonEmptyString],
   columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
@@ -47,7 +47,7 @@ final case class Flamingos2SequenceTable(
     case ExecutionVisits.Flamingos2(visits) => visits
 
   override def maskName(attachmentId: Attachment.Id) =
-    attachments.get(attachmentId).flatMap(_.maskName)
+    maskNames.get(attachmentId)
 
 object Flamingos2SequenceTable
     extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](

@@ -52,9 +52,18 @@ private[config] object DaytimeFpuColumn:
     width:       Row => Option[String]
   )(view: Int => View[Option[Either[U, MaskDefinition]]]): ColDef.Type =
     cellColumn(FpuColumnId, "FPU", 150, withOptics): r =>
-      val value   = view(r._2)
-      val current = value.get
-      val loaded  = masks.flatMap(_.toOption).orEmpty
+      val value     = view(r._2)
+      val current   = value.get
+      val currentId = current.flatMap(_.toOption).collect { case Defined(id) => id }
+
+      // Uploads of the same mask are one choice; the selected upload represents its name.
+      val loaded: List[MosMask] =
+        masks
+          .flatMap(_.toOption)
+          .orEmpty
+          .sortBy(m => !currentId.contains(m.id))
+          .distinctBy(_.name)
+          .sortBy(_.name.value)
 
       def maskLabel(m: MaskDefinition): String =
         m match
@@ -62,7 +71,7 @@ private[config] object DaytimeFpuColumn:
           case Defined(id) =>
             loaded
               .find(_.id === id)
-              .fold(if masks.isDefined then s"Mask $id" else "Custom mask")(_.label)
+              .fold(if masks.isDefined then s"Mask $id" else "Custom mask")(_.name.value)
 
       val excluded: Set[U] = pinholes.excludedUnless(isStaff, current.flatMap(_.left.toOption))
 
@@ -82,7 +91,7 @@ private[config] object DaytimeFpuColumn:
           .toList
 
       val maskItems: List[SelectItem[Item[U]]] =
-        currentMask ++ loaded.map(m => SelectItem(Item.Mask(Defined(m.id)), m.label))
+        currentMask ++ loaded.map(m => SelectItem(Item.Mask(Defined(m.id)), m.name.value))
 
       val options: List[SelectItem[Item[U]]] =
         builtins ++

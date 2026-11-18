@@ -8,13 +8,13 @@ import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.components.*
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.sequence.byInstrument.*
 import explore.model.AppContext
-import explore.model.AttachmentList
 import explore.model.DismissedWarnings
 import explore.model.Execution
 import explore.model.IsActive
@@ -31,6 +31,7 @@ import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.SequenceType
+import lucuma.core.model.Attachment
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
@@ -74,7 +75,7 @@ final case class SequenceTile(
   dismissedWarnings:       DismissedWarnings,
   obsIsExecuted:           Boolean,
   readonly:                Boolean,
-  attachments:             AttachmentList
+  maskNames:               Map[Attachment.Id, NonEmptyString]
 ) extends Tile[SequenceTile](
       ObsTabTileIds.SequenceId.id,
       <.span(
@@ -306,7 +307,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms),
-                                  props.attachments,
+                                  props.maskNames,
                                   columnProfile
                                 )
                               case ModeSignalToNoise.GmosNorthImaging(itcPerFilter)         =>
@@ -345,7 +346,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms),
-                                  props.attachments,
+                                  props.maskNames,
                                   columnProfile
                                 )
                               case _                                                        => mismatchError
@@ -379,7 +380,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceGmosSouthSequence(props.obsId, seqType, atoms),
-                                  props.attachments,
+                                  props.maskNames,
                                   columnProfile
                                 )
                               case ModeSignalToNoise.GmosSouthImaging(itcPerFilter)         =>
@@ -418,7 +419,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceGmosSouthSequence(props.obsId, seqType, atoms),
-                                  props.attachments,
+                                  props.maskNames,
                                   columnProfile
                                 )
                               case _                                                        => mismatchError
@@ -452,7 +453,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceFlamingos2Sequence(props.obsId, seqType, atoms),
-                                  props.attachments,
+                                  props.maskNames,
                                   columnProfile
                                 )
                               case ModeSignalToNoise.Flamingos2Imaging(itcPerFilter)        =>
@@ -490,7 +491,7 @@ object SequenceTile
                                     atoms =>
                                       ctx.odbApi
                                         .replaceFlamingos2Sequence(props.obsId, seqType, atoms),
-                                  props.attachments,
+                                  props.maskNames,
                                   columnProfile
                                 )
                               case _                                                        => mismatchError
