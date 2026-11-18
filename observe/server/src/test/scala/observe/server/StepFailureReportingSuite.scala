@@ -144,12 +144,16 @@ class StepFailureReportingSuite extends TestCommon {
       sendAndSelect(cmd)(_.find(until))
 
     /**
-     * Waits for the sequence to finish a new run. Trailing states of a previous run can still
-     * arrive after the command, so finished states are skipped until the sequence leaves them.
+     * Waits for the sequence to finish a new run, with no action of its step left running. Trailing
+     * states of a previous run can still arrive after the command, so finished states are skipped
+     * until the sequence leaves them. Waiting for the actions matters because the engine refuses a
+     * new start while any of them still runs.
      */
     def sendAndAwaitFinished(cmd: ObserveEngine[IO] => IO[Unit]): IO[EngineState[IO]] =
       val finished: EngineState[IO] => Boolean = sequenceStatus(_).exists(isFinished)
-      sendAndSelect(cmd)(_.dropWhile(finished).find(finished))
+      val settled: EngineState[IO] => Boolean  =
+        _.sequences.get(seqObsId1).forall(sd => !ObserveEngine.isBusy(sd))
+      sendAndSelect(cmd)(_.dropWhile(finished).find(st => finished(st) && settled(st)))
 
   private def withRunningEngine[A](
     gmos: GmosNorthController[IO],
