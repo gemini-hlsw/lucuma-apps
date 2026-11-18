@@ -6,12 +6,16 @@ package explore.config
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
+import crystal.Pot
 import crystal.react.View
 import crystal.react.syntax.all.*
+import explore.Icons
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.DaytimeCalibrationSets
+import explore.model.MosMask
+import explore.model.MosMasks
 import explore.model.ObsTabTileIds
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -25,6 +29,8 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Button
+import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.DaytimeCalibrationSet
@@ -32,6 +38,7 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
+import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
 import monocle.Optional
@@ -49,8 +56,11 @@ final case class DaytimeConfigurationTile(
   executionTime:           CalculatedValue[Option[TimeSpan]],
   hasMaterializedSequence: Boolean,
   readonly:                Boolean,
+  isStaff:                 Boolean,
+  mosMasks:                View[MosMasks],
   units:                   WavelengthUnits,
-  sequenceChanged:         Callback
+  sequenceChanged:         Callback,
+  sequenceUnchanged:       Callback
 ) extends Tile[DaytimeConfigurationTile](
       ObsTabTileIds.DaytimeConfigurationId.id,
       "Daytime Calibration",
@@ -68,15 +78,18 @@ object DaytimeConfigurationTile
         // Every edit replaces the whole mode in the ODB, which also replaces the set list.  The
         // sequence is marked as changed before the mutation: the edit event it produces refreshes
         // the sequence, and the tile only leaves its spinner on a refresh that follows the mark.
-        def remoteUpdate(d: ObservingMode.DaytimeCalibration): IO[Unit] =
-          props.sequenceChanged.toAsync >>
-            ctx.odbApi
-              .updateObservations(
-                List(props.obsId),
-                ObservationPropertiesInput(observingMode =
-                  ObservingModeInput.DaytimeCalibration(d.toInput).assign
-                )
-              )
+        // A rejected edit, such as an unusable mask, is reported and undone locally; no edit event
+        // follows, so the mark is cleared.
+        def remoteUpdate(
+          old: ObservingMode.DaytimeCalibration,
+          d:   ObservingMode.DaytimeCalibration
+        ): IO[Unit] =
+          (props.sequenceChanged.toAsync >>
+            ctx.odbApi.updateDaytimeCalibration(props.obsId, d.toInput))
+            .handleErrorWith: e =>
+              ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
+                (props.mode.model.zoom(daytimeOptional).set(old) >>
+                  props.sequenceUnchanged).toAsync
 
         val daytimeView: Option[View[ObservingMode.DaytimeCalibration]] =
           props.mode
@@ -88,7 +101,7 @@ object DaytimeConfigurationTile
                   undo.mod[ObservingMode.DaytimeCalibration](
                     identity,
                     n => _ => n,
-                    (old, n) => remoteUpdate(n) >> cb(old, n).toAsync
+                    (old, n) => remoteUpdate(old, n) >> cb(old, n).toAsync
                   )(f)
               )
 
@@ -115,16 +128,21 @@ object DaytimeConfigurationTile
                 View(ObservingMode.DaytimeCalibration(i, Nil), (_, _) => Callback.empty),
                 editable = false,
                 hasMaterializedSequence = props.hasMaterializedSequence,
+                isStaff = props.isStaff,
+                mosMasks = props.mosMasks,
                 units = props.units,
                 loading = true
               )
 
         val body: TagMod =
           daytimeView.fold(placeholder): view =>
-            DaytimeCalibrationEditor(view,
-                                     props.editable,
-                                     props.hasMaterializedSequence,
-                                     props.units
+            DaytimeCalibrationEditor(
+              view,
+              props.editable,
+              props.hasMaterializedSequence,
+              props.isStaff,
+              props.mosMasks,
+              props.units
             )
 
         TileContents(title, body, heightSettled = !props.modePending)
@@ -135,6 +153,8 @@ case class DaytimeCalibrationEditor(
   daytime:                 View[ObservingMode.DaytimeCalibration],
   editable:                Boolean,
   hasMaterializedSequence: Boolean,
+  isStaff:                 Boolean,
+  mosMasks:                View[MosMasks],
   units:                   WavelengthUnits,
   loading:                 Boolean = false
 ) extends ReactFnProps(DaytimeCalibrationEditor.component)
@@ -146,48 +166,99 @@ object DaytimeCalibrationEditor:
   private val component =
     ScalaFnComponent[DaytimeCalibrationEditor]: props =>
       val instrument: Instrument = props.daytime.get.calibrationInstrument
+      val offersMasks: Boolean   =
+        props.isStaff && DaytimeCalibrationSets.MaskInstruments.contains(instrument)
 
-      // Switching instrument clears the rows, as one undo step with the instrument.
-      val instrumentView: View[Instrument] =
-        props.daytime.zoom(_.calibrationInstrument): f =>
-          d =>
-            val i = f(d.calibrationInstrument)
-            if i === d.calibrationInstrument then d
-            else ObservingMode.DaytimeCalibration(i, Nil)
+      val masksView: View[Pot[List[MosMask]]] =
+        props.mosMasks.zoom(_.getOrElse(instrument, Pot.pending)): f =>
+          m => m.updated(instrument, f(m.getOrElse(instrument, Pot.pending)))
 
-      val setsView: View[List[DaytimeCalibrationSet]] =
-        props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
+      for
+        ctx <- useContext(AppContext.ctx)
+        _   <- useEffectWithDeps((instrument, offersMasks)): (instrument, offersMasks) =>
+                 import ctx.given
 
-      val table: VdomNode =
-        if DaytimeCalibrationSets.supports(instrument) then
-          DaytimeCalibrationSetsTable(instrument,
-                                      setsView,
-                                      props.editable,
-                                      props.units,
-                                      props.loading
-          )
-        else
+                 val load: IO[Unit] =
+                   ctx.odbApi
+                     .mosMasks(instrument)
+                     .attempt
+                     .flatMap: r =>
+                       masksView.async.set(r.fold(Pot.Error(_), Pot.Ready(_)))
+                 (masksView.set(Pot.pending) >> load.runAsync)
+                   .when_(offersMasks && !props.mosMasks.get.contains(instrument))
+      yield
+        import ctx.given
+
+        def reload: Callback =
+          masksView.set(Pot.pending) >>
+            ctx.odbApi
+              .mosMasks(instrument)
+              .attempt
+              .flatMap(r => masksView.async.set(r.fold(Pot.Error(_), Pot.Ready(_))))
+              .runAsync
+
+        // Switching instrument clears the rows, as one undo step with the instrument.
+        val instrumentView: View[Instrument] =
+          props.daytime.zoom(_.calibrationInstrument): f =>
+            d =>
+              val i = f(d.calibrationInstrument)
+              if i === d.calibrationInstrument then d
+              else ObservingMode.DaytimeCalibration(i, Nil)
+
+        val setsView: View[List[DaytimeCalibrationSet]] =
+          props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
+
+        val table: VdomNode =
+          if DaytimeCalibrationSets.supports(instrument) then
+            DaytimeCalibrationSetsTable(
+              instrument,
+              setsView,
+              props.editable,
+              props.isStaff,
+              Option.when(offersMasks)(masksView.get),
+              props.units,
+              props.loading
+            )
+          else
+            <.div(
+              ExploreStyles.DaytimeCalMessage,
+              s"Calibration sets are only supported for ${DaytimeCalibrationSets.Instruments
+                  .map(_.longName)
+                  .mkString(", ")}."
+            )
+
+        val masksStatus: VdomNode =
+          masksView.get match
+            case Pot.Ready(l) => s"${l.length} masks"
+            case Pot.Pending  => "Loading masks..."
+            case Pot.Error(e) => s"Masks could not be loaded: ${e.getMessage}"
+
+        <.div(
+          <.div(
+            ExploreStyles.DaytimeCalInstrument,
+            <.label("Instrument:", ^.htmlFor := "daytime-cal-instrument"),
+            EnumDropdownView(
+              id = "daytime-cal-instrument".refined,
+              value = instrumentView,
+              exclude = UnsupportedInstruments - instrument,
+              disabled = !props.editable
+            ).withMods(testId     := "explore-daytime-cal-instrument"),
+            React
+              .Fragment(
+                <.span(ExploreStyles.DaytimeCalMessage, masksStatus),
+                Button(
+                  icon = Icons.ArrowsRotate,
+                  text = true,
+                  tooltip = "Reload the masks of every program",
+                  disabled = masksView.get.isPending,
+                  onClick = reload
+                ).tiny.compact
+              )
+              .when(offersMasks)
+          ),
           <.div(
             ExploreStyles.DaytimeCalMessage,
-            s"Calibration sets are only supported for ${DaytimeCalibrationSets.Instruments
-                .map(_.longName)
-                .mkString(", ")}."
-          )
-
-      <.div(
-        <.div(
-          ExploreStyles.DaytimeCalInstrument,
-          <.label("Instrument:", ^.htmlFor := "daytime-cal-instrument"),
-          EnumDropdownView(
-            id = "daytime-cal-instrument".refined,
-            value = instrumentView,
-            exclude = UnsupportedInstruments - instrument,
-            disabled = !props.editable
-          ).withMods(testId     := "explore-daytime-cal-instrument")
-        ),
-        <.div(
-          ExploreStyles.DaytimeCalMessage,
-          "The sequence is materialized, calibration sets can no longer be edited."
-        ).when(props.hasMaterializedSequence),
-        table
-      )
+            "The sequence is materialized, calibration sets can no longer be edited."
+          ).when(props.hasMaterializedSequence),
+          table
+        )

@@ -87,6 +87,22 @@ trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
               .adaptError(adaptResponseException)
               .onError(logErrorAndResetCache(_))
 
+    // Errors that are all matched by `keep` are raised without resetting the cache, the caller
+    // reports them; any other error resets it as usual.
+    protected def processErrorsKeepingCache(keep: PartialFunction[OdbError, Unit]): F[D] =
+      fa.flatMap: response =>
+        (response.errors, response.data) match
+          case (None, Some(d))                                                              =>
+            d.pure
+          case (Some(errors), data) if errors.forall(_.asOdbError.exists(keep.isDefinedAt)) =>
+            F.raiseError[D](ResponseException(errors, data)).adaptError(adaptResponseException)
+          case (Some(errors), data)                                                         =>
+            F.raiseError[D](ResponseException(errors, data))
+              .adaptError(adaptResponseException)
+              .onError(logErrorAndResetCache(_))
+          case (None, None)                                                                 =>
+            F.raiseError[D](new RuntimeException("No data and no errors in GraphQL response"))
+
     protected def processErrorsIgnoring(
       ignore: PartialFunction[OdbError, Unit]
     ): F[D] =

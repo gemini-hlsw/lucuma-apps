@@ -12,6 +12,7 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
+import lucuma.core.model.MaskDefinition
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -51,6 +52,7 @@ trait GmosDaytimeSetup[D, G, F, U]:
   val roi: Lens[D, GmosRoi]
   val filter: Lens[D, Option[F]]
   val setup: Optional[DaytimeCalibrationSetup, D]
+  val pinholes: Set[U]
   protected val gratingConfig: Lens[D, Option[GratingConfig]]
   protected val configGrating: Lens[GratingConfig, G]
   protected val configWavelength: Lens[GratingConfig, Wavelength]
@@ -87,9 +89,21 @@ trait GmosDaytimeSetup[D, G, F, U]:
     Lens[D, Option[Wavelength]](gratingConfig.get(_).map(configWavelength.get)): w =>
       gratingConfig.modify(c => (c, w).mapN((c, w) => configWavelength.replace(w)(c)))
 
-  lazy val fpu: Lens[D, Option[U]] =
-    Lens[D, Option[U]](fpuMask.get(_).flatMap(_.builtinFpu)): u =>
-      fpuMask.replace(u.map(GmosFpuMask.Builtin(_)))
+  /**
+   * A builtin FPU on the left, a custom mask on the right. A newly picked mask keeps the current
+   * slit width, or a placeholder: the ODB takes the width from the mask when the set is saved.
+   */
+  lazy val fpu: Lens[D, Option[Either[U, MaskDefinition]]] =
+    Lens[D, Option[Either[U, MaskDefinition]]](
+      fpuMask.get(_).map(_.fold(_.value.asLeft, _.mask.asRight))
+    ): v =>
+      d =>
+        val width =
+          fpuMask.get(d).flatMap(_.customSlitWidth).getOrElse(GmosCustomSlitWidth.CustomWidth_1_00)
+        fpuMask.replace(v.map(_.fold(GmosFpuMask.Builtin(_), GmosFpuMask.Custom(_, width))))(d)
+
+  def customSlitWidth(d: D): Option[GmosCustomSlitWidth] =
+    fpuMask.get(d).flatMap(_.customSlitWidth)
 
   def centralWavelength(d: D): Option[Wavelength] =
     gratingConfig.get(d).map(configWavelength.get).orElse(filter.get(d).map(filterWavelength))
@@ -123,6 +137,7 @@ object GmosDaytimeSetup:
       val configGrating    = GmosGratingConfig.North.grating
       val configWavelength = GmosGratingConfig.North.wavelength
       val fpuMask          = DynamicConfig.GmosNorth.fpu
+      val pinholes         = Set(GmosNorthFpu.Pinhole)
 
       def mkGratingConfig(
         grating:    GmosNorthGrating,
@@ -162,6 +177,7 @@ object GmosDaytimeSetup:
       val configGrating    = GmosGratingConfig.South.grating
       val configWavelength = GmosGratingConfig.South.wavelength
       val fpuMask          = DynamicConfig.GmosSouth.fpu
+      val pinholes         = Set(GmosSouthFpu.Pinhole)
 
       def mkGratingConfig(
         grating:    GmosSouthGrating,
@@ -213,18 +229,24 @@ object Flamingos2DaytimeSetup:
           )
 
   /**
-   * No FPU is imaging, with no mask in the beam, or a custom mask, which is kept. Picking an FPU
-   * also picks the decker it needs.
+   * A builtin FPU on the left, a custom mask on the right, none for imaging. Picking one also picks
+   * the decker it needs. A newly picked mask keeps the current slit width, or a placeholder: the
+   * ODB takes the width from the mask when the set is saved.
    */
-  val fpu: Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]] =
-    Lens[Flamingos2DynamicConfig, Option[Flamingos2Fpu]](_.fpu.builtinFpu): u =>
+  val fpu: Lens[Flamingos2DynamicConfig, Option[Either[Flamingos2Fpu, MaskDefinition]]] =
+    Lens[Flamingos2DynamicConfig, Option[Either[Flamingos2Fpu, MaskDefinition]]](
+      _.fpu.fold(none, _.value.asLeft.some, _.mask.asRight.some)
+    ): v =>
       d =>
-        (u, d.fpu) match
-          case (Some(f), _)                           =>
-            d.copy(fpu = Flamingos2FpuMask.Builtin(f), decker = f.decker)
-          case (None, Flamingos2FpuMask.Custom(_, _)) => d
-          case (None, _)                              =>
+        v match
+          case None           =>
             d.copy(fpu = Flamingos2FpuMask.Imaging, decker = Flamingos2Decker.Imaging)
+          case Some(Left(f))  =>
+            d.copy(fpu = Flamingos2FpuMask.Builtin(f), decker = f.decker)
+          case Some(Right(m)) =>
+            val width =
+              d.fpu.customSlitWidth.getOrElse(Flamingos2CustomSlitWidth.CustomWidth_2_pix)
+            d.copy(fpu = Flamingos2FpuMask.Custom(m, width), decker = Flamingos2Decker.MOS)
 
   /**
    * Flamingos 2 can't drop its optics, so a new kind without them gets the default ones. The window
@@ -539,6 +561,10 @@ object DaytimeCalibrationSets:
       Instrument.Gnirs,
       Instrument.Ghost
     )
+
+  /** The instruments whose calibration sets may borrow a MOS mask. */
+  val MaskInstruments: Set[Instrument] =
+    Set(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2)
 
   /** The diffuser the ODB defaults to: visible for GMOS, IR for the infrared instruments. */
   def defaultDiffuser(instrument: Instrument): GcalDiffuser =

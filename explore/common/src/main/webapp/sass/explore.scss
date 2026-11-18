@@ -2281,6 +2281,17 @@ svg.fa-check.explore-success-icon {
   color: var(--text-color-secondary);
 }
 
+.explore-daytime-cal-fpu {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+
+  > .p-dropdown {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .explore-configuration-loading-message {
   padding: 0.5em;
   color: var(--text-color-secondary);

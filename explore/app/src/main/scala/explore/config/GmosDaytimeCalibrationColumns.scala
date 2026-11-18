@@ -4,10 +4,12 @@
 package explore.config
 
 import cats.syntax.all.*
+import crystal.Pot
 import crystal.react.View
 import explore.config.DaytimeCalibrationSetsTable.*
 import explore.model.DaytimeCalibrationSets.*
 import explore.model.GmosDaytimeSetup
+import explore.model.MosMask
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import lucuma.core.util.Display
@@ -29,6 +31,8 @@ private[config] object GmosDaytimeCalibrationColumns:
     site:     GmosDaytimeSetup[D, G, F, U],
     setsView: View[List[DaytimeCalibrationSet]],
     editable: Boolean,
+    isStaff:  Boolean,
+    masks:    Option[Pot[List[MosMask]]],
     units:    WavelengthUnits
   ): List[ColDef.Type] =
     val setup: Int => View[D] = setupView(setsView, site.setup, site.default)
@@ -39,9 +43,14 @@ private[config] object GmosDaytimeCalibrationColumns:
       editable,
       List(
         exposureColumn(editable)(setup(_).zoom(site.exposure)),
-        optionalDropdownColumn(FpuColumnId, "FPU", 110, editable, _ => "None", show = withOptics)(
-          setup(_).zoom(site.fpu)
-        ),
+        DaytimeFpuColumn(
+          editable,
+          isStaff,
+          masks,
+          site.pinholes,
+          _ => "None",
+          r => site.customSlitWidth(setup(r._2).get).map(_.shortName)
+        )(setup(_).zoom(site.fpu)),
         optionalDropdownColumn(
           GratingColumnId,
           "Grating",

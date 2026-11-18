@@ -8,8 +8,10 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import clue.StreamingClient
 import clue.data.syntax.*
+import clue.syntax.*
 import explore.model.ConfigurationRequest
 import explore.model.ImagingInstruments
+import explore.model.MosMask
 import explore.model.SpectroscopyInstruments
 import explore.modes.AltairModeRows
 import explore.modes.ImagingModeRow
@@ -17,11 +19,14 @@ import explore.modes.ImagingModesMatrix
 import explore.modes.ScienceModes
 import explore.modes.SpectroscopyModeRow
 import explore.modes.SpectroscopyModesMatrix
+import lucuma.core.enums.Instrument
+import lucuma.core.model.Attachment
 import lucuma.core.model.Program
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.ConfigurationRequestEditInput
 import lucuma.schemas.odb.drain
 import queries.common.ModesQueriesGQL
+import queries.common.MosMaskQueriesGQL
 import queries.common.ProgramQueriesGQL.ConfigurationRequestSubscription
 import queries.common.ProgramSummaryQueriesGQL.AllProgramConfigurationRequests
 
@@ -65,6 +70,21 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
       _.fold(false)(_.hasMore),
       _.id
     )
+
+  def mosMasks(instrument: Instrument): F[List[MosMask]] =
+    drain(
+      (offset: Option[Attachment.Id]) =>
+        MosMaskQueriesGQL
+          .MosMasks[F]
+          .query(instrument, offset.orUnassign)
+          .raiseGraphQLErrors
+          .map(_.mosMasks),
+      _.matches,
+      _.hasMore,
+      _.id
+    ).map:
+      _.flatMap: m =>
+        m.mask.map(k => MosMask(m.id, k.name, m.program.id, m.program.reference))
 
   def programConfigurationRequestsDeltaSubscription(
     programId: Program.Id

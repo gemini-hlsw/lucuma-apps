@@ -109,6 +109,7 @@ case class ObsTabTiles(
   programId:         Program.Id,
   programType:       ProgramType,
   modes:             ScienceModes,
+  mosMasks:          View[MosMasks],
   backButton:        VdomNode,
   observation:       UndoSetter[Observation],
   obsAndTargets:     UndoSetter[ObservationsAndTargets],
@@ -972,8 +973,11 @@ object ObsTabTiles:
                 props.observation.get.execution.digest.fullTimeEstimate,
                 props.observation.get.hasMaterializedSequence,
                 props.readonly || props.daytimeCalIsReadonly,
+                props.isStaffOrAdminUser,
+                props.mosMasks,
                 globalPreferences.get.wavelengthUnits,
-                sequenceChanged.set(pending)
+                sequenceChanged.set(pending),
+                sequenceChanged.set(().ready)
               )
             ),
             itcTile

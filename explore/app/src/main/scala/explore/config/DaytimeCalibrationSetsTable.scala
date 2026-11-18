@@ -7,6 +7,7 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.syntax.all.*
+import crystal.Pot
 import crystal.react.View
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
@@ -15,6 +16,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.DaytimeCalibrationSets
 import explore.model.GmosDaytimeSetup
+import explore.model.MosMask
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats
@@ -61,6 +63,8 @@ case class DaytimeCalibrationSetsTable(
   instrument: Instrument,
   setsView:   View[List[DaytimeCalibrationSet]],
   editable:   Boolean,
+  isStaff:    Boolean,
+  masks:      Option[Pot[List[MosMask]]],
   units:      WavelengthUnits,
   loading:    Boolean = false
 ) extends ReactFnProps(DaytimeCalibrationSetsTable.component)
@@ -68,7 +72,8 @@ case class DaytimeCalibrationSetsTable(
 object DaytimeCalibrationSetsTable:
   import DaytimeCalibrationSets.*
 
-  private given Reusability[DaytimeCalibrationSet] = Reusability.byEq
+  private given Reusability[DaytimeCalibrationSet]      = Reusability.byEq
+  private given Reusability[Option[Pot[List[MosMask]]]] = Reusability.byEq
 
   private[config] type Row = (DaytimeCalibrationSet, Int)
 
@@ -171,7 +176,7 @@ object DaytimeCalibrationSetsTable:
   private[config] val withOptics: Row => Boolean   = r => usesOptics(r._1.kind)
   private[config] val withExposure: Row => Boolean = r => usesExposure(r._1.kind)
 
-  private def cellColumn(id: ColumnId, header: String, size: Int, show: Row => Boolean)(
+  private[config] def cellColumn(id: ColumnId, header: String, size: Int, show: Row => Boolean)(
     content: Row => VdomNode
   ): ColDef.Type =
     ColDef(
@@ -404,30 +409,48 @@ object DaytimeCalibrationSetsTable:
       for
         rows     <- useMemo(props.setsView.get)(_.zipWithIndex)
         // The cells close over the views, so the columns follow every change of the list.
-        cols     <- useMemo((props.instrument, props.setsView.get, props.editable, props.units)):
-                      (instrument, _, editable, units) =>
-                        instrument match
-                          case Instrument.GmosNorth  =>
-                            GmosDaytimeCalibrationColumns(GmosDaytimeSetup.north,
-                                                          props.setsView,
-                                                          editable,
-                                                          units
-                            )
-                          case Instrument.GmosSouth  =>
-                            GmosDaytimeCalibrationColumns(GmosDaytimeSetup.south,
-                                                          props.setsView,
-                                                          editable,
-                                                          units
-                            )
-                          case Instrument.Flamingos2 =>
-                            Flamingos2DaytimeCalibrationColumns(props.setsView, editable)
-                          case Instrument.Gnirs      =>
-                            GnirsDaytimeCalibrationColumns(props.setsView, editable, units)
-                          case Instrument.Ghost      =>
-                            GhostDaytimeCalibrationColumns(props.setsView, editable)
-                          case Instrument.Igrins2    =>
-                            Igrins2DaytimeCalibrationColumns(props.setsView, editable)
-                          case _                     => Nil
+        cols     <- useMemo(
+                      (props.instrument,
+                       props.setsView.get,
+                       props.editable,
+                       props.isStaff,
+                       props.masks,
+                       props.units
+                      )
+                    ): (instrument, _, editable, isStaff, masks, units) =>
+                      instrument match
+                        case Instrument.GmosNorth  =>
+                          GmosDaytimeCalibrationColumns(
+                            GmosDaytimeSetup.north,
+                            props.setsView,
+                            editable,
+                            isStaff,
+                            masks,
+                            units
+                          )
+                        case Instrument.GmosSouth  =>
+                          GmosDaytimeCalibrationColumns(
+                            GmosDaytimeSetup.south,
+                            props.setsView,
+                            editable,
+                            isStaff,
+                            masks,
+                            units
+                          )
+                        case Instrument.Flamingos2 =>
+                          Flamingos2DaytimeCalibrationColumns(
+                            props.setsView,
+                            editable,
+                            isStaff,
+                            masks
+                          )
+                        case Instrument.Gnirs      =>
+                          GnirsDaytimeCalibrationColumns(props.setsView, editable, units)
+                        case Instrument.Ghost      =>
+                          GhostDaytimeCalibrationColumns(props.setsView, editable)
+                        case Instrument.Igrins2    =>
+                          Igrins2DaytimeCalibrationColumns(props.setsView, editable)
+                        case _                     => Nil
         table    <- useReactTable:
                       TableOptions(
                         cols,

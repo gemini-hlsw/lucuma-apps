@@ -100,7 +100,7 @@ object Flamingos2MosConfigPanel
             ObservingMode.Flamingos2CustomMask.slitWidth,
             Flamingos2CustomMaskInput.slitWidth.modify
           )
-          .view(identity)
+          .view(_.assign)
 
         // The custom slit width nearest to the mask's average science slit width, in f/16 pixels.
         def maskSlitWidth(id: Attachment.Id): Option[Flamingos2CustomSlitWidth] =
