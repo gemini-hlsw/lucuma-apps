@@ -297,7 +297,7 @@ object ObsList
               onGlobalFilterChange = props.obsListGlobalFilter.handleTableUpdate,
               onColumnFiltersChange = props.obsListColumnFilters.handleTableUpdate
             )
-      yield <.div(
+      yield <.div(ObserveStyles.ObsList)(
         <.span(
           DebouncedInputText(
             id = "obs-filter".refined,
@@ -307,31 +307,33 @@ object ObsList
             placeholder = "<Keyword filter>"
           )
         ),
-        PrimeAutoHeightVirtualizedTable(
-          table,
-          estimateSize = _ => 30.toPx,
-          tableMod = ObserveStyles.ObserveTable |+| ObserveStyles.ObsListTable,
-          columnFilterRenderer = FilterMethod.render,
-          rowMod = rowTagMod: row =>
-            TagMod(
-              rowClass(
-                props.fullyLoadedObss.get(row.original.obsId),
-                row.original,
-                props.fullyLoadedObss.keySet
+        <.div(ObserveStyles.ObsListTableArea)(
+          PrimeAutoHeightVirtualizedTable(
+            table,
+            estimateSize = _ => 30.toPx,
+            tableMod = ObserveStyles.ObserveTable |+| ObserveStyles.ObsListTable,
+            columnFilterRenderer = FilterMethod.render,
+            rowMod = rowTagMod: row =>
+              TagMod(
+                rowClass(
+                  props.fullyLoadedObss.get(row.original.obsId),
+                  row.original,
+                  props.fullyLoadedObss.keySet
+                ),
+                ^.onDoubleClick --> props
+                  .loadObs(row.original.obsId)
+                  .unless_(
+                    props.fullyLoadedObss.contains(row.original.obsId) ||
+                      props.obsIsProcessing(row.original.obsId)
+                  )
               ),
-              ^.onDoubleClick --> props
-                .loadObs(row.original.obsId)
-                .unless_(
-                  props.fullyLoadedObss.contains(row.original.obsId) ||
-                    props.obsIsProcessing(row.original.obsId)
-                )
-            ),
-          cellMod = cellTagMod: cell =>
-            cell.column.id match
-              case StatusIconColumnId => ObserveStyles.LoadButtonCell
-              case _                  => TagMod.empty
-          ,
-          overscan = 5
+            cellMod = cellTagMod: cell =>
+              cell.column.id match
+                case StatusIconColumnId => ObserveStyles.LoadButtonCell
+                case _                  => TagMod.empty
+            ,
+            overscan = 5
+          )
         )
       )
     )

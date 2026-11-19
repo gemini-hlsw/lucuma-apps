@@ -1431,6 +1431,19 @@ body {
   margin-right: 0.5em;
 }
 
+// The filter sits above the table, which takes only the height that is left.
+.observe-obs-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.observe-obs-list-table-area {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 .observe-daytime-queue-tab {
   display: flex;
   flex-direction: column;

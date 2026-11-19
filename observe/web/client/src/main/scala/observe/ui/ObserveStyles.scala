@@ -48,11 +48,13 @@ object ObserveStyles:
   val AcquisitionPromptMain: Css = Css("observe-acquisition-prompt-main")
   val AcquisitionPromptBusy: Css = Css("observe-acquisition-prompt-busy")
 
-  val ObsListTable: Css    = Css("observe-obs-list-table")
-  val LoadButtonCell: Css  = Css("observe-load-button-cell")
-  val LoadButton: Css      = Css("observe-load-button")
-  val LoadButtonGroup: Css = Css("observe-load-button-group")
-  val InQueueIcon: Css     = Css("observe-in-queue-icon")
+  val ObsList: Css          = Css("observe-obs-list")
+  val ObsListTableArea: Css = Css("observe-obs-list-table-area")
+  val ObsListTable: Css     = Css("observe-obs-list-table")
+  val LoadButtonCell: Css   = Css("observe-load-button-cell")
+  val LoadButton: Css       = Css("observe-load-button")
+  val LoadButtonGroup: Css  = Css("observe-load-button-group")
+  val InQueueIcon: Css      =Css("observe-in-queue-icon")
 
   val DaytimeQueueTab: Css           = Css("observe-daytime-queue-tab")
   val DaytimeQueueControls: Css      = Css("observe-daytime-queue-controls")
