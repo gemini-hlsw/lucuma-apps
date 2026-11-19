@@ -37,6 +37,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
+import lucuma.core.enums.Instrument
+import lucuma.core.geom.flamingos2.flamingos2SlitWidthPixels
 import lucuma.core.math.Angle
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -307,10 +309,15 @@ object AttachmentsTile
           column(
             AttachmentTypeColumnId,
             a =>
+              // F2 slit widths are chosen in pixels, so show those too.
               val width =
-                a.maskSlitWidth.foldMap(w => f", ${Angle.signedDecimalArcseconds.get(w)}%.2f″")
+                a.maskSlitWidth.foldMap: w =>
+                  val arcsec = f", ${Angle.signedDecimalArcseconds.get(w)}%.2f″"
+                  if a.maskInstrument.contains(Instrument.Flamingos2) then
+                    arcsec + f" / ${flamingos2SlitWidthPixels(w).value}%.1f px"
+                  else arcsec
               a.attachmentType.shortName + a.maskInstrument.foldMap(i => s" (${i.shortName}$width)")
-          ).withSize(220.toPx),
+          ).withSize(250.toPx),
           column(SizeColumnId, Attachment.fileSize.get)
             .withCell(cell =>
               // The fileSize will always be > 0, the api should be changed to reflect this
