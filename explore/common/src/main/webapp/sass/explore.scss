@@ -5372,6 +5372,27 @@ span.explore-offsets-count {
   align-items: center;
 }
 
+// Virtualized list of offset rows, spanning the parent form's label and field columns. Its height
+// is set inline. The rows go in an inner element whose padding stands in for the rows that aren't
+// rendered. The rows have their own columns rather than the form's (subgrid), so that the field
+// column shrinks to make room for a vertical scrollbar that takes up space (e.g. in Firefox).
+.telescope-config-list {
+  grid-column: 1 / -1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.telescope-config-list-rows {
+  display: grid;
+  grid-template-columns: [label] auto [field] minmax(0, 1fr);
+  gap: 0 1em;
+  align-items: center;
+}
+
+.telescope-config-list-item {
+  display: contents;
+}
+
 .telescope-config-toggle-button.pl-form-field {
   height: 22px;
   margin-left: 2px;
