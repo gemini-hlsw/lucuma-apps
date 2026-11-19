@@ -426,7 +426,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .query(obsId)
       .processErrors
       .map:
-        _.observation.flatMap(_.attachments.find(_.id === attachmentId).flatMap(_.mask))
+        _.observation.flatMap(_.program.attachments.find(_.id === attachmentId).flatMap(_.mask))
 
   def createConfigurationRequest(
     obsId:         Observation.Id,

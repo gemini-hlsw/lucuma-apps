@@ -190,9 +190,11 @@ object ObsQueriesGQL:
     val document = gql"""
       query($$obsId: ObservationId!) {
         observation(observationId: $$obsId) {
-          attachments {
-            id
-            mask $MaskDesignSubquery
+          program {
+            attachments {
+              id
+              mask $MaskDesignSubquery
+            }
           }
         }
       }
