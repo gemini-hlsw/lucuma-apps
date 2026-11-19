@@ -3,12 +3,14 @@
 
 package lucuma.ui.visualization
 
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.probeBands
 import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
+import lucuma.core.model.Target
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.ui.LucumaIcons
@@ -16,7 +18,10 @@ import lucuma.ui.syntax.all.given
 
 import scala.scalajs.LinkingInfo
 
-case class GuideStarTooltip(analysis: AgsAnalysis.Usable) extends ReactFnProps(GuideStarTooltip)
+case class GuideStarTooltip(
+  analysis:           AgsAnalysis.Usable,
+  scienceTargetNames: Map[Target.Id, NonEmptyString]
+) extends ReactFnProps(GuideStarTooltip)
 
 object GuideStarTooltip
     extends ReactFnComponent[GuideStarTooltip](p =>
@@ -24,7 +29,7 @@ object GuideStarTooltip
         private def toSentenceCase: String =
           s"${s.charAt(0).toUpper}${s.substring(1)}"
 
-      val id = s"Gaia DR3 ${p.analysis.target.id}"
+      val label: String = p.analysis.target.id.displayLabel(p.scienceTargetNames)
 
       def speedIcon(guideSpeed: GuideSpeed) = guideSpeed match
         case GuideSpeed.Fast   =>
@@ -40,7 +45,7 @@ object GuideStarTooltip
       val area = p.analysis.vignetting.toMicroarcsecondsSquared / 1e12
 
       <.div(VisualizationStyles.AgsTooltip)(
-        <.div(id),
+        <.div(label),
         <.div(
           p.analysis.target
             .brightnessIn(probeBands(p.analysis.guideProbe))

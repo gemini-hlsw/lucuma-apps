@@ -7,10 +7,12 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.refineV
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.AltairMode
 import lucuma.core.enums.Flamingos2LyotWheel
@@ -22,6 +24,7 @@ import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
+import lucuma.core.model.Target
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.NewBoolean
@@ -175,9 +178,31 @@ def textDomSize(textValue: String): (Double, Double) =
   document.body.removeChild(text)
   (width, height)
 
+val ScienceTargetGuideStarLabel: String = "Science Target"
+
+extension (id: GuideStarId)
+  /**
+   * What the UI calls a guide star; never an identity. A science target shows its name, looked up
+   * in `scienceTargetNames`; the id-less one only when there is a single science target.
+   */
+  def displayLabel(scienceTargetNames: Map[Target.Id, NonEmptyString]): String =
+    id match
+      case GuideStarId.GaiaDr3(sourceId = _)       =>
+        id.catalogName.foldMap(_.value.value)
+      case GuideStarId.ObservationTarget(targetId) =>
+        val name: Option[NonEmptyString] =
+          targetId.fold(scienceTargetNames.values.toList match
+            case only :: Nil => only.some
+            case _           => none)(scienceTargetNames.get)
+        name.fold(ScienceTargetGuideStarLabel)(n => s"$ScienceTargetGuideStarLabel: ${n.value}")
+
 extension (target: GuideStarCandidate)
   protected def selector: Css =
-    Css(s"guide-star-${target.id}")
+    target.id match
+      case GuideStarId.GaiaDr3(sourceId)           =>
+        Css(s"guide-star-$sourceId")
+      case GuideStarId.ObservationTarget(targetId) =>
+        Css(s"guide-star-target-${targetId.foldMap(_.show)}")
 
 def offsetIndicators(
   offsets:         Option[NonEmptyList[Offset]],

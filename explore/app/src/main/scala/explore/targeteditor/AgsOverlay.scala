@@ -15,14 +15,17 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.GuideStarId
 import lucuma.ags.probeBands
 import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
+import lucuma.core.model.Target
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.visualization.displayLabel
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -36,7 +39,9 @@ case class AgsOverlay(
   anglesAvailable:     Boolean,
   targetNotObservable: Boolean,
   manualGuideStar:     Option[ManualGuideStar],
-  guideStarName:       Option[NonEmptyString],
+  catalogFailed:       Boolean,
+  remoteSelection:     Option[GuideStarId],
+  scienceTargetNames:  Map[Target.Id, NonEmptyString],
   readonly:            Boolean,
   onRevert:            Callback
 ) extends ReactFnProps[AgsOverlay](AgsOverlay.component) {
@@ -103,6 +108,8 @@ object AgsOverlay:
             (EmptyVdom, Constants.ManualGSSelected, Button.Severity.Primary)
           case ManualGuideStar.Unusable     =>
             (manualErrorIcon, Constants.ManualGSUnusable, Button.Severity.Danger)
+          case ManualGuideStar.Ambiguous    =>
+            (manualErrorIcon, Constants.ManualGSAmbiguous, Button.Severity.Danger)
           case ManualGuideStar.NotFound     =>
             (manualErrorIcon, Constants.ManualGSNotFound, Button.Severity.Danger)
           case ManualGuideStar.LookupFailed =>
@@ -117,11 +124,11 @@ object AgsOverlay:
               TagMod.devOnly(s"${props.agsState} ${props.selectedGS.get}")
         )
 
-      def nameRow(name: NonEmptyString): VdomNode =
+      def nameRow(guideStar: GuideStarId): VdomNode =
         <.div(
           ExploreStyles.AgsDescription,
           Icons.Bahai,
-          <.span(name.value),
+          <.span(guideStar.displayLabel(props.scienceTargetNames)),
           <.div(
             ExploreStyles.AgsNavigation,
             <.span(
@@ -140,11 +147,13 @@ object AgsOverlay:
             AgsCandidatesDialog(
               enabled = props.agsState === AgsState.Idle && maxIndex > 0,
               candidates = props.agsResults,
-              current = props.selectedGS.get.targetName,
+              current = props.selectedGS.get.selectedId,
               isManual = props.selectedGS.get.fold(_ => false, _ => true, _ => true),
               currentProblem = manualInfo.filter(_ => props.manualProblem).map(_._2),
               readonly = props.readonly,
-              onSelect = name => props.selectedGS.set(props.agsResults.pick(name))
+              scienceTargetNames = props.scienceTargetNames,
+              // A candidate's own id is never ambiguous, so the number of targets doesn't matter.
+              onSelect = id => props.selectedGS.set(props.agsResults.pick(id, 0))
             )
           )
         )
@@ -168,10 +177,20 @@ object AgsOverlay:
             ): VdomNode
           .getOrElse(EmptyVdom)
 
-      props.selectedGS.get.analysis
+      // A guide star may still be found among the observation targets, so this only warns
+      val catalogWarningRow: VdomNode =
+        if props.catalogFailed then
+          <.div(
+            ExploreStyles.AgsDescription |+| ExploreStyles.AgsManual,
+            Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
+            <.span(Constants.CatalogSearchFailed)
+          )
+        else EmptyVdom
+
+      val description: VdomNode = props.selectedGS.get.analysis
         .map { case analysis =>
           ReactFragment(
-            nameRow(analysis.target.name),
+            nameRow(analysis.target.id),
             <.div(
               ExploreStyles.AgsDescription,
               devOnly,
@@ -188,9 +207,9 @@ object AgsOverlay:
           )
         }
         .orElse(
-          props.guideStarName
+          props.remoteSelection
             .filter(_ => props.manualProblem)
-            .map(name => ReactFragment(nameRow(name), devOnly, manualRow))
+            .map(selection => ReactFragment(nameRow(selection), devOnly, manualRow))
         )
         .getOrElse {
           <.div(
@@ -230,3 +249,5 @@ object AgsOverlay:
             }
           )
         }
+
+      ReactFragment(description, catalogWarningRow)

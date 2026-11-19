@@ -388,6 +388,7 @@ object AladinCell extends ModelOptics with AladinCommon:
               signal,
               agsState,
               guideStar,
+              ObservationGuideStars.names(props.obsTargets),
               globalPreferences.get.agsOverlay,
               offsetOnCenter
             )
@@ -422,7 +423,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                     props.anglesToTest.isDefined,
                     props.targetNotObservable,
                     props.ags.manualGuideStar,
-                    props.obsConf.flatMap(_.remoteGSName),
+                    props.ags.catalogFailed,
+                    props.obsConf.flatMap(_.remoteGSSelection),
+                    ObservationGuideStars.names(props.obsTargets),
                     props.guideStarReadonly,
                     props.revertGuideStar
                   )

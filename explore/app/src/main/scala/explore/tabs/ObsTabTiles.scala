@@ -53,6 +53,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.core.conditions.*
 import lucuma.core.enums.AltairMode
 import lucuma.core.enums.CalibrationRole
@@ -115,7 +116,7 @@ case class ObsTabTiles(
   programSummaries:  ProgramSummaries,
   focusedTarget:     Option[Target.Id],
   searching:         View[Set[Target.Id]],
-  selectedGSName:    View[Option[NonEmptyString]],
+  selectedGuideStar: View[Option[GuideStarId]],
   resize:            UseResizeDetectorReturn,
   userPreferences:   View[UserPreferences],
   editIsReadonly:    Boolean,
@@ -341,54 +342,77 @@ object ObsTabTiles:
         // This is not the ideal place for this but we need to share the selected guide star
         // across the configuration and target tile
         guideStarSelection   <- useStateView:
-                                  props.selectedGSName.get.fold(GuideStarSelection.Default)(
+                                  props.selectedGuideStar.get.fold(GuideStarSelection.Default)(
                                     RemoteGSSelection.apply
                                   )
                                 .map: gss =>
                                   import ctx.given
 
                                   // A star picked by hand is stored in the backend and the local cache.
-                                  // Only a star other than the stored one is written, so resolving the
-                                  // stored name, or one set elsewhere, never writes it back. Picking the
-                                  // current automatic star does store it, keeping it.
-                                  // The name is never cleared here, see `revertGuideStar`.
+                                  // Only a pick that changes what is stored is written, so resolving the
+                                  // stored selection, or one set elsewhere, never writes it back.
+                                  // Picking the current automatic star does store it.
+                                  // The selection is never cleared here, see `revertGuideStar`.
+                                  // If the backend refuses it, the previous selection is restored,
+                                  // unless another star was picked in the meantime.
                                   gss.withOnMod {
-                                    case AgsOverride(n, _, _)
-                                        if !props.selectedGSName.get.contains(n) =>
-                                      props.selectedGSName.set(n.some) *>
+                                    case AgsOverride(selection = picked) =>
+                                      val previous: Option[GuideStarId] = props.selectedGuideStar.get
+                                      val stored: GuideStarId           =
+                                        ObservationGuideStars.selectionToStore(picked,
+                                                                               props.asterismAsNel
+                                        )
+                                      val restore: Callback             =
+                                        props.selectedGuideStar.mod: current =>
+                                          if current.contains(stored) then previous else current
+                                        >>
+                                          gss.mod:
+                                            case AgsOverride(selection = current)
+                                                if current === picked =>
+                                              previous.fold(GuideStarSelection.Default)(
+                                                RemoteGSSelection.apply
+                                              )
+                                            case other => other
+                                      (props.selectedGuideStar.set(stored.some) *>
                                         odbApi
-                                          .setGuideTargetName(props.obsId, n.some)
-                                          .runAsyncAndForget
-                                    case _ =>
+                                          .setGuideTarget(props.obsId, stored.some)
+                                          .handleErrorWith: t =>
+                                            ctx.logger.error(t)("Error selecting the guide star") >>
+                                              restore.toAsync
+                                          .runAsyncAndForget)
+                                        .unless_(previous.exists(s => s === picked || s === stored))
+                                    case _                               =>
                                       Callback.empty
                                   }
-        // The only way the stored name is cleared, at the user's request. Local state changes first
-        // and is restored if the backend refuses, unless a star was picked in the meantime.
-        revertGuideStar       = props.selectedGSName.get.fold(Callback.empty): name =>
+        // The only way the stored selection is cleared, at the user's request. Local state changes
+        // first and is restored if the backend refuses, unless a star was picked in the meantime.
+        revertGuideStar       = props.selectedGuideStar.get.fold(Callback.empty): selection =>
                                   import ctx.given
 
-                                  props.selectedGSName.set(none) >>
+                                  props.selectedGuideStar.set(none) >>
                                     guideStarSelection.set(GuideStarSelection.Default) >>
                                     odbApi
-                                      .setGuideTargetName(props.obsId, none)
+                                      .setGuideTarget(props.obsId, none)
                                       .handleErrorWith: t =>
                                         ctx.logger.error(t)("Error reverting to automatic guide star") >>
-                                          (props.selectedGSName.mod(_.orElse(name.some)) >>
+                                          (props.selectedGuideStar.mod(_.orElse(selection.some)) >>
                                             guideStarSelection.mod:
-                                              case _: AgsSelection => RemoteGSSelection(name)
+                                              case AgsSelection(_) => RemoteGSSelection(selection)
                                               case other           => other
                                           ).toAsync
                                       .runAsyncAndForget
         // Some of the fields of an observation are expensive and we can
-        // load them on demand. For now it is only the guideStar selection name
+        // load them on demand. For now it is only the guide star selection
         _                    <- useEffectWithDeps(props.obsId): obsId =>
                                   import ctx.given
                                   odbApi
-                                    .guideTargetName(obsId)
-                                    .flatMap: name =>
-                                      (props.selectedGSName.set(name) >>
+                                    .guideTargetSelection(obsId)
+                                    .flatMap: selection =>
+                                      (props.selectedGuideStar.set(selection) >>
                                         guideStarSelection.set(
-                                          name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
+                                          selection.fold(GuideStarSelection.Default)(
+                                            RemoteGSSelection.apply
+                                          )
                                         )).toAsync
         timeCharges          <- useEffectKeepResultWithDeps(props.obsId): obsId =>
                                   import ctx.given
@@ -419,7 +443,7 @@ object ObsTabTiles:
             averagePA,
             props.observation.get.agsObsDuration.map(_.toDuration),
             props.observation.get.needsAGS(props.obsTargets),
-            props.observation.get.selectedGSName,
+            props.observation.get.selectedGuideStar,
             props.observation.get.calibrationRole,
             trackType,
             targetViz,

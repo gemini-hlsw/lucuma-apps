@@ -16,6 +16,8 @@ import explore.model.ObservationQa
 import explore.model.SchedulingConstraints
 import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
+import lucuma.ags.GuideStarId
+import lucuma.ags.arb.ArbGuideStarId.given
 import lucuma.core.arb.ArbTime
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CassRotator
@@ -79,7 +81,7 @@ trait ArbObservation:
         title                 <- arbitrary[String]
         subtitle              <- arbitrary[Option[NonEmptyString]]
         scienceTargetIds      <- arbitrary[Set[Target.Id]]
-        selectedGSName        <- arbitrary[Option[NonEmptyString]]
+        selectedGuideStar     <- arbitrary[Option[GuideStarId]]
         constraints           <- arbitrary[ConstraintSet]
         schedulingConstraints <- arbitrary[SchedulingConstraints]
         tooActivation         <- arbitrary[TooActivation]
@@ -114,7 +116,7 @@ trait ArbObservation:
         title,
         subtitle,
         SortedSet.from(scienceTargetIds),
-        selectedGSName,
+        selectedGuideStar,
         constraints,
         schedulingConstraints,
         tooActivation,
@@ -153,7 +155,7 @@ trait ArbObservation:
        String,
        Option[String],
        List[Target.Id],
-       Option[String],
+       Option[GuideStarId],
        ConstraintSet,
        SchedulingConstraints,
        SortedSet[Attachment.Id],
@@ -189,7 +191,7 @@ trait ArbObservation:
          o.title,
          o.subtitle.map(_.value),
          o.scienceTargetIds.toList,
-         o.selectedGSName.map(_.value),
+         o.selectedGuideStar,
          o.constraints,
          o.schedulingConstraints,
          o.attachmentIds,

@@ -14,7 +14,9 @@ import explore.boopickle.roundTrip
 import explore.model.arb.ArbAltairConfiguration.given
 import explore.modes.ItcInstrumentConfig
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuideStarId
 import lucuma.ags.arb.ArbGuideStarCandidate.given
+import lucuma.ags.arb.ArbGuideStarId.given
 import lucuma.core.enums.FieldLens
 import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsFilter
@@ -56,7 +58,14 @@ class BoopickleSuite
   checkAll("Pickler[RadialVelocity]", PicklerTests[RadialVelocity].pickler)
   checkAll("Pickler[Parallax]", PicklerTests[Parallax].pickler)
   checkAll("Pickler[Tracking]", PicklerTests[Tracking].pickler)
+  checkAll("Pickler[GuideStarId]", PicklerTests[GuideStarId].pickler)
   checkAll("Pickler[GuideStarCandidate]", PicklerTests[GuideStarCandidate].pickler)
+
+  test("a catalog guide star id pickles to the size of its source id plus a tag"):
+    val id: GuideStarId  = GuideStarId.GaiaDr3(1823773960098169600L)
+    val idBytes: Int     = Pickle.intoBytes(id).remaining
+    val sourceBytes: Int = Pickle.intoBytes(1823773960098169600L).remaining
+    assertEquals(idBytes, sourceBytes + 1)
   checkAll("Pickler[ElevationRange]", PicklerTests[ElevationRange].pickler)
   checkAll("Pickler[ConstraintSet]", PicklerTests[ConstraintSet].pickler)
   checkAll("Pickler[Wavelengtth]", PicklerTests[Wavelength].pickler)

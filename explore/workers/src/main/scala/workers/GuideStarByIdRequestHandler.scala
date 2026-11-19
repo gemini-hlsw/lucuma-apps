@@ -15,7 +15,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 object GuideStarByIdRequestHandler:
-  val cacheVersion = CacheVersion(2)
+  val cacheVersion = CacheVersion(4)
 
   def apply[F[_]: {Concurrent, Logger}](
     client:   GaiaClient[F],
@@ -35,7 +35,7 @@ object GuideStarByIdRequestHandler:
         .queryByIdGuideStar(id)
         .flatMap:
           case Right(target)                               =>
-            GuideStarCandidate.siderealTarget.get(target).some.asRight.pure
+            GuideStarCandidate.fromCatalog(target).some.asRight.pure
           case Left(problems) if problems.forall(notFound) =>
             none.asRight.pure
           case Left(problems)                              =>

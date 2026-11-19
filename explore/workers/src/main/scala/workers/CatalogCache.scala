@@ -29,7 +29,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 1000
-  private val CacheVersion: Int = 14
+  private val CacheVersion: Int = 16
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -93,7 +93,7 @@ trait CatalogCache extends CatalogIDB:
                   .queryGuideStars(query)
                   .map(
                     _.collect { case Right(s) =>
-                      GuideStarCandidate.siderealTarget.get(s)
+                      GuideStarCandidate.fromCatalog(s)
                     }
                   )
                   .flatMap { candidates =>

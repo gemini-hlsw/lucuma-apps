@@ -11,8 +11,6 @@ import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import crystal.react.syntax.pot.given
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.events.*
 import explore.model.*
 import explore.model.GuideStarSelection.*
@@ -36,11 +34,13 @@ import scala.concurrent.duration.*
 /**
  * What AGS produced for an observation: the catalog candidates around the base, the analysis of
  * those candidates at the angles to test and, if the guide star was picked by hand, its state.
+ * `catalogFailed` says the catalog search failed and only the observation targets were analyzed.
  */
 case class AgsData(
   candidates:      Pot[Option[List[GuideStarCandidate]]],
   results:         AgsCalculationResults,
-  manualGuideStar: Option[ManualGuideStar] = none
+  manualGuideStar: Option[ManualGuideStar] = none,
+  catalogFailed:   Boolean = false
 )
 
 object AgsData:
@@ -51,17 +51,12 @@ object AgsData:
 
   given Reusability[AgsData] =
     // We don't want to check every candidate, the length is enough to know if the catalog changed.
-    Reusability.by(d => (d.candidates.map(_.map(_.length)), d.results, d.manualGuideStar))
+    Reusability.by: d =>
+      (d.candidates.map(_.map(_.length)), d.results, d.manualGuideStar, d.catalogFailed)
 
 object UseAgs:
   // Position-angle changes debouncing time
   private val AgsDebounceDelay: FiniteDuration = 500.millis
-
-  // only compare candidates by id
-  private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
-
-  private def gaiaSourceId(name: NonEmptyString): Option[Long] =
-    GuideStarName.from(name.value).toOption.flatMap(_.toGaiaSourceId)
 
   /**
    * Runs guide star selection for an observation.
@@ -114,16 +109,37 @@ object UseAgs:
       // AGS can't run, so there is nothing to look up.
       canSearch         = obsTime.isDefined && obsConf.obsModeType.isDefined &&
                             (obsConf.explicitBase.isDefined || positions.baseTracking.isDefined)
-      catalogCands      = candidates.value.toOption.flatten
-      extraStarName     = catalogCands
+      // Behind Altair the science targets are candidates too; they are not cached with the catalog.
+      obsTargetCands    = ObservationGuideStars.candidatesFor(
+                            obsConf.guideProbe,
+                            obsTargets,
+                            id =>
+                              positions.coords.toOption.flatMap(_.toOption).flatMap(_.forTarget(id))
+                          )
+      obsTargetCount    = ObservationGuideStars.count(obsTargets)
+      // A failed catalog search still leaves the observation targets to guide on.
+      catalogFailed     = obsTargetCands.nonEmpty &&
+                            candidates.value.value.fold(false, _ => true, _ => false)
+      catalogPot        = candidates.value.value.fold(
+                            Pot.pending,
+                            t =>
+                              if catalogFailed then Pot(List.empty[GuideStarCandidate].some)
+                              else Pot.error(t),
+                            Pot(_)
+                          )
+      catalogCands      = catalogPot.toOption.flatten
+      // An observation target selection needs no lookup.
+      extraStarId       = catalogCands
                             .filter(_ => canSearch)
                             .flatMap: cands =>
-                              obsConf.remoteGSName.filterNot(n => cands.exists(_.name === n))
-      extraStar        <- useEffectResultWithDeps(extraStarName): name =>
+                              obsConf.remoteGSSelection.filter: selection =>
+                                selection.catalogName.isDefined &&
+                                  !cands.exists(c => selection.selects(c.id))
+      extraStar        <- useEffectResultWithDeps(extraStarId): selection =>
                             import ctx.given
 
-                            name
-                              .flatMap(gaiaSourceId)
+                            selection
+                              .flatMap(_.gaiaSourceId)
                               .fold(none[GuideStarCandidate].asRight[String].pure[IO]): id =>
                                 (obsConf.agsState.foldMap(_.async.set(AgsState.LoadingCandidates)) *>
                                   CatalogClient[IO]
@@ -131,14 +147,16 @@ object UseAgs:
                                     .map(_.getOrElse(s"No answer looking up guide star $id".asLeft))
                                     .handleError(_.getMessage.asLeft))
                                   .guarantee(obsConf.agsState.foldMap(_.async.set(AgsState.Idle)))
-                              .tupleLeft(name)
-      // The answer for the current name. A failed lookup adds nothing, so AGS still runs.
-      extraLookup       = extraStarName.flatMap: name =>
+                              .tupleLeft(selection)
+      // The answer for the current selection. A failed lookup adds nothing, so AGS still runs.
+      extraLookup       = extraStarId.flatMap: selection =>
                             extraStar.value.toOption.collect:
-                              case (n, lookup) if n.contains(name) => lookup
-      allCands          = catalogCands.flatMap: cands =>
-                            extraStarName.fold(cands.some): _ =>
-                              extraLookup.map(lookup => cands ++ lookup.toOption.flatten.toList)
+                              case (s, lookup) if s.contains(selection) => lookup
+      allCands          = catalogCands
+                            .flatMap: cands =>
+                              extraStarId.fold(cands.some): _ =>
+                                extraLookup.map(lookup => cands ++ lookup.toOption.flatten.toList)
+                            .map(_ ++ obsTargetCands)
       agsCalcProps     <- useMemo(
                             (obsTargets.map(_.focus.id),
                              obsTime,
@@ -175,6 +193,7 @@ object UseAgs:
                                 acqOffsets,
                                 sciOffsets,
                                 cands,
+                                obsTargetCount,
                                 guideProbe,
                                 altairMode
                               ).some
@@ -189,7 +208,7 @@ object UseAgs:
                               (prevAnglesToTest.value, angles).mapN(_ =!= _).exists(identity)
                             prevAnglesToTest.set(angles.orElse(prevAnglesToTest.value)) >>
                               guideStarSelection
-                                .mod(_.resetKeepingName)
+                                .mod(_.resetKeepingSelection)
                                 .when_(changed && obsConf.needGuideStar)
       // Debounced twin of `anglesToTest` for AGS consumption. We push the live value in on every
       // (structural) change, the debounced output lags by `AgsDebounceDelay`
@@ -206,22 +225,27 @@ object UseAgs:
                             guideStarSelection,
                             obsConf.needGuideStar
                           )(ctx)
-      // In case the selected name changes remotely
-      _                <- useEffectWithDeps((obsConf.remoteGSName, results.constrained)): (n, resultsPot) =>
-                            resultsPot.toOption.foldMap: results =>
-                              guideStarSelection.set(results.select(n))
+      // In case the selection changes remotely
+      _                <- useEffectWithDeps((obsConf.remoteGSSelection, results.constrained)):
+                            (selection, resultsPot) =>
+                              resultsPot.toOption.foldMap: results =>
+                                guideStarSelection.set(results.select(selection, obsTargetCount))
       // Reported only once AGS and the lookup have settled, so a pick is not flagged while it is
       // being checked. A star that was looked up but not found can't be among the AGS results, so
       // that doesn't wait for them: with no candidates at all, AGS doesn't run.
       manualGuideStar   =
-        obsConf.remoteGSName
+        obsConf.remoteGSSelection
           .filter(_ => obsConf.agsState.forall(_.get.isIdle))
-          .flatMap: name =>
+          .flatMap: selection =>
             extraLookup match
               case Some(Left(_))     => ManualGuideStar.LookupFailed.some
               case Some(Right(None)) => ManualGuideStar.NotFound.some
               case _                 =>
                 results.constrained.toOption.map: usable =>
-                  if usable.exists(_.target.name === name) then ManualGuideStar.Selected
+                  // As in the ODB, only ambiguous when there are observation targets to guide on.
+                  if obsTargetCands.nonEmpty && selection.isAmbiguousWith(obsTargetCount)
+                  then ManualGuideStar.Ambiguous
+                  else if usable.exists(a => selection.selects(a.target.id))
+                  then ManualGuideStar.Selected
                   else ManualGuideStar.Unusable
-    yield AgsData(candidates.value.value, results, manualGuideStar)
+    yield AgsData(catalogPot, results, manualGuideStar, catalogFailed)

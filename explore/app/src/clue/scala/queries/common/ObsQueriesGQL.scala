@@ -165,14 +165,19 @@ object ObsQueriesGQL:
   // We can split the query into two parts, one for the bulk of the observation data and one for
   // observation specific parts that can be delayed until the obs is selected
   //
-  // One such element is guide target name which tracing shows as very expensive
+  // One such element is the guide target selection which tracing shows as very expensive
   @GraphQL
   trait ObservationLoadedElements extends GraphQLOperation[ObservationDB]:
     val document = gql"""
       query($$obsId: ObservationId!) {
         observation(observationId: $$obsId) {
           targetEnvironment {
-            guideTargetName
+            guideTargetSelection {
+              catalogName
+              observationTarget {
+                targetId
+              }
+            }
           }
         }
       }
