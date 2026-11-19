@@ -17,6 +17,7 @@ import lucuma.react.virtual.*
 import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.primereact.*
 import lucuma.ui.utils.*
+import org.scalajs.dom
 import org.scalajs.dom.HTMLDivElement
 
 import scala.collection.immutable.SortedSet
@@ -39,8 +40,6 @@ object TelescopeConfigsEditor
     extends ReactFnComponent[TelescopeConfigsEditor](props =>
       for
         listRef     <- useRefToVdom[HTMLDivElement]
-        // The focused row, kept rendered so that scrolling doesn't lose an edit in progress.
-        focusedRow  <- useRef(none[Int])
         // Set when the user adds an offset, so that the list scrolls to it once it's rendered.
         scrollToEnd <- useRef(false)
         count        = props.telescopeConfigs.get.length
@@ -50,9 +49,13 @@ object TelescopeConfigsEditor
                            getScrollElement = listRef.get,
                            estimateSize = _ => SizePx(TelescopeConfigsEditor.RowHeight),
                            overscan = TelescopeConfigsEditor.Overscan,
-                           // Reads the ref on every call, since focus changes don't re-render.
-                           rangeExtractor =
-                             range => TelescopeConfigsEditor.rangeIncluding(focusedRow.value)(range)
+                           // The focused row is kept rendered, so that scrolling doesn't lose an
+                           // edit in progress. It's looked up on every call, since focus changes
+                           // don't re-render.
+                           rangeExtractor = range =>
+                             TelescopeConfigsEditor.rangeIncluding(
+                               TelescopeConfigsEditor.focusedRow(listRef.get.runNow())
+                             )(range)
                          )
         _           <- useEffectWithDeps(count): n =>
                          val scroll: Callback = Callback:
@@ -86,9 +89,8 @@ object TelescopeConfigsEditor
                 .map: item =>
                   val idx = item.index.toInt
                   <.div(TelescopeConfigEditorStyles.ListItem)(
-                    ^.key := s"${props.idPrefix}-row-$idx",
-                    ^.onFocus --> focusedRow.set(idx.some),
-                    ^.onBlur --> focusedRow.set(none)
+                    ^.key                                    := s"${props.idPrefix}-row-$idx",
+                    VdomAttr(TelescopeConfigsEditor.RowAttr) := idx
                   )(
                     <.label(^.htmlFor := s"${props.idPrefix}-$idx-p", ^.minWidth := labelWidth)(
                       s"${idx + 1}:"
@@ -138,6 +140,17 @@ object TelescopeConfigsEditor
    * contiguous, since the space taken by the rows that aren't rendered is given as padding before
    * and after the rendered ones.
    */
+  private val RowAttr: String = "data-offset-row"
+
+  /** The index of the row holding the focus, if the focus is in `list`. */
+  private def focusedRow(list: Option[HTMLDivElement]): Option[Int] =
+    for
+      l   <- list
+      el  <- Option(dom.document.activeElement).filter(l.contains)
+      row <- Option(el.closest(s"[$RowAttr]"))
+      idx <- Option(row.getAttribute(RowAttr)).flatMap(_.toIntOption)
+    yield idx
+
   private def rangeIncluding(row: Option[Int])(range: VirtualRange): SortedSet[Int] =
     val visible = range.withOverscan
     row
