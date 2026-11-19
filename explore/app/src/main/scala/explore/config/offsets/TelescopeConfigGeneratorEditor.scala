@@ -64,7 +64,8 @@ object TelescopeConfigGeneratorEditor
             TelescopeConfigsEditor(
               telescopeConfigs = explicit,
               maxOffsets = props.maxExplicit,
-              readonly = props.readonly
+              readonly = props.readonly,
+              idPrefix = props.id.value
             ),
           randomOpt.map { random =>
             React.Fragment(
