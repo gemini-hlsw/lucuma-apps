@@ -159,6 +159,7 @@ private object AgsCandidatesTable:
   private val NameColumnId: ColumnId       = ColumnId("name")
   private val SpeedColumnId: ColumnId      = ColumnId("speed")
   private val BrightnessColumnId: ColumnId = ColumnId("brightness")
+  private val RuweColumnId: ColumnId       = ColumnId("ruwe")
   private val VignettingColumnId: ColumnId = ColumnId("vignetting")
 
   private val ScrollOptions =
@@ -209,6 +210,12 @@ private object AgsCandidatesTable:
         "Brightness",
         cell => AgsOverlay.brightness(cell.value).getOrElse(EmptyVdom)
       ).withColumnSize(FixedSize(120.toPx)),
+      ColDef(
+        RuweColumnId,
+        _.target.ruwe.map(_.value.toDouble),
+        "RUWE",
+        cell => cell.value.foldMap(r => f"$r%.2f"): String
+      ).withColumnSize(FixedSize(80.toPx)),
       ColDef(
         VignettingColumnId,
         _.vignetting.toMicroarcsecondsSquared / 1e12,
