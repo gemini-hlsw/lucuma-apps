@@ -5,6 +5,7 @@ package observe.ui.components.queue
 
 import cats.syntax.all.*
 import crystal.react.*
+import crystal.react.hooks.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -56,7 +57,8 @@ case class DaytimeQueueTable(
   holdRequestedIds: Set[Observation.Id],
   linkToExploreObs: Option[
     Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
-  ]
+  ],
+  moveLocally:      (QueueItemId, Int) => Callback
 ) extends ReactFnProps(DaytimeQueueTable)
 
 object DaytimeQueueTable
@@ -243,7 +245,7 @@ object DaytimeQueueTable
               header = "Status",
               cell = cell =>
                 cell.row.original match
-                  case DaytimeQueueRow.Obs(obs)    =>
+                  case DaytimeQueueRow.Obs(obs)          =>
                     Tag(
                       value = obs.status.shortName,
                       severity = statusSeverity(obs.status).orUndefined
@@ -337,7 +339,7 @@ object DaytimeQueueTable
                       )
                     case row @ DaytimeQueueRow.Pause(_, _) =>
                       removeButton(
-                        "Remove this pause: the queue goes on past it",
+                        "Remove this pause",
                         true,
                         meta.remove(row.itemId)
                       )
@@ -381,22 +383,30 @@ object DaytimeQueueTable
                 openInstrumentTab = instrument => ctx.pushPage(AppTab.LoadedObs(instrument))
               )
             )
+        // The drag handlers are registered once, so they read the current rows through a ref.
+        rowsRef     <- useShadowRef(props.rows)
+        moveRef     <- useShadowRef(props.moveLocally)
         tableDnd    <-
           useTableDragAndDrop(
             table,
             DragHandleColumnId,
             getData = _.original.itemId,
-            canDrag = (id, _) => props.rows.exists(row => row.itemId === id && !row.isLocked),
+            canDrag =
+              (id, _) => rowsRef.get.runNow().exists(row => row.itemId === id && !row.isLocked),
             onDrop = (source, target) =>
               import ctx.given
 
               // The server takes the index in the queue without the moved item.
-              target
-                .flatMap: t =>
-                  computeIndexInList[QueueItemId](_ === t.data, t.edge)(
-                    props.rows.map(_.itemId).filterNot(_ === source)
-                  )
-                .foldMap(toIndex => queueApi.move(source, toIndex).runAsync)
+              rowsRef.get.flatMap: (rows: List[DaytimeQueueRow]) =>
+                target
+                  .flatMap: t =>
+                    computeIndexInList[QueueItemId](_ === t.data, t.edge)(
+                      rows.map(_.itemId).filterNot(_ === source)
+                    )
+                  .foldMap: toIndex =>
+                    // Moved here at once, so the row does not show in its old place meanwhile.
+                    moveRef.get.flatMap(_(source, toIndex)) >>
+                      queueApi.move(source, toIndex).runAsync
           )
       yield tableDnd.context(
         PrimeTable(

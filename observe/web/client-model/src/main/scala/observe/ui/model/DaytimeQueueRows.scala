@@ -117,6 +117,28 @@ object DaytimeQueueRows:
   def doneTime(queue: DaytimeQueue, now: Timestamp): TimeSpan =
     queue.obsItems.foldMap(item => item.total -| remaining(item, now))
 
+  private def isObs(item: DaytimeQueueItem): Boolean = item match
+    case DaytimeQueueItem.Obs(_, _, _, _, _, _, _, _, _) => true
+    case DaytimeQueueItem.Pause(_)                       => false
+
+  private def isRunning(item: DaytimeQueueItem): Boolean = item match
+    case DaytimeQueueItem.Obs(status = status) => status === QueueItemStatus.Running
+    case DaytimeQueueItem.Pause(_)             => false
+
+  /**
+   * Where a new pause goes: the first place with an observation on each side that is below every
+   * Running observation, if there is one.
+   */
+  def newPauseIndex(queue: DaytimeQueue): Option[Int] =
+    val firstAllowed: Int = queue.items.lastIndexWhere(isRunning) + 1
+    queue.items
+      .sliding(2)
+      .zipWithIndex
+      .collectFirst:
+        case (List(above, below), index)
+            if index + 1 >= firstAllowed && isObs(above) && isObs(below) =>
+          index + 1
+
   /** There is something to predict: an observation Running, or Waiting above the first pause. */
   def isPredictable(queue: DaytimeQueue): Boolean =
     hasRunning(queue) ||

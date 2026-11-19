@@ -7,11 +7,11 @@ import lucuma.core.util.Enumerated
 
 /** State of the queue dispatcher. */
 enum QueueDispatchState(val tag: String) derives Enumerated:
-  /** Never run, or finished by itself. Lamps go off when the queue finishes. */
+  /** Never run, or finished by itself. */
   case Idle extends QueueDispatchState("idle")
 
   /** The dispatcher is active and starts observations as subsystems become available. */
   case Running extends QueueDispatchState("running")
 
-  /** Stopped by a queue-level control. Same as Idle, but keeps the lamps on. */
+  /** Stopped by a queue-level control or at a pause: nothing starts until the queue is run. */
   case Halted extends QueueDispatchState("halted")

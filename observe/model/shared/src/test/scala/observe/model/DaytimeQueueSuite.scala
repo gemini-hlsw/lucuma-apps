@@ -100,6 +100,78 @@ class DaytimeQueueSuite extends munit.FunSuite:
     assertEquals(q.continuePastPause.items, List(obs(1), obs(2), pause(2)))
     assertEquals(queue(obs(1)).continuePastPause, queue(obs(1)))
 
+  test("[DQ-18] continuePastPause resumes a halted queue only"):
+    val q: DaytimeQueue = queue(obs(1, QueueItemStatus.Completed), pause(1), obs(2))
+    assertEquals(
+      q.copy(dispatchState = QueueDispatchState.Halted).continuePastPause.dispatchState,
+      QueueDispatchState.Running
+    )
+    assertEquals(q.continuePastPause.dispatchState, QueueDispatchState.Idle)
+    assertEquals(
+      queue(obs(1)).copy(dispatchState = QueueDispatchState.Halted).continuePastPause.dispatchState,
+      QueueDispatchState.Halted
+    )
+
+  test("[DQ-16] run goes on past the pause the queue is held at"):
+    val held: DaytimeQueue =
+      queue(obs(1, QueueItemStatus.Completed), pause(1), obs(2), pause(2), obs(3))
+        .copy(dispatchState = QueueDispatchState.Halted)
+    assertEquals(
+      held.run,
+      queue(obs(1, QueueItemStatus.Completed), obs(2), pause(2), obs(3))
+        .copy(dispatchState = QueueDispatchState.Running)
+    )
+
+  test("[DQ-16] run keeps a pause that still has work above it"):
+    val stopped: DaytimeQueue = queue(obs(1, QueueItemStatus.Stopped), pause(1), obs(2))
+    assertEquals(
+      stopped.run,
+      queue(obs(1), pause(1), obs(2)).copy(dispatchState = QueueDispatchState.Running)
+    )
+
+  test("[DQ-17] isAtPause"):
+    assert(queue(obs(1, QueueItemStatus.Completed), pause(1), obs(2)).isAtPause)
+    assert(queue(obs(1, QueueItemStatus.Stopped), pause(1), obs(2)).isAtPause)
+    assert(queue(pause(1), obs(1)).isAtPause)
+    assert(!queue(obs(1), pause(1), obs(2)).isAtPause)
+    assert(!queue(obs(1, QueueItemStatus.Running), pause(1), obs(2)).isAtPause)
+    assert(!queue(obs(1), obs(2)).isAtPause)
+    assert(
+      !queue(obs(1, QueueItemStatus.Completed),
+             pause(1),
+             obs(2, QueueItemStatus.Completed)
+      ).isAtPause
+    )
+
+  test("dropIdlePauses drops the first, the last and the doubled ones"):
+    assertEquals(queue(pause(1), obs(1), obs(2)).dropIdlePauses.items, List(obs(1), obs(2)))
+    assertEquals(queue(obs(1), obs(2), pause(1)).dropIdlePauses.items, List(obs(1), obs(2)))
+    assertEquals(
+      queue(obs(1), pause(1), pause(2), obs(2)).dropIdlePauses.items.size,
+      3
+    )
+    assertEquals(queue(pause(1), pause(2)).dropIdlePauses.items, Nil)
+    val kept: DaytimeQueue = queue(obs(1), pause(1), obs(2), pause(2), obs(3))
+    assertEquals(kept.dropIdlePauses, kept)
+
+  test("[DQ-17] settlePauses halts a running queue at a pause"):
+    val atPause: DaytimeQueue =
+      queue(obs(1, QueueItemStatus.Completed), pause(1), obs(2))
+        .copy(dispatchState = QueueDispatchState.Running)
+    assertEquals(atPause.settlePauses, atPause.copy(dispatchState = QueueDispatchState.Halted))
+    val above: DaytimeQueue   =
+      queue(obs(1), pause(1), obs(2)).copy(dispatchState = QueueDispatchState.Running)
+    assertEquals(above.settlePauses, above)
+
+  test("settlePauses never lets a dropped pause start what it held"):
+    val first: DaytimeQueue =
+      queue(pause(1), obs(1), obs(2)).copy(dispatchState = QueueDispatchState.Running)
+    assertEquals(
+      first.settlePauses,
+      queue(obs(1), obs(2)).copy(dispatchState = QueueDispatchState.Halted)
+    )
+    assertEquals(queue(pause(1), obs(1)).settlePauses, queue(obs(1)))
+
   test("[DQ-38] clearCompleted keeps everything else and pauses"):
     val q: DaytimeQueue =
       queue(

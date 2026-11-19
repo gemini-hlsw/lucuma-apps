@@ -57,7 +57,11 @@ object DaytimeQueueTab
                 .collect:
                   case (obsId, state) if state.sequenceStatus.isSequenceHoldRequested => obsId
                 .toSet,
-              props.rootModel.renderExploreLinkToObs.toOption
+              props.rootModel.renderExploreLinkToObs.toOption,
+              (id, toIndex) =>
+                props.rootModel.data
+                  .zoom(RootModelData.daytimeQueue.andThen(DaytimeQueueView.queue))
+                  .mod(_.move(id, toIndex).settlePauses)
             ),
             ConfirmDialog()
           )

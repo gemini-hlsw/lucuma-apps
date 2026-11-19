@@ -1581,8 +1581,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   override def runDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit] =
     daytimeQueueCommand("run", user, clientId):
       EngineHandle.modifyState_(EngineState.daytimeQueueObserver[F].replace(observer.some)) >>
-        modifyQueueAndDispatch:
-          _.resetStopped.copy(dispatchState = QueueDispatchState.Running, lampsOffError = none)
+        modifyQueueAndDispatch(_.run.copy(lampsOffError = none))
 
   override def holdDaytimeQueueAfterCurrentSteps(user: User, clientId: ClientId): F[Unit] =
     daytimeQueueCommand("hold after the current steps", user, clientId):

@@ -1469,6 +1469,25 @@ body {
   gap: 8px;
 }
 
+// Same colors as the hold button of a sequence.
+.p-button.observe-daytime-queue-hold-button {
+  color: var(--primary-50);
+  border-color: var(--teal-500);
+  background-color: var(--teal-500);
+
+  &:enabled:hover {
+    border-color: var(--teal-600);
+    background-color: var(--teal-600);
+  }
+}
+
+// Covers its whole button, so the tooltip shows anywhere on it.
+.observe-daytime-queue-mode-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
 .observe-daytime-queue-prediction {
   display: flex;
   flex-direction: row;

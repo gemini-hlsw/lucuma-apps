@@ -551,26 +551,87 @@ class DaytimeQueueEngineSuite extends TestCommon:
     TestControl.executeEmbed:
       assertIO(orderingRun(QueueOrderingMode.Strict), 0)
 
-  test("[DQ-17, DQ-18] nothing below a pause starts until continue"):
+  private def pausedQueue: IO[Fixture] =
+    for
+      f <- fixture(
+             List(gmosSouthObs(obs1, 1, darkConfig), gmosNorthObs(obs2, 1, darkConfig)),
+             daytime(obs1, obs2)
+           )
+      _ <- f.runner.add(obs1)
+      _ <- f.runner.add(obs2)
+      _ <- f.runner.run(_.addDaytimeQueuePause(1, user, clientId), (r, _) => isQueueUpdate(r))
+      _ <- f.runner.runUntilState(
+             _.runDaytimeQueue(observer, user, clientId),
+             st =>
+               allIn(QueueItemStatus.Completed, obs1)(st) &&
+                 st.daytimeQueue.dispatchState === QueueDispatchState.Halted
+           )
+    yield f
+
+  test("[DQ-17] the queue halts when it reaches a pause"):
     TestControl.executeEmbed:
       for
-        f       <- fixture(List(gmosSouthObs(obs1, 1, darkConfig)), daytime(obs1))
-        _       <- f.runner.add(obs1)
-        _       <- f.runner.run(_.addDaytimeQueuePause(0, user, clientId), (r, _) => isQueueUpdate(r))
-        _       <- f.runner.run(
-                     _.runDaytimeQueue(observer, user, clientId),
-                     (r, _) => isQueueUpdate(r)
+        f      <- pausedQueue
+        paused <- f.runner.drain
+      yield
+        assertEquals(statusOf(paused, obs2), QueueItemStatus.Waiting.some)
+        assertEquals(paused.daytimeQueue.dispatchState, QueueDispatchState.Halted)
+        assert(!paused.sequences.contains(obs2))
+        assertEquals(paused.daytimeQueue.items.size, 3)
+
+  test("[DQ-17] removing the pause of a halted queue starts nothing"):
+    TestControl.executeEmbed:
+      for
+        f       <- pausedQueue
+        st      <- f.runner.drain
+        pauseId  = st.daytimeQueue.items.collectFirst { case DaytimeQueueItem.Pause(id) => id }
+        _       <- pauseId.traverse_(id =>
+                     f.runner.run(
+                       _.removeFromDaytimeQueue(QueueItemId.Pause(id), user, clientId),
+                       (r, _) => isQueueUpdate(r)
+                     )
                    )
-        paused  <- f.runner.drain
+        removed <- f.runner.drain
+      yield
+        assertEquals(removed.daytimeQueue.items.size, 2)
+        assertEquals(statusOf(removed, obs2), QueueItemStatus.Waiting.some)
+        assertEquals(removed.daytimeQueue.dispatchState, QueueDispatchState.Halted)
+        assert(!removed.sequences.contains(obs2))
+
+  test("[DQ-18] continue removes the pause and the queue goes on"):
+    TestControl.executeEmbed:
+      for
+        f       <- pausedQueue
         resumed <- f.runner.runUntilState(
                      _.continueDaytimeQueuePastPause(user, clientId),
-                     allIn(QueueItemStatus.Completed, obs1)
+                     allIn(QueueItemStatus.Completed, obs1, obs2)
                    )
+      yield assertEquals(resumed.daytimeQueue.items.size, 2)
+
+  test("[DQ-16] run queue goes on past the pause the queue is held at"):
+    TestControl.executeEmbed:
+      for
+        f       <- pausedQueue
+        resumed <- f.runner.runUntilState(
+                     _.runDaytimeQueue(observer, user, clientId),
+                     allIn(QueueItemStatus.Completed, obs1, obs2)
+                   )
+      yield assertEquals(resumed.daytimeQueue.items.size, 2)
+
+  test("[DQ-38] clearing what is above a pause drops it and starts nothing"):
+    TestControl.executeEmbed:
+      for
+        f       <- pausedQueue
+        _       <- f.runner.run(
+                     _.clearCompletedDaytimeQueue(user, clientId),
+                     (r, _) => isQueueUpdate(r)
+                   )
+        cleared <- f.runner.drain
       yield
-        assertEquals(statusOf(paused, obs1), QueueItemStatus.Waiting.some)
-        assertEquals(paused.daytimeQueue.dispatchState, QueueDispatchState.Running)
-        assert(paused.sequences.isEmpty)
-        assertEquals(resumed.daytimeQueue.items.size, 1)
+        assertEquals(cleared.daytimeQueue.items.map(_.itemId), List(QueueItemId.Obs(obs2)))
+        assertEquals(statusOf(cleared, obs2), QueueItemStatus.Waiting.some)
+        assertEquals(cleared.daytimeQueue.dispatchState, QueueDispatchState.Halted)
+        assert(!cleared.sequences.contains(obs2))
 
   test("[DQ-29, DQ-45] a failed observation becomes failed and the queue goes on"):
     TestControl.executeEmbed:

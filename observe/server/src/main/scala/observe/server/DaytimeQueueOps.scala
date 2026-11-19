@@ -116,15 +116,17 @@ object DaytimeQueueOps:
 
   /**
    * Brings the queue observations in line with their loaded sequences. A Running queue whose
-   * observations are all done goes back to Idle.
+   * observations are all done goes back to Idle, and one that reached a pause is halted.
    */
   def sync[F[_]](now: Timestamp)(st: EngineState[F]): (EngineState[F], QueueSyncResult) =
     val before: DaytimeQueue          = st.daytimeQueue
     val synced: DaytimeQueue          =
-      before.copy(items = before.items.map:
-        case o @ DaytimeQueueItem.Obs(obsId = obsId) =>
-          nextItemStatus(o, st.sequences.get(obsId).map(_.seq.status), now)
-        case other                                   => other)
+      before
+        .copy(items = before.items.map:
+          case o @ DaytimeQueueItem.Obs(obsId = obsId) =>
+            nextItemStatus(o, st.sequences.get(obsId).map(_.seq.status), now)
+          case other                                   => other)
+        .settlePauses
     val done: Boolean                 =
       synced.isFinished && synced.dispatchState === QueueDispatchState.Running
     // The lamps are needed again: the countdown to turn them off is dropped.

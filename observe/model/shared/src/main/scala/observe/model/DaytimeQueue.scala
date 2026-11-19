@@ -101,13 +101,6 @@ case class DaytimeQueue(
     val idx: Int = atIndex.max(0).min(items.size)
     copy(items = items.patch(idx, List(DaytimeQueueItem.Pause(id)), 0))
 
-  /** Removes the top-most pause, if any. */
-  def continuePastPause: DaytimeQueue =
-    val idx: Int = items.indexWhere:
-      case DaytimeQueueItem.Pause(_) => true
-      case _                         => false
-    if idx < 0 then this else copy(items = items.patch(idx, Nil, 1))
-
   /** Removes all completed observations; pauses stay. */
   def clearCompleted: DaytimeQueue =
     copy(items = items.filter:
@@ -154,6 +147,52 @@ case class DaytimeQueue(
     obsItems.forall: o =>
       !o.isRunning && o.status =!= QueueItemStatus.Waiting &&
         o.status =!= QueueItemStatus.Stopped
+
+  private def isPause(item: DaytimeQueueItem): Boolean = item match
+    case DaytimeQueueItem.Pause(_) => true
+    case _                         => false
+
+  /** Nothing above the first pause is left for the dispatcher, and the queue is not finished. */
+  def isAtPause: Boolean =
+    items.exists(isPause) && !isFinished &&
+      !obsAbovePause.exists(o => o.isRunning || o.status === QueueItemStatus.Waiting)
+
+  /** Drops the pauses that separate nothing: the first item, the last one, or next to another. */
+  def dropIdlePauses: DaytimeQueue =
+    val single: List[DaytimeQueueItem] =
+      items.foldRight(List.empty[DaytimeQueueItem]):
+        case (item, next :: rest) if isPause(item) && isPause(next) => next :: rest
+        case (item, acc)                                            => item :: acc
+    copy(items = single.dropWhile(isPause).reverse.dropWhile(isPause).reverse)
+
+  /**
+   * A running queue that reached a pause is halted there, as by a queue-level pause. Only then are
+   * the idle pauses dropped, so that dropping one never starts an observation.
+   */
+  def settlePauses: DaytimeQueue =
+    val halted: DaytimeQueue =
+      if dispatchState === QueueDispatchState.Running && isAtPause then
+        copy(dispatchState = QueueDispatchState.Halted)
+      else this
+    halted.dropIdlePauses
+
+  /** Removes the first pause, and a queue halted there goes on. */
+  def continuePastPause: DaytimeQueue =
+    val idx: Int = items.indexWhere(isPause)
+    if idx < 0 then this
+    else
+      copy(
+        items = items.patch(idx, Nil, 1),
+        dispatchState =
+          if dispatchState === QueueDispatchState.Halted then QueueDispatchState.Running
+          else dispatchState
+      )
+
+  /** Run Queue: Stopped observations wait again, and a queue held at a pause goes on past it. */
+  def run: DaytimeQueue =
+    val reset: DaytimeQueue = resetStopped
+    val past: DaytimeQueue  = if reset.isAtPause then reset.continuePastPause else reset
+    past.copy(dispatchState = QueueDispatchState.Running)
 
 object DaytimeQueue:
   val Empty: DaytimeQueue =

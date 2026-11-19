@@ -342,3 +342,45 @@ class DaytimeQueueRowsSuite extends FunSuite:
     assert(DaytimeQueueRows.hasRunning(running))
     assert(!DaytimeQueueRows.hasCompleted(idle))
     assert(DaytimeQueueRows.hasCompleted(running))
+
+  private val PauseItem: DaytimeQueueItem = DaytimeQueueItem.Pause(Pause)
+
+  private def waiting(index: Long): DaytimeQueueItem = obs(index, QueueItemStatus.Waiting)
+
+  private def running(index: Long): DaytimeQueueItem = obs(index, QueueItemStatus.Running)
+
+  test("a new pause goes after the first observation"):
+    assertEquals(
+      DaytimeQueueRows.newPauseIndex(queue(List(waiting(1), waiting(2), waiting(3)))),
+      1.some
+    )
+
+  test("a new pause skips a place that already has one"):
+    assertEquals(
+      DaytimeQueueRows.newPauseIndex(queue(List(waiting(1), PauseItem, waiting(2), waiting(3)))),
+      3.some
+    )
+
+  test("a new pause goes below the running observations"):
+    assertEquals(
+      DaytimeQueueRows.newPauseIndex(
+        queue(List(running(1), waiting(2), running(3), waiting(4), waiting(5)))
+      ),
+      3.some
+    )
+    assertEquals(
+      DaytimeQueueRows.newPauseIndex(queue(List(running(1), waiting(2), waiting(3)))),
+      1.some
+    )
+
+  test("no new pause without two observations together below the running ones"):
+    assertEquals(DaytimeQueueRows.newPauseIndex(queue(Nil)), none)
+    assertEquals(DaytimeQueueRows.newPauseIndex(queue(List(waiting(1)))), none)
+    assertEquals(
+      DaytimeQueueRows.newPauseIndex(queue(List(waiting(1), PauseItem, waiting(2)))),
+      none
+    )
+    assertEquals(
+      DaytimeQueueRows.newPauseIndex(queue(List(waiting(1), waiting(2), running(3)))),
+      none
+    )

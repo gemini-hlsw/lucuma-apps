@@ -16,6 +16,7 @@ import lucuma.react.primereact.ProgressBar
 import lucuma.react.primereact.Tag
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.ui.format.DurationLongWithSecondsFormatter
 import lucuma.ui.primereact.*
@@ -63,6 +64,8 @@ object DaytimeQueueToolbar
         val queue: DaytimeQueue = props.queue
         val hasRunning: Boolean = DaytimeQueueRows.hasRunning(queue)
 
+        val newPauseIndex: Option[Int] = DaytimeQueueRows.newPauseIndex(queue)
+
         // The server owns the mode: a change is sent, and comes back with the queue.
         val orderingMode: View[QueueOrderingMode] =
           View(
@@ -71,6 +74,12 @@ object DaytimeQueueToolbar
               val newMode: QueueOrderingMode = mod(queue.orderingMode)
               queueApi.setOrderingMode(newMode).runAsync >> cb(queue.orderingMode, newMode)
           )
+
+        def modeTooltip(mode: QueueOrderingMode): String = mode match
+          case QueueOrderingMode.Strict    =>
+            "Observations start in queue order: one that cannot start holds back those below it"
+          case QueueOrderingMode.JumpAhead =>
+            "An observation that cannot start is skipped: those below it that can run start"
 
         val abortAll: Callback =
           ConfirmDialog.confirmDialog(
@@ -95,8 +104,8 @@ object DaytimeQueueToolbar
             ).small.compact,
             Button(
               label = "Pause after current step",
-              icon = Icons.PlayPause,
-              severity = Button.Severity.Secondary,
+              icon = Icons.Pause,
+              clazz = ObserveStyles.DaytimeQueueHoldButton,
               disabled = !hasRunning,
               tooltip = "Running observations pause at the end of their current step",
               tooltipOptions = tooltipOptions,
@@ -104,8 +113,8 @@ object DaytimeQueueToolbar
             ).small.compact,
             Button(
               label = "Pause after current observations",
-              icon = Icons.Pause,
-              severity = Button.Severity.Secondary,
+              icon = Icons.PlayPause,
+              clazz = ObserveStyles.DaytimeQueueHoldButton,
               disabled = !DaytimeQueueRows.canHalt(queue),
               tooltip = "Running observations finish, and no other observation starts",
               tooltipOptions = tooltipOptions,
@@ -122,15 +131,25 @@ object DaytimeQueueToolbar
             SelectButtonEnumView(
               "daytime-queue-ordering-mode".refined,
               orderingMode,
-              groupClass = LucumaPrimeStyles.Small |+| LucumaPrimeStyles.Compact
+              groupClass = LucumaPrimeStyles.Small |+| LucumaPrimeStyles.Compact,
+              itemTemplate = item =>
+                <.span(ObserveStyles.DaytimeQueueModeItem)(item.value.shortName).withTooltip(
+                  content = modeTooltip(item.value),
+                  position = Tooltip.Position.Top,
+                  showDelay = 100
+                )
             ),
             Button(
               label = "Add pause",
               icon = Icons.Plus,
               severity = Button.Severity.Secondary,
-              tooltip = "Add a pause at the end of the queue; drag it to its place",
+              disabled = newPauseIndex.isEmpty,
+              tooltip =
+                if newPauseIndex.isEmpty then
+                  "A pause goes between two observations, below the running ones"
+                else "Add a pause; drag it to its place",
               tooltipOptions = tooltipOptions,
-              onClick = queueApi.addPause(queue.items.size).runAsync
+              onClick = newPauseIndex.foldMap(index => queueApi.addPause(index).runAsync)
             ).small.compact,
             Button(
               label = "Clear completed",
