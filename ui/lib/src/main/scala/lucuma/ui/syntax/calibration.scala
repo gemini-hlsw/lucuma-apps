@@ -14,12 +14,12 @@ trait calibration:
       case CalibrationRole.DaytimeCalibration => false
       case CalibrationRole.DaytimeFlat        => false
       case CalibrationRole.DaytimePinhole     => false
-      case CalibrationRole.MosMaskFlat        => false
+      case CalibrationRole.DaytimeMaskImage   => false
       case _                                  => true
 
     def needsOffsets: Boolean = cr match
       case CalibrationRole.DaytimeArc | CalibrationRole.DaytimeFlat |
-          CalibrationRole.DaytimePinhole | CalibrationRole.MosMaskFlat =>
+          CalibrationRole.DaytimePinhole | CalibrationRole.DaytimeMaskImage =>
         false
       case _ => true
 
@@ -31,8 +31,8 @@ trait calibration:
       case _ => false
 
     def isDaytimeRole: Boolean = cr match
-      case CalibrationRole.DaytimeCalibration | CalibrationRole.MosMaskFlat => true
-      case _                                                                => cr.isGeneratedDaytime
+      case CalibrationRole.DaytimeCalibration | CalibrationRole.DaytimeMaskImage => true
+      case _                                                                     => cr.isGeneratedDaytime
 
   extension (cr: Option[CalibrationRole])
     def needsITC: Boolean = cr.forall(_.needsITC)

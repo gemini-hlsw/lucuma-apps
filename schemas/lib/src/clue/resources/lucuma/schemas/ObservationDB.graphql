@@ -18996,8 +18996,8 @@ enum CalibrationRole {
   """CalibrationRole DaytimeCalibration"""
   DAYTIME_CALIBRATION
 
-  """CalibrationRole MosMaskFlat"""
-  MOS_MASK_FLAT
+  """CalibrationRole DaytimeMaskImage"""
+  DAYTIME_MASK_IMAGE
 }
 
 """Target description"""

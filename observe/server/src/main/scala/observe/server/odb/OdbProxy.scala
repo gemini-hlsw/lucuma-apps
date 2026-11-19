@@ -99,7 +99,7 @@ object OdbProxy {
                 calibrationRole.exists:
                   case CalibrationRole.DaytimeArc | CalibrationRole.DaytimeCalibration |
                       CalibrationRole.DaytimeFlat | CalibrationRole.DaytimePinhole |
-                      CalibrationRole.MosMaskFlat =>
+                      CalibrationRole.DaytimeMaskImage =>
                     true
                   case _ => false
               ObsQuery[F]

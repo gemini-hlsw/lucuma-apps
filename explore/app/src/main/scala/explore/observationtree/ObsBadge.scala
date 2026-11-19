@@ -74,7 +74,7 @@ final case class ObsBadge(
   readonly:              Boolean = false,
   maskName:              Option[NonEmptyString] = none
 ) extends ReactFnProps(ObsBadge.component):
-  val isMosMaskFlat: Boolean      = obs.calibrationRole.contains(CalibrationRole.MosMaskFlat)
+  val isDaytimeMaskImage: Boolean = obs.calibrationRole.contains(CalibrationRole.DaytimeMaskImage)
   val isDisabled: Boolean         = readonly || obs.isOdbCalibration
   val isDisabledExecuted: Boolean = isDisabled || obs.isExecuted
   val nonEmptyAllocatedBands      = NonEmptySet.fromSet(allocatedScienceBands)
@@ -175,10 +175,10 @@ object ObsBadge:
       case Some(CalibrationRole.DaytimeArc)         => "Daytime Arc"
       case Some(CalibrationRole.DaytimeCalibration) =>
         <.span(ThemeIcons.SunBright, " Daytime Calibration")
-      case Some(CalibrationRole.MosMaskFlat)        =>
+      case Some(CalibrationRole.DaytimeMaskImage)   =>
         val instrument =
           obs.basicConfiguration.flatMap(_.instrument).foldMap(i => s"${i.shortName} ")
-        <.span(ThemeIcons.SunBright, s" ${instrument}mask flat")
+        <.span(ThemeIcons.SunBright, s" ${instrument}mask image")
       case _                                        => obs.title
 
   private def estimateView(obs: Observation): TagMod =
@@ -258,13 +258,13 @@ object ObsBadge:
               menuRef.toggle(e).when(props.setScienceBandCB.isDefined).void
         )
 
-      // A MOS mask flat shows the id of the mask it images in place of the configuration.
+      // A daytime mask image shows the id of the mask it images in place of the configuration.
       val maskId: Option[String]              = props.maskName.map(_.value)
       val headerConfiguration: Option[String] =
-        if props.isMosMaskFlat then maskId
+        if props.isDaytimeMaskImage then maskId
         else obs.configurationSummary.map(configLabel(obs, _))
       val detailConfiguration: Option[String] =
-        if props.isMosMaskFlat then maskId
+        if props.isDaytimeMaskImage then maskId
         else obs.observingModeSummaryLabel.map(configLabel(obs, _))
 
       val header =
