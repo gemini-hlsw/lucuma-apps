@@ -128,7 +128,6 @@ object Routing:
                   .get
                   .toOption
                   .getOrElse(ScienceModes.empty),
-                model.rootModel.zoom(RootModel.mosMasks),
                 routingInfo.focused,
                 model.rootModel.zoom(RootModel.searchingTarget),
                 model.rootModel.zoom(RootModel.expandedIds.andThen(ExpandedIds.obsListGroupIds)),
