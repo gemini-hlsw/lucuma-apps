@@ -37,6 +37,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
+import lucuma.core.math.Angle
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.util.Enumerated
@@ -302,11 +303,14 @@ object AttachmentsTile
           column(FileNameColumnId, Attachment.fileName.get)
             .withCell(_.value.value)
             .sortableBy(_.value.toUpperCase),
-          // For parsed MOS masks the type is qualified by the instrument the mask was cut for.
+          // For parsed MOS masks the type is qualified by the instrument and average slit width.
           column(
             AttachmentTypeColumnId,
-            a => a.attachmentType.shortName + a.maskInstrument.foldMap(i => s" (${i.shortName})")
-          ).withSize(190.toPx),
+            a =>
+              val width =
+                a.maskSlitWidth.foldMap(w => f", ${Angle.signedDecimalArcseconds.get(w)}%.2f″")
+              a.attachmentType.shortName + a.maskInstrument.foldMap(i => s" (${i.shortName}$width)")
+          ).withSize(220.toPx),
           column(SizeColumnId, Attachment.fileSize.get)
             .withCell(cell =>
               // The fileSize will always be > 0, the api should be changed to reflect this
