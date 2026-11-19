@@ -113,9 +113,13 @@ trait OdbObservationApi[F[_]]:
     groupId:    Option[Group.Id],
     groupIndex: NonNegShort
   ): F[Unit]
-  def setGuideTarget(obsId:       Observation.Id, selection:    Option[GuideStarId]): F[Unit]
+  def setGuideTarget(obsId:       Observation.Id, selection: Option[GuideStarId]): F[Unit]
   def guideTargetSelection(obsId: Observation.Id): F[Option[GuideStarId]]
-  def maskDesign(obsId:           Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]]
+  def maskDesign(
+    obsId:        Observation.Id,
+    attachmentId: Attachment.Id,
+    linkedToObs:  Boolean
+  ): F[Option[MaskDesign]]
 
   def createConfigurationRequest(
     obsId:         Observation.Id,
