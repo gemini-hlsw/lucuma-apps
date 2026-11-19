@@ -245,7 +245,7 @@ object DaytimeQueueTable
               header = "Status",
               cell = cell =>
                 cell.row.original match
-                  case DaytimeQueueRow.Obs(obs)          =>
+                  case DaytimeQueueRow.Obs(obs)    =>
                     Tag(
                       value = obs.status.shortName,
                       severity = statusSeverity(obs.status).orUndefined
