@@ -19,7 +19,8 @@ final case class TelescopeConfigsEditor(
   telescopeConfigs: View[NonEmptyList[TelescopeConfig]],
   pEnabled:         Boolean = true,
   maxOffsets:       Int = Int.MaxValue,
-  readonly:         Boolean = false
+  readonly:         Boolean = false,
+  idPrefix:         String = "explicit-offsets"
 ) extends ReactFnProps(TelescopeConfigsEditor)
 
 object TelescopeConfigsEditor
@@ -27,11 +28,12 @@ object TelescopeConfigsEditor
       React.Fragment(
         props.telescopeConfigs.toNelOfViews.zipWithIndex
           .map: (telescopeConfig, idx) =>
-            React.Fragment.withKey(s"explicit-offsets-row-$idx")(
-              <.label(^.htmlFor := s"explicit-offsets-$idx-p", s"${idx + 1}:"),
+            React.Fragment.withKey(s"${props.idPrefix}-row-$idx")(
+              <.label(^.htmlFor := s"${props.idPrefix}-$idx-p", s"${idx + 1}:"),
               TelescopeConfigEditorRow(
                 telescopeConfig = telescopeConfig,
                 idx = idx,
+                idPrefix = props.idPrefix,
                 pEnabled = props.pEnabled,
                 remove = props.telescopeConfigs.mod: configs =>
                   NonEmptyList
