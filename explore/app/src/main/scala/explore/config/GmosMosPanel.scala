@@ -14,10 +14,12 @@ import explore.model.display.given
 import explore.model.enums.ExposureTimeModeType
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
+import lucuma.core.math.Angle
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.refined.*
+import lucuma.schemas.model.ObservingMode
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -87,14 +89,31 @@ trait GmosMosPanelProps[Grating, Filter]
   def maskContext: MosMaskContext
   def maskInstrument: Instrument
 
-  def customMaskAttachmentIdView: View[Option[Attachment.Id]]
+  def customMaskView: View[ObservingMode.GmosCustomMask]
 
   override def excludedFpus: Set[GmosCustomSlitWidth] = Set.empty
   override def fpuLabel: String                       = "Custom Slit Width"
   override def fpuHelpId: Option[Help.Id]             =
     Some("configuration/mos-slit-width.md".refined)
 
-  private def maskIsBound: Boolean = customMaskAttachmentIdView.get.isDefined
+  // The custom slit width nearest to the mask's average science slit width.
+  private def maskSlitWidth(id: Attachment.Id): Option[GmosCustomSlitWidth] =
+    maskContext.attachments.get
+      .get(id)
+      .flatMap(_.maskSlitWidth)
+      .map: avg =>
+        val avgMas = Angle.signedMicroarcseconds.get(avg)
+        Enumerated[GmosCustomSlitWidth].all.minBy: sw =>
+          (Angle.signedMicroarcseconds.get(sw.width) - avgMas).abs
+
+  // Binding a mask also sets the slit width, in one edit so a single undo reverts both.
+  private def customMaskAttachmentIdView: View[Option[Attachment.Id]] =
+    customMaskView.zoom(_.attachmentId): f =>
+      m =>
+        val id = f(m.attachmentId)
+        m.copy(attachmentId = id, slitWidth = id.flatMap(maskSlitWidth).getOrElse(m.slitWidth))
+
+  private def maskIsBound: Boolean = customMaskView.get.attachmentId.isDefined
 
   override def maskControl: VdomNode =
     // Only shown once the proposal is accepted
