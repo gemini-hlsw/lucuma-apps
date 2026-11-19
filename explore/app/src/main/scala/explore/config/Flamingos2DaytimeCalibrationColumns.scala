@@ -3,12 +3,11 @@
 
 package explore.config
 
-import crystal.Pot
 import crystal.react.View
 import explore.config.DaytimeCalibrationSetsTable.*
+import explore.model.Attachment
 import explore.model.DaytimeCalibrationSets
 import explore.model.Flamingos2DaytimeSetup
-import explore.model.MosMask
 import explore.model.display.given
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.Instrument
@@ -25,7 +24,7 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
     setsView: View[List[DaytimeCalibrationSet]],
     editable: Boolean,
     isStaff:  Boolean,
-    masks:    Option[Pot[List[MosMask]]]
+    masks:    Option[List[Attachment]]
   ): List[ColDef.Type] =
     val setup: Int => View[Flamingos2DynamicConfig] =
       setupView(setsView, Flamingos2DaytimeSetup.setup, Flamingos2DaytimeSetup.default)

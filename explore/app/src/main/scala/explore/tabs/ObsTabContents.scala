@@ -60,7 +60,6 @@ case class ObsTabContents(
   programSummaries: UndoContext[ProgramSummaries],
   userPreferences:  View[UserPreferences],
   modes:            ScienceModes,
-  mosMasks:         View[MosMasks],
   focused:          Focused,
   searching:        View[Set[Target.Id]],
   expandedGroups:   View[Set[Group.Id]],
@@ -342,7 +341,6 @@ object ObsTabContents extends TwoPanels:
                   props.programId,
                   programType,
                   props.modes,
-                  props.mosMasks,
                   backButton,
                   obsUndoSetter,
                   props.programSummaries

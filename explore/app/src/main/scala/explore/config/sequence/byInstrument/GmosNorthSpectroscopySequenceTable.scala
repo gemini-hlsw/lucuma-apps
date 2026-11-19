@@ -5,9 +5,9 @@ package explore.config.sequence.byInstrument
 
 import cats.effect.IO
 import crystal.react.View
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
+import explore.model.AttachmentList
 import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
@@ -36,7 +36,7 @@ final case class GmosNorthSpectroscopySequenceTable(
   remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosNorth]] => IO[
     List[Atom[gmos.DynamicConfig.GmosNorth]]
   ],
-  maskNames:            Map[Attachment.Id, NonEmptyString],
+  attachments:          AttachmentList,
   columnProfile:        SequenceColumnProfile
 ) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth]
@@ -45,7 +45,7 @@ final case class GmosNorthSpectroscopySequenceTable(
     case ExecutionVisits.GmosNorth(visits) => visits
 
   override def maskName(attachmentId: Attachment.Id) =
-    maskNames.get(attachmentId)
+    attachments.get(attachmentId).flatMap(_.maskName)
 
 object GmosNorthSpectroscopySequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](

@@ -5,12 +5,11 @@ package explore.config
 
 import cats.Eq
 import cats.syntax.all.*
-import crystal.Pot
 import crystal.react.View
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.config.DaytimeCalibrationSetsTable.*
-import explore.model.MosMask
+import explore.model.Attachment
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -25,8 +24,8 @@ import lucuma.react.primereact.SelectItem
 import lucuma.ui.sequence.SequenceStyles
 
 /**
- * The FPU of a daytime calibration set: a builtin FPU or, for staff, a MOS mask of any program.
- * Masks follow a "Masks" header, as the dropdown binding has no option groups.
+ * The FPU of a daytime calibration set: a builtin FPU or a MOS mask of the program. Masks follow a
+ * "Masks" header, as the dropdown binding has no option groups.
  */
 private[config] object DaytimeFpuColumn:
   private enum Item[+U]:
@@ -46,24 +45,15 @@ private[config] object DaytimeFpuColumn:
   def apply[U: Enumerated: Display](
     editable:    Boolean,
     isStaff:     Boolean,
-    masks:       Option[Pot[List[MosMask]]],
+    masks:       Option[List[Attachment]],
     pinholes:    Set[U],
     placeholder: Row => String,
     width:       Row => Option[String]
   )(view: Int => View[Option[Either[U, MaskDefinition]]]): ColDef.Type =
     cellColumn(FpuColumnId, "FPU", 150, withOptics): r =>
-      val value     = view(r._2)
-      val current   = value.get
-      val currentId = current.flatMap(_.toOption).collect { case Defined(id) => id }
-
-      // Uploads of the same mask are one choice; the selected upload represents its name.
-      val loaded: List[MosMask] =
-        masks
-          .flatMap(_.toOption)
-          .orEmpty
-          .sortBy(m => !currentId.contains(m.id))
-          .distinctBy(_.name)
-          .sortBy(_.name.value)
+      val value   = view(r._2)
+      val current = value.get
+      val loaded  = masks.orEmpty
 
       def maskLabel(m: MaskDefinition): String =
         m match
@@ -71,7 +61,7 @@ private[config] object DaytimeFpuColumn:
           case Defined(id) =>
             loaded
               .find(_.id === id)
-              .fold(if masks.isDefined then s"Mask $id" else "Custom mask")(_.name.value)
+              .fold(s"Mask $id")(_.displayName.value)
 
       val excluded: Set[U] = pinholes.excludedUnless(isStaff, current.flatMap(_.left.toOption))
 
@@ -80,7 +70,7 @@ private[config] object DaytimeFpuColumn:
           .filterNot(excluded.contains)
           .map(u => SelectItem(Item.Builtin(u), Display[U].shortName(u)))
 
-      // The current mask stays shown when it is not offered: deleted, not loaded, or non-staff.
+      // The current mask stays shown when it is not offered, e.g. deleted or of another program.
       val currentMask: List[SelectItem[Item[U]]] =
         current
           .flatMap(_.toOption)
@@ -91,7 +81,7 @@ private[config] object DaytimeFpuColumn:
           .toList
 
       val maskItems: List[SelectItem[Item[U]]] =
-        currentMask ++ loaded.map(m => SelectItem(Item.Mask(Defined(m.id)), m.name.value))
+        currentMask ++ loaded.map(m => SelectItem(Item.Mask(Defined(m.id)), m.displayName.value))
 
       val options: List[SelectItem[Item[U]]] =
         builtins ++

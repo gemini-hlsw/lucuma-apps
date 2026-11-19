@@ -63,7 +63,6 @@ import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
-import lucuma.core.model.Attachment
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.IntCentiPercent
@@ -110,7 +109,6 @@ case class ObsTabTiles(
   programId:         Program.Id,
   programType:       ProgramType,
   modes:             ScienceModes,
-  mosMasks:          View[MosMasks],
   backButton:        VdomNode,
   observation:       UndoSetter[Observation],
   obsAndTargets:     UndoSetter[ObservationsAndTargets],
@@ -593,11 +591,6 @@ object ObsTabTiles:
             props.obsIsReadonly
           )
 
-        // Daytime calibrations can use masks of other programs, named from the staff mask cache.
-        val maskNames: Map[Attachment.Id, NonEmptyString] =
-          props.mosMasks.get.values.flatMap(_.toOption).flatten.map(m => m.id -> m.name).toMap ++
-            props.attachments.get.toMap.flatMap((id, a) => a.maskName.map(id -> _))
-
         val sequenceTile =
           SequenceTile(
             props.obsId,
@@ -615,7 +608,7 @@ object ObsTabTiles:
             props.programSummaries.dismissedWarnings,
             props.observation.get.isExecuted,
             props.programIsReadonly || props.daytimeCalIsReadonly,
-            maskNames
+            props.attachments.get
           )
 
         val odbOrSelectedConfig: Option[BasicConfiguration] =
@@ -968,7 +961,7 @@ object ObsTabTiles:
                 props.observation.get.hasMaterializedSequence,
                 props.readonly || props.daytimeCalIsReadonly,
                 props.isStaffOrAdminUser,
-                props.mosMasks,
+                props.attachments.get,
                 globalPreferences.get.wavelengthUnits,
                 sequenceChanged.set(pending),
                 sequenceChanged.set(().ready)
