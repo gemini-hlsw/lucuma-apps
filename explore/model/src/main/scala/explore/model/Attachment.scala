@@ -18,8 +18,8 @@ import lucuma.core.enums.Partner
 import lucuma.core.math.Angle
 import lucuma.core.model
 import lucuma.core.util.Timestamp
-import monocle.Focus
 import lucuma.odb.json.angle.decoder.given
+import monocle.Focus
 import monocle.Lens
 
 case class Attachment(

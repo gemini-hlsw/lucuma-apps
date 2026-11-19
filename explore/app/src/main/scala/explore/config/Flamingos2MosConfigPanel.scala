@@ -25,6 +25,7 @@ import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
+import lucuma.core.geom.flamingos2.flamingos2SlitWidthPixels
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.flamingos2.Flamingos2AcquisitionMode
@@ -101,12 +102,29 @@ object Flamingos2MosConfigPanel
           )
           .view(identity)
 
-        val attachmentIdView: View[Option[Attachment.Id]] = customMask
-          .zoom(
-            ObservingMode.Flamingos2CustomMask.attachmentId,
-            Flamingos2CustomMaskInput.attachmentId.modify
-          )
-          .view(_.orUnassign)
+        // The custom slit width nearest to the mask's average science slit width, in f/16 pixels.
+        def maskSlitWidth(id: Attachment.Id): Option[Flamingos2CustomSlitWidth] =
+          props.maskContext.attachments.get
+            .get(id)
+            .flatMap(_.maskSlitWidth)
+            .map: avg =>
+              val avgPx = flamingos2SlitWidthPixels(avg).value
+              Enumerated[Flamingos2CustomSlitWidth].all
+                .flatMap(sw => sw.fpu.map(fpu => (sw, fpu.slitWidth.value)))
+                .minBy((_, px) => (avgPx - px).abs)
+                ._1
+
+        // Binding a mask also sets the slit width, in one edit so a single undo reverts both.
+        val attachmentIdView: View[Option[Attachment.Id]] =
+          customMask
+            .view(_.toInput)
+            .zoom(_.attachmentId): f =>
+              m =>
+                val id = f(m.attachmentId)
+                m.copy(
+                  attachmentId = id,
+                  slitWidth = id.flatMap(maskSlitWidth).getOrElse(m.slitWidth)
+                )
 
         val readModeView: View[Option[Flamingos2ReadMode]] = props.observingMode
           .zoom(
