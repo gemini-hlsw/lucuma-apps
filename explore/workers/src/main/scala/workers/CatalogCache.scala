@@ -17,7 +17,6 @@ import lucuma.catalog.clients.GaiaClient
 import lucuma.catalog.votable.*
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
-import lucuma.core.model.Target
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.syntax.*
@@ -29,7 +28,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 1000
-  private val CacheVersion: Int = 16
+  private val CacheVersion: Int = 17
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -90,10 +89,10 @@ trait CatalogCache extends CatalogIDB:
               _.fold(
                 // Not found in the db, re request
                 client
-                  .queryGuideStars(query)
+                  .queryGuideStarResults(query)
                   .map(
                     _.collect { case Right(s) =>
-                      GuideStarCandidate.fromCatalog(s)
+                      GuideStarCandidate.fromCatalogResult(s)
                     }
                   )
                   .flatMap { candidates =>
