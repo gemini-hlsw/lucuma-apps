@@ -465,6 +465,17 @@ body {
 
     .p-progressbar.observe-daytime-queue-progress-bar {
       height: 1.2em;
+
+      // The label runs past a short bar, as in the step progress bar.
+      .p-progressbar-value {
+        overflow: visible;
+        justify-content: flex-start;
+
+        .p-progressbar-label {
+          padding-left: 0.4em;
+          white-space: nowrap;
+        }
+      }
     }
 
     .observe-daytime-queue-empty {
