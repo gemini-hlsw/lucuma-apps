@@ -31,8 +31,9 @@ object EpicsSystems {
   ) extends EpicsSystems[F]
 
   case class EpicsSystemsNorth[F[_]](
-    oiwfs: OiwfsEpicsSystem[F] & CircularBufferControl[F],
-    base:  BaseEpicsSystems[F]
+    oiwfs:  OiwfsEpicsSystem[F] & CircularBufferControl[F],
+    altair: AltairEpicsSystem[F],
+    base:   BaseEpicsSystems[F]
   ) extends EpicsSystems[F] {
     export base.{ags, crcs, ecs, hrwfs, mcs, pwfs1, pwfs2, scs, tcsEpics}
   }

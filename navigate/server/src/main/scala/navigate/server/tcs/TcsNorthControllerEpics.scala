@@ -9,10 +9,16 @@ import cats.effect.Ref
 import cats.effect.Resource
 import cats.syntax.all.*
 import fs2.Stream
+import lucuma.core.enums.FieldLens
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
+import lucuma.odb.data.AltairConfiguration
+import lucuma.schemas.model.navigate.LightSource
+import navigate.epics.VerifiedEpics.*
 import navigate.epics.given
+import navigate.model.Target
+import navigate.model.TcsConfig
 import navigate.model.WfsConfiguration
 import navigate.model.enums.HrwfsPickupPosition
 import navigate.server.ApplyCommandResult
@@ -20,14 +26,15 @@ import navigate.server.ConnectionTimeout
 import navigate.server.tcs.TcsEpicsSystem.TcsCommands
 import org.typelevel.log4cats.Logger
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 
 import EpicsSystems.*
 
 class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
-  sys:      EpicsSystemsNorth[F],
-  timeout:  FiniteDuration,
-  stateRef: Ref[F, TcsBaseControllerEpics.State]
+  sys:              EpicsSystemsNorth[F],
+  altairController: AltairController[F],
+  timeout:          FiniteDuration,
+  stateRef:         Ref[F, TcsBaseControllerEpics.State]
 ) extends TcsBaseControllerEpics[F](
       sys,
       timeout,
@@ -72,6 +79,43 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
     cmds.hrwfsCommands.move.setPosition(HrwfsPickupPosition.Out)
 
   override protected val domeParkPosition: Angle = Angle.fromDoubleDegrees(90.0)
+
+  // The TCS has to know if it is being used with Altair. Without it, the AO flag is cleared.
+  override protected def altairTcsConfig(config: TcsConfig): TcsCommands[F] => TcsCommands[F] =
+    config.altair.fold { (cmds: TcsCommands[F]) =>
+      cmds.aoConfigCommand.useAo(false)
+    } { altair => (cmds: TcsCommands[F]) =>
+      cmds.aoConfigCommand
+        .useAo(true)
+        .aoConfigCommand
+        .fieldLens(fieldLens(config, altair))
+    }
+
+  /**
+   * The field lens that will be used: the one the user chose, or if left on auto, the one that
+   * corresponds to the position of the guide star. With no guide star (NGS), it is out.
+   */
+  private def fieldLens(config: TcsConfig, altair: AltairConfiguration): FieldLens =
+    altair.fieldLens(guideStarSeparation(config)).getOrElse(FieldLens.Out)
+
+  private def guideStarSeparation(config: TcsConfig): Option[Angle] =
+    (config.aowfs.map(_.target), config.sourceATarget) match {
+      case (Some(g: Target.SiderealTarget), s: Target.SiderealTarget) =>
+        g.coordinates.angularDistance(s.coordinates).some
+      case _                                                          => none
+    }
+
+  // With Altair, the light comes from the sky through the AO system
+  override def altairFollow(enable: Boolean): F[ApplyCommandResult] =
+    altairController.follow(enable)
+
+  override def altairPark: F[ApplyCommandResult] = altairController.park
+
+  override protected def defaultLightSource(config: TcsConfig): LightSource =
+    config.altair.fold(LightSource.Sky)(_ => LightSource.AO)
+
+  override protected def configureAltair(config: TcsConfig): F[Unit] =
+    altairController.configure(config.altair)
 }
 
 object TcsNorthControllerEpics {
@@ -80,10 +124,9 @@ object TcsNorthControllerEpics {
     sys:     EpicsSystemsNorth[F],
     timeout: FiniteDuration
   ): F[TcsNorthControllerEpics[F]] =
-    Ref
-      .of[F, TcsBaseControllerEpics.State](TcsBaseControllerEpics.State.default)
-      .map(
-        new TcsNorthControllerEpics(sys, timeout, _)
-      )
+    for {
+      altair <- AltairController.fromEpics(sys.altair, sys.tcsEpics, timeout)
+      state  <- Ref.of[F, TcsBaseControllerEpics.State](TcsBaseControllerEpics.State.default)
+    } yield new TcsNorthControllerEpics(sys, altair, timeout, state)
 
 }

@@ -9,7 +9,11 @@ import cats.effect.std.Dispatcher
 import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import lucuma.core.enums
+import lucuma.core.enums.AltairMode
+import lucuma.core.enums.AltairNdFilter
+import lucuma.core.enums.CassRotator
 import lucuma.core.enums.ComaOption
+import lucuma.core.enums.FieldLens
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.M1Source
@@ -36,6 +40,7 @@ import lucuma.core.model.ProgramReference
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.model.navigate.LightSource
 import monocle.Focus
 import monocle.Getter
@@ -247,6 +252,278 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
+  private def gnConfig(
+    altair: Option[AltairConfiguration],
+    aowfs:  Option[GuiderConfig],
+    pwfs2:  Option[GuiderConfig]
+  ): TcsConfig = {
+    val target = SiderealTarget(
+      objectName = "base",
+      wavelength = Wavelength.fromIntPicometers(400 * 1000),
+      coordinates = Coordinates.Zero,
+      epoch = Epoch.J2000,
+      properMotion = none,
+      radialVelocity = none,
+      parallax = none
+    )
+
+    TcsConfig(
+      target,
+      InstrumentSpecifics(Angle.Angle0, Distance.Zero, "gnirs", Origin(Angle.Angle0, Angle.Angle0)),
+      None,
+      pwfs2,
+      None,
+      RotatorTrackConfig(Angle.Angle0, RotatorTrackingMode.Tracking),
+      LightSink.Gnirs,
+      None,
+      None,
+      altair,
+      aowfs
+    )
+  }
+
+  // A slew with Altair, at GN. The AO star goes in the PWFS2 parameters if Altair is in NGS mode.
+  private def altairSlew(
+    altair: Option[AltairConfiguration],
+    aowfs:  Option[GuiderConfig],
+    pwfs2:  Option[GuiderConfig]
+  )(using
+    Dispatcher[IO]
+  ): IO[(StateRefs[IO], TestTcsEpicsSystem.State, TestAltairEpicsSystem.State)] = {
+    val noOptions = SlewOptions(
+      ZeroChopThrow(false),
+      ZeroSourceOffset(false),
+      ZeroSourceDiffTrack(false),
+      ZeroMountOffset(false),
+      ZeroMountDiffTrack(false),
+      ShortcircuitTargetFilter(false),
+      ShortcircuitMountFilter(false),
+      ResetPointing(false),
+      StopGuide(false),
+      ZeroGuideOffset(false),
+      ZeroInstrumentOffset(false),
+      AutoparkPwfs1(false),
+      AutoparkPwfs2(false),
+      AutoparkOiwfs(false),
+      AutoparkGems(false),
+      AutoparkAowfs(false)
+    )
+
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- st.ags.update(
+                     _.focus(_.gnirsPort.value)
+                       .replace(3.some)
+                       .focus(_.aoParked.value)
+                       .replace(1.some)
+                       .focus(_.p2Parked.value)
+                       .replace(1.some)
+                       .focus(_.sfParked.value)
+                       .replace(1.some)
+                   )
+      _         <- ctr.slew(
+                     noOptions,
+                     gnConfig(altair, aowfs, pwfs2)
+                   )
+      tcs       <- st.tcs.get
+      ao        <- st.altair.get
+    } yield (st, tcs, ao)
+  }
+
+  private def aoStar(name: String, ra: String): SiderealTarget = SiderealTarget(
+    objectName = name,
+    wavelength = Wavelength.fromIntPicometers(800 * 1000),
+    coordinates =
+      Coordinates.fromHmsDms.getOption(s"$ra +00:00:01.000000").getOrElse(Coordinates.Zero),
+    epoch = Epoch.J2000,
+    properMotion = none,
+    radialVelocity = none,
+    parallax = none
+  )
+
+  private val ngsAltair =
+    AltairConfiguration(AltairMode.Ngs, FieldLens.In.some, CassRotator.Following, AltairNdFilter.In)
+
+  private def aoNgsConfig: TcsConfig =
+    gnConfig(ngsAltair.some,
+             GuiderConfig(aoStar("aoStar", "00:00:00.000000"), TrackingConfig.noTracking).some,
+             none
+    )
+
+  epicsTest("TCS config sets the AO flag on with Altair and off without it") {
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- ctr.tcsConfig(aoNgsConfig)(GuideConfig.defaultGuideConfig)
+      on        <- st.tcs.get.map(_.useAo.value)
+      _         <- ctr.tcsConfig(gnConfig(none, none, none))(GuideConfig.defaultGuideConfig)
+      off       <- st.tcs.get.map(_.useAo.value)
+    } yield {
+      assertEquals(on, "Yes".some)
+      assertEquals(off, "No".some)
+    }
+  }
+
+  epicsTest("TCS config at GS sets the AO flag off") {
+    for {
+      (st, ctr) <- createController(Site.GS)
+      _         <- ctr.tcsConfig(gnConfig(none, none, none))(GuideConfig.defaultGuideConfig)
+      s         <- st.tcs.get
+    } yield assertEquals(s.useAo.value, "No".some)
+  }
+
+  epicsTest("Slew without Altair clears the AO flag left on by a previous configuration") {
+    val noOptions = SlewOptions(
+      ZeroChopThrow(false),
+      ZeroSourceOffset(false),
+      ZeroSourceDiffTrack(false),
+      ZeroMountOffset(false),
+      ZeroMountDiffTrack(false),
+      ShortcircuitTargetFilter(false),
+      ShortcircuitMountFilter(false),
+      ResetPointing(false),
+      StopGuide(false),
+      ZeroGuideOffset(false),
+      ZeroInstrumentOffset(false),
+      AutoparkPwfs1(false),
+      AutoparkPwfs2(false),
+      AutoparkOiwfs(false),
+      AutoparkGems(false),
+      AutoparkAowfs(false)
+    )
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- st.ags.update(_.focus(_.gnirsPort.value).replace(3.some))
+      _         <- ctr.slew(noOptions, aoNgsConfig)
+      on        <- st.tcs.get.map(_.useAo.value)
+      _         <- ctr.slew(noOptions, gnConfig(none, none, none))
+      off       <- st.tcs.get.map(_.useAo.value)
+    } yield {
+      assertEquals(on, "Yes".some)
+      assertEquals(off, "No".some)
+    }
+  }
+
+  epicsTest("Restore target sets the AO flag as the configuration says") {
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- ctr.restoreTarget(aoNgsConfig)
+      on        <- st.tcs.get.map(_.useAo.value)
+      _         <- ctr.restoreTarget(gnConfig(none, none, none))
+      off       <- st.tcs.get.map(_.useAo.value)
+    } yield {
+      assertEquals(on, "Yes".some)
+      assertEquals(off, "No".some)
+    }
+  }
+
+  epicsTest("Slew with Altair in NGS mode uses the AO star as PWFS2 target") {
+    val aoTracking    = TrackingConfig(true, false, true, false)
+    val pwfs2Tracking = TrackingConfig(false, true, false, true)
+    val altair        = AltairConfiguration(AltairMode.Ngs,
+                                     FieldLens.In.some,
+                                     CassRotator.Following,
+                                     AltairNdFilter.In
+    )
+
+    altairSlew(
+      altair.some,
+      GuiderConfig(aoStar("aoStar", "00:00:00.000000"), aoTracking).some,
+      GuiderConfig(aoStar("pwfs2Star", "01:00:00.000000"), pwfs2Tracking).some
+    ).map { case (_, tcs, ao) =>
+      assertEquals(tcs.useAo.value, "Yes".some)
+      assertEquals(tcs.aoFieldLens.value, "FLENS".some)
+      assertEquals(tcs.aoFieldLensPrepare.value, "1".some)
+      // The light goes through the AO system
+      assertEquals(tcs.aoFoldMech.position.value, "IN".some)
+      assertEquals(tcs.pwfs2Target.objectName.value, "aoStar".some)
+      assertEquals(
+        tcs.pwfs2Tracking.nodAchopA.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+        BinaryOnOff.On.some
+      )
+      assertEquals(
+        tcs.pwfs2Tracking.nodAchopB.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+        BinaryOnOff.Off.some
+      )
+      assertEquals(ao.ngsNdFilter, AltairNdFilter.In.some)
+      assertEquals(ao.lgsNdFilter, none)
+      // It is already in NGS
+      assertEquals(ao.commands, List("ngsNdFilter"))
+    }
+  }
+
+  epicsTest(
+    "Slew with Altair in NGS mode on auto uses the field lens for the guide star separation"
+  ) {
+    val altair =
+      AltairConfiguration(AltairMode.Ngs, none, CassRotator.Following, AltairNdFilter.Out)
+
+    // 1 hour from the base, far more than the 1 arcsecond threshold
+    altairSlew(altair.some,
+               GuiderConfig(aoStar("far", "01:00:00.000000"), TrackingConfig.noTracking).some,
+               none
+    ).map { case (_, tcs, _) =>
+      assertEquals(tcs.aoFieldLens.value, "FLENS".some)
+    } *>
+      // Almost on the base
+      altairSlew(altair.some,
+                 GuiderConfig(aoStar("near", "00:00:00.000000"), TrackingConfig.noTracking).some,
+                 none
+      ).map { case (_, tcs, _) =>
+        assertEquals(tcs.aoFieldLens.value, "PARK".some)
+        assertEquals(tcs.aoFieldLensPrepare.value, "0".some)
+      }
+  }
+
+  epicsTest("Slew with Altair in LGS mode uses the AO star, when given, instead of the PWFS2 one") {
+    val altair =
+      AltairConfiguration(AltairMode.Lgs, none, CassRotator.Following, AltairNdFilter.Out)
+
+    altairSlew(
+      altair.some,
+      GuiderConfig(aoStar("aoStar", "00:00:00.000000"),
+                   TrackingConfig(true, true, true, true)
+      ).some,
+      GuiderConfig(aoStar("pwfs2Star", "01:00:00.000000"), TrackingConfig.noTracking).some
+    ).map { case (_, tcs, ao) =>
+      assertEquals(tcs.useAo.value, "Yes".some)
+      assertEquals(tcs.aoFieldLens.value, "FLENS".some)
+      assertEquals(tcs.pwfs2Target.objectName.value, "aoStar".some)
+      assertEquals(ao.useLaserWfs, true.some)
+      assertEquals(ao.initWfs, true.some)
+      assertEquals(ao.lgsNdFilter, AltairNdFilter.Out.some)
+      assertEquals(ao.ngsNdFilter, none)
+      assertEquals(ao.commands, List("useLaserWfs", "initWfs", "lgsNdFilter"))
+    }
+  }
+
+  epicsTest("Slew with Altair in LGS mode without AO star turns the AO tracking off") {
+    val altair =
+      AltairConfiguration(AltairMode.Lgs, none, CassRotator.Following, AltairNdFilter.Out)
+
+    altairSlew(
+      altair.some,
+      none,
+      GuiderConfig(aoStar("pwfs2Star", "01:00:00.000000"),
+                   TrackingConfig(true, true, true, true)
+      ).some
+    ).map { case (_, tcs, _) =>
+      assertEquals(tcs.useAo.value, "Yes".some)
+      assertNotEquals(tcs.pwfs2Target.objectName.value, "pwfs2Star".some)
+      assertEquals(
+        tcs.pwfs2Tracking.nodAchopA.value.flatMap(Enumerated[BinaryOnOff].fromTag),
+        BinaryOnOff.Off.some
+      )
+    }
+  }
+
+  epicsTest("Slew without Altair clears the AO flag and leaves Altair alone") {
+    altairSlew(none, none, none).map { case (_, tcs, ao) =>
+      assertEquals(tcs.useAo.value, "No".some)
+      assertNotEquals(tcs.aoFoldMech.position.value, "IN".some)
+      assertEquals(ao.commands, Nil)
+    }
+  }
+
   epicsTest("Slew command") {
     val targetRa  = "17:01:00.000000"
     val targetDec = "-21:10:59.999999"
@@ -354,7 +631,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
                        LightSink.GmosNorth,
                        m2Baffles.some,
-                       programLabel
+                       programLabel,
+                       None,
+                       None
                      )
                    )
       rs        <- st.tcs.get
@@ -3600,19 +3879,20 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   case class StateRefs[F[_]](
-    tcs:  Ref[F, TestTcsEpicsSystem.State],
-    p1:   Ref[F, TestWfsEpicsSystem.State],
-    p2:   Ref[F, TestWfsEpicsSystem.State],
-    oiw:  Ref[F, TestWfsEpicsSystem.State],
-    gmoi: Ref[F, TestWfsEpicsSystem.State],
-    f2oi: Ref[F, TestWfsEpicsSystem.State],
-    oi:   Ref[F, TestOiwfsEpicsSystem.State],
-    mcs:  Ref[F, TestMcsEpicsSystem.State],
-    scs:  Ref[F, TestScsEpicsSystem.State],
-    crcs: Ref[F, TestCrcsEpicsSystem.State],
-    ags:  Ref[F, TestAgsEpicsSystem.State],
-    ac:   Ref[F, TestAcquisitionCameraEpicsSystem.State],
-    ecs:  Ref[F, TestEcsEpicsSystem.State]
+    tcs:    Ref[F, TestTcsEpicsSystem.State],
+    p1:     Ref[F, TestWfsEpicsSystem.State],
+    p2:     Ref[F, TestWfsEpicsSystem.State],
+    oiw:    Ref[F, TestWfsEpicsSystem.State],
+    gmoi:   Ref[F, TestWfsEpicsSystem.State],
+    f2oi:   Ref[F, TestWfsEpicsSystem.State],
+    oi:     Ref[F, TestOiwfsEpicsSystem.State],
+    mcs:    Ref[F, TestMcsEpicsSystem.State],
+    scs:    Ref[F, TestScsEpicsSystem.State],
+    crcs:   Ref[F, TestCrcsEpicsSystem.State],
+    ags:    Ref[F, TestAgsEpicsSystem.State],
+    ac:     Ref[F, TestAcquisitionCameraEpicsSystem.State],
+    ecs:    Ref[F, TestEcsEpicsSystem.State],
+    altair: Ref[F, TestAltairEpicsSystem.State]
   )
 
   def createController(site: Site = Site.GS)(using
@@ -3641,11 +3921,16 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                 TestAcquisitionCameraEpicsSystem.defaultState
               )
       ecs  <- Ref.of[IO, TestEcsEpicsSystem.State](TestEcsEpicsSystem.defaultState)
+      ao   <- Ref.of[IO, TestAltairEpicsSystem.State](TestAltairEpicsSystem.defaultState)
+      altr <- AltairController.fromEpics[IO](TestAltairEpicsSystem.build(ao),
+                                             TestTcsEpicsSystem.build(tcs),
+                                             DefaultTimeout
+              )
     } yield {
       val oiSys = TestOiwfsEpicsSystem.build(oiw, oi)
 
       (
-        StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac, ecs),
+        StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac, ecs, ao),
         (site === Site.GS).fold(
           new TcsSouthControllerEpics[IO](
             EpicsSystemsSouth(
@@ -3670,6 +3955,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
           new TcsNorthControllerEpics[IO](
             EpicsSystemsNorth(
               oiSys,
+              TestAltairEpicsSystem.build(ao),
               BaseEpicsSystems(
                 TestTcsEpicsSystem.build(tcs),
                 TestWfsEpicsSystem.build("PWFS1", p1),
@@ -3683,6 +3969,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                 TestEcsEpicsSystem.build(ecs)
               )
             ),
+            altr,
             DefaultTimeout,
             st
           )

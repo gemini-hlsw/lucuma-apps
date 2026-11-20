@@ -134,6 +134,7 @@ import navigate.server.tcs.TcsEpicsSystem.WfsCommands
 import org.typelevel.log4cats.Logger
 
 import java.util.concurrent.TimeUnit
+import scala.annotation.unused
 import scala.concurrent.duration.*
 import scala.math.Ordering.Implicits.given
 
@@ -413,7 +414,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           )
       )
       .compose(
-        config.pwfs2
+        pwfs2OrAowfs(config)
           .map(o =>
             setTarget(Getter[TcsCommands[F], TargetCommand[F, TcsCommands[F]]](_.pwfs2TargetCmd),
                       o.target
@@ -467,6 +468,36 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           .map(b => setBaffles(b.central, b.deployable))
           .getOrElse(identity)
       )
+      // The AO flag must always be set, so a configuration without Altair does not leave it on
+      .andThen(altairTcsConfig(config))
+
+  /**
+   * When Altair is used, the TCS takes the AO guide star from the PWFS2 parameters, for the target
+   * and for the nod/chop tracking, so the PWFS2 probe config is not used. The AO star is required
+   * in NGS mode and optional in LGS (STRAP/SFO). If it is not given, tracking is turned off, as
+   * Seqexec does when Altair has no target.
+   */
+  private def pwfs2OrAowfs(config: TcsConfig): Option[GuiderConfig] =
+    config.altair.fold(config.pwfs2)(_ => config.aowfs)
+
+  /**
+   * The settings that go in the TCS command because of Altair. The AO flag is always set. There is
+   * no Altair at GS, so by default it is off.
+   */
+  protected def altairTcsConfig(@unused config: TcsConfig): TcsCommands[F] => TcsCommands[F] =
+    _.aoConfigCommand.useAo(false)
+
+  /**
+   * Configure Altair itself, after the TCS has the new configuration. There is no Altair at GS, so
+   * by default nothing is done.
+   */
+  protected def configureAltair(@unused config: TcsConfig): F[Unit] = ().pure[F]
+
+  /**
+   * Where the light comes from by default. It is the sky, unless the configuration puts something
+   * in the way, like Altair at GN, which sends the light through the AO system.
+   */
+  protected def defaultLightSource(@unused config: TcsConfig): LightSource = LightSource.Sky
 
   protected def getOiwfsWavelegth(instrument: Instrument): Wavelength = (instrument match {
     case Instrument.Flamingos2 => OiwfsWavelength.Flamingos2Oiwfs
@@ -512,6 +543,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                  sys.tcsEpics.startCommand(TcsConfigTimeout)
                ).post
            ).verifiedRun(ConnectionTimeout)
+    _   <- configureAltair(config)
     trk <- isTracking(guide)
     _   <- sys.tcsEpics.status
              .waitInPosition(SettleTime, offsetTimeout(MaxClearedOffset))
@@ -562,8 +594,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                  )
                  .post
            ).verifiedRun(ConnectionTimeout)
-    // TODO: Consider case AO -> Instrument
-    _   <- lightPath(LightSource.Sky, tcsConfig.instrumentVariant)
+    _   <- configureAltair(tcsConfig)
+    _   <- lightPath(defaultLightSource(tcsConfig), tcsConfig.instrumentVariant)
   } yield r
 
   private val defaultChopType: String       = "2posn"
@@ -1762,8 +1794,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       }
 
   override def restoreTarget(config: TcsConfig): F[ApplyCommandResult] = {
-    // TODO: consider cases where the light path should go through the AO
-    val source = LightSource.Sky
+    val source = defaultLightSource(config)
 
     for {
       _   <- disableGuide

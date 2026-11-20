@@ -221,6 +221,8 @@ class NavigateMappings[F[_]: Sync](
     command("oiwfsProbeTracking", arg("config", ProbeTrackingInput.Binding))(
       server.oiwfsProbeTracking
     ),
+    command("altairFollow", arg("enable", BooleanBinding))(server.altairFollow),
+    command("altairPark")(server.altairPark),
     command("oiwfsPark")(server.oiwfsPark),
     command("oiwfsFollow", arg("enable", BooleanBinding))(server.oiwfsFollow),
     command("oiwfsObserve", arg("period", TimeSpanInput.Binding))(server.oiwfsObserve),

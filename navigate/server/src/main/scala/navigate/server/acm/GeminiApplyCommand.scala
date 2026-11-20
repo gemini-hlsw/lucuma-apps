@@ -77,7 +77,7 @@ object GeminiApplyCommand {
   /**
    * Failures of the apply record handling that have a message meant for the operator.
    */
-  sealed abstract class ApplyCommandException(msg: String) extends Exception(msg)
+  abstract class ApplyCommandException(msg: String) extends Exception(msg)
 
   final class ApplyTriggerTimeout(applyName: String, timeout: FiniteDuration)
       extends ApplyCommandException(

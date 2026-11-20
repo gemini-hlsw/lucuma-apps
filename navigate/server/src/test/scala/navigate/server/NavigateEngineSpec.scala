@@ -176,6 +176,8 @@ class NavigateEngineSpec extends CatsEffectSuite {
       BafflesConfig
         .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
         .some,
+      none,
+      none,
       none
     )
 

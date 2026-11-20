@@ -62,6 +62,7 @@ object NavigateCommand {
   case class EnableGuide(config: TelescopeGuideConfig)                       extends NavigateCommand
   case class InstSpecifics(instrumentSpecificsParams: InstrumentSpecifics)   extends NavigateCommand
   case class LightPathConfig(from: LightSource, to: LightSink)               extends NavigateCommand
+  case class AltairFollow(enable: Boolean)                                   extends NavigateCommand
   case class McsFollow(enable: Boolean)                                      extends NavigateCommand
   case class Odgw1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Odgw2Follow(enable: Boolean)                                    extends NavigateCommand
@@ -137,6 +138,7 @@ object NavigateCommand {
   case object M1Park                                                         extends NavigateCommand
   case object M1Unpark                                                       extends NavigateCommand
   case object M1ZeroFigure                                                   extends NavigateCommand
+  case object AltairPark                                                     extends NavigateCommand
   case object McsPark                                                        extends NavigateCommand
   case object MountUnwrap                                                    extends NavigateCommand
   case object Odgw1Park                                                      extends NavigateCommand
@@ -206,6 +208,7 @@ object NavigateCommand {
       case InstSpecifics(instrumentSpecificsParams)                       =>
         s"${self.name}(instrumentSpecificsParams = ${instrumentSpecificsParams.show})"
       case LightPathConfig(from, to)                                      => s"${self.name}(from = $from, to = $to)"
+      case AltairFollow(enable)                                           => s"${self.name}(enable = $enable)"
       case McsFollow(enable)                                              => s"${self.name}(enable = $enable)"
       case Odgw1Follow(enable)                                            => s"${self.name}(enable = $enable)"
       case Odgw2Follow(enable)                                            => s"${self.name}(enable = $enable)"
