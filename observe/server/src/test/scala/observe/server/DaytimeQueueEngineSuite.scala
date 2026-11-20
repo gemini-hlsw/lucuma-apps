@@ -45,6 +45,9 @@ import observe.server.engine.EventResult
 import observe.server.engine.SequenceState
 import observe.server.engine.user
 import observe.server.gcal.GcalController
+import observe.server.gmos.GmosController
+import observe.server.gmos.GmosController.GmosSite
+import observe.server.gmos.GmosControllerDisabled
 import observe.server.odb.OdbProxy
 import observe.server.odb.OdbQueueObservation
 import observe.server.odb.TestOdbProxy
@@ -63,6 +66,8 @@ class DaytimeQueueEngineSuite extends TestCommon:
   private val StepTimeout: FiniteDuration = 5.minutes
 
   private val DrainTime: FiniteDuration = 300.millis
+
+  private val ConfigTime: FiniteDuration = 1.milli
 
   private val obs1: Observation.Id = observationId(1)
   private val obs2: Observation.Id = observationId(2)
@@ -209,6 +214,15 @@ class DaytimeQueueEngineSuite extends TestCommon:
       calls.update(_ :+ config) >>
         IO.raiseError(new RuntimeException("GCAL is down")).whenA(fail)
 
+  /**
+   * A step takes simulated time, so a command sent while it runs gets there before it ends: with
+   * steps that take none, the order is up to the scheduler of `TestControl`.
+   */
+  private def slowGmos[T <: GmosSite](name: String): GmosController[IO, T] =
+    new GmosControllerDisabled[IO, T](name):
+      override def applyConfig(config: GmosController.GmosConfig[T]): IO[Unit] =
+        IO.sleep(ConfigTime)
+
   private def fixture(
     sequences: List[(Instrument, TestOdbProxy.InstrumentState)],
     roles:     Map[Observation.Id, CalibrationRole],
@@ -222,7 +236,13 @@ class DaytimeQueueEngineSuite extends TestCommon:
                     calibrationRoles = roles,
                     remainingStepsModes = remaining
                   )
-      services <- defaultServices.map(s => s.copy(odb = odb, gcal = gcal.getOrElse(s.gcal)))
+      services <- defaultServices.map: s =>
+                    s.copy(
+                      odb = odb,
+                      gcal = gcal.getOrElse(s.gcal),
+                      gmosSouth = slowGmos[GmosSite.South.type]("south"),
+                      gmosNorth = slowGmos[GmosSite.North.type]("north")
+                    )
       oe       <-
         ObserveEngine.build(Site.GS, services, defaultSettings, ExecutionEnvironment.Development)
       state    <- Ref.of[IO, EngineState[IO]](initial)
@@ -598,17 +618,7 @@ class DaytimeQueueEngineSuite extends TestCommon:
         assertEquals(removed.daytimeQueue.dispatchState, QueueDispatchState.Halted)
         assert(!removed.sequences.contains(obs2))
 
-  test("[DQ-18] continue removes the pause and the queue goes on"):
-    TestControl.executeEmbed:
-      for
-        f       <- pausedQueue
-        resumed <- f.runner.runUntilState(
-                     _.continueDaytimeQueuePastPause(user, clientId),
-                     allIn(QueueItemStatus.Completed, obs1, obs2)
-                   )
-      yield assertEquals(resumed.daytimeQueue.items.size, 2)
-
-  test("[DQ-16] run queue goes on past the pause the queue is held at"):
+  test("[DQ-16, DQ-18] run queue goes on past the pause the queue is held at"):
     TestControl.executeEmbed:
       for
         f       <- pausedQueue

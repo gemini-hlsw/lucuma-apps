@@ -43,7 +43,6 @@ object ObserveCommandRoutes:
       "move",
       "obs",
       "pause",
-      "continue",
       "orderingMode",
       "run",
       "holdAfterSteps",
@@ -313,10 +312,6 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
     case req @ POST -> Root / "queue" / "pause" / IntVar(atIndex) / ClientIDVar(clientId) =>
       ssoClient.require(req): user =>
         oe.addDaytimeQueuePause(atIndex, user, clientId) *> NoContent()
-
-    case req @ POST -> Root / "queue" / "continue" / ClientIDVar(clientId) =>
-      ssoClient.require(req): user =>
-        oe.continueDaytimeQueuePastPause(user, clientId) *> NoContent()
 
     case req @ POST -> Root / "queue" / "orderingMode" / QueueOrderingModeVar(mode) /
         ClientIDVar(clientId) =>

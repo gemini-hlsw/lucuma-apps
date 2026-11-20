@@ -256,7 +256,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
                   if (seq.loadedStep.isEmpty)
                     send(Event.sequenceComplete(obsId))
                   else
-                    setObsStatus(obsId)(SequenceStatus.Idle)
+                    // A hold that landed between two steps is announced like any other.
+                    setObsStatus(obsId)(SequenceStatus.Idle) *>
+                      send(Event.sequenceHeld(obsId))
                 } else {
                   if (seq.loadedStep.isEmpty)
                     send(Event.sequenceComplete(obsId))

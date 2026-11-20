@@ -6,6 +6,7 @@ package observe.server.engine
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.testkit.TestControl
 import cats.implicits.*
 import fs2.Stream
 import lucuma.core.enums.Instrument.GmosSouth
@@ -286,6 +287,68 @@ class StepSuite extends CatsEffectSuite {
             s.loadedStep.isEmpty && s.status === SequenceStatus.Idle
       .assert
 
+  }
+
+  test("a hold that lands between two steps announces that the sequence was held") {
+    val nextStep: EngineStep[IO] =
+      EngineStep(id = stepId(2), executions = List(NonEmptyList.one(observe)))
+
+    // Loads the next step with the hold already requested, as when it lands between two steps.
+    val heldEngine: IO[Engine[IO]] =
+      Engine.build[IO]: (eng, obsId, _, _) =>
+        eng.requestSequenceHold(obsId) *>
+          EngineHandle.modifySequenceState[IO](obsId)(
+            SequenceState.loadedStep.replace(
+              ExecutionZipper.currentify(nextStep).map(LoadedStep(DummyStepGen, _))
+            )
+          ) *>
+          eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+
+    val s0: EngineState[IO] =
+      TestUtil.initStateWithSequence(
+        obsId,
+        initSeqState(
+          obsId = obsId,
+          loadedStep = EngineStep(id = stepId(1), executions = List(NonEmptyList.one(action))),
+          sequenceType = SequenceType.Science,
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
+        )
+      )
+
+    def notDone(v: (EventResult, EngineState[IO])): Boolean = v._1 match
+      case EventResult.EngineUpdate(EngineEvent.SequenceHeld(_), _)     => false
+      case EventResult.EngineUpdate(EngineEvent.SequenceComplete(_), _) => false
+      case _                                                            => true
+
+    val events: IO[List[(EventResult, EngineState[IO])]] =
+      heldEngine.flatMap: eng =>
+        eng.offer(startEvent(eng)) *>
+          eng
+            .process(PartialFunction.empty)(s0)
+            .drop(1)
+            .takeThrough(notDone)
+            .compile
+            .toList
+            .timeout(1.minute)
+
+    TestControl
+      .executeEmbed(events)
+      .map: evs =>
+        val results: List[EventResult]         = evs.map(_._1)
+        val lastSeq: Option[SequenceState[IO]] =
+          evs.lastOption.flatMap(_._2.sequences.get(obsId)).map(_.seq)
+        val held: Boolean                      = results.exists:
+          case EventResult.EngineUpdate(EngineEvent.SequenceHeld(o), _) => o === obsId
+          case _                                                        => false
+        // Only the first step started: the one loaded with the hold on did not.
+        val executingCount: Int                = results.count:
+          case EventResult.EngineUpdate(EngineEvent.Executing(o), _) => o === obsId
+          case _                                                     => false
+
+        assert(held)
+        assertEquals(executingCount, 1)
+        assert(lastSeq.exists(s => s.status === SequenceStatus.Idle && s.loadedStep.nonEmpty))
   }
 
   test(
