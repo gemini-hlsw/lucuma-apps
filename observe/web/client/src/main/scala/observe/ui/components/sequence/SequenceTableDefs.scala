@@ -146,11 +146,12 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     ColDef(id, header = _ => header, cell = cell)
 
   protected def columnDefs(
-    clientMode:    ClientMode,
-    instrument:    Instrument,
-    obsId:         Observation.Id,
-    isPreview:     Boolean,
-    columnProfile: SequenceColumnProfile
+    clientMode:     ClientMode,
+    instrument:     Instrument,
+    obsId:          Observation.Id,
+    isPreview:      Boolean,
+    columnProfile:  SequenceColumnProfile,
+    emptyColumnIds: Set[ColumnId]
   )(using
     FetchClient[IO, ObservationDB],
     ToastCtx[IO],
@@ -257,7 +258,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
       )
     ) ++
       instrumentColDefs
-        .filterNot(colDef => SequenceColumns.hiddenColumns(columnProfile).contains(colDef.id))
+        .filterNot: colDef =>
+          (SequenceColumns.hiddenColumns(columnProfile) ++ emptyColumnIds).contains(colDef.id)
         .map(colDef => colDef.withColumnSize(ColumnSizes(colDef.id))) ++
       List(
         column(DeckerColumnId, "Decker"),
