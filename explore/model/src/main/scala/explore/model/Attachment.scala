@@ -15,8 +15,10 @@ import lucuma.core.enums.AttachmentPurpose
 import lucuma.core.enums.AttachmentType
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.Partner
+import lucuma.core.math.Angle
 import lucuma.core.model
 import lucuma.core.util.Timestamp
+import lucuma.odb.json.angle.decoder.given
 import monocle.Focus
 import monocle.Lens
 
@@ -33,6 +35,7 @@ case class Attachment(
 ) derives Eq:
   def maskName: Option[NonEmptyString]   = mask.map(_.name)
   def maskInstrument: Option[Instrument] = mask.map(_.instrument)
+  def maskSlitWidth: Option[Angle]       = mask.flatMap(_.averageSlitWidth)
   def displayName: NonEmptyString        = maskName.getOrElse(fileName)
   def isProposalSummary: Boolean         = attachmentType === AttachmentType.Summary
   def summaryPartner: Option[Partner]    = proposalSummary.flatMap(_.partner)
@@ -59,7 +62,11 @@ object Attachment:
     Focus[Attachment](_.proposalSummary)
 
   // The design read from a MOS mask attachment's file.
-  case class Mask(name: NonEmptyString, instrument: Instrument) derives Eq
+  case class Mask(
+    name:             NonEmptyString,
+    instrument:       Instrument,
+    averageSlitWidth: Option[Angle]
+  ) derives Eq
   object Mask:
     given Decoder[Mask] = deriveDecoder
 

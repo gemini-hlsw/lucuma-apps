@@ -421,12 +421,23 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           .flatMap: s =>
             Observation.guideStarSelection(s.catalogName, s.observationTarget.map(_.targetId))
 
-  def maskDesign(obsId: Observation.Id, attachmentId: Attachment.Id): F[Option[MaskDesign]] =
-    ObservationMaskDesignQuery[F]
-      .query(obsId)
-      .processErrors
-      .map:
-        _.observation.flatMap(_.attachments.find(_.id === attachmentId).flatMap(_.mask))
+  def maskDesign(
+    obsId:        Observation.Id,
+    attachmentId: Attachment.Id,
+    linkedToObs:  Boolean
+  ): F[Option[MaskDesign]] =
+    if linkedToObs then
+      ObservationMaskDesignQuery[F]
+        .query(obsId)
+        .processErrors
+        .map:
+          _.observation.flatMap(_.attachments.find(_.id === attachmentId).flatMap(_.mask))
+    else
+      ProgramMaskDesignQuery[F]
+        .query(obsId)
+        .processErrors
+        .map:
+          _.observation.flatMap(_.program.attachments.find(_.id === attachmentId).flatMap(_.mask))
 
   def createConfigurationRequest(
     obsId:         Observation.Id,

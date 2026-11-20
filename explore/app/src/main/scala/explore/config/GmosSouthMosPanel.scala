@@ -10,7 +10,6 @@ import clue.data.syntax.*
 import crystal.react.View
 import explore.common.Aligner
 import explore.config.offsets.PresettableTelescopeConfigsEditor
-import explore.model.Attachment
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -121,10 +120,8 @@ case class GmosSouthMosPanel(
       .zoom(ObservingMode.GmosCustomMask.slitWidth, GmosCustomMaskInput.slitWidth.modify)
       .view(identity)
 
-  def customMaskAttachmentIdView: View[Option[Attachment.Id]] =
-    customMask
-      .zoom(ObservingMode.GmosCustomMask.attachmentId, GmosCustomMaskInput.attachmentId.modify)
-      .view(_.orUnassign)
+  def customMaskView: View[ObservingMode.GmosCustomMask] =
+    customMask.view(_.toInput)
 
   def explicitXBinningView: View[Option[GmosXBinning]] =
     observingMode

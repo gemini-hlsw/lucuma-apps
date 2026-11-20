@@ -419,10 +419,15 @@ object ObsTabTiles:
                                   odbApi.observationTimeCharges(obsId)
         // The mask design is only stored on the attachment, fetched on demand for MOS obs.
         maskDesignPot        <-
-          useEffectKeepResultWithDeps((props.obsId, props.observation.get.maskAttachmentId)):
-            (obsId, maskId) =>
-              import ctx.given
-              maskId.flatTraverse(odbApi.maskDesign(obsId, _))
+          useEffectKeepResultWithDeps(
+            (props.obsId,
+             props.observation.get.maskAttachmentId,
+             props.observation.get.maskAttachmentId
+               .exists(props.observation.get.attachmentIds.contains)
+            )
+          ): (obsId, maskId, linked) =>
+            import ctx.given
+            maskId.flatTraverse(odbApi.maskDesign(obsId, _, linked))
         roleLayouts          <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
         _                    <- useEffectWithDeps(props.calibrationRole): role =>
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))

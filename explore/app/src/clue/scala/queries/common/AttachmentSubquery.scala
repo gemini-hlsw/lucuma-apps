@@ -8,6 +8,7 @@ import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.Attachment
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.AngleSubquery
 
 @GraphQL
 @GraphQLType("Attachment")
@@ -17,7 +18,7 @@ object AttachmentSubquery extends GraphQLSubquery.Typed[ObservationDB, Attachmen
       id
       attachmentType
       fileName
-      mask { name instrument }
+      mask { name instrument averageSlitWidth $AngleSubquery }
       description
       checked
       fileSize

@@ -198,6 +198,23 @@ object ObsQueriesGQL:
       }
     """
 
+  // Fallback for a mask not linked to the observation (e.g. twilight calibrations).
+  // It returns every mask design in the program, so use it only when needed.
+  @GraphQL
+  trait ProgramMaskDesignQuery extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          program {
+            attachments {
+              id
+              mask $MaskDesignSubquery
+            }
+          }
+        }
+      }
+    """
+
   @GraphQL
   trait ObservationTimeChargesQuery extends GraphQLOperation[ObservationDB]:
     val document = gql"""
