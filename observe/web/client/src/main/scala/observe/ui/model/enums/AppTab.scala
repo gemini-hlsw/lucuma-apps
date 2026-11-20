@@ -21,22 +21,28 @@ import observe.ui.model.Page
  */
 enum AppTab(val title: String):
   case ObsList                           extends AppTab("Observations")
+  case DaytimeQueue                      extends AppTab("Daytime Queue")
   case LoadedObs(instrument: Instrument) extends AppTab(instrument.shortName)
 
   lazy val getPage: Page =
     this match
       case ObsList                      => Page.Observations
+      case DaytimeQueue                 => Page.DaytimeQueue
       case AppTab.LoadedObs(instrument) => Page.LoadedInstrument(instrument)
 
 object AppTab:
   def from(page: Page): AppTab =
     page match
       case Page.Observations        => AppTab.ObsList
+      case Page.DaytimeQueue        => AppTab.DaytimeQueue
       case Page.LoadedInstrument(i) => AppTab.LoadedObs(i)
 
   given Enumerated[AppTab] =
     Enumerated
-      .from(AppTab.ObsList, Enumerated[Instrument].all.map(AppTab.LoadedObs(_))*)
+      .from(
+        AppTab.ObsList,
+        (AppTab.DaytimeQueue :: Enumerated[Instrument].all.map(AppTab.LoadedObs(_)))*
+      )
       .withTag(_.title)
 
   given Display[AppTab] = Display.byShortName(_.title)

@@ -41,6 +41,11 @@ case class ObsList(
   obsListGlobalFilter:  View[String],
   obsListColumnFilters: View[ColumnFilters],
   loadObs:              Reusable[Observation.Id => Callback],
+  queuedObsIds:         Set[Observation.Id],
+  pendingQueueAdds:     Set[Observation.Id],
+  queueObs:             Observation.Id => Callback,
+  queueAndOpenObs:      Observation.Id => Callback,
+  openQueue:            Callback,
   linkToExploreObs:     Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
 ) extends ReactFnProps(ObsList):
   val rows: List[SessionQueueRow] =
@@ -59,7 +64,7 @@ case class ObsList(
           // Maybe we want to show pending and total times instead?
           none,
           none,
-          false
+          queuedObsIds.contains(obs.obsId)
         )
 
   val obsStates: Map[Observation.Id, SequenceStatus] =
@@ -91,6 +96,10 @@ object ObsList
         pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
         obsIsProcessing:    Map[Observation.Id, Boolean],
         loadObs:            Observation.Id => Callback,
+        pendingQueueAdds:   Set[Observation.Id],
+        queueObs:           Observation.Id => Callback,
+        queueAndOpenObs:    Observation.Id => Callback,
+        openQueue:          Callback,
         linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
       )
 
@@ -134,12 +143,43 @@ object ObsList
             case _                                                                              => EmptyVdom
         icon
 
+      def queueControls(row: SessionQueueRow, meta: TableMeta): VdomNode =
+        if row.obsClass =!= ObsClass.Daytime then EmptyVdom
+        else if row.inDaytimeQueue then
+          Button(
+            icon = Icons.ListCheck,
+            size = Button.Size.Small,
+            text = true,
+            onClick = meta.openQueue,
+            clazz = ObserveStyles.LoadButton |+| ObserveStyles.InQueueIcon,
+            tooltip = "In the daytime queue: open it"
+          ).withMods(^.onDoubleClick ==> (_.stopPropagationCB))
+        else
+          React.Fragment(
+            Button(
+              icon = Icons.SquarePlus,
+              size = Button.Size.Small,
+              onClick = meta.queueObs(row.obsId),
+              clazz = ObserveStyles.LoadButton,
+              disabled = meta.pendingQueueAdds.contains(row.obsId),
+              tooltip = "Add to the daytime queue"
+            ).withMods(^.onDoubleClick ==> (_.stopPropagationCB)),
+            Button(
+              icon = Icons.SquareArrowUpRight,
+              size = Button.Size.Small,
+              onClick = meta.queueAndOpenObs(row.obsId),
+              clazz = ObserveStyles.LoadButton,
+              disabled = meta.pendingQueueAdds.contains(row.obsId),
+              tooltip = "Add to the daytime queue and open it"
+            ).withMods(^.onDoubleClick ==> (_.stopPropagationCB))
+          )
+
       val NotApplicable: String = "---"
 
       def nighttimeOnly(row: SessionQueueRow)(value: String): String =
         if row.obsClass === ObsClass.Daytime then NotApplicable else value
 
-      def renderCentered(node: VdomNode, css: Css = Css.Empty): VdomNode =
+      def renderCentered(node: VdomNode, css: Css): VdomNode =
         <.div(ObserveStyles.Centered |+| css)(node)
 
       val StatusIconColumnId: ColumnId  = ColumnId("statusIcon")
@@ -150,81 +190,90 @@ object ObsList
       val TargetColumnId: ColumnId      = ColumnId("target")
       val ConstraintsColumnId: ColumnId = ColumnId("constraints")
 
+      // Only daytime rows have queue buttons next to the load one.
+      val hasDaytimeRows: Boolean = props.rows.exists(_.obsClass === ObsClass.Daytime)
+
       val columns: Reusable[
         List[ColumnDef[SessionQueueRow, ?, TableMeta, WithFilterMethod, String, ?, Nothing]]
       ] =
-        Reusable.always:
-          List(
-            ColDef(
-              StatusIconColumnId,
-              _.obsId,
-              header = "",
-              cell = cell =>
-                cell.table.options.meta.map: meta =>
-                  renderCentered(
-                    if (meta.pendingOrReadyObss.contains(cell.value))
-                      statusIconRenderer(
-                        meta.pendingOrReadyObss.get(cell.value),
-                        meta.obsStates.get(cell.value)
-                      )
-                    else
-                      Button(
-                        icon = Icons.FileArrowUp,
-                        size = Button.Size.Small,
-                        onClick = meta.loadObs(cell.value),
-                        clazz = ObserveStyles.LoadButton,
-                        disabled = meta.obsIsProcessing.get(cell.value).contains(true),
-                        tooltip = "Load observation"
-                      )
-                  ),
-              size = 25.toPx,
-              enableResizing = false,
-              enableSorting = false
-            ),
-            ColDef(
-              ObsRefColumnId,
-              obs => obs.obsReference.toRight((obs.programId, obs.obsId)),
-              header = "Obs. Id",
-              cell = cell =>
-                cell.table.options.meta.map: meta =>
-                  <.span(
-                    cell.value.fold(_._2.shortName, _.label),
-                    meta.linkToExploreObs(cell.value)
-                  ),
-              size = 240.toPx
-            ).sortable.withFilterMethod(FilterMethod.Text(_.fold(_._2.shortName, _.label))),
-            ColDef(
-              ObsClassColumnId,
-              _.obsClass,
-              header = "Class",
-              cell = _.value.label,
-              size = 90.toPx
-            ).sortable.withFilterMethod(FilterMethod.Select(_.label)),
-            ColDef(
-              InstrumentColumnId,
-              _.instrument,
-              header = "Instrument",
-              cell = _.value.shortName
-            ).sortable.withFilterMethod(FilterMethod.Select(_.shortName)),
-            ColDef(
-              ConfigColumnId,
-              _.configurationSummary.getOrElse(NotApplicable),
-              header = "Configuration",
-              cell = _.value
-            ).sortable.withFilterMethod(FilterMethod.StringText()),
-            ColDef(
-              TargetColumnId,
-              row => nighttimeOnly(row)(row.title),
-              header = "Target",
-              cell = _.value.some.filter(_.nonEmpty).getOrElse(UnknownTargetName)
-            ).sortable.withFilterMethod(FilterMethod.StringText()),
-            ColDef(
-              ConstraintsColumnId,
-              row => nighttimeOnly(row)(row.constraintsSummary),
-              header = "Constraints",
-              cell = _.value
-            ).sortable.withFilterMethod(FilterMethod.StringSelect())
-          )
+        Reusable
+          .implicitly(hasDaytimeRows)
+          .withValue:
+            List(
+              ColDef(
+                StatusIconColumnId,
+                _.obsId,
+                header = "",
+                cell = cell =>
+                  cell.table.options.meta.map: meta =>
+                    renderCentered(
+                      React.Fragment(
+                        if (meta.pendingOrReadyObss.contains(cell.value))
+                          statusIconRenderer(
+                            meta.pendingOrReadyObss.get(cell.value),
+                            meta.obsStates.get(cell.value)
+                          )
+                        else
+                          Button(
+                            icon = Icons.FileArrowUp,
+                            size = Button.Size.Small,
+                            onClick = meta.loadObs(cell.value),
+                            clazz = ObserveStyles.LoadButton,
+                            disabled = meta.obsIsProcessing.get(cell.value).contains(true),
+                            tooltip = "Load observation"
+                          ),
+                        queueControls(cell.row.original, meta)
+                      ),
+                      ObserveStyles.LoadButtonGroup
+                    ),
+                size = (if hasDaytimeRows then 75 else 25).toPx,
+                enableResizing = false,
+                enableSorting = false
+              ),
+              ColDef(
+                ObsRefColumnId,
+                obs => obs.obsReference.toRight((obs.programId, obs.obsId)),
+                header = "Obs. Id",
+                cell = cell =>
+                  cell.table.options.meta.map: meta =>
+                    <.span(
+                      cell.value.fold(_._2.shortName, _.label),
+                      meta.linkToExploreObs(cell.value)
+                    ),
+                size = 240.toPx
+              ).sortable.withFilterMethod(FilterMethod.Text(_.fold(_._2.shortName, _.label))),
+              ColDef(
+                ObsClassColumnId,
+                _.obsClass,
+                header = "Class",
+                cell = _.value.label,
+                size = 90.toPx
+              ).sortable.withFilterMethod(FilterMethod.Select(_.label)),
+              ColDef(
+                InstrumentColumnId,
+                _.instrument,
+                header = "Instrument",
+                cell = _.value.shortName
+              ).sortable.withFilterMethod(FilterMethod.Select(_.shortName)),
+              ColDef(
+                ConfigColumnId,
+                _.configurationSummary.getOrElse(NotApplicable),
+                header = "Configuration",
+                cell = _.value
+              ).sortable.withFilterMethod(FilterMethod.StringText()),
+              ColDef(
+                TargetColumnId,
+                row => nighttimeOnly(row)(row.title),
+                header = "Target",
+                cell = _.value.some.filter(_.nonEmpty).getOrElse(UnknownTargetName)
+              ).sortable.withFilterMethod(FilterMethod.StringText()),
+              ColDef(
+                ConstraintsColumnId,
+                row => nighttimeOnly(row)(row.constraintsSummary),
+                header = "Constraints",
+                cell = _.value
+              ).sortable.withFilterMethod(FilterMethod.StringSelect())
+            )
 
       for
         tableState <-
@@ -248,13 +297,17 @@ object ObsList
                 props.pendingOrReadyObss,
                 props.obsIsProcessing,
                 props.loadObs,
+                props.pendingQueueAdds,
+                props.queueObs,
+                props.queueAndOpenObs,
+                props.openQueue,
                 props.linkToExploreObs
               ),
               state = tableState,
               onGlobalFilterChange = props.obsListGlobalFilter.handleTableUpdate,
               onColumnFiltersChange = props.obsListColumnFilters.handleTableUpdate
             )
-      yield <.div(
+      yield <.div(ObserveStyles.ObsList)(
         <.span(
           DebouncedInputText(
             id = "obs-filter".refined,
@@ -264,31 +317,33 @@ object ObsList
             placeholder = "<Keyword filter>"
           )
         ),
-        PrimeAutoHeightVirtualizedTable(
-          table,
-          estimateSize = _ => 30.toPx,
-          tableMod = ObserveStyles.ObserveTable |+| ObserveStyles.ObsListTable,
-          columnFilterRenderer = FilterMethod.render,
-          rowMod = rowTagMod: row =>
-            TagMod(
-              rowClass(
-                props.fullyLoadedObss.get(row.original.obsId),
-                row.original,
-                props.fullyLoadedObss.keySet
+        <.div(ObserveStyles.ObsListTableArea)(
+          PrimeAutoHeightVirtualizedTable(
+            table,
+            estimateSize = _ => 30.toPx,
+            tableMod = ObserveStyles.ObserveTable |+| ObserveStyles.ObsListTable,
+            columnFilterRenderer = FilterMethod.render,
+            rowMod = rowTagMod: row =>
+              TagMod(
+                rowClass(
+                  props.fullyLoadedObss.get(row.original.obsId),
+                  row.original,
+                  props.fullyLoadedObss.keySet
+                ),
+                ^.onDoubleClick --> props
+                  .loadObs(row.original.obsId)
+                  .unless_(
+                    props.fullyLoadedObss.contains(row.original.obsId) ||
+                      props.obsIsProcessing(row.original.obsId)
+                  )
               ),
-              ^.onDoubleClick --> props
-                .loadObs(row.original.obsId)
-                .unless_(
-                  props.fullyLoadedObss.contains(row.original.obsId) ||
-                    props.obsIsProcessing(row.original.obsId)
-                )
-            ),
-          cellMod = cellTagMod: cell =>
-            cell.column.id match
-              case StatusIconColumnId => ObserveStyles.LoadButtonCell
-              case _                  => TagMod.empty
-          ,
-          overscan = 5
+            cellMod = cellTagMod: cell =>
+              cell.column.id match
+                case StatusIconColumnId => ObserveStyles.LoadButtonCell
+                case _                  => TagMod.empty
+            ,
+            overscan = 5
+          )
         )
       )
     )

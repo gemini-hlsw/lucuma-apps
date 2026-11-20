@@ -174,6 +174,22 @@ object Icons:
   private val faSquarePlus: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faBroom")
+  private val faBroom: FAIcon = js.native
+
+  @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faListCheck")
+  private val faListCheck: FAIcon = js.native
+
+  @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faSquareArrowUpRight")
+  private val faSquareArrowUpRight: FAIcon = js.native
+
+  @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faTrash")
+  private val faTrash: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faStop")
   private val faStop: FAIcon = js.native
 
@@ -235,7 +251,11 @@ object Icons:
     faVolumeSlash,
     faDiamondExclamation,
     faFloppyDisk,
-    faPowerOff
+    faPowerOff,
+    faBroom,
+    faListCheck,
+    faSquareArrowUpRight,
+    faTrash
   )
 
   inline def ArrowsRotate        = FontAwesomeIcon(faArrowsRotate)
@@ -283,6 +303,10 @@ object Icons:
   inline def FloppyDisk          = FontAwesomeIcon(faFloppyDisk)
   inline def PowerOff            = FontAwesomeIcon(faPowerOff)
   inline def VolumeSlash         = FontAwesomeIcon(faVolumeSlash)
+  inline def Broom               = FontAwesomeIcon(faBroom)
+  inline def ListCheck           = FontAwesomeIcon(faListCheck)
+  inline def SquareArrowUpRight  = FontAwesomeIcon(faSquareArrowUpRight)
+  inline def Trash               = FontAwesomeIcon(faTrash)
 
   val CancelSequenceHold =
     LayeredIcon()(

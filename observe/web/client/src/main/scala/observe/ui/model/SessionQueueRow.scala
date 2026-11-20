@@ -15,13 +15,13 @@ import observe.model.RunningStepProgress
 import observe.model.SequenceStatus
 
 case class SessionQueueRow(
-  obsSummary:    ObsSummary,
-  status:        SequenceStatus,
-  observer:      Option[Observer],
-  loaded:        Boolean,
-  nextStepToRun: Option[Step.Id],
-  runningStep:   Option[RunningStepProgress],
-  inDayCalQueue: Boolean
+  obsSummary:     ObsSummary,
+  status:         SequenceStatus,
+  observer:       Option[Observer],
+  loaded:         Boolean,
+  nextStepToRun:  Option[Step.Id],
+  runningStep:    Option[RunningStepProgress],
+  inDaytimeQueue: Boolean
 ) derives Eq:
   export obsSummary.*
 

@@ -40,3 +40,20 @@ given Display[SmartGcalType] = Display.byShortName:
   case SmartGcalType.Flat          => "Flat"
   case SmartGcalType.DayBaseline   => "Day baseline"
   case SmartGcalType.NightBaseline => "Night baseline"
+
+given Display[QueueOrderingMode] = Display.byShortName:
+  case QueueOrderingMode.Strict    => "Strict"
+  case QueueOrderingMode.JumpAhead => "Jump-ahead"
+
+given Display[QueueItemStatus] = Display.byShortName:
+  case QueueItemStatus.Waiting   => "Waiting"
+  case QueueItemStatus.Running   => "Running"
+  case QueueItemStatus.Stopped   => "Stopped"
+  case QueueItemStatus.Completed => "Completed"
+  case QueueItemStatus.Failed    => "Failed"
+  case QueueItemStatus.Aborted   => "Aborted"
+
+given Display[QueueDispatchState] = Display.byShortName:
+  case QueueDispatchState.Idle    => "Idle"
+  case QueueDispatchState.Running => "Running"
+  case QueueDispatchState.Halted  => "Halted"

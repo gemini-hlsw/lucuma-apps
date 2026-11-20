@@ -195,13 +195,13 @@ trait ServerEventHandler:
     def playAudio(sound: Audio): IO[Unit] = sound.play.when(isAudioActivated.map(a => a: Boolean))
 
     event match
-      case ClientEvent.BaDum                                                                 =>
+      case ClientEvent.BaDum                                                     =>
         IO.unit
-      case ClientEvent.InitialEvent(cc)                                                      =>
+      case ClientEvent.InitialEvent(cc)                                          =>
         clientConfigMod(_ => cc.ready)
-      case ClientEvent.SubsystemControlModesSaved(config)                                    =>
+      case ClientEvent.SubsystemControlModesSaved(config)                        =>
         clientConfigMod(_.map(ClientConfig.savedSubsystemControlModes.replace(config)))
-      case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error)             =>
+      case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error) =>
         rootModelDataMod(
           (RootModelData.executionState
             .at(obsId)
@@ -223,7 +223,7 @@ trait ServerEventHandler:
                 .replace(OperationRequest.Idle))
         )
           >> error.map(logMessage(rootModelDataMod, ObserveLogLevel.Error, _)).orEmpty
-      case ClientEvent.ChecksOverrideEvent(prompt)                                           =>
+      case ClientEvent.ChecksOverrideEvent(prompt)                               =>
         rootModelDataMod(
           RootModelData.checksOverridePrompts.modify(_ :+ prompt) >>>
             RootModelData.obsRequests
@@ -242,9 +242,16 @@ trait ServerEventHandler:
               .andThen(LoadedObservation.isRefreshing)
               .replace(false)
         ) >> playAudio(Audio.SequenceError)
-      case ClientEvent.ObserveState(sequenceExecution, conditions, operator, recordedIds, _) =>
+      case ClientEvent.ObserveState(
+            sequenceExecution,
+            conditions,
+            operator,
+            recordedIds,
+            daytimeQueue
+          ) =>
         rootModelDataMod(
           RootModelData.operator.replace(operator) >>>
+            RootModelData.daytimeQueue.replace(daytimeQueue) >>>
             RootModelData.conditions.replace(conditions) >>>
             RootModelData.executionState.replace(sequenceExecution) >>>
             RootModelData.recordedIds.replace(recordedIds) >>>
@@ -274,29 +281,29 @@ trait ServerEventHandler:
         ) >>
           syncStatusMod(_ => SyncStatus.Synced.some) >>
           configApiStatusMod(_ => ApiStatus.Idle)
-      case ClientEvent.GuideConfigEvent(config)                                              =>
+      case ClientEvent.GuideConfigEvent(config)                                  =>
         rootModelDataMod(RootModelData.guideConfig.replace(config))
-      case ClientEvent.ObsLoaded(instrument)                                                 =>
+      case ClientEvent.ObsLoaded(instrument)                                     =>
         pushPage(AppTab.LoadedObs(instrument))
-      case ClientEvent.StepComplete(_)                                                       =>
+      case ClientEvent.StepComplete(_)                                           =>
         playAudio(Audio.StepBeep)
-      case ClientEvent.SequenceHeld(_)                                                       =>
+      case ClientEvent.SequenceHeld(_)                                           =>
         playAudio(Audio.SequencePaused)
-      case ClientEvent.BreakpointReached(_)                                                  =>
+      case ClientEvent.BreakpointReached(_)                                      =>
         playAudio(Audio.SequencePaused)
-      case ClientEvent.AcquisitionPromptReached(_)                                           =>
+      case ClientEvent.AcquisitionPromptReached(_)                               =>
         playAudio(Audio.SequencePaused)
-      case ClientEvent.SequenceComplete(_)                                                   =>
+      case ClientEvent.SequenceComplete(_)                                       =>
         playAudio(Audio.SequenceComplete)
-      case ClientEvent.SequenceFailed(_, errorMsg)                                           =>
+      case ClientEvent.SequenceFailed(_, errorMsg)                               =>
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
       // The server logs it as a warning, which gives the line in the log panel.
-      case ClientEvent.SubsystemClash(obsId, stepId, subsystems)                             =>
+      case ClientEvent.SubsystemClash(obsId, stepId, subsystems)                 =>
         val msg: String =
           s"Observation $obsId was held before step $stepId: ${subsystemNames(subsystems)} in " +
             "use by another sequence. Start it again when they are free."
         showToast(toast, List(msg)) >> playAudio(Audio.SequenceError)
-      case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))               =>
+      case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))   =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
       case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId) =>
         rootModelDataMod:
@@ -350,7 +357,8 @@ trait ServerEventHandler:
             case Notification.RestartRefused(reasons)                      =>
               ("Restart refused" :: reasons.toList).pure[IO]
             case Notification.DaytimeQueueRejected(obsId, reason)          =>
-              List(s"Observation $obsId cannot be added to the daytime queue: $reason").pure[IO]
+              rootModelDataMod(RootModelData.pendingQueueAdds.modify(_ - obsId))
+                .as(List(s"Observation $obsId cannot be added to the daytime queue: $reason"))
             case Notification.SubsystemBusy(obsId, stepId, subsystem)      =>
               List(
                 s"Error in observation $obsId, step $stepId: Subsystem $subsystem already in use"

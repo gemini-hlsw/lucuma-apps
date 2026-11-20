@@ -12,6 +12,7 @@ import monocle.Iso
 enum Page derives Eq:
   // case Schedule, Nighttime, Daytime, Excluded
   case Observations                             extends Page
+  case DaytimeQueue                             extends Page
   case LoadedInstrument(instrument: Instrument) extends Page
 
 object Page:

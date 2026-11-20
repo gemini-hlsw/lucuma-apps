@@ -106,8 +106,8 @@ object Layout
                   appTabView,
                   ctx.pageUrl(_),
                   separatorAfter = {
-                    case AppTab.ObsList => true
-                    case _              => false
+                    case AppTab.DaytimeQueue => true
+                    case _                   => false
                   },
                   filterPred = {
                     case AppTab.LoadedObs(instrument) =>
@@ -117,6 +117,8 @@ object Layout
                   tabLabel = {
                     case tab @ AppTab.LoadedObs(instrument) if isDaytimeLoaded(instrument) =>
                       <.span(Icons.Sun, " ", tab.title).some
+                    case AppTab.DaytimeQueue                                               =>
+                      <.span(Icons.Sun, " ", AppTab.DaytimeQueue.title).some
                     case _                                                                 => none
                   }
                 ),

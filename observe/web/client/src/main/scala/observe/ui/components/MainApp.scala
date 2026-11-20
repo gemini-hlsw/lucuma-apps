@@ -405,7 +405,8 @@ object MainApp extends ServerEventHandler:
         permitPot        <-
           useEffectResultOnMount(Semaphore[IO](1).map(_.permit))
       yield
-        val apisOpt: Option[(ConfigApi[IO], SequenceApi[IO], ODBQueryApi[IO])] =
+        val apisOpt
+          : Option[(ConfigApi[IO], SequenceApi[IO], ODBQueryApi[IO], DaytimeQueueApi[IO])] =
           (ctxPot.value.toOption,
            apiClientOpt.value,
            rootModelData.get.observer,
@@ -420,18 +421,22 @@ object MainApp extends ServerEventHandler:
                 observer = observer,
                 requests = rootModelData.zoom(RootModelData.obsRequests)
               ),
-              ODBQueryApiImpl(requests = rootModelData.zoom(RootModelData.obsRequests))
+              ODBQueryApiImpl(requests = rootModelData.zoom(RootModelData.obsRequests)),
+              DaytimeQueueApiImpl(client = client, observer = observer)
             )
 
         def provideApiCtx(children: VdomNode*) =
-          apisOpt.fold(React.Fragment(children*)): (configApi, sequenceApi, odbQueryApi) =>
-            ConfigApi.ctx.provide(configApi)(
-              SequenceApi.ctx.provide(sequenceApi)(
-                ODBQueryApi.ctx.provide(odbQueryApi)(
-                  children*
+          apisOpt.fold(React.Fragment(children*)):
+            (configApi, sequenceApi, odbQueryApi, daytimeQueueApi) =>
+              ConfigApi.ctx.provide(configApi)(
+                SequenceApi.ctx.provide(sequenceApi)(
+                  ODBQueryApi.ctx.provide(odbQueryApi)(
+                    DaytimeQueueApi.ctx.provide(daytimeQueueApi)(
+                      children*
+                    )
+                  )
                 )
               )
-            )
 
         // The dialog is shown while *either* connection is unhealthy:
         // out-of-sync event/API state, or the ODB client being disconnected

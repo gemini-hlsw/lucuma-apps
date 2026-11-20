@@ -24,12 +24,14 @@ import lucuma.ui.sso.arb.ArbUserVault.given
 import observe.common.FixedLengthBuffer
 import observe.common.arb.ArbFixedLengthBuffer.given
 import observe.model.CurrentConditions
+import observe.model.DaytimeQueueView
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.StepProgress
 import observe.model.UserPrompt
+import observe.model.arb.ArbDaytimeQueue.given
 import observe.model.arb.ArbExecutionState.given
 import observe.model.arb.ArbLogMessage.given
 import observe.model.arb.ArbObsRecordedIds.given
@@ -99,6 +101,8 @@ trait ArbRootModel:
       log <- arbitrary[FixedLengthBuffer[LogMessage]]
       up  <- arbitrary[UserPreferences]
       cop <- arbitrary[List[UserPrompt.ChecksOverride]]
+      dq  <- arbitrary[DaytimeQueueView]
+      pqa <- arbitrary[Set[Observation.Id]]
     yield RootModelData(
       uv,
       ros,
@@ -115,7 +119,9 @@ trait ArbRootModel:
       usm,
       log,
       up,
-      cop
+      cop,
+      dq,
+      pqa
     )
 
   given Cogen[RootModelData] = Cogen[
@@ -135,7 +141,9 @@ trait ArbRootModel:
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
       UserPreferences,
-      List[UserPrompt.ChecksOverride]
+      List[UserPrompt.ChecksOverride],
+      DaytimeQueueView,
+      List[Observation.Id]
     )
   ].contramap: x =>
     (x.userVault,
@@ -153,7 +161,9 @@ trait ArbRootModel:
      x.userSelectionMessage,
      x.globalLog,
      x.userPreferences,
-     x.checksOverridePrompts
+     x.checksOverridePrompts,
+     x.daytimeQueue,
+     x.pendingQueueAdds.toList.sorted
     )
 
 object ArbRootModel extends ArbRootModel
