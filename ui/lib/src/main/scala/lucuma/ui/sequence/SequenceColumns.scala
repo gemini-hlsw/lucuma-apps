@@ -293,7 +293,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               inputClass = SequenceStyles.OffsetInput
             ): VdomNode
           case _                                         =>
-            c.value.map(wvFormat.display).getOrElse("-"): VdomNode
+            c.value.map(wvFormat.display).orEmpty: VdomNode
     )
 
   private lazy val fpuCol: colDef.TypeFor[Option[String]] =

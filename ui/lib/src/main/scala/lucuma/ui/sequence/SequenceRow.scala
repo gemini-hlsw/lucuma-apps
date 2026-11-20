@@ -94,8 +94,10 @@ sealed trait SequenceRow[+D]:
   lazy val hasGuiding: Boolean             = guiding.contains_(StepGuideState.Enabled)
 
   lazy val wavelength: Option[Wavelength] = instrumentConfig.flatMap:
-    case gn @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)     => gn.centralWavelength
-    case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)     => gs.centralWavelength
+    case gn @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)     =>
+      if isBiasOrDark then gmosGratingWavelength else gn.centralWavelength
+    case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)     =>
+      if isBiasOrDark then gmosGratingWavelength else gs.centralWavelength
     case f2 @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _, _) =>
       f2.centralWavelength.some.filterNot(_ => isDark)
     case g @ GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)          => g.centralWavelength.some
@@ -142,18 +144,18 @@ sealed trait SequenceRow[+D]:
     case StepConfig.Bias | StepConfig.Dark => true
     case _                                 => false
 
-  // Flamingos2 darks are taken with the window cover closed, so λ, FPU and filter don't apply.
+  // FPU and filter don't apply to biases and darks, so their cells stay empty. GMOS keeps the
+  // grating λ, but not the one derived from the filter.
   private lazy val isDark: Boolean = stepConfig.contains_(StepConfig.Dark)
 
-  // GMOS biases and darks don't set the FPU, so they show nothing rather than "Imaging".
   private def gmosFpuName[T](
     fpu:         Option[GmosFpuMask[T]],
     builtinName: T => String
   ): Option[String] =
     fpu match
+      case _ if isBiasOrDark                      => none
       case Some(GmosFpuMask.Builtin(builtin))     => builtinName(builtin).some
       case Some(GmosFpuMask.Custom(_, slitWidth)) => s"${slitWidth.shortName} Custom Mask".some
-      case None if isBiasOrDark                   => none
       case None                                   => "Imaging".some
 
   // There's no unified FPU type, so we return a string.
@@ -188,8 +190,10 @@ sealed trait SequenceRow[+D]:
 
   // There's no unified filter type, so we return a string.
   lazy val filterName: Option[String] = instrumentConfig.flatMap:
-    case gmos.DynamicConfig.GmosNorth(filter = filter) => filter.map(_.shortName)
-    case gmos.DynamicConfig.GmosSouth(filter = filter) => filter.map(_.shortName)
+    case gmos.DynamicConfig.GmosNorth(filter = filter) =>
+      filter.map(_.shortName).filterNot(_ => isBiasOrDark)
+    case gmos.DynamicConfig.GmosSouth(filter = filter) =>
+      filter.map(_.shortName).filterNot(_ => isBiasOrDark)
     case Flamingos2DynamicConfig(filter = filter)      => filter.shortName.some.filterNot(_ => isDark)
     case GnirsDynamicConfig(filter = filter)           => filter.shortName.some
 
