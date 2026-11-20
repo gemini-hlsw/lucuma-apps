@@ -14290,6 +14290,13 @@ enum ScorpioFpu {
   LONG_SLIT_4_32
 }
 
+"""SCORPIO arms whose channels are used for science in an observation."""
+enum ScorpioChannelSelection {
+  VIS_IR
+  VIS_ONLY
+  IR_ONLY
+}
+
 """
 SCORPIO Long Slit mode.  Only the visible arm is configured, with one exposure
 time mode for each of its channels.
@@ -14297,6 +14304,9 @@ time mode for each of its channels.
 type ScorpioLongSlit {
   """The long slit."""
   fpu: ScorpioFpu!
+
+  """The arms used for science.  Only VIS_ONLY is currently supported."""
+  channelSelection: ScorpioChannelSelection!
 
   """
   Exposure time mode of the g channel.  It has the same exposure time and count
@@ -14338,6 +14348,11 @@ type ScorpioLongSlit {
   default.
   """
   explicitTelescopeConfigs: SlitTelescopeConfigs
+
+  """
+  Number of passes over the telescope configs (nod-and-read).  Defaults to 1.
+  """
+  repeats: PosInt!
 }
 
 """
@@ -14353,6 +14368,12 @@ input ScorpioLongSlitInput {
   The long slit.  Required on create.  It cannot be unset with a null value.
   """
   fpu: ScorpioFpu
+
+  """
+  The arms used for science.  Only VIS_ONLY is currently supported, and it is
+  the value used when skipped.  It cannot be unset with a null value.
+  """
+  channelSelection: ScorpioChannelSelection
 
   """
   Exposure time mode of the g channel.  It cannot be unset with a null value.
@@ -14378,6 +14399,12 @@ input ScorpioLongSlitInput {
   Explicit telescope configs. May be unset by assigning a null value, or ignored by skipping.
   """
   explicitTelescopeConfigs: SlitTelescopeConfigsInput
+
+  """
+  Number of passes over the telescope configs (nod-and-read).  Defaults to 1
+  when skipped on create.  It cannot be unset with a null value.
+  """
+  repeats: PosInt
 }
 
 enum GnirsCamera {
