@@ -44,7 +44,6 @@ import lucuma.react.primereact.Tag
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.schemas.model.ObservingMode
-import lucuma.schemas.model.syntax.isDaytimeRole
 import lucuma.ui.components.ThemeIcons
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
@@ -421,7 +420,7 @@ object ObsBadge:
                   .whenDefined
                   .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary)
-                  .when(layout.showConstraints && !obs.calibrationRole.exists(_.isDaytimeRole))
+                  .when(layout.showConstraints && !obs.calibrationRole.exists(_.isOffSky))
               ),
               <.span(Icons.LocationDot)
                 .withTooltip(content = "Blind Offset")
