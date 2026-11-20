@@ -14,7 +14,6 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.model.syntax.isDaytimeRole
 import observe.common.ObsQueriesGql.*
 import observe.common.RemainingSequenceSubquery
 import observe.common.RemainingStepSubquery
@@ -107,7 +106,7 @@ object OdbProxy {
             .raiseGraphQLErrors
             .map(_.observation.flatMap(_.calibrationRole))
             .flatMap: calibrationRole =>
-              val skipTargets: Boolean = calibrationRole.exists(_.isDaytimeRole)
+              val skipTargets: Boolean = calibrationRole.exists(_.isOffSky)
               ObsQuery[F]
                 .query(oid, skipTargets, futureLimit)
                 .raiseGraphQLErrors

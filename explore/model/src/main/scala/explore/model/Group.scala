@@ -5,7 +5,6 @@ package explore.model
 
 import cats.Eq
 import cats.derived.*
-import cats.syntax.all.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
@@ -17,7 +16,6 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
-import lucuma.schemas.model.syntax.isGeneratedDaytime
 import monocle.Focus
 import monocle.Lens
 
@@ -41,8 +39,7 @@ case class Group(
   // Observations that need telluric calibration are placed by the ODB in an auto-generated AND
   // group (an "observation calibration group") together with their calibration observations.
   def isObsCalibration: Boolean =
-    system && calibrationRoles.exists: calibrationRole =>
-      calibrationRole === CalibrationRole.Telluric || calibrationRole.isGeneratedDaytime
+    system && calibrationRoles.exists(_.isPerObservation)
 
 object Group:
   type Id = lucuma.core.model.Group.Id
