@@ -183,9 +183,6 @@ class TestObserveEngine[F[_]: Sync](sys: Services[F]) extends ObserveEngine[F] {
   override def addDaytimeQueuePause(atIndex: Int, user: User, clientId: ClientId): F[Unit] =
     Applicative[F].unit
 
-  override def continueDaytimeQueuePastPause(user: User, clientId: ClientId): F[Unit] =
-    Applicative[F].unit
-
   override def setDaytimeQueueOrderingMode(
     mode:     QueueOrderingMode,
     user:     User,

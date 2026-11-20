@@ -238,9 +238,6 @@ trait ObserveEngine[F[_]] {
   /** Inserts a pause at `atIndex`; nothing below it is dispatched until it is removed. */
   def addDaytimeQueuePause(atIndex: Int, user: User, clientId: ClientId): F[Unit]
 
-  /** Removes the top-most pause. */
-  def continueDaytimeQueuePastPause(user: User, clientId: ClientId): F[Unit]
-
   def setDaytimeQueueOrderingMode(
     mode:     QueueOrderingMode,
     user:     User,

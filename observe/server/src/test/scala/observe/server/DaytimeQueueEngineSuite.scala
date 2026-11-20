@@ -598,17 +598,7 @@ class DaytimeQueueEngineSuite extends TestCommon:
         assertEquals(removed.daytimeQueue.dispatchState, QueueDispatchState.Halted)
         assert(!removed.sequences.contains(obs2))
 
-  test("[DQ-18] continue removes the pause and the queue goes on"):
-    TestControl.executeEmbed:
-      for
-        f       <- pausedQueue
-        resumed <- f.runner.runUntilState(
-                     _.continueDaytimeQueuePastPause(user, clientId),
-                     allIn(QueueItemStatus.Completed, obs1, obs2)
-                   )
-      yield assertEquals(resumed.daytimeQueue.items.size, 2)
-
-  test("[DQ-16] run queue goes on past the pause the queue is held at"):
+  test("[DQ-16, DQ-18] run queue goes on past the pause the queue is held at"):
     TestControl.executeEmbed:
       for
         f       <- pausedQueue

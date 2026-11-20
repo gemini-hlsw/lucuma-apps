@@ -1550,10 +1550,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                                  modifyQueueAndDispatch(_.insertPause(QueuePauseId(uuid), atIndex))
     yield ()
 
-  override def continueDaytimeQueuePastPause(user: User, clientId: ClientId): F[Unit] =
-    daytimeQueueCommand("continuing past the pause", user, clientId):
-      modifyQueueAndDispatch(_.continuePastPause)
-
   override def setDaytimeQueueOrderingMode(
     mode:     QueueOrderingMode,
     user:     User,

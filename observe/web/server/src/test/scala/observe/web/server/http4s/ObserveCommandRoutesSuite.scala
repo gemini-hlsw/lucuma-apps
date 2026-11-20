@@ -408,7 +408,6 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
         s"/queue/move/obs/$obs/2/$client",
         s"/queue/move/pause/$pauseId/0/$client",
         s"/queue/pause/1/$client",
-        s"/queue/continue/$client",
         s"/queue/orderingMode/strict/$client",
         s"/queue/run/$client/observer",
         s"/queue/holdAfterSteps/$client",
