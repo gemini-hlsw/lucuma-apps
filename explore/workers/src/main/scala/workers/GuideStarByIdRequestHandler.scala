@@ -35,7 +35,7 @@ object GuideStarByIdRequestHandler:
         .queryByIdGuideStar(id)
         .flatMap:
           case Right(target)                               =>
-            GuideStarCandidate.fromCatalog(target).some.asRight.pure
+            GuideStarCandidate.fromCatalogResult(target).some.asRight.pure
           case Left(problems) if problems.forall(notFound) =>
             none.asRight.pure
           case Left(problems)                              =>
