@@ -9,9 +9,10 @@ import navigate.epics.Channel
 import navigate.epics.EpicsService
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.given
+import navigate.server.acm.CarState
 
 /**
- * Channels of the Altair control system. `useLwfs` and `wfsInit` are TaskControl records, and the
+ * Channels of the Altair control system. `useLwfs` and `wfsInit` are taskControl records, and the
  * ND filters are assemblyControl records, both with their parameters. The others are statuses.
  */
 case class AltairChannels[F[_]](
@@ -24,13 +25,15 @@ case class AltairChannels[F[_]](
   uStage:            Channel[F, String],
   zoomMode:          Channel[F, String],
   zoomBusy:          Channel[F, String],
-  zoomInPosition:    Channel[F, Int]
+  zoomInPosition:    Channel[F, Int],
+  wfsPositionBusy:   Channel[F, CarState],
+  gaosBusy:          Channel[F, CarState]
 )
 
 object AltairChannels {
   val sysName: String = "ALTAIR"
 
-  // Names of the TaskControl records, relative to the Altair top
+  // Names of the taskControl records, relative to the Altair top
   val UseLwfsRecord: String = "useLwfs"
   val WfsInitRecord: String = "wfcs:wfsInit"
 
@@ -68,5 +71,7 @@ object AltairChannels {
     zm  <- service.getChannel[String](top, "cc:lgszoomAssembly.MODE")
     zb  <- service.getChannel[String](top, "cc:lgszoomAssembly.BUSY")
     zp  <- service.getChannel[Int](top, "cc:lgszoomPosition.VALA")
-  } yield AltairChannels(t, ulp, wip, ngs, lgs, ul, us, zm, zb, zp)
+    wpb <- service.getChannel[CarState](top, "cc:wfsposAssembly.BUSY")
+    gb  <- service.getChannel[CarState](top, "WfcsCcC.VAL")
+  } yield AltairChannels(t, ulp, wip, ngs, lgs, ul, us, zm, zb, zp, wpb, gb)
 }

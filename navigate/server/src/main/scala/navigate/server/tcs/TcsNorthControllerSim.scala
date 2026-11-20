@@ -8,6 +8,7 @@ import cats.syntax.all.*
 import fs2.concurrent.SignallingRef
 import lucuma.core.enums.Instrument
 import navigate.model.enums.AcNdFilter
+import navigate.server.ApplyCommandResult
 
 class TcsNorthControllerSim[F[_]: Async](stateRef: SignallingRef[F, TcsSimState])
     extends TcsBaseControllerSim[F](stateRef)
@@ -32,6 +33,12 @@ class TcsNorthControllerSim[F[_]: Async](stateRef: SignallingRef[F, TcsSimState]
     case Instrument.VisitorNorth => 0
     case _                       => 0
   }).some.filter(_ =!= 0).pure[F]
+
+  override def altairFollow(enable: Boolean): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F].widen
+
+  override def altairPark: F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F].widen
 
 }
 

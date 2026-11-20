@@ -146,6 +146,24 @@ class NavigateMappingsSuite extends CatsEffectSuite {
 
   }
 
+  test("Process altair follow command") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { altairFollow(enable: true) { result } }")
+    } yield assert(
+      extractResult[OperationOutcome](r, "altairFollow").exists(_ === OperationOutcome.success)
+    )
+  }
+
+  test("Process altair park command") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { altairPark { result } }")
+    } yield assert(
+      extractResult[OperationOutcome](r, "altairPark").exists(_ === OperationOutcome.success)
+    )
+  }
+
   test("Process mount park command") {
     for {
       mp <- buildMapping()
@@ -3300,6 +3318,11 @@ object NavigateMappingsTest {
 
     override def oiwfsProbeTracking(config: TrackingConfig): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
+
+    override def altairFollow(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def altairPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
     override def oiwfsPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 

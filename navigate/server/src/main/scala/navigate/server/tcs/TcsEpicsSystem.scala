@@ -121,6 +121,8 @@ object TcsEpicsSystem {
     val programIdCmd: ProgramIdCommandChannels[F]
     val aoUseCmd: Command1Channels[F, BinaryYesNo]
     val aoFieldLensCmd: AoFieldLensCommandChannels[F]
+    val aoFollowCmd: Command1Channels[F, BinaryOnOff]
+    val aoParkCmd: Command1Channels[F, Int]
     val rotatorConfigCmd: Command4Channels[F, Double, String, String, Double]
     val originCmd: Command6Channels[F, Double, Double, Double, Double, Double, Double]
     val focusOffsetCmd: Command2Channels[F, Double, Double]
@@ -919,6 +921,15 @@ object TcsEpicsSystem {
 
         override def fieldLens(v: FieldLens): TcsCommands[F] =
           addParam(tcsEpics.aoFieldLensCmd(v))
+      }
+
+    override val aoProbeCommands: AoProbeCommands[F, TcsCommands[F]] =
+      new AoProbeCommands[F, TcsCommands[F]] {
+        override def follow(enable: Boolean): TcsCommands[F] =
+          addParam(tcsEpics.aoFollowCmd.setParam1(enable.fold(BinaryOnOff.On, BinaryOnOff.Off)))
+
+        // The park command has a parameter that is not used, but it has to be written to trigger it
+        override def park: TcsCommands[F] = addParam(tcsEpics.aoParkCmd.setParam1(1))
       }
 
     override val slewOptionsCommand: SlewOptionsCommand[F, TcsCommands[F]] =
@@ -1732,6 +1743,12 @@ object TcsEpicsSystem {
     override val aoUseCmd: Command1Channels[F, BinaryYesNo] =
       Command1Channels(channels.telltale, channels.useAo)
 
+    override val aoFollowCmd: Command1Channels[F, BinaryOnOff] =
+      Command1Channels(channels.telltale, channels.aoFollow)
+
+    override val aoParkCmd: Command1Channels[F, Int] =
+      Command1Channels(channels.telltale, channels.aoPark)
+
     override val aoFieldLensCmd: AoFieldLensCommandChannels[F] =
       AoFieldLensCommandChannels(channels.telltale,
                                  channels.aoFieldLens,
@@ -2333,6 +2350,12 @@ object TcsEpicsSystem {
     def fieldLens(v: FieldLens): S
   }
 
+  /** Commands for the Altair AOWFS probe, which are executed by the TCS. */
+  trait AoProbeCommands[F[_], +S] {
+    def follow(enable: Boolean): S
+    def park: S
+  }
+
   trait SlewOptionsCommand[F[_], +S] {
     def zeroChopThrow(v:            Boolean): S
     def zeroSourceOffset(v:         Boolean): S
@@ -2556,6 +2579,7 @@ object TcsEpicsSystem {
     val slewOptionsCommand: SlewOptionsCommand[F, TcsCommands[F]]
     val programIdCommand: ProgramIdCommand[F, TcsCommands[F]]
     val aoConfigCommand: AoConfigCommand[F, TcsCommands[F]]
+    val aoProbeCommands: AoProbeCommands[F, TcsCommands[F]]
     val rotatorCommand: RotatorCommand[F, TcsCommands[F]]
     val originCommand: OriginCommand[F, TcsCommands[F]]
     val focusOffsetCommand: FocusOffsetCommand[F, TcsCommands[F]]

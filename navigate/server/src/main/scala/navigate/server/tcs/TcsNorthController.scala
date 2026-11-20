@@ -3,4 +3,17 @@
 
 package navigate.server.tcs
 
-trait TcsNorthController[F[_]] extends TcsBaseController[F]
+import navigate.server.ApplyCommandResult
+
+trait TcsNorthController[F[_]] extends TcsBaseController[F] {
+
+  /**
+   * Make the Altair AOWFS probe follow the guide star, or stop doing it. It is not allowed if the
+   * probe has no target of its own, or if Altair has not been configured.
+   */
+  def altairFollow(enable: Boolean): F[ApplyCommandResult]
+
+  /** Park Altair */
+  def altairPark: F[ApplyCommandResult]
+
+}

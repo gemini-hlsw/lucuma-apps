@@ -468,7 +468,9 @@ object TestTcsEpicsSystem {
     programId:                TestChannel.State[String],
     useAo:                    TestChannel.State[String],
     aoFieldLens:              TestChannel.State[String],
-    aoFieldLensPrepare:       TestChannel.State[String]
+    aoFieldLensPrepare:       TestChannel.State[String],
+    aoFollow:                 TestChannel.State[String],
+    aoPark:                   TestChannel.State[String]
   )
 
   val defaultState: State = State(
@@ -643,7 +645,9 @@ object TestTcsEpicsSystem {
     programId = TestChannel.State.default,
     useAo = TestChannel.State.default,
     aoFieldLens = TestChannel.State.default,
-    aoFieldLensPrepare = TestChannel.State.default
+    aoFieldLensPrepare = TestChannel.State.default,
+    aoFollow = TestChannel.State.default,
+    aoPark = TestChannel.State.default
   )
 
   def buildEnclosureChannels[F[_]: Temporal](s: Ref[F, State]): EnclosureChannels[F] =
@@ -1328,7 +1332,9 @@ object TestTcsEpicsSystem {
       programId = new TestChannel[F, State, String](s, Focus[State](_.programId)),
       useAo = new TestChannel[F, State, String](s, Focus[State](_.useAo)),
       aoFieldLens = new TestChannel[F, State, String](s, Focus[State](_.aoFieldLens)),
-      aoFieldLensPrepare = new TestChannel[F, State, String](s, Focus[State](_.aoFieldLensPrepare))
+      aoFieldLensPrepare = new TestChannel[F, State, String](s, Focus[State](_.aoFieldLensPrepare)),
+      aoFollow = new TestChannel[F, State, String](s, Focus[State](_.aoFollow)),
+      aoPark = new TestChannel[F, State, String](s, Focus[State](_.aoPark))
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {

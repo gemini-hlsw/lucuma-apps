@@ -111,7 +111,9 @@ case class TcsChannels[F[_]](
   programId:                Channel[F, String],
   useAo:                    Channel[F, String],
   aoFieldLens:              Channel[F, String],
-  aoFieldLensPrepare:       Channel[F, String]
+  aoFieldLensPrepare:       Channel[F, String],
+  aoFollow:                 Channel[F, String],
+  aoPark:                   Channel[F, String]
 )
 
 object TcsChannels {
@@ -1012,6 +1014,8 @@ object TcsChannels {
       uao   <- service.getChannel[String](tcsTop.value, "configureForAO.A")
       aofl  <- service.getChannel[String](tcsTop.value, "aoMoveAStar.A")
       aoflp <- service.getChannel[String](tcsTop.value, "aoPrepareCm.F")
+      aofo  <- service.getChannel[String](tcsTop.value, "aoFollow.A")
+      aopk  <- service.getChannel[String](tcsTop.value, "aoPark.A")
     } yield TcsChannels[F](
       tt,
       tpd,
@@ -1103,7 +1107,9 @@ object TcsChannels {
       programId = pid,
       useAo = uao,
       aoFieldLens = aofl,
-      aoFieldLensPrepare = aoflp
+      aoFieldLensPrepare = aoflp,
+      aoFollow = aofo,
+      aoPark = aopk
     )
   }
 }

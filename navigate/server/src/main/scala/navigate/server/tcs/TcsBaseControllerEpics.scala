@@ -468,6 +468,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           .map(b => setBaffles(b.central, b.deployable))
           .getOrElse(identity)
       )
+      // The AO flag must always be set, so a configuration without Altair does not leave it on
+      .andThen(altairTcsConfig(config))
 
   /**
    * When Altair is used, the TCS takes the AO guide star from the PWFS2 parameters, for the target
@@ -479,11 +481,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     config.altair.fold(config.pwfs2)(_ => config.aowfs)
 
   /**
-   * The settings that go in the TCS command when Altair is part of the configuration. There is no
-   * Altair at GS, so by default nothing is added.
+   * The settings that go in the TCS command because of Altair. The AO flag is always set. There is
+   * no Altair at GS, so by default it is off.
    */
   protected def altairTcsConfig(@unused config: TcsConfig): TcsCommands[F] => TcsCommands[F] =
-    identity
+    _.aoConfigCommand.useAo(false)
 
   /**
    * Configure Altair itself, after the TCS has the new configuration. There is no Altair at GS, so
@@ -537,11 +539,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     r   <- (
              selectOiwfs(config) *>
                VerifiedEpics.liftF(Temporal[F].sleep(OiwfsSelectionDelay)) *>
-               applyTcsConfig(config, p1f, p2f)
-                 .andThen(altairTcsConfig(config))(
-                   sys.tcsEpics.startCommand(TcsConfigTimeout)
-                 )
-                 .post
+               applyTcsConfig(config, p1f, p2f)(
+                 sys.tcsEpics.startCommand(TcsConfigTimeout)
+               ).post
            ).verifiedRun(ConnectionTimeout)
     _   <- configureAltair(config)
     trk <- isTracking(guide)
@@ -589,7 +589,6 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                  }
                  .andThen(resetChopParameters)
                  .andThen(setSlewOptions(slewOptions))
-                 .andThen(altairTcsConfig(tcsConfig))
                  .andThen(_.programIdCommand.programId(tcsConfig.programLabel))(
                    sys.tcsEpics.startCommand(TcsConfigTimeout)
                  )

@@ -38,7 +38,7 @@ class TaskControlCommandSuite extends CatsEffectSuite {
 
   test("A value other than zero in VAL is an error") {
     run(1.asLeft).attempt.map { r =>
-      assertEquals(r.left.map(_.getMessage), Left("TaskControl record rec failed with error: boom"))
+      assertEquals(r.left.map(_.getMessage), Left("taskControl record rec failed with error: boom"))
     }
   }
 

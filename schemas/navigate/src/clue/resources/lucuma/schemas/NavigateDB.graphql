@@ -944,6 +944,8 @@ type Mutation {
   pwfs2QlMode(mode: QlMode): OperationOutcome!
   oiwfsTarget(target: TargetPropertiesInput!): OperationOutcome!
   oiwfsProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+  altairFollow(enable: Boolean!): OperationOutcome!
+  altairPark: OperationOutcome!
   oiwfsPark: OperationOutcome!
   oiwfsFollow(enable: Boolean!): OperationOutcome!
   oiwfsObserve(period: TimeSpanInput!): OperationOutcome!

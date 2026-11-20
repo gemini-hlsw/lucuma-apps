@@ -251,14 +251,11 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  // A slew with Altair, at GN. The AO star goes in the PWFS2 parameters if Altair is in NGS mode.
-  private def altairSlew(
+  private def gnConfig(
     altair: Option[AltairConfiguration],
     aowfs:  Option[GuiderConfig],
     pwfs2:  Option[GuiderConfig]
-  )(using
-    Dispatcher[IO]
-  ): IO[(StateRefs[IO], TestTcsEpicsSystem.State, TestAltairEpicsSystem.State)] = {
+  ): TcsConfig = {
     val target = SiderealTarget(
       objectName = "base",
       wavelength = Wavelength.fromIntPicometers(400 * 1000),
@@ -269,6 +266,29 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       parallax = none
     )
 
+    TcsConfig(
+      target,
+      InstrumentSpecifics(Angle.Angle0, Distance.Zero, "gnirs", Origin(Angle.Angle0, Angle.Angle0)),
+      None,
+      pwfs2,
+      None,
+      RotatorTrackConfig(Angle.Angle0, RotatorTrackingMode.Tracking),
+      LightSink.Gnirs,
+      None,
+      None,
+      altair,
+      aowfs
+    )
+  }
+
+  // A slew with Altair, at GN. The AO star goes in the PWFS2 parameters if Altair is in NGS mode.
+  private def altairSlew(
+    altair: Option[AltairConfiguration],
+    aowfs:  Option[GuiderConfig],
+    pwfs2:  Option[GuiderConfig]
+  )(using
+    Dispatcher[IO]
+  ): IO[(StateRefs[IO], TestTcsEpicsSystem.State, TestAltairEpicsSystem.State)] = {
     val noOptions = SlewOptions(
       ZeroChopThrow(false),
       ZeroSourceOffset(false),
@@ -302,23 +322,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                    )
       _         <- ctr.slew(
                      noOptions,
-                     TcsConfig(
-                       target,
-                       InstrumentSpecifics(Angle.Angle0,
-                                           Distance.Zero,
-                                           "gnirs",
-                                           Origin(Angle.Angle0, Angle.Angle0)
-                       ),
-                       None,
-                       pwfs2,
-                       None,
-                       RotatorTrackConfig(Angle.Angle0, RotatorTrackingMode.Tracking),
-                       LightSink.Gnirs,
-                       None,
-                       None,
-                       altair,
-                       aowfs
-                     )
+                     gnConfig(altair, aowfs, pwfs2)
                    )
       tcs       <- st.tcs.get
       ao        <- st.altair.get
@@ -335,6 +339,81 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     radialVelocity = none,
     parallax = none
   )
+
+  private val ngsAltair =
+    AltairConfiguration(AltairMode.Ngs, FieldLens.In.some, CassRotator.Following, AltairNdFilter.In)
+
+  private def aoNgsConfig: TcsConfig =
+    gnConfig(ngsAltair.some,
+             GuiderConfig(aoStar("aoStar", "00:00:00.000000"), TrackingConfig.noTracking).some,
+             none
+    )
+
+  epicsTest("TCS config sets the AO flag on with Altair and off without it") {
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- ctr.tcsConfig(aoNgsConfig)(GuideConfig.defaultGuideConfig)
+      on        <- st.tcs.get.map(_.useAo.value)
+      _         <- ctr.tcsConfig(gnConfig(none, none, none))(GuideConfig.defaultGuideConfig)
+      off       <- st.tcs.get.map(_.useAo.value)
+    } yield {
+      assertEquals(on, "Yes".some)
+      assertEquals(off, "No".some)
+    }
+  }
+
+  epicsTest("TCS config at GS sets the AO flag off") {
+    for {
+      (st, ctr) <- createController(Site.GS)
+      _         <- ctr.tcsConfig(gnConfig(none, none, none))(GuideConfig.defaultGuideConfig)
+      s         <- st.tcs.get
+    } yield assertEquals(s.useAo.value, "No".some)
+  }
+
+  epicsTest("Slew without Altair clears the AO flag left on by a previous configuration") {
+    val noOptions = SlewOptions(
+      ZeroChopThrow(false),
+      ZeroSourceOffset(false),
+      ZeroSourceDiffTrack(false),
+      ZeroMountOffset(false),
+      ZeroMountDiffTrack(false),
+      ShortcircuitTargetFilter(false),
+      ShortcircuitMountFilter(false),
+      ResetPointing(false),
+      StopGuide(false),
+      ZeroGuideOffset(false),
+      ZeroInstrumentOffset(false),
+      AutoparkPwfs1(false),
+      AutoparkPwfs2(false),
+      AutoparkOiwfs(false),
+      AutoparkGems(false),
+      AutoparkAowfs(false)
+    )
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- st.ags.update(_.focus(_.gnirsPort.value).replace(3.some))
+      _         <- ctr.slew(noOptions, aoNgsConfig)
+      on        <- st.tcs.get.map(_.useAo.value)
+      _         <- ctr.slew(noOptions, gnConfig(none, none, none))
+      off       <- st.tcs.get.map(_.useAo.value)
+    } yield {
+      assertEquals(on, "Yes".some)
+      assertEquals(off, "No".some)
+    }
+  }
+
+  epicsTest("Restore target sets the AO flag as the configuration says") {
+    for {
+      (st, ctr) <- createController(Site.GN)
+      _         <- ctr.restoreTarget(aoNgsConfig)
+      on        <- st.tcs.get.map(_.useAo.value)
+      _         <- ctr.restoreTarget(gnConfig(none, none, none))
+      off       <- st.tcs.get.map(_.useAo.value)
+    } yield {
+      assertEquals(on, "Yes".some)
+      assertEquals(off, "No".some)
+    }
+  }
 
   epicsTest("Slew with Altair in NGS mode uses the AO star as PWFS2 target") {
     val aoTracking    = TrackingConfig(true, false, true, false)
@@ -3755,6 +3834,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
               )
       ecs  <- Ref.of[IO, TestEcsEpicsSystem.State](TestEcsEpicsSystem.defaultState)
       ao   <- Ref.of[IO, TestAltairEpicsSystem.State](TestAltairEpicsSystem.defaultState)
+      altr <- AltairController.fromEpics[IO](TestAltairEpicsSystem.build(ao),
+                                             TestTcsEpicsSystem.build(tcs),
+                                             DefaultTimeout
+              )
     } yield {
       val oiSys = TestOiwfsEpicsSystem.build(oiw, oi)
 
@@ -3798,6 +3881,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                 TestEcsEpicsSystem.build(ecs)
               )
             ),
+            altr,
             DefaultTimeout,
             st
           )

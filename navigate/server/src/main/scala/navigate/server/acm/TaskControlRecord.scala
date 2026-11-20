@@ -10,7 +10,7 @@ import navigate.epics.given
 import navigate.server.epicsdata.DirSuffix
 
 /**
- * The channels used to run a command on a TaskControl or an assemblyControl record, which behave
+ * The channels used to run a command on a taskControl or an assemblyControl record, which behave
  * the same way. They have the parameters (A, B, MODE...) and the directive (DIR) of a CAD, but they
  * report their own progress in BUSY, like a CAR, and acknowledge the directive in VAL, like an
  * apply: zero is ACCEPT and any other value is REJECT. The error message is in MESS.

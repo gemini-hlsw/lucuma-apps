@@ -21,16 +21,18 @@ object TestAltairEpicsSystem {
    * executed.
    */
   case class State(
-    usingLaserWfs:  Boolean,
-    uStageIn:       Boolean,
-    zoomTracking:   Boolean,
-    zoomBusy:       Boolean,
-    zoomInPosition: Boolean,
-    useLaserWfs:    Option[Boolean],
-    initWfs:        Option[Boolean],
-    ngsNdFilter:    Option[AltairNdFilter],
-    lgsNdFilter:    Option[AltairNdFilter],
-    commands:       List[String]
+    usingLaserWfs:   Boolean,
+    uStageIn:        Boolean,
+    zoomTracking:    Boolean,
+    zoomBusy:        Boolean,
+    zoomInPosition:  Boolean,
+    wfsPositionBusy: Boolean,
+    busy:            Boolean,
+    useLaserWfs:     Option[Boolean],
+    initWfs:         Option[Boolean],
+    ngsNdFilter:     Option[AltairNdFilter],
+    lgsNdFilter:     Option[AltairNdFilter],
+    commands:        List[String]
   )
 
   val defaultState: State = State(
@@ -39,6 +41,8 @@ object TestAltairEpicsSystem {
     zoomTracking = false,
     zoomBusy = false,
     zoomInPosition = false,
+    wfsPositionBusy = false,
+    busy = false,
     useLaserWfs = none,
     initWfs = none,
     ngsNdFilter = none,
@@ -58,16 +62,20 @@ object TestAltairEpicsSystem {
 
       override val status: AltairEpicsSystem.AltairStatus[F] =
         new AltairEpicsSystem.AltairStatus[F] {
-          override def usingLaserWfs: VerifiedEpics[F, F, Boolean]  =
+          override def usingLaserWfs: VerifiedEpics[F, F, Boolean]   =
             VerifiedEpics.liftF(s.get.map(_.usingLaserWfs))
-          override def uStageIn: VerifiedEpics[F, F, Boolean]       =
+          override def uStageIn: VerifiedEpics[F, F, Boolean]        =
             VerifiedEpics.liftF(s.get.map(_.uStageIn))
-          override def zoomTracking: VerifiedEpics[F, F, Boolean]   =
+          override def zoomTracking: VerifiedEpics[F, F, Boolean]    =
             VerifiedEpics.liftF(s.get.map(_.zoomTracking))
-          override def zoomBusy: VerifiedEpics[F, F, Boolean]       =
+          override def zoomBusy: VerifiedEpics[F, F, Boolean]        =
             VerifiedEpics.liftF(s.get.map(_.zoomBusy))
-          override def zoomInPosition: VerifiedEpics[F, F, Boolean] =
+          override def zoomInPosition: VerifiedEpics[F, F, Boolean]  =
             VerifiedEpics.liftF(s.get.map(_.zoomInPosition))
+          override def wfsPositionBusy: VerifiedEpics[F, F, Boolean] =
+            VerifiedEpics.liftF(s.get.map(_.wfsPositionBusy))
+          override def busy: VerifiedEpics[F, F, Boolean]            =
+            VerifiedEpics.liftF(s.get.map(_.busy))
         }
 
       override val commands: AltairEpicsSystem.AltairCommands[F] =

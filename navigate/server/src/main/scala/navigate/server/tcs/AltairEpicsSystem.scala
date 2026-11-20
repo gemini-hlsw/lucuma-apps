@@ -14,6 +14,7 @@ import mouse.boolean.*
 import navigate.epics.EpicsService
 import navigate.epics.VerifiedEpics.*
 import navigate.server.ApplyCommandResult
+import navigate.server.acm.CarState
 import navigate.server.acm.TaskControlCommand
 import navigate.server.acm.writeCadParam
 import navigate.server.epicsdata.BinaryOnOffCapitalized
@@ -43,12 +44,18 @@ object AltairEpicsSystem {
 
     /** Is the LGS zoom in position? */
     def zoomInPosition: VerifiedEpics[F, F, Boolean]
+
+    /** Is the AOWFS probe moving, or following? This includes the gimbals. */
+    def wfsPositionBusy: VerifiedEpics[F, F, Boolean]
+
+    /** Is Altair, at its top level, busy? */
+    def busy: VerifiedEpics[F, F, Boolean]
   }
 
   /**
-   * Altair commands. `useLaserWfs` and `initWfs` are TaskControl records: they end when the record
-   * goes back to idle, or fail if it reports an error. The ND filters are CAD records, started with
-   * the directive, as it is done in TCC, so they do not report completion.
+   * Altair commands. `useLaserWfs` and `initWfs` are taskControl records, and the ND filters are
+   * assemblyControl records, which behave the same way: they end when the record goes back to idle,
+   * or fail if it reports an error.
    */
   trait AltairCommands[F[_]] {
 
@@ -108,6 +115,12 @@ object AltairEpicsSystem {
 
       override def zoomInPosition: VerifiedEpics[F, F, Boolean] =
         read(ch.zoomInPosition).map(_.map(_ =!= 0))
+
+      override def wfsPositionBusy: VerifiedEpics[F, F, Boolean] =
+        read(ch.wfsPositionBusy).map(_.map(_ === CarState.BUSY))
+
+      override def busy: VerifiedEpics[F, F, Boolean] =
+        read(ch.gaosBusy).map(_.map(_ === CarState.BUSY))
     }
 
     override val commands: AltairCommands[F] = new AltairCommands[F] {

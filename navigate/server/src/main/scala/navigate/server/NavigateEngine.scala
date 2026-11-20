@@ -77,6 +77,7 @@ import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.acm.GeminiApplyCommand
 import navigate.server.ephemeris.EphemerisUpdater
+import navigate.server.tcs.AltairController
 import navigate.server.tcs.TcsBaseControllerEpics.WfsGuideStates
 import navigate.stateengine.Handler
 import navigate.stateengine.StateEngine
@@ -130,6 +131,8 @@ trait NavigateEngine[F[_]] {
   def oiwfsTarget(target:                            Target): F[CommandResult]
   def oiwfsProbeTracking(config:                     TrackingConfig): F[CommandResult]
   def oiwfsPark: F[CommandResult]
+  def altairFollow(enable:                           Boolean): F[CommandResult]
+  def altairPark: F[CommandResult]
   def oiwfsFollow(enable:                            Boolean): F[CommandResult]
   def enableGuide(config:                            TelescopeGuideConfig): F[CommandResult]
   def disableGuide: F[CommandResult]
@@ -472,6 +475,26 @@ object NavigateEngine {
       cats.data.State
         .modify[State](_.focus(_.wfsTrackingConfig.oiwfs).replace(config))
         .as(services.tcsCommon.oiwfsProbeTracking(config))
+    )
+
+    // There is no Altair at GS
+    private def altairOnlyAtGn(cmd: F[ApplyCommandResult]): F[ApplyCommandResult] =
+      if (site === Site.GN) cmd
+      else
+        Async[F].raiseError(
+          new AltairController.AltairException("Altair is only available at Gemini North")
+        )
+
+    override def altairFollow(enable: Boolean): F[CommandResult] = simpleCommand(
+      engine,
+      AltairFollow(enable),
+      altairOnlyAtGn(services.tcsNorth.altairFollow(enable))
+    )
+
+    override def altairPark: F[CommandResult] = simpleCommand(
+      engine,
+      AltairPark,
+      altairOnlyAtGn(services.tcsNorth.altairPark)
     )
 
     override def oiwfsPark: F[CommandResult] = simpleCommand(

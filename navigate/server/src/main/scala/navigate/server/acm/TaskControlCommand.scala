@@ -20,7 +20,7 @@ import navigate.server.ApplyCommandResult
 import scala.concurrent.duration.*
 
 /**
- * A command executed by a TaskControl or an assemblyControl record, which behave the same way. The
+ * A command executed by a taskControl or an assemblyControl record, which behave the same way. The
  * parameters are written to the record, the directive is set to START, and the record answers with
  * ACCEPT (zero) or REJECT (non-zero) in VAL. Then it goes BUSY, and the command ends when it goes
  * back to IDLE. This is the same as the ACM library, used in Seqexec, does for TaskControl.
@@ -43,7 +43,7 @@ object TaskControlCommand {
 
   final class TaskControlRejected(recordName: String, message: String)
       extends GeminiApplyCommand.ApplyCommandException(
-        s"TaskControl record $recordName failed with error: $message"
+        s"taskControl record $recordName failed with error: $message"
       )
 
   // Delay reading error messages by this amount after an error is triggered
