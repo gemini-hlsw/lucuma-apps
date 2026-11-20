@@ -7,7 +7,10 @@ import cats.Applicative
 import cats.Endo
 import cats.data.NonEmptyList
 import cats.effect.Async
+import cats.effect.Clock
 import cats.effect.Ref
+import cats.effect.std.SecureRandom
+import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import coulomb.integrations.cats.all.given
 import fs2.Stream
@@ -25,10 +28,8 @@ import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig as OcsStepConfig
 import lucuma.core.refined.given
-import monocle.Focus
+import lucuma.core.util.Timestamp
 import monocle.Lens
-import monocle.Optional
-import monocle.function.Index.mapIndex
 import mouse.all.*
 import observe.cats.given
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment as OdbTargetEnvironment
@@ -38,11 +39,13 @@ import observe.model.UserPrompt.ObsConditionsCheckOverride
 import observe.model.UserPrompt.SeqCheck
 import observe.model.UserPrompt.TargetCheckOverride
 import observe.model.config.*
-import observe.model.enums.BatchExecState
 import observe.model.enums.ObservatorySubsystem
 import observe.model.enums.ObserveLogLevel
 import observe.model.enums.PendingObserveCmd
 import observe.model.enums.PendingObserveCmd.*
+import observe.model.enums.QueueDispatchState
+import observe.model.enums.QueueItemStatus
+import observe.model.enums.QueueOrderingMode
 import observe.model.enums.RunOverride
 import observe.model.events.*
 import observe.server.engine.EngineStep
@@ -51,13 +54,14 @@ import observe.server.engine.Handle.given
 import observe.server.engine.Result.Partial
 import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
+import observe.server.gcal.GcalController
+import observe.server.odb.OdbObservationData
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 import java.util.concurrent.TimeUnit
 import scala.annotation.unused
-import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 
 import SeqEvent.*
@@ -71,22 +75,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   @unused conditionsRef: Ref[F, CurrentConditions]
 ) extends ObserveEngine[F] {
 
-  /** The subsystems `obsId` needs that running sequences, manual configs or queues hold. */
+  /** The subsystems `obsId` needs that are busy. */
   private def subsystemConflict(
     obsId:  Observation.Id,
     needed: Set[Subsystem]
-  )(st: EngineState[F]): Set[Subsystem] = {
-    // Subsystems held by running sequences
-    val used: Set[Subsystem] = ObserveEngine.subsystemsInUse(st, excludeObs = obsId.some)
-
-    // Subsystems that will be used by sequences in running queues
-    val reservedByQueues: Set[Subsystem] = ObserveEngine.subsystemsReserved(st)
-
-    val inRunningQueue: Boolean =
-      st.queues.values.filter(_.status.running).exists(_.queue.contains(obsId))
-
-    needed.intersect(if inRunningQueue then used else used ++ reservedByQueues)
-  }
+  )(st: EngineState[F]): Set[Subsystem] =
+    needed.intersect(ObserveEngine.busySubsystems(st, excludeObs = obsId.some))
 
   private def busy(
     st:       EngineState[F],
@@ -291,9 +285,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
   private def startChecks(
     startAction:    EngineHandle[F, Unit],
     obsId:          Observation.Id,
-    clientId:       ClientId,
+    clientId:       Option[ClientId],
     @unused stepId: Option[Step.Id],
-    runOverride:    RunOverride
+    runOverride:    RunOverride,
+    knownHold:      Option[Set[Subsystem]] = none
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st =>
       EngineState
@@ -340,20 +335,22 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                       case (false, _, _, _)                           =>
                         EngineHandle
                           .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
-                          .as[SeqEvent](busy(newState, obsId, clientId, conflict))
+                          .as[SeqEvent]:
+                            clientId.fold(NullSeqEvent)(busy(newState, obsId, _, conflict))
                       // Target check fails and no override
                       case (_, Some(_), x :: xs, RunOverride.Default) =>
                         EngineHandle
                           .modifySequenceState[F](obsId)(_.withNoLoadedStep.withIdleStatus)
                           .as[SeqEvent](
-                            RequestConfirmation(
-                              UserPrompt.ChecksOverride(
-                                obsId,
-                                UserPrompt.ChecksOverride.Action.StartSequence,
-                                NonEmptyList(x, xs)
-                              ),
-                              clientId
-                            )
+                            clientId.fold(NullSeqEvent): cid =>
+                              RequestConfirmation(
+                                UserPrompt.ChecksOverride(
+                                  obsId,
+                                  UserPrompt.ChecksOverride.Action.StartSequence,
+                                  NonEmptyList(x, xs)
+                                ),
+                                cid
+                              )
                           )
                       // Allowed to run
                       case _                                          =>
@@ -364,28 +361,39 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           (for {
             _           <- EngineHandle.modifySequenceState[F](obsId): seq =>
                              SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
-            holdRead    <- EngineHandle.liftF:
-                             SequenceSubsystems.read(services.odb, obsId, seq.instrument).attempt
+            // The daytime queue has just read what the sequence holds, in this same handle.
+            holdRead    <- knownHold.fold(
+                             EngineHandle.liftF:
+                               SequenceSubsystems.read(services.odb, obsId, seq.instrument).attempt
+                           )(hold => EngineHandle.pure(hold.asRight[Throwable]))
             resultEvent <-
               holdRead.fold(
-                // Fails the start as a failed read of its step would.
+                // Nothing has run yet, so the start is refused and the sequence is left idle.
                 e =>
-                  ObserveEngine
-                    .failLoading[F](obsId, s"Error reading the steps left in [$obsId]")(e)
-                    .as[SeqEvent](NullSeqEvent),
+                  EngineHandle.logError(e)(s"Error reading the steps left in [$obsId]") >>
+                    EngineHandle
+                      .modifySequenceState[F](obsId)(_.withIdleStatus)
+                      .as[SeqEvent]:
+                        clientId.fold(NullSeqEvent): cid =>
+                          SeqEvent.NotifyUser(
+                            Notification.ActionFailed(obsId, "start the sequence", e.getMessage),
+                            cid
+                          )
+                ,
                 startHolding
               )
           } yield resultEvent).handleErrorWith(e =>
             EngineHandle
               .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage))
               .as[SeqEvent](
-                SeqEvent.NotifyUser(
-                  Notification.LoadingFailed(
-                    obsId,
-                    List(s"Error loading sequence for observation $obsId", e.getMessage)
-                  ),
-                  clientId
-                )
+                clientId.fold(NullSeqEvent): client =>
+                  SeqEvent.NotifyUser(
+                    Notification.LoadingFailed(
+                      obsId,
+                      List(s"Error loading sequence for observation $obsId", e.getMessage)
+                    ),
+                    client
+                  )
               )
           )
         .getOrElse: // Trying to run a sequence that does not exist. This should never happen.
@@ -417,7 +425,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                 startChecks(
                   executeEngine.startLoadedStep(obsId),
                   obsId,
-                  clientId,
+                  clientId.some,
                   none,
                   runOverride
                 )
@@ -740,23 +748,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                       EngineHandle.modifyState { (st: EngineState[F]) =>
                         val instrumentSequenceLens = EngineState.instrumentLoaded[F](i)
                         if (instrumentSequenceLens.get(st).forall(canLeaveSlot)) {
-                          (st.sequences
-                             .get(obsId)
-                             .fold(
-                               ODBSequencesLoader
-                                 .loadSequenceMod(
-                                   observer.some,
-                                   odbData,
-                                   instrumentSequenceLens
-                                 )
-                             )(_ =>
-                               ODBSequencesLoader.reloadSequenceMod(
-                                 observer.some,
-                                 stepGen,
-                                 Breakpoints.fromInstrumentExecutionConfig(odbData.executionConfig),
-                                 instrumentSequenceLens
-                               )
-                             )(st),
+                          (loadObservationMod(
+                             odbData,
+                             stepGen,
+                             observer.some,
+                             instrumentSequenceLens
+                           )(st),
                            LoadSequence(obsId, clientId)
                           )
                         } else {
@@ -782,6 +779,28 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             )
           )
     )
+
+  /**
+   * Puts the observation read from the ODB into its instrument slot: a new one replaces what was
+   * there, while one that is already loaded is reloaded keeping its observer and overrides.
+   */
+  private def loadObservationMod(
+    odbData:                OdbObservationData,
+    stepGen:                Option[StepGen[F]],
+    observer:               Option[Observer],
+    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]]
+  ): Endo[EngineState[F]] =
+    (st: EngineState[F]) =>
+      st.sequences
+        .get(odbData.observation.id)
+        .fold(ODBSequencesLoader.loadSequenceMod(observer, odbData, instrumentSequenceLens))(_ =>
+          ODBSequencesLoader.reloadSequenceMod(
+            observer,
+            stepGen,
+            Breakpoints.fromInstrumentExecutionConfig(odbData.executionConfig),
+            instrumentSequenceLens
+          )
+        )(st)
 
   private def logDebugEvent(msg: String): F[Unit] = L.debug(msg)
 
@@ -821,7 +840,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                   EngineHandle.modifyState_[F](
                     EngineState.instrumentLoaded[F](seqData.instrument).replace(none)
                   ) >>
-                    EngineHandle.pure[F, SeqEvent](SeqEvent.UnloadSequence(obsId))
+                    dispatchDaytimeQueue.as[SeqEvent](SeqEvent.UnloadSequence(obsId))
                 else
                   EngineHandle.pure[F, SeqEvent]:
                     SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, "unload"), clientId)
@@ -966,13 +985,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     )
   }
 
-  private def executionQueueViews(
-    st: EngineState[F]
-  ): SortedMap[QueueId, ExecutionQueueView] =
-    SortedMap(st.queues.map { case (qid, q) =>
-      qid -> ExecutionQueueView(qid, q.name, q.cmdState, q.status, q.queue.map(_.obsId))
-    }.toList*)
-
   private def buildObserveStateStream(
     svs:      => SequencesQueue[SequenceView],
     odbProxy: OdbProxy[F]
@@ -1053,7 +1065,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         ).flattenOption.toMap,
         qState.conditions,
         qState.operator,
-        executionQueueViews(qState),
+        DaytimeQueueView(qState.daytimeQueue, queueBusySubsystems(qState)),
         sequences
       )
 
@@ -1110,7 +1122,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             Stream.emit(StepComplete(obsId): TargetedClientEvent) ++
               buildObserveStateStream(svs, odbProxy)
           case EngineEvent.SequenceHeld(obsId)                                     =>
-            Stream.emit(SequenceHeld(obsId): TargetedClientEvent)
+            Stream.emit(SequenceHeld(obsId): TargetedClientEvent) ++
+              buildObserveStateStream(svs, odbProxy)
           case EngineEvent.BreakpointReached(obsId)                                =>
             Stream.emit(BreakpointReached(obsId): TargetedClientEvent) ++
               buildObserveStateStream(svs, odbProxy)
@@ -1151,8 +1164,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           ClientEvent.GuideConfigEvent(gcs.config): TargetedClientEvent
 
   override def eventResultStream(s0: EngineState[F]): Stream[F, (EventResult, EngineState[F])] =
-    // TODO We are never using the process function. Consider removing the `process` method and just returning the stream.
-    executeEngine.process(PartialFunction.empty)(s0)
+    executeEngine.process(onEngineEvent)(s0)
 
   override def stopExposure(
     obsId:    Observation.Id,
@@ -1214,69 +1226,420 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       executeEngine.offer:
         Event.getState(translator.resumePaused(obsId))
 
-  private def queueO(qid: QueueId): Optional[EngineState[F], ExecutionQueue] =
-    Focus[EngineState[F]](_.queues).andThen(mapIndex[QueueId, ExecutionQueue].index(qid))
+  // Daytime queue
 
-  override def addSequencesToQueue(
-    qid:    QueueId,
-    obsIds: List[Observation.Id]
-  ): F[Unit] = Applicative[F].unit
+  /** How long the user has to cancel before the queue turns the GCAL lamps off. */
+  private val LampsOffCountdown: FiniteDuration = 60.seconds
 
-  override def addSequenceToQueue(
-    qid:   QueueId,
-    obsId: Observation.Id
-  ): F[Unit] = Applicative[F].unit
+  private def modifyDaytimeQueue(f: Endo[DaytimeQueue]): EngineHandle[F, Unit] =
+    EngineHandle.modifyState_(EngineState.daytimeQueue[F].modify(f))
 
-  override def removeSequenceFromQueue(
-    qid:   QueueId,
-    obsId: Observation.Id
-  ): F[Unit] = Applicative[F].unit
+  private def modifyQueueItem(obsId: Observation.Id)(
+    f: DaytimeQueueItem.Obs => DaytimeQueueItem.Obs
+  ): EngineHandle[F, Unit] =
+    modifyDaytimeQueue(_.modifyObs(obsId)(f))
 
-  override def moveSequenceInQueue(
-    qid:   QueueId,
-    obsId: Observation.Id,
-    delta: Int,
-    cid:   ClientId
-  ): F[Unit] = Applicative[F].unit
+  private def syncDaytimeQueue: EngineHandle[F, QueueSyncResult] =
+    EngineHandle.modifyState(DaytimeQueueOps.sync[F])
 
-  private def clearQ(qid: QueueId): Endo[EngineState[F]] = st =>
-    st.queues
-      .get(qid)
-      .filter(_.status =!= BatchExecState.Running)
-      .map { _ =>
-        queueO(qid).modify(_.clear)(st)
-      }
-      .getOrElse(st)
+  private def errorMessage(e: Throwable): String =
+    Option(e.getMessage).getOrElse(e.toString)
 
-  override def clearQueue(qid: QueueId): F[Unit] =
-    executeEngine.offer:
-      Event.modifyState:
-        EngineHandle.modifyState:
-          clearQ(qid).withEvent(UpdateQueueClear(qid))
+  private def failQueueItem(obsId: Observation.Id, msg: String): EngineHandle[F, Unit] =
+    EngineHandle.liftF(L.warn(s"Daytime queue: observation $obsId failed to start: $msg")) >>
+      modifyQueueItem(obsId)(
+        _.copy(status = QueueItemStatus.Failed, errorMsg = msg.some, abortRequested = false)
+      )
 
-  override def startQueue(
-    qid:      QueueId,
+  /**
+   * The queue only takes a slot that is empty, completed or holds a queue observation, and never
+   * one whose failed step still has actions running.
+   */
+  private def slotAvailable(st: EngineState[F], instrument: Instrument): Boolean =
+    EngineState
+      .instrumentLoaded[F](instrument)
+      .get(st)
+      .forall: s =>
+        canLeaveSlot(s) && (s.seq.status.isCompleted || st.daytimeQueue.contains(s.obsId))
+
+  /** Busy subsystems plus the instruments whose slot the queue may not take. */
+  private def queueBusySubsystems(st: EngineState[F]): Set[Subsystem] =
+    ObserveEngine.busySubsystems(st) ++
+      st.sequencesByInstrument.keySet
+        .filterNot(slotAvailable(st, _))
+        .map(instrument => instrument: Subsystem)
+
+  /**
+   * Starts a queue observation unattended (no confirmation prompts), and gives the subsystems it
+   * needs that are busy, if that is why it did not start.
+   *
+   * What it needs is read again, since it may have changed since it was added, and the queue keeps
+   * the latest: an observation that cannot have its subsystems stays as it is, is not loaded, and
+   * the dispatcher leaves it alone until they are free. Otherwise it is loaded (only its next atom
+   * is read) and started as a manual start would, in this same engine step. The ODB already gives
+   * the remaining steps of a partly executed observation, so it continues from its first incomplete
+   * step.
+   */
+  private def startQueueItem(
+    obsId:    Observation.Id,
+    observer: Observer
+  ): EngineHandle[F, Set[Subsystem]] =
+    val nothing: Set[Subsystem] = Set.empty
+
+    def loadAndStart(instrument: Instrument, hold: Set[Subsystem]): EngineHandle[F, Unit] =
+      EngineHandle
+        .liftF(services.odb.read(obsId, OdbProxy.NextAtomOnly).attempt)
+        .flatMap:
+          case Left(e)        => failQueueItem(obsId, errorMessage(e))
+          case Right(odbData) =>
+            val stepGen: Option[StepGen[F]] =
+              translator.nextStep(odbData, SequenceType.Acquisition.asLeft)._2
+            EngineHandle.liftF(L.info(s"Daytime queue: starting observation $obsId")) >>
+              EngineHandle.modifyState_(
+                loadObservationMod(
+                  odbData,
+                  stepGen,
+                  observer.some,
+                  EngineState.instrumentLoaded(instrument)
+                )
+              ) >>
+              setObserver(obsId, observer) >>
+              clearObsCmd(obsId) >>
+              startChecks(
+                executeEngine.startLoadedStep(obsId),
+                obsId,
+                none,
+                none,
+                RunOverride.Override,
+                hold.some
+              ) >>
+              EngineHandle
+                .liftF(Clock[F].realTimeInstant)
+                .flatMap: now =>
+                  EngineHandle.modifyState_(
+                    DaytimeQueueOps
+                      .afterStart[F](obsId, Timestamp.fromInstantTruncatedAndBounded(now))
+                  )
+
+    EngineHandle.getState.flatMap: st0 =>
+      st0.daytimeQueue
+        .obs(obsId)
+        .filter(item => slotAvailable(st0, item.instrument))
+        .fold(EngineHandle.pure[F, Set[Subsystem]](nothing)): item =>
+          EngineHandle
+            .liftF(services.odb.readRemainingSteps(obsId, item.instrument).attempt)
+            .flatMap:
+              case Left(e)          => failQueueItem(obsId, errorMessage(e)).as(nothing)
+              case Right(remaining) =>
+                val resources: QueueItemResources =
+                  DaytimeQueueOps.resources(item.instrument, remaining)
+                modifyQueueItem(obsId)(
+                  _.copy(subsystems = resources.subsystems, estimate = resources.estimate)
+                ) >>
+                  EngineHandle.getState.flatMap: st =>
+                    val conflict: Set[Subsystem] =
+                      subsystemConflict(obsId, resources.subsystems)(st)
+                    if conflict.nonEmpty then EngineHandle.pure[F, Set[Subsystem]](conflict)
+                    else loadAndStart(item.instrument, resources.subsystems).as(nothing)
+
+  /**
+   * Starts the Waiting observations the dispatch rules allow, one at a time. In strict mode an
+   * observation that could not be started stops the pass, so nothing below it jumps ahead.
+   */
+  private def startRunnableQueueItems(tried: Set[Observation.Id]): EngineHandle[F, Unit] =
+    EngineHandle.getState.flatMap: st =>
+      st.daytimeQueueObserver
+        .filter(_ => st.daytimeQueue.dispatchState === QueueDispatchState.Running)
+        .flatMap: observer =>
+          val runnable: List[Observation.Id] =
+            QueueDispatcher.runnable(st.daytimeQueue, queueBusySubsystems(st))
+          val next: Option[Observation.Id]   =
+            if st.daytimeQueue.orderingMode === QueueOrderingMode.Strict then
+              runnable.headOption.filterNot(tried.contains)
+            else runnable.find(obsId => !tried.contains(obsId))
+          next
+            .map: obsId =>
+              startQueueItem(obsId, observer) >> startRunnableQueueItems(tried + obsId)
+        .getOrElse(EngineHandle.unit)
+
+  /**
+   * Turns the GCAL lamps off (IR lamp untouched) without blocking the engine, recording the outcome
+   * in the queue. GCAL is busy until the command ends, so nothing else commands it meanwhile.
+   */
+  private def turnLampsOff: EngineHandle[F, Unit] =
+    EngineHandle.liftF(L.info("Daytime queue: turning the GCAL lamps off")) >>
+      EngineHandle.modifyState_(EngineState.daytimeQueueLampsOff[F].replace(true)) >>
+      EngineHandle.fromEventStream:
+        Stream.eval:
+          services.gcal
+            .applyConfig(GcalController.GcalConfig.GcalOffIgnoringIr)
+            .attempt
+            .flatTap:
+              case Left(e) => L.error(e)("Daytime queue: unable to turn the GCAL lamps off")
+              case _       => Applicative[F].unit
+            .map: result =>
+              Event.modifyState[F]:
+                EngineHandle.modifyState_(EngineState.daytimeQueueLampsOff[F].replace(false)) >>
+                  modifyDaytimeQueue(
+                    DaytimeQueue.lampsOffError.replace(result.left.toOption.map(errorMessage))
+                  ) >>
+                  // GCAL is free again: what waited for it can start.
+                  dispatchDaytimeQueue.as(SeqEvent.DaytimeQueueUpdated)
+
+  /** Starts the countdown to turn the GCAL lamps off, which every client sees and may cancel. */
+  private def scheduleLampsOff: EngineHandle[F, Unit] =
+    EngineHandle
+      .liftF(Clock[F].realTimeInstant)
+      .flatMap: now =>
+        val at: Timestamp =
+          Timestamp.fromInstantTruncatedAndBounded(now.plusMillis(LampsOffCountdown.toMillis))
+        EngineHandle.liftF(L.info(s"Daytime queue finished: the GCAL lamps go off at $at")) >>
+          modifyDaytimeQueue(DaytimeQueue.lampsOffAt.replace(at.some)) >>
+          EngineHandle.fromEventStream:
+            Stream.sleep[F](LampsOffCountdown).as(Event.modifyState[F](lampsOffDue(at)))
+
+  /** The countdown that ended at `at` turns the lamps off, unless it was cancelled meanwhile. */
+  private def lampsOffDue(at: Timestamp): EngineHandle[F, SeqEvent] =
+    EngineHandle.getState.flatMap: st =>
+      if !st.daytimeQueue.lampsOffAt.contains_(at) then
+        EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)
+      else if ObserveEngine.busySubsystems(st).contains(ObservatorySubsystem.Gcal) then
+        // An action that is ending still has GCAL: the lamps wait for it.
+        scheduleLampsOff.as(SeqEvent.DaytimeQueueUpdated)
+      else
+        modifyDaytimeQueue(DaytimeQueue.lampsOffAt.replace(none)) >>
+          turnLampsOff.as(SeqEvent.DaytimeQueueUpdated)
+
+  /**
+   * Syncs the queue with the loaded sequences, starts what can be started if the queue is running,
+   * and starts the countdown to turn the GCAL lamps off when the queue has just finished.
+   */
+  private def dispatchDaytimeQueue: EngineHandle[F, Unit] =
+    for
+      before <- EngineHandle.inspectState[F, DaytimeQueue](_.daytimeQueue)
+      _      <- syncDaytimeQueue
+      _      <- startRunnableQueueItems(Set.empty)
+      _      <- syncDaytimeQueue
+      st     <- EngineHandle.getState[F]
+      _      <-
+        if DaytimeQueueOps.shouldTurnLampsOff(QueueSyncResult.between(before, st.daytimeQueue))
+        then scheduleLampsOff
+        else EngineHandle.unit
+    yield ()
+
+  /**
+   * Run after the engine events that can change which observations are running or which subsystems
+   * are free. An action that ends counts: it may be the last one a failed step left running, or a
+   * manual configuration.
+   */
+  private def onEngineEvent: PartialFunction[EngineEvent, EngineHandle[F, Unit]] =
+    case EngineEvent.Executing(_) | EngineEvent.SequenceComplete(_) |
+        EngineEvent.Failed(_, _, _, _) | EngineEvent.LoadFailed(_, _, _) |
+        EngineEvent.Aborted(_, _, _, _) | EngineEvent.SequenceHeld(_) |
+        EngineEvent.BreakpointReached(_) | EngineEvent.Completed(_, _, _, _) |
+        EngineEvent.StopCompleted(_, _, _, _) | EngineEvent.SingleRunCompleted(_, _) |
+        EngineEvent.SingleRunFailed(_, _) =>
+      dispatchDaytimeQueue
+
+  private def daytimeQueueCommand(description: String, user: User, clientId: ClientId)(
+    handle: EngineHandle[F, SeqEvent]
+  ): F[Unit] =
+    logInfoEvent(
+      s"Daytime queue: $description requested by ${user.displayName} from client ${clientId.value}"
+    ) *>
+      executeEngine.offer(Event.modifyState[F](handle))
+
+  private def modifyQueueAndDispatch(f: Endo[DaytimeQueue]): EngineHandle[F, SeqEvent] =
+    modifyDaytimeQueue(f) >> dispatchDaytimeQueue.as(SeqEvent.DaytimeQueueUpdated)
+
+  private def runningQueueItems(st: EngineState[F]): List[Observation.Id] =
+    st.daytimeQueue.obsItems.filter(_.status === QueueItemStatus.Running).map(_.obsId)
+
+  /** What the queue needs of an observation, or why it does not accept it. */
+  private def readQueueItem(obsId: Observation.Id): F[Either[String, QueueItemResources]] =
+    services.odb
+      .readQueueObservation(obsId)
+      .flatMap: obs =>
+        DaytimeQueueOps
+          .accepted(obs)
+          .traverse: instrument =>
+            services.odb
+              .readRemainingSteps(obsId, instrument)
+              .map(DaytimeQueueOps.resources(instrument, _))
+
+  private def addToDaytimeQueueHandle(
+    obsId:    Observation.Id,
+    read:     Either[Throwable, Either[String, QueueItemResources]],
+    clientId: ClientId
+  ): EngineHandle[F, SeqEvent] =
+    def reject(reason: String): EngineHandle[F, SeqEvent] =
+      EngineHandle
+        .liftF(L.info(s"Daytime queue: observation $obsId rejected: $reason"))
+        .as(SeqEvent.NotifyUser(Notification.DaytimeQueueRejected(obsId, reason), clientId))
+
+    read match
+      // Not a loading failure: clients take that as the loaded observation being broken.
+      case Left(e)     =>
+        EngineHandle
+          .liftF(L.warn(e)(s"Daytime queue: error reading observation $obsId"))
+          .as:
+            SeqEvent.NotifyUser(
+              Notification
+                .DaytimeQueueRejected(obsId, s"It could not be read: ${errorMessage(e)}"),
+              clientId
+            )
+      case Right(item) =>
+        EngineHandle.getState.flatMap: st =>
+          if st.daytimeQueue.contains(obsId) then reject("It is already in the daytime queue")
+          else
+            item.fold(
+              reject,
+              resources =>
+                modifyQueueAndDispatch(_.append(DaytimeQueueOps.waitingItem(obsId, resources)))
+            )
+
+  override def addToDaytimeQueue(
+    obsId:    Observation.Id,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] =
+    // Read before the engine is asked, so the wait for the ODB stalls nothing.
+    readQueueItem(obsId).attempt.flatMap: read =>
+      daytimeQueueCommand(s"adding $obsId", user, clientId):
+        addToDaytimeQueueHandle(obsId, read, clientId)
+
+  override def removeFromDaytimeQueue(
+    itemId:   QueueItemId,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] =
+    daytimeQueueCommand(s"removing $itemId", user, clientId):
+      modifyQueueAndDispatch(_.remove(itemId))
+
+  override def moveInDaytimeQueue(
+    itemId:   QueueItemId,
+    toIndex:  Int,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] =
+    daytimeQueueCommand(s"moving $itemId to $toIndex", user, clientId):
+      modifyQueueAndDispatch(_.move(itemId, toIndex))
+
+  override def addDaytimeQueuePause(atIndex: Int, user: User, clientId: ClientId): F[Unit] =
+    for
+      given SecureRandom[F] <- SecureRandom.javaSecuritySecureRandom[F]
+      uuid                  <- UUIDGen.fromSecureRandom[F].randomUUID
+      _                     <- daytimeQueueCommand(s"adding a pause at $atIndex", user, clientId):
+                                 modifyQueueAndDispatch(_.insertPause(QueuePauseId(uuid), atIndex))
+    yield ()
+
+  override def continueDaytimeQueuePastPause(user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("continuing past the pause", user, clientId):
+      modifyQueueAndDispatch(_.continuePastPause)
+
+  override def setDaytimeQueueOrderingMode(
+    mode:     QueueOrderingMode,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] =
+    daytimeQueueCommand(s"setting the ordering mode to ${mode.tag}", user, clientId):
+      modifyQueueAndDispatch(DaytimeQueue.orderingMode.replace(mode))
+
+  override def clearCompletedDaytimeQueue(user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("clearing the completed observations", user, clientId):
+      modifyQueueAndDispatch(_.clearCompleted)
+
+  override def cancelDaytimeQueueLampsOff(user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("cancelling the lamps off", user, clientId):
+      modifyDaytimeQueue(DaytimeQueue.lampsOffAt.replace(none)).as(SeqEvent.DaytimeQueueUpdated)
+
+  override def retryDaytimeQueueItem(
+    obsId:    Observation.Id,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] =
+    daytimeQueueCommand(s"retrying $obsId", user, clientId):
+      modifyQueueAndDispatch(_.retry(obsId))
+
+  override def runDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("run", user, clientId):
+      EngineHandle.modifyState_(EngineState.daytimeQueueObserver[F].replace(observer.some)) >>
+        modifyQueueAndDispatch:
+          _.resetStopped.copy(dispatchState = QueueDispatchState.Running, lampsOffError = none)
+
+  override def holdDaytimeQueueAfterCurrentSteps(user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("hold after the current steps", user, clientId):
+      EngineHandle.getState.flatMap: st =>
+        runningQueueItems(st).traverse_(executeEngine.requestSequenceHold) >>
+          modifyQueueAndDispatch(DaytimeQueue.dispatchState.replace(QueueDispatchState.Halted))
+
+  override def holdDaytimeQueueAfterCurrentObservations(user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("hold after the current observations", user, clientId):
+      modifyQueueAndDispatch(DaytimeQueue.dispatchState.replace(QueueDispatchState.Halted))
+
+  /**
+   * Holds the sequence, so that it stops at the step boundary if there is nothing to abort, and
+   * aborts the exposure in progress. Either way the queue labels the observation Aborted.
+   */
+  private def abortQueueItem(obsId: Observation.Id, observer: Observer): EngineHandle[F, Unit] =
+    modifyQueueItem(obsId)(_.copy(abortRequested = true)) >>
+      setObserver(obsId, observer).void >>
+      executeEngine.requestSequenceHold(obsId) >>
+      EngineHandle.fromSingleEvent(Event.actionStop(obsId, translator.abortExposure(obsId)))
+
+  override def abortDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit] =
+    daytimeQueueCommand("abort", user, clientId):
+      EngineHandle.getState.flatMap: st =>
+        runningQueueItems(st).traverse_(abortQueueItem(_, observer)) >>
+          modifyQueueAndDispatch(DaytimeQueue.dispatchState.replace(QueueDispatchState.Halted))
+
+  override def runDaytimeQueueItem(
+    obsId:    Observation.Id,
     observer: Observer,
     user:     User,
     clientId: ClientId
-  ): F[Unit] = Applicative[F].unit
+  ): F[Unit] =
+    daytimeQueueCommand(s"running $obsId", user, clientId):
+      EngineHandle.getState.flatMap: st =>
+        st.daytimeQueue.obs(obsId) match
+          case Some(item @ DaytimeQueueItem.Obs(status = status))
+              if !item.isRunning && status =!= QueueItemStatus.Completed =>
+            if !slotAvailable(st, item.instrument) then
+              EngineHandle.pure[F, SeqEvent]:
+                SeqEvent.NotifyUser(Notification.InstrumentInUse(obsId, item.instrument), clientId)
+            else
+              startQueueItem(obsId, observer).flatMap: conflict =>
+                syncDaytimeQueue >>
+                  EngineHandle.inspectState[F, SeqEvent]: st1 =>
+                    if conflict.isEmpty then SeqEvent.DaytimeQueueUpdated
+                    else
+                      SeqEvent.NotifyUser(
+                        Notification.SubsystemConflict(
+                          obsId,
+                          conflict.toList,
+                          ObserveEngine.heldByOther(st1, obsId, conflict)
+                        ),
+                        clientId
+                      )
+          case _ => EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)
 
-  override def stopQueue(qid: QueueId, clientId: ClientId): F[Unit] =
-    Applicative[F].unit
+  override def abortDaytimeQueueItem(
+    obsId:    Observation.Id,
+    observer: Observer,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] =
+    daytimeQueueCommand(s"aborting $obsId", user, clientId):
+      EngineHandle.getState.flatMap: st =>
+        if runningQueueItems(st).contains_(obsId) then
+          abortQueueItem(obsId, observer) >> dispatchDaytimeQueue.as(SeqEvent.DaytimeQueueUpdated)
+        else EngineHandle.pure[F, SeqEvent](SeqEvent.NullSeqEvent)
 
   private def configureSubsystemCheck(
     subsystem: Subsystem,
     st:        EngineState[F]
-  ): Boolean = {
-    // Subsystems used by running sequences
-    val used = ObserveEngine.subsystemsInUse(st)
-
-    // Subsystems reserved by running queues, excluding `sid` to prevent self blocking
-//      val reservedByQueues = subsystemsReserved(EngineState.sequences[F].modify(_ - sid)(st))
-//
-//      !(used ++ reservedByQueues).contains(subsystem)
-    !used.contains(subsystem)
-  }
+  ): Boolean =
+    !ObserveEngine.busySubsystems(st).contains(subsystem)
 
   private def configureSubsystemHandle(
     obsId:     Observation.Id,

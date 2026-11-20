@@ -31,3 +31,5 @@ enum Notification derives Eq, Encoder, Decoder:
   case ActionFailed(obsId: Observation.Id, action: String, msg: String) extends Notification
   // Notification that a server restart was refused because something is still running
   case RestartRefused(reasons: NonEmptyList[String])                    extends Notification
+  // Notification that an observation could not be added to the daytime queue
+  case DaytimeQueueRejected(obsId: Observation.Id, reason: String)      extends Notification

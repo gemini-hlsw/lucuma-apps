@@ -36,7 +36,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.data.AltairConfiguration
 import lucuma.schemas.model.TargetWithId
-import lucuma.ui.syntax.calibration.isDaytimeRole
+import lucuma.schemas.model.syntax.isDaytimeRole
 import lucuma.ui.syntax.calibration.needsITC
 
 import java.time.Instant

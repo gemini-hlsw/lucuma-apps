@@ -15,7 +15,7 @@ import lucuma.react.gridlayout.BreakpointName
 import lucuma.react.gridlayout.Layout
 import lucuma.react.gridlayout.LayoutItem
 import lucuma.refined.*
-import lucuma.ui.syntax.calibration.isGeneratedDaytime
+import lucuma.schemas.model.syntax.isGeneratedDaytime
 
 import scala.collection.immutable.SortedMap
 

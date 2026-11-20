@@ -9,18 +9,12 @@ import lucuma.core.enums.Instrument
 import lucuma.core.util.Enumerated
 import observe.model.enums.ObservatorySubsystem
 
-import java.util.UUID
-
 type ObservationName = String
 type TargetName      = String
 
 type Subsystem = Instrument | ObservatorySubsystem
 
 val UnknownTargetName = "None"
-
-val CalibrationQueueName: String = "Calibration Queue"
-val CalibrationQueueId: QueueId  =
-  QueueId(UUID.fromString("7156fa7e-48a6-49d1-a267-dbf3bbaa7577"))
 
 given KeyEncoder[Subsystem] = KeyEncoder.instance:
   case i: Instrument           => i.tag

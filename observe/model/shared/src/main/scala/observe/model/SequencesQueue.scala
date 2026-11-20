@@ -12,8 +12,6 @@ import monocle.Getter
 import monocle.Traversal
 import monocle.function.Each.*
 
-import scala.collection.immutable.SortedMap
-
 /**
  * Represents a queue with different levels of details. E.g. it could be a list of Ids Or a list of
  * fully hydrated SequenceViews
@@ -22,7 +20,7 @@ case class SequencesQueue[T](
   loaded:       Map[Instrument, Observation.Id],
   conditions:   CurrentConditions,
   operator:     Option[Operator],
-  queues:       SortedMap[QueueId, ExecutionQueueView],
+  daytimeQueue: DaytimeQueueView,
   sessionQueue: List[T]
 ) derives Eq
 

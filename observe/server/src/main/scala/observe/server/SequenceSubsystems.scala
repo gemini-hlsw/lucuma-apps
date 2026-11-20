@@ -7,7 +7,7 @@ import cats.Functor
 import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
-import lucuma.schemas.odb.RemainingStepSubquery
+import observe.common.RemainingStepSubquery
 import observe.model.Subsystem
 import observe.model.enums.ObservatorySubsystem
 import observe.server.odb.OdbProxy

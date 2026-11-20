@@ -11,6 +11,7 @@ import cats.effect.Ref
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosLong
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SkyBackground
 import lucuma.core.enums.WaterVapor
@@ -32,12 +33,13 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.Timestamp
-import lucuma.schemas.odb.RemainingStepSubquery
+import lucuma.schemas.model.BasicConfiguration
 import monocle.Lens
 import monocle.syntax.all.focus
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.common.ObsQueriesGql.ObsQuery.Data
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
+import observe.common.RemainingStepSubquery
 import observe.model.dhs.ImageFileId
 import observe.model.odb.ObsRecordedIds
 import observe.server.TestCommon
@@ -49,6 +51,9 @@ trait TestOdbProxy[F[_]] extends OdbProxy[F]:
 
   /** Every remaining-steps and step read, in call order. */
   def readLog: F[List[TestOdbProxy.OdbRead]]
+
+  /** The future limit of every step read, in call order. */
+  def readLimits: F[List[(Observation.Id, NonNegInt)]]
 
 object TestOdbProxy {
 
@@ -77,7 +82,12 @@ object TestOdbProxy {
     def remainingSteps: List[RemainingStepSubquery.Data] =
       (acquisition.toList ++ science)
         .flatMap(_.steps.toList)
-        .map(step => RemainingStepSubquery.Data(step.stepConfig, step.observeClass))
+        .map: step =>
+          RemainingStepSubquery.Data(
+            step.stepConfig,
+            step.observeClass,
+            RemainingStepSubquery.Data.Estimate(step.estimate.total)
+          )
 
   /** How the test ODB answers the remaining-steps read of an observation. */
   enum RemainingStepsMode:
@@ -95,7 +105,7 @@ object TestOdbProxy {
     sequence:  SequenceState
   )
 
-  extension (sequences: Map[Instrument, InstrumentState])
+  extension (sequences: List[(Instrument, InstrumentState)])
     def sequenceForObs(obsId: Observation.Id): Option[(Instrument, SequenceState, Any)] =
       sequences.find(_._2.obsId === obsId).map { case (inst, state) =>
         (inst, state.sequence, state.staticCfg)
@@ -103,16 +113,17 @@ object TestOdbProxy {
 
     def updateObs(
       obsId: Observation.Id
-    )(f: SequenceState => SequenceState): Map[Instrument, InstrumentState] =
-      sequenceForObs(obsId)
-        .map: (inst, seq, _) =>
-          sequences.updated(inst, sequences(inst).copy(sequence = f(seq)))
-        .getOrElse(sequences)
+    )(f: SequenceState => SequenceState): List[(Instrument, InstrumentState)] =
+      sequences.map:
+        case (inst, state) if state.obsId === obsId =>
+          (inst, state.copy(sequence = f(state.sequence)))
+        case other                                  => other
 
   case class State(
-    sequences: Map[Instrument, InstrumentState],
-    out:       List[OdbEvent],
-    reads:     List[OdbRead] = Nil
+    sequences:  List[(Instrument, InstrumentState)],
+    out:        List[OdbEvent],
+    reads:      List[OdbRead] = Nil,
+    readLimits: List[(Observation.Id, NonNegInt)] = Nil
   ):
     def updateObs(obsId: Observation.Id)(f: SequenceState => SequenceState): State =
       copy(sequences = sequences.updateObs(obsId)(f))
@@ -220,6 +231,27 @@ object TestOdbProxy {
     resetAcquisitionFailure: Option[Throwable] = None, // When set, `resetAcquisition` fails with it
     remainingStepsModes:     Map[Observation.Id, RemainingStepsMode] = Map.empty
   ): F[TestOdbProxy[F]] =
+    buildMulti(
+      sequences.toList,
+      obsData,
+      updateStartObserve,
+      resetAcquisitionFailure,
+      remainingStepsModes = remainingStepsModes
+    )
+
+  /**
+   * Like `build`, but several observations may share an instrument, and `calibrationRoles` gives
+   * the role `read` reports for each observation.
+   */
+  def buildMulti[F[_]: Async](
+    sequences:               List[(Instrument, InstrumentState)],
+    obsData:                 Option[ODBObservation] = None,
+    updateStartObserve:      State => State = identity,
+    resetAcquisitionFailure: Option[Throwable] = None,
+    calibrationRoles:        Map[Observation.Id, CalibrationRole] = Map.empty,
+    remainingStepsModes:     Map[Observation.Id, RemainingStepsMode] = Map.empty,
+    observingModes:          Map[Observation.Id, Option[BasicConfiguration]] = Map.empty
+  ): F[TestOdbProxy[F]] =
     Ref
       .of[F, State](State(sequences, List.empty))
       .map(rf =>
@@ -235,51 +267,67 @@ object TestOdbProxy {
               >> addEvent(ResetAcquisition(obsId))
             )(Async[F].raiseError)
 
-          override def read(obsId: Observation.Id): F[OdbObservationData] =
-            rf.get.map { s =>
-              val (i: Instrument, st: SequenceState, staticCfg) =
+          override def readQueueObservation(obsId: Observation.Id): F[OdbQueueObservation] =
+            rf.get.map: s =>
+              val (instrument: Instrument, _, _) =
                 s.sequences
                   .sequenceForObs(obsId)
                   .getOrElse(sys.error(s"Observation $obsId not found in test ODB state"))
-              val sciAtom: Option[Atom[?]]                      = st.science.headOption
-              val sciTail: List[Atom[?]]                        =
-                st.science match
-                  case head :: tail => tail
-                  case Nil          => Nil
-              val t                                             = Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800))
-
-              OdbObservationData(
-                obsData.getOrElse(
-                  ODBObservation(
-                    obsId,
-                    title = "Test Observation".refined,
-                    t.some,
-                    Data.Observation.Program(
-                      Program.Id(PosLong.unsafeFrom(1)),
-                      None,
-                      ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
-                    ),
-                    TestCommon.defaultTargetEnvironment.some,
-                    ConstraintSet(
-                      ImageQuality.Preset.TwoPointZero,
-                      CloudExtinction.Preset.TwoPointZero,
-                      SkyBackground.Bright,
-                      WaterVapor.Wet,
-                      ElevationRange.ByAirMass.Default
-                    ),
-                    ODBObservation.SchedulingConstraints(List.empty),
-                    List.empty
-                  )
-                ),
-                buildExecutionConfig(
-                  i,
-                  staticCfg,
-                  st.acquisition.map(buildInstrumentExecutionSequence(i, _, List.empty, true)),
-                  sciAtom
-                    .map(buildInstrumentExecutionSequence(i, _, sciTail, st.science.nonEmpty))
+              val role: Option[CalibrationRole]  = calibrationRoles.get(obsId)
+              OdbQueueObservation(
+                role,
+                observingModes.getOrElse(
+                  obsId,
+                  role.as(BasicConfiguration.DaytimeCalibration(instrument))
                 )
               )
-            }
+
+          override def read(obsId: Observation.Id, futureLimit: NonNegInt): F[OdbObservationData] =
+            rf.updateAndGet(s => s.copy(readLimits = s.readLimits :+ (obsId -> futureLimit)))
+              .map { s =>
+                val (i: Instrument, st: SequenceState, staticCfg) =
+                  s.sequences
+                    .sequenceForObs(obsId)
+                    .getOrElse(sys.error(s"Observation $obsId not found in test ODB state"))
+                val sciAtom: Option[Atom[?]]                      = st.science.headOption
+                val sciTail: List[Atom[?]]                        =
+                  st.science match
+                    case head :: tail => tail
+                    case Nil          => Nil
+                val t                                             = Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800))
+
+                OdbObservationData(
+                  obsData.getOrElse(
+                    ODBObservation(
+                      obsId,
+                      title = "Test Observation".refined,
+                      t.some,
+                      Data.Observation.Program(
+                        Program.Id(PosLong.unsafeFrom(1)),
+                        None,
+                        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+                      ),
+                      TestCommon.defaultTargetEnvironment.some,
+                      ConstraintSet(
+                        ImageQuality.Preset.TwoPointZero,
+                        CloudExtinction.Preset.TwoPointZero,
+                        SkyBackground.Bright,
+                        WaterVapor.Wet,
+                        ElevationRange.ByAirMass.Default
+                      ),
+                      ODBObservation.SchedulingConstraints(List.empty),
+                      List.empty
+                    )
+                  ),
+                  buildExecutionConfig(
+                    i,
+                    staticCfg,
+                    st.acquisition.map(buildInstrumentExecutionSequence(i, _, List.empty, false)),
+                    sciAtom
+                      .map(buildInstrumentExecutionSequence(i, _, sciTail, false))
+                  )
+                )
+              }
 
           override def readExecutionConfig(
             obsId:       Observation.Id,
@@ -401,6 +449,9 @@ object TestOdbProxy {
           override def outCapture: F[List[OdbEvent]] = rf.get.map(_.out)
 
           override def readLog: F[List[OdbRead]] = rf.get.map(_.reads)
+
+          override def readLimits: F[List[(Observation.Id, NonNegInt)]] =
+            rf.get.map(_.readLimits)
 
           override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure[F]
 

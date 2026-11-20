@@ -1,17 +1,18 @@
 // Copyright (c) 2016-2026 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package lucuma.schemas.odb
+package observe.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQL
+import clue.annotation.GraphQLStub
 import clue.annotation.GraphQLType
-import io.circe.Decoder
-import lucuma.core.enums.ObserveClass
-import lucuma.core.model.sequence.StepConfig
-import lucuma.odb.json.stepconfig.given
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.*
+// gql: import lucuma.odb.json.all.query.given
 
-// What a step's kind needs, validated against the step type of every instrument.
+// What a step's kind and time need, validated against the step type of every instrument.
+@GraphQL
 @GraphQLType(
   "GmosNorthStep",
   "GmosSouthStep",
@@ -20,14 +21,16 @@ import lucuma.schemas.ObservationDB
   "GnirsStep",
   "GhostStep"
 )
-object RemainingStepSubquery extends GraphQLSubquery[ObservationDB]:
-  case class Data(stepConfig: StepConfig, observeClass: ObserveClass) derives Decoder
-
-  override val dataDecoder: Decoder[Data] = Decoder[Data]
-
+abstract class RemainingStepSubquery extends GraphQLSubquery[ObservationDB]:
   override val subquery = gql"""
     {
       stepConfig $StepConfigSubquery
       observeClass
+      estimate {
+        total $TimeSpanSubquery
+      }
     }
   """
+
+@GraphQLStub
+object RemainingStepSubquery

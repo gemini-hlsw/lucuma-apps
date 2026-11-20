@@ -17,6 +17,7 @@ import lucuma.core.util.arb.ArbNewType.given
 import lucuma.core.util.arb.ArbUid.given
 import observe.model.ClientConfig
 import observe.model.CurrentConditions
+import observe.model.DaytimeQueueView
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
@@ -38,6 +39,7 @@ import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
 import ArbClientConfig.given
+import ArbDaytimeQueue.given
 import ArbLogMessage.given
 import ArbNotification.given
 import ArbObsRecordedIds.given
@@ -53,11 +55,13 @@ trait ArbClientEvent:
       c    <- arbitrary[CurrentConditions]
       o    <- arbitrary[Option[Operator]]
       rids <- arbitrary[ObsRecordedIds]
-    yield ClientEvent.ObserveState(s.sequencesState, c, o, rids)
+    yield ClientEvent.ObserveState(s.sequencesState, c, o, rids, s.daytimeQueue)
 
   given Cogen[ClientEvent.ObserveState] =
-    Cogen[(List[(Observation.Id, ExecutionState)], CurrentConditions, ObsRecordedIds)].contramap(
-      x => (x.sequenceExecution.toList, x.conditions, x.currentRecordedIds)
+    Cogen[
+      (List[(Observation.Id, ExecutionState)], CurrentConditions, ObsRecordedIds, DaytimeQueueView)
+    ].contramap(x =>
+      (x.sequenceExecution.toList, x.conditions, x.currentRecordedIds, x.daytimeQueue)
     )
 
   given Arbitrary[ClientEvent.ObsLoaded] = Arbitrary:
@@ -255,7 +259,7 @@ trait ArbClientEvent:
     ]].contramap:
       case ClientEvent.BaDum                                => Left(())
       case e @ ClientEvent.InitialEvent(_)                  => Right(Left(e))
-      case e @ ClientEvent.ObserveState(_, _, _, _)         => Right(Right(Left(e)))
+      case e @ ClientEvent.ObserveState(_, _, _, _, _)      => Right(Right(Left(e)))
       case e @ ClientEvent.ObsLoaded(_)                     => Right(Right(Right(Left(e))))
       case e @ ClientEvent.StepComplete(_)                  => Right(Right(Right(Right(Left(e)))))
       case e @ ClientEvent.SequenceHeld(_)                  => Right(Right(Right(Right(Right(Left(e))))))

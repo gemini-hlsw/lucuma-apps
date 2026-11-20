@@ -3,7 +3,6 @@
 
 package observe.model.arb
 
-import cats.syntax.all.*
 import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
 import lucuma.core.enums.Instrument
@@ -14,8 +13,6 @@ import lucuma.core.math.arb.ArbQuantity.given
 import lucuma.core.math.arb.ArbRefined.given
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ImageQuality
-import lucuma.core.model.User
-import lucuma.core.model.arb.ArbUser.given
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
@@ -28,8 +25,6 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
-
-import scala.collection.immutable.SortedMap
 
 trait ObserveModelArbitraries {
   private val maxListSize = 2
@@ -50,9 +45,10 @@ trait ObserveModelArbitraries {
         b <- Gen.listOfN[A](maxListSize, arb.arbitrary)
         c <- arbitrary[CurrentConditions]
         o <- arbitrary[Option[Operator]]
+        q <- arbitrary[DaytimeQueueView]
         // We are already testing serialization of conditions and Strings
         // Let's reduce the test space by only testing the list of items
-      } yield SequencesQueue(Map.empty, c, o, SortedMap.empty, b)
+      } yield SequencesQueue(Map.empty, c, o, q, b)
     }
 
   given Arbitrary[ActionType] = Arbitrary[ActionType] {
@@ -164,46 +160,9 @@ trait ObserveModelArbitraries {
     ].contramap(c => (c.ce, c.iq, c.sb, c.wv))
 
   given [A: Cogen]: Cogen[SequencesQueue[A]] =
-    Cogen[(CurrentConditions, Option[Operator], List[A])].contramap(s =>
-      (s.conditions, s.operator, s.sessionQueue)
+    Cogen[(CurrentConditions, Option[Operator], DaytimeQueueView, List[A])].contramap(s =>
+      (s.conditions, s.operator, s.daytimeQueue, s.sessionQueue)
     )
-
-  given Arbitrary[BatchCommandState.Run] = Arbitrary {
-    for {
-      observer <- arbitrary[Observer]
-      user     <- arbitrary[User]
-      clid     <- arbitrary[ClientId]
-    } yield BatchCommandState.Run(observer, user, clid)
-  }
-
-  given Arbitrary[BatchCommandState] = Arbitrary(
-    Gen.frequency((2, Gen.oneOf(BatchCommandState.Idle, BatchCommandState.Stop)),
-                  (1, arbitrary[BatchCommandState.Run])
-    )
-  )
-
-  given Cogen[BatchCommandState] =
-    Cogen[(String, Option[Observer], Option[User], Option[ClientId])]
-      .contramap {
-        case r @ BatchCommandState.Run(obs, usd, cid) =>
-          (r.productPrefix, obs.some, usd.some, cid.some)
-        case o                                        => (o.productPrefix, None, None, None)
-      }
-
-  given Arbitrary[ExecutionQueueView] =
-    Arbitrary {
-      for {
-        id <- arbitrary[QueueId]
-        n  <- arbitrary[String]
-        s  <- arbitrary[BatchCommandState]
-        xs <- arbitrary[BatchExecState]
-        q  <- arbitrary[List[Observation.Id]]
-      } yield ExecutionQueueView(id, n, s, xs, q)
-    }
-
-  given Cogen[ExecutionQueueView] =
-    Cogen[(QueueId, String, BatchCommandState, BatchExecState, List[Observation.Id])]
-      .contramap(x => (x.id, x.name, x.cmdState, x.execState, x.queue))
 }
 
 object ObserveModelArbitraries extends ObserveModelArbitraries

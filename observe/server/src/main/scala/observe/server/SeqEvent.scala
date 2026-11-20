@@ -18,7 +18,6 @@ import observe.model.Notification
 import observe.model.Observation
 import observe.model.Observer
 import observe.model.Operator
-import observe.model.QueueId
 import observe.model.Subsystem
 import observe.model.SubsystemEnabled
 import observe.model.UserPrompt
@@ -56,22 +55,6 @@ object SeqEvent:
   case class SetCloudExtinction(cc: CloudExtinction, user: Option[User])         extends SeqEvent
   case class NotifyUser(memo: Notification, clientID: ClientId)                  extends SeqEvent
   case class RequestConfirmation(prompt: UserPrompt, cid: ClientId)              extends SeqEvent
-  case class StartQueue(
-    qid:         QueueId,
-    clientID:    ClientId,
-    startedSeqs: List[(Observation.Id, Step.Id)]
-  ) extends SeqEvent
-  case class StopQueue(qid: QueueId, clientID: ClientId)                         extends SeqEvent
-  case class UpdateQueueAdd(qid: QueueId, seqs: List[Observation.Id])            extends SeqEvent
-  case class UpdateQueueRemove(
-    qid:         QueueId,
-    seqs:        List[Observation.Id],
-    pos:         List[Int],
-    startedSeqs: List[(Observation.Id, Step.Id)]
-  ) extends SeqEvent
-  case class UpdateQueueMoved(qid: QueueId, cid: ClientId, oid: Observation.Id, pos: Int)
-      extends SeqEvent
-  case class UpdateQueueClear(qid: QueueId)                                      extends SeqEvent
   case class StartSubsystemConfig(obsId: Observation.Id, stepId: Step.Id, res: Subsystem)
       extends SeqEvent
   case class Busy(
@@ -100,3 +83,4 @@ object SeqEvent:
   case class AcquisitionCompleted(obsId: Observation.Id)                         extends SeqEvent
   case class SequenceCompleted(obsId: Observation.Id)                            extends SeqEvent
   case class SequenceTypeChanged(obsId: Observation.Id)                          extends SeqEvent
+  case object DaytimeQueueUpdated                                                extends SeqEvent

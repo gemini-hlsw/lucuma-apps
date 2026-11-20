@@ -396,6 +396,63 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
 
+  test("daytime queue commands"):
+    val pauseId: String             = UUID.randomUUID().toString
+    val client: String              = clientId.value.toString
+    val obs: String                 = obsId.show
+    val paths: List[String]         =
+      List(
+        s"/queue/add/$obs/$client",
+        s"/queue/remove/obs/$obs/$client",
+        s"/queue/remove/pause/$pauseId/$client",
+        s"/queue/move/obs/$obs/2/$client",
+        s"/queue/move/pause/$pauseId/0/$client",
+        s"/queue/pause/1/$client",
+        s"/queue/continue/$client",
+        s"/queue/orderingMode/strict/$client",
+        s"/queue/run/$client/observer",
+        s"/queue/holdAfterSteps/$client",
+        s"/queue/holdAfterObservations/$client",
+        s"/queue/abortAll/$client/observer",
+        s"/queue/obs/$obs/$client/run/observer",
+        s"/queue/obs/$obs/$client/abort/observer",
+        s"/queue/obs/$obs/$client/retry",
+        s"/queue/clearCompleted/$client",
+        s"/queue/lampsOff/cancel/$client"
+      )
+    val r: IO[List[Option[Status]]] =
+      for
+        engine <- TestObserveEngine.build[IO]
+        s      <- commandRoutes(engine)
+        l      <- paths.traverse: path =>
+                    s(Request[IO](method = Method.POST, uri = Uri.unsafeFromString(path))).value
+      yield l.map(_.map(_.status))
+    assertIO(r, List.fill(paths.length)(Some(Status.NoContent)))
+
+  test("route template keeps the daytime queue command words"):
+    def template(path: String): String =
+      ObserveCommandRoutes.routeTemplate(
+        Uri.unsafeFromString(path).path.segments.map(_.decoded()).toList
+      )
+
+    val pauseId: UUID = UUID.randomUUID()
+    assertEquals(
+      template(s"/api/observe/queue/move/pause/$pauseId/3/${clientId.value}"),
+      "/api/observe/queue/move/pause/{pauseId}/{param}/{clientId}"
+    )
+    assertEquals(
+      template(s"/api/observe/queue/obs/${obsId.show}/${clientId.value}/abort/telops"),
+      "/api/observe/queue/obs/{obsId}/{clientId}/abort/{param}"
+    )
+    assertEquals(
+      template(s"/api/observe/queue/orderingMode/strict/${clientId.value}"),
+      "/api/observe/queue/orderingMode/{param}/{clientId}"
+    )
+    assertEquals(
+      template(s"/api/observe/queue/pause/1/${clientId.value}"),
+      "/api/observe/queue/pause/{param}/{clientId}"
+    )
+
   test("route template anonymizes ids and free-form values, keeping the command"):
     def template(path: String): String =
       ObserveCommandRoutes.routeTemplate(
@@ -459,3 +516,12 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
     )
 
     assertEquals(attributes("/api/observe/resetconditions"), Map.empty[String, String])
+
+    val pauseId: UUID = UUID.randomUUID()
+    assertEquals(
+      attributes(s"/api/observe/queue/remove/pause/$pauseId/${clientId.value}"),
+      Map(
+        "observe.queue.pause.id" -> pauseId.toString,
+        "observe.client.id"      -> clientId.value.toString
+      )
+    )

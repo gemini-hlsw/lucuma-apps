@@ -26,12 +26,7 @@ extension (e: SeqEvent)
       case SetCloudExtinction(_, _)      => true
       case LoadSequence(_, _)            => true
       case UnloadSequence(_)             => true
-      case UpdateQueueAdd(_, _)          => true
-      case UpdateQueueRemove(_, _, _, _) => true
-      case UpdateQueueMoved(_, _, _, _)  => true
-      case UpdateQueueClear(_)           => true
-      case StartQueue(_, _, _)           => true
-      case StopQueue(_, _)               => true
+      case DaytimeQueueUpdated           => true
       case StartSubsystemConfig(_, _, _) => true
       case SequenceStart(_, _)           => true
       case SequencesStart(_)             => true

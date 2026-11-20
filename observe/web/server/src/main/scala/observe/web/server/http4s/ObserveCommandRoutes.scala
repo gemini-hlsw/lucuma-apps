@@ -18,6 +18,8 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.refined.given
 import lucuma.sso.client.SsoClient
 import observe.model.ClientId
+import observe.model.QueueItemId
+import observe.model.QueuePauseId
 import observe.model.enums.RunOverride
 import observe.server.ObserveEngine
 import org.http4s.*
@@ -30,31 +32,73 @@ import org.typelevel.otel4s.Attribute
 object ObserveCommandRoutes:
   private val ApiPrefix: List[String] = List("api", "observe")
 
+  /** First segment of the daytime queue routes. */
+  private val QueueRoute: String = "queue"
+
+  /** The fixed words of the daytime queue routes, which their templates keep. */
+  private val QueueRouteWords: Set[String] =
+    Set(
+      "add",
+      "remove",
+      "move",
+      "obs",
+      "pause",
+      "continue",
+      "orderingMode",
+      "run",
+      "holdAfterSteps",
+      "holdAfterObservations",
+      "abortAll",
+      "abort",
+      "retry",
+      "clearCompleted",
+      "lampsOff",
+      "cancel"
+    )
+
   /** A path segment, recognized by the same extractors the routes below use. */
   private enum PathVar:
     case ObsId(value: Observation.Id)
     case StepId(value: Step.Id)
     case Client(value: ClientId)
+    case PauseId(value: QueuePauseId)
     case Other(value: String)
 
-  private def parseSegment(segment: String): PathVar = segment match
-    case ObsIdVar(obsId)       => PathVar.ObsId(obsId)
-    case StepIdVar(stepId)     => PathVar.StepId(stepId)
-    case ClientIDVar(clientId) => PathVar.Client(clientId)
-    case other                 => PathVar.Other(other)
+  /** A pause id is a UUID like a client id; it is told apart by the "pause" segment before it. */
+  private def parseSegment(previous: Option[String], segment: String): PathVar =
+    (previous, segment) match
+      case (Some("pause"), QueuePauseIdVar(pauseId)) => PathVar.PauseId(pauseId)
+      case (_, ObsIdVar(obsId))                      => PathVar.ObsId(obsId)
+      case (_, StepIdVar(stepId))                    => PathVar.StepId(stepId)
+      case (_, ClientIDVar(clientId))                => PathVar.Client(clientId)
+      case (_, other)                                => PathVar.Other(other)
+
+  private def parseSegments(segments: List[String]): List[PathVar] =
+    segments
+      .zip(none[String] :: segments.map(_.some))
+      .map((segment, previous) => parseSegment(previous, segment))
 
   /** See `routeClassifier`. */
   private[http4s] def routeTemplate(segments: List[String]): String =
-    val (prefix, rest) = segments.splitAt(ApiPrefix.length)
-    val (templated, _) =
-      rest.foldLeft((List.empty[String], false)):
-        case ((acc, commandSeen), segment) =>
-          parseSegment(segment) match
-            case PathVar.ObsId(_)                 => ("{obsId}" :: acc, commandSeen)
-            case PathVar.StepId(_)                => ("{stepId}" :: acc, commandSeen)
-            case PathVar.Client(_)                => ("{clientId}" :: acc, commandSeen)
-            case PathVar.Other(c) if !commandSeen => (c :: acc, true)
-            case PathVar.Other(_)                 => ("{param}" :: acc, commandSeen)
+    val (prefix: List[String], rest: List[String])   = segments.splitAt(ApiPrefix.length)
+    val (templated: List[String], _: Option[String]) =
+      parseSegments(rest).foldLeft((List.empty[String], none[String])):
+        case ((acc, command), segment) =>
+          segment match
+            case PathVar.ObsId(_)                                                                 =>
+              ("{obsId}" :: acc, command)
+            case PathVar.StepId(_)                                                                =>
+              ("{stepId}" :: acc, command)
+            case PathVar.Client(_)                                                                =>
+              ("{clientId}" :: acc, command)
+            case PathVar.PauseId(_)                                                               =>
+              ("{pauseId}" :: acc, command)
+            case PathVar.Other(c) if command.isEmpty                                              =>
+              (c :: acc, c.some)
+            case PathVar.Other(c) if command.contains_(QueueRoute) && QueueRouteWords.contains(c) =>
+              (c :: acc, command)
+            case PathVar.Other(_)                                                                 =>
+              ("{param}" :: acc, command)
     (prefix ++ templated.reverse).mkString("/", "/", "")
 
   /**
@@ -63,15 +107,15 @@ object ObserveCommandRoutes:
    * for one observation.
    */
   private[http4s] def pathAttributes(segments: List[String]): List[Attribute[?]] =
-    segments
-      .drop(ApiPrefix.length)
-      .flatMap: segment =>
-        parseSegment(segment) match
-          case PathVar.ObsId(obsId)     => List(Attribute("observe.obs.id", obsId.show))
-          case PathVar.StepId(stepId)   => List(Attribute("observe.step.id", stepId.show))
-          case PathVar.Client(clientId) =>
-            List(Attribute("observe.client.id", clientId.value.toString))
-          case PathVar.Other(_)         => Nil
+    parseSegments(segments.drop(ApiPrefix.length))
+      .flatMap:
+        case PathVar.ObsId(obsId)     => List(Attribute("observe.obs.id", obsId.show))
+        case PathVar.StepId(stepId)   => List(Attribute("observe.step.id", stepId.show))
+        case PathVar.Client(clientId) =>
+          List(Attribute("observe.client.id", clientId.value.toString))
+        case PathVar.PauseId(pauseId) =>
+          List(Attribute("observe.queue.pause.id", pauseId.value.toString))
+        case PathVar.Other(_)         => Nil
 
 /**
  * Rest Endpoints under the /api route
@@ -241,44 +285,83 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
     // case POST -> Root / "unload" / "all" as user         =>
     //   oe.clearLoadedSequences(inputQueue, user) *> Ok(s"Queue cleared")
 
-    //   case req @ POST -> Root / "queue" / QueueIdVar(qid) / "add" as _ =>
-    //     req.req.decode[List[Observation.Id]](ids =>
-    //       se.addSequencesToQueue(inputQueue, qid, ids) *>
-    //         Ok(s"${ids.mkString(",")} added to queue $qid")
-    //     )
-    //
-    //   case POST -> Root / "queue" / QueueIdVar(qid) / "add" / ObsId(obsId) as _ =>
-    //     se.addSequenceToQueue(inputQueue, qid, obsId) *>
-    //       Ok(s"$obsId added to queue $qid")
-    //
-    //   case POST -> Root / "queue" / QueueIdVar(qid) / "remove" / ObsId(obsId) as _ =>
-    //     se.removeSequenceFromQueue(inputQueue, qid, obsId) *>
-    //       Ok(s"$obsId removed from queue $qid")
-    //
-    //   case POST -> Root / "queue" / QueueIdVar(qid) / "move" / ObsId(obsId) / IntVar(
-    //         delta
-    //       ) / ClientIDVar(clientId) as _ =>
-    //     se.moveSequenceInQueue(inputQueue, qid, obsId, delta, clientId) *>
-    //       Ok(s"$obsId moved $delta positions in queue $qid")
-    //
-    //   case POST -> Root / "queue" / QueueIdVar(qid) / "clear" as _ =>
-    //     se.clearQueue(inputQueue, qid) *>
-    //       Ok(s"All sequences removed from queue $qid")
-    //
-    //   case POST -> Root / "queue" / QueueIdVar(qid) / "run" / ObserverVar(observer) / ClientIDVar(
-    //         clientId
-    //       ) as user =>
-    //     se.startQueue(inputQueue, qid, observer, user, clientId) *>
-    //       Ok(s"Started queue $qid")
-    //
-    //   case POST -> Root / "queue" / QueueIdVar(qid) / "stop" / ClientIDVar(clientId) as _ =>
-    //     se.stopQueue(inputQueue, qid, clientId) *>
-    //       Ok(s"Stopped from queue $qid")
-    //
-    //
-    // }
-    //
-    // val refreshCommand: HttpRoutes[F] = HttpRoutes.of[F] {
+    case req @ POST -> Root / "queue" / "add" / ObsIdVar(obsId) / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.addToDaytimeQueue(obsId, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "remove" / "obs" / ObsIdVar(obsId) /
+        ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.removeFromDaytimeQueue(QueueItemId.Obs(obsId), user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "remove" / "pause" / QueuePauseIdVar(pauseId) /
+        ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.removeFromDaytimeQueue(QueueItemId.Pause(pauseId), user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "move" / "obs" / ObsIdVar(obsId) / IntVar(toIndex) /
+        ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.moveInDaytimeQueue(QueueItemId.Obs(obsId), toIndex, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "move" / "pause" / QueuePauseIdVar(pauseId) /
+        IntVar(toIndex) / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.moveInDaytimeQueue(QueueItemId.Pause(pauseId), toIndex, user, clientId) *>
+          NoContent()
+
+    case req @ POST -> Root / "queue" / "pause" / IntVar(atIndex) / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.addDaytimeQueuePause(atIndex, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "continue" / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.continueDaytimeQueuePastPause(user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "orderingMode" / QueueOrderingModeVar(mode) /
+        ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.setDaytimeQueueOrderingMode(mode, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "run" / ClientIDVar(clientId) / ObserverVar(observer) =>
+      ssoClient.require(req): user =>
+        oe.runDaytimeQueue(observer, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "holdAfterSteps" / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.holdDaytimeQueueAfterCurrentSteps(user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "holdAfterObservations" / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.holdDaytimeQueueAfterCurrentObservations(user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "abortAll" / ClientIDVar(clientId) /
+        ObserverVar(observer) =>
+      ssoClient.require(req): user =>
+        oe.abortDaytimeQueue(observer, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "obs" / ObsIdVar(obsId) / ClientIDVar(clientId) / "run" /
+        ObserverVar(observer) =>
+      ssoClient.require(req): user =>
+        oe.runDaytimeQueueItem(obsId, observer, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "obs" / ObsIdVar(obsId) / ClientIDVar(clientId) /
+        "abort" / ObserverVar(observer) =>
+      ssoClient.require(req): user =>
+        oe.abortDaytimeQueueItem(obsId, observer, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "obs" / ObsIdVar(obsId) / ClientIDVar(clientId) /
+        "retry" =>
+      ssoClient.require(req): user =>
+        oe.retryDaytimeQueueItem(obsId, user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "clearCompleted" / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.clearCompletedDaytimeQueue(user, clientId) *> NoContent()
+
+    case req @ POST -> Root / "queue" / "lampsOff" / "cancel" / ClientIDVar(clientId) =>
+      ssoClient.require(req): user =>
+        oe.cancelDaytimeQueueLampsOff(user, clientId) *> NoContent()
 
     case GET -> Root / ClientIDVar(clientId) / "refresh" =>
       oe.requestRefresh(clientId) *> NoContent()

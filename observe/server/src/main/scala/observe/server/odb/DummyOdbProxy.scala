@@ -17,8 +17,11 @@ import observe.server.ObserveFailure
 class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
   val evCmds = new DummyOdbCommands[F]
 
-  override def read(oid: Observation.Id): F[OdbObservationData] =
+  override def read(oid: Observation.Id, futureLimit: NonNegInt): F[OdbObservationData] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.read: Not implemented."))
+
+  override def readQueueObservation(oid: Observation.Id): F[OdbQueueObservation] =
+    F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.readQueueObservation: Not implemented."))
 
   override def readExecutionConfig(
     oid:         Observation.Id,

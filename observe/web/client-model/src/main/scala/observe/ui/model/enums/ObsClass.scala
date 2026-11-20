@@ -7,7 +7,7 @@ import cats.Order
 import cats.derived.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.ui.syntax.calibration.isDaytime
+import lucuma.schemas.model.syntax.isDaytime
 
 enum ObsClass(val label: String) derives Order:
   case Daytime   extends ObsClass("Day")

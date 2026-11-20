@@ -9,19 +9,29 @@ import cats.syntax.all.*
 import clue.FetchClient
 import clue.syntax.*
 import eu.timepit.refined.types.numeric.NonNegInt
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
+import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.odb.RemainingSequenceSubquery
-import lucuma.schemas.odb.RemainingStepSubquery
+import lucuma.schemas.model.syntax.isDaytimeRole
 import observe.common.ObsQueriesGql.*
+import observe.common.RemainingSequenceSubquery
+import observe.common.RemainingStepSubquery
 import observe.model.dhs.*
 import observe.server.ObserveFailure
 
 trait OdbProxy[F[_]] private[odb] () extends OdbCommands[F] {
-  def read(oid:               Observation.Id): F[OdbObservationData]
+
+  /** Reads the observation with up to `futureLimit` atoms beyond the next one of each sequence. */
+  def read(
+    oid:         Observation.Id,
+    futureLimit: NonNegInt = OdbProxy.FullFuture
+  ): F[OdbObservationData]
+
+  /** Reads the role and mode of an observation, which say whether the daytime queue takes it. */
+  def readQueueObservation(oid: Observation.Id): F[OdbQueueObservation]
+
   def resetAcquisition(obsId: Observation.Id): F[Unit]
 
   /**
@@ -49,7 +59,9 @@ object OdbProxy {
   /**
    * The steps left to execute, and whether the sequence is Nod&Shuffle, which changes their kind.
    */
-  case class RemainingSteps(isNodAndShuffle: Boolean, steps: List[RemainingStepSubquery.Data])
+  case class RemainingSteps(isNodAndShuffle: Boolean, steps: List[RemainingStepSubquery.Data]):
+    /** The time the steps are expected to take. */
+    def estimate: TimeSpan = steps.foldMap(_.estimate.total)
 
   private def stepsOf(
     sequence: Option[RemainingSequenceSubquery.Data]
@@ -88,22 +100,16 @@ object OdbProxy {
     stepSpans: StepSpans[F]
   )(using FetchClient[F, ObservationDB])(using F: Sync[F]): OdbProxy[F] =
     new OdbProxy[F] {
-      override def read(oid: Observation.Id): F[OdbObservationData] =
+      override def read(oid: Observation.Id, futureLimit: NonNegInt): F[OdbObservationData] =
         evCmds.flushEvents(oid) >>
           ObsCalibrationRoleQuery[F]
             .query(oid)
             .raiseGraphQLErrors
             .map(_.observation.flatMap(_.calibrationRole))
             .flatMap: calibrationRole =>
-              val skipTargets: Boolean =
-                calibrationRole.exists:
-                  case CalibrationRole.DaytimeArc | CalibrationRole.DaytimeCalibration |
-                      CalibrationRole.DaytimeFlat | CalibrationRole.DaytimePinhole |
-                      CalibrationRole.DaytimeMaskImage =>
-                    true
-                  case _ => false
+              val skipTargets: Boolean = calibrationRole.exists(_.isDaytimeRole)
               ObsQuery[F]
-                .query(oid, skipTargets)
+                .query(oid, skipTargets, futureLimit)
                 .raiseGraphQLErrors
                 .flatMap: data =>
                   (data.observation, data.executionConfig).tupled
@@ -111,6 +117,16 @@ object OdbProxy {
                       F.raiseError[OdbObservationData]:
                         ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
                     )((obs, ec) => OdbObservationData(obs, ec).pure[F])
+
+      override def readQueueObservation(oid: Observation.Id): F[OdbQueueObservation] =
+        evCmds.flushEvents(oid) >>
+          ObsQueueQuery[F]
+            .query(oid)
+            .raiseGraphQLErrors
+            .flatMap:
+              _.observation
+                .map(o => OdbQueueObservation(o.calibrationRole, o.observingMode))
+                .liftTo[F](ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid"))
 
       override def readExecutionConfig(
         oid:         Observation.Id,

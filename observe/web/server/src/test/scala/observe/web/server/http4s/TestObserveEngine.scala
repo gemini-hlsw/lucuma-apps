@@ -164,33 +164,68 @@ class TestObserveEngine[F[_]: Sync](sys: Services[F]) extends ObserveEngine[F] {
     user:     User
   ): F[Unit] = Applicative[F].unit
 
-  override def addSequencesToQueue(qid: QueueId, seqIds: List[Id]): F[Unit] =
+  override def addToDaytimeQueue(obsId: Id, user: User, clientId: ClientId): F[Unit] =
     Applicative[F].unit
 
-  override def addSequenceToQueue(qid: QueueId, seqId: Id): F[Unit] =
-    Applicative[F].unit
-
-  override def removeSequenceFromQueue(qid: QueueId, seqId: Id): F[Unit] =
-    Applicative[F].unit
-
-  override def moveSequenceInQueue(
-    qid:   QueueId,
-    seqId: Id,
-    delta: Int,
-    cid:   ClientId
+  override def removeFromDaytimeQueue(
+    itemId:   QueueItemId,
+    user:     User,
+    clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 
-  override def clearQueue(qid: QueueId): F[Unit] = Applicative[F].unit
+  override def moveInDaytimeQueue(
+    itemId:   QueueItemId,
+    toIndex:  Int,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] = Applicative[F].unit
 
-  override def startQueue(
-    qid:      QueueId,
+  override def addDaytimeQueuePause(atIndex: Int, user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def continueDaytimeQueuePastPause(user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def setDaytimeQueueOrderingMode(
+    mode:     QueueOrderingMode,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] = Applicative[F].unit
+
+  override def clearCompletedDaytimeQueue(user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def cancelDaytimeQueueLampsOff(user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def retryDaytimeQueueItem(obsId: Id, user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def runDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def holdDaytimeQueueAfterCurrentSteps(user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def holdDaytimeQueueAfterCurrentObservations(user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def abortDaytimeQueue(observer: Observer, user: User, clientId: ClientId): F[Unit] =
+    Applicative[F].unit
+
+  override def runDaytimeQueueItem(
+    obsId:    Id,
     observer: Observer,
     user:     User,
     clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 
-  override def stopQueue(qid: QueueId, clientId: ClientId): F[Unit] =
-    Applicative[F].unit
+  override def abortDaytimeQueueItem(
+    obsId:    Id,
+    observer: Observer,
+    user:     User,
+    clientId: ClientId
+  ): F[Unit] = Applicative[F].unit
 
   override def configureSubsystem(
     sid:      Id,
