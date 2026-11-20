@@ -290,6 +290,8 @@ object Icons:
   inline def Moon                = FontAwesomeIcon(faMoon)
   inline def Pause               = FontAwesomeIcon(faPause)
   inline def Play                = FontAwesomeIcon(faPlay)
+  inline def PlayUp              = Play.withRotation(Rotation.Rotate270)
+  inline def PlayDown            = Play.withRotation(Rotation.Rotate90)
   inline def PlayPause           = FontAwesomeIcon(faPlayPause)
   inline def Plus                = FontAwesomeIcon(faPlus)
   inline def RectangleList       = FontAwesomeIcon(faRectangleList)
