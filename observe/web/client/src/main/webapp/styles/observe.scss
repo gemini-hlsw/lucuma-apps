@@ -778,11 +778,11 @@ body {
 }
 
 .observe-acquisition-prompt {
-  height: 75px;
   padding: 10px;
   margin-inline: -20px;
   text-align: left;
   display: flex;
+  align-items: center;
   gap: 10px;
   color: var(--gray-800);
   background-color: var(--yellow-400);
@@ -790,7 +790,14 @@ body {
   .observe-acquisition-prompt-main {
     display: flex;
     flex-grow: 1;
-    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  // Stacked buttons share the widest one's width.
+  .observe-acquisition-prompt-buttons {
+    display: grid;
+    width: max-content;
     gap: 6px;
   }
 

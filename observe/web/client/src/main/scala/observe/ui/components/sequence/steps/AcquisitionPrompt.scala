@@ -30,30 +30,30 @@ object AcquisitionPrompt
         Icons.CircleQuestion.withSize(IconSize.LG),
         <.div(ObserveStyles.AcquisitionPromptMain)(
           <.div("Proceed to science?"),
-          <.div(
-            Button(
-              size = Button.Size.Small,
-              icon = props.clicked.get match
-                case Some(SequenceType.Science) => LucumaIcons.CircleNotch
-                case _                          => Icons.Play,
-              label = "Yes, start science",
-              disabled = props.clicked.get.isDefined,
-              severity = props.clicked.get match
-                case Some(SequenceType.Acquisition) => Button.Severity.Secondary
-                case _                              => Button.Severity.Primary,
-              onClick = props.onProceed >> props.clicked.set(SequenceType.Science.some)
-            ).compact,
+          <.div(ObserveStyles.AcquisitionPromptButtons)(
             Button(
               size = Button.Size.Small,
               icon = props.clicked.get match
                 case Some(SequenceType.Acquisition) => LucumaIcons.CircleNotch
-                case _                              => Icons.ArrowsRetweet,
-              label = "No, take another acquisition image",
+                case _                              => Icons.PlayUp,
+              label = "Continue Acquisition",
               disabled = props.clicked.get.isDefined,
               severity = props.clicked.get match
                 case Some(SequenceType.Science) => Button.Severity.Secondary
                 case _                          => Button.Severity.Primary,
               onClick = props.onRepeat >> props.clicked.set(SequenceType.Acquisition.some)
+            ).compact,
+            Button(
+              size = Button.Size.Small,
+              icon = props.clicked.get match
+                case Some(SequenceType.Science) => LucumaIcons.CircleNotch
+                case _                          => Icons.PlayDown,
+              label = "Start Science",
+              disabled = props.clicked.get.isDefined,
+              severity = props.clicked.get match
+                case Some(SequenceType.Acquisition) => Button.Severity.Secondary
+                case _                              => Button.Severity.Primary,
+              onClick = props.onProceed >> props.clicked.set(SequenceType.Science.some)
             ).compact
           )
         ),

@@ -44,9 +44,10 @@ object ObserveStyles:
   val RowDisabled: Css = Css("observe-row-disabled")
   val RowDone: Css     = Css("observe-row-done")
 
-  val AcquisitionPrompt: Css     = Css("observe-acquisition-prompt")
-  val AcquisitionPromptMain: Css = Css("observe-acquisition-prompt-main")
-  val AcquisitionPromptBusy: Css = Css("observe-acquisition-prompt-busy")
+  val AcquisitionPrompt: Css        = Css("observe-acquisition-prompt")
+  val AcquisitionPromptMain: Css    = Css("observe-acquisition-prompt-main")
+  val AcquisitionPromptButtons: Css = Css("observe-acquisition-prompt-buttons")
+  val AcquisitionPromptBusy: Css    = Css("observe-acquisition-prompt-busy")
 
   val ObsList: Css          = Css("observe-obs-list")
   val ObsListTableArea: Css = Css("observe-obs-list-table-area")
