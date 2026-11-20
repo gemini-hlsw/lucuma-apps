@@ -58,7 +58,7 @@ case class DaytimeQueueTable(
   linkToExploreObs: Option[
     Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
   ],
-  moveLocally:      (QueueItemId, Int) => Callback
+  move:             (QueueItemId, Int) => Callback
 ) extends ReactFnProps(DaytimeQueueTable)
 
 object DaytimeQueueTable
@@ -216,16 +216,10 @@ object DaytimeQueueTable
         )
 
       def progressBar(progress: DaytimeQueueProgress): VdomNode =
-        progress.fraction.fold(
-          ProgressBar(
-            mode = ProgressBar.Mode.Indeterminate,
-            clazz = ObserveStyles.DaytimeQueueProgressBar
-          )
-        ): fraction =>
-          ProgressBar(
-            value = (fraction * 100.0).floor,
-            clazz = ObserveStyles.DaytimeQueueProgressBar
-          )
+        ProgressBar(
+          value = (progress.fraction * 100.0).floor,
+          clazz = ObserveStyles.DaytimeQueueProgressBar
+        )
 
       val columns: Reusable[List[ColDef.Type]] =
         Reusable.always:
@@ -385,7 +379,7 @@ object DaytimeQueueTable
             )
         // The drag handlers are registered once, so they read the current rows through a ref.
         rowsRef     <- useShadowRef(props.rows)
-        moveRef     <- useShadowRef(props.moveLocally)
+        moveRef     <- useShadowRef(props.move)
         tableDnd    <-
           useTableDragAndDrop(
             table,
@@ -394,8 +388,6 @@ object DaytimeQueueTable
             canDrag =
               (id, _) => rowsRef.get.runNow().exists(row => row.itemId === id && !row.isLocked),
             onDrop = (source, target) =>
-              import ctx.given
-
               // The server takes the index in the queue without the moved item.
               rowsRef.get.flatMap: (rows: List[DaytimeQueueRow]) =>
                 target
@@ -403,10 +395,7 @@ object DaytimeQueueTable
                     computeIndexInList[QueueItemId](_ === t.data, t.edge)(
                       rows.map(_.itemId).filterNot(_ === source)
                     )
-                  .foldMap: toIndex =>
-                    // Moved here at once, so the row does not show in its old place meanwhile.
-                    moveRef.get.flatMap(_(source, toIndex)) >>
-                      queueApi.move(source, toIndex).runAsync
+                  .foldMap(toIndex => moveRef.get.flatMap(_(source, toIndex)))
           )
       yield tableDnd.context(
         PrimeTable(

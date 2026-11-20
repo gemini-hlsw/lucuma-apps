@@ -35,9 +35,6 @@ case class DaytimeQueueApiImpl(client: ApiClient, observer: Observer) extends Da
   override def addPause(atIndex: Int): IO[Unit] =
     client.postNoData(Root / "pause" / atIndex.toString / clientId)
 
-  override def continuePastPause: IO[Unit] =
-    client.postNoData(Root / "continue" / clientId)
-
   override def setOrderingMode(mode: QueueOrderingMode): IO[Unit] =
     client.postNoData(Root / "orderingMode" / mode.tag / clientId)
 

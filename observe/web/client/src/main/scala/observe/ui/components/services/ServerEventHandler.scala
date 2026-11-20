@@ -357,7 +357,8 @@ trait ServerEventHandler:
             case Notification.RestartRefused(reasons)                      =>
               ("Restart refused" :: reasons.toList).pure[IO]
             case Notification.DaytimeQueueRejected(obsId, reason)          =>
-              List(s"Observation $obsId cannot be added to the daytime queue: $reason").pure[IO]
+              rootModelDataMod(RootModelData.pendingQueueAdds.modify(_ - obsId))
+                .as(List(s"Observation $obsId cannot be added to the daytime queue: $reason"))
             case Notification.SubsystemBusy(obsId, stepId, subsystem)      =>
               List(
                 s"Error in observation $obsId, step $stepId: Subsystem $subsystem already in use"

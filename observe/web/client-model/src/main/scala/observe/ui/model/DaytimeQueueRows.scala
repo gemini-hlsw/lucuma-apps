@@ -36,16 +36,9 @@ enum DaytimeQueueNote derives Eq:
       case WaitingForTurn        => "Waiting for its turn"
 
 /** How far an observation of the daytime queue has got. */
-enum DaytimeQueueProgress derives Eq:
-  /** Started outside the queue, so there is no start time to measure from. */
-  case Indeterminate
-  case Done(done: TimeSpan, total: TimeSpan)
-
-  /** Completed fraction, between 0 and 1, when it can be known. */
-  def fraction: Option[Double] =
-    this match
-      case Indeterminate     => none
-      case Done(done, total) => DaytimeQueueRows.fraction(done, total -| done).some
+case class DaytimeQueueProgress(done: TimeSpan, total: TimeSpan) derives Eq:
+  /** Completed fraction, between 0 and 1. */
+  def fraction: Double = DaytimeQueueRows.fraction(done, total -| done)
 
 /** An observation of the daytime queue, with everything its table row shows. */
 case class DaytimeQueueObsRow(
@@ -84,9 +77,12 @@ enum DaytimeQueueRow derives Eq:
       case Obs(row)    => row.isRunning
       case Pause(_, _) => false
 
-/** Predicted end of the daytime queue. */
-case class DaytimeQueuePrediction(remaining: TimeSpan, fraction: Double, finishAt: Timestamp)
-    derives Eq
+/** Predicted end of the daytime queue; `finishAt` only while it is being run. */
+case class DaytimeQueuePrediction(
+  remaining: TimeSpan,
+  fraction:  Double,
+  finishAt:  Option[Timestamp]
+) derives Eq
 
 /** View-model of the daytime queue tab. */
 object DaytimeQueueRows:
@@ -96,7 +92,7 @@ object DaytimeQueueRows:
     val totalMicros: Long = (done +| remaining).toMicroseconds
     if totalMicros === 0L then 0.0 else done.toMicroseconds.toDouble / totalMicros.toDouble
 
-  /** Time a Running observation has been running; none when the queue did not start it. */
+  /** Time a Running observation has been running; none when it is not Running. */
   def elapsed(item: DaytimeQueueItem.Obs, now: Timestamp): Option[TimeSpan] =
     item.startedAt
       .filter(_ => item.status === QueueItemStatus.Running)
@@ -113,9 +109,15 @@ object DaytimeQueueRows:
       .map(item => item.obsId -> remaining(item, now))
       .toMap
 
-  /** Time already spent by every observation: its total minus what it has left. */
+  /** Time spent by the Completed observations and by those a prediction counts as remaining. */
   def doneTime(queue: DaytimeQueue, now: Timestamp): TimeSpan =
-    queue.obsItems.foldMap(item => item.total -| remaining(item, now))
+    val waitingAbovePause: Set[Observation.Id] =
+      queue.obsAbovePause.filter(_.status === QueueItemStatus.Waiting).map(_.obsId).toSet
+    queue.obsItems
+      .filter: item =>
+        item.status === QueueItemStatus.Completed || item.status === QueueItemStatus.Running ||
+          waitingAbovePause.contains(item.obsId)
+      .foldMap(item => item.total -| remaining(item, now))
 
   private def isObs(item: DaytimeQueueItem): Boolean = item match
     case DaytimeQueueItem.Obs(_, _, _, _, _, _, _, _, _) => true
@@ -125,9 +127,15 @@ object DaytimeQueueRows:
     case DaytimeQueueItem.Obs(status = status) => status === QueueItemStatus.Running
     case DaytimeQueueItem.Pause(_)             => false
 
+  private def isYetToFinish(item: DaytimeQueueItem): Boolean = item match
+    case DaytimeQueueItem.Obs(status = status) =>
+      status === QueueItemStatus.Running || status === QueueItemStatus.Waiting
+    case DaytimeQueueItem.Pause(_)             => false
+
   /**
-   * Where a new pause goes: the first place with an observation on each side that is below every
-   * Running observation, if there is one.
+   * Where a new pause goes: the first place below every Running observation that has a Running or
+   * Waiting observation right above and an observation right below, if there is one. With nothing
+   * left to run above it, the pause would hold the queue at once.
    */
   def newPauseIndex(queue: DaytimeQueue): Option[Int] =
     val firstAllowed: Int = queue.items.lastIndexWhere(isRunning) + 1
@@ -136,8 +144,16 @@ object DaytimeQueueRows:
       .zipWithIndex
       .collectFirst:
         case (List(above, below), index)
-            if index + 1 >= firstAllowed && isObs(above) && isObs(below) =>
+            if index + 1 >= firstAllowed && isYetToFinish(above) && isObs(below) =>
           index + 1
+
+  /** Moving this pause there leaves a running queue with nothing to run above its first pause. */
+  def pauseMoveHalts(queue: DaytimeQueue, id: QueueItemId, toIndex: Int): Boolean =
+    id match
+      case QueueItemId.Pause(_) =>
+        queue.dispatchState === QueueDispatchState.Running && !queue.isAtPause &&
+        queue.move(id, toIndex).isAtPause
+      case QueueItemId.Obs(_)   => false
 
   /** There is something to predict: an observation Running, or Waiting above the first pause. */
   def isPredictable(queue: DaytimeQueue): Boolean =
@@ -151,7 +167,8 @@ object DaytimeQueueRows:
       DaytimeQueuePrediction(
         remainingTime,
         fraction(doneTime(queue, now), remainingTime),
-        now +| remainingTime
+        Option.when(queue.dispatchState === QueueDispatchState.Running || hasRunning(queue)):
+          now +| remainingTime
       )
 
   /** Time until the GCAL lamps are turned off, while that countdown is on. */
@@ -199,11 +216,10 @@ object DaytimeQueueRows:
   /** Shown while it runs, and afterwards if it stopped part way; nothing once Completed. */
   def progress(item: DaytimeQueueItem.Obs, now: Timestamp): Option[DaytimeQueueProgress] =
     val done: DaytimeQueueProgress =
-      DaytimeQueueProgress.Done(item.total -| remaining(item, now), item.total)
+      DaytimeQueueProgress(item.total -| remaining(item, now), item.total)
     item.status match
       case QueueItemStatus.Completed       => none
-      case QueueItemStatus.Running         =>
-        item.startedAt.fold(DaytimeQueueProgress.Indeterminate)(_ => done).some
+      case QueueItemStatus.Running         => done.some
       case _ if item.estimate < item.total => done.some
       case _                               => none
 

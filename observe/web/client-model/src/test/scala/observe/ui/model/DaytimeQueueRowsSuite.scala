@@ -121,6 +121,31 @@ class DaytimeQueueRowsSuite extends FunSuite:
       Map(obsId(1) -> 7.minuteTimeSpan)
     )
 
+  test("doneTime leaves out what a prediction does not count as remaining"):
+    val q: DaytimeQueue = queue(
+      List(
+        obs(1,
+            QueueItemStatus.Waiting,
+            estimate = 6.minuteTimeSpan,
+            total = 10.minuteTimeSpan.some
+        ),
+        obs(2, QueueItemStatus.Failed, estimate = 7.minuteTimeSpan, total = 10.minuteTimeSpan.some),
+        obs(3,
+            QueueItemStatus.Stopped,
+            estimate = 8.minuteTimeSpan,
+            total = 10.minuteTimeSpan.some
+        ),
+        DaytimeQueueItem.Pause(Pause),
+        obs(4,
+            QueueItemStatus.Waiting,
+            estimate = 9.minuteTimeSpan,
+            total = 10.minuteTimeSpan.some
+        ),
+        obs(5, QueueItemStatus.Completed, estimate = TimeSpan.Zero, total = 5.minuteTimeSpan.some)
+      )
+    )
+    assertEquals(DaytimeQueueRows.doneTime(q, Start), 9.minuteTimeSpan)
+
   test("doneTime adds what every observation has done of its total"):
     val q: DaytimeQueue = queue(
       List(
@@ -163,7 +188,18 @@ class DaytimeQueueRowsSuite extends FunSuite:
     val expected: TimeSpan = 25.minuteTimeSpan
     assertEquals(
       DaytimeQueueRows.prediction(q, now),
-      DaytimeQueuePrediction(expected, 10.0 / 35.0, now +| expected).some
+      DaytimeQueuePrediction(expected, 10.0 / 35.0, (now +| expected).some).some
+    )
+
+  test("a queue that is not being run has no finish time"):
+    val items: List[DaytimeQueueItem] = List(obs(1, QueueItemStatus.Waiting))
+    assertEquals(
+      DaytimeQueueRows.prediction(queue(items, QueueDispatchState.Idle), Start),
+      DaytimeQueuePrediction(10.minuteTimeSpan, 0.0, none).some
+    )
+    assertEquals(
+      DaytimeQueueRows.prediction(queue(items, QueueDispatchState.Halted), Start).map(_.finishAt),
+      none.some
     )
 
   test("prediction runs observations with different subsystems in parallel"):
@@ -265,12 +301,12 @@ class DaytimeQueueRowsSuite extends FunSuite:
     assertEquals(
       progress,
       List(
-        DaytimeQueueProgress.Done(4.minuteTimeSpan, 10.minuteTimeSpan).some,
-        DaytimeQueueProgress.Indeterminate.some,
+        DaytimeQueueProgress(4.minuteTimeSpan, 10.minuteTimeSpan).some,
+        DaytimeQueueProgress(TimeSpan.Zero, 10.minuteTimeSpan).some,
         none
       )
     )
-    assertEquals(progress.map(_.flatMap(_.fraction)), List(0.4.some, none, none))
+    assertEquals(progress.map(_.map(_.fraction)), List(0.4.some, 0.0.some, none))
 
   test("an observation that stopped part way keeps its progress"):
     val stopped: DaytimeQueueItem.Obs   =
@@ -280,16 +316,13 @@ class DaytimeQueueRowsSuite extends FunSuite:
       obs(3, QueueItemStatus.Completed, estimate = TimeSpan.Zero, total = 10.minuteTimeSpan.some)
     assertEquals(
       DaytimeQueueRows.progress(stopped, Start),
-      DaytimeQueueProgress.Done(4.minuteTimeSpan, 10.minuteTimeSpan).some
+      DaytimeQueueProgress(4.minuteTimeSpan, 10.minuteTimeSpan).some
     )
     assertEquals(DaytimeQueueRows.progress(untouched, Start), none)
     assertEquals(DaytimeQueueRows.progress(done, Start), none)
 
   test("progress fraction stops at one"):
-    assertEquals(
-      DaytimeQueueProgress.Done(15.minuteTimeSpan, 10.minuteTimeSpan).fraction,
-      1.0.some
-    )
+    assertEquals(DaytimeQueueProgress(15.minuteTimeSpan, 10.minuteTimeSpan).fraction, 1.0)
 
   test("rows keep the queue order, mark the first pause and lock running observations"):
     val second: QueuePauseId        = QueuePauseId(new UUID(0L, 2L))
@@ -372,6 +405,32 @@ class DaytimeQueueRowsSuite extends FunSuite:
       DaytimeQueueRows.newPauseIndex(queue(List(running(1), waiting(2), waiting(3)))),
       1.some
     )
+
+  test("a new pause goes below an observation that is yet to finish"):
+    val completed: DaytimeQueueItem   = obs(1, QueueItemStatus.Completed)
+    val stopped: DaytimeQueueItem     = obs(2, QueueItemStatus.Stopped)
+    val items: List[DaytimeQueueItem] = List(completed, stopped, waiting(3), waiting(4))
+    List(QueueDispatchState.Running, QueueDispatchState.Idle).foreach: state =>
+      val q: DaytimeQueue      = queue(items, state)
+      assertEquals(DaytimeQueueRows.newPauseIndex(q), 3.some)
+      // Neither held at the new pause, nor does Run Queue take it away.
+      val paused: DaytimeQueue = q.insertPause(Pause, 3)
+      assert(!paused.isAtPause)
+      assertEquals(paused.run.items, paused.resetStopped.items)
+    assertEquals(DaytimeQueueRows.newPauseIndex(queue(List(completed, waiting(3)))), none)
+
+  test("a pause cannot be moved to where it holds a running queue at once"):
+    val pauseId: QueueItemId          = QueueItemId.Pause(Pause)
+    val items: List[DaytimeQueueItem] = List(running(1), waiting(2), PauseItem, waiting(3))
+    val q: DaytimeQueue               = queue(items)
+    assert(DaytimeQueueRows.pauseMoveHalts(q, pauseId, 0))
+    assert(!DaytimeQueueRows.pauseMoveHalts(q, pauseId, 1))
+    assert(!DaytimeQueueRows.pauseMoveHalts(queue(items, QueueDispatchState.Idle), pauseId, 0))
+    assert(!DaytimeQueueRows.pauseMoveHalts(q, QueueItemId.Obs(obsId(3)), 0))
+    val blocked: DaytimeQueue         =
+      queue(List(obs(1, QueueItemStatus.Completed), waiting(2), PauseItem, waiting(3)))
+    assert(DaytimeQueueRows.pauseMoveHalts(blocked, pauseId, 1))
+    assert(!DaytimeQueueRows.pauseMoveHalts(blocked, pauseId, 3))
 
   test("no new pause without two observations together below the running ones"):
     assertEquals(DaytimeQueueRows.newPauseIndex(queue(Nil)), none)

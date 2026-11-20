@@ -26,9 +26,6 @@ trait DaytimeQueueApi[F[_]: MonadThrow]:
   /** Insert a pause at the given index */
   def addPause(@unused atIndex: Int): F[Unit] = NotAuthorized
 
-  /** Remove the first pause */
-  def continuePastPause: F[Unit] = NotAuthorized
-
   def setOrderingMode(@unused mode: QueueOrderingMode): F[Unit] = NotAuthorized
 
   /** Start the dispatcher */

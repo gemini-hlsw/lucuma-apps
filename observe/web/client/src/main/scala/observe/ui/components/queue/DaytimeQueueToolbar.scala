@@ -169,8 +169,9 @@ object DaytimeQueueToolbar
                   clazz = ObserveStyles.DaytimeQueuePredictionBar
                 ),
                 <.span(
-                  s"${DurationLongWithSecondsFormatter(prediction.remaining.toDuration)} left, ends at " +
-                    FinishTimeFormatter.format(prediction.finishAt.toInstant.atZone(props.zone))
+                  s"${DurationLongWithSecondsFormatter(prediction.remaining.toDuration)} left" +
+                    prediction.finishAt.foldMap: finishAt =>
+                      s", ends at ${FinishTimeFormatter.format(finishAt.toInstant.atZone(props.zone))}"
                 )
               ),
             Tag(

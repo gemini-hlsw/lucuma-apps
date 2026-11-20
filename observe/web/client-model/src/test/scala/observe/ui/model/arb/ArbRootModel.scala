@@ -102,6 +102,7 @@ trait ArbRootModel:
       up  <- arbitrary[UserPreferences]
       cop <- arbitrary[List[UserPrompt.ChecksOverride]]
       dq  <- arbitrary[DaytimeQueueView]
+      pqa <- arbitrary[Set[Observation.Id]]
     yield RootModelData(
       uv,
       ros,
@@ -119,7 +120,8 @@ trait ArbRootModel:
       log,
       up,
       cop,
-      dq
+      dq,
+      pqa
     )
 
   given Cogen[RootModelData] = Cogen[
@@ -140,7 +142,8 @@ trait ArbRootModel:
       FixedLengthBuffer[LogMessage],
       UserPreferences,
       List[UserPrompt.ChecksOverride],
-      DaytimeQueueView
+      DaytimeQueueView,
+      List[Observation.Id]
     )
   ].contramap: x =>
     (x.userVault,
@@ -159,7 +162,8 @@ trait ArbRootModel:
      x.globalLog,
      x.userPreferences,
      x.checksOverridePrompts,
-     x.daytimeQueue
+     x.daytimeQueue,
+     x.pendingQueueAdds.toList.sorted
     )
 
 object ArbRootModel extends ArbRootModel

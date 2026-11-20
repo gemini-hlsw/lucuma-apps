@@ -25,8 +25,8 @@ enum QueueItemId derives Eq, Encoder.AsObject, Decoder:
 enum DaytimeQueueItem derives Eq, Encoder.AsObject, Decoder:
   /**
    * An observation. `subsystems` are all the subsystems it claims while running, its instrument
-   * included. `estimate` is the time its remaining steps take, as of `startedAt` while the queue
-   * runs it. `total` is the longest that has been, which its progress is measured against.
+   * included. `estimate` is the time its remaining steps take, as of `startedAt` while it runs.
+   * `total` is the longest that has been, which its progress is measured against.
    */
   case Obs(
     obsId:          Observation.Id,

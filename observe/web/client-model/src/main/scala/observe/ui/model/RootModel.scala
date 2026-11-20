@@ -48,7 +48,8 @@ case class RootModelData(
   globalLog:             FixedLengthBuffer[LogMessage],
   userPreferences:       UserPreferences,
   checksOverridePrompts: List[UserPrompt.ChecksOverride],     // Pending, oldest first
-  daytimeQueue:          DaytimeQueueView
+  daytimeQueue:          DaytimeQueueView,
+  pendingQueueAdds:      Set[Observation.Id]                  // Asked for here, no answer yet
 ) derives Eq:
   // TODO Readonly mode won't depend on user logged or not, but on their permissions.
   // For the moment we are requiring the STAFF role, so all logged users can operate.
@@ -142,7 +143,8 @@ object RootModelData:
       globalLog = FixedLengthBuffer.unsafe(MaxGlobalLogEntries),
       userPreferences = UserPreferences.Default,
       checksOverridePrompts = List.empty,
-      daytimeQueue = DaytimeQueueView.Empty
+      daytimeQueue = DaytimeQueueView.Empty,
+      pendingQueueAdds = Set.empty
     )
 
   val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                      =
@@ -179,6 +181,8 @@ object RootModelData:
     Focus[RootModelData](_.checksOverridePrompts)
   val daytimeQueue: Lens[RootModelData, DaytimeQueueView]                         =
     Focus[RootModelData](_.daytimeQueue)
+  val pendingQueueAdds: Lens[RootModelData, Set[Observation.Id]]                  =
+    Focus[RootModelData](_.pendingQueueAdds)
   val isAudioActivated: Lens[RootModelData, IsAudioActivated]                     =
     userPreferences.andThen(UserPreferences.isAudioActivated)
   val obsListGlobalFilter: Lens[RootModelData, String]                            =
