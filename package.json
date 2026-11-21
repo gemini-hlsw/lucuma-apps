@@ -1,7 +1,7 @@
 {
   "name": "@gemini-hlsw/lucuma-apps",
   "private": true,
-  "packageManager": "pnpm@12.20.0",
+  "packageManager": "pnpm@12.21.0",
   "devDependencies": {
     "jsdom": "31.0.1",
     "postcss-scss": "4.0.9",
