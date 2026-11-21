@@ -141,8 +141,8 @@ object DaytimeQueueToolbar
             ),
             Button(
               label = "Add pause",
-              icon = Icons.Plus,
-              severity = Button.Severity.Secondary,
+              icon = Icons.AddPause,
+              clazz = ObserveStyles.DaytimeQueueHoldButton,
               disabled = newPauseIndex.isEmpty,
               tooltip =
                 if newPauseIndex.isEmpty then
@@ -153,7 +153,7 @@ object DaytimeQueueToolbar
             ).small.compact,
             Button(
               label = "Clear completed",
-              icon = Icons.Broom,
+              icon = Icons.Eraser,
               severity = Button.Severity.Secondary,
               disabled = !DaytimeQueueRows.hasCompleted(queue),
               onClick = queueApi.clearCompleted.runAsync
