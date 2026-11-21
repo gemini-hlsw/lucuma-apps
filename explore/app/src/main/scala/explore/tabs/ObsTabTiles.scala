@@ -138,6 +138,12 @@ case class ObsTabTiles(
     then editIsReadonly || executionIsReadonly
     else obsIsReadonly
 
+  /** The guide star of a telluric can be changed, although the observation is otherwise locked. */
+  val guideStarReadonly: Boolean =
+    if observation.get.calibrationRole.contains(CalibrationRole.Telluric)
+    then editIsReadonly || executionIsReadonly
+    else obsIsReadonly
+
   val allConstraintSets: Set[ConstraintSet] = programSummaries.constraintGroups.map(_._2).toSet
 
   val targetObservations: Map[Target.Id, SortedSet[Observation.Id]] =
@@ -856,6 +862,7 @@ object ObsTabTiles:
             props.attachments,
             props.vault.map(_.token),
             props.obsIsReadonly,
+            guideStarReadonly = props.guideStarReadonly,
             allowEditingOngoing = props.isStaffOrAdminUser,
             isStaffOrAdmin = props.isStaffOrAdminUser,
             isUserDefinedTelluric = props.observation.get.isUserDefinedTelluric,
