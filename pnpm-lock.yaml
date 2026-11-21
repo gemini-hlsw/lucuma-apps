@@ -266,8 +266,8 @@ importers:
         specifier: 9.3.1
         version: 9.3.1
       aladin-lite:
-        specifier: 3.8.2
-        version: 3.8.2
+        specifier: 3.9.4
+        version: 3.9.4
       highcharts:
         specifier: 13.1.1
         version: 13.1.1
@@ -484,8 +484,8 @@ importers:
         specifier: 7.3.1
         version: 7.3.1
       aladin-lite:
-        specifier: 3.8.2
-        version: 3.8.2
+        specifier: 3.9.4
+        version: 3.9.4
       inputmask:
         specifier: 5.0.10
         version: 5.0.10
@@ -1855,8 +1855,8 @@ packages:
   ajv@8.17.1:
     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==}
 
-  aladin-lite@3.8.2:
-    resolution: {integrity: sha512-/VGtxSWZ4StdKgwjmzqNkUY/3iTaBZJ5F6bN+nAfcK1NEATcAb2CYJX4U8FElpwYMgKrypYQV5KniRzhVbH+nA==}
+  aladin-lite@3.9.4:
+    resolution: {integrity: sha512-b/TGV2b2xc+v2ZGfdnojCiCB+3zNLiWdvw97D4Nzcaj67zVGI3+sgUmr75vSKJ2kWst4s/sDiHZGjULNVPWa4g==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -5220,7 +5220,7 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
-  aladin-lite@3.8.2: {}
+  aladin-lite@3.9.4: {}
 
   ansi-regex@5.0.1: {}
 
