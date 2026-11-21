@@ -228,7 +228,8 @@ object Igrins2LongslitConfigPanel
                     )(
                       TelescopeConfigsEditor(
                         telescopeConfigs = svcTelescopeConfigs,
-                        readonly = !props.permissions.isFullEdit
+                        readonly = !props.permissions.isFullEdit,
+                        idPrefix = "svc-offsets"
                       )
                     )
                 )

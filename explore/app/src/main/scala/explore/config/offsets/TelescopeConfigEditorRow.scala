@@ -23,6 +23,7 @@ import lucuma.ui.sequence.SequenceStyles
 final case class TelescopeConfigEditorRow(
   telescopeConfig: View[TelescopeConfig],
   idx:             Int,
+  idPrefix:        String,
   pEnabled:        Boolean,
   remove:          Callback,
   readonly:        Boolean
@@ -42,7 +43,7 @@ object TelescopeConfigEditorRow
       // maybe rename style
       <.div(TelescopeConfigEditorStyles.EditorRow)(
         OffsetInput(
-          id = NonEmptyString.unsafeFrom(s"explicit-offsets-${props.idx}"),
+          id = NonEmptyString.unsafeFrom(s"${props.idPrefix}-${props.idx}"),
           offset = offset,
           pEnabled = props.pEnabled,
           readonly = props.readonly,
