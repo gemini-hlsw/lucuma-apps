@@ -93,6 +93,7 @@ final case class ObservationTargetsEditorTile(
   attachments:           View[AttachmentList],
   authToken:             Option[NonEmptyString],
   readonly:              Boolean,
+  guideStarReadonly:     Boolean,
   allowEditingOngoing:   Boolean,
   isStaffOrAdmin:        Boolean,
   isUserDefinedTelluric: IsUserDefinedTelluric,
@@ -376,8 +377,8 @@ object ObservationTargetsEditorTile
                 )
             )
 
-          // The guide star uses `props.readonly` instead: the backend lets staff change it on
-          // executed observations.
+          // The guide star uses `props.guideStarReadonly` instead: the backend lets staff change it
+          // on executed observations.
           val editorReadonly = props.readonly || obsEditInfo.allAreExecuted
 
           // Sky position callbacks used by AladinCell for both sky and target selection.
@@ -514,7 +515,7 @@ object ObservationTargetsEditorTile
                       editorReadonly,
                       props.guiding,
                       revertGuideStar = props.revertGuideStar,
-                      guideStarReadonly = props.readonly
+                      guideStarReadonly = props.guideStarReadonly
                     ),
                     formContent
                   )
