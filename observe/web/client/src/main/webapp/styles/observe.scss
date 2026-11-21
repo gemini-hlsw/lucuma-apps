@@ -478,6 +478,11 @@ body {
       }
     }
 
+    .observe-daytime-queue-remaining {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
     .observe-daytime-queue-empty {
       padding: 2em;
       text-align: center;

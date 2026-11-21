@@ -18,7 +18,7 @@ import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
-import lucuma.ui.format.DurationLongWithSecondsFormatter
+import lucuma.ui.format.DurationSpacedPaddedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import observe.model.DaytimeQueue
@@ -169,7 +169,7 @@ object DaytimeQueueToolbar
                   clazz = ObserveStyles.DaytimeQueuePredictionBar
                 ),
                 <.span(
-                  s"${DurationLongWithSecondsFormatter(prediction.remaining.toDuration)} left" +
+                  s"${DurationSpacedPaddedFormatter(prediction.remaining.toDuration)} left" +
                     prediction.finishAt.foldMap: finishAt =>
                       s", ends at ${FinishTimeFormatter.format(finishAt.toInstant.atZone(props.zone))}"
                 )
