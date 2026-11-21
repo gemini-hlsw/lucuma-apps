@@ -324,6 +324,16 @@ class DaytimeQueueRowsSuite extends FunSuite:
   test("progress fraction stops at one"):
     assertEquals(DaytimeQueueProgress(15.minuteTimeSpan, 10.minuteTimeSpan).fraction, 1.0)
 
+  test("progress has what is left of the total, never negative"):
+    assertEquals(
+      DaytimeQueueProgress(4.minuteTimeSpan, 10.minuteTimeSpan).remaining,
+      6.minuteTimeSpan
+    )
+    assertEquals(
+      DaytimeQueueProgress(15.minuteTimeSpan, 10.minuteTimeSpan).remaining,
+      TimeSpan.Zero
+    )
+
   test("rows keep the queue order, mark the first pause and lock running observations"):
     val second: QueuePauseId        = QueuePauseId(new UUID(0L, 2L))
     val v: DaytimeQueueView         = view(

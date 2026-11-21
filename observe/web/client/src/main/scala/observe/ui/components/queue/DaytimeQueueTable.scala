@@ -27,7 +27,7 @@ import lucuma.react.primereact.TooltipOptions
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.dnd.computeIndexInList
-import lucuma.ui.format.DurationLongWithSecondsFormatter
+import lucuma.ui.format.DurationSpacedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.sequence.SequenceIcons
 import lucuma.ui.sequence.SequenceStyles
@@ -301,11 +301,16 @@ object DaytimeQueueTable
             ),
             ColDef(
               EstimateColumnId,
-              header = "Estimate",
+              header = "Remaining",
               cell = cell =>
                 obsCell(cell.row.original): obs =>
-                  DurationLongWithSecondsFormatter(obs.item.estimate.toDuration),
-              size = 110.toPx
+                  // Once it has run, what is left of its total; before that, only the estimate.
+                  obs.progress.fold(DurationSpacedFormatter(obs.item.estimate.toDuration)):
+                    progress =>
+                      s"${DurationSpacedFormatter(progress.remaining.toDuration)} of " +
+                        DurationSpacedFormatter(progress.total.toDuration)
+              ,
+              size = 170.toPx
             ),
             ColDef(
               ProgressColumnId,
