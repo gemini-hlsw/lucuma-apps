@@ -72,6 +72,7 @@ object ObserveStyles:
   val DaytimeQueuePauseRow: Css      = Css("observe-daytime-queue-pause-row")
   val DaytimeQueuePauseDivider: Css  = Css("observe-daytime-queue-pause-divider")
   val DaytimeQueueProgressBar: Css   = Css("observe-daytime-queue-progress-bar")
+  val DaytimeQueueRemaining: Css     = Css("observe-daytime-queue-remaining")
   val DaytimeQueueEmpty: Css         = Css("observe-daytime-queue-empty")
 
   val ConfigSection: Css       = Css("observe-config-section")

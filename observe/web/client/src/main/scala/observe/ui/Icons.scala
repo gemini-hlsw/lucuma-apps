@@ -174,8 +174,8 @@ object Icons:
   private val faSquarePlus: FAIcon = js.native
 
   @js.native
-  @JSImport("@fortawesome/pro-solid-svg-icons", "faBroom")
-  private val faBroom: FAIcon = js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faEraser")
+  private val faEraser: FAIcon = js.native
 
   @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faListCheck")
@@ -252,7 +252,7 @@ object Icons:
     faDiamondExclamation,
     faFloppyDisk,
     faPowerOff,
-    faBroom,
+    faEraser,
     faListCheck,
     faSquareArrowUpRight,
     faTrash
@@ -305,7 +305,7 @@ object Icons:
   inline def FloppyDisk          = FontAwesomeIcon(faFloppyDisk)
   inline def PowerOff            = FontAwesomeIcon(faPowerOff)
   inline def VolumeSlash         = FontAwesomeIcon(faVolumeSlash)
-  inline def Broom               = FontAwesomeIcon(faBroom)
+  inline def Eraser              = FontAwesomeIcon(faEraser)
   inline def ListCheck           = FontAwesomeIcon(faListCheck)
   inline def SquareArrowUpRight  = FontAwesomeIcon(faSquareArrowUpRight)
   inline def Trash               = FontAwesomeIcon(faTrash)
@@ -320,6 +320,13 @@ object Icons:
     LayeredIcon()(
       BackwardStep.withSize(IconSize.SM).withClass(ObserveStyles.IconSoft),
       Ban.withSize(IconSize.LG)
+    )
+
+  // A pause with a small plus at its bottom right.
+  val AddPause =
+    LayeredIcon()(
+      Pause.withTransform(Transform(x = -3, y = -2, size = 13)),
+      Plus.withTransform(Transform(x = 7, y = 6, size = 9))
     )
 
   val DaytimeCalendar =

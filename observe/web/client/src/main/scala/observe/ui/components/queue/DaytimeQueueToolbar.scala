@@ -18,7 +18,7 @@ import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
-import lucuma.ui.format.DurationLongWithSecondsFormatter
+import lucuma.ui.format.DurationSpacedPaddedFormatter
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import observe.model.DaytimeQueue
@@ -141,8 +141,8 @@ object DaytimeQueueToolbar
             ),
             Button(
               label = "Add pause",
-              icon = Icons.Plus,
-              severity = Button.Severity.Secondary,
+              icon = Icons.AddPause,
+              clazz = ObserveStyles.DaytimeQueueHoldButton,
               disabled = newPauseIndex.isEmpty,
               tooltip =
                 if newPauseIndex.isEmpty then
@@ -153,7 +153,7 @@ object DaytimeQueueToolbar
             ).small.compact,
             Button(
               label = "Clear completed",
-              icon = Icons.Broom,
+              icon = Icons.Eraser,
               severity = Button.Severity.Secondary,
               disabled = !DaytimeQueueRows.hasCompleted(queue),
               onClick = queueApi.clearCompleted.runAsync
@@ -169,7 +169,7 @@ object DaytimeQueueToolbar
                   clazz = ObserveStyles.DaytimeQueuePredictionBar
                 ),
                 <.span(
-                  s"${DurationLongWithSecondsFormatter(prediction.remaining.toDuration)} left" +
+                  s"${DurationSpacedPaddedFormatter(prediction.remaining.toDuration)} left" +
                     prediction.finishAt.foldMap: finishAt =>
                       s", ends at ${FinishTimeFormatter.format(finishAt.toInstant.atZone(props.zone))}"
                 )

@@ -37,8 +37,10 @@ enum DaytimeQueueNote derives Eq:
 
 /** How far an observation of the daytime queue has got. */
 case class DaytimeQueueProgress(done: TimeSpan, total: TimeSpan) derives Eq:
+  val remaining: TimeSpan = total -| done
+
   /** Completed fraction, between 0 and 1. */
-  def fraction: Double = DaytimeQueueRows.fraction(done, total -| done)
+  def fraction: Double = DaytimeQueueRows.fraction(done, remaining)
 
 /** An observation of the daytime queue, with everything its table row shows. */
 case class DaytimeQueueObsRow(
