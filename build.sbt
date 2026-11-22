@@ -37,6 +37,8 @@ ThisBuild / lucumaCssExts += "svg"
 
 ThisBuild / resolvers := List(Resolver.mavenLocal)
 
+ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
+
 // Gemini repository
 ThisBuild / resolvers += "Gemini Repository".at(
   "https://github.com/gemini-hlsw/maven-repo/raw/master/releases"
