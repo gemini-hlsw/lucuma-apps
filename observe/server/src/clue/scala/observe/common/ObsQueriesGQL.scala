@@ -29,6 +29,10 @@ object ObsQueriesGql:
             id
             name
             goa { proprietaryMonths }
+            attachments {
+              id
+              mask { name }
+            }
           }
           targetEnvironment @skip(if: $$skipTargets) {
             asterism $TargetWithIdSubquery
@@ -60,10 +64,6 @@ object ObsQueriesGql:
           constraintSet $ConstraintSetSubquery
           schedulingConstraints {
             timingWindows $TimingWindowSubquery
-          }
-          attachments {
-            id
-            mask { name }
           }
         }
 

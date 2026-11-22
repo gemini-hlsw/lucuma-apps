@@ -135,7 +135,8 @@ class ObserveEngineSuite extends TestCommon {
     ODBObservation.Program(
       Program.Id(PosLong.unsafeFrom(123)),
       None,
-      ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+      ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0)),
+      List.empty
     ),
     defaultTargetEnvironment
       .copy(
@@ -143,8 +144,7 @@ class ObserveEngineSuite extends TestCommon {
       )
       .some,
     reqConditions,
-    ODBObservation.SchedulingConstraints(List.empty),
-    List.empty
+    ODBObservation.SchedulingConstraints(List.empty)
   )
 
   test("ObserveEngine setOperator should set operator's name") {
@@ -863,7 +863,8 @@ class ObserveEngineSuite extends TestCommon {
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
-        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0)),
+        List.empty
       ),
       defaultTargetEnvironment
         .copy(
@@ -877,8 +878,7 @@ class ObserveEngineSuite extends TestCommon {
         )
         .some,
       reqConditions,
-      ODBObservation.SchedulingConstraints(List.empty),
-      List.empty
+      ODBObservation.SchedulingConstraints(List.empty)
     )
 
     (obs, stepList)
@@ -1131,12 +1131,12 @@ class ObserveEngineSuite extends TestCommon {
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
-        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0)),
+        List.empty
       ),
       defaultTargetEnvironment.some,
       reqConditions,
-      ODBObservation.SchedulingConstraints(List.empty),
-      List.empty
+      ODBObservation.SchedulingConstraints(List.empty)
     )
 
     (obs, stepList)

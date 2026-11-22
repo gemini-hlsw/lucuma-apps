@@ -260,7 +260,7 @@ object SeqTranslate {
                 executionConfig.static,
                 step,
                 observation.observationTime,
-                CustomMasks.fromAttachments(observation.attachments)
+                CustomMasks.fromAttachments(observation.program.attachments)
               )
             )
             .map: insStep =>

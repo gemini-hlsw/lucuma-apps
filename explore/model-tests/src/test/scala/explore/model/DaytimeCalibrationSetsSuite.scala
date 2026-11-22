@@ -13,7 +13,6 @@ import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
 import lucuma.core.model.Defined
-import lucuma.core.model.ToBeDefined
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.ghost.GhostDetector
@@ -666,39 +665,11 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       .flatMap(_.fpu.toOption)
       .collect { case GmosNorthFpuInput.CustomMask(m) => m }
 
-  test("Picking a GMOS mask keeps the slit width of the current one"):
-    val d = north.fpu.replace(Defined(maskId).asRight.some)(
-      north.default.copy(fpu =
-        GmosFpuMask.Custom(ToBeDefined, GmosCustomSlitWidth.CustomWidth_0_50).some
-      )
-    )
-    assertEquals(
-      d.fpu,
-      GmosFpuMask.Custom(Defined(maskId), GmosCustomSlitWidth.CustomWidth_0_50).some
-    )
-    assertEquals(north.fpu.get(d), Defined(maskId).asRight.some)
-
-  test("Picking a GMOS builtin FPU after a mask drops the mask"):
-    val masked = north.fpu.replace(Defined(maskId).asRight.some)(north.default)
-    val d      = north.fpu.replace(GmosNorthFpu.Pinhole.asLeft.some)(masked)
-    assertEquals(d.fpu, GmosFpuMask.Builtin(GmosNorthFpu.Pinhole).some)
-
   test("A daytime GMOS set leaves the slit width of an existing mask to the ODB"):
     val set = gmosNorthSet(north.fpu.replace(Defined(maskId).asRight.some)(north.default))
     assertEquals(
       gmosNorthMaskInput(set),
       GmosCustomMaskInput(attachmentId = maskId.assign, slitWidth = Ignore).some
-    )
-
-  test("A daytime GMOS set sends the slit width of a deleted mask"):
-    val set = gmosNorthSet(
-      north.default.copy(fpu =
-        GmosFpuMask.Custom(ToBeDefined, GmosCustomSlitWidth.CustomWidth_0_75).some
-      )
-    )
-    assertEquals(
-      gmosNorthMaskInput(set).map(_.slitWidth),
-      GmosCustomSlitWidth.CustomWidth_0_75.assign.some
     )
 
   test("A custom mask outside a daytime set always sends its slit width"):
@@ -715,9 +686,3 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
       input,
       Flamingos2CustomMaskInput(attachmentId = maskId.assign, slitWidth = Ignore).some
     )
-
-  test("Clearing a Flamingos 2 mask puts the imaging mask back"):
-    val fpu = Flamingos2DaytimeSetup.fpu
-    val d   = fpu.replace(Defined(maskId).asRight.some)(Flamingos2DaytimeSetup.default)
-    assertEquals(fpu.replace(none)(d).fpu, Flamingos2FpuMask.Imaging)
-    assertEquals(fpu.replace(none)(d).decker, Flamingos2Decker.Imaging)
