@@ -82,22 +82,27 @@ final case class Flamingos2[F[_]: {Async, Logger}](
 
 object Flamingos2 {
 
-  private def builtinFpu(fpu: Flamingos2Fpu): FocalPlaneUnit = fpu match
-    case Flamingos2Fpu.SubPixPinhole => FocalPlaneUnit.GridSub1Pix
-    case Flamingos2Fpu.Pinhole       => FocalPlaneUnit.Grid2Pix
-    case Flamingos2Fpu.LongSlit1     => FocalPlaneUnit.Slit1Pix
-    case Flamingos2Fpu.LongSlit2     => FocalPlaneUnit.Slit2Pix
-    case Flamingos2Fpu.LongSlit3     => FocalPlaneUnit.Slit3Pix
-    case Flamingos2Fpu.LongSlit4     => FocalPlaneUnit.Slit4Pix
-    case Flamingos2Fpu.LongSlit6     => FocalPlaneUnit.Slit6Pix
-    case Flamingos2Fpu.LongSlit8     => FocalPlaneUnit.Slit8Pix
+  private def builtinFpu(fpu: Flamingos2Fpu): Either[ObserveFailure, FocalPlaneUnit] = fpu match
+    case Flamingos2Fpu.SubPixPinhole => FocalPlaneUnit.GridSub1Pix.asRight
+    case Flamingos2Fpu.Pinhole       => FocalPlaneUnit.Grid2Pix.asRight
+    case Flamingos2Fpu.LongSlit1     => FocalPlaneUnit.Slit1Pix.asRight
+    case Flamingos2Fpu.LongSlit2     => FocalPlaneUnit.Slit2Pix.asRight
+    case Flamingos2Fpu.LongSlit3     => FocalPlaneUnit.Slit3Pix.asRight
+    case Flamingos2Fpu.LongSlit4     => FocalPlaneUnit.Slit4Pix.asRight
+    case Flamingos2Fpu.LongSlit6     => FocalPlaneUnit.Slit6Pix.asRight
+    case Flamingos2Fpu.LongSlit8     => FocalPlaneUnit.Slit8Pix.asRight
+    // The blank mask lives in the MOS wheel, which is addressed by mask id like a custom mask.
+    case Flamingos2Fpu.BlankMask     =>
+      fpu.maskId
+        .map(FocalPlaneUnit.Custom(_))
+        .toRight(ObserveFailure.Unexpected(s"Flamingos 2 FPU ${fpu.tag} has no mask id"))
 
   private def fpuFromFpuMask(
     fpu:         Flamingos2FpuMask,
     customMasks: CustomMasks
   ): Either[ObserveFailure, FocalPlaneUnit] = fpu match
     case Flamingos2FpuMask.Imaging         => FocalPlaneUnit.Open.asRight
-    case Flamingos2FpuMask.Builtin(value)  => builtinFpu(value).asRight
+    case Flamingos2FpuMask.Builtin(value)  => builtinFpu(value)
     case Flamingos2FpuMask.Custom(mask, _) =>
       customMasks.maskName(mask).map(FocalPlaneUnit.Custom.apply)
 
