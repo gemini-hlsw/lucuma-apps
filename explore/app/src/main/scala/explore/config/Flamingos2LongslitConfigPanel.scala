@@ -178,11 +178,10 @@ object Flamingos2LongslitConfigPanel
           Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
         val excludedFpus: Set[Flamingos2Fpu] =
-          val current = fpuView.get
-          val noSlit  = Enumerated[Flamingos2Fpu].all
-            .filterNot(f => f.isPinhole || f.fpuType === Flamingos2FpuType.LongSlit)
+          Enumerated[Flamingos2Fpu].all
+            .filter(_.fpuType =!= Flamingos2FpuType.LongSlit)
             .toSet
-          (noSlit - current) ++ Flamingos2Fpu.Pinholes.excludedUnless(props.isStaff, current.some)
+            .excludedUnless(props.isStaff, fpuView.get.some)
 
         // Tellurics offer their own presets, science observations the nod patterns.
         def configFields[P <: SlitOffsetPreset: {Eq, Display}](
