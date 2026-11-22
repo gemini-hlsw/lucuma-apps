@@ -209,18 +209,18 @@ private object AgsCandidatesTable:
         identity,
         "Brightness",
         cell => AgsOverlay.brightness(cell.value).getOrElse(EmptyVdom)
-      ).withColumnSize(FixedSize(120.toPx)),
+      ).withColumnSize(FixedSize(100.toPx)),
       ColDef(
         RuweColumnId,
         _.target.ruwe.map(_.value.toDouble),
         "RUWE",
         cell => cell.value.foldMap(r => f"$r%.2f"): String
-      ).withColumnSize(FixedSize(80.toPx)),
+      ).withColumnSize(FixedSize(60.toPx)),
       ColDef(
         VignettingColumnId,
         _.vignetting.toMicroarcsecondsSquared / 1e12,
         _ => <.div(ExploreStyles.AgsCandidateVignetting, "Vignetting (arcsec²)"),
-        cell => <.div(ExploreStyles.AgsCandidateVignetting, f"${cell.value}%.2f")
+        cell => <.div(ExploreStyles.AgsCandidateVignetting, f"${cell.value}%.0f")
       ).withColumnSize(FixedSize(150.toPx))
     )
 
