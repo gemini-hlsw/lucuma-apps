@@ -17,6 +17,7 @@ import explore.model.*
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.SelectedPanel
+import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.modes.ScienceModes
 import explore.observationtree.*
@@ -34,7 +35,6 @@ import lucuma.core.model.Group
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.optics.syntax.lens.*
-import lucuma.core.util.NewBoolean
 import lucuma.react.common.*
 import lucuma.react.hotkeys.*
 import lucuma.react.hotkeys.hooks.*
@@ -50,9 +50,6 @@ import lucuma.ui.undo.UndoSetter
 import lucuma.ui.undo.Undoer
 import monocle.Iso
 import monocle.Optional
-
-object DeckShown extends NewBoolean { inline def Shown = True; inline def Hidden = False }
-type DeckShown = DeckShown.Type
 
 case class ObsTabContents(
   vault:            Option[UserVault],
@@ -205,14 +202,21 @@ object ObsTabContents extends TwoPanels:
                                       ((GoToSummary :: Up :: Down :: Nil) ::: (CopyKeys ::: PasteKeys)).toHotKeys,
                                       callbacks
                                     )
-        deckShown              <- useStateView(DeckShown.Shown)
         addingObservation      <- useStateView(AddingObservation(false))
         treeWidth              <- useStateView(props.preferredTreeWidth)
         _                      <- useEffectWithDeps(props.preferredTreeWidth):
                                     treeWidth.set // resync when the preference subscription fires
       } yield
+        val showObsTree: View[Visible] =
+          props.globalPreferences
+            .zoom(GlobalPreferences.showObsTree)
+            .withOnMod: v =>
+              import ctx.given
+              props.vault.userId.foldMap: userId =>
+                GlobalUserPreferences.storeShowObsTreePreference[IO](userId, v).runAsync
+
         val observationsTree: VdomNode =
-          if (deckShown.get === DeckShown.Shown) {
+          if (showObsTree.get === Visible.Shown) {
             ObsTree(
               props.programId,
               props.observationsAndGroups,
@@ -226,7 +230,7 @@ object ObsTabContents extends TwoPanels:
               selectedObsIds.get,
               twoPanelState.set(SelectedPanel.Summary),
               props.expandedGroups,
-              deckShown,
+              showObsTree,
               copyCallback,
               pasteCallback,
               shadowClipboardObs.value,
@@ -247,7 +251,7 @@ object ObsTabContents extends TwoPanels:
                 tooltipOptions = DefaultTooltipOptions,
                 icon = Icons.ArrowRightFromLine,
                 clazz = ExploreStyles.ObsTreeHideShow,
-                onClick = deckShown.mod(_.flip)
+                onClick = showObsTree.mod(_.flip)
               ).mini.compact
             )
 
@@ -394,8 +398,8 @@ object ObsTabContents extends TwoPanels:
           rightSide,
           RightSideCardinality.Multi,
           resize,
-          ExploreStyles.ObsHiddenToolbar.when_(deckShown.get === DeckShown.Hidden),
+          ExploreStyles.ObsHiddenToolbar.when_(showObsTree.get === Visible.Hidden),
           // When the deck is hidden the panel collapses to the button, so no inline width.
-          Option.when(deckShown.get === DeckShown.Shown)(treeWidth),
+          Option.when(showObsTree.get === Visible.Shown)(treeWidth),
           storeTreeWidth
         )

@@ -26,8 +26,8 @@ import explore.model.ObservationList
 import explore.model.ObservationsAndGroups
 import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
+import explore.model.enums.Visible
 import explore.model.syntax.all.*
-import explore.tabs.DeckShown
 import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
@@ -77,7 +77,7 @@ case class ObsTree(
   selectedObsIds:        List[Observation.Id],   // obs list selected in table
   setSummaryPanel:       Callback,
   expandedGroups:        View[Set[Group.Id]],
-  deckShown:             View[DeckShown],
+  showObsTree:           View[Visible],
   copyCallback:          Callback,
   pasteCallback:         Callback,
   clipboardObsContents:  Option[ObsIdSet],
@@ -591,7 +591,7 @@ object ObsTree:
             .exists(g => g.system && !g.isObsCalibration)
 
         val tree: VdomNode =
-          if (props.deckShown.get === DeckShown.Shown) {
+          if (props.showObsTree.get === Visible.Shown) {
             React.Fragment(
               <.div(ExploreStyles.TreeToolbar)(
                 React
@@ -681,7 +681,7 @@ object ObsTree:
                   tooltipOptions = DefaultTooltipOptions,
                   icon = Icons.ArrowLeftFromLine,
                   clazz = ExploreStyles.ObsTreeHideShow,
-                  onClick = props.deckShown.mod(_.flip)
+                  onClick = props.showObsTree.mod(_.flip)
                 ).mini.compact
               ),
               <.div(

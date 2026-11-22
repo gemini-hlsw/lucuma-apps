@@ -1,0 +1,1 @@
+alter table "public"."lucumaUserPreferences" add column "showObsTree" boolean not null default true;
