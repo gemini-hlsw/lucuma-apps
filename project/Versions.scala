@@ -35,7 +35,7 @@ object Versions {
   val log4CatsLogLevel       = "0.3.1"
   val log4s                  = "1.10.0"
   val logback                = "1.6.8"
-  val lucumaCore             = "0.288-1a08d87-20261122T185250Z-SNAPSHOT"
+  val lucumaCore             = "0.288-74fcec1-20261122T211607Z-SNAPSHOT"
   val lucumaPrimeStyles      = "0.5.0"
   val lucumaReact            = "0.109.2"
   val lucumaRefined          = "0.1.4"
