@@ -2310,8 +2310,13 @@ svg.fa-check.explore-success-icon {
       width: 1.5em;
     }
 
+    // The theme offsets the clear icon by its own, wider trigger.
+    .p-dropdown-clear-icon {
+      right: 1.5em;
+    }
+
     &.p-dropdown-clearable .p-dropdown-label {
-      padding-right: 1em;
+      padding-right: 1.25rem;
     }
   }
 }
