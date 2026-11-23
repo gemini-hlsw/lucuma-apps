@@ -11,6 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
@@ -64,7 +65,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     editContexts:                     SequenceEditContexts[D],
     getMaskName:                      Attachment.Id => Option[NonEmptyString],
     qaBulkEdit:                       DatasetQaBulkEdit,
-    override val ghostResolutionMode: Option[GhostResolutionMode]
+    override val ghostResolutionMode: Option[GhostResolutionMode],
+    override val gnirsWellDepth:      Option[GnirsWellDepth]
   ) extends SequenceTableMeta[D]:
     override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
       getMaskName(attachmentId)

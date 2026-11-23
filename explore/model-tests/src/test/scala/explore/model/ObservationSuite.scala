@@ -9,6 +9,7 @@ import crystal.Pot
 import explore.model.arb.ArbObservation
 import io.circe.parser.parse
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -61,6 +62,20 @@ class ObservationSuite extends DisciplineSuite:
         Pot.Ready(
           ObservingMode
             .DaytimeCalibration(Instrument.Ghost, Nil, GhostResolutionMode.High.some)
+            .some
+        )
+      )
+    )
+
+  test("a GNIRS daytime calibration mode carries its well depth"):
+    assertEquals(
+      decodeModes(
+        """{ "daytimeCalibration": { "instrument": "GNIRS", "calibrationSets": [], "ghost": null, "gnirs": { "wellDepth": "DEEP" } } }"""
+      ).map(_._2),
+      Right(
+        Pot.Ready(
+          ObservingMode
+            .DaytimeCalibration(Instrument.Gnirs, Nil, none, GnirsWellDepth.Deep.some)
             .some
         )
       )

@@ -532,6 +532,9 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             ghost {
               resolutionMode
             }
+            gnirs {
+              wellDepth
+            }
           }
         }
       """

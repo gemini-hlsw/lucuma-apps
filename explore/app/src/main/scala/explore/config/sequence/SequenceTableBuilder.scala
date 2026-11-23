@@ -18,6 +18,7 @@ import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.Dataset
@@ -67,7 +68,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     isUserStaffOrAdmin:               Boolean,
     getMaskName:                      Attachment.Id => Option[NonEmptyString],
     override val wavelengthFormat:    SequenceWavelengthFormat,
-    override val ghostResolutionMode: Option[GhostResolutionMode]
+    override val ghostResolutionMode: Option[GhostResolutionMode],
+    override val gnirsWellDepth:      Option[GnirsWellDepth]
   ) extends SequenceTableMeta[D]:
     override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
       getMaskName(attachmentId)
@@ -220,7 +222,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 props.isUserStaffOrAdmin,
                 props.maskName,
                 props.wavelengthUnits.toSequenceWavelengthFormat,
-                props.ghostResolutionMode
+                props.ghostResolutionMode,
+                props.gnirsWellDepth
               )
             )
         _                             <-

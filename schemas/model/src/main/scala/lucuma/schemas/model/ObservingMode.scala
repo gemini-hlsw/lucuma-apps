@@ -2516,13 +2516,14 @@ object ObservingMode:
       yield SubaruExchange(subaruInstrument, totalRequestTime)
 
   /**
-   * `ghostResolutionMode` is shared by every set of a GHOST calibration, and is empty for any other
-   * instrument.
+   * `ghostResolutionMode` is shared by every set of a GHOST calibration and `gnirsWellDepth` by
+   * every set of a GNIRS one. Each is empty for any other instrument.
    */
   case class DaytimeCalibration(
     calibrationInstrument: Instrument,
     calibrationSets:       List[DaytimeCalibrationSet],
-    ghostResolutionMode:   Option[GhostResolutionMode] = none
+    ghostResolutionMode:   Option[GhostResolutionMode] = none,
+    gnirsWellDepth:        Option[GnirsWellDepth] = none
   ) extends ObservingMode(calibrationInstrument.some) derives Eq:
     val isCustomized: Boolean = false
 
@@ -2533,16 +2534,22 @@ object ObservingMode:
       Focus[DaytimeCalibration](_.calibrationSets)
     val ghostResolutionMode: Lens[DaytimeCalibration, Option[GhostResolutionMode]] =
       Focus[DaytimeCalibration](_.ghostResolutionMode)
+    val gnirsWellDepth: Lens[DaytimeCalibration, Option[GnirsWellDepth]]           =
+      Focus[DaytimeCalibration](_.gnirsWellDepth)
 
     private val ghostDecoder: Decoder[Option[GhostResolutionMode]] =
       Decoder.decodeOption(using Decoder[GhostResolutionMode].at("resolutionMode"))
+
+    private val gnirsDecoder: Decoder[Option[GnirsWellDepth]] =
+      Decoder.decodeOption(using Decoder[GnirsWellDepth].at("wellDepth"))
 
     given Decoder[DaytimeCalibration] = Decoder.instance: c =>
       for
         instrument <- c.downField("instrument").as[Instrument]
         sets       <- c.downField("calibrationSets").as[List[DaytimeCalibrationSet]]
         resolution <- c.downField("ghost").as(using ghostDecoder)
-      yield DaytimeCalibration(instrument, sets, resolution)
+        wellDepth  <- c.downField("gnirs").as(using gnirsDecoder)
+      yield DaytimeCalibration(instrument, sets, resolution, wellDepth)
 
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]

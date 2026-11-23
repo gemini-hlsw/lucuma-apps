@@ -607,6 +607,19 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
           .orEmpty
     )
 
+  private lazy val gnirsWellDepthCol: colDef.TypeFor[Boolean] =
+    colDef(
+      SequenceColumns.GnirsWellDepthColumnId,
+      _.getStep.isDefined,
+      header = "Well Depth",
+      cell = c =>
+        c.table.options.meta
+          .flatMap(_.gnirsWellDepth)
+          .filter(_ => c.value)
+          .map(_.shortName)
+          .orEmpty
+    )
+
   private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
     colDef(
       SequenceColumns.FowlerSamplesColumnId,
@@ -699,6 +712,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       gratingCol,
       filterCol,
       gnirsReadModeCol,
+      gnirsWellDepthCol,
       gcalCol,
       peakCol,
       snCol
@@ -752,6 +766,8 @@ object SequenceColumns:
   val SNColumnId: ColumnId            = ColumnId("sn")
   val PeakColumnId: ColumnId          = ColumnId("peak")
 
+  val GnirsWellDepthColumnId: ColumnId = ColumnId("gnirsWellDepth")
+
   val GhostResolutionColumnId: ColumnId        = ColumnId("ghostResolution")
   val GhostBlueGroupColumnId: ColumnId         = ColumnId("ghostBlueGroup")
   val GhostRedGroupColumnId: ColumnId          = ColumnId("ghostRedGroup")
@@ -765,13 +781,14 @@ object SequenceColumns:
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
   // Columns absent from this map show for every profile. Daytime calibrations have no offsets
-  // and are the only sequences where the window cover and the GHOST resolution are set by hand;
-  // roles without ITC have no S/N or peak.
+  // and are the only sequences where the window cover, the GHOST resolution and the GNIRS well
+  // depth are set by hand; roles without ITC have no S/N or peak.
   private val ColumnRules: Map[ColumnId, SequenceColumnProfile => Boolean] = Map(
     PColumnId               -> (_.kind === SequenceKind.Science),
     QColumnId               -> (_.kind === SequenceKind.Science),
     WindowCoverColumnId     -> (_.kind === SequenceKind.Calibration),
     GhostResolutionColumnId -> (_.kind === SequenceKind.Calibration),
+    GnirsWellDepthColumnId  -> (_.kind === SequenceKind.Calibration),
     SNColumnId              -> (_.hasItc),
     PeakColumnId            -> (_.hasItc)
   )
@@ -845,15 +862,16 @@ object SequenceColumns:
 
     val ForGnirs: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
-        ExposureColumnId -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
-        CoaddsColumnId   -> Resizable(60.toPx, min = 50.toPx, max = 70.toPx),
-        FPUColumnId      -> Resizable(130.toPx, min = 130.toPx),
-        DeckerColumnId   -> Resizable(120.toPx, min = 100.toPx),
-        GratingColumnId  -> Resizable(50.toPx, min = 50.toPx, max = 70.toPx),
-        FilterColumnId   -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
-        ReadModeColumnId -> Resizable(120.toPx, min = 100.toPx, max = 160.toPx),
-        GCalColumnId     -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx),
-        SNColumnId       -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
+        ExposureColumnId       -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        CoaddsColumnId         -> Resizable(60.toPx, min = 50.toPx, max = 70.toPx),
+        FPUColumnId            -> Resizable(130.toPx, min = 130.toPx),
+        DeckerColumnId         -> Resizable(120.toPx, min = 100.toPx),
+        GratingColumnId        -> Resizable(50.toPx, min = 50.toPx, max = 70.toPx),
+        FilterColumnId         -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
+        ReadModeColumnId       -> Resizable(120.toPx, min = 100.toPx, max = 160.toPx),
+        GnirsWellDepthColumnId -> FixedSize(90.toPx),
+        GCalColumnId           -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx),
+        SNColumnId             -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
       )
 
     val ForGhost: Map[ColumnId, ColumnSize] =

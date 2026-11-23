@@ -11,6 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
@@ -53,6 +54,9 @@ private trait SequenceTable[S, D](
 
   // Only GHOST sequence tables have a resolution mode.
   def ghostResolutionMode: Option[GhostResolutionMode] = None
+
+  // Only GNIRS sequence tables have a well depth.
+  def gnirsWellDepth: Option[GnirsWellDepth] = None
 
   def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise]
   def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel]

@@ -45,5 +45,7 @@ final case class GnirsSequenceTable(
   override val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
 
+  override def gnirsWellDepth = Some(staticConfig.wellDepth)
+
 object GnirsSequenceTable
     extends SequenceTableBuilder[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)

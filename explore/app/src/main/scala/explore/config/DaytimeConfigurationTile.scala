@@ -21,6 +21,7 @@ import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.util.CalculatedValue
@@ -210,8 +211,13 @@ object DaytimeCalibrationEditor:
               ObservingMode.DaytimeCalibration(
                 i,
                 Nil,
-                Option.when(i === Instrument.Ghost)(GhostResolutionMode.Standard)
+                Option.when(i === Instrument.Ghost)(GhostResolutionMode.Standard),
+                Option.when(i === Instrument.Gnirs)(GnirsWellDepth.Shallow)
               )
+
+      def smartSetsPending(sets: List[DaytimeCalibrationSet]): List[DaytimeCalibrationSet] =
+        sets.map: s =>
+          if s.kind.isSmart then s.copy(count = DaytimeCalibrationSet.Count.Pending) else s
 
       // The resolution selects the Smart GCAL rows, so smart counts wait for the ODB again.  It is
       // unknown while loading, so its dropdown is hidden then.
@@ -224,9 +230,20 @@ object DaytimeCalibrationEditor:
             else
               d.copy(
                 ghostResolutionMode = r.some,
-                calibrationSets = d.calibrationSets.map: s =>
-                  if s.kind.isSmart then s.copy(count = DaytimeCalibrationSet.Count.Pending)
-                  else s
+                calibrationSets = smartSetsPending(d.calibrationSets)
+              )
+
+      // The well depth selects the Smart GCAL rows too.
+      val wellDepthView: View[GnirsWellDepth] =
+        props.daytime.zoom(_.gnirsWellDepth.getOrElse(GnirsWellDepth.Shallow)): f =>
+          d =>
+            val current = d.gnirsWellDepth.getOrElse(GnirsWellDepth.Shallow)
+            val w       = f(current)
+            if w === current then d
+            else
+              d.copy(
+                gnirsWellDepth = w.some,
+                calibrationSets = smartSetsPending(d.calibrationSets)
               )
 
       val setsView: View[List[DaytimeCalibrationSet]] =
@@ -278,7 +295,17 @@ object DaytimeCalibrationEditor:
                 disabled = !props.editable
               ).withMods(testId     := "explore-daytime-cal-ghost-resolution")
             )
-            .when(instrument === Instrument.Ghost && !props.loading)
+            .when(instrument === Instrument.Ghost && !props.loading),
+          React
+            .Fragment(
+              <.label("Well Depth:", ^.htmlFor := "daytime-cal-gnirs-well-depth"),
+              EnumDropdownView(
+                id = "daytime-cal-gnirs-well-depth".refined,
+                value = wellDepthView,
+                disabled = !props.editable
+              ).withMods(testId     := "explore-daytime-cal-gnirs-well-depth")
+            )
+            .when(instrument === Instrument.Gnirs)
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,
