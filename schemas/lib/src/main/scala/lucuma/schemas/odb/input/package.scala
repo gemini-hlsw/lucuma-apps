@@ -1271,7 +1271,10 @@ extension (d: ObservingMode.DaytimeCalibration)
   def toInput: DaytimeCalibrationInput =
     DaytimeCalibrationInput(
       instrument = d.calibrationInstrument.assign,
-      calibrationSets = d.calibrationSets.map(_.toInput).assign
+      calibrationSets = d.calibrationSets.map(_.toInput).assign,
+      ghost = d.ghostResolutionMode
+        .map(r => DaytimeCalibrationGhostInput(resolutionMode = r.assign))
+        .orIgnore
     )
 
 extension (er: ElevationRange)

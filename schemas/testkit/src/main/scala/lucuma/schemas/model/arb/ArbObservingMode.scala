@@ -1884,7 +1884,8 @@ trait ArbObservingMode {
     for
       instrument <- arbitrary[Instrument]
       sets       <- Gen.listOfN(3, arbitrary[DaytimeCalibrationSet])
-    yield ObservingMode.DaytimeCalibration(instrument, sets)
+      resolution <- arbitrary[Option[GhostResolutionMode]]
+    yield ObservingMode.DaytimeCalibration(instrument, sets, resolution)
   )
 
   given Cogen[DaytimeCalibrationSetup] =
@@ -1924,8 +1925,8 @@ trait ArbObservingMode {
         (s.kind, s.explicitCount, s.gcal, s.setup, count)
 
   given Cogen[ObservingMode.DaytimeCalibration] =
-    Cogen[(Instrument, List[DaytimeCalibrationSet])]
-      .contramap(d => (d.calibrationInstrument, d.calibrationSets))
+    Cogen[(Instrument, List[DaytimeCalibrationSet], Option[GhostResolutionMode])]
+      .contramap(d => (d.calibrationInstrument, d.calibrationSets, d.ghostResolutionMode))
 
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(

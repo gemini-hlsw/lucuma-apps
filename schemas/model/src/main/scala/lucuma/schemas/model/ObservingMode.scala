@@ -110,43 +110,43 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case d: ObservingMode.DaytimeCalibration => d.toBasicConfiguration.siteFor
 
   def toBasicConfiguration: BasicConfiguration = this match
-    case n: ObservingMode.GmosNorthLongSlit                         =>
+    case n: ObservingMode.GmosNorthLongSlit                        =>
       BasicConfiguration.GmosNorthLongSlit(n.grating, n.filter, n.fpu, n.centralWavelength)
-    case s: ObservingMode.GmosSouthLongSlit                         =>
+    case s: ObservingMode.GmosSouthLongSlit                        =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
-    case n: ObservingMode.GmosNorthMos                              =>
+    case n: ObservingMode.GmosNorthMos                             =>
       BasicConfiguration.GmosNorthMos(
         n.grating,
         n.filter,
         n.customMask.slitWidth,
         n.centralWavelength
       )
-    case s: ObservingMode.GmosSouthMos                              =>
+    case s: ObservingMode.GmosSouthMos                             =>
       BasicConfiguration.GmosSouthMos(
         s.grating,
         s.filter,
         s.customMask.slitWidth,
         s.centralWavelength
       )
-    case n: ObservingMode.GmosNorthIfu                              =>
+    case n: ObservingMode.GmosNorthIfu                             =>
       BasicConfiguration.GmosNorthIfu(n.grating, n.filter, n.fpu, n.centralWavelength)
-    case s: ObservingMode.GmosSouthIfu                              =>
+    case s: ObservingMode.GmosSouthIfu                             =>
       BasicConfiguration.GmosSouthIfu(s.grating, s.filter, s.fpu, s.centralWavelength)
-    case ObservingMode.GmosNorthImaging(filters = filters)          =>
+    case ObservingMode.GmosNorthImaging(filters = filters)         =>
       BasicConfiguration.GmosNorthImaging(filters.map(_.filter))
-    case ObservingMode.GmosSouthImaging(filters = filters)          =>
+    case ObservingMode.GmosSouthImaging(filters = filters)         =>
       BasicConfiguration.GmosSouthImaging(filters.map(_.filter))
-    case ObservingMode.Flamingos2Imaging(filters = filters)         =>
+    case ObservingMode.Flamingos2Imaging(filters = filters)        =>
       BasicConfiguration.Flamingos2Imaging(filters.map(_.filter))
-    case f: ObservingMode.Flamingos2LongSlit                        =>
+    case f: ObservingMode.Flamingos2LongSlit                       =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
-    case f: ObservingMode.Flamingos2Mos                             =>
+    case f: ObservingMode.Flamingos2Mos                            =>
       BasicConfiguration.Flamingos2Mos(f.disperser, f.filter, f.customMask.slitWidth)
-    case _: ObservingMode.Igrins2LongSlit                           =>
+    case _: ObservingMode.Igrins2LongSlit                          =>
       BasicConfiguration.Igrins2LongSlit
-    case g: ObservingMode.GnirsImaging                              =>
+    case g: ObservingMode.GnirsImaging                             =>
       BasicConfiguration.GnirsImaging(g.filters.map(_.filter), g.camera)
-    case g: ObservingMode.GnirsLongSlit                             =>
+    case g: ObservingMode.GnirsLongSlit                            =>
       BasicConfiguration
         .GnirsSpectroscopy(
           g.filter,
@@ -156,7 +156,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
           g.camera,
           g.centralWavelengths.head.centralWavelength
         )
-    case g: ObservingMode.GnirsIfu                                  =>
+    case g: ObservingMode.GnirsIfu                                 =>
       BasicConfiguration
         .GnirsSpectroscopy(
           g.filter,
@@ -166,7 +166,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
           g.camera,
           g.centralWavelengths.head.centralWavelength
         )
-    case g: ObservingMode.GhostIfu                                  =>
+    case g: ObservingMode.GhostIfu                                 =>
       val red  = ItcGhostDetector(
         timeAndCount = g.red.timeAndCount,
         binning = g.red.binning,
@@ -184,16 +184,16 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
         red = red,
         blue = blue
       )
-    case s: ObservingMode.ScorpioLongSlit                           =>
+    case s: ObservingMode.ScorpioLongSlit                          =>
       BasicConfiguration.ScorpioLongSlit(s.fpu)
-    case v: ObservingMode.Visitor                                   =>
+    case v: ObservingMode.Visitor                                  =>
       BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.scienceFovDiameter)
-    case ObservingMode.KeckExchange(keckInstrument, requested)      =>
+    case ObservingMode.KeckExchange(keckInstrument, requested)     =>
       BasicConfiguration.KeckExchange(keckInstrument, requested)
-    case ObservingMode.SubaruExchange(subaruInstrument, requested)  =>
+    case ObservingMode.SubaruExchange(subaruInstrument, requested) =>
       BasicConfiguration.SubaruExchange(subaruInstrument, requested)
-    case ObservingMode.DaytimeCalibration(calibrationInstrument, _) =>
-      BasicConfiguration.DaytimeCalibration(calibrationInstrument)
+    case d: ObservingMode.DaytimeCalibration                       =>
+      BasicConfiguration.DaytimeCalibration(d.calibrationInstrument)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -2515,23 +2515,34 @@ object ObservingMode:
         totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
       yield SubaruExchange(subaruInstrument, totalRequestTime)
 
+  /**
+   * `ghostResolutionMode` is shared by every set of a GHOST calibration, and is empty for any other
+   * instrument.
+   */
   case class DaytimeCalibration(
     calibrationInstrument: Instrument,
-    calibrationSets:       List[DaytimeCalibrationSet]
+    calibrationSets:       List[DaytimeCalibrationSet],
+    ghostResolutionMode:   Option[GhostResolutionMode] = none
   ) extends ObservingMode(calibrationInstrument.some) derives Eq:
     val isCustomized: Boolean = false
 
   object DaytimeCalibration:
-    val calibrationInstrument: Lens[DaytimeCalibration, Instrument]            =
+    val calibrationInstrument: Lens[DaytimeCalibration, Instrument]                =
       Focus[DaytimeCalibration](_.calibrationInstrument)
-    val calibrationSets: Lens[DaytimeCalibration, List[DaytimeCalibrationSet]] =
+    val calibrationSets: Lens[DaytimeCalibration, List[DaytimeCalibrationSet]]     =
       Focus[DaytimeCalibration](_.calibrationSets)
+    val ghostResolutionMode: Lens[DaytimeCalibration, Option[GhostResolutionMode]] =
+      Focus[DaytimeCalibration](_.ghostResolutionMode)
+
+    private val ghostDecoder: Decoder[Option[GhostResolutionMode]] =
+      Decoder.decodeOption(using Decoder[GhostResolutionMode].at("resolutionMode"))
 
     given Decoder[DaytimeCalibration] = Decoder.instance: c =>
       for
         instrument <- c.downField("instrument").as[Instrument]
         sets       <- c.downField("calibrationSets").as[List[DaytimeCalibrationSet]]
-      yield DaytimeCalibration(instrument, sets)
+        resolution <- c.downField("ghost").as(using ghostDecoder)
+      yield DaytimeCalibration(instrument, sets, resolution)
 
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]

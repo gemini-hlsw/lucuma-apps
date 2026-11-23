@@ -8,6 +8,7 @@ import cats.syntax.all.*
 import crystal.Pot
 import explore.model.arb.ArbObservation
 import io.circe.parser.parse
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -49,4 +50,26 @@ class ObservationSuite extends DisciplineSuite:
          Pot.Ready(ObservingMode.DaytimeCalibration(Instrument.GmosNorth, Nil).some)
         )
       )
+    )
+
+  test("a GHOST daytime calibration mode carries its resolution mode"):
+    assertEquals(
+      decodeModes(
+        """{ "daytimeCalibration": { "instrument": "GHOST", "calibrationSets": [], "ghost": { "resolutionMode": "HIGH" } } }"""
+      ).map(_._2),
+      Right(
+        Pot.Ready(
+          ObservingMode
+            .DaytimeCalibration(Instrument.Ghost, Nil, GhostResolutionMode.High.some)
+            .some
+        )
+      )
+    )
+
+  test("a daytime calibration mode of another instrument has a null ghost block"):
+    assertEquals(
+      decodeModes(
+        """{ "daytimeCalibration": { "instrument": "GMOS_NORTH", "calibrationSets": [], "ghost": null } }"""
+      ).map(_._2),
+      Right(Pot.Ready(ObservingMode.DaytimeCalibration(Instrument.GmosNorth, Nil).some))
     )

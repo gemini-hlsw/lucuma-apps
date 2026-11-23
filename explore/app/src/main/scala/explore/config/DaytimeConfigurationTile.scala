@@ -20,6 +20,7 @@ import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.util.CalculatedValue
@@ -31,6 +32,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
+import lucuma.ui.display.given
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -97,6 +99,8 @@ object DaytimeConfigurationTile
         // A rejected edit, such as an unusable mask, is reported and the view goes back to the
         // last mode the ODB accepted, as later edits in flight carry the rejected change too. The
         // mark is cleared only when no edit is left in flight and none was accepted.
+        // The ODB rejects the mode once the sequence is stored, even when it is unchanged, so
+        // nothing is sent then.
         def remoteUpdate(
           old: ObservingMode.DaytimeCalibration,
           d:   ObservingMode.DaytimeCalibration
@@ -107,13 +111,16 @@ object DaytimeConfigurationTile
                 props.mode.model.zoom(daytimeOptional).set(s.accepted.getOrElse(old)) >>
                   props.sequenceUnchanged.when_(s.count === 0 && !s.anyAccepted)
 
-          (inFlight.mod(_.started(old)) >> props.sequenceChanged).toAsync >>
-            ctx.odbApi
-              .updateDaytimeCalibration(props.obsId, d.toInput)
-              .flatMap(_ => inFlight.mod(_.finished.accept(d)).toAsync)
-              .handleErrorWith: e =>
-                ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
-                  rejected.toAsync
+          val send: IO[Unit] =
+            (inFlight.mod(_.started(old)) >> props.sequenceChanged).toAsync >>
+              ctx.odbApi
+                .updateDaytimeCalibration(props.obsId, d.toInput)
+                .flatMap(_ => inFlight.mod(_.finished.accept(d)).toAsync)
+                .handleErrorWith: e =>
+                  ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
+                    rejected.toAsync
+
+          send.unlessA(props.hasMaterializedSequence)
 
         val daytimeView: Option[View[ObservingMode.DaytimeCalibration]] =
           props.mode
@@ -197,7 +204,27 @@ object DaytimeCalibrationEditor:
           d =>
             val i = f(d.calibrationInstrument)
             if i === d.calibrationInstrument then d
-            else ObservingMode.DaytimeCalibration(i, Nil)
+            else
+              ObservingMode.DaytimeCalibration(
+                i,
+                Nil,
+                Option.when(i === Instrument.Ghost)(GhostResolutionMode.Standard)
+              )
+
+      // The resolution selects the Smart GCAL rows, so smart counts wait for the ODB again.
+      val resolutionView: View[GhostResolutionMode] =
+        props.daytime.zoom(_.ghostResolutionMode.getOrElse(GhostResolutionMode.Standard)): f =>
+          d =>
+            val current = d.ghostResolutionMode.getOrElse(GhostResolutionMode.Standard)
+            val r       = f(current)
+            if r === current then d
+            else
+              d.copy(
+                ghostResolutionMode = r.some,
+                calibrationSets = d.calibrationSets.map: s =>
+                  if s.kind.isSmart then s.copy(count = DaytimeCalibrationSet.Count.Pending)
+                  else s
+              )
 
       val setsView: View[List[DaytimeCalibrationSet]] =
         props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
@@ -238,7 +265,17 @@ object DaytimeCalibrationEditor:
             value = instrumentView,
             exclude = UnsupportedInstruments - instrument,
             disabled = !props.editable
-          ).withMods(testId     := "explore-daytime-cal-instrument")
+          ).withMods(testId     := "explore-daytime-cal-instrument"),
+          React
+            .Fragment(
+              <.label("Resolution:", ^.htmlFor := "daytime-cal-ghost-resolution"),
+              EnumDropdownView(
+                id = "daytime-cal-ghost-resolution".refined,
+                value = resolutionView,
+                disabled = !props.editable
+              ).withMods(testId     := "explore-daytime-cal-ghost-resolution")
+            )
+            .when(instrument === Instrument.Ghost)
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,
