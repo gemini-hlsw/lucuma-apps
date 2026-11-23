@@ -1884,7 +1884,9 @@ trait ArbObservingMode {
     for
       instrument <- arbitrary[Instrument]
       sets       <- Gen.listOfN(3, arbitrary[DaytimeCalibrationSet])
-      resolution <- arbitrary[Option[GhostResolutionMode]]
+      resolution <-
+        if instrument === Instrument.Ghost then arbitrary[Option[GhostResolutionMode]]
+        else Gen.const(none[GhostResolutionMode])
     yield ObservingMode.DaytimeCalibration(instrument, sets, resolution)
   )
 

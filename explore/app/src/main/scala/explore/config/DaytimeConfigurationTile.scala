@@ -100,7 +100,7 @@ object DaytimeConfigurationTile
         // last mode the ODB accepted, as later edits in flight carry the rejected change too. The
         // mark is cleared only when no edit is left in flight and none was accepted.
         // The ODB rejects the mode once the sequence is stored, even when it is unchanged, so
-        // nothing is sent then.
+        // nothing is sent then and the view goes back to the mode it had.
         def remoteUpdate(
           old: ObservingMode.DaytimeCalibration,
           d:   ObservingMode.DaytimeCalibration
@@ -120,7 +120,9 @@ object DaytimeConfigurationTile
                   ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
                     rejected.toAsync
 
-          send.unlessA(props.hasMaterializedSequence)
+          if props.hasMaterializedSequence then
+            props.mode.model.zoom(daytimeOptional).set(old).toAsync
+          else send
 
         val daytimeView: Option[View[ObservingMode.DaytimeCalibration]] =
           props.mode
@@ -211,7 +213,8 @@ object DaytimeCalibrationEditor:
                 Option.when(i === Instrument.Ghost)(GhostResolutionMode.Standard)
               )
 
-      // The resolution selects the Smart GCAL rows, so smart counts wait for the ODB again.
+      // The resolution selects the Smart GCAL rows, so smart counts wait for the ODB again.  It is
+      // unknown while loading, so its dropdown is hidden then.
       val resolutionView: View[GhostResolutionMode] =
         props.daytime.zoom(_.ghostResolutionMode.getOrElse(GhostResolutionMode.Standard)): f =>
           d =>
@@ -275,7 +278,7 @@ object DaytimeCalibrationEditor:
                 disabled = !props.editable
               ).withMods(testId     := "explore-daytime-cal-ghost-resolution")
             )
-            .when(instrument === Instrument.Ghost)
+            .when(instrument === Instrument.Ghost && !props.loading)
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,
