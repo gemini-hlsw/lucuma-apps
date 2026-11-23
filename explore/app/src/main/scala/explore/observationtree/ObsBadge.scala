@@ -74,6 +74,9 @@ final case class ObsBadge(
   maskName:              Option[NonEmptyString] = none
 ) extends ReactFnProps(ObsBadge.component):
   val isDaytimeMaskImage: Boolean = obs.calibrationRole.contains(CalibrationRole.DaytimeMaskImage)
+  // A daytime calibration shows its subtitle as the title.
+  val showSubtitle: Boolean       =
+    layout.showSubtitle && !obs.calibrationRole.contains(CalibrationRole.DaytimeCalibration)
   val isDisabled: Boolean         = readonly || obs.isOdbCalibration
   val isDisabledExecuted: Boolean = isDisabled || obs.isExecuted
   val nonEmptyAllocatedBands      = NonEmptySet.fromSet(allocatedScienceBands)
@@ -166,14 +169,14 @@ object ObsBadge:
       )
     ).withTooltip(content = state.shortName)
 
-  // Daytime calibrations have no meaningful target, so we label them by role.
+  // Daytime calibrations have no meaningful target, so we label them by role, or by subtitle.
   private def badgeTitle(obs: Observation): VdomNode =
     obs.calibrationRole match
       case Some(CalibrationRole.DaytimePinhole)     => "Daytime Pinhole"
       case Some(CalibrationRole.DaytimeFlat)        => "Daytime Flat"
       case Some(CalibrationRole.DaytimeArc)         => "Daytime Arc"
       case Some(CalibrationRole.DaytimeCalibration) =>
-        <.span(ThemeIcons.SunBright, " Daytime Calibration")
+        <.span(ThemeIcons.SunBright, s" ${obs.subtitle.fold("Daytime Calibration")(_.value)}")
       case Some(CalibrationRole.DaytimeMaskImage)   =>
         val instrument =
           obs.basicConfiguration.flatMap(_.instrument).foldMap(i => s"${i.shortName} ")
@@ -299,7 +302,7 @@ object ObsBadge:
             )
           )
           .whenDefined
-          .when(layout.showSubtitle),
+          .when(props.showSubtitle),
         renderEnumProgress(obs.workflow.state)
       )
 
