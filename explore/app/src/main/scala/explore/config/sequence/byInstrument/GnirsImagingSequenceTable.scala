@@ -46,6 +46,8 @@ final case class GnirsImagingSequenceTable(
   val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
 
+  override def gnirsWellDepth = Some(staticConfig.wellDepth)
+
   val filterFromDynamicConfig: GnirsDynamicConfig => Option[GnirsFilter] =
     _.filter.some
 

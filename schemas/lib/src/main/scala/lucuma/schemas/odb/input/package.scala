@@ -15,6 +15,7 @@ import lucuma.core.enums.Band
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.Igrins2SlitOffsetPreset
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.SlitOffsetMode
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
@@ -1271,7 +1272,15 @@ extension (d: ObservingMode.DaytimeCalibration)
   def toInput: DaytimeCalibrationInput =
     DaytimeCalibrationInput(
       instrument = d.calibrationInstrument.assign,
-      calibrationSets = d.calibrationSets.map(_.toInput).assign
+      calibrationSets = d.calibrationSets.map(_.toInput).assign,
+      ghost = d.ghostResolutionMode
+        .filter(_ => d.calibrationInstrument === Instrument.Ghost)
+        .map(r => DaytimeCalibrationGhostInput(resolutionMode = r.assign))
+        .orIgnore,
+      gnirs = d.gnirsWellDepth
+        .filter(_ => d.calibrationInstrument === Instrument.Gnirs)
+        .map(w => DaytimeCalibrationGnirsInput(wellDepth = w.assign))
+        .orIgnore
     )
 
 extension (er: ElevationRange)

@@ -964,6 +964,7 @@ object ObsTabTiles:
             Option.when(props.calibrationRole.contains(CalibrationRole.DaytimeCalibration))(
               DaytimeConfigurationTile(
                 props.obsId,
+                props.observation.zoom(Observation.subtitle),
                 props.observation.zoom(Observation.observingModeOption),
                 props.observation.get.observingMode.isPending,
                 props.basicConfiguration.collect { case BasicConfiguration.DaytimeCalibration(i) =>

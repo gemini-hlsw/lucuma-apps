@@ -5,8 +5,11 @@ package explore.config
 
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.syntax.all.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
@@ -16,10 +19,13 @@ import explore.model.MosMaskSelection
 import explore.model.ObsTabTileIds
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.util.CalculatedValue
@@ -28,22 +34,27 @@ import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
 import lucuma.refined.*
+import lucuma.schemas.ObservationDB.Types.ObservationPropertiesInput
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
+import lucuma.ui.display.given
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
+import monocle.Iso
 import monocle.Optional
 import monocle.std.option.some
 
 /**
  * The Daytime Calibration tile: the instrument of the calibration and the ordered Daytime
- * Calibration Sets its sequence is generated from.
+ * Calibration Sets its sequence is generated from. The subtitle stays editable once the sequence is
+ * materialized, as it is not part of the mode.
  */
 final case class DaytimeConfigurationTile(
   obsId:                   Observation.Id,
+  subtitle:                UndoSetter[Option[NonEmptyString]],
   mode:                    UndoSetter[Option[ObservingMode]],
   modePending:             Boolean,
   pendingInstrument:       Option[Instrument],
@@ -91,12 +102,27 @@ object DaytimeConfigurationTile
         ctx      <- useContext(AppContext.ctx)
         inFlight <- useRef(InFlight.Idle)
       yield
+        import ctx.given
+
+        val subtitleView: View[Option[NonEmptyString]] =
+          props.subtitle
+            .undoableView(Iso.id[Option[NonEmptyString]].asLens)
+            .withOnMod: s =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.obsId),
+                  ObservationPropertiesInput(subtitle = s.orUnassign)
+                )
+                .runAsync
+
         // Every edit replaces the whole mode in the ODB, which also replaces the set list.  The
         // sequence is marked as changed before the mutation: the edit event it produces refreshes
         // the sequence, and the tile only leaves its spinner on a refresh that follows the mark.
         // A rejected edit, such as an unusable mask, is reported and the view goes back to the
         // last mode the ODB accepted, as later edits in flight carry the rejected change too. The
         // mark is cleared only when no edit is left in flight and none was accepted.
+        // The ODB rejects the mode once the sequence is stored, even when it is unchanged, so
+        // nothing is sent then and the view goes back to the mode it had.
         def remoteUpdate(
           old: ObservingMode.DaytimeCalibration,
           d:   ObservingMode.DaytimeCalibration
@@ -107,13 +133,18 @@ object DaytimeConfigurationTile
                 props.mode.model.zoom(daytimeOptional).set(s.accepted.getOrElse(old)) >>
                   props.sequenceUnchanged.when_(s.count === 0 && !s.anyAccepted)
 
-          (inFlight.mod(_.started(old)) >> props.sequenceChanged).toAsync >>
-            ctx.odbApi
-              .updateDaytimeCalibration(props.obsId, d.toInput)
-              .flatMap(_ => inFlight.mod(_.finished.accept(d)).toAsync)
-              .handleErrorWith: e =>
-                ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
-                  rejected.toAsync
+          val send: IO[Unit] =
+            (inFlight.mod(_.started(old)) >> props.sequenceChanged).toAsync >>
+              ctx.odbApi
+                .updateDaytimeCalibration(props.obsId, d.toInput)
+                .flatMap(_ => inFlight.mod(_.finished.accept(d)).toAsync)
+                .handleErrorWith: e =>
+                  ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
+                    rejected.toAsync
+
+          if props.hasMaterializedSequence then
+            props.mode.model.zoom(daytimeOptional).set(old).toAsync
+          else send
 
         val daytimeView: Option[View[ObservingMode.DaytimeCalibration]] =
           props.mode
@@ -150,6 +181,8 @@ object DaytimeConfigurationTile
             .fold(EmptyVdom): i =>
               DaytimeCalibrationEditor(
                 View(ObservingMode.DaytimeCalibration(i, Nil), (_, _) => Callback.empty),
+                subtitleView,
+                subtitleEditable = !props.readonly,
                 editable = false,
                 hasMaterializedSequence = props.hasMaterializedSequence,
                 isStaff = props.isStaff,
@@ -162,6 +195,8 @@ object DaytimeConfigurationTile
           daytimeView.fold(placeholder): view =>
             DaytimeCalibrationEditor(
               view,
+              subtitleView,
+              !props.readonly,
               props.editable,
               props.hasMaterializedSequence,
               props.isStaff,
@@ -172,9 +207,11 @@ object DaytimeConfigurationTile
         TileContents(title, body, heightSettled = !props.modePending)
     })
 
-/** The instrument dropdown and the Daytime Calibration Sets grid. */
+/** The instrument dropdown, the subtitle and the Daytime Calibration Sets grid. */
 case class DaytimeCalibrationEditor(
   daytime:                 View[ObservingMode.DaytimeCalibration],
+  subtitle:                View[Option[NonEmptyString]],
+  subtitleEditable:        Boolean,
   editable:                Boolean,
   hasMaterializedSequence: Boolean,
   isStaff:                 Boolean,
@@ -197,7 +234,44 @@ object DaytimeCalibrationEditor:
           d =>
             val i = f(d.calibrationInstrument)
             if i === d.calibrationInstrument then d
-            else ObservingMode.DaytimeCalibration(i, Nil)
+            else
+              ObservingMode.DaytimeCalibration(
+                i,
+                Nil,
+                Option.when(i === Instrument.Ghost)(GhostResolutionMode.Standard),
+                Option.when(i === Instrument.Gnirs)(GnirsWellDepth.Shallow)
+              )
+
+      def smartSetsPending(sets: List[DaytimeCalibrationSet]): List[DaytimeCalibrationSet] =
+        sets.map: s =>
+          if s.kind.isSmart then s.copy(count = DaytimeCalibrationSet.Count.Pending) else s
+
+      // The resolution selects the Smart GCAL rows, so smart counts wait for the ODB again.  It is
+      // unknown while loading, so its dropdown is hidden then.
+      val resolutionView: View[GhostResolutionMode] =
+        props.daytime.zoom(_.ghostResolutionMode.getOrElse(GhostResolutionMode.Standard)): f =>
+          d =>
+            val current = d.ghostResolutionMode.getOrElse(GhostResolutionMode.Standard)
+            val r       = f(current)
+            if r === current then d
+            else
+              d.copy(
+                ghostResolutionMode = r.some,
+                calibrationSets = smartSetsPending(d.calibrationSets)
+              )
+
+      // The well depth selects the Smart GCAL rows too, and is hidden while loading as well.
+      val wellDepthView: View[GnirsWellDepth] =
+        props.daytime.zoom(_.gnirsWellDepth.getOrElse(GnirsWellDepth.Shallow)): f =>
+          d =>
+            val current = d.gnirsWellDepth.getOrElse(GnirsWellDepth.Shallow)
+            val w       = f(current)
+            if w === current then d
+            else
+              d.copy(
+                gnirsWellDepth = w.some,
+                calibrationSets = smartSetsPending(d.calibrationSets)
+              )
 
       val setsView: View[List[DaytimeCalibrationSet]] =
         props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
@@ -238,7 +312,35 @@ object DaytimeCalibrationEditor:
             value = instrumentView,
             exclude = UnsupportedInstruments - instrument,
             disabled = !props.editable
-          ).withMods(testId     := "explore-daytime-cal-instrument")
+          ).withMods(testId     := "explore-daytime-cal-instrument"),
+          React
+            .Fragment(
+              <.label("Resolution:", ^.htmlFor := "daytime-cal-ghost-resolution"),
+              EnumDropdownView(
+                id = "daytime-cal-ghost-resolution".refined,
+                value = resolutionView,
+                disabled = !props.editable
+              ).withMods(testId     := "explore-daytime-cal-ghost-resolution")
+            )
+            .when(instrument === Instrument.Ghost && !props.loading),
+          React
+            .Fragment(
+              <.label("Well Depth:", ^.htmlFor := "daytime-cal-gnirs-well-depth"),
+              EnumDropdownView(
+                id = "daytime-cal-gnirs-well-depth".refined,
+                value = wellDepthView,
+                disabled = !props.editable
+              ).withMods(testId     := "explore-daytime-cal-gnirs-well-depth")
+            )
+            .when(instrument === Instrument.Gnirs && !props.loading),
+          <.label("Title:",      ^.htmlFor := "daytime-cal-subtitle"),
+          FormInputTextView(
+            id = "daytime-cal-subtitle".refined,
+            value = props.subtitle,
+            codec = inputCodecs.NonEmptyTextOptional,
+            groupClass = ExploreStyles.DaytimeCalSubtitle,
+            disabled = !props.subtitleEditable
+          ).withMods(testId     := "explore-daytime-cal-subtitle")
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,

@@ -507,6 +507,7 @@ object ExploreStyles:
   val GnirsWavelengthDragHandle: Css       = Css("explore-gnirs-wavelength-drag-handle")
   // Daytime calibration tile: the instrument row and the calibration sets table.
   val DaytimeCalInstrument: Css            = Css("explore-daytime-cal-instrument")
+  val DaytimeCalSubtitle: Css              = Css("explore-daytime-cal-subtitle")
   val DaytimeCalMessage: Css               = Css("explore-daytime-cal-message")
   val DaytimeCalSetTable: Css              = Css("explore-daytime-cal-set-table")
   val DaytimeCalGroupHeader: Css           = Css("explore-daytime-cal-group-header")

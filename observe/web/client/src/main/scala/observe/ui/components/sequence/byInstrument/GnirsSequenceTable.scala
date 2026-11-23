@@ -50,5 +50,7 @@ case class GnirsSequenceTable(
   lazy val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
 
+  override def gnirsWellDepth = Some(config.static.wellDepth)
+
 object GnirsSequenceTable
     extends SequenceTableBuilder[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)

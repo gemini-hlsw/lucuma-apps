@@ -234,7 +234,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                     import ctx.given
                     onDatasetsQaChange(props.visits, datasetIdsInFlight)
                   }
-                )
+                ),
+                props.ghostResolutionMode,
+                props.gnirsWellDepth
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)

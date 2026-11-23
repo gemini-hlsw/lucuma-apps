@@ -9,6 +9,8 @@ import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.enums.WavelengthUnits
+import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
@@ -39,6 +41,12 @@ private trait SequenceTable[S, D]:
 
   // The mask name for a custom mask attachment, when known.
   def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] = None
+
+  // Only GHOST sequence tables have a resolution mode.
+  def ghostResolutionMode: Option[GhostResolutionMode] = None
+
+  // Only GNIRS sequence tables have a well depth.
+  def gnirsWellDepth: Option[GnirsWellDepth] = None
 
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
 
