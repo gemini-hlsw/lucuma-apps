@@ -302,11 +302,16 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.flatMap(_.fpuName),
       header = _ => "FPU",
       cell = c =>
-        (for
+        val name = (for
           attachmentId <- c.getStep.flatMap(_.fpuCustomMaskAttachmentId)
           meta         <- c.table.options.meta
           maskName     <- meta.maskName(attachmentId)
         yield maskName.value).orElse(c.value).orEmpty
+        c.getStep
+          .flatMap(_.fpuMaskId)
+          .fold[VdomNode](name): maskId =>
+            <.span(name)
+              .withTooltip(content = maskId, showDelay = 100, position = Tooltip.Position.Top)
     )
 
   private lazy val deckerCol: colDef.TypeFor[Option[String]] =

@@ -6,6 +6,7 @@ package observe.server.flamingos2
 import cats.syntax.all.*
 import lucuma.core.enums.Flamingos2Decker
 import lucuma.core.enums.Flamingos2Filter
+import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.Flamingos2ReadMode
 import lucuma.core.enums.Flamingos2ReadoutMode
@@ -17,6 +18,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.util.TimeSpan
 import munit.FunSuite
 import observe.server.CustomMasks
+import observe.server.flamingos2.Flamingos2Controller.FocalPlaneUnit
 
 class Flamingos2Suite extends FunSuite:
 
@@ -55,4 +57,16 @@ class Flamingos2Suite extends FunSuite:
     assertEquals(
       windowCover(Flamingos2WindowCover.Close.some, StepType.Science),
       Flamingos2WindowCover.Close.asRight
+    )
+
+  test("the blank mask is sent by its mask id"):
+    assertEquals(
+      Flamingos2
+        .ccConfigFromSequenceConfig(
+          dynamic.copy(fpu = Flamingos2FpuMask.Builtin(Flamingos2Fpu.BlankMask)),
+          StepType.Science,
+          CustomMasks.Empty
+        )
+        .map(_.fpu),
+      FocalPlaneUnit.Custom("GS2018BSV301-8").asRight
     )

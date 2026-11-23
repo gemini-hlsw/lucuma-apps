@@ -9235,6 +9235,9 @@ enum Flamingos2Fpu {
 
   """Flamingos2Fpu 8-Pixel Long Slit"""
   LONG_SLIT_8
+
+  """Flamingos2Fpu Blank Mask"""
+  BLANK_MASK
 }
 
 """Flamingos2 Read Mode"""
