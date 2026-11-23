@@ -139,6 +139,8 @@ sealed trait SequenceRow[+D]:
       disperser.map(_.shortName)
     case GnirsDynamicConfig(acquisitionMirror = acqMirror)     =>
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
+    case Igrins2DynamicConfig(_)                               => none
+    case GhostDynamicConfig(_, _, _, _)                        => none
 
   private lazy val isBiasOrDark: Boolean = stepConfig.exists:
     case StepConfig.Bias | StepConfig.Dark => true
@@ -200,6 +202,8 @@ sealed trait SequenceRow[+D]:
       filter.map(_.shortName).filterNot(_ => isBiasOrDark)
     case Flamingos2DynamicConfig(filter = filter)      => filter.shortName.some.filterNot(_ => isDark)
     case GnirsDynamicConfig(filter = filter)           => filter.shortName.some
+    case Igrins2DynamicConfig(_)                       => none
+    case GhostDynamicConfig(_, _, _, _)                => none
 
   lazy val readoutXBin: Option[String] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(readout = readout) => readout.xBin.shortName
