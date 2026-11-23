@@ -3,6 +3,7 @@
 
 package lucuma.ui.utils
 
+import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.all.*
@@ -17,6 +18,7 @@ import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.optics.*
 import lucuma.core.util.Enumerated
 import monocle.function.At.at
+import monocle.function.Index
 import monocle.function.Index.index
 import org.scalajs.dom
 
@@ -40,23 +42,32 @@ extension [A, B, C, D](list: List[(A, B, C, D)])
       (tuple._1 :: accum._1, tuple._2 :: accum._2, tuple._3 :: accum._3, tuple._4 :: accum._4)
     )
 
-extension [F[_], A](listView: ViewF[F, List[A]])
+/**
+ * Like `view.zoom(index(i))`, but the zoomed value is given instead of being looked up. `zoom`
+ * evaluates its getter on the current value right away, which for lists is O(i), so zooming into
+ * every element was O(n²). The getter is still used for the previous and current values passed to
+ * modification callbacks.
+ */
+private def zoomAtIndex[F[_]: Monad, S, A](view: ViewF[F, S], i: Int, a: A)(using
+  Index[S, Int, A]
+): ViewF[F, A] =
+  val atIndex = index[S, Int, A](i)
+  // It's safe to "get" since we are only invoking for existing indices.
+  val getA    = atIndex.getOption.andThen(_.get)
+  ViewF(a,
+        (f, cb) =>
+          view.modCB(atIndex.modify(f), (previous, current) => cb(getA(previous), getA(current)))
+  )
+
+extension [F[_]: Monad, A](listView: ViewF[F, List[A]])
   @targetName("ListView_toListOfViews")
   def toListOfViews: List[ViewF[F, A]] =
-    listView.get.indices.toList.map: i =>
-      val atIndex = index[List[A], Int, A](i)
-      // It's safe to "get" since we are only invoking for existing indices.
-      listView.zoom(atIndex.getOption.andThen(_.get))(atIndex.modify)
+    listView.get.zipWithIndex.map((a, i) => zoomAtIndex(listView, i, a))
 
-extension [F[_], A](nelView: ViewF[F, NonEmptyList[A]])
+extension [F[_]: Monad, A](nelView: ViewF[F, NonEmptyList[A]])
   @targetName("NelView_toNelOfViews")
   def toNelOfViews: NonEmptyList[ViewF[F, A]] =
-    NonEmptyList // This is safe since we know the list to be non-empty
-      .fromListUnsafe(nelView.get.toList.indices.toList)
-      .map: i =>
-        val atIndex = index[NonEmptyList[A], Int, A](i)
-        // It's safe to "get" since we are only invoking for existing indices.
-        nelView.zoom(atIndex.getOption.andThen(_.get))(atIndex.modify)
+    nelView.get.zipWithIndex.map((a, i) => zoomAtIndex(nelView, i, a))
 
 extension [F[_], K, V](mapView: ViewF[F, Map[K, V]])
   @targetName("MapView_toListOfViews")

@@ -55,7 +55,9 @@ trait SequenceEditorBuilder[D: Eq]:
       isEditing,
       isEditInFlight.get,
       UndoContext(undoStacks, editableSequence),
-      onAccept = (remoteReplace(editableSequence.get.value) >>= sequence.async.set)
+      // Deferred so that the mutation input, which encodes the whole sequence, is only built when
+      // the edit is accepted rather than on every render.
+      onAccept = (IO.defer(remoteReplace(editableSequence.get.value)) >>= sequence.async.set)
         .onError: e =>
           ToastCtx[IO]
             .showToast(
