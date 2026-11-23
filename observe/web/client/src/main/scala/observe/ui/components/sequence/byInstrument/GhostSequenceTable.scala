@@ -46,6 +46,8 @@ case class GhostSequenceTable(
 ) extends ReactFnProps(GhostSequenceTable.component)
     with SequenceTable[GhostStaticConfig, GhostDynamicConfig](Instrument.Ghost)
     with SpectroscopySequenceTable[GhostDynamicConfig]:
+  override def ghostResolutionMode = Some(config.static.resolutionMode)
+
   lazy val toInstrumentVisits =
     case ExecutionVisits.Ghost(visits) => visits
 

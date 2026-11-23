@@ -46,6 +46,8 @@ final case class GhostSequenceTable(
   // TBD. We may get two s/n values
   override val scienceItc = ItcResultValues.Empty
 
+  override def ghostResolutionMode = Some(staticConfig.resolutionMode)
+
   override val toInstrumentVisits =
     case ExecutionVisits.Ghost(visits) => visits
 

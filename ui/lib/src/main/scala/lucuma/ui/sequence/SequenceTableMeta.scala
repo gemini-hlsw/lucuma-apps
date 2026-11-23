@@ -4,6 +4,7 @@
 package lucuma.ui.sequence
 
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.model.Attachment
 
 trait SequenceTableMeta[D]:
@@ -15,3 +16,6 @@ trait SequenceTableMeta[D]:
 
   /** When defined, the visit and run headers offer setting a QA state on their datasets. */
   def datasetQaBulkEdit: Option[DatasetQaBulkEdit] = None
+
+  /** The resolution mode of a GHOST sequence, which is the same for all its steps. */
+  def ghostResolutionMode: Option[GhostResolutionMode] = None

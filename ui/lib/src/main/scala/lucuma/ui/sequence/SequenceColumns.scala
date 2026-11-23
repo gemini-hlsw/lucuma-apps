@@ -594,6 +594,19 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       )
     )
 
+  private lazy val ghostResolutionCol: colDef.TypeFor[Boolean] =
+    colDef(
+      SequenceColumns.GhostResolutionColumnId,
+      _.getStep.isDefined,
+      header = "Resolution",
+      cell = c =>
+        c.table.options.meta
+          .flatMap(_.ghostResolutionMode)
+          .filter(_ => c.value)
+          .map(_.shortName)
+          .orEmpty
+    )
+
   private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
     colDef(
       SequenceColumns.FowlerSamplesColumnId,
@@ -665,7 +678,8 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
                       indexAndTypeCol,
                       guideStateCol,
                       pOffsetCol,
-                      qOffsetCol
+                      qOffsetCol,
+                      ghostResolutionCol
     ) ++
       List(ghostBlueGroupCol, ghostRedGroupCol)
 
@@ -738,6 +752,7 @@ object SequenceColumns:
   val SNColumnId: ColumnId            = ColumnId("sn")
   val PeakColumnId: ColumnId          = ColumnId("peak")
 
+  val GhostResolutionColumnId: ColumnId        = ColumnId("ghostResolution")
   val GhostBlueGroupColumnId: ColumnId         = ColumnId("ghostBlueGroup")
   val GhostRedGroupColumnId: ColumnId          = ColumnId("ghostRedGroup")
   val GhostRedExposureCountColumnId: ColumnId  = ColumnId("ghostRedExposureCount")
@@ -750,14 +765,15 @@ object SequenceColumns:
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
   // Columns absent from this map show for every profile. Daytime calibrations have no offsets
-  // and are the only sequences where the window cover is set by hand; roles without ITC have
-  // no S/N or peak.
+  // and are the only sequences where the window cover and the GHOST resolution are set by hand;
+  // roles without ITC have no S/N or peak.
   private val ColumnRules: Map[ColumnId, SequenceColumnProfile => Boolean] = Map(
-    PColumnId           -> (_.kind === SequenceKind.Science),
-    QColumnId           -> (_.kind === SequenceKind.Science),
-    WindowCoverColumnId -> (_.kind === SequenceKind.Calibration),
-    SNColumnId          -> (_.hasItc),
-    PeakColumnId        -> (_.hasItc)
+    PColumnId               -> (_.kind === SequenceKind.Science),
+    QColumnId               -> (_.kind === SequenceKind.Science),
+    WindowCoverColumnId     -> (_.kind === SequenceKind.Calibration),
+    GhostResolutionColumnId -> (_.kind === SequenceKind.Calibration),
+    SNColumnId              -> (_.hasItc),
+    PeakColumnId            -> (_.hasItc)
   )
 
   def hiddenColumns(profile: SequenceColumnProfile): Set[ColumnId] =
@@ -842,6 +858,7 @@ object SequenceColumns:
 
     val ForGhost: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ Map(
+        GhostResolutionColumnId        -> FixedSize(90.toPx),
         GhostBlueGroupColumnId         -> Resizable(287.toPx, min = 240.toPx, max = 410.toPx),
         GhostRedGroupColumnId          -> Resizable(287.toPx, min = 240.toPx, max = 410.toPx),
         GhostRedExposureCountColumnId  -> Resizable(50.toPx, min = 40.toPx, max = 70.toPx),

@@ -45,8 +45,8 @@ final class SequenceColumnProfileSuite extends FunSuite:
       SequenceColumnProfile(SequenceKind.Science, hasItc = false)
     )
 
-  test("science hides the window cover"):
-    assertEquals(hiddenColumns(science), Set(WindowCoverColumnId))
+  test("science hides the window cover and the GHOST resolution"):
+    assertEquals(hiddenColumns(science), Set(WindowCoverColumnId, GhostResolutionColumnId))
 
   test("calibrations hide offsets"):
     assertEquals(
@@ -57,7 +57,7 @@ final class SequenceColumnProfileSuite extends FunSuite:
   test("no ITC hides S/N and peak in any kind"):
     assertEquals(
       hiddenColumns(science.copy(hasItc = false)),
-      Set(WindowCoverColumnId, SNColumnId, PeakColumnId)
+      Set(WindowCoverColumnId, GhostResolutionColumnId, SNColumnId, PeakColumnId)
     )
     assertEquals(
       hiddenColumns(calibration),

@@ -10,6 +10,7 @@ import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
@@ -53,16 +54,17 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     case StepConfig.SmartGcal(_)           => throw new RuntimeException("Smart GCAL is not supported")
 
   protected case class TableMeta(
-    requests:           ObservationRequests,
-    executionState:     ExecutionState,
-    progress:           Option[StepProgress],
-    selectedRowId:      Option[SelectedRowId],
-    allVisits:          View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
-    editContexts:       SequenceEditContexts[D],
-    getMaskName:        Attachment.Id => Option[NonEmptyString],
-    qaBulkEdit:         DatasetQaBulkEdit
+    requests:                         ObservationRequests,
+    executionState:                   ExecutionState,
+    progress:                         Option[StepProgress],
+    selectedRowId:                    Option[SelectedRowId],
+    allVisits:                        View[Option[ExecutionVisits]],
+    datasetIdsInFlight:               View[HashSet[Dataset.Id]],
+    onBreakpointFlip:                 (Observation.Id, Step.Id) => Callback,
+    editContexts:                     SequenceEditContexts[D],
+    getMaskName:                      Attachment.Id => Option[NonEmptyString],
+    qaBulkEdit:                       DatasetQaBulkEdit,
+    override val ghostResolutionMode: Option[GhostResolutionMode]
   ) extends SequenceTableMeta[D]:
     override def maskName(attachmentId: Attachment.Id): Option[NonEmptyString] =
       getMaskName(attachmentId)
