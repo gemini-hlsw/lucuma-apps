@@ -27,6 +27,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.model.sequence.scorpio.ScorpioChannelConfig
 import lucuma.core.optics.ValidWedge
 import lucuma.core.syntax.validation.*
 import lucuma.core.util.Display
@@ -620,6 +621,75 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
           .orEmpty
     )
 
+  private def scorpioChannelGroupCol(
+    groupId:    ColumnId,
+    label:      String,
+    getter:     SequenceRow[D] => Option[ScorpioChannelConfig.Vis],
+    countId:    ColumnId,
+    timeId:     ColumnId,
+    readModeId: ColumnId
+  ): colDef.Type =
+    colDef.group(
+      id = groupId,
+      header = _ => label,
+      columns = List(
+        colDef(
+          countId,
+          _.getStep.flatMap(getter(_).map(_.exposureCount.value)),
+          header = _ => "Counts",
+          cell = _.value.map(_.toString).orEmpty
+        ),
+        colDef(
+          timeId,
+          _.getStep.flatMap(getter(_).map(_.exposureTime)),
+          header = _ => "Exptime",
+          cell = _.value.map(Instrument.Scorpio.formatExposureTime(_).value).orEmpty
+        ),
+        colDef(
+          readModeId,
+          _.getStep.flatMap(getter(_).map(_.readoutMode)),
+          header = _ => "Readout",
+          cell = _.value.map(_.shortName).orEmpty
+        )
+      )
+    )
+
+  private lazy val scorpioChannelGroupCols: List[colDef.Type] =
+    List(
+      scorpioChannelGroupCol(
+        SequenceColumns.ScorpioGGroupColumnId,
+        "g",
+        _.scorpioG,
+        SequenceColumns.ScorpioGExposureCountColumnId,
+        SequenceColumns.ScorpioGExposureTimeColumnId,
+        SequenceColumns.ScorpioGReadModeColumnId
+      ),
+      scorpioChannelGroupCol(
+        SequenceColumns.ScorpioRGroupColumnId,
+        "r",
+        _.scorpioR,
+        SequenceColumns.ScorpioRExposureCountColumnId,
+        SequenceColumns.ScorpioRExposureTimeColumnId,
+        SequenceColumns.ScorpioRReadModeColumnId
+      ),
+      scorpioChannelGroupCol(
+        SequenceColumns.ScorpioIGroupColumnId,
+        "i",
+        _.scorpioI,
+        SequenceColumns.ScorpioIExposureCountColumnId,
+        SequenceColumns.ScorpioIExposureTimeColumnId,
+        SequenceColumns.ScorpioIReadModeColumnId
+      ),
+      scorpioChannelGroupCol(
+        SequenceColumns.ScorpioZGroupColumnId,
+        "z",
+        _.scorpioZ,
+        SequenceColumns.ScorpioZExposureCountColumnId,
+        SequenceColumns.ScorpioZExposureTimeColumnId,
+        SequenceColumns.ScorpioZReadModeColumnId
+      )
+    )
+
   private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
     colDef(
       SequenceColumns.FowlerSamplesColumnId,
@@ -696,6 +766,16 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     ) ++
       List(ghostBlueGroupCol, ghostRedGroupCol)
 
+  lazy val ForScorpio: List[colDef.Type] =
+    List[colDef.Type](
+      indexAndTypeCol,
+      guideStateCol,
+      pOffsetCol,
+      qOffsetCol,
+      fpuCol,
+      gratingCol
+    ) ++ scorpioChannelGroupCols ++ List[colDef.Type](gcalCol)
+
   lazy val ForGnirs: List[colDef.TypeFor[?]] =
     List(
       dragHandleCol,
@@ -725,6 +805,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       case Instrument.Gnirs                            => ForGnirs
       case Instrument.Igrins2                          => ForIgrins2
       case Instrument.Ghost                            => ForGhost
+      case Instrument.Scorpio                          => ForScorpio
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
 
 object SequenceColumns:
@@ -782,6 +863,23 @@ object SequenceColumns:
   val GhostBlueExposureTimeColumnId: ColumnId  = ColumnId("ghostBlueExposureTime")
   val GhostBlueReadModeColumnId: ColumnId      = ColumnId("ghostBlueReadMode")
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
+
+  val ScorpioGGroupColumnId: ColumnId         = ColumnId("scorpioGGroup")
+  val ScorpioRGroupColumnId: ColumnId         = ColumnId("scorpioRGroup")
+  val ScorpioIGroupColumnId: ColumnId         = ColumnId("scorpioIGroup")
+  val ScorpioZGroupColumnId: ColumnId         = ColumnId("scorpioZGroup")
+  val ScorpioGExposureCountColumnId: ColumnId = ColumnId("scorpioGExposureCount")
+  val ScorpioGExposureTimeColumnId: ColumnId  = ColumnId("scorpioGExposureTime")
+  val ScorpioGReadModeColumnId: ColumnId      = ColumnId("scorpioGReadMode")
+  val ScorpioRExposureCountColumnId: ColumnId = ColumnId("scorpioRExposureCount")
+  val ScorpioRExposureTimeColumnId: ColumnId  = ColumnId("scorpioRExposureTime")
+  val ScorpioRReadModeColumnId: ColumnId      = ColumnId("scorpioRReadMode")
+  val ScorpioIExposureCountColumnId: ColumnId = ColumnId("scorpioIExposureCount")
+  val ScorpioIExposureTimeColumnId: ColumnId  = ColumnId("scorpioIExposureTime")
+  val ScorpioIReadModeColumnId: ColumnId      = ColumnId("scorpioIReadMode")
+  val ScorpioZExposureCountColumnId: ColumnId = ColumnId("scorpioZExposureCount")
+  val ScorpioZExposureTimeColumnId: ColumnId  = ColumnId("scorpioZExposureTime")
+  val ScorpioZReadModeColumnId: ColumnId      = ColumnId("scorpioZReadMode")
 
   // Columns absent from this map show for every profile. Daytime calibrations have no offsets
   // and are the only sequences where the window cover, the GHOST resolution and the GNIRS well
@@ -892,6 +990,46 @@ object SequenceColumns:
         GhostBlueBinningColumnId       -> FixedSize(80.toPx)
       )
 
+    private def scorpioChannelSizes(
+      groupId:       ColumnId,
+      countId:       ColumnId,
+      timeId:        ColumnId,
+      readModeId:    ColumnId
+    ): Map[ColumnId, ColumnSize] =
+      Map(
+        groupId    -> Resizable(207.toPx, min = 170.toPx, max = 330.toPx),
+        countId    -> Resizable(50.toPx, min = 40.toPx, max = 70.toPx),
+        timeId     -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        readModeId -> FixedSize(80.toPx)
+      )
+
+    val ForScorpio: Map[ColumnId, ColumnSize] =
+      CommonColumnSizes ++ Map(
+        FPUColumnId     -> Resizable(132.toPx, min = 132.toPx),
+        GratingColumnId -> Resizable(70.toPx, min = 50.toPx, max = 120.toPx),
+        GCalColumnId    -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx)
+      ) ++
+        scorpioChannelSizes(ScorpioGGroupColumnId,
+                            ScorpioGExposureCountColumnId,
+                            ScorpioGExposureTimeColumnId,
+                            ScorpioGReadModeColumnId
+        ) ++
+        scorpioChannelSizes(ScorpioRGroupColumnId,
+                            ScorpioRExposureCountColumnId,
+                            ScorpioRExposureTimeColumnId,
+                            ScorpioRReadModeColumnId
+        ) ++
+        scorpioChannelSizes(ScorpioIGroupColumnId,
+                            ScorpioIExposureCountColumnId,
+                            ScorpioIExposureTimeColumnId,
+                            ScorpioIReadModeColumnId
+        ) ++
+        scorpioChannelSizes(ScorpioZGroupColumnId,
+                            ScorpioZExposureCountColumnId,
+                            ScorpioZExposureTimeColumnId,
+                            ScorpioZReadModeColumnId
+        )
+
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       val instrumentCols =
         instrument match
@@ -900,6 +1038,7 @@ object SequenceColumns:
           case Instrument.Gnirs                            => ForGnirs
           case Instrument.Igrins2                          => ForIgrins2
           case Instrument.Ghost                            => ForGhost
+          case Instrument.Scorpio                          => ForScorpio
           case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
       if instrument.isSequenceEditable then EditColumnSizes ++ instrumentCols else instrumentCols
   }
@@ -955,6 +1094,15 @@ object SequenceColumns:
       GuideColumnId
     ).reverse
 
+    val ForScorpio: List[ColumnId] = List(
+      PColumnId,
+      QColumnId,
+      GuideColumnId,
+      GratingColumnId,
+      FPUColumnId,
+      GCalColumnId
+    ).reverse
+
     // Exposure and Coadds are editable fields for GNIRS, so we keep them undroppable
     val ForGnirs: List[ColumnId] = List(
       PColumnId,
@@ -975,6 +1123,7 @@ object SequenceColumns:
         case Instrument.Gnirs                            => ForGnirs
         case Instrument.Igrins2                          => ForIgrins2
         case Instrument.Ghost                            => ForGhost
+        case Instrument.Scorpio                          => ForScorpio
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
       kind match
         case SequenceKind.Calibration => base.filterNot(_ == GCalColumnId)
