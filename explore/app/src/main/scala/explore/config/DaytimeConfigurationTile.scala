@@ -5,8 +5,11 @@ package explore.config
 
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.syntax.all.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
@@ -16,6 +19,7 @@ import explore.model.MosMaskSelection
 import explore.model.ObsTabTileIds
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -30,6 +34,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
 import lucuma.refined.*
+import lucuma.schemas.ObservationDB.Types.ObservationPropertiesInput
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
@@ -38,15 +43,18 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
+import monocle.Iso
 import monocle.Optional
 import monocle.std.option.some
 
 /**
  * The Daytime Calibration tile: the instrument of the calibration and the ordered Daytime
- * Calibration Sets its sequence is generated from.
+ * Calibration Sets its sequence is generated from. The subtitle stays editable once the sequence is
+ * materialized, as it is not part of the mode.
  */
 final case class DaytimeConfigurationTile(
   obsId:                   Observation.Id,
+  subtitle:                UndoSetter[Option[NonEmptyString]],
   mode:                    UndoSetter[Option[ObservingMode]],
   modePending:             Boolean,
   pendingInstrument:       Option[Instrument],
@@ -94,6 +102,19 @@ object DaytimeConfigurationTile
         ctx      <- useContext(AppContext.ctx)
         inFlight <- useRef(InFlight.Idle)
       yield
+        import ctx.given
+
+        val subtitleView: View[Option[NonEmptyString]] =
+          props.subtitle
+            .undoableView(Iso.id[Option[NonEmptyString]].asLens)
+            .withOnMod: s =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.obsId),
+                  ObservationPropertiesInput(subtitle = s.orUnassign)
+                )
+                .runAsync
+
         // Every edit replaces the whole mode in the ODB, which also replaces the set list.  The
         // sequence is marked as changed before the mutation: the edit event it produces refreshes
         // the sequence, and the tile only leaves its spinner on a refresh that follows the mark.
@@ -160,6 +181,8 @@ object DaytimeConfigurationTile
             .fold(EmptyVdom): i =>
               DaytimeCalibrationEditor(
                 View(ObservingMode.DaytimeCalibration(i, Nil), (_, _) => Callback.empty),
+                subtitleView,
+                subtitleEditable = !props.readonly,
                 editable = false,
                 hasMaterializedSequence = props.hasMaterializedSequence,
                 isStaff = props.isStaff,
@@ -172,6 +195,8 @@ object DaytimeConfigurationTile
           daytimeView.fold(placeholder): view =>
             DaytimeCalibrationEditor(
               view,
+              subtitleView,
+              !props.readonly,
               props.editable,
               props.hasMaterializedSequence,
               props.isStaff,
@@ -182,9 +207,11 @@ object DaytimeConfigurationTile
         TileContents(title, body, heightSettled = !props.modePending)
     })
 
-/** The instrument dropdown and the Daytime Calibration Sets grid. */
+/** The instrument dropdown, the subtitle and the Daytime Calibration Sets grid. */
 case class DaytimeCalibrationEditor(
   daytime:                 View[ObservingMode.DaytimeCalibration],
+  subtitle:                View[Option[NonEmptyString]],
+  subtitleEditable:        Boolean,
   editable:                Boolean,
   hasMaterializedSequence: Boolean,
   isStaff:                 Boolean,
@@ -305,7 +332,15 @@ object DaytimeCalibrationEditor:
                 disabled = !props.editable
               ).withMods(testId     := "explore-daytime-cal-gnirs-well-depth")
             )
-            .when(instrument === Instrument.Gnirs && !props.loading)
+            .when(instrument === Instrument.Gnirs && !props.loading),
+          <.label("Title:",      ^.htmlFor := "daytime-cal-subtitle"),
+          FormInputTextView(
+            id = "daytime-cal-subtitle".refined,
+            value = props.subtitle,
+            codec = inputCodecs.NonEmptyTextOptional,
+            groupClass = ExploreStyles.DaytimeCalSubtitle,
+            disabled = !props.subtitleEditable
+          ).withMods(testId     := "explore-daytime-cal-subtitle")
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,
