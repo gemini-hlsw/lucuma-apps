@@ -10,6 +10,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.config.DaytimeCalibrationSetsTable.*
 import explore.model.Attachment
+import explore.model.AttachmentList
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -28,6 +29,13 @@ import lucuma.ui.sequence.SequenceStyles
  * "Masks" header, as the dropdown binding has no option groups.
  */
 private[config] object DaytimeFpuColumn:
+
+  /** The masks a set may pick, and the attachments, to name a current mask that is not offered. */
+  case class Masks(offered: List[Attachment], attachments: AttachmentList)
+
+  object Masks:
+    given Eq[Masks] = Eq.by(m => (m.offered, m.attachments.toList))
+
   private enum Item[+U]:
     case Builtin(fpu: U)
     case Mask(mask: MaskDefinition)
@@ -45,7 +53,7 @@ private[config] object DaytimeFpuColumn:
   def apply[U: Enumerated: Display](
     editable:    Boolean,
     isStaff:     Boolean,
-    masks:       Option[List[Attachment]],
+    masks:       Option[Masks],
     pinholes:    Set[U],
     placeholder: Row => String,
     width:       Row => Option[String]
@@ -53,14 +61,14 @@ private[config] object DaytimeFpuColumn:
     cellColumn(FpuColumnId, "FPU", 150, withOptics): r =>
       val value   = view(r._2)
       val current = value.get
-      val loaded  = masks.orEmpty
+      val loaded  = masks.foldMap(_.offered)
 
       def maskLabel(m: MaskDefinition): String =
         m match
           case ToBeDefined => "Mask missing"
           case Defined(id) =>
-            loaded
-              .find(_.id === id)
+            masks
+              .flatMap(_.attachments.get(id))
               .fold(s"Mask $id")(_.displayName.value)
 
       val excluded: Set[U] = pinholes.excludedUnless(isStaff, current.flatMap(_.left.toOption))

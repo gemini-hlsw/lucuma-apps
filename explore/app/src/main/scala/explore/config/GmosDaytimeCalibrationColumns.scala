@@ -6,7 +6,6 @@ package explore.config
 import cats.syntax.all.*
 import crystal.react.View
 import explore.config.DaytimeCalibrationSetsTable.*
-import explore.model.Attachment
 import explore.model.DaytimeCalibrationSets.*
 import explore.model.GmosDaytimeSetup
 import explore.model.display.given
@@ -31,7 +30,7 @@ private[config] object GmosDaytimeCalibrationColumns:
     setsView: View[List[DaytimeCalibrationSet]],
     editable: Boolean,
     isStaff:  Boolean,
-    masks:    Option[List[Attachment]],
+    masks:    Option[DaytimeFpuColumn.Masks],
     units:    WavelengthUnits
   ): List[ColDef.Type] =
     val setup: Int => View[D] = setupView(setsView, site.setup, site.default)

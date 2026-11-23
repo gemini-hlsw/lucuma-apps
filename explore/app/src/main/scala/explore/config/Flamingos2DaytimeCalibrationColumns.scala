@@ -5,7 +5,6 @@ package explore.config
 
 import crystal.react.View
 import explore.config.DaytimeCalibrationSetsTable.*
-import explore.model.Attachment
 import explore.model.DaytimeCalibrationSets
 import explore.model.Flamingos2DaytimeSetup
 import explore.model.display.given
@@ -24,7 +23,7 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
     setsView: View[List[DaytimeCalibrationSet]],
     editable: Boolean,
     isStaff:  Boolean,
-    masks:    Option[List[Attachment]]
+    masks:    Option[DaytimeFpuColumn.Masks]
   ): List[ColDef.Type] =
     val setup: Int => View[Flamingos2DynamicConfig] =
       setupView(setsView, Flamingos2DaytimeSetup.setup, Flamingos2DaytimeSetup.default)

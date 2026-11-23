@@ -13,7 +13,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
-import explore.model.Attachment
 import explore.model.DaytimeCalibrationSets
 import explore.model.GmosDaytimeSetup
 import explore.model.display.given
@@ -63,7 +62,7 @@ case class DaytimeCalibrationSetsTable(
   setsView:   View[List[DaytimeCalibrationSet]],
   editable:   Boolean,
   isStaff:    Boolean,
-  masks:      Option[List[Attachment]],
+  masks:      Option[DaytimeFpuColumn.Masks],
   units:      WavelengthUnits,
   loading:    Boolean = false
 ) extends ReactFnProps(DaytimeCalibrationSetsTable.component)
@@ -71,8 +70,8 @@ case class DaytimeCalibrationSetsTable(
 object DaytimeCalibrationSetsTable:
   import DaytimeCalibrationSets.*
 
-  private given Reusability[DaytimeCalibrationSet]    = Reusability.byEq
-  private given Reusability[Option[List[Attachment]]] = Reusability.byEq
+  private given Reusability[DaytimeCalibrationSet]          = Reusability.byEq
+  private given Reusability[Option[DaytimeFpuColumn.Masks]] = Reusability.byEq
 
   private[config] type Row = (DaytimeCalibrationSet, Int)
 

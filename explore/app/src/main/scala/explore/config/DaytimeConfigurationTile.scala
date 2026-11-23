@@ -10,7 +10,6 @@ import crystal.react.syntax.all.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.Attachment
 import explore.model.AttachmentList
 import explore.model.DaytimeCalibrationSets
 import explore.model.MosMaskSelection
@@ -63,28 +62,58 @@ final case class DaytimeConfigurationTile(
     )(DaytimeConfigurationTile):
   val editable: Boolean = !readonly && !hasMaterializedSequence
 
+/**
+ * Edits sent to the ODB and not answered yet. `accepted` is the last mode the ODB took, starting
+ * from the mode shown when the first edit of a run was made.
+ */
+private case class InFlight(
+  count:       Int,
+  accepted:    Option[ObservingMode.DaytimeCalibration],
+  anyAccepted: Boolean
+):
+  def started(old: ObservingMode.DaytimeCalibration): InFlight =
+    if count === 0 then InFlight(1, old.some, false) else copy(count = count + 1)
+
+  def finished: InFlight = copy(count = count - 1)
+
+  def accept(d: ObservingMode.DaytimeCalibration): InFlight =
+    copy(accepted = d.some, anyAccepted = true)
+
+private object InFlight:
+  val Idle: InFlight = InFlight(0, none, false)
+
 object DaytimeConfigurationTile
     extends TileComponent[DaytimeConfigurationTile]({ (props, _) =>
       val daytimeOptional: Optional[Option[ObservingMode], ObservingMode.DaytimeCalibration] =
         some[ObservingMode].andThen(ObservingMode.daytimeCalibration)
 
-      for ctx <- useContext(AppContext.ctx)
+      for
+        ctx      <- useContext(AppContext.ctx)
+        inFlight <- useRef(InFlight.Idle)
       yield
         // Every edit replaces the whole mode in the ODB, which also replaces the set list.  The
         // sequence is marked as changed before the mutation: the edit event it produces refreshes
         // the sequence, and the tile only leaves its spinner on a refresh that follows the mark.
-        // A rejected edit, such as an unusable mask, is reported and undone locally; no edit event
-        // follows, so the mark is cleared.
+        // A rejected edit, such as an unusable mask, is reported and the view goes back to the
+        // last mode the ODB accepted, as later edits in flight carry the rejected change too. The
+        // mark is cleared only when no edit is left in flight and none was accepted.
         def remoteUpdate(
           old: ObservingMode.DaytimeCalibration,
           d:   ObservingMode.DaytimeCalibration
         ): IO[Unit] =
-          (props.sequenceChanged.toAsync >>
-            ctx.odbApi.updateDaytimeCalibration(props.obsId, d.toInput))
-            .handleErrorWith: e =>
-              ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
-                (props.mode.model.zoom(daytimeOptional).set(old) >>
-                  props.sequenceUnchanged).toAsync
+          val rejected: Callback =
+            inFlight.mod(_.finished) >>
+              inFlight.get.flatMap: s =>
+                props.mode.model.zoom(daytimeOptional).set(s.accepted.getOrElse(old)) >>
+                  props.sequenceUnchanged.when_(s.count === 0 && !s.anyAccepted)
+
+          (inFlight.mod(_.started(old)) >> props.sequenceChanged).toAsync >>
+            ctx.odbApi
+              .updateDaytimeCalibration(props.obsId, d.toInput)
+              .flatMap(_ => inFlight.mod(_.finished.accept(d)).toAsync)
+              .handleErrorWith: e =>
+                ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
+                  rejected.toAsync
 
         val daytimeView: Option[View[ObservingMode.DaytimeCalibration]] =
           props.mode
@@ -173,9 +202,12 @@ object DaytimeCalibrationEditor:
       val setsView: View[List[DaytimeCalibrationSet]] =
         props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
 
-      val masks: Option[List[Attachment]] =
+      val masks: Option[DaytimeFpuColumn.Masks] =
         Option.when(DaytimeCalibrationSets.MaskInstruments.contains(instrument))(
-          MosMaskSelection.selectable(props.attachments, instrument)
+          DaytimeFpuColumn.Masks(
+            MosMaskSelection.selectable(props.attachments, instrument),
+            props.attachments
+          )
         )
 
       val table: VdomNode =
