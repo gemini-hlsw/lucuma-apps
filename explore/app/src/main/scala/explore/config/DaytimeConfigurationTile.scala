@@ -233,7 +233,7 @@ object DaytimeCalibrationEditor:
                 calibrationSets = smartSetsPending(d.calibrationSets)
               )
 
-      // The well depth selects the Smart GCAL rows too.
+      // The well depth selects the Smart GCAL rows too, and is hidden while loading as well.
       val wellDepthView: View[GnirsWellDepth] =
         props.daytime.zoom(_.gnirsWellDepth.getOrElse(GnirsWellDepth.Shallow)): f =>
           d =>
@@ -305,7 +305,7 @@ object DaytimeCalibrationEditor:
                 disabled = !props.editable
               ).withMods(testId     := "explore-daytime-cal-gnirs-well-depth")
             )
-            .when(instrument === Instrument.Gnirs)
+            .when(instrument === Instrument.Gnirs && !props.loading)
         ),
         <.div(
           ExploreStyles.DaytimeCalMessage,

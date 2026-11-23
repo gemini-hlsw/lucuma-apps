@@ -1887,7 +1887,9 @@ trait ArbObservingMode {
       resolution <-
         if instrument === Instrument.Ghost then arbitrary[Option[GhostResolutionMode]]
         else Gen.const(none[GhostResolutionMode])
-      wellDepth  <- arbitrary[Option[GnirsWellDepth]]
+      wellDepth  <-
+        if instrument === Instrument.Gnirs then arbitrary[Option[GnirsWellDepth]]
+        else Gen.const(none[GnirsWellDepth])
     yield ObservingMode.DaytimeCalibration(instrument, sets, resolution, wellDepth)
   )
 

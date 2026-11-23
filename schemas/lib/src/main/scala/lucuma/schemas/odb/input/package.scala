@@ -1278,6 +1278,7 @@ extension (d: ObservingMode.DaytimeCalibration)
         .map(r => DaytimeCalibrationGhostInput(resolutionMode = r.assign))
         .orIgnore,
       gnirs = d.gnirsWellDepth
+        .filter(_ => d.calibrationInstrument === Instrument.Gnirs)
         .map(w => DaytimeCalibrationGnirsInput(wellDepth = w.assign))
         .orIgnore
     )
