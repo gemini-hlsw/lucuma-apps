@@ -12,13 +12,11 @@ import explore.*
 import explore.model.AppContext
 import explore.model.Observation
 import japgolly.scalajs.react.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.model.Target
 import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.LiveSequence
-import lucuma.ui.syntax.all.needsITC
 
 import scala.concurrent.duration.*
 
@@ -27,7 +25,7 @@ object SequenceTileHelper:
     obsId:               Observation.Id,
     targetIds:           List[Target.Id],
     customSedTimestamps: List[Timestamp],
-    calibrationRole:     Option[CalibrationRole]
+    includeItc:          Boolean
   ): HookResult[LiveSequence] =
     for
       ctx                                     <- useContext(AppContext.ctx)
@@ -35,7 +33,7 @@ object SequenceTileHelper:
       visits                                  <- useEffectKeepResultOnMount(ctx.odbApi.observationVisits(obsId))
       sequenceData                            <-
         useEffectKeepResultOnMount:
-          ctx.odbApi.sequenceData(obsId, calibrationRole.forall(_.needsITC))
+          ctx.odbApi.sequenceData(obsId, includeItc)
       refreshVisits                           <- useThrottledCallback(5.seconds)(visits.refresh.value.to[IO])
       refreshSequence                         <- useThrottledCallback(2.seconds)(sequenceData.refresh.to[IO])
       _                                       <-

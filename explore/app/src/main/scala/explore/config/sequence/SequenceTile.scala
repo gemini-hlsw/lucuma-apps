@@ -100,7 +100,7 @@ object SequenceTile
                                props.obsId,
                                props.asterismIds.toList,
                                props.customSedTimestamps,
-                               props.calibrationRole
+                               SequenceTile.includeItc(props)
                              )
         _                 <-
           useEffectWithDeps(liveSequence): newLiveSequence =>
@@ -590,6 +590,25 @@ object SequenceTile
                               seqType => ctx.odbApi.replaceGhostSequence(props.obsId, seqType, _),
                               columnProfile
                             )
+                      case SequenceData(InstrumentExecutionConfig.Scorpio(config), _)           =>
+                        sequnceView
+                          .zoom(
+                            SequenceData.config
+                              .andThen(InstrumentExecutionConfig.scorpio)
+                              .andThen(InstrumentExecutionConfig.Scorpio.executionConfig)
+                          )
+                          .toOptionView
+                          .map: scorpioExecutionView =>
+                            ScorpioSequenceTable(
+                              visitsViewOpt,
+                              config.static,
+                              scorpioExecutionView.flatScience,
+                              props.isEditingAcquisition,
+                              props.isEditingScience,
+                              props.isUserStaffOrAdmin,
+                              props.wavelengthUnits,
+                              columnProfile
+                            )
                       case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise) =>
                         sequnceView
                           .zoom(
@@ -674,6 +693,12 @@ object SequenceTile
 
         TileContents(title, body)
     ):
+
+  // The ODB rejects the ITC query for modes without an ITC, failing the whole sequence query.
+  private def includeItc(props: SequenceTile): Boolean =
+    props.basicConfiguration match
+      case Some(_: BasicConfiguration.ScorpioLongSlit) => false
+      case _                                           => props.calibrationRole.forall(_.needsITC)
 
   private def customizedTooltip(sequences: List[SequenceType]): String =
     sequences match
