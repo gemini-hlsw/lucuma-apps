@@ -50,6 +50,7 @@ case class GlobalPreferences(
   agsVisibility:                        Option[AGSVisibility] = None,
   exploreGuideButton:                   Visible = Visible.Shown,
   obsTreeWidth:                         Option[Int] = None,
+  showObsTree:                          Visible = Visible.Shown,
   spectroscopyModesTableFilters:        Visible = Visible.Hidden,
   imagingModesTableFilters:             Visible = Visible.Hidden,
   archiveDuplicationTableFilters:       Visible = Visible.Hidden,
@@ -94,6 +95,7 @@ object GlobalPreferences:
   val exploreGuideButton                   = Focus[GlobalPreferences](_.exploreGuideButton)
   val obsTreeWidth                         =
     Focus[GlobalPreferences](_.obsTreeWidth).withDefault(Constants.DefaultTreeWidth)
+  val showObsTree                          = Focus[GlobalPreferences](_.showObsTree)
   val spectroscopyModesTableFilters        =
     Focus[GlobalPreferences](_.spectroscopyModesTableFilters)
   val imagingModesTableFilters             = Focus[GlobalPreferences](_.imagingModesTableFilters)

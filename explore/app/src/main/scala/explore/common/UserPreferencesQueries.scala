@@ -183,6 +183,21 @@ object UserPreferencesQueries:
         .attempt
         .void
 
+    def storeShowObsTreePreference[F[_]: ApplicativeThrow](
+      userId:      User.Id,
+      showObsTree: Visible
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserPreferencesAladinUpdate[F]
+        .execute(
+          objects = LucumaUserPreferencesInsertInput(
+            userId = userId.show.assign,
+            showObsTree = showObsTree.value.assign
+          ),
+          update_columns = List(LucumaUserPreferencesUpdateColumn.ShowObsTree)
+        )
+        .attempt
+        .void
+
   end GlobalUserPreferences
 
   object GridLayouts:

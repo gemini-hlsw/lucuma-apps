@@ -3852,6 +3852,7 @@ type LucumaUserPreferences {
   programsTableFilters: Boolean!
   scienceOffsets: Boolean!
   showCatalog: Boolean!
+  showObsTree: Boolean!
   spectroscopyModesTableFilters: Boolean!
   theme: LucumaThemeEnum!
   updatedAt: timestamptz
@@ -3957,6 +3958,7 @@ input LucumaUserPreferencesBoolExp {
   programsTableFilters: BooleanComparisonExp
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
+  showObsTree: BooleanComparisonExp
   spectroscopyModesTableFilters: BooleanComparisonExp
   theme: LucumaThemeEnumComparisonExp
   updatedAt: TimestamptzComparisonExp
@@ -4035,6 +4037,7 @@ input LucumaUserPreferencesInsertInput {
   programsTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
+  showObsTree: Boolean
   spectroscopyModesTableFilters: Boolean
   theme: LucumaThemeEnum
   updatedAt: timestamptz
@@ -4121,6 +4124,7 @@ input LucumaUserPreferencesOrderBy {
   programsTableFilters: OrderBy
   scienceOffsets: OrderBy
   showCatalog: OrderBy
+  showObsTree: OrderBy
   spectroscopyModesTableFilters: OrderBy
   theme: OrderBy
   updatedAt: OrderBy
@@ -4215,6 +4219,9 @@ enum LucumaUserPreferencesSelectColumn {
   showCatalog
 
   """column name"""
+  showObsTree
+
+  """column name"""
   spectroscopyModesTableFilters
 
   """column name"""
@@ -4258,6 +4265,7 @@ input LucumaUserPreferencesSetInput {
   programsTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
+  showObsTree: Boolean
   spectroscopyModesTableFilters: Boolean
   theme: LucumaThemeEnum
   updatedAt: timestamptz
@@ -4360,6 +4368,9 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   showCatalog
+
+  """column name"""
+  showObsTree
 
   """column name"""
   spectroscopyModesTableFilters
@@ -5537,6 +5548,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   programsTableFilters: Boolean
   scienceOffsets: Boolean
   showCatalog: Boolean
+  showObsTree: Boolean
   spectroscopyModesTableFilters: Boolean
   theme: LucumaThemeEnum
   updatedAt: timestamptz

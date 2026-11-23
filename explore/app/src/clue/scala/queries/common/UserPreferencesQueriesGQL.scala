@@ -242,6 +242,7 @@ object UserPreferencesQueriesGQL {
           lastOpenPrograms
           exploreGuideButton
           obsTreeWidth
+          showObsTree
           spectroscopyModesTableFilters
           imagingModesTableFilters
           theme
@@ -281,6 +282,7 @@ object UserPreferencesQueriesGQL {
           lastOpenPrograms
           exploreGuideButton
           obsTreeWidth
+          showObsTree
           spectroscopyModesTableFilters
           imagingModesTableFilters
           theme
