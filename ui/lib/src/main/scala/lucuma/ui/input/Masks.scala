@@ -116,14 +116,19 @@ object Masks:
     val decimalsOnly: String = s"\\.[0-9]{1,$decimalDigits}"
     s"(${sign(allowMinus)}($integerFirst|$decimalsOnly))"
 
-  /** A decimal with an optional exponent: `-?d.ddde-dd`. */
+  /**
+   * A decimal with an optional exponent: `-?d.ddde-dd`. Without `decimalDigits`, any number of
+   * decimals is accepted.
+   */
   def scientific(
     integerDigits:  Int,
-    decimalDigits:  Int,
+    decimalDigits:  Option[Int],
     exponentDigits: Int,
     allowMinus:     Boolean
   ): String =
-    s"${decimalPattern(integerDigits, decimalDigits, allowMinus)}(e[+-]?[0-9]{1,$exponentDigits})?"
+    val pattern: String =
+      decimalPattern(integerDigits, decimalDigits.getOrElse(MaxDigits), allowMinus)
+    s"$pattern(e[+-]?[0-9]{1,$exponentDigits})?"
 
   /**
    * One or more `element`s separated by commas, with an optional space after each comma.

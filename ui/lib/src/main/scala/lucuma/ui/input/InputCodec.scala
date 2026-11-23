@@ -56,10 +56,10 @@ final case class InputCodec[A](
   def withUnboundedDecimalMask(allowMinus: Boolean = true): InputCodec[A] =
     withMask(Masks.decimalOptions(none, allowMinus, none))
 
-  /** A decimal with an optional exponent, like `1.234e-05`. */
+  /** A decimal with an optional exponent, like `1.234e-05`. Without `decimals`, any number. */
   def withScientificMask(
     integerDigits:  Int = 1,
-    decimals:       Int = 3,
+    decimals:       Option[Int] = 3.some,
     exponentDigits: Int = 2,
     allowMinus:     Boolean = true
   ): InputCodec[A] =
