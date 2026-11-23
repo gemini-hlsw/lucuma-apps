@@ -972,8 +972,11 @@ object ObsTabTiles:
                 props.observation.get.execution.digest.fullTimeEstimate,
                 props.observation.get.hasMaterializedSequence,
                 props.readonly || props.daytimeCalIsReadonly,
+                props.isStaffOrAdminUser,
+                props.attachments.get,
                 globalPreferences.get.wavelengthUnits,
-                sequenceChanged.set(pending)
+                sequenceChanged.set(pending),
+                sequenceChanged.set(().ready)
               )
             ),
             itcTile

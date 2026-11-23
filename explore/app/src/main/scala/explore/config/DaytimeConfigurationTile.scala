@@ -5,13 +5,14 @@ package explore.config
 
 import cats.effect.IO
 import cats.syntax.all.*
-import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.syntax.all.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.AttachmentList
 import explore.model.DaytimeCalibrationSets
+import explore.model.MosMaskSelection
 import explore.model.ObsTabTileIds
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
@@ -25,8 +26,8 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Message
 import lucuma.refined.*
-import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
@@ -49,8 +50,11 @@ final case class DaytimeConfigurationTile(
   executionTime:           CalculatedValue[Option[TimeSpan]],
   hasMaterializedSequence: Boolean,
   readonly:                Boolean,
+  isStaff:                 Boolean,
+  attachments:             AttachmentList,
   units:                   WavelengthUnits,
-  sequenceChanged:         Callback
+  sequenceChanged:         Callback,
+  sequenceUnchanged:       Callback
 ) extends Tile[DaytimeConfigurationTile](
       ObsTabTileIds.DaytimeConfigurationId.id,
       "Daytime Calibration",
@@ -58,25 +62,58 @@ final case class DaytimeConfigurationTile(
     )(DaytimeConfigurationTile):
   val editable: Boolean = !readonly && !hasMaterializedSequence
 
+/**
+ * Edits sent to the ODB and not answered yet. `accepted` is the last mode the ODB took, starting
+ * from the mode shown when the first edit of a run was made.
+ */
+private case class InFlight(
+  count:       Int,
+  accepted:    Option[ObservingMode.DaytimeCalibration],
+  anyAccepted: Boolean
+):
+  def started(old: ObservingMode.DaytimeCalibration): InFlight =
+    if count === 0 then InFlight(1, old.some, false) else copy(count = count + 1)
+
+  def finished: InFlight = copy(count = count - 1)
+
+  def accept(d: ObservingMode.DaytimeCalibration): InFlight =
+    copy(accepted = d.some, anyAccepted = true)
+
+private object InFlight:
+  val Idle: InFlight = InFlight(0, none, false)
+
 object DaytimeConfigurationTile
     extends TileComponent[DaytimeConfigurationTile]({ (props, _) =>
       val daytimeOptional: Optional[Option[ObservingMode], ObservingMode.DaytimeCalibration] =
         some[ObservingMode].andThen(ObservingMode.daytimeCalibration)
 
-      for ctx <- useContext(AppContext.ctx)
+      for
+        ctx      <- useContext(AppContext.ctx)
+        inFlight <- useRef(InFlight.Idle)
       yield
         // Every edit replaces the whole mode in the ODB, which also replaces the set list.  The
         // sequence is marked as changed before the mutation: the edit event it produces refreshes
         // the sequence, and the tile only leaves its spinner on a refresh that follows the mark.
-        def remoteUpdate(d: ObservingMode.DaytimeCalibration): IO[Unit] =
-          props.sequenceChanged.toAsync >>
+        // A rejected edit, such as an unusable mask, is reported and the view goes back to the
+        // last mode the ODB accepted, as later edits in flight carry the rejected change too. The
+        // mark is cleared only when no edit is left in flight and none was accepted.
+        def remoteUpdate(
+          old: ObservingMode.DaytimeCalibration,
+          d:   ObservingMode.DaytimeCalibration
+        ): IO[Unit] =
+          val rejected: Callback =
+            inFlight.mod(_.finished) >>
+              inFlight.get.flatMap: s =>
+                props.mode.model.zoom(daytimeOptional).set(s.accepted.getOrElse(old)) >>
+                  props.sequenceUnchanged.when_(s.count === 0 && !s.anyAccepted)
+
+          (inFlight.mod(_.started(old)) >> props.sequenceChanged).toAsync >>
             ctx.odbApi
-              .updateObservations(
-                List(props.obsId),
-                ObservationPropertiesInput(observingMode =
-                  ObservingModeInput.DaytimeCalibration(d.toInput).assign
-                )
-              )
+              .updateDaytimeCalibration(props.obsId, d.toInput)
+              .flatMap(_ => inFlight.mod(_.finished.accept(d)).toAsync)
+              .handleErrorWith: e =>
+                ctx.toastCtx.showToast(e.getMessage, Message.Severity.Error, true) >>
+                  rejected.toAsync
 
         val daytimeView: Option[View[ObservingMode.DaytimeCalibration]] =
           props.mode
@@ -88,7 +125,7 @@ object DaytimeConfigurationTile
                   undo.mod[ObservingMode.DaytimeCalibration](
                     identity,
                     n => _ => n,
-                    (old, n) => remoteUpdate(n) >> cb(old, n).toAsync
+                    (old, n) => remoteUpdate(old, n) >> cb(old, n).toAsync
                   )(f)
               )
 
@@ -115,16 +152,21 @@ object DaytimeConfigurationTile
                 View(ObservingMode.DaytimeCalibration(i, Nil), (_, _) => Callback.empty),
                 editable = false,
                 hasMaterializedSequence = props.hasMaterializedSequence,
+                isStaff = props.isStaff,
+                attachments = props.attachments,
                 units = props.units,
                 loading = true
               )
 
         val body: TagMod =
           daytimeView.fold(placeholder): view =>
-            DaytimeCalibrationEditor(view,
-                                     props.editable,
-                                     props.hasMaterializedSequence,
-                                     props.units
+            DaytimeCalibrationEditor(
+              view,
+              props.editable,
+              props.hasMaterializedSequence,
+              props.isStaff,
+              props.attachments,
+              props.units
             )
 
         TileContents(title, body, heightSettled = !props.modePending)
@@ -135,6 +177,8 @@ case class DaytimeCalibrationEditor(
   daytime:                 View[ObservingMode.DaytimeCalibration],
   editable:                Boolean,
   hasMaterializedSequence: Boolean,
+  isStaff:                 Boolean,
+  attachments:             AttachmentList,
   units:                   WavelengthUnits,
   loading:                 Boolean = false
 ) extends ReactFnProps(DaytimeCalibrationEditor.component)
@@ -158,13 +202,24 @@ object DaytimeCalibrationEditor:
       val setsView: View[List[DaytimeCalibrationSet]] =
         props.daytime.zoom(ObservingMode.DaytimeCalibration.calibrationSets)
 
+      val masks: Option[DaytimeFpuColumn.Masks] =
+        Option.when(DaytimeCalibrationSets.MaskInstruments.contains(instrument))(
+          DaytimeFpuColumn.Masks(
+            MosMaskSelection.selectable(props.attachments, instrument),
+            props.attachments
+          )
+        )
+
       val table: VdomNode =
         if DaytimeCalibrationSets.supports(instrument) then
-          DaytimeCalibrationSetsTable(instrument,
-                                      setsView,
-                                      props.editable,
-                                      props.units,
-                                      props.loading
+          DaytimeCalibrationSetsTable(
+            instrument,
+            setsView,
+            props.editable,
+            props.isStaff,
+            masks,
+            props.units,
+            props.loading
           )
         else
           <.div(

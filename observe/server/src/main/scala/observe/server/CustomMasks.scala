@@ -8,12 +8,13 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.Defined
 import lucuma.core.model.MaskDefinition
 import lucuma.core.model.ToBeDefined
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.Attachments
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.Program.Attachments
 
 /**
  * Resolves the custom mask (MOS) definitions of a sequence to the mask names understood by the
  * instruments. The ODB derives the mask name from the attachment itself, and only MOS mask
- * attachments have one.
+ * attachments have one. Names come from all the program's attachments, as a mask is used without
+ * being assigned to the observation.
  */
 final case class CustomMasks(maskNames: Map[Attachment.Id, String]) {
   def maskName(mask: MaskDefinition): Either[ObserveFailure, String] = mask match {

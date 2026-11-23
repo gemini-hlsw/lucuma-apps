@@ -118,7 +118,7 @@ case class GmosSouthMosPanel(
   def fpuView: View[GmosCustomSlitWidth] =
     customMask
       .zoom(ObservingMode.GmosCustomMask.slitWidth, GmosCustomMaskInput.slitWidth.modify)
-      .view(identity)
+      .view(_.assign)
 
   def customMaskView: View[ObservingMode.GmosCustomMask] =
     customMask.view(_.toInput)

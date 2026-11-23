@@ -8,9 +8,9 @@ import explore.config.DaytimeCalibrationSetsTable.*
 import explore.model.DaytimeCalibrationSets
 import explore.model.Flamingos2DaytimeSetup
 import explore.model.display.given
+import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
-import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.table.*
 import lucuma.schemas.model.DaytimeCalibrationSet
 
@@ -21,7 +21,9 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
 
   def apply(
     setsView: View[List[DaytimeCalibrationSet]],
-    editable: Boolean
+    editable: Boolean,
+    isStaff:  Boolean,
+    masks:    Option[DaytimeFpuColumn.Masks]
   ): List[ColDef.Type] =
     val setup: Int => View[Flamingos2DynamicConfig] =
       setupView(setsView, Flamingos2DaytimeSetup.setup, Flamingos2DaytimeSetup.default)
@@ -44,15 +46,13 @@ private[config] object Flamingos2DaytimeCalibrationColumns:
           showClear = r => !DaytimeCalibrationSets.needsDisperser(r._1.kind),
           show = withOptics
         )(setup(_).zoom(Flamingos2DynamicConfig.disperser)),
-        optionalDropdownColumn(
-          FpuColumnId,
-          "FPU",
-          110,
+        DaytimeFpuColumn(
           editable,
-          r =>
-            if Flamingos2FpuMask.custom.nonEmpty(setup(r._2).get.fpu) then "Custom Mask"
-            else "Imaging",
-          show = withOptics
+          isStaff,
+          masks,
+          Flamingos2Fpu.Pinholes,
+          _ => "Imaging",
+          r => setup(r._2).get.fpu.customSlitWidth.map(_.shortName)
         )(setup(_).zoom(Flamingos2DaytimeSetup.fpu)),
         dropdownColumn(DeckerColumnId, "Decker", 90, editable, withOptics)(
           setup(_).zoom(Flamingos2DynamicConfig.decker)

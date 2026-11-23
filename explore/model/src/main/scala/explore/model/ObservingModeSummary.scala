@@ -252,7 +252,7 @@ enum ObservingModeSummary derives Order:
         GmosNorthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth.assign).assign,
           centralWavelength = centralWavelength.value.toInput.assign,
           exposureTimeMode = etm.toInput.assign
         )
@@ -262,7 +262,7 @@ enum ObservingModeSummary derives Order:
         GmosSouthMosInput(
           grating = grating.assign,
           filter = filter.orUnassign,
-          customMask = GmosCustomMaskInput(slitWidth = slitWidth).assign,
+          customMask = GmosCustomMaskInput(slitWidth = slitWidth.assign).assign,
           centralWavelength = centralWavelength.value.toInput.assign,
           exposureTimeMode = etm.toInput.assign
         )
@@ -301,7 +301,7 @@ enum ObservingModeSummary derives Order:
         Flamingos2MosInput(
           disperser = disperser.assign,
           filter = filter.assign,
-          customMask = Flamingos2CustomMaskInput(slitWidth = slitWidth).assign,
+          customMask = Flamingos2CustomMaskInput(slitWidth = slitWidth.assign).assign,
           exposureTimeMode = etm.toInput.assign
         )
       )

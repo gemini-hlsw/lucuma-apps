@@ -375,7 +375,8 @@ object TestCommon {
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
-        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0)),
+        List.empty
       ),
       defaultTargetEnvironment.some,
       ConstraintSet(
@@ -385,8 +386,7 @@ object TestCommon {
         WaterVapor.Median,
         ElevationRange.ByAirMass.Default
       ),
-      ODBObservation.SchedulingConstraints(List.empty),
-      List.empty
+      ODBObservation.SchedulingConstraints(List.empty)
     )
 
   /** Builds an OdbObservationData for testing with GmosNorth execution config. */
