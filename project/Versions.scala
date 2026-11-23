@@ -22,7 +22,7 @@ object Versions {
   val geminiLocales          = "0.12.3"
   val giapiScala             = "0.5.1"
   val grackle                = "0.31.0"
-  val graphQLRoutes          = "0.17.0"
+  val graphQLRoutes          = "0.17.1"
   val http4s                 = "0.23.39"
   val http4sDom              = "0.2.12"
   val http4sJdkHttpClient    = "0.10.0"
