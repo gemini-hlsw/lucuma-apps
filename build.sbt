@@ -330,6 +330,7 @@ lazy val ui_tests =
       libraryDependencies ++=
         In(Test)(
           LucumaCoreTestkit.value ++
+            CatsEffectTestkit.value ++
             MUnitCatsEffect.value ++
             MUnit.value ++
             Discipline.value ++

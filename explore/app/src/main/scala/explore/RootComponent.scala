@@ -40,7 +40,8 @@ object RootComponent
           AppContext.ctx.provide(props.ctx.copy(toastRef = toastRef))(
             HelpContext.Provider:
               programSummariesPot.renderPot: programSummaries =>
-                props.router(RootModelViews(rootModel, programSummaries))
+                props.router:
+                  RootModelViews(rootModel, programSummaries, props.ctx.undoEffectRunner)
           )
         )
     )

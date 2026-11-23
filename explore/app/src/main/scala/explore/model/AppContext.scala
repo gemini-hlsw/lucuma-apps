@@ -18,6 +18,7 @@ import explore.cache.LoadProgressRef
 import explore.events.*
 import explore.model.Constants.HorizonsProxyMod
 import explore.model.enums.AppTab
+import explore.services.OdbAdaptedError
 import explore.services.OdbApi
 import explore.services.OdbApiImpl
 import explore.utils
@@ -43,6 +44,7 @@ import lucuma.ui.otel.OtelSdk
 import lucuma.ui.otel.TracedWsClient
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
+import lucuma.ui.undo.UndoEffectRunner
 import org.http4s.Uri
 import org.http4s.Uri.Scheme
 import org.http4s.client.Client
@@ -79,7 +81,8 @@ case class AppContext[F[_]](
   odbReconnectionsTopic:  Topic[F, Unit],
   loadProgress:           LoadProgressRef[F],
   simbadClient:           SimbadClient[F],
-  shapeInterpreter:       ShapeInterpreter
+  shapeInterpreter:       ShapeInterpreter,
+  undoEffectRunner:       UndoEffectRunner[F]
 )(using
   val F:                  Async[F],
   val logger:             Logger[F],
@@ -148,6 +151,8 @@ case class AppContext[F[_]](
   val horizonsClient = HorizonsClient(httpClient, modUri = HorizonsProxyMod)
 
 object AppContext:
+  private val UndoEffectTimeout: FiniteDuration = 10.seconds
+
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value
 
   def from[
@@ -201,6 +206,18 @@ object AppContext:
                                       si => Logger[F].info("Page geometry: lucuma-wasm kernel").as(si)
                                     )
                                   )
+      undoEffectRunner       <- UndoEffectRunner.serial[F](
+                                  UndoEffectTimeout,
+                                  OdbAdaptedError.isServerRejection,
+                                  // OdbApiHelper already logs the errors the ODB answers with.
+                                  e =>
+                                    Logger[F]
+                                      .error(e)("Error in undoable remote call")
+                                      .unlessA(OdbAdaptedError.isServerRejection(e)),
+                                  resetProgramCacheTopic
+                                    .publish1(ProgramError("Timed out saving changes", false).some)
+                                    .void
+                                )
       version                 = utils.version(config.environment)
     } yield AppContext[F](
       version,
@@ -220,7 +237,8 @@ object AppContext:
       odbReconnectionsTopic,
       loadProgress,
       simbadClient,
-      shapeInterpreter
+      shapeInterpreter,
+      undoEffectRunner
     )
 
   given [F[_]]: Reusability[AppContext[F]] = Reusability.always

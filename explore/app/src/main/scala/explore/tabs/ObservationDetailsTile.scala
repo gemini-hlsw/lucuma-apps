@@ -73,8 +73,6 @@ object ObservationDetailsTile
         ctx           <- useContext(AppContext.ctx)
         selectedVisit <- useStateView(none[Visit.Id])
       yield
-        import ctx.given
-
         val digest = props.observation.get.execution.digest
 
         def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
@@ -91,14 +89,15 @@ object ObservationDetailsTile
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
             .zoom(Observation.scienceBand)
-            .undoableView(Iso.id[Option[ScienceBand]].asLens)
-            .withOnMod: band =>
-              ctx.odbApi
-                .updateObservations(
-                  List(props.observation.get.id),
-                  ObservationPropertiesInput(scienceBand = band.orIgnore)
-                )
-                .runAsync
+            .undoableView(
+              Iso.id[Option[ScienceBand]].asLens,
+              band =>
+                ctx.odbApi
+                  .updateObservations(
+                    List(props.observation.get.id),
+                    ObservationPropertiesInput(scienceBand = band.orIgnore)
+                  )
+            )
 
         val scienceBandSelector: VdomNode =
           FormEnumDropdownOptionalView(
@@ -119,14 +118,15 @@ object ObservationDetailsTile
         val priorityView: View[ObservationPriority] =
           props.observation
             .zoom(Observation.priority)
-            .undoableView(Iso.id[ObservationPriority].asLens)
-            .withOnMod: priority =>
-              ctx.odbApi
-                .updateObservations(
-                  List(props.observation.get.id),
-                  ObservationPropertiesInput(priority = priority.assign)
-                )
-                .runAsync
+            .undoableView(
+              Iso.id[ObservationPriority].asLens,
+              priority =>
+                ctx.odbApi
+                  .updateObservations(
+                    List(props.observation.get.id),
+                    ObservationPropertiesInput(priority = priority.assign)
+                  )
+            )
 
         val prioritySelector: VdomNode =
           SelectButtonEnumView(
@@ -142,17 +142,18 @@ object ObservationDetailsTile
         val tooActivationView: View[TooActivation] =
           props.observation
             .zoom(Observation.tooActivationWithMode)
-            .undoableView(Iso.id[TooActivation].asLens)
-            .withOnMod: activation =>
-              ctx.odbApi
-                .updateObservations(
-                  List(props.observation.get.id),
-                  ObservationPropertiesInput(
-                    schedulingConstraints =
-                      SchedulingConstraintsInput(tooActivation = activation.assign).assign
+            .undoableView(
+              Iso.id[TooActivation].asLens,
+              activation =>
+                ctx.odbApi
+                  .updateObservations(
+                    List(props.observation.get.id),
+                    ObservationPropertiesInput(
+                      schedulingConstraints =
+                        SchedulingConstraintsInput(tooActivation = activation.assign).assign
+                    )
                   )
-                )
-                .runAsync
+            )
 
         val tooActivationSelector: VdomNode =
           FormEnumDropdownView(
@@ -169,14 +170,15 @@ object ObservationDetailsTile
         val qaOverrideView: View[Option[ObservationQaState]] =
           props.observation
             .zoom(Observation.qa.andThen(ObservationQa.stateOverride))
-            .undoableView(Iso.id[Option[ObservationQaState]].asLens)
-            .withOnMod: qaOverride =>
-              ctx.odbApi
-                .updateObservations(
-                  List(props.observation.get.id),
-                  ObservationPropertiesInput(qaStateOverride = qaOverride.orUnassign)
-                )
-                .runAsync
+            .undoableView(
+              Iso.id[Option[ObservationQaState]].asLens,
+              qaOverride =>
+                ctx.odbApi
+                  .updateObservations(
+                    List(props.observation.get.id),
+                    ObservationPropertiesInput(qaStateOverride = qaOverride.orUnassign)
+                  )
+            )
 
         val qaHelpId: Help.Id = "observation/qa-state.md".refined
 

@@ -147,18 +147,29 @@ trait UndoSetter[M] { self =>
    * `UndoSetter` and create the `undoableView` at the last possible moment.
    */
   def undoableView[N](getN: M => N, modN: (N => N) => M => M): View[N] =
+    undoableView(getN, modN, (_: N) => DefaultA.unit)
+
+  def undoableView[N](lens: Lens[M, N]): View[N] =
+    undoableView(lens.get, lens.modify)
+
+  /** Like `undoableView`, but `effect` goes through the effect runner on set, undo and redo. */
+  def undoableView[N](
+    getN:   M => N,
+    modN:   (N => N) => M => M,
+    effect: N => DefaultA[Unit]
+  ): View[N] =
     View[N](
       getN(get),
       (f, cb) =>
         mod(
           getN,
           (n: N) => modN(_ => n),
-          (n: N) => cb(getN(get), n).to[DefaultA]
+          (n: N) => cb(getN(get), n).to[DefaultA] >> effect(n)
         )(f)
     )
 
-  def undoableView[N](lens: Lens[M, N]): View[N] =
-    undoableView(lens.get, lens.modify)
+  def undoableView[N](lens: Lens[M, N], effect: N => DefaultA[Unit]): View[N] =
+    undoableView(lens.get, lens.modify, effect)
 
   /**
    * Converts an UndoSetter[List[A]] into a List[UndoSetter[A]].

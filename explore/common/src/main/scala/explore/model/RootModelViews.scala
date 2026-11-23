@@ -3,17 +3,20 @@
 
 package explore.model
 
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.ThrottlingView
 import crystal.react.View
 import lucuma.core.enums.ProgramUserRole
+import lucuma.ui.undo.UndoEffectRunner
 import monocle.Focus
 import monocle.Lens
 
 case class RootModelViews(
   rootModel:        View[RootModel],
-  programSummaries: ThrottlingView[Pot[ProgramSummaries]]
+  programSummaries: ThrottlingView[Pot[ProgramSummaries]],
+  undoEffectRunner: UndoEffectRunner[IO]
 ):
   lazy val programSummariesValue: Pot[ProgramSummaries] = programSummaries.throttlerView.get
 

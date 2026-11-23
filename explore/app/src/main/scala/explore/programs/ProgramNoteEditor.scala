@@ -42,7 +42,6 @@ object ProgramNoteEditor
                         .flatMap(_.foldMap(i => Callback(i.select()).delayMs(50).toCallback))
                         .when_(props.note.get.title === ProgramNote.NewProgramNoteTitle)
       } yield
-        import ctx.given
 
         val aligner: Aligner[ProgramNote, ProgramNotePropertiesInput] = Aligner(
           props.note,

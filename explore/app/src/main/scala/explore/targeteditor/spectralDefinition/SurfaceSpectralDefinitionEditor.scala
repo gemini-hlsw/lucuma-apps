@@ -3,7 +3,6 @@
 
 package explore.targeteditor.spectralDefinition
 
-import cats.effect.IO
 import clue.data.syntax.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
@@ -14,7 +13,6 @@ import explore.model.enums.SedType
 import explore.model.enums.SurfaceSedType
 import explore.model.enums.WavelengthUnits
 import explore.utils.*
-import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Band
 import lucuma.core.enums.CalibrationRole
@@ -29,7 +27,6 @@ import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.odb.input.*
 import lucuma.ui.syntax.all.given
-import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.SortedMap
 
@@ -46,8 +43,7 @@ case class SurfaceSpectralDefinitionEditor(
   units:              WavelengthUnits,
   calibrationRole:    Option[CalibrationRole],
   disabled:           Boolean
-)(using Logger[IO])
-    extends ReactFnProps[SurfaceSpectralDefinitionEditor](
+) extends ReactFnProps[SurfaceSpectralDefinitionEditor](
       SurfaceSpectralDefinitionEditor.component
     )
     with SpectralDefinitionEditor[Surface, SpectralDefinitionSurfaceInput] {

@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.MonadError
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
@@ -18,7 +17,6 @@ import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
@@ -34,7 +32,6 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.syntax.all.given
-import org.typelevel.log4cats.Logger
 
 case class GmosSouthLongSlitPanel(
   programId:       Program.Id,
@@ -47,8 +44,7 @@ case class GmosSouthLongSlitPanel(
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits,
   isStaff:         Boolean
-)(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
-    extends ReactFnProps[GmosSouthLongSlitPanel](GmosSouthLongSlitPanel.component)
+) extends ReactFnProps[GmosSouthLongSlitPanel](GmosSouthLongSlitPanel.component)
     with GmosLongSlitPanelProps[GmosSouthGrating, GmosSouthFilter, GmosSouthFpu]:
 
   def mode: ObservingMode   = observingMode.get

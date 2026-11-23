@@ -87,7 +87,6 @@ object GhostIfuConfigPanel
         _                                       <- useEffectWithDeps(stepEstimate.isRunning): running =>
                                                      lastEstimatedMode.setState(props.observingMode.get.some).unless_(running)
       yield
-        import ctx.given
 
         val mode                     = props.observingMode.get
         val disableEdit              =

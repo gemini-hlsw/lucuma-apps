@@ -54,7 +54,6 @@ object AlienVisitorConfigPanel
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
       yield
-        import ctx.given
 
         val mode        = props.observingMode.get
         val disableEdit =

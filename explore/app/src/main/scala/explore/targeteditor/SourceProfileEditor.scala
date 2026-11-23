@@ -53,7 +53,6 @@ object SourceProfileEditor
         ctx                <- useContext(AppContext.ctx)
         brightnessExpanded <- useStateView(IsExpanded(true))
       yield
-        import ctx.given
 
         val gaussianAlignerOpt: Option[Aligner[Gaussian, GaussianInput]] =
           props.sourceProfile.zoomOpt(

@@ -71,7 +71,6 @@ object GnirsImagingConfigPanel
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
       yield
-        import ctx.given
 
         val disableAdvancedEdit: Boolean         =
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit

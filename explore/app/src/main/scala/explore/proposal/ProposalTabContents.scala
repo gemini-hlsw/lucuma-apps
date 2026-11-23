@@ -116,7 +116,7 @@ object ProposalTabContents:
       import ctx.given
 
       val undoCtx: UndoContext[ProgramDetails] =
-        UndoContext(props.undoStacks, props.programDetails)
+        UndoContext(props.undoStacks, props.programDetails, ctx.undoEffectRunner)
 
       val isStdUser: Boolean =
         props.userVault.map(_.user).collect { case StandardUser(_, _, _, _) => () }.isDefined

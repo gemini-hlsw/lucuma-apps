@@ -20,7 +20,6 @@ import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.model.ExposureTimeMode
@@ -59,7 +58,6 @@ object Flamingos2ImagingConfigPanel
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
       yield
-        import ctx.given
         import Flamingos2Givens.given
 
         val disableAdvancedEdit: Boolean      =

@@ -3,15 +3,14 @@
 
 package explore.common
 
-import cats.MonadError
+import cats.~>
 import crystal.react.*
 import japgolly.scalajs.react.Reusability
-import japgolly.scalajs.react.util.Effect
+import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
 import lucuma.ui.undo.UndoSetter
 import monocle.Lens
 import monocle.Optional
 import monocle.Prism
-import org.typelevel.log4cats.Logger
 
 /**
  * Provides a `View` into a model with the ability to perform changes remotely whenever the `View`
@@ -40,6 +39,8 @@ trait AlignerF[F[_], B, S]:
   protected val _modelMod: (B => B) => _A => _A  // Model drill-down modifier function
   protected val _remoteMod: (S => S) => _T => _T // Delta structure drill-down modifier function
 
+  protected val _toUndoEffect: F ~> DefaultA // Conversion to the effect the undo context runs
+
   /** Get the value of the model. */
   def get: B = _modelGet(_undoCtx.get)
 
@@ -52,10 +53,13 @@ trait AlignerF[F[_], B, S]:
    */
   def viewMod(
     toInput: B => S => S
-  )(using MonadError[F, Throwable], Effect.Dispatch[F], Logger[F]): View[B] =
+  ): View[B] =
     _undoCtx
-      .undoableView(_modelGet, _modelMod)
-      .withOnMod(value => _onMod(_remoteMod(toInput(value))(_remoteBaseInput)).runAsync)
+      .undoableView(
+        _modelGet,
+        _modelMod,
+        value => _toUndoEffect(_onMod(_remoteMod(toInput(value))(_remoteBaseInput)))
+      )
 
   /**
    * Build an undoable `View` at the current level, specifying a conversion from the model to the
@@ -66,7 +70,7 @@ trait AlignerF[F[_], B, S]:
    */
   def view(
     toInput: B => S
-  )(using MonadError[F, Throwable], Effect.Dispatch[F], Logger[F]): View[B] =
+  ): View[B] =
     viewMod(b => _ => toInput(b))
 
   /**
@@ -91,7 +95,8 @@ trait AlignerF[F[_], B, S]:
       _onMod,
       _modelGet.andThen(modelGet),
       _modelMod.compose(modelMod),
-      _remoteMod.compose(remoteMod)
+      _remoteMod.compose(remoteMod),
+      _toUndoEffect
     )
 
   /** Drill-down specifying model `Lens` and delta structure modification function. */
@@ -152,7 +157,8 @@ object AlignerF:
     onMod:           T => F[Unit],
     modelGet:        A => B,
     modelMod:        (B => B) => A => A,
-    remoteMod:       (S => S) => T => T
+    remoteMod:       (S => S) => T => T,
+    toUndoEffect:    F ~> DefaultA
   ): AlignerF[F, B, S] =
     new AlignerF[F, B, S] {
       protected type _A = A
@@ -165,15 +171,26 @@ object AlignerF:
       protected val _modelGet: A => B              = modelGet
       protected val _modelMod: (B => B) => A => A  = modelMod
       protected val _remoteMod: (S => S) => T => T = remoteMod
+
+      protected val _toUndoEffect: F ~> DefaultA = toUndoEffect
     }
 
   /** Build a base `AlignerF` for model `A` and delta structure `T` */
   def apply[F[_], A, T](
     undoCtx:         UndoSetter[A],
     remoteBaseInput: T,
-    onMod:           T => F[Unit]
+    onMod:           T => F[Unit],
+    toUndoEffect:    F ~> DefaultA
   ): AlignerF[F, A, T] =
-    AlignerF[F, A, A, T, T](undoCtx, remoteBaseInput, onMod, identity, identity, identity)
+    AlignerF[F, A, A, T, T](
+      undoCtx,
+      remoteBaseInput,
+      onMod,
+      identity,
+      identity,
+      identity,
+      toUndoEffect
+    )
 
   given [F[_], B: Reusability, S]: Reusability[AlignerF[F, B, S]] =
     Reusability.by(_.get)

@@ -22,31 +22,32 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.undo.UndoSetter
 import monocle.Lens
-import org.typelevel.log4cats.Logger
 
 object ScienceQueries:
 
   case class ScienceRequirementsUndoView(
     obsId:                   Observation.Id,
     scienceRequirementsUndo: UndoSetter[ScienceRequirements]
-  )(using odbApi: OdbObservationApi[IO])(using Logger[IO], ToastCtx[IO]):
+  )(using odbApi: OdbObservationApi[IO])(using ToastCtx[IO]):
     def apply[A](
       modelGet:  ScienceRequirements => A,
       modelMod:  (A => A) => ScienceRequirements => ScienceRequirements,
       remoteSet: A => ScienceRequirementsInput => ScienceRequirementsInput
     ): View[A] =
       scienceRequirementsUndo
-        .undoableView(modelGet, modelMod)
-        .withOnMod: value =>
-          odbApi
-            .updateObservations(
-              List(obsId),
-              ObservationPropertiesInput(
-                scienceRequirements = remoteSet(value)(ScienceRequirementsInput()).assign
+        .undoableView(
+          modelGet,
+          modelMod,
+          value =>
+            odbApi
+              .updateObservations(
+                List(obsId),
+                ObservationPropertiesInput(
+                  scienceRequirements = remoteSet(value)(ScienceRequirementsInput()).assign
+                )
               )
-            )
-            .toastErrors
-            .runAsync
+              .toastErrors
+        )
 
     def apply[A](
       lens:      Lens[ScienceRequirements, A],

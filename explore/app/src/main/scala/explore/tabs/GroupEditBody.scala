@@ -7,7 +7,6 @@ import cats.data.NonEmptySet
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
-import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.types.numeric.NonNegShort
@@ -41,7 +40,6 @@ import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.undo.UndoSetter
 import monocle.Lens
-import org.typelevel.log4cats.Logger
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
@@ -85,10 +83,9 @@ object GroupEditBody
         lens:   Lens[Group, A],
         prop:   A => GroupPropertiesInput,
         odbApi: OdbApi[IO]
-      )(using Logger[IO]) =
+      ) =
         props.group
-          .undoableView(lens)
-          .withOnMod(a => odbApi.updateGroup(group.get.id, prop(a)).runAsync)
+          .undoableView(lens, a => odbApi.updateGroup(group.get.id, prop(a)))
 
       for
         ctx            <- useContext(AppContext.ctx)
@@ -116,19 +113,18 @@ object GroupEditBody
                   props.group,
                   intervalsLens,
                   (n, x) =>
-                    GroupPropertiesInput(minimumInterval = n.map(_.toInput).orUnassign,
-                                         maximumInterval = x.map(_.toInput).orUnassign
+                    GroupPropertiesInput(
+                      minimumInterval = n.map(_.toInput).orUnassign,
+                      maximumInterval = x.map(_.toInput).orUnassign
                     ),
                   ctx.odbApi
-                )(using ctx.logger).set((min, optMax))
+                ).set((min, optMax))
               else Callback.empty
         nameDisplay   <- useState(props.group.get.name)
         intervalError <-
           useMemo((minIntervalV.get, maxIntervalV.get, useMaxInterval.get)): (min, max, useMax) =>
             Option.when(isIntervalError(min, max, useMax))(intervalErrorString).orUndefined
       yield
-        import ctx.given
-
         val group = props.group.get
         val isAnd = group.isAnd
 
