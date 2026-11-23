@@ -293,7 +293,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               inputClass = SequenceStyles.OffsetInput
             ): VdomNode
           case _                                         =>
-            c.value.map(wvFormat.display).getOrElse("-"): VdomNode
+            c.value.map(wvFormat.display).orEmpty: VdomNode
     )
 
   private lazy val fpuCol: colDef.TypeFor[Option[String]] =
@@ -762,6 +762,18 @@ object SequenceColumns:
 
   def hiddenColumns(profile: SequenceColumnProfile): Set[ColumnId] =
     ColumnRules.filterNot(_._2(profile)).keySet
+
+  // Hidden when no row has a value, e.g. a sequence made only of biases or darks.
+  private val HideWhenEmptyColumns: Map[ColumnId, SequenceRow[?] => Option[Any]] = Map(
+    WavelengthColumnId -> (_.wavelength),
+    FPUColumnId        -> (_.fpuName),
+    GratingColumnId    -> (_.gratingName),
+    FilterColumnId     -> (_.filterName)
+  )
+
+  def emptyColumns(rows: List[SequenceRow[?]]): Set[ColumnId] =
+    if rows.isEmpty then Set.empty
+    else HideWhenEmptyColumns.filter((_, value) => rows.forall(value(_).isEmpty)).keySet
 
   object BaseColumnSizes {
     // Present for editable instruments.

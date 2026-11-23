@@ -83,12 +83,13 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     ExtraRowColumnId -> FixedSize(0.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
-  private def columns(columnProfile: SequenceColumnProfile)(using
+  private def columns(columnProfile: SequenceColumnProfile, emptyColumnIds: Set[ColumnId])(using
     FetchClient[IO, ObservationDB],
     ToastCtx[IO],
     Logger[IO]
   ): List[ColDef.Type] =
-    val hidden: Set[ColumnId] = hiddenColumnIds ++ SequenceColumns.hiddenColumns(columnProfile)
+    val hidden: Set[ColumnId] =
+      hiddenColumnIds ++ SequenceColumns.hiddenColumns(columnProfile) ++ emptyColumnIds
     List(
       SequenceColumns
         .headerCell(HeaderColumnId, ColDef)
@@ -150,9 +151,18 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                                          )
         dynTable                      <-
           useDynTable(DynTableDefs(props.columnProfile.kind), SizePx(resize.width.orEmpty))
-        cols                          <- useMemo(props.columnProfile): columnProfile =>
+        // Built from the saved sequence, so columns don't come and go while editing.
+        savedRows                      = props.buildRows(props.acquisition.get, props.science.get)
+        emptyColumnIds                <-
+          useMemo((visitsData, savedRows._1, savedRows._2)): (visitsData, acquisition, science) =>
+            SequenceColumns.emptyColumns(
+              visitsData.value._1.flatMap(_.stepRows.map(_.step)) ++ acquisition ++ science
+            )
+        cols                          <- useMemo((props.columnProfile, emptyColumnIds)): (columnProfile, emptyColumnIds) =>
                                            import ctx.given
-                                           dynTable.setInitialColWidths(columns(columnProfile))
+                                           dynTable.setInitialColWidths(
+                                             columns(columnProfile, emptyColumnIds)
+                                           )
         resolvedAcquisition            = editContexts.acquisition.resolvedSequence
         resolvedScience                = editContexts.science.resolvedSequence
         (acquisitionRows, scienceRows) = props.buildRows(resolvedAcquisition, resolvedScience)

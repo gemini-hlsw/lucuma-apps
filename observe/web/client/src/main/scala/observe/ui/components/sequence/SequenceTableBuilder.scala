@@ -89,12 +89,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         resize                   <- useResizeDetector
         ctx                      <- useContext(AppContext.ctx)
         sequenceApi              <- useContext(SequenceApi.ctx)
-        cols                     <-
-          useMemo(
-            (props.clientMode, props.instrument, props.obsId, props.isPreview, props.columnProfile)
-          ):
-            import ctx.given
-            columnDefs(_, _, _, _, _)
         visitsData               <-
           useMemo(
             (props.instrumentVisits,
@@ -104,6 +98,24 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           ):
             visitsSequences(_, _, _)
         visits                    = visitsData.map(_._1)
+        emptyColumnIds           <-
+          useMemo((visits, props.acquisitionRows, props.scienceRows)):
+            (visits, acquisition, science) =>
+              SequenceColumns.emptyColumns(
+                visits.value.flatMap(_.stepRows.map(_.step)) ++ acquisition ++ science
+              )
+        cols                     <-
+          useMemo(
+            (props.clientMode,
+             props.instrument,
+             props.obsId,
+             props.isPreview,
+             props.columnProfile,
+             emptyColumnIds
+            )
+          ):
+            import ctx.given
+            columnDefs(_, _, _, _, _, _)
         nextScienceIndex          = visitsData.map(_._2)
         acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
         _                        <-
