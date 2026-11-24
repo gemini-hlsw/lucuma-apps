@@ -185,6 +185,13 @@ final class InputCodecsSuite extends DisciplineSuite:
       scale    <- Gen.choose(10, 30)
     yield BigDecimal(mantissa, scale)
 
+  /** Positive values below 1e-6, which `BigDecimal.toString` prints with an exponent. */
+  private val belowOneMillionth: Gen[BigDecimal] =
+    for
+      mantissa <- Gen.choose(1L, 999L)
+      scale    <- Gen.choose(10, 20)
+    yield BigDecimal(mantissa, scale)
+
   private def timeSpansBetween(min: TimeSpan, max: TimeSpan): Arbitrary[TimeSpan] =
     Arbitrary(
       Gen.choose(min.toMicroseconds, max.toMicroseconds).map(TimeSpan.unsafeFromMicroseconds)
@@ -271,12 +278,20 @@ final class InputCodecsSuite extends DisciplineSuite:
   )
   checkAll(
     "PowerLawIndex",
-    InputCodecTests(inputCodecs.PowerLawIndex)(using Arbitrary(decimals(-100, 100, 8)))
+    InputCodecTests(inputCodecs.PowerLawIndex)(using
+      Arbitrary(
+        Gen.oneOf(decimals(-100, 100, 8), belowOneMillionth, belowOneMillionth.map(-_))
+      )
+    )
   )
   checkAll(
     "LineWidth",
     InputCodecTests(inputCodecs.LineWidth)(using
-      Arbitrary(decimals(0, 1000000, 6).suchThat(_ > 0).map(LineWidthValue.unsafeFrom))
+      Arbitrary(
+        Gen
+          .oneOf(decimals(0, 1000000, 6).suchThat(_ > 0), belowOneMillionth)
+          .map(LineWidthValue.unsafeFrom)
+      )
     )
   )
   checkAll(

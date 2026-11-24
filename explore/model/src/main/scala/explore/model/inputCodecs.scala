@@ -203,13 +203,16 @@ trait inputCodecs:
   val Brightness: InputCodec[BrightnessValue]                                     =
     ExploreModelValidators.brightnessValidWedge.toCodec
       .withScientificMask(integerDigits = 2, decimals = 3.some, exponentDigits = 2)
+  // `InputValidSplitEpi.bigDecimal` prints an exponent below 1e-6, which a decimal mask rejects.
+  private val PlainBigDecimal: InputValidSplitEpi[BigDecimal]                     =
+    InputValidSplitEpi(InputValidSplitEpi.bigDecimal.getValid, _.bigDecimal.toPlainString)
   val PowerLawIndex: InputCodec[BigDecimal]                                       =
-    InputValidSplitEpi.bigDecimal.toCodec.withUnboundedDecimalMask()
+    PlainBigDecimal.toCodec.withUnboundedDecimalMask()
   val BlackBodyTemperatureK: InputCodec[PosInt]                                   =
     InputValidSplitEpi.posInt.toCodec.withIntegerMask(allowMinus = false)
   val LineWidth: InputCodec[LineWidthValue]                                       =
-    InputValidSplitEpi
-      .refinedBigDecimal[LineWidthValueRefinement]
+    PlainBigDecimal
+      .refined[LineWidthValueRefinement](_ => NonEmptyChain("Invalid format".refined[NonEmpty]))
       .andThen(LineWidthValue.Value.reverse)
       .toCodec
       .withUnboundedDecimalMask(allowMinus = false)
