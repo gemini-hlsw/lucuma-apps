@@ -18,6 +18,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
+import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
@@ -179,7 +180,9 @@ sealed trait SequenceRow[+D]:
         case Flamingos2FpuMask.Imaging              => "Imaging".some
     case GnirsDynamicConfig(fpu = fpu)           =>
       fpu.fold(slit => slit.longName.some, ifu => ifu.shortName.some, other => other.shortName.some)
-    case s: ScorpioDynamicConfig                 => s.fpu.longSlit.map(_.longName)
+    case s: ScorpioDynamicConfig                 =>
+      s.fpu.longSlit.map: fpu =>
+        s"${Angle.signedDecimalArcseconds.get(fpu.slitWidth).setScale(2, BigDecimal.RoundingMode.HALF_UP)}\""
     case _                                       =>
       none
 
