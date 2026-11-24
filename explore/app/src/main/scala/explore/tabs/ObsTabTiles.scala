@@ -625,7 +625,9 @@ object ObsTabTiles:
           props.basicConfiguration.orElse(selectedConfig.get.toBasicConfiguration())
 
         val isVisitorMode: Boolean =
-          props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
+          props.basicConfiguration match
+            case Some(_: BasicConfiguration.Visitor) => true
+            case _                                   => false
 
         val awaitingAltairGuideStar: Boolean =
           AltairControls.itcAwaitingGuideStar(obsConf.altair, altairItcParameters)
