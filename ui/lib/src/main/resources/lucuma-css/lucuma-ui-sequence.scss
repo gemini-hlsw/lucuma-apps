@@ -143,6 +143,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Fits the longest offset the editor allows (-999.99″) so decimal points line up.
+.lucuma-sequence-offset-value {
+  display: inline-block;
+  min-width: 8ch;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .lucuma-sequence-step-index-number {
   min-width: 3ch;
   text-align: right;

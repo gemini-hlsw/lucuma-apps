@@ -260,7 +260,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
           groupClass = SequenceStyles.SequenceInput,
           inputClass = SequenceStyles.OffsetInput
         )
-      else format(v)
+      else <.span(SequenceStyles.OffsetValue)(format(v))
 
   private lazy val wavelengthCol: colDef.TypeFor[Option[Wavelength]] =
     colDef(
