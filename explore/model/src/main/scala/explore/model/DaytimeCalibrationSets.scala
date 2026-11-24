@@ -622,14 +622,15 @@ object DaytimeCalibrationSets:
 
   def supports(instrument: Instrument): Boolean = Instruments.contains_(instrument)
 
-  val GnirsKinds: List[CalibrationSetType] =
+  /** Flamingos 2 and GNIRS take no bias. */
+  val NoBiasKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.Bias)
 
   val GhostKinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(_ === CalibrationSetType.DaytimeObserve)
 
-  /** Flamingos 2 and IGRINS-2 take neither a bias nor a daytime observe. */
-  val NoBiasKinds: List[CalibrationSetType] =
+  /** IGRINS-2 takes neither a bias nor a daytime observe. */
+  val Igrins2Kinds: List[CalibrationSetType] =
     Enumerated[CalibrationSetType].all.filterNot(k =>
       k === CalibrationSetType.Bias || k === CalibrationSetType.DaytimeObserve
     )
@@ -637,10 +638,10 @@ object DaytimeCalibrationSets:
   /** The kinds the ODB accepts for an instrument's calibration sets. */
   def kinds(instrument: Instrument): List[CalibrationSetType] =
     instrument match
-      case Instrument.Flamingos2 | Instrument.Igrins2 => NoBiasKinds
-      case Instrument.Gnirs                           => GnirsKinds
-      case Instrument.Ghost                           => GhostKinds
-      case _                                          => Enumerated[CalibrationSetType].all
+      case Instrument.Flamingos2 | Instrument.Gnirs => NoBiasKinds
+      case Instrument.Igrins2                       => Igrins2Kinds
+      case Instrument.Ghost                         => GhostKinds
+      case _                                        => Enumerated[CalibrationSetType].all
 
   /** The continuum lamps an instrument can't use: the 100W QH lamp is GHOST only. */
   def excludedContinua(instrument: Instrument): Set[GcalContinuum] =
