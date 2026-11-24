@@ -6,6 +6,7 @@ package lucuma.ui.input
 import japgolly.scalajs.react.Callback
 import japgolly.scalajs.react.Reusability
 import japgolly.scalajs.react.Reusable
+import lucuma.ui.input.facade.Inputmask
 import lucuma.ui.input.facade.InputmaskOptionsJs
 
 import scala.annotation.nowarn
@@ -53,6 +54,12 @@ final case class InputmaskOptions(
   onIncomplete:         js.UndefOr[Reusable[Callback]] = js.undefined,
   onCleared:            js.UndefOr[Reusable[Callback]] = js.undefined
 ):
+  /**
+   * Whether `text` is valid for this mask. Inputmask reports the empty text as incomplete, but
+   * every mask lets the field be emptied.
+   */
+  def accepts(text: String): Boolean = text.isEmpty || Inputmask.isValid(text, toJs)
+
   def toJs: InputmaskOptionsJs =
     val js: InputmaskOptionsJs = new InputmaskOptionsJs {}
     mask.foreach(js.mask = _)

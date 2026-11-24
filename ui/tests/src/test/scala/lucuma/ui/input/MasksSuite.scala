@@ -52,7 +52,9 @@ final class MasksSuite extends FunSuite:
     val signed: String = Masks.decimalPattern(20, 3, allowMinus = true)
     List("-19.267", "12.5", ".5", "0.000", "222468508").foreach(s => assert(matches(signed, s), s))
     List("1.2345", "abc").foreach(s => assert(!matches(signed, s), s))
-    assert(matches(Masks.scientific(2, 3, 2, allowMinus = true), "1.5e-05"))
+    assert(matches(Masks.scientific(2, Some(3), 2, allowMinus = true), "1.5e-05"))
+    assert(!matches(Masks.scientific(1, Some(3), 2, allowMinus = false), "6.91507e-21"))
+    assert(matches(Masks.scientific(1, None, 2, allowMinus = false), "6.91507e-21"))
     assert(matches(Masks.integerPattern(allowMinus = false, integerDigits = Some(4)), "2048"))
     assert(!matches(Masks.integerPattern(allowMinus = false, integerDigits = Some(4)), "20480"))
   }
@@ -84,4 +86,10 @@ final class MasksSuite extends FunSuite:
 
   test("Dec rejects out of range") {
     List("91:00:00", "+-1:00:00", "20:48:14.901").foreach(s => assert(!matches(Masks.Dec, s), s))
+  }
+
+  test("accepts allows the empty text and rejects text the mask can't hold") {
+    val options: InputmaskOptions = Masks.decimalOptions(Some(3), allowMinus = false, None)
+    List("", "12.345", "0.5").foreach(s => assert(options.accepts(s), s))
+    List("12.34567", "1e-7", "-1").foreach(s => assert(!options.accepts(s), s))
   }

@@ -89,7 +89,7 @@ trait inputCodecs:
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec.withDecimalMask(2)
   val OffsetArcseconds: InputCodec[Angle]                      =
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec
-      .withDecimalMask(2, integerDigits = 3.some)
+      .withDecimalMask(2, integerDigits = 5.some)
   val NonNegativeArcseconds: InputCodec[Angle]                 =
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec
       .withDecimalMask(2, allowMinus = false)
@@ -105,7 +105,7 @@ trait inputCodecs:
 
   /** IFU field sizes vary by kind, so the parser is supplied; the mask is shared. */
   def ifuArcseconds(valid: InputValidFormat[Angle]): InputCodec[Angle] =
-    valid.toCodec.withDecimalMask(2, allowMinus = false, integerDigits = 3.some)
+    valid.toCodec.withDecimalMask(2, allowMinus = false, integerDigits = 5.some)
 
   /** Air mass and hour angle bounds depend on the other bound, so the parser is supplied. */
   def elevationRange[A](valid: InputValidFormat[A]): InputCodec[A] =
@@ -202,7 +202,7 @@ trait inputCodecs:
       .withDecimalMask(3, allowMinus = false)
   val Brightness: InputCodec[BrightnessValue]                                     =
     ExploreModelValidators.brightnessValidWedge.toCodec
-      .withScientificMask(integerDigits = 2, decimals = 3, exponentDigits = 2)
+      .withScientificMask(integerDigits = 2, decimals = 3.some, exponentDigits = 2)
   val PowerLawIndex: InputCodec[BigDecimal]                                       =
     InputValidSplitEpi.bigDecimal.toCodec.withUnboundedDecimalMask()
   val BlackBodyTemperatureK: InputCodec[PosInt]                                   =
@@ -212,19 +212,19 @@ trait inputCodecs:
       .refinedBigDecimal[LineWidthValueRefinement]
       .andThen(LineWidthValue.Value.reverse)
       .toCodec
-      .withDecimalMask(3, allowMinus = false)
+      .withUnboundedDecimalMask(allowMinus = false)
   val LineFlux: InputCodec[LineFluxValue]                                         =
     InputValidSplitEpi
       .refinedBigDecimalWithScientificNotation[LineFluxValueRefinement]
       .andThen(LineFluxValue.Value.reverse)
       .toCodec
-      .withScientificMask(allowMinus = false)
+      .withScientificMask(decimals = none, allowMinus = false)
   val FluxDensityContinuum: InputCodec[FluxDensityContinuumValue]                 =
     InputValidSplitEpi
       .refinedBigDecimalWithScientificNotation[FluxDensityContinuumValueRefinement]
       .andThen(FluxDensityContinuumValue.Value.reverse)
       .toCodec
-      .withScientificMask(allowMinus = false)
+      .withScientificMask(decimals = none, allowMinus = false)
 
   // Wavelengths
   // The decimals follow each unit's wedge: μm prints four, nm one, Å none.

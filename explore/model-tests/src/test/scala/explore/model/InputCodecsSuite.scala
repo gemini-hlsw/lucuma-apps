@@ -4,6 +4,7 @@
 package explore.model
 
 import cats.data.NonEmptyList
+import eu.timepit.refined.api.Refined
 import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.numeric.PosInt
@@ -13,6 +14,9 @@ import lucuma.core.data.EmailAddress
 import lucuma.core.math.Angle
 import lucuma.core.math.ApparentRadialVelocity
 import lucuma.core.math.BrightnessValue
+import lucuma.core.math.FluxDensityContinuumValue
+import lucuma.core.math.LineFluxValue
+import lucuma.core.math.LineWidthValue
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
@@ -25,12 +29,19 @@ import lucuma.core.math.arb.ArbProperMotion.given
 import lucuma.core.math.arb.ArbRadialVelocity.given
 import lucuma.core.math.arb.ArbRedshift.given
 import lucuma.core.math.arb.ArbRightAscension.given
+import lucuma.core.model.ElevationRange
+import lucuma.core.model.arb.ArbElevationRange.given
+import lucuma.core.model.sequence.ghost as ghost
+import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
+import lucuma.core.model.sequence.igrins2 as igrins2
+import lucuma.core.model.validation.ModelValidators
 import lucuma.core.syntax.validation.*
 import lucuma.core.util.TimeSpan
 import lucuma.refined.*
 import lucuma.ui.input.InputCodecTests
 import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 
 /**
@@ -43,6 +54,11 @@ import org.scalacheck.Gen
  *     core generators cover the whole type (40-decimal brightnesses, picometer wavelengths), whose
  *     canonical text the Explore wedges themselves round away.
  *   - `TimeSpan`: the duration masks accept at most 5 hour digits.
+ *   - Offset and IFU angles: their masks accept at most 5 integer digits, so they are checked up to
+ *     99999.99". The mask isn't attached to a field whose text doesn't fit it (see `useInputmask`).
+ *
+ * Codecs whose values can come from the ODB with more precision than a user would type (line widths
+ * and fluxes, power law indices) are checked over the values the type can hold.
  */
 final class InputCodecsSuite extends DisciplineSuite:
   private given Arbitrary[ApparentRadialVelocity] = Arbitrary(
@@ -152,3 +168,126 @@ final class InputCodecsSuite extends DisciplineSuite:
     checkAll(s"wavelengthOptional($units)", InputCodecTests(inputCodecs.wavelengthOptional(units)))
     checkAll(s"wavelengthDelta($units)", InputCodecTests(inputCodecs.wavelengthDelta(units)))
     checkAll(s"sequenceWavelength($units)", InputCodecTests(inputCodecs.sequenceWavelength(units)))
+
+  /** Decimals from `lo` to `hi` with up to `maxScale` decimals. */
+  private def decimals(lo: BigDecimal, hi: BigDecimal, maxScale: Int): Gen[BigDecimal] =
+    for
+      scale    <- Gen.choose(0, maxScale)
+      unscaled <- Gen.choose((lo * BigDecimal(10).pow(scale)).toLongExact,
+                             (hi * BigDecimal(10).pow(scale)).toLongExact
+                  )
+    yield BigDecimal(unscaled, scale)
+
+  /** Small positive values, like line fluxes in W/m² (e.g. `1.23456e-17`). */
+  private val tinyPositives: Gen[BigDecimal] =
+    for
+      mantissa <- Gen.choose(1L, 999999L)
+      scale    <- Gen.choose(10, 30)
+    yield BigDecimal(mantissa, scale)
+
+  private def timeSpansBetween(min: TimeSpan, max: TimeSpan): Arbitrary[TimeSpan] =
+    Arbitrary(
+      Gen.choose(min.toMicroseconds, max.toMicroseconds).map(TimeSpan.unsafeFromMicroseconds)
+    )
+
+  // Offset and IFU angles, which their masks limit to 99999.99".
+  private val MaxOffsetMicroarcseconds: Long = 99999990000L
+
+  private val offsetAngles: Arbitrary[Angle] = Arbitrary(
+    Gen
+      .choose(-MaxOffsetMicroarcseconds, MaxOffsetMicroarcseconds)
+      .map(Angle.fromMicroarcseconds)
+  )
+
+  // From 0.01", so that they are still positive once rounded.
+  private val positiveOffsetAngles: Arbitrary[Angle] = Arbitrary(
+    Gen.choose(5000L, MaxOffsetMicroarcseconds).map(Angle.fromMicroarcseconds)
+  )
+
+  private val nonNegativeOffsetAngles: Arbitrary[Angle] = Arbitrary(
+    Gen.choose(0L, MaxOffsetMicroarcseconds).map(Angle.fromMicroarcseconds)
+  )
+
+  checkAll("OffsetArcseconds", InputCodecTests(inputCodecs.OffsetArcseconds)(using offsetAngles))
+  checkAll(
+    "ifuArcseconds(positive)",
+    InputCodecTests(
+      inputCodecs.ifuArcseconds(ExploreModelValidators.positiveDecimalArcsecondsValidWedge)
+    )(using positiveOffsetAngles)
+  )
+  checkAll(
+    "ifuArcseconds(nonNegative)",
+    InputCodecTests(
+      inputCodecs.ifuArcseconds(ExploreModelValidators.nonNegativeDecimalArcsecondsValidWedge)
+    )(using nonNegativeOffsetAngles)
+  )
+  checkAll(
+    "elevationRange(airMass)",
+    InputCodecTests(inputCodecs.elevationRange(ModelValidators.AirMassElevationRangeValidWedge))(
+      using Arbitrary(arbitrary[ElevationRange.ByAirMass].flatMap(r => Gen.oneOf(r.min, r.max)))
+    )
+  )
+  checkAll(
+    "elevationRange(hourAngle)",
+    InputCodecTests(
+      inputCodecs.elevationRange(ModelValidators.HourAngleElevationRangeValidWedge)
+    )(using
+      Arbitrary(
+        arbitrary[ElevationRange.ByHourAngle].flatMap(r => Gen.oneOf(r.minHours, r.maxHours))
+      )
+    )
+  )
+  checkAll(
+    "Igrins2CalibrationExposure",
+    InputCodecTests(inputCodecs.Igrins2CalibrationExposure)(using
+      timeSpansBetween(igrins2.MinExposureTime, igrins2.MaxExposureTime)
+    )
+  )
+  checkAll(
+    "GhostCalibrationExposure",
+    InputCodecTests(inputCodecs.GhostCalibrationExposure)(using
+      timeSpansBetween(ghost.MinExposureTime, ghost.MaxExposureTime)
+    )
+  )
+  checkAll(
+    "calibrationExposureMilliseconds",
+    InputCodecTests(inputCodecs.calibrationExposureMilliseconds(List.empty))
+  )
+  checkAll(
+    "ProposalHours",
+    InputCodecTests(inputCodecs.ProposalHours)(using
+      Arbitrary(decimals(0, 1000, 4).map(Refined.unsafeApply[BigDecimal, HourRange]))
+    )
+  )
+  checkAll(
+    "GnirsFocusMotorSteps",
+    InputCodecTests(inputCodecs.GnirsFocusMotorSteps)(using
+      Arbitrary(
+        Gen
+          .choose(-179999, 180000)
+          .map(Refined.unsafeApply[Int, GnirsFocusMotorStepRefinement])
+      )
+    )
+  )
+  checkAll(
+    "PowerLawIndex",
+    InputCodecTests(inputCodecs.PowerLawIndex)(using Arbitrary(decimals(-100, 100, 8)))
+  )
+  checkAll(
+    "LineWidth",
+    InputCodecTests(inputCodecs.LineWidth)(using
+      Arbitrary(decimals(0, 1000000, 6).suchThat(_ > 0).map(LineWidthValue.unsafeFrom))
+    )
+  )
+  checkAll(
+    "LineFlux",
+    InputCodecTests(inputCodecs.LineFlux)(using
+      Arbitrary(tinyPositives.map(LineFluxValue.unsafeFrom))
+    )
+  )
+  checkAll(
+    "FluxDensityContinuum",
+    InputCodecTests(inputCodecs.FluxDensityContinuum)(using
+      Arbitrary(tinyPositives.map(FluxDensityContinuumValue.unsafeFrom))
+    )
+  )

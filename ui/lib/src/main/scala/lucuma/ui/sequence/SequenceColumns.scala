@@ -50,6 +50,7 @@ import lucuma.schemas.model.PeakPixel
 import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.formatSN
+import lucuma.ui.input.InputCodec
 import lucuma.ui.input.toCodec
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -255,8 +256,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               val newAngle: Angle = mod(angle)
               handleRowValueEdit(c)(replace)(newAngle.some) >> cb(angle, newAngle)
           ),
-          codec = SequenceColumns.DecimalArcsecondsValidWedge.toCodec
-            .withDecimalMask(2, integerDigits = 3.some),
+          codec = SequenceColumns.OffsetArcsecondsCodec,
           groupClass = SequenceStyles.SequenceInput,
           inputClass = SequenceStyles.OffsetInput
         )
@@ -742,6 +742,9 @@ object SequenceColumns:
           .fromPrism(decimalArcsecondsPrism, _ => "Invalid Angle".refined[NonEmpty])
           .toErrorsValidWedge
       )
+
+  private[sequence] val OffsetArcsecondsCodec: InputCodec[Angle] =
+    DecimalArcsecondsValidWedge.toCodec.withDecimalMask(2, integerDigits = 5.some)
 
   val DragHandleColumnId: ColumnId    = ColumnId("dragHandle")
   val EditControlsColumnId: ColumnId  = ColumnId("editControls")
