@@ -35,6 +35,7 @@ object SequenceStyles:
   val SequenceDropdown      = Css("lucuma-sequence-dropdown")
   val SequenceDropdownPanel = Css("lucuma-sequence-dropdown-panel")
   val OffsetInput           = Css("lucuma-sequence-offset-input")
+  val OffsetValue           = Css("lucuma-sequence-offset-value")
   val GuidingToggle         = Css("lucuma-sequence-guiding-toggle")
   val SaturatedCell         = Css("lucuma-sequence-saturated-cell")
   val StepIndexCell         = Css("lucuma-sequence-step-index-cell")

@@ -5376,6 +5376,19 @@ span.explore-offsets-count {
   display: flex;
   align-items: baseline;
   gap: 0.5em;
+
+  // Offsets have a fixed number of decimals, so this lines up the decimal points.
+  .p-inputtext {
+    padding-right: 0.2em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  // Keep the unit next to the number instead of centered in a wide addon.
+  .p-inputgroup-addon:has(.pl-blended-addon) {
+    min-width: 0;
+    padding-left: 0;
+  }
 }
 
 .telescope-config-separator {
