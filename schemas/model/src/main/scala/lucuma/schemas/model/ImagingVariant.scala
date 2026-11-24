@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.ImagingVariantType
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
+import lucuma.core.model.sequence.gmos.imaging.DefaultPreImagingOffsets
 import lucuma.refined.*
 import monocle.Focus
 import monocle.Lens
@@ -94,13 +95,8 @@ object ImagingVariant:
 
   object PreImaging:
     val Default: PreImaging =
-      PreImaging(
-        Offset.signedDecimalArcseconds.reverseGet(0, 0),
-        Offset.signedDecimalArcseconds.reverseGet(-4, -6),
-        Offset.signedDecimalArcseconds.reverseGet(4, -6),
-        Offset.signedDecimalArcseconds.reverseGet(8, 0),
-        1.refined
-      )
+      val (o1, o2, o3, o4) = DefaultPreImagingOffsets
+      PreImaging(o1, o2, o3, o4, 1.refined)
 
     val offset1: Lens[PreImaging, Offset]            = Focus[PreImaging](_.offset1)
     val offset2: Lens[PreImaging, Offset]            = Focus[PreImaging](_.offset2)
