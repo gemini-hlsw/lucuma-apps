@@ -80,15 +80,11 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override protected val domeParkPosition: Angle = Angle.fromDoubleDegrees(90.0)
 
-  // The TCS has to know if it is being used with Altair. Without it, the AO flag is cleared.
+  override protected def usesAo(config: TcsConfig): Boolean = config.altair.isDefined
+
   override protected def altairTcsConfig(config: TcsConfig): TcsCommands[F] => TcsCommands[F] =
-    config.altair.fold { (cmds: TcsCommands[F]) =>
-      cmds.aoConfigCommand.useAo(false)
-    } { altair => (cmds: TcsCommands[F]) =>
-      cmds.aoConfigCommand
-        .useAo(true)
-        .aoConfigCommand
-        .fieldLens(fieldLens(config, altair))
+    config.altair.fold(identity[TcsCommands[F]]) { altair => (cmds: TcsCommands[F]) =>
+      cmds.aoConfigCommand.fieldLens(fieldLens(config, altair))
     }
 
   /**
