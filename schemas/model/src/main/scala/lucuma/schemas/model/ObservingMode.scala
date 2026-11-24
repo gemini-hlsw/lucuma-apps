@@ -1732,7 +1732,8 @@ object ObservingMode:
     i:                        ExposureTimeMode,
     z:                        ExposureTimeMode,
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
-    explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
+    explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
+    repeats:                  PosInt
   ) extends ObservingMode(Instrument.Scorpio.some) derives Eq:
     val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
@@ -1773,6 +1774,8 @@ object ObservingMode:
       Focus[ScorpioLongSlit](_.defaultTelescopeConfigs)
     val explicitTelescopeConfigs: Lens[ScorpioLongSlit, Option[SlitTelescopeConfigs]] =
       Focus[ScorpioLongSlit](_.explicitTelescopeConfigs)
+    val repeats: Lens[ScorpioLongSlit, PosInt]                                        =
+      Focus[ScorpioLongSlit](_.repeats)
 
   case class Igrins2LongSlit(
     exposureTimeMode:         ExposureTimeMode,

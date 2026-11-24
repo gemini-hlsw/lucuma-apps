@@ -10,6 +10,8 @@ import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.*
 import crystal.react.hooks.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.common.Aligner
@@ -19,6 +21,7 @@ import explore.model.AppContext
 import explore.model.ExposureTimeRules
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
+import explore.model.inputCodecs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -59,6 +62,10 @@ object ScorpioLongSlitConfigPanel
 
         val fpuView: View[ScorpioFpu] = props.observingMode
           .zoom(ObservingMode.ScorpioLongSlit.fpu, ScorpioLongSlitInput.fpu.modify)
+          .view(_.assign)
+
+        val repeatsView: View[PosInt] = props.observingMode
+          .zoom(ObservingMode.ScorpioLongSlit.repeats, ScorpioLongSlitInput.repeats.modify)
           .view(_.assign)
 
         val explicitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
@@ -120,7 +127,15 @@ object ScorpioLongSlitConfigPanel
                 value = fpuView,
                 label = "FPU",
                 disabled = readonly
-              )
+              ),
+              FormInputTextView(
+                id = "scorpio-repeats".refined,
+                value = repeatsView,
+                label = "Repeats",
+                codec = inputCodecs.PositiveInt,
+                units = "#",
+                disabled = readonly
+              )(^.autoComplete.off)
             ),
             <.div(ExploreStyles.ScorpioChannelGrid)(
               <.label(

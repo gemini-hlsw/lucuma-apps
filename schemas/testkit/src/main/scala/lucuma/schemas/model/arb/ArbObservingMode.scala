@@ -1442,6 +1442,7 @@ trait ArbObservingMode {
       z                        <- arbitrary[ExposureTimeMode]
       defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
       explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
+      repeats                  <- arbitrary[PosInt]
     } yield ObservingMode.ScorpioLongSlit(
       fpu,
       g,
@@ -1449,7 +1450,8 @@ trait ArbObservingMode {
       i,
       z,
       defaultTelescopeConfigs,
-      explicitTelescopeConfigs
+      explicitTelescopeConfigs,
+      repeats
     )
   )
 
@@ -1461,10 +1463,11 @@ trait ArbObservingMode {
        ExposureTimeMode,
        ExposureTimeMode,
        SlitTelescopeConfigs,
-       Option[SlitTelescopeConfigs]
+       Option[SlitTelescopeConfigs],
+       PosInt
       )
     ].contramap(o =>
-      (o.fpu, o.g, o.r, o.i, o.z, o.defaultTelescopeConfigs, o.explicitTelescopeConfigs)
+      (o.fpu, o.g, o.r, o.i, o.z, o.defaultTelescopeConfigs, o.explicitTelescopeConfigs, o.repeats)
     )
 
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
