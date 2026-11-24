@@ -111,6 +111,8 @@ object SequenceTile
               (newLiveSequence.visits, newLiveSequence.sequence.map(_.get)).tupled.void
         isRegenerating    <- useStateView(IsActive(false))
         confirmRegenerate <- useStateView(false)
+        isReverting       <- useStateView(IsActive(false))
+        confirmRevert     <- useStateView(false)
       yield
         given Logger[IO] = ctx.logger
 
@@ -191,6 +193,58 @@ object SequenceTile
               )
             )
 
+        // The ODB only deletes a materialized sequence before execution starts.
+        val canRevertSequence: Boolean =
+          props.hasMaterializedSequence && !props.readonly && !props.obsIsExecuted &&
+            !props.isEditingAcquisition.get && !props.isEditingScience.get
+
+        val revertSequence: IO[Unit] =
+          ctx.odbApi
+            .deleteSequence(props.obsId)
+            .handleErrorWith: e =>
+              ctx.toastCtx.showToast(
+                s"Failed to revert the sequence: ${e.getMessage}",
+                Message.Severity.Error,
+                sticky = true
+              )
+            .switching(isReverting.async, IsActive(_)) >> confirmRevert.async.set(false)
+
+        val revertSequenceButton: Option[VdomNode] =
+          Option.when(canRevertSequence):
+            React.Fragment(
+              Button(
+                onClick = confirmRevert.set(true),
+                label = "Revert edits",
+                icon = Icons.ArrowRotateLeft,
+                tooltip = "Discard all sequence edits and go back to the generated sequence",
+                tooltipOptions = TooltipOptions.Top
+              ).mini.compact.withMods(testId := "explore-sequence-revert"),
+              Dialog(
+                visible = confirmRevert.get,
+                onHide = confirmRevert.set(false),
+                header = "Revert edits",
+                footer = <.div(
+                  Button(
+                    label = "Cancel",
+                    icon = Icons.Close,
+                    severity = Button.Severity.Danger,
+                    onClick = confirmRevert.set(false)
+                  ).small.compact,
+                  Button(
+                    label = "Proceed",
+                    icon = Icons.Checkmark,
+                    onClick = revertSequence.runAsync,
+                    loading = isReverting.get.value
+                  ).small.compact
+                ),
+                position = DialogPosition.Top,
+                modal = true,
+                resizable = false
+              )(
+                <.div("All acquisition and science sequence edits will be lost. Proceed?")
+              )
+            )
+
         // A materialized sequence isn't regenerated when the configuration changes, and with no
         // sequence yet the body already shows a spinner, so this only marks an in-place update.
         val isUpdating: Boolean =
@@ -233,8 +287,9 @@ object SequenceTile
             summary,
             <.span(ExploreStyles.SequenceTileCustomization)(
               customizedBadge,
-              regenerateAcquisitionButton
-            ).when(customizedSequences.nonEmpty)
+              regenerateAcquisitionButton,
+              revertSequenceButton
+            ).when(customizedSequences.nonEmpty || canRevertSequence)
           )
 
         val mismatchError = Message(
