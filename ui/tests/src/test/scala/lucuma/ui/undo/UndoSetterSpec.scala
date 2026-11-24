@@ -123,3 +123,49 @@ class UndoSetterSpec extends munit.CatsEffectSuite:
         assertEquals(v, Pair(0, 2))
         assertEquals(s.undo.size, 1)
         assertEquals(n, List(2))
+
+  // Succeeds for the first `successes` calls, then is rejected after a while.
+  private def rejectedAfter(successes: Int): IO[Int => IO[Unit]] =
+    Ref[IO]
+      .of(0)
+      .map: calls =>
+        _ =>
+          calls
+            .updateAndGet(_ + 1)
+            .flatMap(n => IO.whenA(n > successes)(IO.sleep(2.seconds) >> IO.raiseError(Rejected)))
+
+  test("a rejected undo goes back under an edit made while it was in flight"):
+    TestUndoable.simulated(Pair(0, 0), Serial): u =>
+      for
+        effect <- rejectedAfter(1)
+        _      <- u.exec(_.withContext(_.undoableView(A, effect).set(1)))
+        _      <- u.fire(_.undo)
+        _      <- u.fire(_.withContext(_.undoableView(B).set(2)))
+        _      <- IO.sleep(1.minute)
+        v      <- u.value
+        s      <- u.currentStacks
+        _      <- u.exec(_.undo)
+        undone <- u.value
+      yield
+        assertEquals(v, Pair(1, 2))
+        assertEquals(s.undo.size, 2)
+        assertEquals(s.redo.size, 0)
+        assertEquals(s.working, false)
+        assertEquals(undone, Pair(1, 0))
+
+  test("a rejected redo leaves no entry when an edit was made while it was in flight"):
+    TestUndoable.simulated(Pair(0, 0), Serial): u =>
+      for
+        effect <- rejectedAfter(2)
+        _      <- u.exec(_.withContext(_.undoableView(A, effect).set(1)))
+        _      <- u.exec(_.undo)
+        _      <- u.fire(_.redo)
+        _      <- u.fire(_.withContext(_.undoableView(B).set(2)))
+        _      <- IO.sleep(1.minute)
+        v      <- u.value
+        s      <- u.currentStacks
+      yield
+        assertEquals(v, Pair(0, 2))
+        assertEquals(s.undo.size, 1)
+        assertEquals(s.redo.size, 0)
+        assertEquals(s.working, false)

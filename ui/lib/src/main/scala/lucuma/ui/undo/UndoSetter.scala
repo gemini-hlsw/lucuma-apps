@@ -171,6 +171,9 @@ trait UndoSetter[M] { self =>
   def undoableView[N](lens: Lens[M, N], effect: N => DefaultA[Unit]): View[N] =
     undoableView(lens.get, lens.modify, effect)
 
+  def undoableView(effect: M => DefaultA[Unit]): View[M] =
+    undoableView(identity[M], (f: M => M) => f, effect)
+
   /**
    * Converts an UndoSetter[List[A]] into a List[UndoSetter[A]].
    */

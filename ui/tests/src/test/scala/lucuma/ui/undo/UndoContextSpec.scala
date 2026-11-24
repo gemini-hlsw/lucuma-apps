@@ -97,6 +97,29 @@ class UndoContextSpec extends munit.CatsEffectSuite {
         assertEquals(stacks.working, false)
   }
 
+  test("a rejected redo puts the model and the stacks back") {
+    TestUndoable.simulated(0, IO.pure(RollingBack)): u =>
+      for
+        calls <- Ref[IO].of(0)
+        // The first restore is the undo, the second is the redo.
+        _     <- u.exec:
+                   _.setWith(
+                     id[Int],
+                     1,
+                     IO.unit,
+                     calls.updateAndGet(_ + 1).flatMap(n => Failure.whenA(n > 1))
+                   )
+        _     <- u.exec(_.undo)
+        _     <- u.exec(_.redo)
+        v     <- u.value
+        s     <- u.currentStacks
+      yield
+        assertEquals(v, 0)
+        assertEquals(s.undo.size, 0)
+        assertEquals(s.redo.size, 1)
+        assertEquals(s.working, false)
+  }
+
   test("undo and redo on empty stacks do nothing") {
     TestUndoable.simulated(0): u =>
       for

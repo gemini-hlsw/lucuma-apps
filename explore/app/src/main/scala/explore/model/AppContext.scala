@@ -206,15 +206,15 @@ object AppContext:
                                       si => Logger[F].info("Page geometry: lucuma-wasm kernel").as(si)
                                     )
                                   )
+      // OdbApiHelper already logs the errors the ODB answers with.
       undoEffectRunner       <- UndoEffectRunner.serial[F](
-                                  UndoEffectTimeout,
-                                  OdbAdaptedError.isServerRejection,
-                                  // OdbApiHelper already logs the errors the ODB answers with.
-                                  e =>
+                                  timeout = UndoEffectTimeout,
+                                  isRejection = OdbAdaptedError.isServerRejection,
+                                  onError = e =>
                                     Logger[F]
                                       .error(e)("Error in undoable remote call")
-                                      .unlessA(OdbAdaptedError.isServerRejection(e)),
-                                  resetProgramCacheTopic
+                                      .unlessA(OdbAdaptedError.isOdbResponse(e)),
+                                  onTimeout = resetProgramCacheTopic
                                     .publish1(ProgramError("Timed out saving changes", false).some)
                                     .void
                                 )

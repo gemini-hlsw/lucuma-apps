@@ -40,7 +40,6 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
-import monocle.Iso
 
 import scala.collection.immutable.SortedSet
 
@@ -89,14 +88,12 @@ object ObservationDetailsTile
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
             .zoom(Observation.scienceBand)
-            .undoableView(
-              Iso.id[Option[ScienceBand]].asLens,
-              band =>
-                ctx.odbApi
-                  .updateObservations(
-                    List(props.observation.get.id),
-                    ObservationPropertiesInput(scienceBand = band.orIgnore)
-                  )
+            .undoableView(band =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(scienceBand = band.orIgnore)
+                )
             )
 
         val scienceBandSelector: VdomNode =
@@ -118,14 +115,12 @@ object ObservationDetailsTile
         val priorityView: View[ObservationPriority] =
           props.observation
             .zoom(Observation.priority)
-            .undoableView(
-              Iso.id[ObservationPriority].asLens,
-              priority =>
-                ctx.odbApi
-                  .updateObservations(
-                    List(props.observation.get.id),
-                    ObservationPropertiesInput(priority = priority.assign)
-                  )
+            .undoableView(priority =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(priority = priority.assign)
+                )
             )
 
         val prioritySelector: VdomNode =
@@ -142,17 +137,15 @@ object ObservationDetailsTile
         val tooActivationView: View[TooActivation] =
           props.observation
             .zoom(Observation.tooActivationWithMode)
-            .undoableView(
-              Iso.id[TooActivation].asLens,
-              activation =>
-                ctx.odbApi
-                  .updateObservations(
-                    List(props.observation.get.id),
-                    ObservationPropertiesInput(
-                      schedulingConstraints =
-                        SchedulingConstraintsInput(tooActivation = activation.assign).assign
-                    )
+            .undoableView(activation =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(
+                    schedulingConstraints =
+                      SchedulingConstraintsInput(tooActivation = activation.assign).assign
                   )
+                )
             )
 
         val tooActivationSelector: VdomNode =
@@ -170,14 +163,12 @@ object ObservationDetailsTile
         val qaOverrideView: View[Option[ObservationQaState]] =
           props.observation
             .zoom(Observation.qa.andThen(ObservationQa.stateOverride))
-            .undoableView(
-              Iso.id[Option[ObservationQaState]].asLens,
-              qaOverride =>
-                ctx.odbApi
-                  .updateObservations(
-                    List(props.observation.get.id),
-                    ObservationPropertiesInput(qaStateOverride = qaOverride.orUnassign)
-                  )
+            .undoableView(qaOverride =>
+              ctx.odbApi
+                .updateObservations(
+                  List(props.observation.get.id),
+                  ObservationPropertiesInput(qaStateOverride = qaOverride.orUnassign)
+                )
             )
 
         val qaHelpId: Help.Id = "observation/qa-state.md".refined

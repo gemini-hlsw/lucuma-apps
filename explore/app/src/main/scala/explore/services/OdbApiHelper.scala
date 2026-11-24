@@ -17,11 +17,17 @@ case class OdbAdaptedError[D](message: String, cause: ResponseException[D])
     extends RuntimeException(message, cause)
 
 object OdbAdaptedError:
-  /** True when the ODB answered with errors, so the operation was not applied. */
-  def isServerRejection(t: Throwable): Boolean = t match
+  /** True when the ODB answered with errors. */
+  def isOdbResponse(t: Throwable): Boolean = t match
     case ResponseException(_, _) => true
     case OdbAdaptedError(_, _)   => true
     case _                       => false
+
+  /** True when the ODB answered with errors and no data, so the operation was not applied. */
+  def isServerRejection(t: Throwable): Boolean = t match
+    case ResponseException(_, None)                     => true
+    case OdbAdaptedError(_, ResponseException(_, None)) => true
+    case _                                              => false
 
 trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
   resetCache:       String => F[Unit],

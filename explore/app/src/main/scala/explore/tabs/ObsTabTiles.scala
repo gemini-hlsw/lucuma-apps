@@ -96,7 +96,6 @@ import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
 import lucuma.ui.visualization.GhostGeometry
-import monocle.Iso
 import monocle.Optional
 import queries.schemas.itc.syntax.itcTarget
 
@@ -684,19 +683,15 @@ object ObsTabTiles:
           props.observation
             .zoom(ghostSkyPositionLens)
             .map:
-              _.undoableView(
-                Iso.id[Option[Coordinates]].asLens,
-                coords => ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords)
+              _.undoableView(coords =>
+                ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords)
               )
 
         // The explicit Base Position override. Undoable, like the sky position
         val baseView: View[Option[Coordinates]] =
           props.observation
             .zoom(Observation.explicitBase)
-            .undoableView(
-              Iso.id[Option[Coordinates]].asLens,
-              coords => ctx.odbApi.updateExplicitBase(List(props.obsId), coords)
-            )
+            .undoableView(coords => ctx.odbApi.updateExplicitBase(List(props.obsId), coords))
 
         val ghostIfuMapping: Option[GhostIfuMapping] = props.ghostIfuMapping(obsTimeOrNow)
 
