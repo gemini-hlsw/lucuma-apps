@@ -384,6 +384,13 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     pwfs1Filter: PwfsFilter,
     pwfs2Filter: PwfsFilter
   ): TcsCommands[F] => TcsCommands[F] =
+    applyTcsTargets(config, pwfs1Filter, pwfs2Filter).andThen(altairTcsConfig(config))
+
+  private def applyTcsTargets(
+    config:      TcsConfig,
+    pwfs1Filter: PwfsFilter,
+    pwfs2Filter: PwfsFilter
+  ): TcsCommands[F] => TcsCommands[F] =
     setTarget(Getter[TcsCommands[F], TargetCommand[F, TcsCommands[F]]](_.sourceACmd),
               config.sourceATarget
     ).compose(config.sourceATarget.wavelength.map(setSourceAWalength).getOrElse(identity))
@@ -468,8 +475,6 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           .map(b => setBaffles(b.central, b.deployable))
           .getOrElse(identity)
       )
-      // The AO flag must always be set, so a configuration without Altair does not leave it on
-      .andThen(altairTcsConfig(config))
 
   /**
    * When Altair is used, the TCS takes the AO guide star from the PWFS2 parameters, for the target
@@ -481,11 +486,15 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     config.altair.fold(config.pwfs2)(_ => config.aowfs)
 
   /**
-   * The settings that go in the TCS command because of Altair. The AO flag is always set. There is
-   * no Altair at GS, so by default it is off.
+   * The settings that go in the TCS command with the targets because of Altair. The AO flag is not
+   * one of them, it is set before (see `setUseAo`). There is no Altair at GS, so by default there
+   * are none.
    */
   protected def altairTcsConfig(@unused config: TcsConfig): TcsCommands[F] => TcsCommands[F] =
-    _.aoConfigCommand.useAo(false)
+    identity
+
+  /** Whether the configuration is for observing with Altair. There is no Altair at GS. */
+  protected def usesAo(@unused config: TcsConfig): Boolean = false
 
   /**
    * Configure Altair itself, after the TCS has the new configuration. There is no Altair at GS, so
@@ -537,7 +546,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
              .attempt
              .map(_.toOption.flatten.getOrElse(PwfsFilter.Neutral))
     r   <- (
-             selectOiwfs(config) *>
+             setUseAo(config)(sys.tcsEpics.startCommand(timeout)).post *>
+               selectOiwfs(config) *>
                VerifiedEpics.liftF(Temporal[F].sleep(OiwfsSelectionDelay)) *>
                applyTcsConfig(config, p1f, p2f)(
                  sys.tcsEpics.startCommand(TcsConfigTimeout)
@@ -569,6 +579,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
              .map(_.toOption.flatten.getOrElse(PwfsFilter.Neutral))
     r   <- (
              selectOiwfsT(tcsConfig)
+               .andThen(setUseAo(tcsConfig))
                .andThen(
                  _.wrapsCommand
                    .azimuth(UnwrapMode.Auto)
@@ -1462,6 +1473,15 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   // Time to wait after selecting the OIWFS in the AG Sequencer, to let the values propagate to TCS.
   private val OiwfsSelectionDelay: Duration = 1500.milliseconds
 
+  /**
+   * Set the AO flag. It must go in a TCS command that is applied before the one with the targets,
+   * as TCC does. The TCS checks the guide star against the AO flag it already has, not the one that
+   * comes with it in the same command, so with the flag left on by a previous configuration it
+   * rejects a PWFS2 target as an AOWFS target out of bounds (REL-4159).
+   */
+  private def setUseAo(tcsConfig: TcsConfig)(c: TcsCommands[F]): TcsCommands[F] =
+    c.aoConfigCommand.useAo(usesAo(tcsConfig))
+
   private def selectOiwfsT(tcsConfig: TcsConfig)(c: TcsCommands[F]): TcsCommands[F] =
     c.oiwfsSelectCommand
       .oiwfsName(
@@ -1806,7 +1826,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                .verifiedRun(ConnectionTimeout)
                .attempt
                .map(_.toOption.flatten.getOrElse(PwfsFilter.Neutral))
-      r   <- (selectOiwfs(config) *>
+      r   <- (setUseAo(config)(sys.tcsEpics.startCommand(timeout)).post *>
+               selectOiwfs(config) *>
                VerifiedEpics.liftF(Temporal[F].sleep(OiwfsSelectionDelay)) *>
                applyTcsConfig(config, p1f, p2f)(sys.tcsEpics.startCommand(TcsConfigTimeout)).post)
                .verifiedRun(ConnectionTimeout)
