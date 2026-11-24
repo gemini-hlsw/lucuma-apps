@@ -94,6 +94,9 @@ object Flamingos2ImagingConfigPanel
             .view(_.toList.map(_.toInput).assign)
 
         React.Fragment(
+          Option.when[VdomNode](props.calibrationRole.needsOffsets):
+            MosPreImagingCheckbox(variantView, props.readonly)
+          ,
           <.div(ExploreStyles.ImagingUpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               FormLabel(htmlFor = "decker".refined)("Decker",
@@ -125,7 +128,7 @@ object Flamingos2ImagingConfigPanel
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
-              ImagingVariantEditor(variantView, props.readonly)
+              ImagingVariantEditor(variantView, props.readonly, preImagingCheckbox = true)
             ).when(props.calibrationRole.needsOffsets)
           ),
           <.div(ExploreStyles.ImagingLowerGrid)(

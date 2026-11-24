@@ -11,6 +11,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.ImagingVariantType
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
+import lucuma.core.model.sequence.gmos.imaging.DefaultPreImagingOffsets
 import lucuma.refined.*
 import monocle.Focus
 import monocle.Lens
@@ -40,6 +41,17 @@ enum ImagingVariant(val variantType: ImagingVariantType) derives Eq:
   ) extends ImagingVariant(ImagingVariantType.PreImaging)
 
   def exposuresPerOffset: PosInt
+
+  def isPreImaging: Boolean =
+    this match
+      case _: PreImaging => true
+      case _             => false
+
+  /** Turns MOS pre-imaging on or off, leaving the variant alone when nothing changes. */
+  def withPreImaging(enabled: Boolean): ImagingVariant =
+    if enabled then toVariantType(ImagingVariantType.PreImaging)
+    else if isPreImaging then toVariantType(ImagingVariantType.Grouped)
+    else this
 
   def toVariantType(newVariantType: ImagingVariantType): ImagingVariant =
     this match
@@ -94,13 +106,8 @@ object ImagingVariant:
 
   object PreImaging:
     val Default: PreImaging =
-      PreImaging(
-        Offset.signedDecimalArcseconds.reverseGet(0, 0),
-        Offset.signedDecimalArcseconds.reverseGet(-4, -6),
-        Offset.signedDecimalArcseconds.reverseGet(4, -6),
-        Offset.signedDecimalArcseconds.reverseGet(8, 0),
-        1.refined
-      )
+      val (o1, o2, o3, o4) = DefaultPreImagingOffsets
+      PreImaging(o1, o2, o3, o4, 1.refined)
 
     val offset1: Lens[PreImaging, Offset]            = Focus[PreImaging](_.offset1)
     val offset2: Lens[PreImaging, Offset]            = Focus[PreImaging](_.offset2)
