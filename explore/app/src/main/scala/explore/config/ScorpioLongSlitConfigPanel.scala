@@ -121,39 +121,41 @@ object ScorpioLongSlitConfigPanel
 
         React.Fragment(
           <.div(ExploreStyles.ScorpioUpperGrid)(
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              FormEnumDropdownView(
-                id = "scorpio-fpu".refined,
-                value = fpuView,
-                label = "FPU",
-                disabled = readonly
+            <.div(ExploreStyles.ScorpioExposureColumn)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                FormEnumDropdownView(
+                  id = "scorpio-fpu".refined,
+                  value = fpuView,
+                  label = "FPU",
+                  disabled = readonly
+                ),
+                FormInputTextView(
+                  id = "scorpio-repeats".refined,
+                  value = repeatsView,
+                  label = "Repeats",
+                  codec = inputCodecs.PositiveInt,
+                  units = "#",
+                  disabled = readonly
+                )(^.autoComplete.off)
               ),
-              FormInputTextView(
-                id = "scorpio-repeats".refined,
-                value = repeatsView,
-                label = "Repeats",
-                codec = inputCodecs.PositiveInt,
-                units = "#",
-                disabled = readonly
-              )(^.autoComplete.off)
-            ),
-            <.div(ExploreStyles.ScorpioChannelGrid)(
-              <.label(
-                LucumaPrimeStyles.FormFieldLabel,
-                ExploreStyles.ExposureTimeModeTime,
-                "Exp. Time"
-              ),
-              <.label(
-                LucumaPrimeStyles.FormFieldLabel,
-                ExploreStyles.ExposureTimeModeCount,
-                "Number of Exp."
-              ),
-              channelRow("g", grView),
-              channelRow("r", grView),
-              channelRow("i", izView),
-              channelRow("z", izView),
-              pairLink("g", "r", ExploreStyles.ScorpioChannelLinkGR),
-              pairLink("i", "z", ExploreStyles.ScorpioChannelLinkIZ)
+              <.div(ExploreStyles.ScorpioChannelGrid)(
+                <.label(
+                  LucumaPrimeStyles.FormFieldLabel,
+                  ExploreStyles.ExposureTimeModeTime,
+                  "Exp. Time"
+                ),
+                <.label(
+                  LucumaPrimeStyles.FormFieldLabel,
+                  ExploreStyles.ExposureTimeModeCount,
+                  "Number of Exp."
+                ),
+                channelRow("g", grView),
+                channelRow("r", grView),
+                channelRow("i", izView),
+                channelRow("z", izView),
+                pairLink("g", "r", ExploreStyles.ScorpioChannelLinkGR),
+                pairLink("i", "z", ExploreStyles.ScorpioChannelLinkIZ)
+              )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
               SlitTelescopeConfigsEditor(

@@ -461,6 +461,7 @@ object ExploreStyles:
   val Igrins2LowerGrid: Css                = Css("explore-igrins2-lower-grid")
   val ScorpioUpperGrid: Css                = Css("explore-scorpio-upper-grid")
   val ScorpioLowerGrid: Css                = Css("explore-scorpio-lower-grid")
+  val ScorpioExposureColumn: Css           = Css("explore-scorpio-exposure-column")
   val ScorpioChannelGrid: Css              = Css("explore-scorpio-channel-grid")
   val ScorpioChannelLabel: Css             = Css("explore-scorpio-channel-label")
   val ScorpioChannelLink: Css              = Css("explore-scorpio-channel-link")
