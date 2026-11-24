@@ -360,6 +360,12 @@ A nod that stays within the slit aperture (q-only offsets). Guide stays on.
 A nod that leaves the slit to sample blank sky (large p/q offsets, guide off at
 the sky positions).
 
+**Block** (SCORPIO):
+One pass through the Telescope Configs of a SCORPIO long slit observation,
+typically four steps in an ABBA nod pattern. The Repeats setting says how many
+blocks the sequence holds. One block is one atom.
+_Avoid_: cycle, set, repetition
+
 **Preset**:
 A named, ready-made nod pattern (a full set of telescope configs) offered as a
 one-click starting point in the UI. A preset is **not stored** — selecting one
