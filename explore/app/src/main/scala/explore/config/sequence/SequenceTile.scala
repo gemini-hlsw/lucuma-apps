@@ -214,7 +214,7 @@ object SequenceTile
             React.Fragment(
               Button(
                 onClick = confirmRevert.set(true),
-                label = "Revert edits",
+                label = "Regenerate sequence",
                 icon = Icons.ArrowRotateLeft,
                 tooltip = "Discard all sequence edits and go back to the generated sequence",
                 tooltipOptions = TooltipOptions.Top
@@ -222,7 +222,7 @@ object SequenceTile
               Dialog(
                 visible = confirmRevert.get,
                 onHide = confirmRevert.set(false),
-                header = "Revert edits",
+                header = "Regenerate sequence",
                 footer = <.div(
                   Button(
                     label = "Cancel",
