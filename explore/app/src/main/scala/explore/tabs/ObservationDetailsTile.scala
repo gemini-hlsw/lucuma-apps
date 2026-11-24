@@ -180,11 +180,11 @@ object ObservationDetailsTile
 
         val qaHelpId: Help.Id = "observation/qa-state.md".refined
 
-        // Shown only once there is a QA state: there is none until the datasets are assessed.
         val qaStateRow: Option[VdomNode] =
           val qa = props.observation.get.qa
-          qa.state.map: state =>
-            if props.isStaffOrAdmin then
+          if props.isStaffOrAdmin then
+            // Shown once there is a visit for staff - needed to set QA State for visitor instruments.
+            Option.when(props.timeCharges.exists(_.nonEmpty))(
               OverridableEnumSelect(
                 id = NonEmptyString.unsafeFrom(s"qa-state-${props.observation.get.id}"),
                 overrideView = qaOverrideView,
@@ -194,7 +194,11 @@ object ObservationDetailsTile
                 helpId = qaHelpId.some,
                 clazz = ExploreStyles.ObservationDetailsSelect
               )
-            else FormInfo(state.shortName, React.Fragment("QA State", HelpIcon(qaHelpId)))
+            )
+          else
+            // for non-staff, show only once there is a QA state
+            qa.state.map: state =>
+              FormInfo(state.shortName, React.Fragment("QA State", HelpIcon(qaHelpId)))
 
         val estimatedDuration: VdomNode =
           digest.value.fold(EmptyVdom): d =>
