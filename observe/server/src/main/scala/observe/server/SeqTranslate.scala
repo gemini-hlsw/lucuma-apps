@@ -179,6 +179,7 @@ object SeqTranslate {
           ),
           instConfig = step.instrumentConfig,
           config = step.stepConfig,
+          kind = insStep.stepType,
           telescopeConfig = step.telescopeConfig,
           breakpoint = step.breakpoint
         )

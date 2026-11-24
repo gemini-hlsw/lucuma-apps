@@ -31,13 +31,14 @@ sealed trait StepGen[F[_]]:
   def generator: StepActionsGen[F]
   def instConfig: D
   def config: StepConfig
+  def kind: StepKind
   def telescopeConfig: CoreTelescopeConfig
   def breakpoint: Breakpoint
   def statusGen: StepStatusGen = StepStatusGen.Null
 
   def isSameAs(other: StepGen[F]): Boolean =
     atomId === other.atomId && sequenceType === other.sequenceType && id === other.id && dataId === other.dataId && subsystems === other.subsystems &&
-      config === other.config && telescopeConfig === other.telescopeConfig &&
+      config === other.config && kind === other.kind && telescopeConfig === other.telescopeConfig &&
       ((this, other) match
         case (a: StepGen.GmosNorth[F], b: StepGen.GmosNorth[F])   =>
           a.instConfig === b.instConfig
@@ -65,6 +66,7 @@ object StepGen:
     generator: StepActionsGen[F],
     instConfig: D,
     config: StepConfig,
+    kind: StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint: Breakpoint
   ) => Aux[F, D]
@@ -86,6 +88,7 @@ object StepGen:
     generator:       StepActionsGen[F],
     instConfig:      gmos.DynamicConfig.GmosNorth,
     config:          StepConfig,
+    kind:            StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
@@ -101,6 +104,7 @@ object StepGen:
     generator:       StepActionsGen[F],
     instConfig:      gmos.DynamicConfig.GmosSouth,
     config:          StepConfig,
+    kind:            StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
@@ -116,6 +120,7 @@ object StepGen:
     generator:       StepActionsGen[F],
     instConfig:      Flamingos2DynamicConfig,
     config:          StepConfig,
+    kind:            StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
@@ -131,6 +136,7 @@ object StepGen:
     generator:       StepActionsGen[F],
     instConfig:      Igrins2DynamicConfig,
     config:          StepConfig,
+    kind:            StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
@@ -146,6 +152,7 @@ object StepGen:
     generator:       StepActionsGen[F],
     instConfig:      GnirsDynamicConfig,
     config:          StepConfig,
+    kind:            StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
@@ -161,6 +168,7 @@ object StepGen:
     generator:       StepActionsGen[F],
     instConfig:      GhostDynamicConfig,
     config:          StepConfig,
+    kind:            StepKind,
     telescopeConfig: CoreTelescopeConfig,
     breakpoint:      Breakpoint
   ) extends StepGen[F]:

@@ -65,6 +65,7 @@ class SeqTranslateSuite extends TestCommon {
       ),
       instConfig = dynamicCfg1,
       config = stepCfg1,
+      kind = StepKind.CelestialObject(Instrument.GmosNorth),
       telescopeConfig = telescopeCfg1,
       breakpoint = Breakpoint.Disabled
     )
@@ -238,6 +239,15 @@ class SeqTranslateSuite extends TestCommon {
         isNodAndShuffle = false
       ),
       StepKind.DayCalObject(Instrument.GmosSouth).asRight
+    )
+    assertEquals(
+      StepKind.classify(
+        Instrument.Flamingos2,
+        StepConfig.Science,
+        ObserveClass.DayCal,
+        isNodAndShuffle = false
+      ),
+      StepKind.DayCalObject(Instrument.Flamingos2).asRight
     )
     List(ObserveClass.Science, ObserveClass.NightCal, ObserveClass.Acquisition).foreach { c =>
       assertEquals(

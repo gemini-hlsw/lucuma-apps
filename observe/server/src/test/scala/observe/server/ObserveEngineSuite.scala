@@ -1240,6 +1240,53 @@ class ObserveEngineSuite extends TestCommon {
       .getOrElse(fail("Running ObserveEngine produced no output"))
   }
 
+  test("ObserveEngine start should skip the conditions check for a daytime calibration"):
+    val (obs, steps) = testConditionsSequenceData
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](
+      atomId1,
+      none,
+      steps.map(_.copy(observeClass = ObserveClass.DayCal))
+    )
+
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
+      None,
+      OdbObservationData(
+        obs,
+        InstrumentExecutionConfig.GmosNorth(
+          ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+        )
+      ),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      EngineState.conditions
+        .andThen(CurrentConditions.iq)
+        .replace(ImageQuality.Preset.OnePointZero.toImageQuality.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.wv).replace(WaterVapor.Dry.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.sb).replace(SkyBackground.Darkest.some) >>>
+      EngineState.conditions
+        .andThen(CurrentConditions.ce)
+        .replace(CloudExtinction.Preset.OnePointZero.toCloudExtinction.some))
+      .apply(EngineState.default[IO])
+
+    (for {
+      odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      observeEngine <- observeEngineWithODB(odb)
+      sf            <- advanceOne(
+                         observeEngine,
+                         s0,
+                         observeEngine.startSequence(
+                           seqObsId1,
+                           user,
+                           observer,
+                           clientId,
+                           RunOverride.Default
+                         )
+                       )
+    } yield sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)).map: s =>
+      assert(s.exists(_.status.isRunning))
+      assert(s.flatMap(_.loadedStep).exists(_.id === stepId1))
+
   test("ObserveEngine start should start the sequence that fails conditions check if forced") {
     val (obs, steps) = testConditionsSequenceData
 

@@ -440,6 +440,7 @@ object TestCommon {
       ),
       instConfig = dynamicCfg1,
       config = stepCfg1,
+      kind = StepKind.CelestialObject(Instrument.GmosNorth),
       telescopeConfig = telescopeCfg1,
       breakpoint = Breakpoint.Disabled
     )
@@ -468,6 +469,7 @@ object TestCommon {
       ),
       instConfig = dynamicCfg1,
       config = stepCfg1,
+      kind = StepKind.CelestialObject(Instrument.GmosNorth),
       telescopeConfig = telescopeCfg1,
       breakpoint = Breakpoint.Disabled
     )
