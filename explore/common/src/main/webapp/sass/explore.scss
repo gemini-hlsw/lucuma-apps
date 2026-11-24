@@ -2688,6 +2688,14 @@ svg.fa-check.explore-success-icon {
     }
   }
 
+  .explore-imaging-pre-imaging-row {
+    padding: 0.5em 0.5em 0;
+  }
+
+  .explore-imaging-pre-imaging-offsets-label {
+    grid-column: 1 / span 2;
+  }
+
   .explore-imaging-lower-grid {
     display: grid;
     padding: 0.5em;

@@ -162,9 +162,10 @@ object GmosImagingConfigPanel {
           val variantView: View[ImagingVariant] = variant(props.observingMode)
 
           React.Fragment(
+            MosPreImagingCheckbox(variantView, props.readonly),
             <.div(ExploreStyles.ImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
-                ImagingVariantEditor(variantView, props.readonly)
+                ImagingVariantEditor(variantView, props.readonly, preImagingCheckbox = true)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableEnumSelectOptional(

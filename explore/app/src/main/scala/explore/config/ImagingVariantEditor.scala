@@ -12,6 +12,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
+import explore.components.ui.ExploreStyles
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.TelescopeConfigEditorStyles
 import explore.config.offsets.TelescopeConfigGeneratorEditor
@@ -34,8 +35,15 @@ import monocle.Iso
 import monocle.Lens
 import monocle.Prism
 
-final case class ImagingVariantEditor(variant: View[ImagingVariant], readonly: Boolean)
-    extends ReactFnProps(ImagingVariantEditor)
+/**
+ * @param preImagingCheckbox
+ *   whether pre-imaging is toggled by [[MosPreImagingCheckbox]] instead of the variant dropdown
+ */
+final case class ImagingVariantEditor(
+  variant:            View[ImagingVariant],
+  readonly:           Boolean,
+  preImagingCheckbox: Boolean
+) extends ReactFnProps(ImagingVariantEditor)
 
 object ImagingVariantEditor
     extends ReactFnComponent[ImagingVariantEditor](props =>
@@ -160,18 +168,27 @@ object ImagingVariantEditor
           )
         )
 
+      val isPreImaging: Boolean = props.variant.get.isPreImaging
+
+      // Pre-imaging is only offered to leave it, never to enter it.
+      val excludedVariants: Set[ImagingVariantType] =
+        if isPreImaging then Set.empty else Set(ImagingVariantType.PreImaging)
+
       React.Fragment(
-        FormEnumDropdown[ImagingVariantType](
-          id = "variant-type".refined,
-          value = props.variant.get.variantType,
-          onChange = vt => props.variant.mod(_.toVariantType(vt)),
-          label = React.Fragment(
-            "Offset Variant",
-            HelpIcon("configuration/imaging/variant-type.md".refined)
-          ),
-          clazz = LucumaPrimeStyles.FormField,
-          disabled = props.readonly
-        ),
+        Option.unless[VdomNode](props.preImagingCheckbox && isPreImaging):
+          FormEnumDropdown[ImagingVariantType](
+            id = "variant-type".refined,
+            value = props.variant.get.variantType,
+            exclude = excludedVariants,
+            onChange = vt => props.variant.mod(_.toVariantType(vt)),
+            label = React.Fragment(
+              "Offset Variant",
+              HelpIcon("configuration/imaging/variant-type.md".refined)
+            ),
+            clazz = LucumaPrimeStyles.FormField,
+            disabled = props.readonly
+          )
+        ,
         groupedView.map[VdomNode]: grouped =>
           React.Fragment(
             FormEnumDropdownView(
@@ -197,28 +214,33 @@ object ImagingVariantEditor
           ),
         preImagingView.map[VdomNode]: preImaging =>
           React.Fragment(
-            <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
+            <.label(
+              ExploreStyles.ImagingPreImagingOffsetsLabel,
+              "Offsets",
+              HelpIcon("configuration/imaging/offsets.md".refined)
+            ),
+            <.label(^.htmlFor := "preImaging-offset-1", "Offset 1:"),
             OffsetInput(
               id = "preImaging-offset-1".refined,
               offset = preImaging.zoom(ImagingVariant.PreImaging.offset1),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             ),
-            <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
+            <.label(^.htmlFor := "preImaging-offset-2", "Offset 2:"),
             OffsetInput(
               id = "preImaging-offset-2".refined,
               offset = preImaging.zoom(ImagingVariant.PreImaging.offset2),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             ),
-            <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
+            <.label(^.htmlFor := "preImaging-offset-3", "Offset 3:"),
             OffsetInput(
               id = "preImaging-offset-3".refined,
               offset = preImaging.zoom(ImagingVariant.PreImaging.offset3),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             ),
-            <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
+            <.label(^.htmlFor := "preImaging-offset-4", "Offset 4:"),
             OffsetInput(
               id = "preImaging-offset-4".refined,
               offset = preImaging.zoom(ImagingVariant.PreImaging.offset4),

@@ -42,6 +42,17 @@ enum ImagingVariant(val variantType: ImagingVariantType) derives Eq:
 
   def exposuresPerOffset: PosInt
 
+  def isPreImaging: Boolean =
+    this match
+      case _: PreImaging => true
+      case _             => false
+
+  /** Turns MOS pre-imaging on or off, leaving the variant alone when nothing changes. */
+  def withPreImaging(enabled: Boolean): ImagingVariant =
+    if enabled then toVariantType(ImagingVariantType.PreImaging)
+    else if isPreImaging then toVariantType(ImagingVariantType.Grouped)
+    else this
+
   def toVariantType(newVariantType: ImagingVariantType): ImagingVariant =
     this match
       case Grouped(order, offsets, skyCount, skyOffsets, exposuresPerOffset) =>

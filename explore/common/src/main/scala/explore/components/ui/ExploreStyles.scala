@@ -481,6 +481,8 @@ object ExploreStyles:
   val GhostCamerasHelp: Css                = Css("explore-ghost-cameras-help")
   val GmosSpectroscopyUpperGrid: Css       = Css("explore-gmos-spectroscopy-upper-grid")
   val GmosSpectroscopyLowerGrid: Css       = Css("explore-gmos-spectroscopy-lower-grid")
+  val ImagingPreImagingRow: Css            = Css("explore-imaging-pre-imaging-row")
+  val ImagingPreImagingOffsetsLabel: Css   = Css("explore-imaging-pre-imaging-offsets-label")
   val ImagingUpperGrid: Css                = Css("explore-imaging-upper-grid")
   val ImagingLowerGrid: Css                = Css("explore-imaging-lower-grid")
   val ImagingLowerGridStack: Css           = Css("explore-imaging-lower-grid-stack")

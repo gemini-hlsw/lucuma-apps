@@ -246,7 +246,11 @@ object GnirsImagingConfigPanel
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
-              ImagingVariantEditor(variantView, !props.permissions.isFullEdit)
+              ImagingVariantEditor(
+                variantView,
+                !props.permissions.isFullEdit,
+                preImagingCheckbox = false
+              )
             )
           ),
           <.div(ExploreStyles.ImagingLowerGrid)(
