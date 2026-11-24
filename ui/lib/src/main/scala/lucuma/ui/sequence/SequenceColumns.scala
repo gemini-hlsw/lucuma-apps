@@ -716,7 +716,7 @@ object SequenceColumns:
       )
 
   private[sequence] val OffsetArcsecondsCodec: InputCodec[Angle] =
-    DecimalArcsecondsValidWedge.toCodec.withDecimalMask(2, integerDigits = 3.some)
+    DecimalArcsecondsValidWedge.toCodec.withDecimalMask(2, integerDigits = 5.some)
 
   val DragHandleColumnId: ColumnId    = ColumnId("dragHandle")
   val EditControlsColumnId: ColumnId  = ColumnId("editControls")

@@ -54,9 +54,8 @@ import org.scalacheck.Gen
  *     core generators cover the whole type (40-decimal brightnesses, picometer wavelengths), whose
  *     canonical text the Explore wedges themselves round away.
  *   - `TimeSpan`: the duration masks accept at most 5 hour digits.
- *   - Offset and IFU angles: their masks accept at most 3 integer digits, so they are checked up to
- *     999.99". Larger offsets or IFU sizes aren't realistic, so the limit is kept; the mask isn't
- *     attached to a field whose text doesn't fit it (see `useInputmask`).
+ *   - Offset and IFU angles: their masks accept at most 5 integer digits, so they are checked up to
+ *     99999.99". The mask isn't attached to a field whose text doesn't fit it (see `useInputmask`).
  *
  * Codecs whose values can come from the ODB with more precision than a user would type (line widths
  * and fluxes, power law indices) are checked over the values the type can hold.
@@ -191,8 +190,8 @@ final class InputCodecsSuite extends DisciplineSuite:
       Gen.choose(min.toMicroseconds, max.toMicroseconds).map(TimeSpan.unsafeFromMicroseconds)
     )
 
-  // Offset and IFU angles, which their masks limit to 999.99".
-  private val MaxOffsetMicroarcseconds: Long = 999990000L
+  // Offset and IFU angles, which their masks limit to 99999.99".
+  private val MaxOffsetMicroarcseconds: Long = 99999990000L
 
   private val offsetAngles: Arbitrary[Angle] = Arbitrary(
     Gen

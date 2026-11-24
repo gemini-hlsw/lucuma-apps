@@ -11,13 +11,13 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
 /**
- * The codecs of the editable sequence table's cells. Offsets are checked up to 999.99", which is
+ * The codecs of the editable sequence table's cells. Offsets are checked up to 99999.99", which is
  * all their mask accepts (see `InputCodecsSuite` in Explore for the same limit in the offsets
  * editor), and wavelengths over the instruments' range.
  */
 final class SequenceCodecsSuite extends DisciplineSuite:
   private val offsetAngles: Arbitrary[Angle] = Arbitrary(
-    Gen.choose(-999990000L, 999990000L).map(Angle.fromMicroarcseconds)
+    Gen.choose(-99999990000L, 99999990000L).map(Angle.fromMicroarcseconds)
   )
 
   private given Arbitrary[Wavelength] = Arbitrary(

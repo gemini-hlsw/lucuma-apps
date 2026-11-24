@@ -89,7 +89,7 @@ trait inputCodecs:
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec.withDecimalMask(2)
   val OffsetArcseconds: InputCodec[Angle]                      =
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec
-      .withDecimalMask(2, integerDigits = 3.some)
+      .withDecimalMask(2, integerDigits = 5.some)
   val NonNegativeArcseconds: InputCodec[Angle]                 =
     ExploreModelValidators.decimalArcsecondsValidWedge.toCodec
       .withDecimalMask(2, allowMinus = false)
@@ -105,7 +105,7 @@ trait inputCodecs:
 
   /** IFU field sizes vary by kind, so the parser is supplied; the mask is shared. */
   def ifuArcseconds(valid: InputValidFormat[Angle]): InputCodec[Angle] =
-    valid.toCodec.withDecimalMask(2, allowMinus = false, integerDigits = 3.some)
+    valid.toCodec.withDecimalMask(2, allowMinus = false, integerDigits = 5.some)
 
   /** Air mass and hour angle bounds depend on the other bound, so the parser is supplied. */
   def elevationRange[A](valid: InputValidFormat[A]): InputCodec[A] =
