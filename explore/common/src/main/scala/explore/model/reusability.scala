@@ -81,6 +81,7 @@ object reusability:
   given Reusability[ProgramInfo]               = Reusability.byEq
   given Reusability[ProgramDetails]            = Reusability.byEq
   given Reusability[Execution]                 = Reusability.byEq
+  given Reusability[ScorpioBlockTimeline]      = Reusability.byEq
   given Reusability[BandedProgramTime]         = Reusability.byEq
   given Reusability[Group]                     = Reusability.byEq
   given Reusability[GroupWarning]              = Reusability.byEq
