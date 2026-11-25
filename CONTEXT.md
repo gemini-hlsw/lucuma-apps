@@ -149,8 +149,7 @@ _Avoid_: ToO type, Standard (removed; such an observation is simply None)
 
 **Scheduling Mode**:
 What the Scheduler may do to an observation: Unconstrained, No Splitting or Uninterruptible,
-each keeping the restrictions below it. Part of the observation's configuration, and so approved
-with it.
+each keeping the restrictions below it. Part of the observation's CCC, and so approved with it.
 _Avoid_: execution requirement, splittable (both replaced by this)
 
 **ToO Activation Ceiling**:
@@ -164,6 +163,20 @@ A placeholder target carrying the region of sky an awaited object may appear in,
 coordinates. When the alert arrives it is swapped out of the asterism for a real sidereal or
 nonsidereal target; it is never resolved in place.
 _Avoid_: resolved ToO, unresolved ToO
+
+### Configuration approval
+
+**CCC**:
+The Coordinates, Configuration and Constraints of an observation, taken together as the thing
+staff approve: where it points, the instrument setup it uses, the sky conditions it needs and
+its Scheduling Mode. Observations with the same CCC share one approval.
+_Avoid_: configuration on its own (that is a candidate instrument setup, see Configuration)
+
+**Configuration Request**:
+A program's request for staff approval of one CCC, with a justification. It is Requested,
+Approved, Denied or Withdrawn, and an approved one covers every observation whose CCC it
+subsumes. An approved Scheduling Mode covers itself and every looser one.
+_Avoid_: CCC request, approval request
 
 ### Tile layout
 
