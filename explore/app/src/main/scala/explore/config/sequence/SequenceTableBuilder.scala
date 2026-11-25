@@ -57,8 +57,7 @@ private type ColumnType[D]          =
 
 private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     extends SequenceRowBuilder[D]
-    with SequenceEditorBuilder[D]
-    with SequenceEditOptics[D]:
+    with SequenceEditorBuilder[D]:
   private type Props = SequenceTable[S, D]
 
   private case class TableMeta[D](
@@ -226,9 +225,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 props.gnirsWellDepth
               )
             )
-        _                             <-
-          useEffectWithDeps(editContexts.isEditing): isEditing =>
-            dynTable.modCollapsedCols(_ => !isEditing)
+        _                             <- useEditColumnsCollapse(dynTable, editContexts.isEditing)
         _                             <- // The current visit's runs start expanded.
           useEffectWithDeps(
             currentVisitRowIds(
@@ -241,32 +238,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         _                             <- // Runs of past visits start collapsed.
           useEffectWithDeps(props.currentVisitId): currentVisitId =>
             setRowsExpanded(table, pastVisitRunRowIds(visitsData.value._1, currentVisitId), false)
-        tableDnd                      <- useVirtualizedTableDragAndDrop(
-                                           table,
-                                           DragHandleColumnId,
-                                           getData = _.original.value.toOption
-                                             .flatMap:
-                                               _.step match
-                                                 case SequenceRow.futureStep(fs) => (fs.stepId, fs.seqType).some
-                                                 case _                          => none,
-                                           containerRef = resize.ref,
-                                           onDrop = (sourceData, target) =>
-                                             (table.options.meta,
-                                              sourceData.map(_._1),
-                                              sourceData.map(_._2),
-                                              target.flatMap(_.data.map(_._1)),
-                                              target.map(_.edge)
-                                             )
-                                               .mapN: (meta, sourceStepId, seqType, targetStepId, edge) =>
-                                                 meta.editContexts.seqTypeMod(seqType):
-                                                   moveStep(sourceStepId, targetStepId, edge)
-                                               .orEmpty,
-                                           canDrop = (targetData, sourceArgs) =>
-                                             targetData.exists: // Only allow dragging into same sequence type
-                                               case (targetStepId, targetSeqType) =>
-                                                 sourceArgs.source.data.value.exists: (sourceStepId, sourceSeqType) =>
-                                                   sourceSeqType === targetSeqType && sourceStepId != targetStepId
-                                         )
+        tableDnd                      <- useSequenceTableDragAndDrop(table, resize.ref)
       yield
         val extraRowMod: TagMod =
           TagMod(
@@ -300,10 +272,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               headerCellMod = _.column.id match
                 case id if id == HeaderColumnId       => SequenceStyles.HiddenColTableHeader
                 case id if id == ExtraRowColumnId     => SequenceStyles.HiddenColTableHeader
-                case id if id == DragHandleColumnId   =>
-                  SequenceStyles.HiddenColTableHeader.unless(props.isEditing)
-                case id if id == EditControlsColumnId =>
-                  SequenceStyles.HiddenColTableHeader.unless(props.isEditing)
+                case id if EditColumnIds.contains(id) => editColumnHeaderCellMod(props.isEditing)
                 case _                                => TagMod.empty,
               rowMod = tableDnd.rowMod: (row, _) =>
                 row.original.value.fold(

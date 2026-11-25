@@ -69,16 +69,21 @@ object ObservationExecutionDisplay
           .flatMap: loView =>
             loView.zoom(LoadedObservation.visits).toPotView
 
+      val sequenceDataViewPot: Pot[View[SequenceData]] =
+        loadedObsViewPot
+          .flatMap: loView =>
+            loView.zoom(LoadedObservation.sequenceData).toPotView
+
       val executionStateAndConfig: Option[
         Pot[
-          (Observation.Id, SequenceData, View[Option[ExecutionVisits]], View[ExecutionState])
+          (Observation.Id, View[SequenceData], View[Option[ExecutionVisits]], View[ExecutionState])
         ]
       ] =
         rootModelData.loadedObservations.value
           .get(selectedObsId)
           .map: lo =>
             (lo.as(selectedObsId),
-             lo.flatMap(_.sequenceData),
+             sequenceDataViewPot,
              visitsViewPot,
              executionStateOpt.toOptionView.toPot
             ).tupled

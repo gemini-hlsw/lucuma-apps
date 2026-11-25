@@ -3,18 +3,23 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import cats.effect.IO
 import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.IsEditEnabled
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
@@ -29,7 +34,7 @@ import observe.ui.model.enums.ClientMode
 final case class GmosSouthImagingSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.GmosSouth,
+  config:               View[ExecutionConfig.GmosSouth],
   itcPerFilter:         Map[GmosSouthFilter, ItcResultValues],
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
@@ -41,7 +46,13 @@ final case class GmosSouthImagingSequenceTable(
   isPreview:            Boolean,
   columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  sequenceControls:     VdomNode
+  sequenceControls:     VdomNode,
+  isEditEnabled:        IsEditEnabled,
+  isEditingAcquisition: View[IsEditing],
+  isEditingScience:     View[IsEditing],
+  remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosSouth]] => IO[
+    List[Atom[gmos.DynamicConfig.GmosSouth]]
+  ]
 ) extends ReactFnProps(GmosSouthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
       Instrument.GmosSouth

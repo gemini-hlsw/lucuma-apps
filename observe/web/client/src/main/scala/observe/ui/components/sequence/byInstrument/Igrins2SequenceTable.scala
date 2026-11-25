@@ -3,11 +3,14 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import cats.effect.IO
 import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
@@ -15,6 +18,8 @@ import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.IsEditEnabled
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -29,7 +34,7 @@ import observe.ui.model.enums.ClientMode
 final case class Igrins2SequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.Igrins2,
+  config:               View[ExecutionConfig.Igrins2],
   acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
@@ -42,7 +47,13 @@ final case class Igrins2SequenceTable(
   isPreview:            Boolean,
   columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  sequenceControls:     VdomNode
+  sequenceControls:     VdomNode,
+  isEditEnabled:        IsEditEnabled,
+  isEditingAcquisition: View[IsEditing],
+  isEditingScience:     View[IsEditing],
+  remoteReplace:        SequenceType => List[Atom[Igrins2DynamicConfig]] => IO[
+    List[Atom[Igrins2DynamicConfig]]
+  ]
 ) extends ReactFnProps(Igrins2SequenceTable.component)
     with SequenceTable[Igrins2StaticConfig, Igrins2DynamicConfig](Instrument.Igrins2)
     with SpectroscopySequenceTable[Igrins2DynamicConfig]:

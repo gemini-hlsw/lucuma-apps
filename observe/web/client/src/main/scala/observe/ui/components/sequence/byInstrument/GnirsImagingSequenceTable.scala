@@ -3,13 +3,16 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import cats.effect.IO
 import cats.syntax.option.*
 import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
@@ -17,6 +20,8 @@ import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.IsEditEnabled
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
@@ -31,7 +36,7 @@ import observe.ui.model.enums.ClientMode
 final case class GnirsImagingSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig[GnirsStaticConfig, GnirsDynamicConfig],
+  config:               View[ExecutionConfig[GnirsStaticConfig, GnirsDynamicConfig]],
   itcPerFilter:         Map[GnirsFilter, ItcResultValues],
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
@@ -43,14 +48,20 @@ final case class GnirsImagingSequenceTable(
   isPreview:            Boolean,
   columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  sequenceControls:     VdomNode
+  sequenceControls:     VdomNode,
+  isEditEnabled:        IsEditEnabled,
+  isEditingAcquisition: View[IsEditing],
+  isEditingScience:     View[IsEditing],
+  remoteReplace:        SequenceType => List[Atom[GnirsDynamicConfig]] => IO[
+    List[Atom[GnirsDynamicConfig]]
+  ]
 ) extends ReactFnProps(GnirsImagingSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)
     with ImagingSequenceTable[GnirsDynamicConfig, GnirsFilter]:
   lazy val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
 
-  override def gnirsWellDepth = Some(config.static.wellDepth)
+  override def gnirsWellDepth = Some(config.get.static.wellDepth)
 
   val filterFromDynamicConfig: GnirsDynamicConfig => Option[GnirsFilter] =
     _.filter.some

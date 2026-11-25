@@ -32,7 +32,8 @@ case class SeqControlButtons(
   sequenceType:      SequenceType,
   hasAcquisition:    Boolean,
   hasPendingScience: Boolean,
-  requests:          ObservationRequests
+  requests:          ObservationRequests,
+  isSequenceEditing: Boolean
 ) extends ReactFnProps(SeqControlButtons):
   val isSequenceHoldRequested: Boolean      = sequenceStatus.isSequenceHoldRequested
   val isSequenceHoldInFlight: Boolean       = requests.sequenceHold === OperationRequest.InFlight
@@ -69,11 +70,13 @@ object SeqControlButtons
             loading = props.isRefreshing,
             icon = Icons.Play.withSize(IconSize.LG),
             loadingIcon = LucumaIcons.CircleNotch.withSize(IconSize.LG).withSpin(),
-            tooltip = "Start/Resume sequence",
+            tooltip =
+              if props.isSequenceEditing then "Accept or cancel the sequence edits before starting"
+              else "Start/Resume sequence",
             tooltipOptions = tooltipOptions,
             onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
               sequenceApi.startSequence(props.obsId).runAsync,
-            disabled = props.isRefreshing || !props.hasPendingSteps
+            disabled = props.isRefreshing || !props.hasPendingSteps || props.isSequenceEditing
           ).when(!props.isRunning),
           Button(
             clazz = ObserveStyles.SequenceHoldButton |+| ObserveStyles.ObsSummaryButton,
@@ -115,7 +118,8 @@ object SeqControlButtons
             tooltip = "Skip acquisition",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.skipAcquisition(props.obsId).runAsync,
-            disabled = !props.isIdleOrError || props.isRefreshing || props.isSkipAcquisitionInFlight
+            disabled = !props.isIdleOrError || props.isRefreshing ||
+              props.isSkipAcquisitionInFlight || props.isSequenceEditing
           ).when(props.hasAcquisition && props.sequenceType === SequenceType.Acquisition),
           Button(
             clazz = ObserveStyles.ResetAcquisitionButton |+| ObserveStyles.ObsSummaryButton,
@@ -123,8 +127,8 @@ object SeqControlButtons
             tooltip = "Reacquire",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.resetAcquisition(props.obsId).runAsync,
-            disabled =
-              !props.isIdleOrError || props.isRefreshing || props.isResetAcquisitionInFlight
+            disabled = !props.isIdleOrError || props.isRefreshing ||
+              props.isResetAcquisitionInFlight || props.isSequenceEditing
           ).when(props.hasAcquisition && props.sequenceType === SequenceType.Science),
           Button(
             clazz = ObserveStyles.UnloadButton |+| ObserveStyles.ObsSummaryButton,

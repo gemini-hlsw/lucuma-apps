@@ -185,3 +185,7 @@ case class SequenceApiImpl(
         Uri.Path.empty / obsId.toString / client.clientId.value / "proceedAfterPrompt" / observer.toString / sequenceType.tag,
         overrideQuery(runOverride)
       )
+
+  override def reloadAfterEdit(obsId: Observation.Id, sequenceType: SequenceType): IO[Unit] =
+    client.postNoData:
+      Uri.Path.empty / obsId.toString / client.clientId.value / "reloadAfterEdit" / observer.toString / sequenceType.tag

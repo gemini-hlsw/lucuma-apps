@@ -3,13 +3,16 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import cats.effect.IO
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
@@ -17,6 +20,8 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.IsEditEnabled
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -31,7 +36,7 @@ import observe.ui.model.enums.ClientMode
 final case class Flamingos2SequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.Flamingos2,
+  config:               View[ExecutionConfig.Flamingos2],
   acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
@@ -45,7 +50,13 @@ final case class Flamingos2SequenceTable(
   columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   getMaskName:          Attachment.Id => Option[NonEmptyString],
-  sequenceControls:     VdomNode
+  sequenceControls:     VdomNode,
+  isEditEnabled:        IsEditEnabled,
+  isEditingAcquisition: View[IsEditing],
+  isEditingScience:     View[IsEditing],
+  remoteReplace:        SequenceType => List[Atom[Flamingos2DynamicConfig]] => IO[
+    List[Atom[Flamingos2DynamicConfig]]
+  ]
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:

@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.hooks.*
 import crystal.react.syntax.effect.*
+import eu.timepit.refined.types.numeric.NonNegInt
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -33,8 +34,6 @@ import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
-import lucuma.ui.undo.UndoContext
-import lucuma.ui.undo.UndoStacks
 import observe.model.SequenceStatus
 import observe.model.StepState
 import observe.ui.Icons
@@ -53,7 +52,8 @@ import scala.scalajs.LinkingInfo
 
 // Helper to build component objects for instrument sequence tables.
 private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrument)
-    extends SequenceTableDefs[D]:
+    extends SequenceTableDefs[D]
+    with SequenceEditorBuilder[D]:
   private type Props = SequenceTable[S, D]
 
   private val InsertedStepFlashDuration: FiniteDuration = 2.seconds
@@ -86,10 +86,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
       for
-        resize                   <- useResizeDetector
-        ctx                      <- useContext(AppContext.ctx)
-        sequenceApi              <- useContext(SequenceApi.ctx)
-        visitsData               <-
+        resize                        <- useResizeDetector
+        ctx                           <- useContext(AppContext.ctx)
+        sequenceApi                   <- useContext(SequenceApi.ctx)
+        visitsData                    <-
           useMemo(
             (props.instrumentVisits,
              props.currentRecordedStepId,
@@ -97,14 +97,31 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             )
           ):
             visitsSequences(_, _, _)
-        visits                    = visitsData.map(_._1)
-        emptyColumnIds           <-
+        visits                         = visitsData.map(_._1)
+        editContexts                  <-
+          import ctx.given
+          useEditContexts(
+            props.isEditEnabled,
+            props.isStepOngoing,
+            props.isEditingAcquisition,
+            props.isEditingScience,
+            props.acquisition,
+            props.science,
+            props.remoteReplace
+          )
+        // Rows come from the sequences being edited; columns, from the saved ones (props).
+        (acquisitionRows, scienceRows) =
+          props.buildRows(
+            editContexts.acquisition.resolvedSequence,
+            editContexts.science.resolvedSequence
+          )
+        emptyColumnIds                <-
           useMemo((visits, props.acquisitionRows, props.scienceRows)):
             (visits, acquisition, science) =>
               SequenceColumns.emptyColumns(
                 visits.value.flatMap(_.stepRows.map(_.step)) ++ acquisition ++ science
               )
-        cols                     <-
+        cols                          <-
           useMemo(
             (props.clientMode,
              props.instrument,
@@ -116,28 +133,28 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           ):
             import ctx.given
             columnDefs(_, _, _, _, _, _)
-        nextScienceIndex          = visitsData.map(_._2)
-        acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
-        _                        <-
+        nextScienceIndex               = visitsData.map(_._2)
+        acquisitionPromptClicked      <- useStateViewWithReuse(none[SequenceType])
+        _                             <-
           // The request is also watched because a failed target check keeps the sequence waiting.
           // It only clears on Idle, so the click (Idle -> InFlight) keeps the busy state.
           useEffectWithDeps(
             (props.executionState.isWaitingAcquisitionPrompt, props.requests.acquisitionPrompt)
           ): (_, request) =>
             acquisitionPromptClicked.set(none).when_(request === OperationRequest.Idle)
-        sequence                 <-
+        sequence                      <-
           useMemo(
             (visits,
              nextScienceIndex,
-             props.acquisitionRows,
-             props.scienceRows,
+             acquisitionRows,
+             scienceRows,
              props.currentRecordedVisit.map(_.visitId),
              props.executionState.breakpoints,
              props.executionState.sequenceType,
              props.executionState.isWaitingAcquisitionPrompt,
-             props.alertPosition,
              props.requests.acquisitionPrompt,
-             acquisitionPromptClicked
+             acquisitionPromptClicked,
+             props.isEditEnabled
             )
           ):
             (
@@ -149,11 +166,15 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               _,
               sequenceType,
               isWaitingAcquisitionPrompt,
-              alertPosition,
               acquisitionPromptRequest,
-              acquisitionPromptClicked
+              acquisitionPromptClicked,
+              isEditEnabled
             ) =>
               import ctx.given
+
+              // Alert position is right after currently executing atom.
+              val alertPosition: NonNegInt = NonNegInt.unsafeFrom(acquisitionSteps.length)
+
               val acquisitionPrompt: Option[AlertRow] =
                 Option.when(isWaitingAcquisitionPrompt)(
                   AlertRow(
@@ -172,34 +193,29 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                   )
                 )
 
+              // Every step has run: the "Sequence complete" header offers adding steps. Its visit is
+              // then shown as a past one, since the live sections only go in the current visit.
+              val showSequenceLevelEdit: Boolean =
+                isEditEnabled.value && visits.value.nonEmpty &&
+                  acquisitionSteps.isEmpty && scienceSteps.isEmpty
+
               stitchSequence(
                 visits,
-                currentVisitId,
+                currentVisitId.filterNot(_ => showSequenceLevelEdit),
                 nextScienceIndex,
                 acquisitionSteps,
                 scienceSteps,
-                acquisitionPrompt
+                acquisitionPrompt,
+                showSequenceLevelEdit = showSequenceLevelEdit
               )
-        datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
-        dynTable                 <-
+        datasetIdsInFlight            <- useStateView(HashSet.empty[Dataset.Id])
+        dynTable                      <-
           useDynTable(DynTableDefs(props.columnProfile.kind), SizePx(resize.width.orEmpty))
-        tableState               <-
+        tableState                    <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
               PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
-        // TODO Remove the following 4 when sequence editing is supported in observe.
-        dummyIsEditing           <- useStateView(IsEditing.False)
-        dummyEditableSequence    <- useStateView(EditableSequence(List.empty[Atom[D]]))
-        dummyUndoStacks          <- useStateView(UndoStacks.empty[IO, EditableSequence[D]])
-        dummyEditContext          = SequenceEditContext[D](
-                                      dummyIsEditing,
-                                      IsEditInFlight.False,
-                                      UndoContext(dummyUndoStacks, dummyEditableSequence),
-                                      IO.unit,
-                                      Callback.empty,
-                                      Nil
-                                    )
-        table                    <-
+        table                         <-
           useReactTable:
             TableOptions(
               cols.map(dynTable.setInitialColWidths),
@@ -222,12 +238,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.visits,
                 datasetIdsInFlight,
                 props.onBreakpointFlip,
-                SequenceEditContexts(
-                  IsEditEnabled.False,
-                  isStepOngoing = false,
-                  dummyEditContext,
-                  dummyEditContext
-                ),
+                editContexts,
                 props.maskName,
                 DatasetQaBulkEdit(
                   datasetIdsInFlight.get, {
@@ -239,9 +250,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.gnirsWellDepth
               )
             )
-        odbQueryApi              <- useContext(ODBQueryApi.ctx)
-        smartGcalMenuRef         <- usePopupMenuRef
-        smartGcalItems           <-
+        _                             <- useEditColumnsCollapse(dynTable, editContexts.isEditing)
+        tableDnd                      <- useSequenceTableDragAndDrop(table, resize.ref)
+        odbQueryApi                   <- useContext(ODBQueryApi.ctx)
+        smartGcalMenuRef              <- usePopupMenuRef
+        smartGcalItems                <-
           useMemo(props.obsId): obsId =>
             import ctx.given
 
@@ -250,8 +263,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 label = smartGcalType.shortName,
                 command = odbQueryApi.insertSmartGcal(obsId, smartGcalType).runAsync
               )
-        virtualizerRef           <- useRef(none[HTMLTableVirtualizer])
-        _                        <-
+        virtualizerRef                <- useRef(none[HTMLTableVirtualizer])
+        _                             <-
           useEffectOnMount: // If sequence is not running, auto select next step.
             val autoScrollCandidates: List[String] =
               AlertRowId.toString +:
@@ -265,7 +278,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
                 .delayMs(1) // https://github.com/TanStack/virtual/issues/615
                 .toCallback
-        _                        <-
+        _                             <-
           // When sequence changes state or step, auto scroll to running step.
           useEffectWithDeps(
             (props.executionState.sequenceStatus.isRunning,
@@ -277,29 +290,33 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               AlertRowId.toString +: loadedStepId.map(_.toString).toList
 
             scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
-        _                        <- // If sequence completes, show the last visit whole.
+        _                             <- // If sequence completes, show the last visit whole.
           useEffectWithDeps(props.executionState.sequenceStatus):
             case SequenceStatus.Completed =>
-              setRowsExpanded(table, getRowId(sequence.last) :: lastVisitRowIds(visits.value), true)
+              setRowsExpanded(
+                table,
+                sequence.lastOption.map(getRowId).toList ++ lastVisitRowIds(visits.value),
+                true
+              )
             case _                        => Callback.empty
-        _                        <- // The current visit's runs start expanded.
+        _                             <- // The current visit's runs start expanded.
           useEffectWithDeps(
             currentVisitRowIds(
               visits.value,
               props.currentRecordedVisit.map(_.visitId),
-              props.acquisitionRows.nonEmpty
+              acquisitionRows.nonEmpty
             ).map(_.value)
           ): rowIds =>
             expandNewRows(table, rowIds.map(RowId(_)))
-        _                        <- // Runs of past visits start collapsed.
+        _                             <- // Runs of past visits start collapsed.
           useEffectWithDeps(props.currentRecordedVisit.map(_.visitId)): currentVisitId =>
             setRowsExpanded(table, pastVisitRunRowIds(visits.value, currentVisitId), false)
-        renderedInsertedSteps     =
+        renderedInsertedSteps          =
           props.scienceRows
             .flatMap(_.id.right)
             .filter(props.requests.insertedSteps.contains)
             .sortBy(_.toString)
-        _                        <- // Inserted steps are flashed once their rows render, then forgotten.
+        _                             <- // Inserted steps are flashed once their rows render, then forgotten.
           useEffectWithDeps(renderedInsertedSteps): stepIds =>
             import ctx.given
 
@@ -315,6 +332,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
           def isLoaded: Boolean =
             step.selectableRowId === props.loadedStepId.map(SelectedRowId.forFutureStep(_))
+
+          // The step progress row, hidden while editing.
+          def hasProgressRow: Boolean =
+            !editContexts.isEditing && (step.isSelected || step.isLoaded)
         }
 
         val tableStyle: Css =
@@ -358,11 +379,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                       } else TagMod.empty,
                       (^.onClick --> props.setSelectedRowId(selectableRowId))
                         .unless:
-                          props.executionState.isLocked
+                          props.executionState.isLocked || editContexts.isEditing
                     )
                   .whenDefined,
                 SequenceStyles.RowHasExtra
-                  .when_(step.isSelected || step.isLoaded || step.isFinished),
+                  .when_(step.hasProgressRow || step.isFinished),
                 ObserveStyles.RowIdle.unless_(step.isSelected || step.isLoaded),
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
                 ObserveStyles.StepRowInserted.when_(stepWasInserted),
@@ -384,10 +405,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           headerCell: Header[SequenceTableRowType, ?, TableMeta, ?, ?, ?, ?]
         ): TagMod =
           headerCell.column.id match
-            case id if id == HeaderColumnId     => SequenceStyles.HiddenColTableHeader
-            case id if id == BreakpointColumnId => SequenceStyles.HiddenColTableHeader
-            case id if id == ExtraRowColumnId   => SequenceStyles.HiddenColTableHeader
-            case _                              => TagMod.empty
+            case id if id == HeaderColumnId       => SequenceStyles.HiddenColTableHeader
+            case id if id == BreakpointColumnId   => SequenceStyles.HiddenColTableHeader
+            case id if id == ExtraRowColumnId     => SequenceStyles.HiddenColTableHeader
+            case id if EditColumnIds.contains(id) => editColumnHeaderCellMod(editContexts.isEditing)
+            case _                                => TagMod.empty
 
         val extraRowMod: TagMod =
           TagMod(
@@ -416,7 +438,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 case id if id == ExtraRowColumnId   =>
                   stepRow.step match // Extra row is shown in a selected row or in an executed step row.
                     case SequenceRow.Executed.ExecutedStep(_, _, _, _) => extraRowMod
-                    case step if step.isSelected || step.isLoaded      => extraRowMod
+                    case step if step.hasProgressRow                   => extraRowMod
                     case _                                             => TagMod.empty
                 case _                              =>
                   TagMod.empty
@@ -513,20 +535,23 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 severity = Button.Severity.Success,
                 loading = isInsertSmartGcalInFlight,
                 onClickE = smartGcalMenuRef.toggle,
-                disabled = !hasPendingSteps || isInsertSmartGcalInFlight
+                disabled = !hasPendingSteps || isInsertSmartGcalInFlight || editContexts.isEditing
               ).mini.compact.unless(props.isPreview),
               PopupMenu(model = smartGcalItems).withRef(smartGcalMenuRef.ref)
             )
           ),
-          PrimeAutoHeightVirtualizedTable(
-            table,
-            estimateSize = estimateRowHeight,
-            overscan = 8,
-            containerRef = resize.ref,
-            virtualizerRef = virtualizerRef,
-            tableMod = TagMod(tableStyle),
-            rowMod = rowTagMod(row => computeRowMods(row.original)),
-            headerCellMod = computeHeaderCellMods,
-            cellMod = cellTagMod(computeCellMods)
-          )
+          tableDnd.context:
+            PrimeAutoHeightVirtualizedTable(
+              table,
+              estimateSize = estimateRowHeight,
+              overscan = 8,
+              // The current sequence headers stick to the top, keeping the edit buttons reachable.
+              stickyRowIds = RemainingHeadersRowIds,
+              containerRef = tableDnd.containerRef,
+              virtualizerRef = virtualizerRef,
+              tableMod = TagMod(tableStyle),
+              rowMod = tableDnd.rowMod((row, _) => computeRowMods(row.original)),
+              headerCellMod = computeHeaderCellMods,
+              cellMod = tableDnd.cellMod((cell, _) => computeCellMods(cell))
+            )
         )

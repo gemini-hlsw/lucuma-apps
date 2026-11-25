@@ -706,6 +706,59 @@ class ObserveEngineSuite extends TestCommon {
       assertEquals(after.map(_.seq.breakpoints.value), Set(stepId(4)).some)
   }
 
+  test(
+    "ObserveEngine reloadAfterEdit takes the edited type's breakpoints and keeps the loaded step"
+  ) {
+    val s0 = acquisitionCommandState(SequenceType.Acquisition, SequenceStatus.Idle)
+    runAcquisitionCommand(
+      s0,
+      _.reloadAfterEdit(seqObsId1, user, observer, SequenceType.Acquisition, clientId)
+    ).map: (sf, events) =>
+      val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(seq.map(_.seq.status), SequenceStatus.Idle.some)
+      assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Acquisition.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+      // The acquisition's breakpoint comes from the ODB, the science ones are kept as toggled.
+      assertEquals(seq.map(_.seq.breakpoints.value), Set(stepId(3), stepId(4)).some)
+      assertEquals(events, Nil)
+  }
+
+  test("ObserveEngine reloadAfterEdit of the science sequence keeps the acquisition breakpoints") {
+    val s0 = acquisitionCommandState(SequenceType.Science, SequenceStatus.Idle)
+    runAcquisitionCommand(
+      s0,
+      _.reloadAfterEdit(seqObsId1, user, observer, SequenceType.Science, clientId)
+    ).map: (sf, _) =>
+      val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(seq.map(_.seq.currentSequenceType), SequenceType.Science.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+      assertEquals(seq.map(_.seq.breakpoints.value), Set(stepId(2)).some)
+  }
+
+  test("ObserveEngine reloadAfterEdit only updates the breakpoints of a completed sequence") {
+    val s0 = acquisitionCommandState(SequenceType.Science, SequenceStatus.Completed)
+    runAcquisitionCommand(
+      s0,
+      _.reloadAfterEdit(seqObsId1, user, observer, SequenceType.Science, clientId)
+    ).map: (sf, _) =>
+      val seq = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(seq.map(_.seq.status), SequenceStatus.Completed.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+      assertEquals(seq.map(_.seq.breakpoints.value), Set(stepId(2)).some)
+  }
+
+  test("ObserveEngine reloadAfterEdit does nothing while the sequence is running") {
+    val s0 = acquisitionCommandState(SequenceType.Acquisition, SequenceStatus.Running.Init)
+    runAcquisitionCommand(
+      s0,
+      _.reloadAfterEdit(seqObsId1, user, observer, SequenceType.Acquisition, clientId)
+    ).map: (sf, _) =>
+      val after = sf.flatMap(EngineState.atSequence(seqObsId1).getOption)
+      assertEquals(after.map(_.seq.status), SequenceStatus.Running.Init.some)
+      assertEquals(loadedStepId(sf), loadedStepId(s0.some))
+      assertEquals(after.map(_.seq.breakpoints.value), Set(stepId(4)).some)
+  }
+
   test("ObserveEngine should not run a system configuration if sequence is running") {
     val s0 = (loadSequenceWithSubsystems(
       seqObsId1,

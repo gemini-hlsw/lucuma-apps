@@ -132,9 +132,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
         columnPriorities(kind),
         DynTable.ColState(
           resized = ColumnSizing(),
-          visibility = ColumnVisibility(
-            (extraDetailColumnIds ++ collapsibleColIds).map(_ -> Visibility.Hidden).toMap
-          )
+          visibility = ColumnVisibility(extraDetailColumnIds.map(_ -> Visibility.Hidden).toMap)
         ),
         collapsibleCols = collapsibleColIds
       )
@@ -172,6 +170,12 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
           (cell.row.original.value.toOption, cell.table.options.meta).mapN: (stepRow, meta) =>
             val step: SequenceRow[D]    = stepRow.step
             val stepId: Option[Step.Id] = step.id.toOption
+            // A step added in the editor has a temporary id, unknown to the server.
+            val isNewInEditor: Boolean  =
+              step.sequenceType.exists: seqType =>
+                val editContext: SequenceEditContext[D] = meta.editContexts.forSequenceType(seqType)
+                editContext.isEditing.get &&
+                !editContext.liveSequence.exists(_.steps.exists(s => stepId.contains_(s.id)))
             // val canSetBreakpoint =
             //   clientStatus.canOperate && step.get.canSetBreakpoint(
             //     execution.map(_.steps).orEmpty
@@ -195,7 +199,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
               ).when(
                 cell.row.index.toInt > 0 &&
                   step.stepTime === StepTime.Future &&
-                  meta.executionState.loadedStep.map(_.id) =!= stepId
+                  meta.executionState.loadedStep.map(_.id) =!= stepId &&
+                  !isNewInEditor
               )
             )
       ),
@@ -219,7 +224,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                     allVisits = meta.allVisits,
                     datasetIdsInFlight = meta.datasetIdsInFlight
                   )
-                case step                                                 =>
+                // The step progress and its controls are hidden while editing.
+                case step if !meta.editContexts.isEditing                 =>
                   (step.selectableRowId,
                    step.stepTypeDisplay,
                    step.totalExposureTime,
@@ -259,6 +265,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             isPreview = isPreview
                           )
                       }
+                case _                                                    => EmptyVdom
       )
     ) ++
       instrumentColDefs

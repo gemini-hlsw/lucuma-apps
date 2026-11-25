@@ -3,19 +3,24 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import cats.effect.IO
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.IsEditEnabled
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -30,7 +35,7 @@ import observe.ui.model.enums.ClientMode
 final case class GmosNorthSpectroscopySequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.GmosNorth,
+  config:               View[ExecutionConfig.GmosNorth],
   acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
@@ -44,7 +49,13 @@ final case class GmosNorthSpectroscopySequenceTable(
   columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   getMaskName:          Attachment.Id => Option[NonEmptyString],
-  sequenceControls:     VdomNode
+  sequenceControls:     VdomNode,
+  isEditEnabled:        IsEditEnabled,
+  isEditingAcquisition: View[IsEditing],
+  isEditingScience:     View[IsEditing],
+  remoteReplace:        SequenceType => List[Atom[gmos.DynamicConfig.GmosNorth]] => IO[
+    List[Atom[gmos.DynamicConfig.GmosNorth]]
+  ]
 ) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
       Instrument.GmosNorth

@@ -623,12 +623,66 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
               "reset acquisition"
             )
 
+  /**
+   * Takes the breakpoints of the `editedType` sequence, just replaced in the ODB, from it. The
+   * loaded step is left alone: Start reads the step to run from the ODB anyway. On a failed read
+   * the sequence is left as it was.
+   */
+  private def reloadBreakpointsAfterEdit(
+    obsId:      Observation.Id,
+    editedType: SequenceType,
+    clientId:   ClientId
+  ): EngineHandle[F, SeqEvent] =
+    val actionName: String = "reload the edited sequence"
+    EngineHandle.getState.flatMap: st =>
+      EngineState
+        .atSequence(obsId)
+        .getOption(st)
+        .map: seqData =>
+          val status: SequenceStatus = seqData.seq.status
+          if !(status.isIdle || status.isError || status.isCompleted) then
+            EngineHandle.pure[F, SeqEvent]:
+              SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
+          else
+            EngineHandle
+              .liftF:
+                services.odb.readExecutionConfig(obsId, seqData.instrument, OdbProxy.FullFuture)
+              .flatMap: config =>
+                EngineHandle
+                  .modifySequenceState[F](obsId): s =>
+                    s.copy(breakpoints =
+                      Breakpoints.withSequenceFrom(s.breakpoints, config, editedType)
+                    )
+                  .as[SeqEvent](SeqEvent.SequenceTypeChanged(obsId))
+              .handleErrorWith: e =>
+                EngineHandle.pure[F, SeqEvent]:
+                  SeqEvent.NotifyUser(
+                    Notification.ActionFailed(obsId, actionName, e.getMessage),
+                    clientId
+                  )
+        .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
+
+  override def reloadAfterEdit(
+    obsId:        Observation.Id,
+    user:         User,
+    observer:     Observer,
+    sequenceType: SequenceType,
+    clientId:     ClientId
+  ): F[Unit] =
+    logInfoEvent(
+      s"Sequence $obsId: Reload after editing the ${sequenceType.tag} sequence requested by ${user.displayName}"
+    ) *>
+      setObserver(obsId, user, observer) *>
+      executeEngine.offer:
+        Event.modifyState[F]:
+          reloadBreakpointsAfterEdit(obsId, sequenceType, clientId)
+
   override def requestSequenceHold(
     obsId:    Observation.Id,
     observer: Observer,
     user:     User
   ): F[Unit] =
-    logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
+    logInfoEvent(s"Sequence $obsId: Hold requested by ${user.displayName}") *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer(Event.requestSequenceHold(obsId, user))
 

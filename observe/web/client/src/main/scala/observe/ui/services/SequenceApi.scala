@@ -107,6 +107,16 @@ trait SequenceApi[F[_]: MonadThrow]:
   ): F[Unit] =
     NotAuthorized
 
+  /**
+   * After the acquisition or science sequence is replaced in the ODB, the server takes that
+   * sequence's breakpoints from it, since every step of that sequence type got a new id.
+   */
+  def reloadAfterEdit(
+    @unused obsId:        Observation.Id,
+    @unused sequenceType: SequenceType
+  ): F[Unit] =
+    NotAuthorized
+
 object SequenceApi:
   // Default value is NotAuthorized implementations
   val ctx: Context[SequenceApi[IO]] = React.createContext(new SequenceApi[IO] {})
