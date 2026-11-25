@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.MonadError
 import cats.data.NonEmptyList
 import cats.effect.IO
 import clue.data.*
@@ -16,7 +15,6 @@ import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
 import explore.utils.*
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
@@ -29,7 +27,6 @@ import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import org.typelevel.log4cats.Logger
 
 case class GnirsLongSlitPanel(
   programId:       Program.Id,
@@ -42,8 +39,7 @@ case class GnirsLongSlitPanel(
   permissions:     ConfigEditPermissions,
   isStaffOrAdmin:  Boolean,
   units:           WavelengthUnits
-)(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
-    extends ReactFnProps[GnirsLongSlitPanel](
+) extends ReactFnProps[GnirsLongSlitPanel](
       GnirsLongSlitPanel.component
     )
     with GnirsSpectroscopyPanelProps[GnirsFpuSlit]:

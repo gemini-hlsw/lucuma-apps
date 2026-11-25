@@ -40,7 +40,6 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
-import monocle.Iso
 
 import scala.collection.immutable.SortedSet
 
@@ -73,8 +72,6 @@ object ObservationDetailsTile
         ctx           <- useContext(AppContext.ctx)
         selectedVisit <- useStateView(none[Visit.Id])
       yield
-        import ctx.given
-
         val digest = props.observation.get.execution.digest
 
         def duration(time: TimeSpan, tooltip: Option[VdomNode] = none): VdomNode =
@@ -91,14 +88,13 @@ object ObservationDetailsTile
         val scienceBandView: View[Option[ScienceBand]] =
           props.observation
             .zoom(Observation.scienceBand)
-            .undoableView(Iso.id[Option[ScienceBand]].asLens)
-            .withOnMod: band =>
+            .undoableView(band =>
               ctx.odbApi
                 .updateObservations(
                   List(props.observation.get.id),
                   ObservationPropertiesInput(scienceBand = band.orIgnore)
                 )
-                .runAsync
+            )
 
         val scienceBandSelector: VdomNode =
           FormEnumDropdownOptionalView(
@@ -119,14 +115,13 @@ object ObservationDetailsTile
         val priorityView: View[ObservationPriority] =
           props.observation
             .zoom(Observation.priority)
-            .undoableView(Iso.id[ObservationPriority].asLens)
-            .withOnMod: priority =>
+            .undoableView(priority =>
               ctx.odbApi
                 .updateObservations(
                   List(props.observation.get.id),
                   ObservationPropertiesInput(priority = priority.assign)
                 )
-                .runAsync
+            )
 
         val prioritySelector: VdomNode =
           SelectButtonEnumView(
@@ -142,8 +137,7 @@ object ObservationDetailsTile
         val tooActivationView: View[TooActivation] =
           props.observation
             .zoom(Observation.tooActivationWithMode)
-            .undoableView(Iso.id[TooActivation].asLens)
-            .withOnMod: activation =>
+            .undoableView(activation =>
               ctx.odbApi
                 .updateObservations(
                   List(props.observation.get.id),
@@ -152,7 +146,7 @@ object ObservationDetailsTile
                       SchedulingConstraintsInput(tooActivation = activation.assign).assign
                   )
                 )
-                .runAsync
+            )
 
         val tooActivationSelector: VdomNode =
           FormEnumDropdownView(
@@ -169,14 +163,13 @@ object ObservationDetailsTile
         val qaOverrideView: View[Option[ObservationQaState]] =
           props.observation
             .zoom(Observation.qa.andThen(ObservationQa.stateOverride))
-            .undoableView(Iso.id[Option[ObservationQaState]].asLens)
-            .withOnMod: qaOverride =>
+            .undoableView(qaOverride =>
               ctx.odbApi
                 .updateObservations(
                   List(props.observation.get.id),
                   ObservationPropertiesInput(qaStateOverride = qaOverride.orUnassign)
                 )
-                .runAsync
+            )
 
         val qaHelpId: Help.Id = "observation/qa-state.md".refined
 

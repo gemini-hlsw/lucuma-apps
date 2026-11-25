@@ -13,12 +13,26 @@ import clue.syntax.*
 import lucuma.odb.data.OdbError
 import org.typelevel.log4cats.Logger
 
+case class OdbAdaptedError[D](message: String, cause: ResponseException[D])
+    extends RuntimeException(message, cause)
+
+object OdbAdaptedError:
+  /** True when the ODB answered with errors. */
+  def isOdbResponse(t: Throwable): Boolean = t match
+    case ResponseException(_, _) => true
+    case OdbAdaptedError(_, _)   => true
+    case _                       => false
+
+  /** True when the ODB answered with errors and no data, so the operation was not applied. */
+  def isServerRejection(t: Throwable): Boolean = t match
+    case ResponseException(_, None)                     => true
+    case OdbAdaptedError(_, ResponseException(_, None)) => true
+    case _                                              => false
+
 trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
   resetCache:       String => F[Unit],
   notifyFatalError: String => F[Unit]
 ):
-  private case class OdbAdaptedError[D](message: String, cause: ResponseException[D])
-      extends RuntimeException(message, cause)
 
   // In several operations we want to ignore pending obs calc errors. e.g. when clonning ond
   // applying obs to targets

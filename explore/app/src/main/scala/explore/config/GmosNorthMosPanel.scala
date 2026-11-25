@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.MonadError
 import cats.data.NonEmptyList
 import cats.effect.IO
 import clue.data.syntax.*
@@ -17,7 +16,6 @@ import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
 import explore.utils.*
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
@@ -33,7 +31,6 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.syntax.all.given
-import org.typelevel.log4cats.Logger
 
 case class GmosNorthMosPanel(
   programId:       Program.Id,
@@ -47,8 +44,7 @@ case class GmosNorthMosPanel(
   units:           WavelengthUnits,
   maskContext:     MosMaskContext,
   isStaff:         Boolean
-)(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO])
-    extends ReactFnProps[GmosNorthMosPanel](GmosNorthMosPanel.component)
+) extends ReactFnProps[GmosNorthMosPanel](GmosNorthMosPanel.component)
     with GmosMosPanelProps[GmosNorthGrating, GmosNorthFilter]:
 
   val maskInstrument: Instrument = Instrument.GmosNorth

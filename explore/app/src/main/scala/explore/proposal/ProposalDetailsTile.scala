@@ -5,7 +5,6 @@ package explore.proposal
 
 import cats.Order.*
 import cats.data.Chain
-import cats.effect.IO
 import cats.syntax.all.*
 import clue.*
 import clue.data.Input
@@ -61,7 +60,6 @@ import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
 import lucuma.ui.undo.UndoButtons
-import org.typelevel.log4cats.Logger
 import spire.std.any.*
 
 import scalajs.js.JSConverters.*
@@ -564,7 +562,7 @@ object ProposalDetailsBody:
     totalHours: View[Hours],
     showDialog: View[Visible],
     splitsList: View[List[PartnerSplit]]
-  )(using Logger[IO]): VdomNode = {
+  ): VdomNode = {
     // Required instruments are pruned server-side when their backing observation goes away,
     val dropIneligibleInstruments: GeminiProposalType => GeminiProposalType =
       GeminiProposalType.aeonMultiFacility.modify(
@@ -896,7 +894,7 @@ object ProposalDetailsBody:
       totalHours,
       showDialog,
       splitsList
-    )(using ctx.logger)
+    )
   )
 case class ProposalDetailsTitle(undoer: Undoer, tileSize: TileSizeState, readonly: Boolean)
     extends ReactFnProps(ProposalDetailsTitle.component)

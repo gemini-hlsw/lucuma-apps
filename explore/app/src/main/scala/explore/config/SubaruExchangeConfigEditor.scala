@@ -66,7 +66,6 @@ object SubaruExchangeConfigPanel
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
       yield
-        import ctx.given
 
         // Send both fields on every update.
         val modeView: View[ObservingMode.SubaruExchange] =

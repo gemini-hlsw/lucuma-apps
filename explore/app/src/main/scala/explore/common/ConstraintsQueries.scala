@@ -20,30 +20,31 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.undo.UndoSetter
 import monocle.Lens
-import org.typelevel.log4cats.Logger
 
 object ConstraintsQueries:
   case class UndoView(
     obsIds:  ObsIdSet,
     undoCtx: UndoSetter[ConstraintSet]
-  )(using odbApi: OdbObservationApi[IO])(using Logger[IO], ToastCtx[IO]):
+  )(using odbApi: OdbObservationApi[IO])(using ToastCtx[IO]):
     def apply[A](
       modelGet:  ConstraintSet => A,
       modelMod:  (A => A) => ConstraintSet => ConstraintSet,
       remoteSet: A => ConstraintSetInput => ConstraintSetInput
     ): View[A] =
       undoCtx
-        .undoableView(modelGet, modelMod)
-        .withOnMod: value =>
-          odbApi
-            .updateObservations(
-              obsIds.toList,
-              ObservationPropertiesInput(constraintSet =
-                remoteSet(value)(ConstraintSetInput()).assign
+        .undoableView(
+          modelGet,
+          modelMod,
+          value =>
+            odbApi
+              .updateObservations(
+                obsIds.toList,
+                ObservationPropertiesInput(constraintSet =
+                  remoteSet(value)(ConstraintSetInput()).assign
+                )
               )
-            )
-            .toastErrors
-            .runAsync
+              .toastErrors
+        )
 
     def apply[A](
       lens:      Lens[ConstraintSet, A],

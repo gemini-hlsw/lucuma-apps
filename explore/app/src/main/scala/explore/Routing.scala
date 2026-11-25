@@ -45,7 +45,8 @@ object Routing:
     React.Fragment(
       model.programSummaries.throttlerView.toPotView
         .map: (pss: View[ProgramSummaries]) =>
-          render(UndoContext(model.rootModel.zoom(RootModel.undoStacks), pss))
+          render:
+            UndoContext(model.rootModel.zoom(RootModel.undoStacks), pss, model.undoEffectRunner)
         .renderPot(identity)
     )
 

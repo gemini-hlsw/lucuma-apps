@@ -96,7 +96,6 @@ import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
 import lucuma.ui.visualization.GhostGeometry
-import monocle.Iso
 import monocle.Optional
 import queries.schemas.itc.syntax.itcTarget
 
@@ -684,17 +683,15 @@ object ObsTabTiles:
           props.observation
             .zoom(ghostSkyPositionLens)
             .map:
-              _.undoableView(Iso.id[Option[Coordinates]].asLens)
-                .withOnMod: coords =>
-                  ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
+              _.undoableView(coords =>
+                ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords)
+              )
 
         // The explicit Base Position override. Undoable, like the sky position
         val baseView: View[Option[Coordinates]] =
           props.observation
             .zoom(Observation.explicitBase)
-            .undoableView(Iso.id[Option[Coordinates]].asLens)
-            .withOnMod: coords =>
-              ctx.odbApi.updateExplicitBase(List(props.obsId), coords).runAsync
+            .undoableView(coords => ctx.odbApi.updateExplicitBase(List(props.obsId), coords))
 
         val ghostIfuMapping: Option[GhostIfuMapping] = props.ghostIfuMapping(obsTimeOrNow)
 
@@ -806,9 +803,10 @@ object ObsTabTiles:
         // change is a single undo step and a single mutation. Undoable, like the explicit base
         val guidingView: View[GuidingConfiguration] =
           props.observation
-            .undoableView(Observation.guiding)
-            .withOnMod: guiding =>
-              odbApi.updateGuiding(List(props.obsId), guiding).runAsync
+            .undoableView(
+              Observation.guiding,
+              guiding => odbApi.updateGuiding(List(props.obsId), guiding)
+            )
 
         // Edits of the Altair parameters keep the guide probe; still one undo step and mutation.
         val altairView: View[Option[AltairConfiguration]] =

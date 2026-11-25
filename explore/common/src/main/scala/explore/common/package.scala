@@ -3,6 +3,7 @@
 
 package explore
 
+import cats.arrow.FunctionK
 import crystal.react.ReuseView
 import crystal.react.reuse.Reuse
 import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
@@ -10,7 +11,6 @@ import lucuma.ui.undo.UndoSetter
 import monocle.Lens
 import monocle.Optional
 import monocle.Prism
-import org.typelevel.log4cats.Logger
 
 package object common {
   type Aligner[A, T] = AlignerF[DefaultA, A, T]
@@ -21,7 +21,7 @@ package object common {
       remoteBaseInput: T,
       onMod:           T => DefaultA[Unit]
     ): Aligner[A, T] =
-      AlignerF(undoCtx, remoteBaseInput, onMod)
+      AlignerF(undoCtx, remoteBaseInput, onMod, FunctionK.id[DefaultA])
   }
 
   type ReuseAligner[A, T] = Reuse[Aligner[A, T]]
@@ -29,13 +29,9 @@ package object common {
   extension [A, T](self: ReuseAligner[A, T])
     def get: A = self.value.get
 
-    def viewMod(toInput: A => T => T)(implicit
-      logger: Logger[DefaultA]
-    ): ReuseView[A] = self.map(_.viewMod(toInput))
+    def viewMod(toInput: A => T => T): ReuseView[A] = self.map(_.viewMod(toInput))
 
-    def view(toInput: A => T)(implicit
-      logger: Logger[DefaultA]
-    ): ReuseView[A] = self.map(_.view(toInput))
+    def view(toInput: A => T): ReuseView[A] = self.map(_.view(toInput))
 
     def zoom[B, S](
       modelGet:  A => B,

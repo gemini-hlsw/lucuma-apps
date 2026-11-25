@@ -54,7 +54,6 @@ object ScorpioLongSlitConfigPanel
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
       yield
-        import ctx.given
 
         val readonly: Boolean = !props.permissions.isFullEdit
 
