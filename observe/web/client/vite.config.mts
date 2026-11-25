@@ -88,6 +88,11 @@ export default defineConfig(async ({ mode }) => {
           ws: true,
         },
       },
+      // Force HTTP/1.1: Node's http2 server truncates large responses to Firefox
+      // (NS_ERROR_NET_PARTIAL_TRANSFER on multi-MB modules). See explore/vite.config.mts.
+      https: {
+        ALPNCallback: () => 'http/1.1',
+      },
       watch: {
         ignored: [
           function ignoreThisPath(_path) {

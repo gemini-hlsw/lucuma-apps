@@ -4,6 +4,7 @@
 package observe.ui.components
 
 import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.Resource
 import cats.effect.std.Dispatcher
 import cats.effect.std.Semaphore
@@ -28,6 +29,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import log4cats.loglevel.LogLevelLogger
+import lucuma.core.enums.Instrument
+import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.LocalObservingNight
 import lucuma.core.model.Observation
 import lucuma.core.model.StandardRole
@@ -53,6 +56,7 @@ import lucuma.ui.utils.showEnvironment
 import observe.model.*
 import observe.model.enums.ObserveLogLevel
 import observe.model.events.ClientEvent
+import observe.model.extensions.*
 import observe.queries.ObsQueriesGQL
 import observe.queries.ObsQueriesGQL.ActiveObservationIdsQuery
 import observe.ui.BroadcastEvent
@@ -372,13 +376,60 @@ object MainApp extends ServerEventHandler:
                     .zoom(RootModelData.obsList)
                     .async
 
+                val ListedWorkflowStates: Set[ObservationWorkflowState] =
+                  Set(
+                    ObservationWorkflowState.Ready,
+                    ObservationWorkflowState.Ongoing,
+                    ObservationWorkflowState.Completed
+                  )
+
                 Resource.pure(fs2.Stream.eval[IO, Unit](subscribed.setAsync(true))) >>
                   Resource
-                    .eval(IO.realTime)
-                    .flatMap: now =>
+                    .eval((IO.realTime, Ref.of[IO, Set[Observation.Id]](Set.empty)).tupled)
+                    .flatMap: (now, listedIds) =>
                       val localObservingNight: LocalObservingNight =
                         LocalObservingNight
                           .fromSiteAndInstant(clientConfig.site, Instant.ofEpochMilli(now.toMillis))
+
+                      // Listed observations always pass, they may be changing or leaving the list.
+                      def affectsList(
+                        obsId:         Observation.Id,
+                        instrument:    Option[Instrument],
+                        workflowState: Option[ObservationWorkflowState]
+                      ): IO[Boolean] =
+                        listedIds.get.map: ids =>
+                          ids.contains(obsId) ||
+                            (workflowState.exists(ListedWorkflowStates.contains) &&
+                              instrument.flatMap(_.site).forall(_ === clientConfig.site))
+
+                      val obsEditSignal: Resource[IO, fs2.Stream[IO, Unit]] =
+                        ObsQueriesGQL.ObservationEditSubscription
+                          .subscribe[IO]()
+                          .logGraphQLErrors: _ =>
+                            "Error received in ObsQueriesGQL.ObservationEditSubscription"
+                          .map:
+                            _.evalFilter: e =>
+                              affectsList(
+                                e.observationEdit.observationId,
+                                e.observationEdit.value.flatMap(_.instrument),
+                                e.observationEdit.value.flatMap(_.workflow).map(_.value.state)
+                              )
+                            .void
+
+                      // The list filters on the calculated workflow state, which changes after the edit.
+                      val obscalcSignal: Resource[IO, fs2.Stream[IO, Unit]] =
+                        ObsQueriesGQL.ObscalcUpdateSubscription
+                          .subscribe[IO]()
+                          .logGraphQLErrors: _ =>
+                            "Error received in ObsQueriesGQL.ObscalcUpdateSubscription"
+                          .map:
+                            _.evalFilter: e =>
+                              affectsList(
+                                e.obscalcUpdate.observationId,
+                                e.obscalcUpdate.value.flatMap(_.instrument),
+                                e.obscalcUpdate.value.flatMap(_.workflow).map(_.value.state)
+                              )
+                            .void
 
                       drain(
                         (offset: Option[Observation.Id]) =>
@@ -395,11 +446,10 @@ object MainApp extends ServerEventHandler:
                         _.obsId
                       )
                         .flatMap: obs =>
-                          readyObservations.set(obs.ready)
+                          listedIds.set(obs.map(_.obsId).toSet) >> readyObservations.set(obs.ready)
                         .recoverWith(t => readyObservations.set(Pot.error(t)))
                         .void
-                        .reRunOnResourceSignals:
-                          ObsQueriesGQL.ObservationEditSubscription.subscribe[IO]()
+                        .reRunOnResourceSignals(obsEditSignal, obscalcSignal)
               }
               .orEmpty
         permitPot        <-

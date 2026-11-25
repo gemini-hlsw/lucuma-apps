@@ -43,13 +43,30 @@ object ObsQueriesGQL {
     val document = gql"""
       subscription {
         observationEdit {
+          observationId
           value {
-            id
+            instrument
+            workflow { value { state } }
           }
         }
       }
     """
   }
+
+  // The calculated workflow state is only written when a calculation ends (READY or RETRY).
+  @GraphQL
+  trait ObscalcUpdateSubscription extends GraphQLOperation[ObservationDB]:
+    val document = gql"""
+      subscription {
+        obscalcUpdate(input: { newCalculationState: { IN: [READY, RETRY] } }) {
+          observationId
+          value {
+            instrument
+            workflow { value { state } }
+          }
+        }
+      }
+    """
 
   @GraphQL
   trait SingleObservationEditSubscription extends GraphQLOperation[ObservationDB] {
