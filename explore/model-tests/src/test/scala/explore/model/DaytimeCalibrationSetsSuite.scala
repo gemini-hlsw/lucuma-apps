@@ -229,6 +229,22 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     )
     assertEquals(d.decker, Flamingos2Fpu.LongSlit2.decker)
 
+  test("Flamingos 2 takes every kind but a bias"):
+    assert(!kinds(Instrument.Flamingos2).contains(CalibrationSetType.Bias))
+    assert(kinds(Instrument.Flamingos2).contains(CalibrationSetType.DaytimeObserve))
+
+  test("A Flamingos 2 daytime observe keeps the optics and drops the lamp"):
+    val d    = Flamingos2DaytimeSetup.fpu.replace(Flamingos2Fpu.LongSlit2.asLeft.some)(
+      Flamingos2DaytimeSetup.default.copy(filter = Flamingos2Filter.J)
+    )
+    val flat = withKind(
+      Flamingos2DaytimeSetup.defaultSet.copy(setup = DaytimeCalibrationSetup.Flamingos2(d)),
+      CalibrationSetType.Flat
+    )
+    val s    = withKind(flat, CalibrationSetType.DaytimeObserve)
+    assertEquals(s.gcal, none)
+    assertEquals(DaytimeCalibrationSetup.flamingos2.getOption(s.setup).map(_.config), d.some)
+
   test("Changing a Flamingos 2 kind keeps the window cover"):
     val f2     = Flamingos2DaytimeSetup.defaultSet
     val open   = f2.copy(
@@ -315,7 +331,6 @@ class DaytimeCalibrationSetsSuite extends FunSuite:
     assert(valid.getValid("600.01").isLeft)
 
   test("IGRINS-2 takes neither a bias nor a daytime observe"):
-    assertEquals(kinds(Instrument.Igrins2), kinds(Instrument.Flamingos2))
     assert(!kinds(Instrument.Igrins2).contains(CalibrationSetType.Bias))
     assert(!kinds(Instrument.Igrins2).contains(CalibrationSetType.DaytimeObserve))
     assert(supports(Instrument.Igrins2))

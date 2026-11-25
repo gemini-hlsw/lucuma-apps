@@ -5,6 +5,7 @@ package observe.server
 
 import cats.*
 import cats.syntax.all.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.model.sequence.StepConfig
@@ -53,9 +54,10 @@ object StepKind {
   }
 
   private def standard(
-    inst:       Instrument,
-    stepConfig: StepConfig,
-    obsClass:   ObserveClass
+    inst:            Instrument,
+    stepConfig:      StepConfig,
+    obsClass:        ObserveClass,
+    calibrationRole: Option[CalibrationRole]
   ): Either[ObserveFailure, StepKind] = stepConfig match {
     case StepConfig.Bias | StepConfig.Dark => DarkOrBias(inst).asRight
     case c: StepConfig.Gcal                =>
@@ -63,7 +65,8 @@ object StepKind {
       else FlatOrArc(inst, c).asRight
     case StepConfig.Science                =>
       // TODO: Here goes the logic to differentiate between a non GAOS, GeMS ot Altair observation.
-      if (obsClass === ObserveClass.DayCal) DayCalObject(inst).asRight
+      // Twilights are DayCal too, but they are taken on sky.
+      if (calibrationRole.exists(_.isOffSky)) DayCalObject(inst).asRight
       else CelestialObject(inst).asRight
     case StepConfig.SmartGcal(_)           => Unexpected("Smart GCAL is not supported").asLeft
   }
@@ -73,9 +76,11 @@ object StepKind {
     inst:            Instrument,
     stepConfig:      StepConfig,
     obsClass:        ObserveClass,
+    calibrationRole: Option[CalibrationRole],
     isNodAndShuffle: Boolean
   ): Either[ObserveFailure, StepKind] =
-    val stdType: Either[ObserveFailure, StepKind] = standard(inst, stepConfig, obsClass)
+    val stdType: Either[ObserveFailure, StepKind] =
+      standard(inst, stepConfig, obsClass, calibrationRole)
     val withNs: Either[ObserveFailure, StepKind]  =
       if (isNodAndShuffle)
         stdType.flatMap {

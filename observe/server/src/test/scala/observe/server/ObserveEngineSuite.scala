@@ -13,6 +13,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosLong
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
@@ -1238,6 +1239,81 @@ class ObserveEngineSuite extends TestCommon {
         })
       }
       .getOrElse(fail("Running ObserveEngine produced no output"))
+  }
+
+  private def startWithPoorConditions(
+    role: CalibrationRole
+  ): IO[(Option[EventResult], Option[SequenceState[IO]])] = {
+    val (obs, steps) = testConditionsSequenceData
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](
+      atomId1,
+      none,
+      steps.map(_.copy(observeClass = ObserveClass.DayCal))
+    )
+
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
+      None,
+      OdbObservationData(
+        obs.copy(calibrationRole = role.some),
+        InstrumentExecutionConfig.GmosNorth(
+          ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+        )
+      ),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      EngineState.conditions
+        .andThen(CurrentConditions.iq)
+        .replace(ImageQuality.Preset.OnePointZero.toImageQuality.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.wv).replace(WaterVapor.Dry.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.sb).replace(SkyBackground.Darkest.some) >>>
+      EngineState.conditions
+        .andThen(CurrentConditions.ce)
+        .replace(CloudExtinction.Preset.OnePointZero.toCloudExtinction.some))
+      .apply(EngineState.default[IO])
+
+    for {
+      odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      observeEngine <- observeEngineWithODB(odb)
+      result        <-
+        observeEngine.startSequence(
+          seqObsId1,
+          user,
+          observer,
+          clientId,
+          RunOverride.Default
+        ) *>
+          observeEngine.eventResultStream(s0).take(1).compile.last
+    } yield (
+      result.map(_._1),
+      result.flatMap((_, sf) => EngineState.sequenceStateAt[IO](seqObsId1).getOption(sf))
+    )
+  }
+
+  private def isChecksPrompt(out: Option[EventResult]): Boolean =
+    out match
+      case Some(
+            EventResult.UserCommandResponse(
+              _,
+              Outcome.Ok,
+              Some(RequestConfirmation(UserPrompt.ChecksOverride(_, _, _), _))
+            )
+          ) =>
+        true
+      case _ => false
+
+  test("ObserveEngine start should skip the conditions check for a daytime calibration") {
+    startWithPoorConditions(CalibrationRole.DaytimeCalibration).map { (out, seq) =>
+      assert(!isChecksPrompt(out))
+      assert(seq.exists(!_.status.isIdle))
+    }
+  }
+
+  test("ObserveEngine start should check the conditions for a twilight") {
+    startWithPoorConditions(CalibrationRole.Twilight).map { (out, seq) =>
+      assert(isChecksPrompt(out))
+      assert(seq.exists(_.status.isIdle))
+    }
   }
 
   test("ObserveEngine start should start the sequence that fails conditions check if forced") {

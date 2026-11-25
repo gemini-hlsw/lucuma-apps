@@ -316,7 +316,8 @@ object TestOdbProxy {
                         WaterVapor.Wet,
                         ElevationRange.ByAirMass.Default
                       ),
-                      ODBObservation.SchedulingConstraints(List.empty)
+                      ODBObservation.SchedulingConstraints(List.empty),
+                      calibrationRoles.get(obsId)
                     )
                   ),
                   buildExecutionConfig(
@@ -365,7 +366,12 @@ object TestOdbProxy {
                             .nodAndShuffle
                             .isDefined
                         case _                    => false
-                    OdbProxy.RemainingSteps(isNodAndShuffle, st.remainingSteps).pure[F]
+                    OdbProxy
+                      .RemainingSteps(isNodAndShuffle,
+                                      st.remainingSteps,
+                                      calibrationRoles.get(obsId)
+                      )
+                      .pure[F]
 
           override def visitStart(obsId: Observation.Id): F[Unit] = addEvent(
             VisitStart(obsId)

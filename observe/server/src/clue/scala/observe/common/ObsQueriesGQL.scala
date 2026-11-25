@@ -65,6 +65,7 @@ object ObsQueriesGql:
           schedulingConstraints {
             timingWindows $TimingWindowSubquery
           }
+          calibrationRole
         }
 
         executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) $ExecutionConfigSubquery
@@ -157,6 +158,9 @@ object ObsQueriesGql:
         $$includeGnirs: Boolean!,
         $$includeGhost: Boolean!
       ) {
+        observation(observationId: $$obsId) {
+          calibrationRole
+        }
         executionConfig(observationId: $$obsId, futureLimit: $$futureLimit) {
           gmosNorth @include(if: $$includeGmosNorth) {
             static { nodAndShuffle { shuffleCycles } }

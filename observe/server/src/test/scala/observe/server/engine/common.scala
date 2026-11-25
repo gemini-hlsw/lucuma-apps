@@ -30,6 +30,7 @@ val DummyStepGen = StepGen.GmosNorth[IO](
   generator = null,
   instConfig = null,
   config = null,
+  kind = null,
   telescopeConfig = null,
   breakpoint = null
 )

@@ -9,6 +9,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
@@ -65,6 +66,7 @@ class SeqTranslateSuite extends TestCommon {
       ),
       instConfig = dynamicCfg1,
       config = stepCfg1,
+      kind = StepKind.CelestialObject(Instrument.GmosNorth),
       telescopeConfig = telescopeCfg1,
       breakpoint = Breakpoint.Disabled
     )
@@ -230,21 +232,43 @@ class SeqTranslateSuite extends TestCommon {
   }
 
   test("SeqTranslate classifies science steps of a daytime calibration apart from sky ones") {
+    List(Instrument.GmosSouth, Instrument.Flamingos2).foreach { i =>
+      assertEquals(
+        StepKind.classify(
+          i,
+          StepConfig.Science,
+          ObserveClass.DayCal,
+          CalibrationRole.DaytimeCalibration.some,
+          isNodAndShuffle = false
+        ),
+        StepKind.DayCalObject(i).asRight
+      )
+    }
+    List(ObserveClass.Science, ObserveClass.NightCal, ObserveClass.Acquisition).foreach { c =>
+      assertEquals(
+        StepKind.classify(
+          Instrument.GmosSouth,
+          StepConfig.Science,
+          c,
+          none,
+          isNodAndShuffle = false
+        ),
+        StepKind.CelestialObject(Instrument.GmosSouth).asRight
+      )
+    }
+  }
+
+  test("SeqTranslate classifies twilight science steps as on sky") {
     assertEquals(
       StepKind.classify(
         Instrument.GmosSouth,
         StepConfig.Science,
         ObserveClass.DayCal,
+        CalibrationRole.Twilight.some,
         isNodAndShuffle = false
       ),
-      StepKind.DayCalObject(Instrument.GmosSouth).asRight
+      StepKind.CelestialObject(Instrument.GmosSouth).asRight
     )
-    List(ObserveClass.Science, ObserveClass.NightCal, ObserveClass.Acquisition).foreach { c =>
-      assertEquals(
-        StepKind.classify(Instrument.GmosSouth, StepConfig.Science, c, isNodAndShuffle = false),
-        StepKind.CelestialObject(Instrument.GmosSouth).asRight
-      )
-    }
   }
 
 }

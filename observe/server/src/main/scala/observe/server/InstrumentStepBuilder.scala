@@ -3,6 +3,7 @@
 
 package observe.server
 
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.model.sequence.Step
@@ -16,6 +17,7 @@ final case class StepBuildContext[F[_], S, D](
   targetEnvironment: TargetEnvironment,
   staticConf:        S,
   step:              Step[D],
+  calibrationRole:   Option[CalibrationRole],
   observingTime:     Option[Timestamp],
   customMasks:       CustomMasks
 ) {
@@ -25,7 +27,13 @@ final case class StepBuildContext[F[_], S, D](
    * nod and shuffle steps apart.
    */
   def stepKind(instrument: Instrument): Either[ObserveFailure, StepKind] =
-    StepKind.classify(instrument, step.stepConfig, step.observeClass, isNodAndShuffle = false)
+    StepKind.classify(
+      instrument,
+      step.stepConfig,
+      step.observeClass,
+      calibrationRole,
+      isNodAndShuffle = false
+    )
 }
 
 trait InstrumentStepBuilder[F[_], S, D] {

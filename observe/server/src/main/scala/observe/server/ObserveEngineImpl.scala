@@ -26,7 +26,6 @@ import lucuma.core.model.Observation
 import lucuma.core.model.User
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.StepConfig as OcsStepConfig
 import lucuma.core.refined.given
 import lucuma.core.util.Timestamp
 import monocle.Lens
@@ -149,11 +148,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             TargetCheckOverride(UserPrompt.Discrepancy(tcsTarget, seqTarget))
       .getOrElse(none.pure[F])
 
-  private def stepRequiresChecks(stepConfig: OcsStepConfig): Boolean =
-    stepConfig match
-      // Gcal and SmartGcal steps (flats and arcs) are off-sky, so the TCS target is irrelevant.
-      case OcsStepConfig.Science => true
-      case _                     => false
+  // Only on-sky steps care about the TCS target and the sky conditions. A day-cal science step
+  // takes light from the sky, but with the telescope not pointing at a target.
+  private def stepRequiresChecks(kind: StepKind): Boolean =
+    kind match
+      case StepKind.CelestialObject(_) | StepKind.NodAndShuffle(_) | StepKind.Gems(_) |
+          StepKind.AltairObs(_) =>
+        true
+      case StepKind.DayCalObject(_) | StepKind.FlatOrArc(_, _) | StepKind.NightFlatOrArc(_, _) |
+          StepKind.DarkOrBias(_) | StepKind.DarkOrBiasNS(_) | StepKind.ExclusiveDarkOrBias(_) =>
+        false
 
   private def checkCloudCover(
     actual:    Option[CloudExtinction],
@@ -311,7 +315,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
                   seq.obsId,
                   seq.currentSequenceType.asLeft
                 )
-              checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
+              checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.kind))
               (stpg, checks) <-
                 EngineHandle.liftF:
                   checkedStepOpt
@@ -471,7 +475,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             val nextStepRequiresChecks: EngineHandle[F, Boolean]          =
               ObserveEngine
                 .readStep(services.odb, translator, obsId, SequenceType.Science.asLeft)
-                .map(_.exists(step => stepRequiresChecks(step.config)))
+                .map(_.exists(step => stepRequiresChecks(step.kind)))
                 .handleErrorWith(_ => EngineHandle.pure(false))
             val targetCheck: EngineHandle[F, Option[TargetCheckOverride]] =
               if seqType === SequenceType.Science && runOverride === RunOverride.Default then
