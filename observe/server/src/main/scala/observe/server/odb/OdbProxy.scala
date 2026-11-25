@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import clue.FetchClient
 import clue.syntax.*
 import eu.timepit.refined.types.numeric.NonNegInt
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.InstrumentExecutionConfig
@@ -56,9 +57,14 @@ object OdbProxy {
   val FullFuture: NonNegInt = NonNegInt.unsafeFrom(100)
 
   /**
-   * The steps left to execute, and whether the sequence is Nod&Shuffle, which changes their kind.
+   * The steps left to execute, with what changes their kind: whether the sequence is Nod&Shuffle
+   * and the calibration role of the observation.
    */
-  case class RemainingSteps(isNodAndShuffle: Boolean, steps: List[RemainingStepSubquery.Data]):
+  case class RemainingSteps(
+    isNodAndShuffle: Boolean,
+    steps:           List[RemainingStepSubquery.Data],
+    calibrationRole: Option[CalibrationRole]
+  ):
     /** The time the steps are expected to take. */
     def estimate: TimeSpan = steps.foldMap(_.estimate.total)
 
@@ -68,30 +74,27 @@ object OdbProxy {
     sequence.foldMap(s => s.nextAtom.steps ++ s.possibleFuture.flatMap(_.steps))
 
   private def remainingSteps(
-    instrument: Instrument,
-    config:     RemainingStepsQuery.Data.ExecutionConfig
+    instrument:      Instrument,
+    calibrationRole: Option[CalibrationRole],
+    config:          RemainingStepsQuery.Data.ExecutionConfig
   ): Option[RemainingSteps] =
+    def steps(isNodAndShuffle: Boolean, s: List[RemainingStepSubquery.Data]): RemainingSteps =
+      RemainingSteps(isNodAndShuffle, s, calibrationRole)
     instrument match
       case Instrument.GmosNorth  =>
         config.gmosNorth.map: c =>
-          RemainingSteps(c.static.nodAndShuffle.isDefined,
-                         stepsOf(c.acquisition) ++ stepsOf(c.science)
-          )
+          steps(c.static.nodAndShuffle.isDefined, stepsOf(c.acquisition) ++ stepsOf(c.science))
       case Instrument.GmosSouth  =>
         config.gmosSouth.map: c =>
-          RemainingSteps(c.static.nodAndShuffle.isDefined,
-                         stepsOf(c.acquisition) ++ stepsOf(c.science)
-          )
+          steps(c.static.nodAndShuffle.isDefined, stepsOf(c.acquisition) ++ stepsOf(c.science))
       case Instrument.Flamingos2 =>
-        config.flamingos2.map(c =>
-          RemainingSteps(false, stepsOf(c.acquisition) ++ stepsOf(c.science))
-        )
+        config.flamingos2.map(c => steps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
       case Instrument.Igrins2    =>
-        config.igrins2.map(c => RemainingSteps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
+        config.igrins2.map(c => steps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
       case Instrument.Gnirs      =>
-        config.gnirs.map(c => RemainingSteps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
+        config.gnirs.map(c => steps(false, stepsOf(c.acquisition) ++ stepsOf(c.science)))
       case Instrument.Ghost      =>
-        config.ghost.map(c => RemainingSteps(false, stepsOf(c.science)))
+        config.ghost.map(c => steps(false, stepsOf(c.science)))
       case _                     => none
 
   def apply[F[_]](
@@ -206,9 +209,10 @@ object OdbProxy {
               includeGhost = instrument === Instrument.Ghost
             )
             .raiseGraphQLErrors
-            .flatMap:
-              _.executionConfig
-                .flatMap(remainingSteps(instrument, _))
+            .flatMap: data =>
+              val role = data.observation.flatMap(_.calibrationRole)
+              data.executionConfig
+                .flatMap(remainingSteps(instrument, role, _))
                 .liftTo[F]:
                   ObserveFailure.Unexpected(s"OdbProxy: Unable to read the steps left in $oid")
 

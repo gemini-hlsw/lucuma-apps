@@ -11,6 +11,7 @@ import cats.effect.Ref
 import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.GcalArc
 import lucuma.core.enums.GcalContinuum
@@ -289,13 +290,17 @@ class SequenceSubsystemsSuite extends TestCommon:
   ): Set[Subsystem] =
     SequenceSubsystems.fromRemainingSteps(
       instrument,
-      OdbProxy.RemainingSteps(isNodAndShuffle, steps.map(step(_, ObserveClass.Science)))
+      OdbProxy.RemainingSteps(isNodAndShuffle, steps.map(step(_, ObserveClass.Science)), none)
     )
 
   /** The remaining-steps read of a dark-only observation, so that it holds its instrument alone. */
   private val DarkOnly: RemainingStepsMode =
     RemainingStepsMode.Overridden(
-      OdbProxy.RemainingSteps(false, List(step(darkConfig, ObserveClass.DayCal)))
+      OdbProxy.RemainingSteps(
+        false,
+        List(step(darkConfig, ObserveClass.DayCal)),
+        CalibrationRole.DaytimeCalibration.some
+      )
     )
 
   test("only biases or darks left hold the instrument alone"):
@@ -364,7 +369,7 @@ class SequenceSubsystemsSuite extends TestCommon:
         assertEquals(
           SequenceSubsystems.fromRemainingSteps(
             Instrument.GmosNorth,
-            OdbProxy.RemainingSteps(false, List(step(config, ObserveClass.DayCal)))
+            OdbProxy.RemainingSteps(false, List(step(config, ObserveClass.DayCal)), none)
           ),
           subsystems
         )

@@ -5,6 +5,7 @@ package observe.server
 
 import cats.Functor
 import cats.syntax.all.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import observe.common.RemainingStepSubquery
@@ -20,11 +21,15 @@ object SequenceSubsystems:
     Set(ObservatorySubsystem.Tcs, ObservatorySubsystem.Gcal)
 
   /** The observatory subsystems one remaining step uses, by the translator's own rule. */
-  def ofStep(instrument: Instrument, isNodAndShuffle: Boolean)(
-    step: RemainingStepSubquery.Data
+  def ofStep(
+    instrument:      Instrument,
+    calibrationRole: Option[CalibrationRole],
+    isNodAndShuffle: Boolean
+  )(
+    step:            RemainingStepSubquery.Data
   ): Set[ObservatorySubsystem] =
     StepKind
-      .classify(instrument, step.stepConfig, step.observeClass, isNodAndShuffle)
+      .classify(instrument, step.stepConfig, step.observeClass, calibrationRole, isNodAndShuffle)
       .fold(_ => Unclassified, StepKind.observatorySubsystems)
 
   /** The instrument plus what any of the remaining steps uses. */
@@ -33,7 +38,9 @@ object SequenceSubsystems:
     remaining:  OdbProxy.RemainingSteps
   ): Set[Subsystem] =
     Set[Subsystem](instrument) ++
-      remaining.steps.foldMap(ofStep(instrument, remaining.isNodAndShuffle))
+      remaining.steps.foldMap(
+        ofStep(instrument, remaining.calibrationRole, remaining.isNodAndShuffle)
+      )
 
   /** Reads the remaining steps of `obsId` and works out what it must hold while it runs. */
   def read[F[_]: Functor](

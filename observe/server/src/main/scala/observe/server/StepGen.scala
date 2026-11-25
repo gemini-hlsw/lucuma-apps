@@ -50,6 +50,8 @@ sealed trait StepGen[F[_]]:
           a.instConfig === b.instConfig
         case (a: StepGen.Gnirs[F], b: StepGen.Gnirs[F])           =>
           a.instConfig === b.instConfig
+        case (a: StepGen.Ghost[F], b: StepGen.Ghost[F])           =>
+          a.instConfig === b.instConfig
         case _                                                    =>
           false)
 

@@ -260,6 +260,7 @@ object SeqTranslate {
                 observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
                 executionConfig.static,
                 step,
+                observation.calibrationRole,
                 observation.observationTime,
                 CustomMasks.fromAttachments(observation.program.attachments)
               )

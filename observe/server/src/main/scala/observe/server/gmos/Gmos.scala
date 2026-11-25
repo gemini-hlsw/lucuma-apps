@@ -315,6 +315,7 @@ object Gmos {
                           gmosInstrument,
                           step.stepConfig,
                           step.observeClass,
+                          calibrationRole,
                           Gmos.isNodAndShuffle(staticConf, getters.nodAndShuffle)
                         )
               config <- Gmos.buildConfig[F, T](kind, staticConf, step.instrumentConfig, customMasks)
