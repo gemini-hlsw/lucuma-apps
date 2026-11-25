@@ -16,7 +16,6 @@ import lucuma.core.enums.GnirsFpuOther
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
@@ -178,16 +177,16 @@ extension [D](instrumentConfig: D)
       case _                                                        => false
 
 extension [D](step: Step[D])
+  // Only acquisitions show saturation; a science step without a signal to noise shows nothing.
   def getSignalToNoise(
-    signalToNoise: D => Option[SignalToNoise]
+    signalToNoise: D => Option[SignalToNoiseValue]
   ): Option[SignalToNoiseValue] =
     step.observeClass match
       case ObserveClass.Acquisition if step.instrumentConfig.shouldShowAcquisitionSn =>
         signalToNoise(step.instrumentConfig)
-          .map(SignalToNoiseValue.Value.apply)
-          .orElse(SignalToNoiseValue.Saturated.some)
       case ObserveClass.Science                                                      =>
-        signalToNoise(step.instrumentConfig).map(SignalToNoiseValue.Value(_))
+        signalToNoise(step.instrumentConfig).collect:
+          case v @ SignalToNoiseValue.Value(_) => v
       case _                                                                         =>
         none
 

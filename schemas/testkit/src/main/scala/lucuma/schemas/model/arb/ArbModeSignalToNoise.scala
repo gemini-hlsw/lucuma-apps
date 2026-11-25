@@ -61,12 +61,12 @@ trait ArbModeSignalToNoise:
 
   given Arbitrary[ModeSignalToNoise.Spectroscopy] = Arbitrary:
     for
-      acquisitionSN <- arbitrary[ItcResultValues]
+      acquisitionSN <- arbitrary[Option[ItcResultValues]]
       scienceSN     <- arbitrary[ItcResultValues]
     yield ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN)
 
   given Cogen[ModeSignalToNoise.Spectroscopy] =
-    Cogen[(ItcResultValues, ItcResultValues)].contramap: sn =>
+    Cogen[(Option[ItcResultValues], ItcResultValues)].contramap: sn =>
       (sn.acquisition, sn.science)
 
   given Arbitrary[GnirsCentralWavelengthItcResult] = Arbitrary:

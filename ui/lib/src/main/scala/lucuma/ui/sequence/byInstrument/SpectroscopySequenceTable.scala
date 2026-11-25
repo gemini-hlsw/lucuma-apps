@@ -3,23 +3,28 @@
 
 package lucuma.ui.sequence.byInstrument
 
+import cats.syntax.option.*
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.PeakPixel
+import lucuma.ui.sequence.SignalToNoiseValue
 
+/**
+ * `acquisitionItc` is empty for modes that have no acquisition ITC.
+ */
 trait SpectroscopySequenceTable[D]:
-  def acquisitionItc: ItcResultValues
+  def acquisitionItc: Option[ItcResultValues]
   def scienceItc: ItcResultValues
 
-  private def itcForSequenceType(seqType: SequenceType): ItcResultValues =
+  private def itcForSequenceType(seqType: SequenceType): Option[ItcResultValues] =
     seqType match
       case SequenceType.Acquisition => acquisitionItc
-      case SequenceType.Science     => scienceItc
+      case SequenceType.Science     => scienceItc.some
 
-  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise] =
-    seqType => _ => _ => itcForSequenceType(seqType).signalToNoise.map(_.single.value)
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoiseValue] =
+    seqType =>
+      _ => _ => itcForSequenceType(seqType).map(SignalToNoiseValue.fromItc(_)(_.single.value))
 
   def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel] =
-    seqType => _ => _ => itcForSequenceType(seqType).peakPixel
+    seqType => _ => _ => itcForSequenceType(seqType).flatMap(_.peakPixel)

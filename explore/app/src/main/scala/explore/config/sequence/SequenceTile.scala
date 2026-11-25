@@ -334,7 +334,7 @@ object SequenceTile
                                   config.static,
                                   gmosNorthExecutionView.flatAcquisition,
                                   gmosNorthExecutionView.flatScience,
-                                  ItcResultValues.Empty,
+                                  none,
                                   ItcResultValues.Empty,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
@@ -407,7 +407,7 @@ object SequenceTile
                                   config.static,
                                   gmosSouthExecutionView.flatAcquisition,
                                   gmosSouthExecutionView.flatScience,
-                                  ItcResultValues.Empty,
+                                  none,
                                   ItcResultValues.Empty,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
@@ -479,7 +479,7 @@ object SequenceTile
                                   config.static,
                                   flamingos2ExecutionView.flatAcquisition,
                                   flamingos2ExecutionView.flatScience,
-                                  ItcResultValues.Empty,
+                                  none,
                                   ItcResultValues.Empty,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
@@ -506,7 +506,10 @@ object SequenceTile
                           )
                           .toOptionView
                           .map: igrins2ExecutionView =>
-                            def table(acquisitionSn: ItcResultValues, scienceSn: ItcResultValues) =
+                            def table(
+                              acquisitionSn: Option[ItcResultValues],
+                              scienceSn:     ItcResultValues
+                            ) =
                               Igrins2SequenceTable(
                                 visitsViewOpt,
                                 config.static,
@@ -528,7 +531,7 @@ object SequenceTile
                                 table(acquisitionSn, scienceSn)
                               // Daytime calibrations have no signal to noise
                               case ModeSignalToNoise.Undefined                              =>
-                                table(ItcResultValues.Empty, ItcResultValues.Empty)
+                                table(none, ItcResultValues.Empty)
                               case _                                                        => mismatchError
                       case SequenceData(InstrumentExecutionConfig.Ghost(config), _)             =>
                         sequnceView

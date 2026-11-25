@@ -28,7 +28,7 @@ final case class Flamingos2SequenceTable(
   staticConfig:         Flamingos2StaticConfig,
   acquisition:          View[List[Atom[Flamingos2DynamicConfig]]],
   science:              View[List[Atom[Flamingos2DynamicConfig]]],
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],

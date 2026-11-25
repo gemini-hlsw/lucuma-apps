@@ -19,7 +19,6 @@ import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
-import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
 import lucuma.core.model.Defined
@@ -270,7 +269,7 @@ object SequenceRow:
   object FutureStep:
     def fromAtom[D](
       atom:          Atom[D],
-      signalToNoise: Option[NonEmptyString] => D => Option[SignalToNoise],
+      signalToNoise: Option[NonEmptyString] => D => Option[SignalToNoiseValue],
       peakPixel:     Option[NonEmptyString] => D => Option[PeakPixel],
       seqType:       SequenceType
     ): List[FutureStep[D]] =
@@ -295,7 +294,7 @@ object SequenceRow:
 
     def fromAtoms[D](
       atoms:         List[Atom[D]],
-      signalToNoise: Option[NonEmptyString] => D => Option[SignalToNoise],
+      signalToNoise: Option[NonEmptyString] => D => Option[SignalToNoiseValue],
       peakPixel:     Option[NonEmptyString] => D => Option[PeakPixel],
       seqType:       SequenceType
     ): List[FutureStep[D]] =

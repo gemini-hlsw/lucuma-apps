@@ -7,11 +7,11 @@ import cats.Eq
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.schemas.model.GnirsCentralWavelengthItcResult
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.PeakPixel
+import lucuma.ui.sequence.SignalToNoiseValue
 
 trait GnirsSpectroscopySequenceTable:
   def acquisitionItc: ItcResultValues
@@ -33,15 +33,16 @@ trait GnirsSpectroscopySequenceTable:
         case head :: tail => Option.when(tail.forall(_ === head))(head)
 
   def signalToNoise
-    : SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[SignalToNoise] =
+    : SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[SignalToNoiseValue] =
     // GNIRS acquisition repeats are coadds, so the total S/N is what one acquisition step delivers.
-    case SequenceType.Acquisition => _ => _ => acquisitionItc.signalToNoise.map(_.total.value)
+    case SequenceType.Acquisition =>
+      _ => _ => SignalToNoiseValue.fromItc(acquisitionItc)(_.total.value).some
     case SequenceType.Science     =>
       desc =>
         val occurrence = GnirsCentralWavelengthItcResult.occurrence(desc)
         d =>
           agreed(occurrence, d)(_.signalToNoise.map(sn => (sn.wavelength, sn.single.value)))
-            .map(_._2)
+            .map(sn => SignalToNoiseValue.Value(sn._2))
 
   def peakPixel: SequenceType => Option[NonEmptyString] => GnirsDynamicConfig => Option[PeakPixel] =
     case SequenceType.Acquisition => _ => _ => acquisitionItc.peakPixel

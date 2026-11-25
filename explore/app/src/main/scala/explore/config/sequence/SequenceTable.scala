@@ -12,7 +12,6 @@ import explore.model.enums.WavelengthUnits
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.ExecutionVisits
@@ -27,7 +26,7 @@ private trait SequenceTable[S, D]:
   def staticConfig: S
   def acquisition: View[List[Atom[D]]]
   def science: View[List[Atom[D]]]
-  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise]
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoiseValue]
   def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel]
   def isEditEnabled: IsEditEnabled
   def isEditingAcquisition: View[IsEditing]

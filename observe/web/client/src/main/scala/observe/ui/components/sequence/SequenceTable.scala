@@ -14,7 +14,6 @@ import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Attachment
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
@@ -58,7 +57,7 @@ private trait SequenceTable[S, D](
   // Only GNIRS sequence tables have a well depth.
   def gnirsWellDepth: Option[GnirsWellDepth] = None
 
-  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise]
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoiseValue]
   def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel]
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
 

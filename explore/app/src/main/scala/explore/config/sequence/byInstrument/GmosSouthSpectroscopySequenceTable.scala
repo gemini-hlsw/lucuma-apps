@@ -26,7 +26,7 @@ final case class GmosSouthSpectroscopySequenceTable(
   staticConfig:         gmos.StaticConfig.GmosSouth,
   acquisition:          View[List[Atom[gmos.DynamicConfig.GmosSouth]]],
   science:              View[List[Atom[gmos.DynamicConfig.GmosSouth]]],
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
