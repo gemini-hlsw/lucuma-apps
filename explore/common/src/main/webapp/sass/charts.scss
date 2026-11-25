@@ -42,6 +42,13 @@ See https://github.com/highcharts/highcharts/issues/13320 */
     fill: var(--plot-background-color);
   }
 
+  // Highcharts 12 defaults, 13 made plot bands solid lavender.
+  .highcharts-plot-band {
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    fill: var(--highcharts-neutral-color-100);
+    fill-opacity: 0.05;
+  }
+
   .highcharts-root :not(.highcharts-series-label) text {
     fill: var(--plot-text-color);
   }
