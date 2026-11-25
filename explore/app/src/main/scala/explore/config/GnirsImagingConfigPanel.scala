@@ -60,10 +60,10 @@ case class GnirsImagingConfigPanel(
   isStaff:                      Boolean
 ) extends ReactFnProps(GnirsImagingConfigPanel):
   val mode: ObservingMode.GnirsImaging = observingMode.get
-  // GNIRS imaging filter set (matches the phase-0 imaging config options): the small
-  // MK filters Y/J/K plus the full-size X and H order-blockers.
+  // The phase-0 configurations only offer the photometric filters, but any GNIRS filter except
+  // the cross-dispersed one may be chosen for imaging in the advanced configuration.
   val allowedFilters: Set[GnirsFilter] =
-    Set(GnirsFilter.Y, GnirsFilter.Order6, GnirsFilter.J, GnirsFilter.Order4, GnirsFilter.K)
+    Enumerated[GnirsFilter].all.filterNot(_ === GnirsFilter.CrossDispersed).toSet
 
 object GnirsImagingConfigPanel
     extends ReactFnComponent[GnirsImagingConfigPanel](props =>
