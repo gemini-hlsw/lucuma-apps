@@ -59,7 +59,12 @@ class ObservationsAndGroupsSuite extends ScalaCheckSuite:
       else
         val List(a, b, c, d, e) = distinct
         val oag                 = state(
-          List(obsIn(a, 1L.some), obsIn(b, 2L.some), obsIn(c, 3L.some), obsIn(d, 4L.some), obsIn(e, none))
+          List(obsIn(a, 1L.some),
+               obsIn(b, 2L.some),
+               obsIn(c, 3L.some),
+               obsIn(d, 4L.some),
+               obsIn(e, none)
+          )
         )
         assertEquals(oag.observationsUnder(groupId(1)).map(_.id).toSet, Set(a.id, b.id, c.id))
         assertEquals(oag.observationsUnder(groupId(2)).map(_.id).toSet, Set(b.id, c.id))
