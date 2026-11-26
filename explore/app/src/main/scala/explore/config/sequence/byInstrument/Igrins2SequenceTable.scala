@@ -26,7 +26,7 @@ final case class Igrins2SequenceTable(
   staticConfig:         Igrins2StaticConfig,
   acquisition:          View[List[Atom[Igrins2DynamicConfig]]],
   science:              View[List[Atom[Igrins2DynamicConfig]]],
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],

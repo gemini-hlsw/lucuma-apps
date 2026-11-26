@@ -30,7 +30,7 @@ case class GhostSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.Ghost,
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,

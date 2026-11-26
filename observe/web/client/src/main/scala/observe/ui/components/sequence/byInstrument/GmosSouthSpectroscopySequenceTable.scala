@@ -31,7 +31,7 @@ final case class GmosSouthSpectroscopySequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.GmosSouth,
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,

@@ -3,6 +3,7 @@
 
 package lucuma.schemas.decoders
 
+import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.PosInt
 import io.circe.ACursor
 import io.circe.Decoder
@@ -40,13 +41,14 @@ trait ModeSignalToNoiseDecoders:
     for
       acquisition <- itcResultValues(c.downField("acquisition").downField("selected"))
       science     <- itcResultValues(c.downField("spectroscopyScience").downField("selected"))
-    yield ModeSignalToNoise.Spectroscopy(acquisition, science)
+    yield ModeSignalToNoise.Spectroscopy(acquisition.some, science)
 
-  // Science only spectroscopy has no acquisition in the schema.
+  // Science only spectroscopy has no acquisition in the schema. This is not the same as an
+  // acquisition result without a signal to noise, which is what a saturated acquisition looks like.
   private val scienceOnlySpectroscopyDecoder: Decoder[ModeSignalToNoise.Spectroscopy] =
     Decoder.instance: c =>
       itcResultValues(c.downField("spectroscopyScience").downField("selected"))
-        .map(ModeSignalToNoise.Spectroscopy(ItcResultValues.Empty, _))
+        .map(ModeSignalToNoise.Spectroscopy(none, _))
 
   private val gnirsCentralWavelengthDecoder: Decoder[GnirsCentralWavelengthItcResult] =
     Decoder.instance: c =>

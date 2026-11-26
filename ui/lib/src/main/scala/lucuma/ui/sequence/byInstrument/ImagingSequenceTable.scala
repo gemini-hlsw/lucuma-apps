@@ -5,9 +5,9 @@ package lucuma.ui.sequence.byInstrument
 
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.schemas.model.ItcResultValues
 import lucuma.schemas.model.PeakPixel
+import lucuma.ui.sequence.SignalToNoiseValue
 
 trait ImagingSequenceTable[D, Filter]:
   def itcPerFilter: Map[Filter, ItcResultValues]
@@ -16,8 +16,9 @@ trait ImagingSequenceTable[D, Filter]:
   private def itcFor(dynamicConfig: D): Option[ItcResultValues] =
     filterFromDynamicConfig(dynamicConfig).flatMap(itcPerFilter.get)
 
-  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoise] =
-    _ => _ => dynamicConfig => itcFor(dynamicConfig).flatMap(_.signalToNoise).map(_.single.value)
+  def signalToNoise: SequenceType => Option[NonEmptyString] => D => Option[SignalToNoiseValue] =
+    _ =>
+      _ => dynamicConfig => itcFor(dynamicConfig).map(SignalToNoiseValue.fromItc(_)(_.single.value))
 
   def peakPixel: SequenceType => Option[NonEmptyString] => D => Option[PeakPixel] =
     _ => _ => dynamicConfig => itcFor(dynamicConfig).flatMap(_.peakPixel)

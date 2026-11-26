@@ -162,7 +162,7 @@ object ObservationSequence
                   props.clientMode,
                   props.obsId,
                   config,
-                  ItcResultValues.Empty,
+                  None,
                   ItcResultValues.Empty,
                   props.visits,
                   props.executionState.get,
@@ -224,7 +224,7 @@ object ObservationSequence
                   props.clientMode,
                   props.obsId,
                   config,
-                  ItcResultValues.Empty,
+                  None,
                   ItcResultValues.Empty,
                   props.visits,
                   props.executionState.get,
@@ -286,7 +286,7 @@ object ObservationSequence
                   props.clientMode,
                   props.obsId,
                   config,
-                  ItcResultValues.Empty,
+                  None,
                   ItcResultValues.Empty,
                   props.visits,
                   props.executionState.get,
@@ -303,7 +303,7 @@ object ObservationSequence
                 )
               case _                                                          => mismatchError
           case SequenceData(InstrumentExecutionConfig.Igrins2(config), signalToNoise)    =>
-            def table(acquisitionItc: ItcResultValues, scienceItc: ItcResultValues) =
+            def table(acquisitionItc: Option[ItcResultValues], scienceItc: ItcResultValues) =
               Igrins2SequenceTable(
                 props.clientMode,
                 props.obsId,
@@ -327,14 +327,14 @@ object ObservationSequence
                 table(acquisitionItc, scienceItc)
               // Daytime calibrations have no signal to noise
               case ModeSignalToNoise.Undefined                                =>
-                table(ItcResultValues.Empty, ItcResultValues.Empty)
+                table(None, ItcResultValues.Empty)
               case _                                                          => mismatchError
           case SequenceData(InstrumentExecutionConfig.Ghost(config), _)                  =>
             GhostSequenceTable(
               props.clientMode,
               props.obsId,
               config,
-              ItcResultValues.Empty,
+              None,
               ItcResultValues.Empty,
               props.visits,
               props.executionState.get,

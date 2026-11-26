@@ -85,3 +85,32 @@ class ModeSignalToNoiseDecoderSuite extends FunSuite:
       Json.obj("centralWavelength" -> picometers(1650000), "results" -> Json.obj())
     )
     assert(json.as[ModeSignalToNoise].isLeft)
+
+  private val science: Json =
+    Json.obj("selected" -> Json.obj("signalToNoiseAt" -> sn(10.0, 40.0)))
+
+  test("science only spectroscopy decodes without an acquisition"):
+    val json = Json.obj(
+      "itcType"             -> "SCIENCE_ONLY_SPECTROSCOPY".asJson,
+      "spectroscopyScience" -> science
+    )
+
+    json.as[ModeSignalToNoise] match
+      case Right(ModeSignalToNoise.Spectroscopy(acq, sci)) =>
+        assertEquals(acq, None)
+        assertEquals(sci.signalToNoise.map(_.single.value.toBigDecimal.toDouble), Some(10.0))
+      case other                                           =>
+        fail(s"Unexpected decoding result: $other")
+
+  test("spectroscopy keeps an acquisition result that has no signal to noise"):
+    val json = Json.obj(
+      "itcType"             -> "SPECTROSCOPY".asJson,
+      "acquisition"         -> Json.obj("selected" -> Json.obj("signalToNoiseAt" -> Json.Null)),
+      "spectroscopyScience" -> science
+    )
+
+    json.as[ModeSignalToNoise] match
+      case Right(ModeSignalToNoise.Spectroscopy(Some(acq), _)) =>
+        assertEquals(acq.signalToNoise, None)
+      case other                                               =>
+        fail(s"Unexpected decoding result: $other")

@@ -30,7 +30,7 @@ final case class Igrins2SequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.Igrins2,
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,

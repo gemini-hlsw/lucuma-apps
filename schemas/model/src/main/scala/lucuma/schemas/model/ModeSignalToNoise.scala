@@ -12,7 +12,8 @@ import lucuma.core.enums.GnirsFilter
 
 enum ModeSignalToNoise derives Eq:
   case Undefined
-  case Spectroscopy(acquisition: ItcResultValues, science: ItcResultValues)
+  // `acquisition` is empty for modes that have no acquisition ITC (science-only spectroscopy).
+  case Spectroscopy(acquisition: Option[ItcResultValues], science: ItcResultValues)
   case GnirsSpectroscopy(
     acquisition: ItcResultValues,
     science:     List[GnirsCentralWavelengthItcResult]

@@ -32,7 +32,7 @@ final case class Flamingos2SequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.Flamingos2,
-  acquisitionItc:       ItcResultValues,
+  acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
