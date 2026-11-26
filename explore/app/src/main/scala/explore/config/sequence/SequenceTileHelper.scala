@@ -32,7 +32,7 @@ object SequenceTileHelper:
       given StreamingClient[IO, ObservationDB] = ctx.clients.odb
       visits                                  <- useEffectKeepResultOnMount(ctx.odbApi.observationVisits(obsId))
       sequenceData                            <-
-        useEffectKeepResultOnMount:
+        useEffectKeepResultWithDeps(includeItc): includeItc =>
           ctx.odbApi.sequenceData(obsId, includeItc)
       refreshVisits                           <- useThrottledCallback(5.seconds)(visits.refresh.value.to[IO])
       refreshSequence                         <- useThrottledCallback(2.seconds)(sequenceData.refresh.to[IO])
