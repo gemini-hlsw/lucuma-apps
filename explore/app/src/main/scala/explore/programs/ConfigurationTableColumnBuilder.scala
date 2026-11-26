@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.TargetList
+import explore.render.schedulingModeBadge
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -68,6 +69,10 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
       configurationColumn(WaterVaporColumnId, _.conditions.waterVapor)
         .withCell(_.value.label)
         .withSize(80.toPx)
+        .sortable,
+      configurationColumn(SchedulingModeColumnId, _.schedulingMode)
+        .withCell(c => schedulingModeBadge(c.value).getOrElse(EmptyVdom))
+        .withSize(130.toPx)
         .sortable
     )
 
@@ -109,6 +114,7 @@ object ConfigurationTableColumnBuilder {
   private val CloudExtinctionColumnId = ColumnId("cloud_extinction")
   private val SkyBackgroundColumnId   = ColumnId("sky_background")
   private val WaterVaporColumnId      = ColumnId("water_vapor")
+  private val SchedulingModeColumnId  = ColumnId("scheduling_mode")
   private val ObservationsColumnId    = ColumnId("observations")
 
   val ColumnNames: Map[ColumnId, String] = Map(
@@ -123,6 +129,7 @@ object ConfigurationTableColumnBuilder {
     CloudExtinctionColumnId -> "CC",
     SkyBackgroundColumnId   -> "SB",
     WaterVaporColumnId      -> "WV",
+    SchedulingModeColumnId  -> "Scheduling",
     ObservationsColumnId    -> "Obs"
   )
 
