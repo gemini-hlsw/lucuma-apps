@@ -19,8 +19,8 @@ import lucuma.schemas.model.ObservingMode
 
 /**
  * The science steps of one SCORPIO block, laid out on a shared clock that starts at zero. Every
- * step starts at the same time on all channels, when the slowest channel of the previous step
- * ends. Telescope offsets between steps take no time here.
+ * step starts at the same time on all channels, when the slowest channel of the previous step ends.
+ * Telescope offsets between steps take no time here.
  */
 final case class ScorpioBlockTimeline(steps: NonEmptyList[ScorpioBlockTimeline.Step]) derives Eq:
   val duration: TimeSpan = steps.last.end

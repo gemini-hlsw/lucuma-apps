@@ -19,6 +19,7 @@ import explore.components.ui.ExploreStyles
 import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.ExposureTimeRules
+import explore.model.ScorpioBlockTimeline
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
 import explore.model.inputCodecs
@@ -168,6 +169,9 @@ object ScorpioLongSlitConfigPanel
               )
             )
           ),
+          ScorpioBlockTimeline
+            .fromMode(props.observingMode.get)
+            .map[VdomNode](ScorpioBlockTimelineChart(_, props.observingMode.get.repeats)),
           <.div(ExploreStyles.ScorpioLowerGrid)(
             AdvancedConfigButtons(
               editState = editState,

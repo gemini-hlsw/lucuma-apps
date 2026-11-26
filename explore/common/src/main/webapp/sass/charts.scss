@@ -422,6 +422,12 @@ See https://github.com/highcharts/highcharts/issues/13320 */
   --scorpio-block-readout: var(--gray-400);
   --scorpio-block-write: var(--gray-600);
 
+  border-bottom: 1px solid var(--site-border-color);
+
+  &:has(+ :empty) {
+    border-bottom: none;
+  }
+
   // The channel colors of the sequence table headers.
   $channels: (
     g: var(--purple-500),
@@ -449,25 +455,6 @@ See https://github.com/highcharts/highcharts/issues/13320 */
 
   .highcharts-point {
     stroke-width: 0;
-  }
-
-  .highcharts-plot-band {
-    fill-opacity: 0;
-  }
-
-  .highcharts-plot-band.scorpio-block-step-alt {
-    fill: var(--plot-text-color);
-    fill-opacity: 0.05;
-  }
-
-  .highcharts-plot-line {
-    stroke: var(--plot-grid-color);
-    stroke-width: 1px;
-  }
-
-  .highcharts-plot-band-label {
-    fill: var(--plot-text-color);
-    font-weight: bold;
   }
 
   .explore-scorpio-block-timeline-caption {

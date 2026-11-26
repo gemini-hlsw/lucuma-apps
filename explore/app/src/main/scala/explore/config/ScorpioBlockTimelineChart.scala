@@ -11,7 +11,6 @@ import explore.model.ScorpioBlockTimeline.*
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.math.Offset
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
@@ -22,7 +21,7 @@ import lucuma.ui.syntax.all.given
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
-/** Gantt style view of one SCORPIO block: a row per channel on a shared elapsed time axis. */
+/** Gantt style view of one step of a SCORPIO block: a row per channel on a shared time axis. */
 final case class ScorpioBlockTimelineChart(timeline: ScorpioBlockTimeline, repeats: PosInt)
     extends ReactFnProps(ScorpioBlockTimelineChart.component)
 
@@ -41,22 +40,22 @@ object ScorpioBlockTimelineChart:
     else if m > 0 then f"$m%d:$s%02d"
     else s"$s s"
 
-  private def formatOffset(offset: Offset): String =
-    val (p, q) = Offset.signedDecimalArcseconds.get(offset)
-    f"p $p%.2f″, q $q%.2f″"
+  private def formatElapsed(ms: Double): String =
+    val total: Long = math.round(ms / 1000)
+    val (h, m, sec) = (total / 3600, (total % 3600) / 60, total % 60)
+    if h > 0 then f"$h%d:$m%02d:$sec%02d" else f"$m%d:$sec%02d"
 
-  private def tooltip(step: Step, segment: Segment): String =
-    s"<strong>${segment.channel.tag}</strong> · step ${step.label} (${formatOffset(step.telescopeConfig.offset)})<br/>" +
-      s"Exposure ${segment.exposureIndex + 1} of ${segment.exposureCount.value} · " +
+  private def tooltip(segment: Segment): String =
+    s"<strong>${segment.channel.tag}</strong> · " +
+      s"exposure ${segment.exposureIndex + 1} of ${segment.exposureCount.value}<br/>" +
       s"${segment.kind.tag} <strong>${formatDuration(segment.duration)}</strong>"
 
-  private def chartOptions(timeline: ScorpioBlockTimeline): Options =
-    val steps: List[Step] = timeline.steps.toList
+  // Every step of a block has the same exposures, so the first one stands for all of them.
+  private def chartOptions(step: Step): Options =
+    val segments: List[Segment] =
+      Channels.flatMap(channel => step.segments.filter(_.channel === channel))
 
-    val segments: List[Segment] = Channels.flatMap(timeline.segments)
-
-    val tooltips: Vector[String] =
-      segments.toVector.flatMap(s => steps.lift(s.stepIndex).map(tooltip(_, s)))
+    val tooltips: Vector[String] = segments.toVector.map(tooltip)
 
     val points: js.Array[XrangePointOptionsObject] =
       segments
@@ -75,30 +74,14 @@ object ScorpioBlockTimelineChart:
     val tooltipFormatter: TooltipFormatterCallbackFunction =
       (point: Point, _: Tooltip, _: js.UndefOr[Point]) => tooltips.lift(point.index.toInt).orEmpty
 
-    val stepBands: js.Array[XAxisPlotBandsOptions] =
-      steps
-        .map: step =>
-          XAxisPlotBandsOptions()
-            .setFrom(millis(step.start))
-            .setTo(millis(step.end))
-            .setClassName(if step.index % 2 === 1 then "scorpio-block-step-alt" else "")
-            .setLabel(
-              XAxisPlotBandsLabelOptions()
-                .setText(step.label)
-                .setAlign(AlignValue.center)
-                .setVerticalAlign(VerticalAlignValue.top)
-                .setY(-4)
-            )
-        .toJSArray
-
-    val stepLines: js.Array[XAxisPlotLinesOptions] =
-      steps
-        .drop(1)
-        .map(step => XAxisPlotLinesOptions().setValue(millis(step.start)).setWidth(1).setZIndex(3))
-        .toJSArray
+    val axisLabelFormatter: AxisLabelsFormatterCallbackFunction =
+      (ctx: AxisLabelsFormatterContextObject, _: AxisLabelsFormatterContextObject) =>
+        (ctx.value: Any) match
+          case ms: Double => formatElapsed(ms)
+          case other      => other.toString
 
     Options()
-      .setChart(ChartOptions().setStyledMode(true).setHeight(ChartHeight).setMarginTop(22))
+      .setChart(ChartOptions().setStyledMode(true).setHeight(ChartHeight))
       .setTitle(TitleOptions().setTextUndefined)
       .setCredits(CreditsOptions().setEnabled(false))
       .setLegend(LegendOptions().setEnabled(false))
@@ -108,11 +91,10 @@ object ScorpioBlockTimelineChart:
           XAxisOptions()
             .setType(AxisTypeValue.datetime)
             .setMin(0)
-            .setMax(millis(timeline.duration))
+            .setMax(millis(step.duration))
             .setStartOnTick(false)
             .setEndOnTick(false)
-            .setPlotBands(stepBands)
-            .setPlotLines(stepLines)
+            .setLabels(XAxisLabelsOptions().setFormatter(axisLabelFormatter))
         ).toJSArray
       )
       .setYAxis(
@@ -123,10 +105,11 @@ object ScorpioBlockTimelineChart:
             .setReversed(true)
         ).toJSArray
       )
+      .setPlotOptions(PlotOptions().setSeries(PlotSeriesOptions().setAnimation(false)))
       .setSeries(
         js.Array(
           SeriesXrangeOptions((), (), ())
-            .setName("Block")
+            .setName("Step")
             .setPointWidth(BarWidth)
             .setBorderRadius(0)
             .setTurboThreshold(0)
@@ -136,17 +119,30 @@ object ScorpioBlockTimelineChart:
       )
 
   private val component = ScalaFnComponent[ScorpioBlockTimelineChart]: props =>
-    for options <- useMemo(props.timeline)(chartOptions)
+    for options <- useMemo(props.timeline.steps.head)(chartOptions)
     yield
-      val total: TimeSpan = props.timeline.duration *| props.repeats.value
-      val repeats: String =
-        if props.repeats.value === 1 then "1 repeat" else s"${props.repeats.value} repeats"
+      val timeline: ScorpioBlockTimeline = props.timeline
+      val total: TimeSpan                = timeline.duration *| props.repeats.value
+      val stepCount: Int                 = timeline.steps.length
+
+      def plural(n: Int, noun: String): String = if n === 1 then s"1 $noun" else s"$n ${noun}s"
 
       <.div(ExploreStyles.ScorpioBlockTimeline)(
-        Chart(options).withModules(Chart.Module.XRange),
+        // Highcharts matches points by x when it updates a chart in place, and the rows share x
+        // values, so a changed step gets a new chart instead.
+        React.Fragment.withKey(timeline.steps.head.hashCode.toString)(
+          Chart(options).withModules(Chart.Module.XRange)
+        ),
         <.div(ExploreStyles.ScorpioBlockTimelineCaption)(
-          <.span("Block ", <.strong(formatDuration(props.timeline.duration))),
-          <.span(s"$repeats ", <.strong(formatDuration(total))),
+          <.span("Step ", <.strong(formatDuration(timeline.steps.head.duration))),
+          <.span(
+            s"Block of ${plural(stepCount, "step")} ",
+            <.strong(formatDuration(timeline.duration))
+          ),
+          <.span(
+            s"${plural(props.repeats.value, "repeat")} ",
+            <.strong(formatDuration(total))
+          ),
           <.span(ExploreStyles.ScorpioBlockTimelineReadout, "Readout"),
           <.span(ExploreStyles.ScorpioBlockTimelineWrite, "Write"),
           <.span(
