@@ -7,6 +7,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.*
+import eu.timepit.refined.types.numeric.NonNegShort
 import explore.ObsGroupHelper
 import explore.model.AppContext
 import explore.model.Attachment
@@ -15,12 +16,14 @@ import explore.model.Group
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationsAndGroups
 import explore.model.enums.AppTab
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Program
+import lucuma.core.syntax.display.*
 import lucuma.core.util.NewBoolean
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.primereact.*
@@ -44,6 +47,9 @@ def focusGroup[F[_]](
 ): Callback =
   ctx.pushPage:
     (AppTab.Observations, programId, groupId.fold(Focused.None)(Focused.group(_))).some
+
+/** The name of the group if it has one, otherwise the short form of its id. */
+def groupLabel(group: Group): String = group.name.fold(group.id.shortName)(_.value)
 
 def cloneObs(
   programId:    Program.Id,
@@ -184,3 +190,29 @@ def insertGroup(
         .toAsync
     .void
     .switching(adding.as(AddingObservation.Value).async)
+
+/**
+ * Duplicates `group` with its contents right after it, focusing the new group. Shows a toast and
+ * flips `adding` while it works.
+ */
+def duplicateGroup(
+  programId:             Program.Id,
+  group:                 Group,
+  sequenceCopy:          CloneSequenceMode,
+  observationsAndGroups: UndoSetter[ObservationsAndGroups],
+  adding:                View[AddingObservation],
+  ctx:                   AppContext[IO]
+): IO[Unit] =
+  import ctx.given
+
+  ObsActions
+    .cloneGroup(
+      group.id,
+      NonNegShort.unsafeFrom((group.parentIndex.value + 1).toShort),
+      sequenceCopy,
+      focusGroup = gid => focusGroup(programId, gid.some, ctx),
+      postMessage = ToastCtx[IO].showToast(_)
+    )(observationsAndGroups)
+    .void
+    .switching(adding.as(AddingObservation.Value).async)
+    .withToastDuring(s"Duplicating group ${groupLabel(group)}")

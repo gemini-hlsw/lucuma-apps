@@ -314,6 +314,8 @@ object ObsTree:
         adding            <- useStateView(AddingObservation(false))
         // The observation, as it was when Duplicate was pressed, waiting for a Sequence Copy choice
         duplicating       <- useStateView(none[Observation])
+        // The group, as it was when Duplicate was pressed, waiting for a Sequence Copy choice
+        duplicatingGroup  <- useStateView(none[GroupSequenceCopy])
         // Request scrolling to the newly created/selected observation or group
         pendingScroll     <- useStateView(none[Either[Observation.Id, Group.Id]])
         _                 <- useEffectWithDeps(props.focusedObsOrGroup)(pendingScroll.set)
@@ -346,6 +348,21 @@ object ObsTree:
           ).switching(adding.async, AddingObservation(_))
             .withToastDuring(s"Duplicating obs ${obs.id}")
             .runAsync
+
+        def duplicateGroupCB(group: Group, sequenceCopy: CloneSequenceMode): Callback =
+          duplicateGroup(
+            props.programId,
+            group,
+            sequenceCopy,
+            props.observationsAndGroups,
+            adding,
+            ctx
+          ).runAsync
+
+        def requestGroupDuplicate(group: Group): Callback =
+          props.observationsAndGroups.get.sequenceCopyChoices(group.id) match
+            case Nil     => duplicateGroupCB(group, CloneSequenceMode.None)
+            case choices => duplicatingGroup.set(GroupSequenceCopy(group, choices).some)
 
         def onDragDrop(
           payload: BaseEventPayload[Either[Observation, Group], Either[Observation, Group]]
@@ -537,6 +554,7 @@ object ObsTree:
                   (AppTab.Observations, props.programId, Focused.group(group.id)).some
                 ,
                 deleteCB = deleteGroup(group.id),
+                cloneCB = requestGroupDuplicate(group).some,
                 isEmpty = props.groupIsEmpty(group.id),
                 readonly = props.readonly || group.system
               )
@@ -583,6 +601,16 @@ object ObsTree:
             onChoose =
               choice => duplicating.set(none) >> duplicating.get.foldMap(duplicate(_, choice)),
             onCancel = duplicating.set(none)
+          )
+
+        val groupSequenceCopyDialog: VdomNode =
+          SequenceCopyDialog(
+            none,
+            onChoose = choice =>
+              duplicatingGroup.set(none) >>
+                duplicatingGroup.get.foldMap(gc => duplicateGroupCB(gc.group, choice)),
+            onCancel = duplicatingGroup.set(none),
+            groupCopy = duplicatingGroup.get
           )
 
         val isSystemGroupFocused: Boolean =
@@ -717,4 +745,6 @@ object ObsTree:
             )
           } else EmptyVdom
 
-        dndScope.context(<.div(ExploreStyles.ObsTreeWrapper)(tree, sequenceCopyDialog))
+        dndScope.context(
+          <.div(ExploreStyles.ObsTreeWrapper)(tree, sequenceCopyDialog, groupSequenceCopyDialog)
+        )

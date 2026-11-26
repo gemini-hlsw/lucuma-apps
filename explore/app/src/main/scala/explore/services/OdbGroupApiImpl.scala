@@ -10,6 +10,8 @@ import clue.StreamingClient
 import clue.data.syntax.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import explore.model.Group
+import explore.model.GroupClone
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.model.Program
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB
@@ -22,7 +24,7 @@ import queries.common.ProgramQueriesGQL.ProgramGroupsQuery
 import queries.common.ProgramSummaryQueriesGQL.GroupTimeRangeQuery
 
 trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB]):
-  self: OdbApiHelper[F] =>
+  self: OdbApiHelper[F] & OdbObservationApiImpl[F] =>
 
   def moveGroup(
     groupId:          Group.Id,
@@ -36,7 +38,8 @@ trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB])
           SET = GroupPropertiesInput(
             parentGroup = parentGroup.orUnassign,
             parentGroupIndex = parentGroupIndex.assign
-          )
+          ),
+          cascade = false
         )
       .processErrors
       .void
@@ -49,7 +52,8 @@ trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB])
       .execute:
         UpdateGroupsInput(
           WHERE = WhereGroup(id = WhereOrderGroupId(EQ = groupId.assign).assign).assign,
-          SET = set
+          SET = set,
+          cascade = false
         )
       .processErrors
       .void
@@ -74,6 +78,46 @@ trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB])
 
   def undeleteGroup(groupId: Group.Id): F[Unit] =
     updateGroup(groupId, GroupPropertiesInput(existence = Existence.Present.assign))
+
+  def cloneGroup(
+    groupId:      Group.Id,
+    atIndex:      NonNegShort,
+    sequenceCopy: CloneSequenceMode
+  ): F[GroupClone] =
+    CloneGroupMutation[F]
+      .execute:
+        CloneGroupInput(
+          groupId = groupId,
+          SET = GroupPropertiesInput(parentGroupIndex = atIndex.assign).assign,
+          sequence = sequenceCopy
+        )
+      .processNoDataErrors
+      .map(_.cloneGroup)
+      .flatMap: result =>
+        val elements: List[CloneGroupMutation.Data.CloneGroup.Contents.AllElements] =
+          result.contents.allElements
+        elements
+          .flatMap(_.observation)
+          .traverse(hydrateObservingMode)
+          .map: observations =>
+            GroupClone(result.newGroup, elements.flatMap(_.group), observations)
+
+  private def setExistenceWithContents(groupId: Group.Id, existence: Existence): F[Unit] =
+    UpdateGroupsMutation[F]
+      .execute:
+        UpdateGroupsInput(
+          WHERE = WhereGroup(id = WhereOrderGroupId(EQ = groupId.assign).assign).assign,
+          SET = GroupPropertiesInput(existence = existence.assign),
+          cascade = true
+        )
+      .processErrors
+      .void
+
+  def deleteGroupWithContents(groupId: Group.Id): F[Unit] =
+    setExistenceWithContents(groupId, Existence.Deleted)
+
+  def undeleteGroupWithContents(groupId: Group.Id): F[Unit] =
+    setExistenceWithContents(groupId, Existence.Present)
 
   def groupTimeRange(groupId: Group.Id): F[Option[GroupTimeRangeQuery.Data.Group]] =
     GroupTimeRangeQuery[F]

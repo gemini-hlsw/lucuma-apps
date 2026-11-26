@@ -5,6 +5,7 @@ package explore.observationtree
 
 import cats.syntax.all.*
 import explore.Icons
+import explore.model.Group
 import explore.model.Observation
 import explore.utils.testId
 import japgolly.scalajs.react.*
@@ -17,17 +18,22 @@ import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.DialogPosition
 import lucuma.ui.primereact.*
 
+/** A group to duplicate with the choices it had when Duplicate was pressed. */
+case class GroupSequenceCopy(group: Group, choices: List[CloneSequenceMode])
+
 /**
- * Asks what a Duplicate of `obs` takes from its Materialized Sequences. Hidden while there is no
- * observation or nothing to ask. Pass the observation as it was when Duplicate was pressed, so the
- * choices don't shift while the dialog is open.
+ * Asks what a Duplicate of `obs`, or of `groupCopy` when given, takes from its Materialized
+ * Sequences. Hidden while there is nothing to duplicate or nothing to ask. Pass them as they were
+ * when Duplicate was pressed, so the choices don't shift while the dialog is open.
  */
 case class SequenceCopyDialog(
-  obs:      Option[Observation],
-  onChoose: CloneSequenceMode => Callback,
-  onCancel: Callback
+  obs:       Option[Observation],
+  onChoose:  CloneSequenceMode => Callback,
+  onCancel:  Callback,
+  groupCopy: Option[GroupSequenceCopy] = none
 ) extends ReactFnProps(SequenceCopyDialog):
-  val choices: List[CloneSequenceMode] = obs.foldMap(_.execution.sequenceCopyChoices)
+  val choices: List[CloneSequenceMode] =
+    groupCopy.fold(obs.foldMap(_.execution.sequenceCopyChoices))(_.choices)
 
 object SequenceCopyDialog
     extends ReactFnComponent[SequenceCopyDialog](props =>
@@ -60,7 +66,7 @@ object SequenceCopyDialog
       Dialog(
         visible = props.choices.nonEmpty,
         onHide = props.onCancel,
-        header = "Duplicate observation",
+        header = if props.groupCopy.isDefined then "Duplicate group" else "Duplicate observation",
         footer = footer,
         position = DialogPosition.Top,
         modal = true,
@@ -68,7 +74,9 @@ object SequenceCopyDialog
         modifiers = List(testId := "explore-sequence-copy-dialog")
       )(
         <.div(
-          s"${props.obs.foldMap(_.displayLabel)} has a stored sequence. Duplicate with:"
+          props.groupCopy.fold(
+            s"${props.obs.foldMap(_.displayLabel)} has a stored sequence. Duplicate with:"
+          )(gc => s"Observations in ${groupLabel(gc.group)} have stored sequences. Duplicate with:")
         )
       )
     )

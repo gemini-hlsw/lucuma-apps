@@ -317,7 +317,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .flatMap(hydrateObservingMode)
 
   // Re-hydrate an observation with a one query call to fill the blanks of the subquery.
-  private def hydrateObservingMode(obs: Observation): F[Observation] =
+  private[services] def hydrateObservingMode(obs: Observation): F[Observation] =
     obs.basicConfiguration.fold(obs.pure[F]): bc =>
       observationObservingMode(obs.id, bc.obsModeType).map: mode =>
         Observation.observingMode.replace(Pot.Ready(mode))(obs)
