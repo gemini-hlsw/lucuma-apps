@@ -95,6 +95,19 @@ trait ObserveEngine[F[_]] {
     clientId: ClientId
   ): F[Unit]
 
+  /**
+   * After the `sequenceType` sequence has been replaced in the ODB (all its remaining steps got new
+   * ids), take that sequence's breakpoints from the ODB, whatever the status. An idle loaded step
+   * of that type is re-read from the ODB; no step is loaded and nothing is started.
+   */
+  def reloadAfterEdit(
+    obsId:        Observation.Id,
+    user:         User,
+    observer:     Observer,
+    sequenceType: SequenceType,
+    clientId:     ClientId
+  ): F[Unit]
+
   def requestSequenceHold(
     obsId:    Observation.Id,
     observer: Observer,

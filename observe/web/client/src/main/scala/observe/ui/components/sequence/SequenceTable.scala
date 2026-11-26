@@ -4,9 +4,9 @@
 package observe.ui.components.sequence
 
 import cats.data.NonEmptyList
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
@@ -34,7 +34,7 @@ private trait SequenceTable[S, D](
 ):
   def clientMode: ClientMode
   def obsId: Observation.Id
-  def config: ExecutionConfig[S, D]
+  def config: View[ExecutionConfig[S, D]]
   def visits: View[Option[ExecutionVisits]]
   def executionState: ExecutionState
   def currentRecordedVisit: Option[RecordedVisit]
@@ -46,6 +46,10 @@ private trait SequenceTable[S, D](
   def columnProfile: SequenceColumnProfile
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
   def sequenceControls: VdomNode
+  def isEditEnabled: IsEditEnabled
+  def isEditingAcquisition: View[IsEditing]
+  def isEditingScience: View[IsEditing]
+  def remoteReplace: SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
 
   // The mask name for a GMOS custom mask attachment, when known. Only GMOS sequence
   // tables have a custom mask FPU, so other instruments keep the default.
@@ -110,24 +114,41 @@ private trait SequenceTable[S, D](
           .toList ++ tail
       case other                                                                             => other
 
-  protected[sequence] lazy val scienceRows: List[SequenceRow[D]] =
-    config.science
-      .map(s => futureSteps(s.nextAtom +: s.possibleFuture, SequenceType.Science))
-      .orEmpty
+  // The whole remaining sequences, as saved. Never display-filtered, since they are what is edited.
+  protected[sequence] lazy val acquisition: View[List[Atom[D]]] = config.flatAcquisition
+  protected[sequence] lazy val science: View[List[Atom[D]]]     = config.flatScience
 
-  protected[sequence] lazy val acquisitionRows: List[SequenceRow[D]] =
+  // A step executing, or paused mid-exposure, keeps the sequence from being replaced.
+  protected[sequence] lazy val isStepOngoing: Boolean =
+    executionState.sequenceStatus.isRunning || executionState.pausedStep.isDefined
+
+  // From the saved science, so that emptying the one being edited doesn't hide the acquisition.
+  private lazy val isScienceComplete: Boolean =
+    futureSteps(science.get, SequenceType.Science).isEmpty
+
+  /** The rows shown for the given acquisition and science sequences (saved or being edited). */
+  protected[sequence] def buildRows(
+    resolvedAcquisition: List[Atom[D]],
+    resolvedScience:     List[Atom[D]]
+  ): (List[SequenceRow[D]], List[SequenceRow[D]]) =
+    val scienceRows: List[SequenceRow[D]] =
+      futureSteps(resolvedScience, SequenceType.Science)
+
     // If initial acquisition atom is complete, then nextAtom already shows the next potential step. We want to hide that.
     // We also hide acquisition if the sequence is complete.
-    if executionState.isWaitingAcquisitionPrompt || executionState.sequenceType === SequenceType.Science || scienceRows.isEmpty
-    then List.empty
-    else
-      config.acquisition
-        .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
-        .orEmpty
+    val acquisitionRows: List[SequenceRow[D]] =
+      if executionState.isWaitingAcquisitionPrompt || executionState.sequenceType === SequenceType.Science || isScienceComplete
+      then List.empty
+      else futureSteps(resolvedAcquisition.headOption.toList, SequenceType.Acquisition)
 
-  // Alert position is right after currently executing atom.
-  protected[sequence] lazy val alertPosition: NonNegInt =
-    NonNegInt.unsafeFrom(acquisitionRows.length)
+    (acquisitionRows, scienceRows)
+
+  // Rows of the saved sequences, e.g. for column presence or the step to auto-select.
+  private lazy val savedRows: (List[SequenceRow[D]], List[SequenceRow[D]]) =
+    buildRows(acquisition.get, science.get)
+
+  protected[sequence] lazy val acquisitionRows: List[SequenceRow[D]] = savedRows._1
+  protected[sequence] lazy val scienceRows: List[SequenceRow[D]]     = savedRows._2
 
   protected[sequence] lazy val nextStepId: Option[Step.Id] =
     acquisitionRows.headOption

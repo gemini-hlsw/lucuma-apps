@@ -176,6 +176,11 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
       ssoClient.require(req): user =>
         oe.resetAcquisition(obsId, user, obs, clientId) *> NoContent()
 
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "reloadAfterEdit" /
+        ObserverVar(obs) / SequenceTypeVar(seqType) =>
+      ssoClient.require(req): user =>
+        oe.reloadAfterEdit(obsId, user, obs, seqType, clientId) *> NoContent()
+
     case req @ POST -> Root / ObsIdVar(obsId) / StepIdVar(stepId) / ClientIDVar(clientId) /
         "breakpoint" / ObserverVar(obs) / BreakpointVar(bp) =>
       ssoClient.require(req): user =>

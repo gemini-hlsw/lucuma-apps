@@ -32,9 +32,6 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Target
-import lucuma.core.model.sequence.Atom
-import lucuma.core.model.sequence.ExecutionConfig
-import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
@@ -249,22 +246,6 @@ object SequenceTile
             severity = Message.Severity.Info,
             icon = Icons.Spinner.withSpin(true)
           )
-
-        extension [D](execution: View[Option[ExecutionSequence[D]]])
-          def flatExecutionSequence: View[List[Atom[D]]] =
-            execution.zoom(_.foldMap(s => s.nextAtom +: s.possibleFuture))(modList =>
-              optExSeq =>
-                val list: List[Atom[D]]    = optExSeq.foldMap(s => s.nextAtom +: s.possibleFuture)
-                val newList: List[Atom[D]] = modList(list)
-                if (newList.isEmpty) none
-                else ExecutionSequence(newList.head, newList.tail, optExSeq.exists(_.hasMore)).some
-            )
-
-        extension [S, D](execution: View[ExecutionConfig[S, D]])
-          def flatAcquisition: View[List[Atom[D]]] =
-            execution.zoom(ExecutionConfig.acquisition).flatExecutionSequence
-          def flatScience: View[List[Atom[D]]]     =
-            execution.zoom(ExecutionConfig.science).flatExecutionSequence
 
         val body =
           props.sequenceChanged.get

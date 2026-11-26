@@ -3,11 +3,14 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import cats.effect.IO
 import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.VdomNode
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
@@ -15,6 +18,8 @@ import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ItcResultValues
+import lucuma.ui.sequence.IsEditEnabled
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceColumnProfile
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -29,7 +34,7 @@ import observe.ui.model.enums.ClientMode
 case class GhostSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.Ghost,
+  config:               View[ExecutionConfig.Ghost],
   acquisitionItc:       Option[ItcResultValues],
   scienceItc:           ItcResultValues,
   visits:               View[Option[ExecutionVisits]],
@@ -42,11 +47,17 @@ case class GhostSequenceTable(
   isPreview:            Boolean,
   columnProfile:        SequenceColumnProfile,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  sequenceControls:     VdomNode
+  sequenceControls:     VdomNode,
+  isEditEnabled:        IsEditEnabled,
+  isEditingAcquisition: View[IsEditing],
+  isEditingScience:     View[IsEditing],
+  remoteReplace:        SequenceType => List[Atom[GhostDynamicConfig]] => IO[
+    List[Atom[GhostDynamicConfig]]
+  ]
 ) extends ReactFnProps(GhostSequenceTable.component)
     with SequenceTable[GhostStaticConfig, GhostDynamicConfig](Instrument.Ghost)
     with SpectroscopySequenceTable[GhostDynamicConfig]:
-  override def ghostResolutionMode = Some(config.static.resolutionMode)
+  override def ghostResolutionMode = Some(config.get.static.resolutionMode)
 
   lazy val toInstrumentVisits =
     case ExecutionVisits.Ghost(visits) => visits

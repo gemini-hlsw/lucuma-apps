@@ -5,6 +5,7 @@ package observe.server.engine
 
 import cats.syntax.all.*
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.ExecutionSequence
@@ -68,16 +69,29 @@ object Breakpoints:
     )
 
   /**
-   * The breakpoints after the acquisition has been regenerated in the ODB: the acquisition's are
-   * taken from `config` (its steps have new ids), while the science ones are kept as they are,
-   * since they may have been toggled in Observe, which the ODB never learns about. Ids no longer in
-   * `config` (the discarded acquisition's) are dropped.
+   * The breakpoints after the `seqType` sequence has been regenerated in the ODB: that sequence's
+   * are taken from `config` (its steps have new ids), while the other sequence's are kept as they
+   * are, since they may have been toggled in Observe, which the ODB never learns about. Ids no
+   * longer in `config` are dropped.
    */
-  def withAcquisitionFrom(current: Breakpoints, config: InstrumentExecutionConfig): Breakpoints =
+  def withSequenceFrom(
+    current: Breakpoints,
+    config:  InstrumentExecutionConfig,
+    seqType: SequenceType
+  ): Breakpoints =
     onExecutionConfig(config, current): [S, D] =>
       (ec: ExecutionConfig[S, D]) =>
-        current.filter(ec.science.foldMap(stepIdsOf).contains) ++
-          ec.acquisition.foldMap(fromExecutionSequence)
+        val (fromConfig: Option[ExecutionSequence[D]], kept: Option[ExecutionSequence[D]]) =
+          seqType match
+            case SequenceType.Acquisition => (ec.acquisition, ec.science)
+            case SequenceType.Science     => (ec.science, ec.acquisition)
+        current.filter(kept.foldMap(stepIdsOf).contains) ++ fromConfig.foldMap(
+          fromExecutionSequence
+        )
+
+  /** `withSequenceFrom` for the acquisition, which has just been regenerated. */
+  def withAcquisitionFrom(current: Breakpoints, config: InstrumentExecutionConfig): Breakpoints =
+    withSequenceFrom(current, config, SequenceType.Acquisition)
 
   extension (breakpoints: Breakpoints)
     def value: Set[Step.Id]                                    = breakpoints

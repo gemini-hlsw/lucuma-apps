@@ -265,6 +265,14 @@ class TestObserveEngine[F[_]: Sync](sys: Services[F]) extends ObserveEngine[F] {
     clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 
+  override def reloadAfterEdit(
+    obsId:        Observation.Id,
+    user:         User,
+    observer:     Observer,
+    sequenceType: SequenceType,
+    clientId:     ClientId
+  ): F[Unit] = Applicative[F].unit
+
   override def unloadSequence(obsId: Observation.Id, user: User, clientId: ClientId): F[Unit] =
     Applicative[F].unit
 }

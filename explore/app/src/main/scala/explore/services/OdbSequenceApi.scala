@@ -3,57 +3,15 @@
 
 package explore.services
 
-import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.StepEstimate
-import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
-import lucuma.core.model.sequence.ghost.GhostDynamicConfig
-import lucuma.core.model.sequence.gmos
-import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
-import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.ui.sequence.SequenceData
+import lucuma.ui.sequence.SequenceEditApi
 
-trait OdbSequenceApi[F[_]]:
+trait OdbSequenceApi[F[_]] extends SequenceEditApi[F]:
   def sequenceData(obsId: Observation.Id, includeItc: Boolean): F[Option[SequenceData]]
 
   def ghostScienceStepEstimate(obsId: Observation.Id): F[Option[StepEstimate]]
-
-  def replaceGmosNorthSequence(
-    obsId:        Observation.Id,
-    sequenceType: SequenceType,
-    atoms:        List[Atom[gmos.DynamicConfig.GmosNorth]]
-  ): F[List[Atom[gmos.DynamicConfig.GmosNorth]]]
-
-  def replaceGmosSouthSequence(
-    obsId:        Observation.Id,
-    sequenceType: SequenceType,
-    atoms:        List[Atom[gmos.DynamicConfig.GmosSouth]]
-  ): F[List[Atom[gmos.DynamicConfig.GmosSouth]]]
-
-  def replaceFlamingos2Sequence(
-    obsId:        Observation.Id,
-    sequenceType: SequenceType,
-    atoms:        List[Atom[Flamingos2DynamicConfig]]
-  ): F[List[Atom[Flamingos2DynamicConfig]]]
-
-  def replaceIgrins2Sequence(
-    obsId:        Observation.Id,
-    sequenceType: SequenceType,
-    atoms:        List[Atom[Igrins2DynamicConfig]]
-  ): F[List[Atom[Igrins2DynamicConfig]]]
-
-  def replaceGnirsSequence(
-    obsId:        Observation.Id,
-    sequenceType: SequenceType,
-    atoms:        List[Atom[GnirsDynamicConfig]]
-  ): F[List[Atom[GnirsDynamicConfig]]]
-
-  def replaceGhostSequence(
-    obsId:        Observation.Id,
-    sequenceType: SequenceType,
-    atoms:        List[Atom[GhostDynamicConfig]]
-  ): F[List[Atom[GhostDynamicConfig]]]
 
   def deleteSequence(obsId: Observation.Id): F[Unit]
 
