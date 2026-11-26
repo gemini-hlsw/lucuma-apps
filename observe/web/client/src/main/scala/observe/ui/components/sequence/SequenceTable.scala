@@ -122,6 +122,10 @@ private trait SequenceTable[S, D](
   protected[sequence] lazy val isStepOngoing: Boolean =
     executionState.sequenceStatus.isRunning || executionState.pausedStep.isDefined
 
+  // From the saved science, so that emptying the one being edited doesn't hide the acquisition.
+  private lazy val isScienceComplete: Boolean =
+    futureSteps(science.get, SequenceType.Science).isEmpty
+
   /** The rows shown for the given acquisition and science sequences (saved or being edited). */
   protected[sequence] def buildRows(
     resolvedAcquisition: List[Atom[D]],
@@ -133,7 +137,7 @@ private trait SequenceTable[S, D](
     // If initial acquisition atom is complete, then nextAtom already shows the next potential step. We want to hide that.
     // We also hide acquisition if the sequence is complete.
     val acquisitionRows: List[SequenceRow[D]] =
-      if executionState.isWaitingAcquisitionPrompt || executionState.sequenceType === SequenceType.Science || scienceRows.isEmpty
+      if executionState.isWaitingAcquisitionPrompt || executionState.sequenceType === SequenceType.Science || isScienceComplete
       then List.empty
       else futureSteps(resolvedAcquisition.headOption.toList, SequenceType.Acquisition)
 

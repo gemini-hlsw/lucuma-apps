@@ -86,7 +86,11 @@ trait SequenceEditorBuilder[D: Eq] extends SequenceEditOptics[D]:
       UndoContext(undoStacks, editableSequence),
       // Deferred so that the mutation input, which encodes the whole sequence, is only built when
       // the edit is accepted rather than on every render.
-      onAccept = (IO.defer(remoteReplace(editableSequence.get.value)) >>= sequence.async.set)
+      onAccept = IO
+        .defer(remoteReplace(editableSequence.get.value))
+        .flatMap: saved =>
+          // A sequence that changed during the save came from the ODB after it, so it is kept.
+          sequence.async.mod(current => if current === sequence.get then saved else current)
         .onError: e =>
           ToastCtx[IO]
             .showToast(
@@ -137,6 +141,14 @@ trait SequenceEditorBuilder[D: Eq] extends SequenceEditOptics[D]:
       acquisition = acqEditContext,
       science = sciEditContext
     )
+
+  /** The sequence types with an edit session open. */
+  protected def editingTypes(editContexts: SequenceEditContexts[D]): Set[SequenceType] =
+    Set(
+      SequenceType.Acquisition -> editContexts.acquisition.isEditing.get.value,
+      SequenceType.Science     -> editContexts.science.isEditing.get.value
+    ).collect:
+      case (sequenceType, true) => sequenceType
 
   /** Drag and drop of future steps, within the same sequence type. */
   protected def useSequenceTableDragAndDrop[TM <: SequenceTableMeta[D], CM, TF](

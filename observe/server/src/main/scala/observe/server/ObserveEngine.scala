@@ -97,8 +97,8 @@ trait ObserveEngine[F[_]] {
 
   /**
    * After the `sequenceType` sequence has been replaced in the ODB (all its remaining steps got new
-   * ids), take that sequence's breakpoints from the ODB. The loaded step is left alone and nothing
-   * is started.
+   * ids), take that sequence's breakpoints from the ODB, whatever the status. An idle loaded step
+   * of that type is re-read from the ODB; no step is loaded and nothing is started.
    */
   def reloadAfterEdit(
     obsId:        Observation.Id,

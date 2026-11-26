@@ -171,8 +171,14 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         (acquisitionRows, scienceRows) = props.buildRows(resolvedAcquisition, resolvedScience)
         rows                          <-
           useMemo(
-            (visitsData, acquisitionRows, scienceRows, props.currentVisitId, props.isEditEnabled)
-          ): (visitsData, acquisition, science, currentVisitId, isEditEnabled) =>
+            (visitsData,
+             acquisitionRows,
+             scienceRows,
+             props.currentVisitId,
+             props.isEditEnabled,
+             editingTypes(editContexts).toList
+            )
+          ): (visitsData, acquisition, science, currentVisitId, isEditEnabled, editingTypes) =>
             import ctx.given
 
             val (visitRows: List[VisitData], nextScienceIndex: StepIndex) = visitsData.value
@@ -189,7 +195,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               nextScienceIndex,
               acquisition,
               science,
-              showSequenceLevelEdit = showSequenceLevelEdit
+              showSequenceLevelEdit = showSequenceLevelEdit,
+              editingTypes = editingTypes.toSet
             )
         datasetIdsInFlight            <- useStateView(HashSet.empty[Dataset.Id])
         tableState                    <-

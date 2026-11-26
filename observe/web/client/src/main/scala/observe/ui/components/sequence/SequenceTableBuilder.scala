@@ -154,7 +154,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
              props.executionState.isWaitingAcquisitionPrompt,
              props.requests.acquisitionPrompt,
              acquisitionPromptClicked,
-             props.isEditEnabled
+             props.isEditEnabled,
+             editingTypes(editContexts).toList
             )
           ):
             (
@@ -168,7 +169,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               isWaitingAcquisitionPrompt,
               acquisitionPromptRequest,
               acquisitionPromptClicked,
-              isEditEnabled
+              isEditEnabled,
+              editingTypes
             ) =>
               import ctx.given
 
@@ -206,7 +208,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 acquisitionSteps,
                 scienceSteps,
                 acquisitionPrompt,
-                showSequenceLevelEdit = showSequenceLevelEdit
+                showSequenceLevelEdit = showSequenceLevelEdit,
+                editingTypes = editingTypes.toSet
               )
         datasetIdsInFlight            <- useStateView(HashSet.empty[Dataset.Id])
         dynTable                      <-

@@ -506,7 +506,8 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     acquisitionRows:       List[SequenceRow[D]], // Should have completed steps already removed
     scienceRows:           List[SequenceRow[D]], // Should have completed steps already removed
     alertRow:              Option[AlertRow] = none,
-    showSequenceLevelEdit: Boolean = false       // Every step has run and the user may add more
+    showSequenceLevelEdit: Boolean = false,      // Every step has run and the user may add more
+    editingTypes:          Set[SequenceType] = Set.empty
   )(using Logger[IO]): List[SequenceTableRowType] = {
     val (pastVisits: List[VisitData], currentVisits: List[VisitData]) =
       visits.partition: visitData =>
@@ -578,7 +579,11 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       nextIndex:        StepIndex
     )(using Logger[IO]): List[SequenceTableRowType] =
       Option
-        .when(currentVisitRows.nonEmpty || steps.nonEmpty):
+        // A type being edited keeps its header, which holds Accept and Cancel, when left empty.
+        .when(
+          currentVisitRows.nonEmpty || steps.nonEmpty ||
+            (editingTypes.contains(sequenceType) && !showSequenceLevelEdit)
+        ):
           Expandable(
             HeaderRow(
               RowId(sequenceType.toString),

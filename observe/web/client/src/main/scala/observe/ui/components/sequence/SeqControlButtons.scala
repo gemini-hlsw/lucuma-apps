@@ -136,7 +136,7 @@ object SeqControlButtons
             tooltip = "Unload observation",
             tooltipOptions = tooltipOptions,
             onClick = sequenceApi.unloadObservation(props.obsId).runAsync,
-            disabled = !props.canUnload || props.isRefreshing
+            disabled = !props.canUnload || props.isRefreshing || props.isSequenceEditing
           )
         )
     )

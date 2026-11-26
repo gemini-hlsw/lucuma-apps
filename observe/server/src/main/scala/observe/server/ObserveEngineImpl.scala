@@ -624,11 +624,11 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             )
 
   /**
-   * Takes the breakpoints of the `editedType` sequence, just replaced in the ODB, from it. The
-   * loaded step is left alone: Start reads the step to run from the ODB anyway. On a failed read
-   * the sequence is left as it was.
+   * Takes the breakpoints of the `editedType` sequence, just replaced in the ODB, whatever the
+   * sequence status. A loaded step of that type (its id is gone) is re-read only while idle or in
+   * error and not busy; no step is ever loaded. A failed read leaves everything as it was.
    */
-  private def reloadBreakpointsAfterEdit(
+  private def reloadStateAfterEdit(
     obsId:      Observation.Id,
     editedType: SequenceType,
     clientId:   ClientId
@@ -640,26 +640,46 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
         .getOption(st)
         .map: seqData =>
           val status: SequenceStatus = seqData.seq.status
-          if !(status.isIdle || status.isError || status.isCompleted) then
-            EngineHandle.pure[F, SeqEvent]:
-              SeqEvent.NotifyUser(Notification.SequenceNotIdle(obsId, actionName), clientId)
-          else
-            EngineHandle
-              .liftF:
-                services.odb.readExecutionConfig(obsId, seqData.instrument, OdbProxy.FullFuture)
-              .flatMap: config =>
-                EngineHandle
-                  .modifySequenceState[F](obsId): s =>
-                    s.copy(breakpoints =
-                      Breakpoints.withSequenceFrom(s.breakpoints, config, editedType)
-                    )
-                  .as[SeqEvent](SeqEvent.SequenceTypeChanged(obsId))
-              .handleErrorWith: e =>
-                EngineHandle.pure[F, SeqEvent]:
-                  SeqEvent.NotifyUser(
-                    Notification.ActionFailed(obsId, actionName, e.getMessage),
-                    clientId
-                  )
+          val reloadStep: Boolean    =
+            seqData.seq.loadedStep.isDefined &&
+              seqData.seq.currentSequenceType === editedType &&
+              (status.isIdle || status.isError) &&
+              !ObserveEngine.isBusy(seqData)
+
+          ObserveEngine
+            .readConfigAndStep(
+              services.odb,
+              translator,
+              obsId,
+              editedType.asLeft,
+              OdbProxy.FullFuture
+            )
+            .flatMap:
+              case Some((config, stepGen)) =>
+                val updateStep: EngineHandle[F, Unit] =
+                  if !reloadStep then EngineHandle.unit[F]
+                  else
+                    stepGen match
+                      case Some(sg) if sg.sequenceType === editedType =>
+                        EngineHandle.modifyState_(
+                          ObserveEngine.updateStep(obsId, sg.some, editedType.asLeft)
+                        )
+                      case _                                          =>
+                        EngineHandle.modifySequenceState[F](obsId)(_.withNoLoadedStep)
+                updateStep >>
+                  EngineHandle
+                    .modifySequenceState[F](obsId): s =>
+                      s.copy(breakpoints =
+                        Breakpoints.withSequenceFrom(s.breakpoints, config, editedType)
+                      )
+                    .as[SeqEvent](SeqEvent.SequenceTypeChanged(obsId))
+              case None                    => EngineHandle.pure[F, SeqEvent](NullSeqEvent)
+            .handleErrorWith: e =>
+              EngineHandle.pure[F, SeqEvent]:
+                SeqEvent.NotifyUser(
+                  Notification.ActionFailed(obsId, actionName, e.getMessage),
+                  clientId
+                )
         .getOrElse(EngineHandle.pure[F, SeqEvent](NullSeqEvent))
 
   override def reloadAfterEdit(
@@ -675,7 +695,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
       setObserver(obsId, user, observer) *>
       executeEngine.offer:
         Event.modifyState[F]:
-          reloadBreakpointsAfterEdit(obsId, sequenceType, clientId)
+          reloadStateAfterEdit(obsId, sequenceType, clientId)
 
   override def requestSequenceHold(
     obsId:    Observation.Id,
