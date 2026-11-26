@@ -107,8 +107,8 @@ extension (instrument: Instrument)
    */
   def acceptsDecimalExposureTime: Boolean =
     instrument match
-      case Instrument.Gnirs | Instrument.Igrins2 | Instrument.Ghost => true
-      case _                                                        => false
+      case Instrument.Gnirs | Instrument.Igrins2 | Instrument.Ghost | Instrument.Scorpio => true
+      case _                                                                             => false
 
   def exposureTimeFractionDigits: Int =
     if instrument.acceptsDecimalExposureTime then 2 else 0

@@ -126,5 +126,15 @@ object ExecutionConfigSubquery
           hasMore
         }
       }
+      scorpio {
+        static {
+          channelSelection
+        }
+        science {
+          nextAtom $ScorpioAtomSubquery
+          possibleFuture $ScorpioAtomSubquery
+          hasMore
+        }
+      }
     }
   """

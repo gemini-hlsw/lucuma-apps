@@ -17,3 +17,7 @@ object LucumaStyles:
 
   val GhostBlue: Css = Css("lucuma-ghost-blue")
   val GhostRed: Css  = Css("lucuma-ghost-red")
+  val ScorpioG: Css  = Css("lucuma-scorpio-g")
+  val ScorpioR: Css  = Css("lucuma-scorpio-r")
+  val ScorpioI: Css  = Css("lucuma-scorpio-i")
+  val ScorpioZ: Css  = Css("lucuma-scorpio-z")

@@ -91,3 +91,35 @@ a:hover {
 .p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-ghost-red) {
   border-bottom: 2px solid var(--red-500);
 }
+
+.lucuma-scorpio-g {
+  color: var(--purple-500);
+}
+
+.p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-scorpio-g) {
+  border-bottom: 2px solid var(--purple-500);
+}
+
+.lucuma-scorpio-r {
+  color: var(--blue-500);
+}
+
+.p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-scorpio-r) {
+  border-bottom: 2px solid var(--blue-500);
+}
+
+.lucuma-scorpio-i {
+  color: var(--teal-500);
+}
+
+.p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-scorpio-i) {
+  border-bottom: 2px solid var(--teal-500);
+}
+
+.lucuma-scorpio-z {
+  color: var(--green-400);
+}
+
+.p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-scorpio-z) {
+  border-bottom: 2px solid var(--green-400);
+}

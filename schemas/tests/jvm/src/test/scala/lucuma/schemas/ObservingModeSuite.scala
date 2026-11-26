@@ -101,7 +101,8 @@ class ObservingModeSuite extends FunSuite:
         "i": ${timeAndCount(20, 1, 755)},
         "z": ${timeAndCount(20, 1, 889)},
         "defaultTelescopeConfigs": ${alongSlit(0, -15, 15, 0)},
-        "explicitTelescopeConfigs": ${alongSlit(-5, 5)}
+        "explicitTelescopeConfigs": ${alongSlit(-5, 5)},
+        "repeats": 3
       },
       "visitor": null
     }"""
@@ -126,6 +127,7 @@ class ObservingModeSuite extends FunSuite:
         assertEquals(s.defaultTelescopeConfigs.telescopeConfigs.length, 4)
         assertEquals(s.explicitTelescopeConfigs, explicitConfigs.some)
         assertEquals(s.telescopeConfigs, explicitConfigs)
+        assertEquals(s.repeats.value, 3)
         assert(s.isCustomized)
       case other                                   =>
         fail(s"Expected ScorpioLongSlit, got: $other")

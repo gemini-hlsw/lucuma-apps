@@ -177,11 +177,12 @@ enum ObservingModeSummary derives Order:
     blue:           ObservingMode.GhostIfu.GhostDetector
   )                                                        extends ObservingModeSummary
   case ScorpioLongSlit(
-    fpu: ScorpioFpu,
-    g:   ExposureTimeMode,
-    r:   ExposureTimeMode,
-    i:   ExposureTimeMode,
-    z:   ExposureTimeMode
+    fpu:     ScorpioFpu,
+    g:       ExposureTimeMode,
+    r:       ExposureTimeMode,
+    i:       ExposureTimeMode,
+    z:       ExposureTimeMode,
+    repeats: PosInt
   )                                                        extends ObservingModeSummary
   case Visitor(
     mode:              VisitorObservingModeType,
@@ -216,7 +217,7 @@ enum ObservingModeSummary derives Order:
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(_)) => ObservingModeType.GnirsLongSlit
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(_))  => ObservingModeType.GnirsIfu
     case GhostIfu(_, _, _, _)                                   => ObservingModeType.GhostIfu
-    case ScorpioLongSlit(_, _, _, _, _)                         => ObservingModeType.ScorpioLongSlit
+    case ScorpioLongSlit(_, _, _, _, _, _)                      => ObservingModeType.ScorpioLongSlit
     case Visitor(mode, _, _, _)                                 => mode
     case KeckExchange(_)                                        => ObservingModeType.ExchangeKeck
     case SubaruExchange(_)                                      => ObservingModeType.ExchangeSubaru
@@ -382,14 +383,15 @@ enum ObservingModeSummary derives Order:
           blue = blue.toInput.assign
         )
       )
-    case ScorpioLongSlit(fpu, g, r, i, z)                                                  =>
+    case ScorpioLongSlit(fpu, g, r, i, z, repeats)                                         =>
       ObservingModeInput.ScorpioLongSlit(
         ScorpioLongSlitInput(
           fpu = fpu.assign,
           g = g.toInput.assign,
           r = r.toInput.assign,
           i = i.toInput.assign,
-          z = z.toInput.assign
+          z = z.toInput.assign,
+          repeats = repeats.assign
         )
       )
     case Visitor(mode, centralWavelength, agsDiameter, name)                               =>
@@ -516,8 +518,8 @@ enum ObservingModeSummary derives Order:
               s"(${tAndC.count} x ${tAndC.time.toSeconds.toInt}s/step ${formatAt(tAndC.at)})"
             s"${detector.readMode.shortName} ${detector.binning.shortName} $tAndCSummary"
         s"GHOST IFU ${resolutionMode.shortName}\n${steps.value} steps\nBlue: ${blue.summary}\nRed: ${red.summary}"
-      case ScorpioLongSlit(fpu, g, r, i, z)                                                  =>
-        s"SCORPIO Longslit ${fpu.shortName}\ng: ${g.formatSpec}\nr: ${r.formatSpec}\ni: ${i.formatSpec}\nz: ${z.formatSpec}"
+      case ScorpioLongSlit(fpu, g, r, i, z, repeats)                                         =>
+        s"SCORPIO Longslit ${fpu.shortName}\n${repeats.value} repeats\ng: ${g.formatSpec}\nr: ${r.formatSpec}\ni: ${i.formatSpec}\nz: ${z.formatSpec}"
       case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                  =>
         s"Gemini North Visitor: ${name.value}"
       case Visitor(VisitorObservingModeType.VisitorSouth, _, _, Some(name))                  =>
@@ -663,7 +665,7 @@ object ObservingModeSummary:
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)
       case s: ObservingMode.ScorpioLongSlit    =>
-        ScorpioLongSlit(s.fpu, s.g, s.r, s.i, s.z)
+        ScorpioLongSlit(s.fpu, s.g, s.r, s.i, s.z, s.repeats)
       case v: ObservingMode.Visitor            =>
         Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.name)
       case k: ObservingMode.KeckExchange       =>

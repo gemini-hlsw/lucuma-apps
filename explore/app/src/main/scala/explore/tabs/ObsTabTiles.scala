@@ -625,11 +625,9 @@ object ObsTabTiles:
           props.basicConfiguration.orElse(selectedConfig.get.toBasicConfiguration())
 
         val isVisitorMode: Boolean =
-          props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
-
-        // TODO Remove once the ODB generates SCORPIO sequences.
-        val isScorpioMode: Boolean =
-          props.basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.ScorpioLongSlit])
+          props.basicConfiguration match
+            case Some(_: BasicConfiguration.Visitor) => true
+            case _                                   => false
 
         val awaitingAltairGuideStar: Boolean =
           AltairControls.itcAwaitingGuideStar(obsConf.altair, altairItcParameters)
@@ -996,7 +994,7 @@ object ObsTabTiles:
             section,
             props.backButton.some
           ),
-          if isVisitorMode || isScorpioMode then EmptyVdom // Visitors have no sequences
+          if isVisitorMode then EmptyVdom // Visitors have no sequences
           else
             TileController(
               props.vault.userId,

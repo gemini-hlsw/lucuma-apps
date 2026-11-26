@@ -859,7 +859,8 @@ extension (o: ObservingMode.ScorpioLongSlit)
     r = o.r.toInput.assign,
     i = o.i.toInput.assign,
     z = o.z.toInput.assign,
-    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign,
+    repeats = o.repeats.assign
   )
 
 extension (svc: ObservingMode.Igrins2LongSlit.Svc)

@@ -18,6 +18,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
+import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
@@ -31,6 +32,8 @@ import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.scorpio.ScorpioChannelConfig
+import lucuma.core.model.sequence.scorpio.ScorpioDynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
@@ -81,6 +84,7 @@ sealed trait SequenceRow[+D]:
     case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)         => Instrument.Gnirs
     case Igrins2DynamicConfig(_)                               => Instrument.Igrins2
     case GhostDynamicConfig(_, _, _, _)                        => Instrument.Ghost
+    case _: ScorpioDynamicConfig                               => Instrument.Scorpio
 
   lazy val stepTypeDisplay: Option[StepTypeDisplay] =
     stepConfig.flatMap(StepTypeDisplay.fromStepConfig)
@@ -102,6 +106,7 @@ sealed trait SequenceRow[+D]:
     case g @ GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)          => g.centralWavelength.some
     case Igrins2DynamicConfig(_)                                    => none
     case GhostDynamicConfig(_, _, _, _)                             => none
+    case _: ScorpioDynamicConfig                                    => none
 
   lazy val gmosGratingWavelength: Option[Wavelength] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(gratingConfig = grating) => grating.map(_.wavelength)
@@ -116,6 +121,7 @@ sealed trait SequenceRow[+D]:
     case Igrins2DynamicConfig(exposure)                    => exposure.some
     // We pick the longest time from both sensors
     case g @ GhostDynamicConfig(_, _, _, _)                => g.totalExposureTime.some
+    case s: ScorpioDynamicConfig                           => s.totalExposureTime.some
     case _                                                 => none
 
   lazy val coadds: Option[PosInt] = instrumentConfig.flatMap:
@@ -140,6 +146,7 @@ sealed trait SequenceRow[+D]:
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
     case Igrins2DynamicConfig(_)                               => none
     case GhostDynamicConfig(_, _, _, _)                        => none
+    case s: ScorpioDynamicConfig                               => s.disperser.name.some
 
   private lazy val isBiasOrDark: Boolean = stepConfig.exists:
     case StepConfig.Bias | StepConfig.Dark => true
@@ -173,6 +180,9 @@ sealed trait SequenceRow[+D]:
         case Flamingos2FpuMask.Imaging              => "Imaging".some
     case GnirsDynamicConfig(fpu = fpu)           =>
       fpu.fold(slit => slit.longName.some, ifu => ifu.shortName.some, other => other.shortName.some)
+    case s: ScorpioDynamicConfig                 =>
+      s.fpu.longSlit.map: fpu =>
+        s"${Angle.signedDecimalArcseconds.get(fpu.slitWidth).setScale(2, BigDecimal.RoundingMode.HALF_UP)}\""
     case _                                       =>
       none
 
@@ -203,6 +213,7 @@ sealed trait SequenceRow[+D]:
     case GnirsDynamicConfig(filter = filter)           => filter.shortName.some
     case Igrins2DynamicConfig(_)                       => none
     case GhostDynamicConfig(_, _, _, _)                => none
+    case _: ScorpioDynamicConfig                       => none
 
   lazy val readoutXBin: Option[String] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(readout = readout) => readout.xBin.shortName
@@ -246,6 +257,22 @@ sealed trait SequenceRow[+D]:
 
   lazy val ghostBlue: Option[GhostDetector] = instrumentConfig.collect:
     case GhostDynamicConfig(blue = blue) => blue.value
+
+  lazy val scorpioG: Option[ScorpioChannelConfig.Vis] = instrumentConfig.flatMap:
+    case s: ScorpioDynamicConfig => s.g
+    case _                       => none
+
+  lazy val scorpioR: Option[ScorpioChannelConfig.Vis] = instrumentConfig.flatMap:
+    case s: ScorpioDynamicConfig => s.r
+    case _                       => none
+
+  lazy val scorpioI: Option[ScorpioChannelConfig.Vis] = instrumentConfig.flatMap:
+    case s: ScorpioDynamicConfig => s.i
+    case _                       => none
+
+  lazy val scorpioZ: Option[ScorpioChannelConfig.Vis] = instrumentConfig.flatMap:
+    case s: ScorpioDynamicConfig => s.z
+    case _                       => none
 
 object SequenceRow:
   case class FutureStep[+D](

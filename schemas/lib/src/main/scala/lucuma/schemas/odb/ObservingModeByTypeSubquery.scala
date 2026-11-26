@@ -495,6 +495,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             z $ExposureTimeModeSubquery
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            repeats
           }
           visitor @include(if: $$includeVisitor) {
             mode
