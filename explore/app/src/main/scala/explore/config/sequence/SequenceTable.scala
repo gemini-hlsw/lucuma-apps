@@ -110,6 +110,7 @@ private trait SequenceTable[S, D]:
     // acquisition atom with the description of the first atom of the last executed acquisition.
     // If the descriptions differ, it is considered a repeat offer. (Observe resets the acquisition
     // whenever it loads the sequence, so a pending initial atom means a new acquisition is due.)
+    // This relies on edits sending the atom descriptions back (see the atom `toInput` extensions).
     val isAcquisitionRepeatOffer: Boolean =
       (
         instrumentVisits.reverse.collectFirstSome(_.acquisitionAtoms.headOption),

@@ -1550,7 +1550,8 @@ extension (step: Step[gmos.DynamicConfig.GmosNorth])
       instrumentConfig = step.instrumentConfig.toInput,
       stepConfig = step.stepConfig.toInput,
       observeClass = step.observeClass,
-      telescopeConfig = step.telescopeConfig.toInput.assign
+      telescopeConfig = step.telescopeConfig.toInput.assign,
+      breakpoint = step.breakpoint.assign
     )
 
 extension (step: Step[gmos.DynamicConfig.GmosSouth])
@@ -1559,7 +1560,8 @@ extension (step: Step[gmos.DynamicConfig.GmosSouth])
       instrumentConfig = step.instrumentConfig.toInput,
       stepConfig = step.stepConfig.toInput,
       observeClass = step.observeClass,
-      telescopeConfig = step.telescopeConfig.toInput.assign
+      telescopeConfig = step.telescopeConfig.toInput.assign,
+      breakpoint = step.breakpoint.assign
     )
 
 extension (step: Step[Flamingos2DynamicConfig])
@@ -1568,20 +1570,30 @@ extension (step: Step[Flamingos2DynamicConfig])
       instrumentConfig = step.instrumentConfig.toInput,
       stepConfig = step.stepConfig.toInput,
       observeClass = step.observeClass,
-      telescopeConfig = step.telescopeConfig.toInput.assign
+      telescopeConfig = step.telescopeConfig.toInput.assign,
+      breakpoint = step.breakpoint.assign
     )
 
 extension (atom: Atom[gmos.DynamicConfig.GmosNorth])
   def toInput: GmosNorthAtomInput =
-    GmosNorthAtomInput(steps = atom.steps.map(_.toInput).toList)
+    GmosNorthAtomInput(
+      description = atom.description.orUnassign,
+      steps = atom.steps.map(_.toInput).toList
+    )
 
 extension (atom: Atom[gmos.DynamicConfig.GmosSouth])
   def toInput: GmosSouthAtomInput =
-    GmosSouthAtomInput(steps = atom.steps.map(_.toInput).toList)
+    GmosSouthAtomInput(
+      description = atom.description.orUnassign,
+      steps = atom.steps.map(_.toInput).toList
+    )
 
 extension (atom: Atom[Flamingos2DynamicConfig])
   def toInput: Flamingos2AtomInput =
-    Flamingos2AtomInput(steps = atom.steps.map(_.toInput).toList)
+    Flamingos2AtomInput(
+      description = atom.description.orUnassign,
+      steps = atom.steps.map(_.toInput).toList
+    )
 
 extension (igrins2Dynamic: Igrins2DynamicConfig)
   def toInput: Igrins2DynamicInput = Igrins2DynamicInput(
@@ -1594,12 +1606,16 @@ extension (step: Step[Igrins2DynamicConfig])
       instrumentConfig = step.instrumentConfig.toInput,
       stepConfig = step.stepConfig.toInput,
       observeClass = step.observeClass,
-      telescopeConfig = step.telescopeConfig.toInput.assign
+      telescopeConfig = step.telescopeConfig.toInput.assign,
+      breakpoint = step.breakpoint.assign
     )
 
 extension (atom: Atom[Igrins2DynamicConfig])
   def toInput: Igrins2AtomInput =
-    Igrins2AtomInput(steps = atom.steps.map(_.toInput).toList)
+    Igrins2AtomInput(
+      description = atom.description.orUnassign,
+      steps = atom.steps.map(_.toInput).toList
+    )
 
 extension (gnirsAcqMirror: GnirsAcquisitionMirrorMode)
   def toInput: Input[GnirsAcquisitionMirrorOutInput] =
@@ -1637,12 +1653,16 @@ extension (step: Step[GnirsDynamicConfig])
       instrumentConfig = step.instrumentConfig.toInput,
       stepConfig = step.stepConfig.toInput,
       observeClass = step.observeClass,
-      telescopeConfig = step.telescopeConfig.toInput.assign
+      telescopeConfig = step.telescopeConfig.toInput.assign,
+      breakpoint = step.breakpoint.assign
     )
 
 extension (atom: Atom[GnirsDynamicConfig])
   def toInput: GnirsAtomInput =
-    GnirsAtomInput(steps = atom.steps.map(_.toInput).toList)
+    GnirsAtomInput(
+      description = atom.description.orUnassign,
+      steps = atom.steps.map(_.toInput).toList
+    )
 
 extension (detector: GhostDetector)
   def toInput: GhostDetectorInput = GhostDetectorInput(
@@ -1666,9 +1686,13 @@ extension (step: Step[GhostDynamicConfig])
       instrumentConfig = step.instrumentConfig.toInput,
       stepConfig = step.stepConfig.toInput,
       observeClass = step.observeClass,
-      telescopeConfig = step.telescopeConfig.toInput.assign
+      telescopeConfig = step.telescopeConfig.toInput.assign,
+      breakpoint = step.breakpoint.assign
     )
 
 extension (atom: Atom[GhostDynamicConfig])
   def toInput: GhostAtomInput =
-    GhostAtomInput(steps = atom.steps.map(_.toInput).toList)
+    GhostAtomInput(
+      description = atom.description.orUnassign,
+      steps = atom.steps.map(_.toInput).toList
+    )
