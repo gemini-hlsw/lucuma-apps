@@ -83,26 +83,19 @@ object CircularBufferControl {
     override def startCircularBufferCommand(timeout: FiniteDuration): WfsCircularBufferCommand[F] =
       new WfsCircularBufferCommandImpl[F](chs, timeout)
 
-    override def circularBufferStatus: VerifiedEpics[F, F, CircularBufferStatus] = for {
-      imF <- readChannel(chs.telltale, chs.imEnabled).map(_.map(_ === "TRUE"))
-      aoF <- readChannel(chs.telltale, chs.aoEnabled).map(_.map(_ === "TRUE"))
-      fgF <- readChannel(chs.telltale, chs.fgEnabled).map(_.map(_ === "TRUE"))
-    } yield
-      for {
-        im <- imF
-        ao <- aoF
-        fg <- fgF
-      } yield CircularBufferStatus(im, ao, fg)
+    override def circularBufferStatus: VerifiedEpics[F, F, CircularBufferStatus] = (
+      readChannel(chs.telltale, chs.imEnabled),
+      readChannel(chs.telltale, chs.aoEnabled),
+      readChannel(chs.telltale, chs.fgEnabled)
+    ).mapN((im, ao, fg) => CircularBufferStatus(im === "TRUE", ao === "TRUE", fg === "TRUE"))
 
     override def imgCircularBufferStream: VerifiedEpics[F, Resource[F, *], Stream[F, Boolean]] =
       VerifiedEpics
         .eventStream(chs.telltale, chs.imEnabled)
         .map(
-          _.map(
-            _.collect { case StreamEvent.ValueChanged(t) =>
-              t === "TRUE"
-            }
-          )
+          _.collect { case StreamEvent.ValueChanged(t) =>
+            t === "TRUE"
+          }
         )
   }
 

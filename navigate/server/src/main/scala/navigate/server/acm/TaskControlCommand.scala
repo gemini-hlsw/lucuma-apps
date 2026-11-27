@@ -141,7 +141,7 @@ object TaskControlCommand {
       val state = eventStream(telltaleChannel, record.state)
       val start = writeChannel(telltaleChannel, record.dir)(CadDirective.START.pure[F])
       val mess  =
-        readChannel(telltaleChannel, record.mess).map(Temporal[F].delayBy(_, MessageReadDelay))
+        readChannel(telltaleChannel, record.mess).mapRun(Temporal[F].delayBy(_, MessageReadDelay))
 
       new ChannelTracker[F, F[ApplyCommandResult]] {
         override val systems =

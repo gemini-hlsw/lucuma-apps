@@ -4,6 +4,7 @@
 package navigate.epics
 
 import cats.Applicative
+import cats.ApplicativeThrow
 import cats.FlatMap
 import cats.Monad
 import cats.MonadThrow
@@ -49,14 +50,6 @@ object VerifiedEpics {
     override val run: B                                                  = fab.run(fa.run)
   }
 
-  case class Bind[F[_], A, B](fa: ChannelTracker[F, A], fafb: A => ChannelTracker[F, B])
-      extends ChannelTracker[F, B] {
-    private val b                                                        = fafb(fa.run)
-    override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] =
-      merge(fa.systems, b.systems)
-    override val run: B                                                  = b.run
-  }
-
   def merge[F[_]](
     m1: Map[TelltaleChannel[F], Set[RemoteChannel[F]]],
     m2: Map[TelltaleChannel[F], Set[RemoteChannel[F]]]
@@ -67,38 +60,19 @@ object VerifiedEpics {
   def unit[F[_]]: ChannelTracker[F, Unit]       = pure[F, Unit](())
 
   extension [F[_], A](v: ChannelTracker[F, A]) {
-    def ap[B](ff:  ChannelTracker[F, A => B]): ChannelTracker[F, B] = Apply(v, ff)
-    def map[B](ff: A => B): ChannelTracker[F, B]                    = ap(pure(ff))
+
+    /**
+     * Transforms the tracked value as a whole. For a `VerifiedEpics[F, G, A]` this maps the `G[A]`
+     * program, not its result; use `.map` for that.
+     */
+    def mapRun[B](ff: A => B): ChannelTracker[F, B] = Apply(v, pure(ff))
   }
 
   type VerifiedEpics[F[_], G[_], A] = ChannelTracker[F, G[A]]
 
-  case class ApplyF[F[_], G[_]: FlatMap, A, B](
-    fa:  VerifiedEpics[F, G, A],
-    fab: VerifiedEpics[F, G, A => B]
-  ) extends VerifiedEpics[F, G, B] {
-    override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] =
-      merge(fa.systems, fab.systems)
-    override val run: G[B]                                               = fa.run.flatMap { a =>
-      fab.run.map { fab =>
-        fab(a)
-      }
-    }
-  }
-
   case class LiftF[F[_], G[_], A, B](fa: G[A]) extends VerifiedEpics[F, G, A] {
     override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = Map.empty
     override val run: G[A]                                               = fa
-  }
-
-  case class BindF[F[_], G[_]: FlatMap, A, B](
-    fa:   VerifiedEpics[F, G, A],
-    fafb: G[A] => ChannelTracker[F, A => G[B]]
-  ) extends VerifiedEpics[F, G, B] {
-    private val fb                                                       = fafb(fa.run)
-    override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] =
-      merge(fa.systems, fb.systems)
-    override val run: G[B]                                               = fa.run.flatMap(fb.run)
   }
 
   case class IfF[F[_], G[_]: FlatMap, A](
@@ -167,8 +141,6 @@ object VerifiedEpics {
   ): VerifiedEpics[F, G, A]                                              = IfF(cond, trueVal, falseVal)
 
   extension [F[_], G[_]: Monad, A](v: VerifiedEpics[F, G, A]) {
-    def ap[B](ff: VerifiedEpics[F, G, A => B]): VerifiedEpics[F, G, B] = ApplyF[F, G, A, B](v, ff)
-
     def flatMap[B](ff: G[A] => VerifiedEpics[F, G, B]): VerifiedEpics[F, G, B] =
       new ChannelTracker[F, G[B]] {
         private val fb                                                       = ff(v.run)
@@ -209,7 +181,23 @@ object VerifiedEpics {
 
   }
 
+  extension [F[_], A](v: VerifiedEpics[F, F, A]) {
+
+    /**
+     * Wraps the (unexecuted) program in a pure Resource, so it can be combined with Resource based
+     * programs.
+     */
+    def inResource: VerifiedEpics[F, Resource[F, *], F[A]] = v.mapRun(Resource.pure[F, F[A]])
+  }
+
   extension [F[_], G[_], A](v: VerifiedEpics[F, G, A]) {
+
+    /**
+     * Captures errors raised by the program in its result.
+     */
+    def attemptRun(using ApplicativeThrow[G]): VerifiedEpics[F, G, Either[Throwable, A]] =
+      v.mapRun(_.attempt)
+
     def liftK[K[_]](using fK: FunctionK[G, K]): VerifiedEpics[F, K, A] =
       new VerifiedEpics[F, K, A] {
         override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = v.systems
@@ -237,5 +225,24 @@ object VerifiedEpics {
         override val run: G[Either[Throwable, A]]                            = v.verifiedRun(connectionTimeout).attempt
       }
   }
+
+  def applicativeChannelTracker[F[_]]: Applicative[[A] =>> ChannelTracker[F, A]] =
+    new Applicative[[A] =>> ChannelTracker[F, A]] {
+      override def pure[A](x: A): ChannelTracker[F, A] = VerifiedEpics.pure(x)
+
+      override def ap[A, B](ff: ChannelTracker[F, A => B])(
+        fa: ChannelTracker[F, A]
+      ): ChannelTracker[F, B] = Apply(fa, ff)
+    }
+
+  /**
+   * Applicative over the program result: `.map`, `mapN` and `tupled` on a `VerifiedEpics[F, G, A]`
+   * work on `A` and sequence the `G` effects.
+   *
+   * Use `mapRun` to transform the `G[A]` program itself.
+   */
+  given applicativeVerifiedEpics[F[_], G[_]: Applicative]
+    : Applicative[[A] =>> VerifiedEpics[F, G, A]] =
+    applicativeChannelTracker[F].compose[G]
 
 }

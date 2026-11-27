@@ -915,7 +915,9 @@ lazy val navigate_epics = project
           MUnit.value ++
             MUnitCatsEffect.value ++
             LucumaCoreTestkit.value ++
-            EpicsJca.value
+            EpicsJca.value ++
+            CatsLaws.value ++
+            Discipline.value
         ),
     Test / parallelExecution := false
   )

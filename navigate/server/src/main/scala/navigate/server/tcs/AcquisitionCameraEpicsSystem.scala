@@ -185,16 +185,16 @@ object AcquisitionCameraEpicsSystem {
     new AcquisitionCameraEpicsSystem[F] {
       override val status: AcquisitionCameraStatus[F] = new AcquisitionCameraStatus[F] {
         override def lens: VerifiedEpics[F, F, Option[AcLens]] =
-          readChannel(chs.telltale, chs.lensReadout).map(_.map(acLensDec.decode))
+          readChannel(chs.telltale, chs.lensReadout).map(acLensDec.decode)
 
         override def filter: VerifiedEpics[F, F, Option[AcFilter]] =
-          readChannel(chs.telltale, chs.filterReadout).map(_.map(acFilterDec.decode))
+          readChannel(chs.telltale, chs.filterReadout).map(acFilterDec.decode)
 
         override def observe: VerifiedEpics[F, F, CarState] =
           readChannel(chs.telltale, chs.observeInProgress)
 
         override def ndFilter: VerifiedEpics[F, F, Option[AcNdFilter]] =
-          readChannel(chs.telltale, chs.ndFilterReadout).map(_.map(acNdFilterDec.decode))
+          readChannel(chs.telltale, chs.ndFilterReadout).map(acNdFilterDec.decode)
 
       }
 
