@@ -41,9 +41,9 @@ object ScorpioBlockTimeline:
     case Z extends Channel("z")
 
   enum SegmentKind(val tag: String) derives Enumerated:
-    case Exposure extends SegmentKind("exposure")
-    case Readout  extends SegmentKind("readout")
-    case Write    extends SegmentKind("write")
+    case Science extends SegmentKind("science")
+    case Readout extends SegmentKind("readout")
+    case Write   extends SegmentKind("write")
 
   /** Exposure time and number of exposures a channel takes in every step. */
   final case class Exposures(time: TimeSpan, count: PosInt) derives Eq:
@@ -135,9 +135,9 @@ object ScorpioBlockTimeline:
   ): List[Segment] =
     val kinds: List[(SegmentKind, TimeSpan)] =
       List(
-        SegmentKind.Exposure -> exposures.time,
-        SegmentKind.Readout  -> readout,
-        SegmentKind.Write    -> write
+        SegmentKind.Science -> exposures.time,
+        SegmentKind.Readout -> readout,
+        SegmentKind.Write   -> write
       )
 
     List

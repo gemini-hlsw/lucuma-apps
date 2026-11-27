@@ -16,8 +16,10 @@ import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
 import lucuma.typed.highcharts.mod.*
+import lucuma.ui.format.DurationPaddedFormatter
 import lucuma.ui.syntax.all.given
 
+import java.time.Duration
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
@@ -33,21 +35,14 @@ object ScorpioBlockTimelineChart:
 
   private def millis(ts: TimeSpan): Double = ts.toMilliseconds.toDouble
 
-  private def formatDuration(ts: TimeSpan): String =
-    val total: Long = ts.toSeconds.setScale(0, BigDecimal.RoundingMode.HALF_UP).toLong
-    val (h, m, s)   = (total / 3600, (total % 3600) / 60, total % 60)
-    if h > 0 then f"$h%d:$m%02d:$s%02d"
-    else if m > 0 then f"$m%d:$s%02d"
-    else s"$s s"
+  private def formatDuration(ts: TimeSpan): String = DurationPaddedFormatter(ts.toDuration)
 
   private def formatElapsed(ms: Double): String =
-    val total: Long = math.round(ms / 1000)
-    val (h, m, sec) = (total / 3600, (total % 3600) / 60, total % 60)
-    if h > 0 then f"$h%d:$m%02d:$sec%02d" else f"$m%d:$sec%02d"
+    DurationPaddedFormatter(Duration.ofMillis(ms.toLong))
 
   private def tooltip(segment: Segment): String =
     s"<strong>${segment.channel.tag}</strong> · " +
-      s"exposure ${segment.exposureIndex + 1} of ${segment.exposureCount.value}<br/>" +
+      s" ${segment.exposureIndex + 1} / ${segment.exposureCount.value}<br/>" +
       s"${segment.kind.tag} <strong>${formatDuration(segment.duration)}</strong>"
 
   // Every step of a block has the same exposures, so the first one stands for all of them.
@@ -66,8 +61,8 @@ object ScorpioBlockTimelineChart:
             .setY(Channels.indexOf(s.channel).toDouble)
             .setClassName(
               s.kind match
-                case SegmentKind.Exposure => s"scorpio-block-${s.channel.tag}"
-                case kind                 => s"scorpio-block-${kind.tag}"
+                case SegmentKind.Science => s"scorpio-block-${s.channel.tag}"
+                case kind                => s"scorpio-block-${kind.tag}"
             )
         .toJSArray
 

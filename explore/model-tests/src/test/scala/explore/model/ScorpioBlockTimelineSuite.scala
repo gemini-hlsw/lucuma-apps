@@ -66,7 +66,7 @@ class ScorpioBlockTimelineSuite extends FunSuite:
       assertEquals(
         t.segments(channel)
           .filter(_.exposureIndex === 0)
-          .filter(_.kind === SegmentKind.Exposure)
+          .filter(_.kind === SegmentKind.Science)
           .map(_.start),
         List(0, 660, 1320, 1980).map(seconds)
       )
@@ -82,10 +82,10 @@ class ScorpioBlockTimelineSuite extends FunSuite:
     assertEquals(
       t.segments(Channel.G).map(s => (s.exposureIndex, s.kind, s.start, s.end)),
       List(
-        (0, SegmentKind.Exposure, seconds(0), seconds(300)),
+        (0, SegmentKind.Science, seconds(0), seconds(300)),
         (0, SegmentKind.Readout, seconds(300), seconds(320)),
         (0, SegmentKind.Write, seconds(320), seconds(330)),
-        (1, SegmentKind.Exposure, seconds(330), seconds(630)),
+        (1, SegmentKind.Science, seconds(330), seconds(630)),
         (1, SegmentKind.Readout, seconds(630), seconds(650)),
         (1, SegmentKind.Write, seconds(650), seconds(660))
       )

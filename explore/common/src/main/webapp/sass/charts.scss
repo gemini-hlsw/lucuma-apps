@@ -428,12 +428,11 @@ See https://github.com/highcharts/highcharts/issues/13320 */
     border-bottom: none;
   }
 
-  // The channel colors of the sequence table headers.
   $channels: (
-    g: var(--purple-500),
-    r: var(--blue-500),
-    i: var(--teal-500),
-    z: var(--green-400),
+    g: var(--scorpio-channel-g),
+    r: var(--scorpio-channel-r),
+    i: var(--scorpio-channel-i),
+    z: var(--scorpio-channel-z),
   );
 
   @each $channel, $color in $channels {
