@@ -26,6 +26,7 @@ package object encoders {
     case GuideProbe.PWFS1           => "PWFS1"
     case GuideProbe.PWFS2           => "PWFS2"
     case GuideProbe.AltairAOWFS     => ???
+    case GuideProbe.Unguided        => ???
   }
 
   given Encoder[CentralBafflePosition, String] = {

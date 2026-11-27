@@ -690,7 +690,7 @@ object NavigateEngine {
           WfsSky(wfs, period),
           stateRef.get.flatMap(s => services.tcsCommon.oiwfsSky(period)(s.guideConfig))
         )
-      case enums.GuideProbe.AltairAOWFS                                  =>
+      case enums.GuideProbe.AltairAOWFS | enums.GuideProbe.Unguided      =>
         ???
     }
 
