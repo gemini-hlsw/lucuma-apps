@@ -1133,7 +1133,7 @@ val awsExploreDev = Map(
 )
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
-ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
+ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g -J-Xss8m"
 ThisBuild / githubWorkflowEnv += herokuToken
 ThisBuild / githubWorkflowEnv += munitFlakyOk
 ThisBuild / githubWorkflowEnv ++= awsExploreDev
