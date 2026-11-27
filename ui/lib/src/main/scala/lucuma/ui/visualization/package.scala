@@ -329,6 +329,7 @@ extension (conf: BasicConfiguration)
     if base.exists(_.altair.isDefined) then base
     else
       guideProbe match
-        case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
-        case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
-        case _                      => base
+        case Some(GuideProbe.PWFS1)    => base.map(_.withPWFS1)
+        case Some(GuideProbe.PWFS2)    => base.map(_.withPWFS2)
+        case Some(GuideProbe.Unguided) => none
+        case _                         => base

@@ -26,6 +26,8 @@ class GuiderChoiceSuite extends FunSuite:
       GuiderChoice.Altair(AltairMode.LgsP1)
     )
 
+  private val unguided: GuiderChoice = GuiderChoice.Probe(GuideProbe.Unguided)
+
   private val ngsWithOptions: AltairConfiguration =
     AltairConfiguration(AltairMode.Ngs, FieldLens.Out.some, CassRotator.Fixed, AltairNdFilter.In)
 
@@ -34,8 +36,8 @@ class GuiderChoiceSuite extends FunSuite:
     ObservingModeType.GnirsIfu,
     ObservingModeType.GnirsImaging
   ).foreach: mode =>
-    test(s"options for $mode list the Altair modes after the probes"):
-      assertEquals(GuiderChoice.options(mode), pwfsChoices ++ altairChoices)
+    test(s"options for $mode list the Altair modes after the probes, then Unguided"):
+      assertEquals(GuiderChoice.options(mode), pwfsChoices ++ altairChoices :+ unguided)
 
   List(
     ObservingModeType.GmosNorthLongSlit,
@@ -52,6 +54,20 @@ class GuiderChoiceSuite extends FunSuite:
       GuiderChoice
         .options(ObservingModeType.GmosNorthLongSlit)
         .contains(GuiderChoice.Probe(GuideProbe.GmosOIWFS))
+    )
+
+  test("options end with Unguided for a mode that guides"):
+    assertEquals(GuiderChoice.options(ObservingModeType.GmosNorthLongSlit).lastOption,
+                 unguided.some
+    )
+
+  test("options are empty for a mode that has no probe"):
+    assertEquals(GuiderChoice.options(ObservingModeType.ExchangeKeck), List.empty)
+
+  test("selecting Unguided drops Altair"):
+    assertEquals(
+      GuiderChoice.select(unguided.some, ngsWithOptions.some),
+      GuidingConfiguration(GuideProbe.Unguided.some, none)
     )
 
   test("current is empty with neither a probe nor Altair"):

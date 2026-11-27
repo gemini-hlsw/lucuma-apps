@@ -30,6 +30,7 @@ given Display[GuideProbe] = Display.byShortName:
   case GuideProbe.GmosOIWFS       => "GMOS OIWFS"
   case GuideProbe.Flamingos2OIWFS => "F2 OIWFS"
   case GuideProbe.AltairAOWFS     => "Altair AOWFS"
+  case GuideProbe.Unguided        => "Unguided"
 
 given Display[FieldLens] = Display.byShortName:
   case FieldLens.In  => "In"
