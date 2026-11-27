@@ -16,7 +16,7 @@ on:
 permissions:
   actions: write
   checks: write
-  contents: read
+  contents: write
   deployments: write
   id-token: write
   issues: write
