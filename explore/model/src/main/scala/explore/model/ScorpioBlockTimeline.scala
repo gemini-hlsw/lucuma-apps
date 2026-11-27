@@ -5,10 +5,12 @@ package explore.model
 
 import cats.Eq
 import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
+import lucuma.core.enums.ScorpioFilter
 import lucuma.core.enums.ScorpioVisReadoutMode
 import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
@@ -25,7 +27,7 @@ import lucuma.schemas.model.ObservingMode
 final case class ScorpioBlockTimeline(steps: NonEmptyList[ScorpioBlockTimeline.Step]) derives Eq:
   val duration: TimeSpan = steps.last.end
 
-  def segments(channel: ScorpioBlockTimeline.Channel): List[ScorpioBlockTimeline.Segment] =
+  def segments(channel: ScorpioFilter): List[ScorpioBlockTimeline.Segment] =
     steps.toList.flatMap(_.segments.filter(_.channel === channel))
 
 object ScorpioBlockTimeline:
@@ -33,12 +35,6 @@ object ScorpioBlockTimeline:
   val WriteTime: TimeSpan = TimeSpan.fromSecondsBounded(10)
 
   val ReadoutTime: TimeSpan = ScorpioVisReadoutMode.Default.longSlitReadoutTime
-
-  enum Channel(val tag: String) derives Enumerated:
-    case G extends Channel("g")
-    case R extends Channel("r")
-    case I extends Channel("i")
-    case Z extends Channel("z")
 
   enum SegmentKind(val tag: String) derives Enumerated:
     case Science extends SegmentKind("science")
@@ -56,7 +52,7 @@ object ScorpioBlockTimeline:
 
   /** One piece of an exposure. `exposureIndex` is zero based, out of `exposureCount`. */
   final case class Segment(
-    channel:       Channel,
+    channel:       ScorpioFilter,
     stepIndex:     Int,
     exposureIndex: Int,
     exposureCount: PosInt,
@@ -78,13 +74,12 @@ object ScorpioBlockTimeline:
     val duration: TimeSpan = end -| start
 
   def apply(
-    exposures:        Channel => Exposures,
+    exposures:        NonEmptyMap[ScorpioFilter, Exposures],
     telescopeConfigs: NonEmptyList[TelescopeConfig],
     readout:          TimeSpan = ReadoutTime,
     write:            TimeSpan = WriteTime
   ): ScorpioBlockTimeline =
-    val channels: List[(Channel, Exposures)] =
-      Enumerated[Channel].all.map(c => c -> exposures(c))
+    val channels: List[(ScorpioFilter, Exposures)] = exposures.toSortedMap.toList
 
     val stepDuration: TimeSpan =
       channels.map(_._2.duration(readout, write)).maximumOption.orEmpty
@@ -116,17 +111,17 @@ object ScorpioBlockTimeline:
      Exposures.fromExposureTimeMode(mode.z)
     ).mapN: (g, r, i, z) =>
       ScorpioBlockTimeline(
-        {
-          case Channel.G => g
-          case Channel.R => r
-          case Channel.I => i
-          case Channel.Z => z
-        },
+        NonEmptyMap.of(
+          ScorpioFilter.G -> g,
+          ScorpioFilter.R -> r,
+          ScorpioFilter.I -> i,
+          ScorpioFilter.Z -> z
+        ),
         mode.telescopeConfigs.telescopeConfigs
       )
 
   private def channelSegments(
-    channel:   Channel,
+    channel:   ScorpioFilter,
     exposures: Exposures,
     stepIndex: Int,
     stepStart: TimeSpan,

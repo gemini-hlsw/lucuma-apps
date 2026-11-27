@@ -92,7 +92,9 @@ a:hover {
   border-bottom: 2px solid var(--red-500);
 }
 
-:root {
+// The palette these read from is set on the theme classes, not on the root.
+.dark-theme,
+.light-theme {
   --scorpio-channel-g: var(--purple-500);
   --scorpio-channel-r: var(--blue-500);
   --scorpio-channel-i: var(--teal-500);

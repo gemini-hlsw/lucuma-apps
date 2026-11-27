@@ -11,7 +11,7 @@ import explore.model.ScorpioBlockTimeline.*
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.util.Enumerated
+import lucuma.core.enums.ScorpioFilter
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
@@ -31,7 +31,7 @@ object ScorpioBlockTimelineChart:
   private val ChartHeight: Double = 150
   private val BarWidth: Double    = 14
 
-  private val Channels: List[Channel] = Enumerated[Channel].all
+  private val Channels: List[ScorpioFilter] = ScorpioFilter.visible.toList
 
   private def millis(ts: TimeSpan): Double = ts.toMilliseconds.toDouble
 
@@ -41,7 +41,7 @@ object ScorpioBlockTimelineChart:
     DurationPaddedFormatter(Duration.ofMillis(ms.toLong))
 
   private def tooltip(segment: Segment): String =
-    s"<strong>${segment.channel.tag}</strong> · " +
+    s"<strong>${segment.channel.shortName}</strong> · " +
       s" ${segment.exposureIndex + 1} / ${segment.exposureCount.value}<br/>" +
       s"${segment.kind.tag} <strong>${formatDuration(segment.duration)}</strong>"
 
@@ -61,7 +61,7 @@ object ScorpioBlockTimelineChart:
             .setY(Channels.indexOf(s.channel).toDouble)
             .setClassName(
               s.kind match
-                case SegmentKind.Science => s"scorpio-block-${s.channel.tag}"
+                case SegmentKind.Science => s"scorpio-block-${s.channel.shortName}"
                 case kind                => s"scorpio-block-${kind.tag}"
             )
         .toJSArray
@@ -96,7 +96,7 @@ object ScorpioBlockTimelineChart:
         List(
           YAxisOptions()
             .setTitle(YAxisTitleOptions().setText(""))
-            .setCategories(Channels.map(_.tag).toJSArray)
+            .setCategories(Channels.map(_.shortName).toJSArray)
             .setReversed(true)
         ).toJSArray
       )

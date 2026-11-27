@@ -4,9 +4,11 @@
 package explore.model
 
 import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import explore.model.ScorpioBlockTimeline.*
+import lucuma.core.enums.ScorpioFilter
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.TelescopeConfig
@@ -36,16 +38,18 @@ class ScorpioBlockTimelineSuite extends FunSuite:
     telescopeConfigs: NonEmptyList[TelescopeConfig] = abba
   ): ScorpioBlockTimeline =
     ScorpioBlockTimeline(
-      {
-        case Channel.G | Channel.R => gr
-        case Channel.I | Channel.Z => iz
-      },
+      NonEmptyMap.of(
+        ScorpioFilter.G -> gr,
+        ScorpioFilter.R -> gr,
+        ScorpioFilter.I -> iz,
+        ScorpioFilter.Z -> iz
+      ),
       telescopeConfigs,
       readout,
       write
     )
 
-  private def ends(t: ScorpioBlockTimeline, channel: Channel, stepIndex: Int): TimeSpan =
+  private def ends(t: ScorpioBlockTimeline, channel: ScorpioFilter, stepIndex: Int): TimeSpan =
     t.segments(channel).filter(_.stepIndex === stepIndex).last.end
 
   test("equal settings leave no idle time"):
@@ -53,16 +57,16 @@ class ScorpioBlockTimelineSuite extends FunSuite:
     // Each step is 2 x (300 + 20 + 10).
     assertEquals(t.steps.map(_.duration), abba.as(seconds(660)))
     assertEquals(t.duration, seconds(2640))
-    Channel.values.foreach: channel =>
+    ScorpioFilter.visible.toList.foreach: channel =>
       t.steps.toList.foreach: step =>
         assertEquals(ends(t, channel, step.index), step.end)
 
   test("a faster pair ends early and the next step still starts aligned"):
     val t = timeline(exposures(300, 2), exposures(100, 1))
     assertEquals(t.duration, seconds(2640))
-    assertEquals(ends(t, Channel.G, 0), seconds(660))
-    assertEquals(ends(t, Channel.I, 0), seconds(130))
-    Channel.values.foreach: channel =>
+    assertEquals(ends(t, ScorpioFilter.G, 0), seconds(660))
+    assertEquals(ends(t, ScorpioFilter.I, 0), seconds(130))
+    ScorpioFilter.visible.toList.foreach: channel =>
       assertEquals(
         t.segments(channel)
           .filter(_.exposureIndex === 0)
@@ -75,12 +79,12 @@ class ScorpioBlockTimelineSuite extends FunSuite:
     val t = timeline(exposures(100, 3), exposures(600, 1))
     // g/r: 3 x 130 = 390, i/z: 630.
     assertEquals(t.steps.head.duration, seconds(630))
-    assertEquals(ends(t, Channel.R, 0), seconds(390))
+    assertEquals(ends(t, ScorpioFilter.R, 0), seconds(390))
 
   test("every exposure is followed by its readout and write"):
     val t = timeline(exposures(300, 2), exposures(300, 2), NonEmptyList.one(at(0)))
     assertEquals(
-      t.segments(Channel.G).map(s => (s.exposureIndex, s.kind, s.start, s.end)),
+      t.segments(ScorpioFilter.G).map(s => (s.exposureIndex, s.kind, s.start, s.end)),
       List(
         (0, SegmentKind.Science, seconds(0), seconds(300)),
         (0, SegmentKind.Readout, seconds(300), seconds(320)),
@@ -90,7 +94,7 @@ class ScorpioBlockTimelineSuite extends FunSuite:
         (1, SegmentKind.Write, seconds(650), seconds(660))
       )
     )
-    assertEquals(t.segments(Channel.G).map(_.exposureCount.value).distinct, List(2))
+    assertEquals(t.segments(ScorpioFilter.G).map(_.exposureCount.value).distinct, List(2))
 
   test("a single telescope config is a one step block"):
     val t = timeline(exposures(60, 1), exposures(60, 1), NonEmptyList.one(at(0)))
