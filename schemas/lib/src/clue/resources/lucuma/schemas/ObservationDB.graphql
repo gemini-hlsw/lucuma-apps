@@ -759,7 +759,7 @@ input CallForProposalsPropertiesInput {
   Active period start date (inclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-
+  
   The start date is required on create and must be before the `activeEnd` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -769,7 +769,7 @@ input CallForProposalsPropertiesInput {
   Active period end date (exclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-
+  
   The end date is required on create and must be after the `activeStart` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3335,7 +3335,7 @@ type Mutation {
   Declines a REQUESTED Target-of-Opportunity trigger (staff), recording that it
   was seen and passed over.  This also clears the observation's READY state, so
   the observation returns to DEFINED.
-
+  
   There is no corresponding mutation to request or withdraw a trigger: a trigger
   is requested by setting a Target-of-Opportunity observation to READY via
   `setObservationWorkflowState`, and withdrawn by clearing that state.
@@ -3481,7 +3481,7 @@ type Mutation {
   """
   Re-runs the Archive Duplication Search for an observation, replacing its
   stored result with what the Gemini Observatory Archive holds now.
-
+  
   Rejected while the proposal is submitted or was not accepted, and for a
   completed observation whatever the proposal status.  Allowed again once the
   proposal is accepted, so newly added or changed targets can be checked.
@@ -3503,15 +3503,15 @@ type Mutation {
   """
   Sets, or updates, the TAC feedback of a time accounting category for a
   program.  The program must have a proposal whose status is SUBMITTED.
-
+  
   For a category that belongs to a partner, the user must be staff or an NGO
   user of that partner who can read the program.  The partner must have a
   non-zero time split in the proposal or, when the proposal's call for
   proposals is of type FAST_TURNAROUND or POOR_WEATHER, be the PI's partner.
-
+  
   Only staff may set feedback for the other categories, which are limited as
   follows:
-
+  
   * CAL, ENG and CFHT never have TAC feedback.
   * GT and LTP may provide feedback for any proposal.
   * JP and KECK may provide feedback when the proposal requests time on behalf
@@ -3519,7 +3519,7 @@ type Mutation {
   * DD, DS, LP and SV may provide feedback when the proposal's call for
     proposals is of type DIRECTORS_TIME, DEMO_SCIENCE, LARGE_PROGRAM or
     SYSTEM_VERIFICATION, respectively.
-
+  
   Recommended times do not change observation science bands, which follow the
   allocations once the proposal is accepted.
   """
@@ -3555,20 +3555,20 @@ type Mutation {
   """
   Regenerate the proposal summary PDFs: one per partner, in that partner's
   style, replacing the SUMMARY attachments once rendered.
-
+  
   Rendering is asynchronous, the new attachments and the flip back to IDLE
   arrive in one programEdit event.
-
+  
   A request while GENERATING is a no-op, or queues at most one more render if the
   previous one is already rendering.  The state stays GENERATING either way.
-
+  
   Requires write access to the program (staff, PI, CoI or support).
   """
   regenerateProposalSummaries(input: RegenerateProposalSummariesInput!): RegenerateProposalSummariesResult!
 
   """
   Set the proposal status.  NGO users may not set the proposal status.
-
+  
   When the proposal is accepted, observations without a science band are given
   the program's only allocated band, if it has just one, and a warning lists
   observations whose band has no time allocated, as for `setAllocations`.
@@ -3814,12 +3814,12 @@ input SchedulingConstraintsInput {
   Whether this observation is a Target of Opportunity, and how disruptive its
   execution may be.  Declared, not derived: an observation is a Target of
   Opportunity exactly when this is above `NONE`, whatever its asterism holds.
-
+  
   A new observation is born `NONE`.  `RAPID` and `INTERRUPTING` fix the
   `schedulingMode` at `UNINTERRUPTIBLE`: raising the activation sets it, and
   while the observation stays at either level a different mode is rejected.
   Lowering the activation back to `NONE` leaves the mode alone.
-
+  
   An observation above its program's `tooActivationCeiling`, when the program
   has one, cannot become ready, and one that is already ready may not be raised
   above it.  In a proposal type that ordinarily has no Targets of Opportunity,
@@ -3901,7 +3901,7 @@ input ObservationPropertiesInput {
   Deprecated in favor of the `schedulingConstraints` field — use that instead.
   If both this field and `schedulingConstraints` are specified in the same
   mutation, the mutation will be rejected with a validation error.
-
+  
   Specifies one or more timing windows during which the observation may execute.
   Defaults to empty (unconstrained) if omitted. To modify, supply the complete
   desired array — it replaces the previous value entirely.
@@ -4359,7 +4359,7 @@ input ProgramPropertiesInput {
   Active period start date (inclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-
+  
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -4369,7 +4369,7 @@ input ProgramPropertiesInput {
   Active period end date (exclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-
+  
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -4978,7 +4978,7 @@ input InsertSmartGcalInput {
   started executing, they join its atom.  Otherwise it must be the most
   recently executed (or executing) step, which is the same as not specifying
   it.
-
+  
   When not specified, the new steps become the next steps to execute, placed
   after the most recently executed (or executing) step.
   """
@@ -6020,7 +6020,7 @@ input OpportunityInput {
   creation and editing, but meaning different things: omitting it when creating
   approves the whole sky, while omitting it when editing leaves the existing
   region alone.
-
+  
   It may not be set to null.  Every opportunity target has a region, so there is
   nothing for null to mean.
   """
@@ -6531,6 +6531,8 @@ input TargetEnvironmentInput {
   Overrides the guide probe that the automatic guide star search uses. The
   probe must be usable by the observing mode. Assign null to clear the
   override and fall back to the default probe for the mode and target type.
+  Assign UNGUIDED to take the observation without a guide star; guiding set on
+  offsets and steps is kept and applies again once a probe is chosen.
   """
   explicitGuideProbe: GuideProbe
 
@@ -17258,7 +17260,7 @@ type Query {
   Obtains a list of program references for which the user with ORCiD `orcidId`
   has GOA data-download access privileges.  These will be those for which the
   user is a ProgramUser of any role with the `hasDataAccess` flag set.
-
+  
   This query is for use by staff and the GOA and will fail for other users.
   """
   goaDataDownloadAccess(orcidId: String!): [ProgramReferenceLabel!]!
@@ -19184,7 +19186,7 @@ input TacFeedbackInput {
   once.  When supplied, the list (even an empty one) replaces all existing
   recommended times.  When omitted, existing recommended times are kept, or
   none are recorded for new feedback.
-
+  
   Each recommended time is stored with the program's allocation for the
   category and band.  Setting a recommended time also sets the allocated
   duration to the same time, and removing a recommended time removes the
@@ -19467,7 +19469,8 @@ type TargetEnvironment {
   selected, Gaia will be searched for the best guide target available and,
   behind Altair, the science targets are also considered. An observation target,
   sidereal or non-sidereal, is returned as the target it is, so the telescope
-  follows it.
+  follows it. An unguided observation has no guide targets and is not searched
+  for any.
   """
   guideEnvironment: GuideEnvironment!
 
@@ -19475,6 +19478,7 @@ type TargetEnvironment {
   Availability of guide stars during a specified time range.
   There can be multiple `GuideAvailabilityPeriod`s returned if availability changes over the time
   range. In this case, the `end` of one period will be the same as the `start` of the next period.
+  An unguided observation has no periods.
   """
   guideAvailability(
     """The starting time of the time range of interest."""
