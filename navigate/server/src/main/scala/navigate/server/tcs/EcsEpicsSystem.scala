@@ -44,11 +44,11 @@ object EcsEpicsSystem {
     override val status: EcsStatus[F] = new {
       override def eastVentGatePos: VerifiedEpics[F, F, IntPercent] = VerifiedEpics
         .readChannel(ch.telltale, ch.eastVentGateAperture)
-        .map(_.map(v => IntPercent.from(v.toInt).getOrElse(ventGateClosePos)))
+        .map(v => IntPercent.from(v.toInt).getOrElse(ventGateClosePos))
 
       override def westVentGatePos: VerifiedEpics[F, F, IntPercent] = VerifiedEpics
         .readChannel(ch.telltale, ch.westVentGateAperture)
-        .map(_.map(v => IntPercent.from(v.toInt).getOrElse(ventGateClosePos)))
+        .map(v => IntPercent.from(v.toInt).getOrElse(ventGateClosePos))
     }
 
     override val commands: EcsCommands[F] = new {

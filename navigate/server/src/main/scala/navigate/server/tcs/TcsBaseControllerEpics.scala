@@ -804,23 +804,18 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       case (BinaryOnOff.On, BinaryOnOff.Off)  => M2BeamConfig.BeamA
     }
 
-    for {
-      faa  <- state.nodAchopA
-      fab  <- state.nodAchopB
-      fba  <- state.nodBchopA
-      fbb  <- state.nodBchopB
-      fnod <- sys.tcsEpics.status.nodState
-    } yield
-      for {
-        aa  <- faa
-        ab  <- fab
-        ba  <- fba
-        bb  <- fbb
-        nod <- fnod
-      } yield nod match
+    (
+      state.nodAchopA,
+      state.nodAchopB,
+      state.nodBchopA,
+      state.nodBchopB,
+      sys.tcsEpics.status.nodState
+    ).mapN { (aa, ab, ba, bb, nod) =>
+      nod match
         case epicsdata.NodState.A => calcBeams(aa, ab)
         case epicsdata.NodState.B => calcBeams(ba, bb)
         case epicsdata.NodState.C => M2BeamConfig.None
+    }
   }
 
   private def enableM2Guide(
@@ -851,66 +846,58 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         VerifiedEpics.pureF(ApplyCommandResult.Completed)
       )
 
+    val m2GuideReset: VerifiedEpics[F, F, ApplyCommandResult] = (
+      cfg.sources
+        .contains(TipTiltSource.OIWFS)
+        .fold(calcM2Guide(sys.tcsEpics.status.oiwfsProbeGuideState),
+              VerifiedEpics.pureF(M2BeamConfig.None)
+        ),
+      cfg.sources
+        .contains(TipTiltSource.PWFS1)
+        .fold(calcM2Guide(sys.tcsEpics.status.pwfs1ProbeGuideState),
+              VerifiedEpics.pureF(M2BeamConfig.None)
+        ),
+      cfg.sources
+        .contains(TipTiltSource.PWFS2)
+        .fold(calcM2Guide(sys.tcsEpics.status.pwfs2ProbeGuideState),
+              VerifiedEpics.pureF(M2BeamConfig.None)
+        ),
+      sys.tcsEpics.status.m2oiGuide.map(M2BeamConfig.fromTcsGuideConfig),
+      sys.tcsEpics.status.m2p1Guide.map(M2BeamConfig.fromTcsGuideConfig),
+      sys.tcsEpics.status.m2p2Guide.map(M2BeamConfig.fromTcsGuideConfig)
+    ).tupled
+      .mapRun(_.flatMap { (oi, p1, p2, oic, p1c, p2c) =>
+        val mustReset = oi =!= oic || p1 =!= p1c || p2 =!= p2c
+        mustReset.fold(
+          (sys.tcsEpics.startCommand(timeout).m2GuideCommand.state(false).post *>
+            sys.tcsEpics.startCommand(timeout).m2GuideResetCommand.mark.post *>
+            setM2Guide(TipTiltSource.PWFS1, p1) *>
+            setM2Guide(TipTiltSource.PWFS2, p2) *>
+            setM2Guide(TipTiltSource.OIWFS, oi)).verifiedRun(ConnectionTimeout),
+          ApplyCommandResult.Completed.pure[F]
+        ) <*
+          Logger[F]
+            .info(
+              "Cannot configure M2 guiding with OIWFS without a nod/chop guide configuration"
+            )
+            .whenA(cfg.sources.contains(TipTiltSource.OIWFS) && oi === M2BeamConfig.None) <*
+          Logger[F]
+            .info(
+              "Cannot configure M2 guiding with PWFS1 without a nod/chop guide configuration"
+            )
+            .whenA(cfg.sources.contains(TipTiltSource.PWFS1) && p1 === M2BeamConfig.None) <*
+          Logger[F]
+            .info(
+              "Cannot configure M2 guiding with PWFS2 without a nod/chop guide configuration"
+            )
+            .whenA(cfg.sources.contains(TipTiltSource.PWFS2) && p2 === M2BeamConfig.None)
+      })
+
     sys.tcsEpics
       .startCommand(timeout)
       .m2GuideModeCommand
       .coma(cfg.coma === ComaOption.ComaOn)
-      .post *> (
-      for {
-        oif  <- cfg.sources
-                  .contains(TipTiltSource.OIWFS)
-                  .fold(calcM2Guide(sys.tcsEpics.status.oiwfsProbeGuideState),
-                        VerifiedEpics.pureF(M2BeamConfig.None)
-                  )
-        p1f  <- cfg.sources
-                  .contains(TipTiltSource.PWFS1)
-                  .fold(calcM2Guide(sys.tcsEpics.status.pwfs1ProbeGuideState),
-                        VerifiedEpics.pureF(M2BeamConfig.None)
-                  )
-        p2f  <- cfg.sources
-                  .contains(TipTiltSource.PWFS2)
-                  .fold(calcM2Guide(sys.tcsEpics.status.pwfs2ProbeGuideState),
-                        VerifiedEpics.pureF(M2BeamConfig.None)
-                  )
-        oicf <- sys.tcsEpics.status.m2oiGuide.map(_.map(M2BeamConfig.fromTcsGuideConfig))
-        p1cf <- sys.tcsEpics.status.m2p1Guide.map(_.map(M2BeamConfig.fromTcsGuideConfig))
-        p2cf <- sys.tcsEpics.status.m2p2Guide.map(_.map(M2BeamConfig.fromTcsGuideConfig))
-      } yield
-        for {
-          oi  <- oif
-          p1  <- p1f
-          p2  <- p2f
-          oic <- oicf
-          p1c <- p1cf
-          p2c <- p2cf
-          r   <- {
-            val mustReset = oi =!= oic || p1 =!= p1c || p2 =!= p2c
-            mustReset.fold(
-              (sys.tcsEpics.startCommand(timeout).m2GuideCommand.state(false).post *>
-                sys.tcsEpics.startCommand(timeout).m2GuideResetCommand.mark.post *>
-                setM2Guide(TipTiltSource.PWFS1, p1) *>
-                setM2Guide(TipTiltSource.PWFS2, p2) *>
-                setM2Guide(TipTiltSource.OIWFS, oi)).verifiedRun(ConnectionTimeout),
-              ApplyCommandResult.Completed.pure[F]
-            ) <*
-              Logger[F]
-                .info(
-                  "Cannot configure M2 guiding with OIWFS without a nod/chop guide configuration"
-                )
-                .whenA(cfg.sources.contains(TipTiltSource.OIWFS) && oi === M2BeamConfig.None) <*
-              Logger[F]
-                .info(
-                  "Cannot configure M2 guiding with PWFS1 without a nod/chop guide configuration"
-                )
-                .whenA(cfg.sources.contains(TipTiltSource.PWFS1) && p1 === M2BeamConfig.None) <*
-              Logger[F]
-                .info(
-                  "Cannot configure M2 guiding with PWFS2 without a nod/chop guide configuration"
-                )
-                .whenA(cfg.sources.contains(TipTiltSource.PWFS2) && p2 === M2BeamConfig.None)
-          }
-        } yield r
-    ) *>
+      .post *> m2GuideReset *>
       sys.tcsEpics.startCommand(timeout).m2GuideCommand.state(true).post
 
   }
@@ -1125,7 +1112,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
             .andThen(Focus[WfsConfigState](_.configuredForGuiding))
             .replace(isGuiding.some))(st),
         (for {
-          wfsActive <- active.map(_.map(_ === BinaryYesNo.Yes))
+          wfsActive <- active.map(_ === BinaryYesNo.Yes)
           ret       <- VerifiedEpics.ifF[F, F, ApplyCommandResult](
                          wfsActive.map(_ && qlChange.isEmpty && expTimeChange.isEmpty && !guidingChange)
                        ) {
@@ -1259,33 +1246,21 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         .replace(None)
     )
 
-  def getProbeGuideState(chopnod: ProbeGuideState[F]): VerifiedEpics[F, F, TrackingConfig] = for {
-    aaf <- chopnod.nodAchopA
-    abf <- chopnod.nodAchopB
-    baf <- chopnod.nodBchopA
-    bbf <- chopnod.nodBchopB
-  } yield
-    for {
-      aa <- aaf
-      ab <- abf
-      ba <- baf
-      bb <- bbf
-    } yield TrackingConfig(aa === BinaryOnOff.On,
-                           ab === BinaryOnOff.On,
-                           ba === BinaryOnOff.On,
-                           bb === BinaryOnOff.On
-    )
+  def getProbeGuideState(chopnod: ProbeGuideState[F]): VerifiedEpics[F, F, TrackingConfig] =
+    (chopnod.nodAchopA, chopnod.nodAchopB, chopnod.nodBchopA, chopnod.nodBchopB).mapN {
+      (aa, ab, ba, bb) =>
+        TrackingConfig(aa === BinaryOnOff.On,
+                       ab === BinaryOnOff.On,
+                       ba === BinaryOnOff.On,
+                       bb === BinaryOnOff.On
+        )
+    }
 
-  def getProbesGuideState: VerifiedEpics[F, F, WfsGuideStates] = for {
-    p1f <- getProbeGuideState(sys.tcsEpics.status.pwfs1ProbeGuideState)
-    p2f <- getProbeGuideState(sys.tcsEpics.status.pwfs2ProbeGuideState)
-    oif <- getProbeGuideState(sys.tcsEpics.status.oiwfsProbeGuideState)
-  } yield
-    for {
-      p1 <- p1f
-      p2 <- p2f
-      oi <- oif
-    } yield WfsGuideStates(p1, p2, oi)
+  def getProbesGuideState: VerifiedEpics[F, F, WfsGuideStates] = (
+    getProbeGuideState(sys.tcsEpics.status.pwfs1ProbeGuideState),
+    getProbeGuideState(sys.tcsEpics.status.pwfs2ProbeGuideState),
+    getProbeGuideState(sys.tcsEpics.status.oiwfsProbeGuideState)
+  ).mapN(WfsGuideStates(_, _, _))
 
   def pauseWfsTracking(current: WfsGuideStates): VerifiedEpics[F, F, ApplyCommandResult] = {
     val params = List(
@@ -1392,7 +1367,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
     for {
       wfsActive <-
-        active.map(_.map(_ === BinaryYesNo.Yes)).verifiedRun(ConnectionTimeout)
+        active.map(_ === BinaryYesNo.Yes).verifiedRun(ConnectionTimeout)
       _         <- (cmds(WfsStopObserveTimeout).stop.mark
                      .post(ObserveCommand.CommandType.PermanentOff)
                      .verifiedRun(ConnectionTimeout) *> Temporal[F].sleep(postStopDelay)).whenA(wfsActive)
@@ -1549,44 +1524,26 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   } yield r
 
   override def getGuideState: F[GuideState] = {
-    val x = for {
-      fa <- sys.tcsEpics.status.m1Guide
-      fb <- sys.tcsEpics.status.m2aoGuide
-      fc <- sys.tcsEpics.status.m2oiGuide
-      fd <- sys.tcsEpics.status.m2p1Guide
-      fe <- sys.tcsEpics.status.m2p2Guide
-      ff <- sys.tcsEpics.status.absorbTipTilt
-      fg <- sys.tcsEpics.status.comaCorrect
-      fh <- sys.tcsEpics.status.m1GuideSource
-      fi <- sys.tcsEpics.status.m2GuideState
-      fj <- sys.tcsEpics.status.pwfs1On
-      fk <- sys.tcsEpics.status.pwfs2On
-      fl <- sys.tcsEpics.status.oiwfsOn
-      fm <- sys.hrwfs.status.observe
-      fn <- sys.tcsEpics.status.probeGuideEnabled
-      fo <- sys.tcsEpics.status.probeGuideSource
-      fp <- sys.tcsEpics.status.probeGuideSink
-      fq <- sys.ags.status.oiwfsName
-    } yield
-      for {
-        a <- fa
-        b <- fb
-        c <- fc
-        d <- fd
-        e <- fe
-        f <- ff
-        g <- fg
-        h <- fh
-        i <- fi
-        j <- fj
-        k <- fk
-        l <- fl
-        m <- fm
-        n <- fn
-        o <- fo
-        p <- fp
-        q <- fq
-      } yield GuideState(
+    val x = (
+      sys.tcsEpics.status.m1Guide,
+      sys.tcsEpics.status.m2aoGuide,
+      sys.tcsEpics.status.m2oiGuide,
+      sys.tcsEpics.status.m2p1Guide,
+      sys.tcsEpics.status.m2p2Guide,
+      sys.tcsEpics.status.absorbTipTilt,
+      sys.tcsEpics.status.comaCorrect,
+      sys.tcsEpics.status.m1GuideSource,
+      sys.tcsEpics.status.m2GuideState,
+      sys.tcsEpics.status.pwfs1On,
+      sys.tcsEpics.status.pwfs2On,
+      sys.tcsEpics.status.oiwfsOn,
+      sys.hrwfs.status.observe,
+      sys.tcsEpics.status.probeGuideEnabled,
+      sys.tcsEpics.status.probeGuideSource,
+      sys.tcsEpics.status.probeGuideSink,
+      sys.ags.status.oiwfsName
+    ).mapN { (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
+      GuideState(
         MountGuideOption(f =!= 0),
         calcM1Guide(a, h),
         calcM2Guide(i, d, e, c, b, g),
@@ -1596,6 +1553,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         l === BinaryYesNo.Yes,
         m === CarState.BUSY
       )
+    }
 
     x.verifiedRun(ConnectionTimeout)
   }
@@ -1654,27 +1612,19 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     m1Guide.uses(M1Source.OIWFS) || m2Guide.uses(TipTiltSource.OIWFS)
 
   override def getGuideQuality: F[GuidersQualityValues] = (
-    for {
-      p1_fF <- sys.pwfs1.getQualityStatus.flux
-      p1_cF <- sys.pwfs1.getQualityStatus.centroidDetected
-      p2_fF <- sys.pwfs2.getQualityStatus.flux
-      p2_cF <- sys.pwfs2.getQualityStatus.centroidDetected
-      oi_fF <- sys.oiwfs.getQualityStatus.flux
-      oi_cF <- sys.oiwfs.getQualityStatus.centroidDetected
-    } yield
-      for {
-        p1_f <- p1_fF
-        p1_c <- p1_cF
-        p2_f <- p2_fF
-        p2_c <- p2_cF
-        oi_f <- oi_fF
-        oi_c <- oi_cF
-      } yield GuidersQualityValues(
-        GuidersQualityValues.GuiderQuality(p1_f, p1_c),
-        GuidersQualityValues.GuiderQuality(p2_f, p2_c),
-        GuidersQualityValues.GuiderQuality(oi_f, oi_c)
-      )
-  ).verifiedRun(ConnectionTimeout)
+    sys.pwfs1.getQualityStatus.flux,
+    sys.pwfs1.getQualityStatus.centroidDetected,
+    sys.pwfs2.getQualityStatus.flux,
+    sys.pwfs2.getQualityStatus.centroidDetected,
+    sys.oiwfs.getQualityStatus.flux,
+    sys.oiwfs.getQualityStatus.centroidDetected
+  ).mapN { (p1_f, p1_c, p2_f, p2_c, oi_f, oi_c) =>
+    GuidersQualityValues(
+      GuidersQualityValues.GuiderQuality(p1_f, p1_c),
+      GuidersQualityValues.GuiderQuality(p2_f, p2_c),
+      GuidersQualityValues.GuiderQuality(oi_f, oi_c)
+    )
+  }.verifiedRun(ConnectionTimeout)
 
   private val BafflesTimeout = FiniteDuration(40, SECONDS)
 
@@ -1695,96 +1645,62 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   ).post
     .verifiedRun(ConnectionTimeout)
 
-  private def getEnclosureState: VerifiedEpics[F, F, EnclosureState] =
-    for {
-      dmEnF <- sys.tcsEpics.status.enclosureAppliedState.domeEnabled
-      dmMdF <- sys.tcsEpics.status.enclosureAppliedState.domeMode
-      shEnF <- sys.tcsEpics.status.enclosureAppliedState.shuttersEnabled
-      shMdF <- sys.tcsEpics.status.enclosureAppliedState.shuttersMode
-      evF   <- sys.ecs.status.eastVentGatePos
-      wvF   <- sys.ecs.status.westVentGatePos
-    } yield
-      for {
-        dmEn <- dmEnF
-        dmMd <- dmMdF
-        shEn <- shEnF
-        shMd <- shMdF
-        ev   <- evF
-        wv   <- wvF
-      } yield EnclosureState(
-        dmEn.filter(identity).flatMap(_ => dmMd),
-        shEn.filter(identity).flatMap(_ => shMd),
-        ev,
-        wv
-      )
+  private def getEnclosureState: VerifiedEpics[F, F, EnclosureState] = (
+    sys.tcsEpics.status.enclosureAppliedState.domeEnabled,
+    sys.tcsEpics.status.enclosureAppliedState.domeMode,
+    sys.tcsEpics.status.enclosureAppliedState.shuttersEnabled,
+    sys.tcsEpics.status.enclosureAppliedState.shuttersMode,
+    sys.ecs.status.eastVentGatePos,
+    sys.ecs.status.westVentGatePos
+  ).mapN { (dmEn, dmMd, shEn, shMd, ev, wv) =>
+    EnclosureState(
+      dmEn.filter(identity).flatMap(_ => dmMd),
+      shEn.filter(identity).flatMap(_ => shMd),
+      ev,
+      wv
+    )
+  }
 
   override def getTelescopeState: F[TelescopeState] = (
-    for {
-      mcsfF  <- sys.mcs.getFollowingState
-      scsfF  <- sys.scs.getFollowingState
-      crcsfF <- sys.crcs.getFollowingState
-      p1fF   <- sys.ags.status.p1Follow
-      p1pF   <- sys.ags.status.p1Parked
-      p2fF   <- sys.ags.status.p2Follow
-      p2pF   <- sys.ags.status.p2Parked
-      oifF   <- sys.ags.status.oiFollow
-      oipF   <- sys.ags.status.oiParked
-      encF   <- getEnclosureState
-    } yield
-      for {
-        mcsf  <- mcsfF
-        scsf  <- scsfF
-        crcsf <- crcsfF
-        p1f   <- p1fF
-        p1p   <- p1pF
-        p2f   <- p2fF
-        p2p   <- p2pF
-        oif   <- oifF
-        oip   <- oipF
-        enc   <- encF
-      } yield TelescopeState(
-        mount = MechSystemState(NotParked, mcsf),
-        scs = MechSystemState(NotParked, scsf),
-        crcs = MechSystemState(NotParked, crcsf),
-        pwfs1 = MechSystemState(p1p, p1f),
-        pwfs2 = MechSystemState(p2p, p2f),
-        oiwfs = MechSystemState(oip, oif),
-        enclosure = enc
-      )
-  ).verifiedRun(ConnectionTimeout)
+    sys.mcs.getFollowingState,
+    sys.scs.getFollowingState,
+    sys.crcs.getFollowingState,
+    sys.ags.status.p1Follow,
+    sys.ags.status.p1Parked,
+    sys.ags.status.p2Follow,
+    sys.ags.status.p2Parked,
+    sys.ags.status.oiFollow,
+    sys.ags.status.oiParked,
+    getEnclosureState
+  ).mapN { (mcsf, scsf, crcsf, p1f, p1p, p2f, p2p, oif, oip, enc) =>
+    TelescopeState(
+      mount = MechSystemState(NotParked, mcsf),
+      scs = MechSystemState(NotParked, scsf),
+      crcs = MechSystemState(NotParked, crcsf),
+      pwfs1 = MechSystemState(p1p, p1f),
+      pwfs2 = MechSystemState(p2p, p2f),
+      oiwfs = MechSystemState(oip, oif),
+      enclosure = enc
+    )
+  }.verifiedRun(ConnectionTimeout)
 
   override def getTargetAdjustments: F[TargetOffsets] = (
-    for {
-      satrF <- sys.tcsEpics.status.sourceATargetReadout
-      p1trF <- sys.tcsEpics.status.pwfs1TargetReadout
-      p2trF <- sys.tcsEpics.status.pwfs2TargetReadout
-      oitrF <- sys.tcsEpics.status.oiwfsTargetReadout
-    } yield
-      for {
-        satr <- satrF
-        p1tr <- p1trF
-        p2tr <- p2trF
-        oitr <- oitrF
-      } yield TargetOffsets(satr.adjOffset, p1tr.adjOffset, p2tr.adjOffset, oitr.adjOffset)
-  ).verifiedRun(ConnectionTimeout)
+    sys.tcsEpics.status.sourceATargetReadout,
+    sys.tcsEpics.status.pwfs1TargetReadout,
+    sys.tcsEpics.status.pwfs2TargetReadout,
+    sys.tcsEpics.status.oiwfsTargetReadout
+  ).mapN { (satr, p1tr, p2tr, oitr) =>
+    TargetOffsets(satr.adjOffset, p1tr.adjOffset, p2tr.adjOffset, oitr.adjOffset)
+  }.verifiedRun(ConnectionTimeout)
 
   override def getPointingCorrections: F[PointingCorrections] = (
-    for {
-      lcaF <- sys.tcsEpics.status.pointingCorrectionState.localCA
-      lceF <- sys.tcsEpics.status.pointingCorrectionState.localCE
-      gcaF <- sys.tcsEpics.status.pointingCorrectionState.guideCA
-      gceF <- sys.tcsEpics.status.pointingCorrectionState.guideCE
-    } yield
-      for {
-        lca <- lcaF
-        lce <- lceF
-        gca <- gcaF
-        gce <- gceF
-      } yield PointingCorrections(
-        HorizontalAdjustment(lca, lce),
-        HorizontalAdjustment(gca, gce)
-      )
-  ).verifiedRun(ConnectionTimeout)
+    sys.tcsEpics.status.pointingCorrectionState.localCA,
+    sys.tcsEpics.status.pointingCorrectionState.localCE,
+    sys.tcsEpics.status.pointingCorrectionState.guideCA,
+    sys.tcsEpics.status.pointingCorrectionState.guideCE
+  ).mapN { (lca, lce, gca, gce) =>
+    PointingCorrections(HorizontalAdjustment(lca, lce), HorizontalAdjustment(gca, gce))
+  }.verifiedRun(ConnectionTimeout)
 
   override def getOriginOffset: F[FocalPlaneOffset] =
     sys.tcsEpics.status.sourceATargetReadout.verifiedRun(ConnectionTimeout).map(_.originOffset)
@@ -2082,19 +1998,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   private def wfsRefAdjustParams(
     st:  PwfsAngles[F],
     pol: (Angle, Angle)
-  ): F[(ReferenceFrame, Double, Angle)] = (
-    for {
-      tableAngleF <- st.tableAngle
-      armAngleF   <- st.armAngle
-    } yield
-      for {
-        tableAngle <- tableAngleF
-        armAngle   <- armAngleF
-      } yield (ReferenceFrame.XY,
-               Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
-               pol._2 + tableAngle + armAngle
+  ): F[(ReferenceFrame, Double, Angle)] = (st.tableAngle, st.armAngle)
+    .mapN { (tableAngle, armAngle) =>
+      (ReferenceFrame.XY,
+       Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
+       pol._2 + tableAngle + armAngle
       )
-  ).verifiedRun(ConnectionTimeout)
+    }
+    .verifiedRun(ConnectionTimeout)
 
   private def adjustParams(
     handsetAdjustment: HandsetAdjustment
@@ -2680,16 +2591,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
             .whenA(active === CarState.BUSY)
       }
 
-    override def getState: F[AcMechsState] = (for {
-      lnF <- sys.hrwfs.status.lens
-      ndF <- sys.hrwfs.status.ndFilter
-      flF <- sys.hrwfs.status.filter
-    } yield
-      for {
-        ln <- lnF
-        nd <- ndF
-        fl <- flF
-      } yield AcMechsState(ln, nd, fl)).verifiedRun(ConnectionTimeout)
+    override def getState: F[AcMechsState] =
+      (sys.hrwfs.status.lens, sys.hrwfs.status.ndFilter, sys.hrwfs.status.filter)
+        .mapN(AcMechsState(_, _, _))
+        .verifiedRun(ConnectionTimeout)
 
   }
 
@@ -2728,29 +2633,17 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     Getter[TcsCommands[F], WavelengthCommand[F, TcsCommands[F]]](_.pwfs2Wavel)
   )
 
-  private def getPwfsMechs(c: AgsEpicsSystem.PwfsMechs[F]): F[PwfsMechsState] = (
-    for {
-      flF <- c.colFilter
-      fsF <- c.fieldStop
-    } yield
-      for {
-        fl <- flF
-        fs <- fsF
-      } yield PwfsMechsState(fl, fs)
-  ).verifiedRun(ConnectionTimeout)
+  private def getPwfsMechs(c: AgsEpicsSystem.PwfsMechs[F]): F[PwfsMechsState] =
+    (c.colFilter, c.fieldStop).mapN(PwfsMechsState(_, _)).verifiedRun(ConnectionTimeout)
 
   override def getPwfs1Mechs: F[PwfsMechsState] = getPwfsMechs(sys.ags.status.pwfs1Mechs)
 
   override def getPwfs2Mechs: F[PwfsMechsState] = getPwfsMechs(sys.ags.status.pwfs2Mechs)
 
-  override def getBaffles: F[BafflesState] = (for {
-    ctF <- sys.scs.getCentralBaffleState
-    dpF <- sys.scs.getDeployableBaffleState
-  } yield
-    for {
-      ct <- ctF
-      dp <- dpF
-    } yield BafflesState(ct, dp)).verifiedRun(ConnectionTimeout)
+  override def getBaffles: F[BafflesState] =
+    (sys.scs.getCentralBaffleState, sys.scs.getDeployableBaffleState)
+      .mapN(BafflesState(_, _))
+      .verifiedRun(ConnectionTimeout)
 
   protected def wfsCircularBuffer(
     ctr:    CircularBufferControl[F],
@@ -2777,16 +2670,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   protected def getWfsConfig(
     wfs: WfsEpicsSystem[F],
     cb:  CircularBufferControl[F]
-  ): F[WfsConfiguration] = (
-    for {
-      itF <- wfs.getIntegrationTime
-      svF <- cb.circularBufferStatus.map(_.map(_.imageEnabled))
-    } yield
-      for {
-        it <- itF
-        sv <- svF
-      } yield WfsConfiguration(it, sv)
-  ).verifiedRun(ConnectionTimeout)
+  ): F[WfsConfiguration] = (wfs.getIntegrationTime, cb.circularBufferStatus)
+    .mapN((it, cbs) => WfsConfiguration(it, cbs.imageEnabled))
+    .verifiedRun(ConnectionTimeout)
 
   override def getPwfs1Config: F[WfsConfiguration] = getWfsConfig(sys.pwfs1, sys.pwfs1)
 
@@ -2796,31 +2682,21 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     wfsSys: WfsEpicsSystem[F],
     cbSys:  CircularBufferControl[F]
   ): Resource[F, Stream[F, WfsConfiguration]] = {
-    val startVal: VerifiedEpics[F, F, WfsConfiguration] = for {
-      expF <- wfsSys.getIntegrationTime
-      savF <- cbSys.circularBufferStatus.map(_.map(_.imageEnabled))
-    } yield
-      for {
-        exp <- expF.attempt.map(_.getOrElse(TimeSpan.Zero))
-        sav <- savF.attempt.map(_.getOrElse(false))
-      } yield WfsConfiguration(exp, sav)
+    val startVal: VerifiedEpics[F, F, WfsConfiguration] = (
+      wfsSys.getIntegrationTime.attemptRun,
+      cbSys.circularBufferStatus.map(_.imageEnabled).attemptRun
+    ).mapN((exp, sav) => WfsConfiguration(exp.getOrElse(TimeSpan.Zero), sav.getOrElse(false)))
 
     val streams: VerifiedEpics[F, Resource[F, *], Stream[F, Either[TimeSpan, Boolean]]] =
-      for {
-        expS <- wfsSys.integrationTimeStream
-        savS <- cbSys.imgCircularBufferStream
-      } yield (expS, savS).mapN(_.either(_))
+      (wfsSys.integrationTimeStream, cbSys.imgCircularBufferStream).mapN(_.either(_))
 
-    (for {
-      v0F  <- startVal.liftK[Resource[F, *]]
-      ssrF <- streams
-    } yield
-      for {
-        v0  <- v0F
-        ssr <- ssrF
-      } yield ssr.scan(v0) { (current, update) =>
-        update.fold(t => current.copy(exposureTime = t), s => current.copy(saving = s))
-      }).verifiedRun(ConnectionTimeout)
+    (startVal.liftK[Resource[F, *]], streams)
+      .mapN { (v0, ssr) =>
+        ssr.scan(v0) { (current, update) =>
+          update.fold(t => current.copy(exposureTime = t), s => current.copy(saving = s))
+        }
+      }
+      .verifiedRun(ConnectionTimeout)
   }
 
   def pwfs1ConfigStream: Resource[F, Stream[F, WfsConfiguration]] = wfsConfigStream(
@@ -2940,49 +2816,43 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     shutterMode:    Option[ShutterMode] = None,
     domeEnabled:    Option[Boolean] = None,
     shutterEnabled: Option[Boolean] = None
-  ): F[ApplyCommandResult] = (for {
-    dmF   <- sys.tcsEpics.status.enclosureCommandsState.domeMode
-    shmF  <- sys.tcsEpics.status.enclosureCommandsState.shuttersMode
-    slitF <- sys.tcsEpics.status.enclosureCommandsState.shuttersAperture
-    dmenF <- sys.tcsEpics.status.enclosureCommandsState.domeEnabled
-    shenF <- sys.tcsEpics.status.enclosureCommandsState.shuttersEnabled
-  } yield
-    for {
-      dm   <- dmF
-      shm  <- shmF
-      slit <- slitF
-      dmen <- dmenF
-      shen <- shenF
-      r    <- {
-        val domeModeAp       = (cmds: TcsCommands[F]) =>
-          domeMode
-            .map(cmds.ecsCarouselModeCmd.setDomeMode)
-            .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setDomeMode(DomeMode.default))(_ => cmds))
-        val shutterModeAp    = (cmds: TcsCommands[F]) =>
-          shutterMode
-            .map(cmds.ecsCarouselModeCmd.setShutterMode)
-            .getOrElse(
-              dm.fold(cmds.ecsCarouselModeCmd.setShutterMode(ShutterMode.default))(_ => cmds)
-            )
-        val shutterHeightApp = (cmds: TcsCommands[F]) =>
-          shutterMode match {
-            case Some(ShutterMode.Tracking(height)) => cmds.ecsCarouselModeCmd.setSlitHeight(height)
-            case _                                  => slit.fold(cmds.ecsCarouselModeCmd.setSlitHeight(Distance.Zero))(_ => cmds)
-          }
-        val domeEnableAp     = (cmds: TcsCommands[F]) =>
-          domeEnabled
-            .map(cmds.ecsCarouselModeCmd.setDomeEnable)
-            .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setDomeEnable(false))(_ => cmds))
-        val shutterEnableAp  = (cmds: TcsCommands[F]) =>
-          shutterEnabled
-            .map(cmds.ecsCarouselModeCmd.setShutterEnable)
-            .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setShutterEnable(false))(_ => cmds))
+  ): F[ApplyCommandResult] = (
+    sys.tcsEpics.status.enclosureCommandsState.domeMode,
+    sys.tcsEpics.status.enclosureCommandsState.shuttersMode,
+    sys.tcsEpics.status.enclosureCommandsState.shuttersAperture,
+    sys.tcsEpics.status.enclosureCommandsState.domeEnabled,
+    sys.tcsEpics.status.enclosureCommandsState.shuttersEnabled
+  ).tupled
+    .mapRun(_.flatMap { (dm, _, slit, _, _) =>
+      val domeModeAp       = (cmds: TcsCommands[F]) =>
+        domeMode
+          .map(cmds.ecsCarouselModeCmd.setDomeMode)
+          .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setDomeMode(DomeMode.default))(_ => cmds))
+      val shutterModeAp    = (cmds: TcsCommands[F]) =>
+        shutterMode
+          .map(cmds.ecsCarouselModeCmd.setShutterMode)
+          .getOrElse(
+            dm.fold(cmds.ecsCarouselModeCmd.setShutterMode(ShutterMode.default))(_ => cmds)
+          )
+      val shutterHeightApp = (cmds: TcsCommands[F]) =>
+        shutterMode match {
+          case Some(ShutterMode.Tracking(height)) => cmds.ecsCarouselModeCmd.setSlitHeight(height)
+          case _                                  => slit.fold(cmds.ecsCarouselModeCmd.setSlitHeight(Distance.Zero))(_ => cmds)
+        }
+      val domeEnableAp     = (cmds: TcsCommands[F]) =>
+        domeEnabled
+          .map(cmds.ecsCarouselModeCmd.setDomeEnable)
+          .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setDomeEnable(false))(_ => cmds))
+      val shutterEnableAp  = (cmds: TcsCommands[F]) =>
+        shutterEnabled
+          .map(cmds.ecsCarouselModeCmd.setShutterEnable)
+          .getOrElse(dm.fold(cmds.ecsCarouselModeCmd.setShutterEnable(false))(_ => cmds))
 
-        (domeModeAp >>> shutterModeAp >>> shutterHeightApp >>> domeEnableAp >>> shutterEnableAp)(
-          sys.tcsEpics.startCommand(timeout)
-        ).post.verifiedRun(ConnectionTimeout)
-      }
-    } yield r).verifiedRun(ConnectionTimeout)
+      (domeModeAp >>> shutterModeAp >>> shutterHeightApp >>> domeEnableAp >>> shutterEnableAp)(
+        sys.tcsEpics.startCommand(timeout)
+      ).post.verifiedRun(ConnectionTimeout)
+    })
+    .verifiedRun(ConnectionTimeout)
 
   private val domeModeTimeout                                       = FiniteDuration(60, SECONDS)
   override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] =
@@ -3034,22 +2904,18 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     timeout:         FiniteDuration,
     eastVentGatePos: Option[IntPercent] = none,
     westVentGatePos: Option[IntPercent] = none
-  ): F[ApplyCommandResult] = (for {
-    ecF <- sys.ecs.status.eastVentGatePos
-    wcF <- sys.ecs.status.westVentGatePos
-  } yield
-    for {
-      ec <- ecF
-      wc <- wcF
-      r  <- sys.tcsEpics
-              .startCommand(timeout)
-              .ecsVenGatesMoveCmd
-              .setVentGateEast(eastVentGatePos.getOrElse(ec).value.toDouble / 100.0)
-              .ecsVenGatesMoveCmd
-              .setVentGateWest(westVentGatePos.getOrElse(wc).value.toDouble / 100.0)
-              .post
-              .verifiedRun(ConnectionTimeout)
-    } yield r).verifiedRun(ConnectionTimeout)
+  ): F[ApplyCommandResult] = (sys.ecs.status.eastVentGatePos, sys.ecs.status.westVentGatePos).tupled
+    .mapRun(_.flatMap { (ec, wc) =>
+      sys.tcsEpics
+        .startCommand(timeout)
+        .ecsVenGatesMoveCmd
+        .setVentGateEast(eastVentGatePos.getOrElse(ec).value.toDouble / 100.0)
+        .ecsVenGatesMoveCmd
+        .setVentGateWest(westVentGatePos.getOrElse(wc).value.toDouble / 100.0)
+        .post
+        .verifiedRun(ConnectionTimeout)
+    })
+    .verifiedRun(ConnectionTimeout)
 
   private val ventGateTimeout                                                   = FiniteDuration(60, SECONDS)
   override def ecsMoveEastVentGate(position: IntPercent): F[ApplyCommandResult] =

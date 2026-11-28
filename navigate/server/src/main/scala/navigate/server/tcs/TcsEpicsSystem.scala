@@ -375,7 +375,7 @@ object TcsEpicsSystem {
         override def nodState: VerifiedEpics[F, F, NodState]        =
           VerifiedEpics
             .readChannel(channels.telltale, channels.nodState)
-            .map(_.map(Enumerated[NodState].fromTag(_).getOrElse(NodState.A)))
+            .map(Enumerated[NodState].fromTag(_).getOrElse(NodState.A))
         override val pwfs1ProbeGuideState: ProbeGuideState[F]       =
           buildProbeGuideState(channels.telltale, channels.p1ProbeTrackingState)
         override val pwfs2ProbeGuideState: ProbeGuideState[F]       =
@@ -394,19 +394,12 @@ object TcsEpicsSystem {
           stabilizationTime: FiniteDuration,
           timeout:           FiniteDuration
         ): VerifiedEpics[F, F, Unit] = {
-          val presV: VerifiedEpics[F, Resource[F, *], (Stream[F, StreamEvent[A]], F[A])] =
-            for {
-              valStr <- VerifiedEpics.eventStream(channels.telltale, channel)
-              valRdr <- VerifiedEpics
-                          .readChannel(channels.telltale, channel)
-                          .map(Resource.pure[F, F[A]])
-            } yield
-              for {
-                x <- valStr
-                y <- valRdr
-              } yield (x, y)
+          val presV: VerifiedEpics[F, Resource[F, *], (Stream[F, StreamEvent[A]], F[A])] = (
+            VerifiedEpics.eventStream(channels.telltale, channel),
+            VerifiedEpics.readChannel(channels.telltale, channel).inResource
+          ).tupled
 
-          presV.map(_.use { pair =>
+          presV.mapRun(_.use { pair =>
             val (stream: Stream[F, StreamEvent[A]], read: F[A]) = pair
             Temporal[F].realTime.flatMap { t0 =>
               stream
@@ -478,20 +471,12 @@ object TcsEpicsSystem {
           val presV: VerifiedEpics[F,
                                    Resource[F, *],
                                    (Stream[F, StreamEvent[BinaryYesNo]], F[BinaryYesNo])
-          ] =
-            for {
-              valStr <-
-                VerifiedEpics.eventStream(channels.telltale, integratingCh)
-              valRdr <- VerifiedEpics
-                          .readChannel(channels.telltale, integratingCh)
-                          .map(Resource.pure[F, F[BinaryYesNo]])
-            } yield
-              for {
-                x <- valStr
-                y <- valRdr
-              } yield (x, y)
+          ] = (
+            VerifiedEpics.eventStream(channels.telltale, integratingCh),
+            VerifiedEpics.readChannel(channels.telltale, integratingCh).inResource
+          ).tupled
 
-          presV.map(_.use { pair =>
+          presV.mapRun(_.use { pair =>
             val (stream: Stream[F, StreamEvent[BinaryYesNo]], read: F[BinaryYesNo]) = pair
             Temporal[F].realTime.flatMap { t0 =>
               stream
@@ -542,7 +527,7 @@ object TcsEpicsSystem {
         ): VerifiedEpics[F, F, TargetData] =
           VerifiedEpics
             .readChannel(channels.telltale, ch)
-            .map(_.flatMap { v =>
+            .mapRun(_.flatMap { v =>
               if (v.length >= 8)
                 Declination
                   .fromRadians(v(1))
@@ -597,7 +582,7 @@ object TcsEpicsSystem {
 
         override def probeGuideEnabled: VerifiedEpics[F, F, BinaryOnOff] =
           readChannel(channels.telltale, channels.guide.probeGuideEnabled)
-            .map(_.map(v => BinaryOnOff.valueOf(v)).attempt.map(_.getOrElse(BinaryOnOff.Off)))
+            .mapRun(_.map(v => BinaryOnOff.valueOf(v)).attempt.map(_.getOrElse(BinaryOnOff.Off)))
 
         override def probeGuideSource: VerifiedEpics[F, F, String] =
           readChannel(channels.telltale, channels.guide.probeGuideSource)
@@ -612,33 +597,25 @@ object TcsEpicsSystem {
           EnclosureAppliedState.build(channels)
 
         override def azimuthDemand: VerifiedEpics[F, F, AzimuthAngle] =
-          readChannel(channels.telltale, channels.demandAzimuth).map(
-            _.map(AzimuthAngle.fromDoubleDegrees)
-          )
+          readChannel(channels.telltale, channels.demandAzimuth).map(AzimuthAngle.fromDoubleDegrees)
 
         override def rotatorDemand: VerifiedEpics[F, F, RotatorAngle] =
-          readChannel(channels.telltale, channels.demandRotator).map(
-            _.map(RotatorAngle.fromDoubleDegrees)
-          )
+          readChannel(channels.telltale, channels.demandRotator).map(RotatorAngle.fromDoubleDegrees)
 
         override def instrAA: VerifiedEpics[F, F, Angle] =
-          readChannel(channels.telltale, channels.instrAA).map(
-            _.map(Angle.fromDoubleDegrees)
-          )
+          readChannel(channels.telltale, channels.instrAA).map(Angle.fromDoubleDegrees)
 
         override def sourceAWavelength: VerifiedEpics[F, F, Option[Wavelength]] =
-          readChannel(channels.telltale, channels.sourceAWavelength).map(
-            _.map(a => Wavelength.decimalAngstroms.getOption(BigDecimal(a)))
+          readChannel(channels.telltale, channels.sourceAWavelength).map(a =>
+            Wavelength.decimalAngstroms.getOption(BigDecimal(a))
           )
 
-        override def focalPlaneOffsetA: VerifiedEpics[F, F, (Distance, Distance)] = for {
-          xf <- readChannel(channels.telltale, channels.focalPlaneOffsetAX)
-          yf <- readChannel(channels.telltale, channels.focalPlaneOffsetAY)
-        } yield
-          for {
-            x <- xf
-            y <- yf
-          } yield (Distance.fromBigDecimalMillimeters(x), Distance.fromBigDecimalMillimeters(y))
+        override def focalPlaneOffsetA: VerifiedEpics[F, F, (Distance, Distance)] = (
+          readChannel(channels.telltale, channels.focalPlaneOffsetAX),
+          readChannel(channels.telltale, channels.focalPlaneOffsetAY)
+        ).mapN((x, y) =>
+          (Distance.fromBigDecimalMillimeters(x), Distance.fromBigDecimalMillimeters(y))
+        )
       }
   }
 
@@ -2022,22 +1999,22 @@ object TcsEpicsSystem {
     override def nodAchopA: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodachopa)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
 
     override def nodAchopB: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodachopb)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
 
     override def nodBchopA: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodbchopa)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
 
     override def nodBchopB: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodbchopb)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
   }
 
   trait ProbeGuideState[F[_]] {
@@ -2055,22 +2032,22 @@ object TcsEpicsSystem {
     override def nodAchopA: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodachopa)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
 
     override def nodAchopB: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodachopb)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
 
     override def nodBchopA: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodbchopa)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
 
     override def nodBchopB: VerifiedEpics[F, F, BinaryOnOff] =
       VerifiedEpics
         .readChannel(tt, probeChannels.nodbchopb)
-        .map(_.map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off)))
+        .map(Enumerated[BinaryOnOff].fromTag(_).getOrElse(BinaryOnOff.Off))
   }
 
   trait EnclosureCommandsState[F[_]] {
@@ -2088,53 +2065,39 @@ object TcsEpicsSystem {
 
       override def domeMode: VerifiedEpics[F, F, Option[DomeMode]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosure.ecsDomeMode)
-        .map(_.map(_.flatMap(dm => Enumerated[DomeMode].fromTag(dm))))
+        .map(_.flatMap(dm => Enumerated[DomeMode].fromTag(dm)))
 
       override def shuttersAperture: VerifiedEpics[F, F, Option[Distance]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosure.ecsSlitHeight)
         .map(
-          _.map(
-            _.flatMap(
-              _.toDoubleOption.map(v => Distance.fromBigDecimalMillimeters(BigDecimal(v)))
-            )
+          _.flatMap(
+            _.toDoubleOption.map(v => Distance.fromBigDecimalMillimeters(BigDecimal(v)))
           )
         )
 
-      override def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]] = for {
-        mdF <- VerifiedEpics.readOptionChannel(channels.telltale, channels.enclosure.ecsShutterMode)
-        dF  <- shuttersAperture
-      } yield
-        for {
-          md <- mdF.map(_.getOrElse(""))
-          d  <- dF
-        } yield ShutterMode.fromTag(md, d)
+      override def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]] = (
+        VerifiedEpics.readOptionChannel(channels.telltale, channels.enclosure.ecsShutterMode),
+        shuttersAperture
+      ).mapN((md, d) => ShutterMode.fromTag(md.getOrElse(""), d))
 
       override def domeEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosure.ecsDomeEnable)
-        .map(
-          _.map(_.flatMap(Enumerated[BinaryOnOff].fromTag).map(_ === BinaryOnOff.On))
-        )
+        .map(_.flatMap(Enumerated[BinaryOnOff].fromTag).map(_ === BinaryOnOff.On))
 
       override def shuttersEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosure.ecsShutterEnable)
-        .map(
-          _.map(_.flatMap(Enumerated[BinaryOnOff].fromTag).map(_ === BinaryOnOff.On))
-        )
+        .map(_.flatMap(Enumerated[BinaryOnOff].fromTag).map(_ === BinaryOnOff.On))
 
       override def eastVentGateAperture: VerifiedEpics[F, F, Option[IntPercent]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosure.ecsVentGateEast)
         .map(
-          _.map(
-            _.flatMap(_.toDoubleOption.flatMap(v => IntPercent.from((v * 100.0).toInt).toOption))
-          )
+          _.flatMap(_.toDoubleOption.flatMap(v => IntPercent.from((v * 100.0).toInt).toOption))
         )
 
       override def westVentGateAperture: VerifiedEpics[F, F, Option[IntPercent]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosure.ecsVentGateWest)
         .map(
-          _.map(
-            _.flatMap(_.toDoubleOption.flatMap(v => IntPercent.from((v * 100.0).toInt).toOption))
-          )
+          _.flatMap(_.toDoubleOption.flatMap(v => IntPercent.from((v * 100.0).toInt).toOption))
         )
     }
   }
@@ -2152,35 +2115,28 @@ object TcsEpicsSystem {
 
       override def domeMode: VerifiedEpics[F, F, Option[DomeMode]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosureState.domeMode)
-        .map(_.map(_.flatMap(dm => Enumerated[DomeMode].fromTag(dm))))
+        .map(_.flatMap(dm => Enumerated[DomeMode].fromTag(dm)))
 
       override def shuttersAperture: VerifiedEpics[F, F, Option[Distance]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosureState.shuttersAperture)
         .map(
-          _.map(
-            _.flatMap(
-              _.toDoubleOption.map(v => Distance.fromBigDecimalMillimeters(BigDecimal(v)))
-            )
+          _.flatMap(
+            _.toDoubleOption.map(v => Distance.fromBigDecimalMillimeters(BigDecimal(v)))
           )
         )
 
-      override def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]] = for {
-        mdF <-
-          VerifiedEpics.readOptionChannel(channels.telltale, channels.enclosureState.shuttersMode)
-        dF  <- shuttersAperture
-      } yield
-        for {
-          md <- mdF.map(_.getOrElse(""))
-          d  <- dF
-        } yield ShutterMode.fromTag(md, d)
+      override def shuttersMode: VerifiedEpics[F, F, Option[ShutterMode]] = (
+        VerifiedEpics.readOptionChannel(channels.telltale, channels.enclosureState.shuttersMode),
+        shuttersAperture
+      ).mapN((md, d) => ShutterMode.fromTag(md.getOrElse(""), d))
 
       override def domeEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosureState.domeEnabled)
-        .map(_.map(_.map(_ =!= 0)))
+        .map(_.map(_ =!= 0))
 
       override def shuttersEnabled: VerifiedEpics[F, F, Option[Boolean]] = VerifiedEpics
         .readOptionChannel(channels.telltale, channels.enclosureState.shuttersEnabled)
-        .map(_.map(_.map(_ =!= 0)))
+        .map(_.map(_ =!= 0))
     }
   }
 
@@ -2197,19 +2153,19 @@ object TcsEpicsSystem {
 
         override def localCA: VerifiedEpics[F, F, Angle] = VerifiedEpics
           .readChannel(channels.telltale, channels.pointingAdjustmentState.localCA)
-          .map(_.map(Angle.fromDoubleArcseconds))
+          .map(Angle.fromDoubleArcseconds)
 
         override def localCE: VerifiedEpics[F, F, Angle] = VerifiedEpics
           .readChannel(channels.telltale, channels.pointingAdjustmentState.localCE)
-          .map(_.map(Angle.fromDoubleArcseconds))
+          .map(Angle.fromDoubleArcseconds)
 
         override def guideCA: VerifiedEpics[F, F, Angle] = VerifiedEpics
           .readChannel(channels.telltale, channels.pointingAdjustmentState.guideCA)
-          .map(_.map(Angle.fromDoubleArcseconds))
+          .map(Angle.fromDoubleArcseconds)
 
         override def guideCE: VerifiedEpics[F, F, Angle] = VerifiedEpics
           .readChannel(channels.telltale, channels.pointingAdjustmentState.guideCE)
-          .map(_.map(Angle.fromDoubleArcseconds))
+          .map(Angle.fromDoubleArcseconds)
       }
   }
 

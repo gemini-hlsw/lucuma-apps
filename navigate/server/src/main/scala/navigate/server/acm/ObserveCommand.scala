@@ -84,37 +84,23 @@ object ObserveCommand {
       typ:     CommandType,
       timeout: FiniteDuration
     ): VerifiedEpics[F, F, ApplyCommandResult] = {
-      val streamsV = for {
-        avrs   <- eventStream(telltaleChannel, apply.oval)
-        cvrs   <- eventStream(telltaleChannel, car.oval)
-        dwr    <- writeChannel(telltaleChannel, apply.dir)(Applicative[F].pure(CadDirective.START))
-                    .map(Resource.pure[F, F[Unit]])
-        msrr   <- readChannel(telltaleChannel, apply.mess)
-                    .map(Temporal[F].delayBy(_, MessageReadDelay))
-                    .map(Resource.pure[F, F[String]])
-        omsrr  <- readChannel(telltaleChannel, car.omss)
-                    .map(Temporal[F].delayBy(_, MessageReadDelay))
-                    .map(Resource.pure[F, F[String]])
-        clidrr <- readChannel(telltaleChannel, car.clid).map(Resource.pure[F, F[Int]])
-        avrr   <- readChannel(telltaleChannel, apply.oval).map(Resource.pure[F, F[Int]])
-        cvrr   <- readChannel(telltaleChannel, car.oval).map(Resource.pure[F, F[CarState]])
-        intsF  <- eventStream(telltaleChannel, integrating)
-      } yield
-        for {
-          avs   <- avrs
-          cvs   <- cvrs
-          dw    <- dwr
-          msr   <- msrr
-          omsr  <- omsrr
-          clidr <- clidrr
-          avr   <- avrr
-          cvr   <- cvrr
-          ints  <- intsF
-        } yield (avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints)
+      val streamsV = (
+        eventStream(telltaleChannel, apply.oval),
+        eventStream(telltaleChannel, car.oval),
+        writeChannel(telltaleChannel, apply.dir)(CadDirective.START.pure[F]).inResource,
+        readChannel(telltaleChannel, apply.mess)
+          .mapRun(Temporal[F].delayBy(_, MessageReadDelay))
+          .inResource,
+        readChannel(telltaleChannel, car.omss)
+          .mapRun(Temporal[F].delayBy(_, MessageReadDelay))
+          .inResource,
+        readChannel(telltaleChannel, car.clid).inResource,
+        readChannel(telltaleChannel, apply.oval).inResource,
+        readChannel(telltaleChannel, car.oval).inResource,
+        eventStream(telltaleChannel, integrating)
+      ).tupled
 
-      streamsV.map(_.use { case (avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints) =>
-        processCommand(typ, avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints).timeout(timeout)
-      })
+      streamsV.mapRun(_.use(processCommand(typ, _, _, _, _, _, _, _, _, _).timeout(timeout)))
 
     }
 
@@ -144,7 +130,7 @@ object ObserveCommand {
      *   : Effect to read car.CLID
      * @param avr
      *   : Effect to read apply.VAL
-     * @param avr
+     * @param cvr
      *   : Effect to read car.VAL
      * @param ints
      *   : Stream of values from the integration state channel

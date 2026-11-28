@@ -30,27 +30,21 @@ object ScsEpicsSystem {
         VerifiedEpics
           .readChannel(channels.telltale, channels.follow)
           .map {
-            _.map {
-              case "YES" => Following
-              case _     => NotFollowing
-            }
+            case "YES" => Following
+            case _     => NotFollowing
           }
 
       override def getCentralBaffleState: VerifiedEpics[F, F, CentralBafflePosition] = VerifiedEpics
         .readChannel(channels.telltale, channels.centralBaffle)
         .map(
-          _.map(
-            _.decode[CentralBafflePosition].getOrElse(CentralBafflePosition.Open)
-          )
+          _.decode[CentralBafflePosition].getOrElse(CentralBafflePosition.Open)
         )
 
       override def getDeployableBaffleState: VerifiedEpics[F, F, DeployableBafflePosition] =
         VerifiedEpics
           .readChannel(channels.telltale, channels.deployableBaffle)
           .map(
-            _.map(
-              _.decode[DeployableBafflePosition].getOrElse(DeployableBafflePosition.Visible)
-            )
+            _.decode[DeployableBafflePosition].getOrElse(DeployableBafflePosition.Visible)
           )
     }
 

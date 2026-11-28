@@ -30,18 +30,24 @@ import navigate.server.epicsdata.BinaryOnOffCapitalized
 import navigate.server.epicsdata.BinaryYesNo
 import navigate.server.tcs.TcsChannels.AdjustChannels
 import navigate.server.tcs.TcsChannels.AgMechChannels
+import navigate.server.tcs.TcsChannels.AoChannels
 import navigate.server.tcs.TcsChannels.ChopConfigChannels
 import navigate.server.tcs.TcsChannels.ChopRelativeChannels
 import navigate.server.tcs.TcsChannels.EnclosureChannels
 import navigate.server.tcs.TcsChannels.EnclosureStateChannels
 import navigate.server.tcs.TcsChannels.FocalPlaneOffsetCommandChannels
 import navigate.server.tcs.TcsChannels.GuideConfigStatusChannels
+import navigate.server.tcs.TcsChannels.GuideProbesChannels
+import navigate.server.tcs.TcsChannels.GuidingChannels
 import navigate.server.tcs.TcsChannels.M1Channels
 import navigate.server.tcs.TcsChannels.M1GuideConfigChannels
 import navigate.server.tcs.TcsChannels.M2BafflesChannels
 import navigate.server.tcs.TcsChannels.M2GuideConfigChannels
+import navigate.server.tcs.TcsChannels.MechanismsChannels
+import navigate.server.tcs.TcsChannels.MountChannels
 import navigate.server.tcs.TcsChannels.MountGuideChannels
 import navigate.server.tcs.TcsChannels.OffsetCommandChannels
+import navigate.server.tcs.TcsChannels.OffsetsChannels
 import navigate.server.tcs.TcsChannels.OiwfsSelectChannels
 import navigate.server.tcs.TcsChannels.OriginChannels
 import navigate.server.tcs.TcsChannels.PointingConfigChannels
@@ -56,6 +62,7 @@ import navigate.server.tcs.TcsChannels.RotatorChannels
 import navigate.server.tcs.TcsChannels.SlewChannels
 import navigate.server.tcs.TcsChannels.TargetChannels
 import navigate.server.tcs.TcsChannels.TargetFilterChannels
+import navigate.server.tcs.TcsChannels.TargetsChannels
 import navigate.server.tcs.TcsChannels.WfsChannels
 import navigate.server.tcs.TcsChannels.WfsClosedLoopChannels
 import navigate.server.tcs.TcsChannels.WfsObserveChannels
@@ -1207,134 +1214,156 @@ object TestTcsEpicsSystem {
     TcsChannels(
       telltale =
         TelltaleChannel[F]("TCS", new TestChannel[F, State, String](s, Focus[State](_.telltale))),
-      telescopeParkDir =
-        new TestChannel[F, State, CadDirective](s, Focus[State](_.telescopeParkDir)),
-      mountFollow = new TestChannel[F, State, String](s, Focus[State](_.mountFollow)),
-      rotStopBrake = new TestChannel[F, State, String](s, Focus[State](_.rotStopBrake)),
-      rotParkDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.rotParkDir)),
-      rotFollow = new TestChannel[F, State, String](s, Focus[State](_.rotFollow)),
-      rotMoveAngle = new TestChannel[F, State, String](s, Focus[State](_.rotMoveAngle)),
-      enclosure = buildEnclosureChannels(s),
-      sourceA = buildTargetChannels(s, Focus[State](_.sourceA)),
-      pwfs1Target = buildTargetChannels(s, Focus[State](_.pwfs1Target)),
-      pwfs2Target = buildTargetChannels(s, Focus[State](_.pwfs2Target)),
-      oiwfsTarget = buildTargetChannels(s, Focus[State](_.oiwfsTarget)),
-      wavelSourceA = new TestChannel[F, State, String](s, Focus[State](_.wavelSourceA)),
-      wavelSourceB = new TestChannel[F, State, String](s, Focus[State](_.wavelSourceB)),
-      wavelPwfs1 = new TestChannel[F, State, String](s, Focus[State](_.wavelPwfs1)),
-      wavelPwfs2 = new TestChannel[F, State, String](s, Focus[State](_.wavelPwfs2)),
-      wavelOiwfs = new TestChannel[F, State, String](s, Focus[State](_.wavelOiwfs)),
-      slew = buildSlewChannels(s),
-      rotator = buildRotatorChannels(s),
-      origin = buildOriginChannels(s),
-      focusOffset = new TestChannel[F, State, String](s, Focus[State](_.focusOffset)),
-      focusOffsetB = new TestChannel[F, State, String](s, Focus[State](_.focusOffsetB)),
-      p1ProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.pwfs1Tracking)),
-      p1Probe = buildProbeChannels(s, Focus[State](_.pwfs1Probe)),
-      p2ProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.pwfs2Tracking)),
-      p2Probe = buildProbeChannels(s, Focus[State](_.pwfs2Probe)),
-      oiProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.oiwfsTracking)),
-      oiProbe = buildProbeChannels(s, Focus[State](_.oiwfsProbe)),
-      m1Guide = new TestChannel[F, State, String](s, Focus[State](_.m1Guide)),
-      m1GuideConfig = buildM1GuideConfigChannels(s, Focus[State](_.m1GuideConfig)),
-      m2Guide = new TestChannel[F, State, String](s, Focus[State](_.m2Guide)),
-      m2GuideMode = new TestChannel[F, State, String](s, Focus[State](_.m2GuideMode)),
-      m2GuideConfig = buildM2GuideConfigChannels(s, Focus[State](_.m2GuideConfig)),
-      m2GuideReset = new TestChannel[F, State, CadDirective](s, Focus[State](_.m2GuideReset)),
-      m2Follow = new TestChannel[F, State, String](s, Focus[State](_.m2Follow)),
-      mountGuide = buildMountGuideChannels(s, Focus[State](_.mountGuide)),
-      pwfs1 = buildWfsChannels(s, Focus[State](_.pwfs1)),
-      pwfs2 = buildWfsChannels(s, Focus[State](_.pwfs2)),
-      oiwfs = buildWfsChannels(s, Focus[State](_.oiwfs)),
-      guide = buildGuideStateChannels(s, Focus[State](_.guideStatus)),
-      probeGuideMode = buildGuideModeChannels(s, Focus[State](_.probeGuideMode)),
-      oiwfsSelect = buildOiwfsSelectChannels(s, Focus[State](_.oiwfsSelect)),
-      m2Baffles = buildM2BafflesChannels(s, Focus[State](_.m2Baffles)),
-      hrwfsMech = buildAgMechChannels(s, Focus[State](_.hrwfsMech)),
-      scienceFoldMech = buildAgMechChannels(s, Focus[State](_.scienceFoldMech)),
-      aoFoldMech = buildAgMechChannels(s, Focus[State](_.aoFoldMech)),
-      m1Channels = buildM1Channels(s, Focus[State](_.m1Cmds)),
-      nodState = new TestChannel[F, State, String](s, Focus[State](_.nodState)),
-      p1ProbeTrackingState = buildProbeTrackingStateChannels(s, Focus[State](_.pwfs1TrackingState)),
-      p2ProbeTrackingState = buildProbeTrackingStateChannels(s, Focus[State](_.pwfs2TrackingState)),
-      oiProbeTrackingState = buildProbeTrackingStateChannels(s, Focus[State](_.oiwfsTrackingState)),
-      targetAdjust = buildAdjustChannels(s, Focus[State](_.targetAdjust)),
-      targetOffsetAbsorb = buildOffsetCommandChannels(s, Focus[State](_.targetOffsetAbsorb)),
-      targetOffsetClear = buildOffsetCommandChannels(s, Focus[State](_.targetOffsetClear)),
-      originAdjust = buildAdjustChannels(s, Focus[State](_.originAdjust)),
-      originOffsetAbsorb = buildOffsetCommandChannels(s, Focus[State](_.originOffsetAbsorb)),
-      originOffsetClear = buildOffsetCommandChannels(s, Focus[State](_.originOffsetClear)),
-      pointingAdjust = buildPointingAdjustChannels(s, Focus[State](_.pointingAdjust)),
-      inPosition = new TestChannel[F, State, String](s, Focus[State](_.inPosition)),
-      agInPosition = new TestChannel[F, State, Double](s, Focus[State](_.agInPosition)),
-      targetFilter = buildTargetFilterChannels(s, Focus[State](_.targetFilter)),
-      sourceATargetReadout =
-        new TestChannel[F, State, Array[Double]](s, Focus[State](_.sourceATargetReadout)),
-      pwfs1TargetReadout =
-        new TestChannel[F, State, Array[Double]](s, Focus[State](_.pwfs1TargetReadout)),
-      pwfs2TargetReadout =
-        new TestChannel[F, State, Array[Double]](s, Focus[State](_.pwfs2TargetReadout)),
-      oiwfsTargetReadout =
-        new TestChannel[F, State, Array[Double]](s, Focus[State](_.oiwfsTargetReadout)),
-      pointingAdjustmentState =
-        buildPointingOffsetStateChannels(s, Focus[State](_.pointingOffsetState)),
-      pointingConfig = buildPointingConfigChannels(s, Focus[State](_.pointingConfig)),
-      absorbGuideDir =
-        new TestChannel[F, State, CadDirective](s, Focus[State](_.absorbGuideDirState)),
-      zeroGuideDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.zeroGuideDirState)),
-      focalPlaneOffsetCommandA =
-        buildFocalPlaneOffsetCommandChannels(s, Focus[State](_.focalPlaneOffsetCommandA)),
-      focalPlaneOffsetCommandB =
-        buildFocalPlaneOffsetCommandChannels(s, Focus[State](_.focalPlaneOffsetCommandB)),
-      azimuthWrap = new TestChannel[F, State, String](s, Focus[State](_.azimuthWrap)),
-      rotatorWrap = new TestChannel[F, State, String](s, Focus[State](_.rotatorWrap)),
-      zeroRotatorGuideDir =
-        new TestChannel[F, State, CadDirective](s, Focus[State](_.zeroRotatorGuide)),
-      pwfs1Mechs =
-        PwfsMechCmdChannels[F](new TestChannel[F, State, String](s, Focus[State](_.p1Filter)),
-                               new TestChannel[F, State, String](s, Focus[State](_.p1FieldStop))
+      mount = MountChannels(
+        telescopeParkDir =
+          new TestChannel[F, State, CadDirective](s, Focus[State](_.telescopeParkDir)),
+        mountFollow = new TestChannel[F, State, String](s, Focus[State](_.mountFollow)),
+        rotStopBrake = new TestChannel[F, State, String](s, Focus[State](_.rotStopBrake)),
+        rotParkDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.rotParkDir)),
+        rotFollow = new TestChannel[F, State, String](s, Focus[State](_.rotFollow)),
+        rotMoveAngle = new TestChannel[F, State, String](s, Focus[State](_.rotMoveAngle)),
+        slew = buildSlewChannels(s),
+        rotator = buildRotatorChannels(s),
+        azimuthWrap = new TestChannel[F, State, String](s, Focus[State](_.azimuthWrap)),
+        rotatorWrap = new TestChannel[F, State, String](s, Focus[State](_.rotatorWrap)),
+        demandAzimuth = new TestChannel[F, State, Double](s, Focus[State](_.demandAzimuth)),
+        demandRotator = new TestChannel[F, State, Double](s, Focus[State](_.demandRotator)),
+        inPosition = new TestChannel[F, State, String](s, Focus[State](_.inPosition)),
+        agInPosition = new TestChannel[F, State, Double](s, Focus[State](_.agInPosition)),
+        nodState = new TestChannel[F, State, String](s, Focus[State](_.nodState)),
+        programId = new TestChannel[F, State, String](s, Focus[State](_.programId))
+      ),
+      targets = TargetsChannels(
+        sourceA = buildTargetChannels(s, Focus[State](_.sourceA)),
+        pwfs1Target = buildTargetChannels(s, Focus[State](_.pwfs1Target)),
+        pwfs2Target = buildTargetChannels(s, Focus[State](_.pwfs2Target)),
+        oiwfsTarget = buildTargetChannels(s, Focus[State](_.oiwfsTarget)),
+        wavelSourceA = new TestChannel[F, State, String](s, Focus[State](_.wavelSourceA)),
+        wavelSourceB = new TestChannel[F, State, String](s, Focus[State](_.wavelSourceB)),
+        wavelPwfs1 = new TestChannel[F, State, String](s, Focus[State](_.wavelPwfs1)),
+        wavelPwfs2 = new TestChannel[F, State, String](s, Focus[State](_.wavelPwfs2)),
+        wavelOiwfs = new TestChannel[F, State, String](s, Focus[State](_.wavelOiwfs)),
+        sourceATargetReadout =
+          new TestChannel[F, State, Array[Double]](s, Focus[State](_.sourceATargetReadout)),
+        pwfs1TargetReadout =
+          new TestChannel[F, State, Array[Double]](s, Focus[State](_.pwfs1TargetReadout)),
+        pwfs2TargetReadout =
+          new TestChannel[F, State, Array[Double]](s, Focus[State](_.pwfs2TargetReadout)),
+        oiwfsTargetReadout =
+          new TestChannel[F, State, Array[Double]](s, Focus[State](_.oiwfsTargetReadout)),
+        sourceAWavelength = new TestChannel[F, State, Double](s, Focus[State](_.sourceAWavelength)),
+        targetFilter = buildTargetFilterChannels(s, Focus[State](_.targetFilter))
+      ),
+      probes = GuideProbesChannels(
+        p1ProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.pwfs1Tracking)),
+        p1Probe = buildProbeChannels(s, Focus[State](_.pwfs1Probe)),
+        p2ProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.pwfs2Tracking)),
+        p2Probe = buildProbeChannels(s, Focus[State](_.pwfs2Probe)),
+        oiProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.oiwfsTracking)),
+        oiProbe = buildProbeChannels(s, Focus[State](_.oiwfsProbe)),
+        pwfs1 = buildWfsChannels(s, Focus[State](_.pwfs1)),
+        pwfs2 = buildWfsChannels(s, Focus[State](_.pwfs2)),
+        oiwfs = buildWfsChannels(s, Focus[State](_.oiwfs)),
+        probeGuideMode = buildGuideModeChannels(s, Focus[State](_.probeGuideMode)),
+        oiwfsSelect = buildOiwfsSelectChannels(s, Focus[State](_.oiwfsSelect)),
+        p1ProbeTrackingState =
+          buildProbeTrackingStateChannels(s, Focus[State](_.pwfs1TrackingState)),
+        p2ProbeTrackingState =
+          buildProbeTrackingStateChannels(s, Focus[State](_.pwfs2TrackingState)),
+        oiProbeTrackingState =
+          buildProbeTrackingStateChannels(s, Focus[State](_.oiwfsTrackingState)),
+        pwfs1Mechs =
+          PwfsMechCmdChannels[F](new TestChannel[F, State, String](s, Focus[State](_.p1Filter)),
+                                 new TestChannel[F, State, String](s, Focus[State](_.p1FieldStop))
+          ),
+        pwfs2Mechs =
+          PwfsMechCmdChannels[F](new TestChannel[F, State, String](s, Focus[State](_.p2Filter)),
+                                 new TestChannel[F, State, String](s, Focus[State](_.p2FieldStop))
+          ),
+        pwfs1UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs1UnwrapDir)),
+        pwfs2UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs2UnwrapDir))
+      ),
+      guiding = GuidingChannels(
+        m1Guide = new TestChannel[F, State, String](s, Focus[State](_.m1Guide)),
+        m1GuideConfig = buildM1GuideConfigChannels(s, Focus[State](_.m1GuideConfig)),
+        m2Guide = new TestChannel[F, State, String](s, Focus[State](_.m2Guide)),
+        m2GuideMode = new TestChannel[F, State, String](s, Focus[State](_.m2GuideMode)),
+        m2GuideConfig = buildM2GuideConfigChannels(s, Focus[State](_.m2GuideConfig)),
+        m2GuideReset = new TestChannel[F, State, CadDirective](s, Focus[State](_.m2GuideReset)),
+        mountGuide = buildMountGuideChannels(s, Focus[State](_.mountGuide)),
+        guide = buildGuideStateChannels(s, Focus[State](_.guideStatus)),
+        absorbGuideDir =
+          new TestChannel[F, State, CadDirective](s, Focus[State](_.absorbGuideDirState)),
+        zeroGuideDir =
+          new TestChannel[F, State, CadDirective](s, Focus[State](_.zeroGuideDirState)),
+        zeroRotatorGuideDir =
+          new TestChannel[F, State, CadDirective](s, Focus[State](_.zeroRotatorGuide))
+      ),
+      offsets = OffsetsChannels(
+        origin = buildOriginChannels(s),
+        targetAdjust = buildAdjustChannels(s, Focus[State](_.targetAdjust)),
+        targetOffsetAbsorb = buildOffsetCommandChannels(s, Focus[State](_.targetOffsetAbsorb)),
+        targetOffsetClear = buildOffsetCommandChannels(s, Focus[State](_.targetOffsetClear)),
+        originAdjust = buildAdjustChannels(s, Focus[State](_.originAdjust)),
+        originOffsetAbsorb = buildOffsetCommandChannels(s, Focus[State](_.originOffsetAbsorb)),
+        originOffsetClear = buildOffsetCommandChannels(s, Focus[State](_.originOffsetClear)),
+        pointingAdjust = buildPointingAdjustChannels(s, Focus[State](_.pointingAdjust)),
+        pointingAdjustmentState =
+          buildPointingOffsetStateChannels(s, Focus[State](_.pointingOffsetState)),
+        pointingConfig = buildPointingConfigChannels(s, Focus[State](_.pointingConfig)),
+        focalPlaneOffsetCommandA =
+          buildFocalPlaneOffsetCommandChannels(s, Focus[State](_.focalPlaneOffsetCommandA)),
+        focalPlaneOffsetCommandB =
+          buildFocalPlaneOffsetCommandChannels(s, Focus[State](_.focalPlaneOffsetCommandB)),
+        focalPlaneOffsetAX =
+          new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAX)),
+        focalPlaneOffsetAY =
+          new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAY)),
+        instrAA = new TestChannel[F, State, Double](s, Focus[State](_.instrAA))
+      ),
+      mechanisms = MechanismsChannels(
+        enclosure = buildEnclosureChannels(s),
+        enclosureState = EnclosureStateChannels(
+          domeMode =
+            new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsDomeMode)),
+          shuttersMode =
+            new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsShutterMode)),
+          shuttersAperture =
+            new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsSlitHeight)),
+          domeEnabled =
+            new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsDomeEnable)),
+          shuttersEnabled =
+            new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsShutterEnable))
         ),
-      pwfs2Mechs =
-        PwfsMechCmdChannels[F](new TestChannel[F, State, String](s, Focus[State](_.p2Filter)),
-                               new TestChannel[F, State, String](s, Focus[State](_.p2FieldStop))
+        focusOffset = new TestChannel[F, State, String](s, Focus[State](_.focusOffset)),
+        focusOffsetB = new TestChannel[F, State, String](s, Focus[State](_.focusOffsetB)),
+        m2Follow = new TestChannel[F, State, String](s, Focus[State](_.m2Follow)),
+        m2Baffles = buildM2BafflesChannels(s, Focus[State](_.m2Baffles)),
+        hrwfsMech = buildAgMechChannels(s, Focus[State](_.hrwfsMech)),
+        scienceFoldMech = buildAgMechChannels(s, Focus[State](_.scienceFoldMech)),
+        aoFoldMech = buildAgMechChannels(s, Focus[State](_.aoFoldMech)),
+        m1Channels = buildM1Channels(s, Focus[State](_.m1Cmds)),
+        chopConfig = ChopConfigChannels[F](
+          new TestChannel[F, State, String](s, Focus[State](_.chopConfig.typ)),
+          new TestChannel[F, State, String](s, Focus[State](_.chopConfig.source)),
+          new TestChannel[F, State, String](s, Focus[State](_.chopConfig.frequency)),
+          new TestChannel[F, State, String](s, Focus[State](_.chopConfig.dutyCycle))
         ),
-      chopConfig = ChopConfigChannels[F](
-        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.typ)),
-        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.source)),
-        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.frequency)),
-        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.dutyCycle))
+        chopRelative = ChopRelativeChannels[F](
+          new TestChannel[F, State, String](s, Focus[State](_.chopRelative.thrw)),
+          new TestChannel[F, State, String](s, Focus[State](_.chopRelative.angle)),
+          new TestChannel[F, State, String](s, Focus[State](_.chopRelative.system)),
+          new TestChannel[F, State, String](s, Focus[State](_.chopRelative.equinox))
+        )
       ),
-      chopRelative = ChopRelativeChannels[F](
-        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.thrw)),
-        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.angle)),
-        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.system)),
-        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.equinox))
-      ),
-      pwfs1UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs1UnwrapDir)),
-      pwfs2UnwrapDir = new TestChannel[F, State, CadDirective](s, Focus[State](_.pwfs2UnwrapDir)),
-      demandAzimuth = new TestChannel[F, State, Double](s, Focus[State](_.demandAzimuth)),
-      demandRotator = new TestChannel[F, State, Double](s, Focus[State](_.demandRotator)),
-      enclosureState = EnclosureStateChannels(
-        domeMode = new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsDomeMode)),
-        shuttersMode =
-          new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsShutterMode)),
-        shuttersAperture =
-          new TestChannel[F, State, String](s, Focus[State](_.enclosureState.ecsSlitHeight)),
-        domeEnabled =
-          new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsDomeEnable)),
-        shuttersEnabled =
-          new TestChannel[F, State, Int](s, Focus[State](_.enclosureState.ecsShutterEnable))
-      ),
-      instrAA = new TestChannel[F, State, Double](s, Focus[State](_.instrAA)),
-      focalPlaneOffsetAX = new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAX)),
-      focalPlaneOffsetAY = new TestChannel[F, State, Double](s, Focus[State](_.focalPlaneOffsetAY)),
-      sourceAWavelength = new TestChannel[F, State, Double](s, Focus[State](_.sourceAWavelength)),
-      programId = new TestChannel[F, State, String](s, Focus[State](_.programId)),
-      useAo = new TestChannel[F, State, String](s, Focus[State](_.useAo)),
-      aoFieldLens = new TestChannel[F, State, String](s, Focus[State](_.aoFieldLens)),
-      aoFieldLensPrepare = new TestChannel[F, State, String](s, Focus[State](_.aoFieldLensPrepare)),
-      aoFollow = new TestChannel[F, State, String](s, Focus[State](_.aoFollow)),
-      aoPark = new TestChannel[F, State, String](s, Focus[State](_.aoPark))
+      ao = AoChannels(
+        useAo = new TestChannel[F, State, String](s, Focus[State](_.useAo)),
+        aoFieldLens = new TestChannel[F, State, String](s, Focus[State](_.aoFieldLens)),
+        aoFieldLensPrepare =
+          new TestChannel[F, State, String](s, Focus[State](_.aoFieldLensPrepare)),
+        aoFollow = new TestChannel[F, State, String](s, Focus[State](_.aoFollow)),
+        aoPark = new TestChannel[F, State, String](s, Focus[State](_.aoPark))
+      )
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {

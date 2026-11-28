@@ -13,6 +13,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.util.TimeSpan
+import navigate.epics.VerifiedEpics.*
 import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.epics.given
 import navigate.model.WfsConfiguration
@@ -94,55 +95,33 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
     }
 
   override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] = {
-    val startVal: VerifiedEpics[F, F, CombinedOiwfsStatus] = for {
-      oiName  <- sys.ags.status.oiwfsName
-      exp     <- sys.oiwfs.getIntegrationTime
-      gmosSav <-
-        sys.gmosOiwfs.circularBufferStatus.map(_.map(_.imageEnabled)).attempt(ConnectionTimeout)
-      f2Sav   <-
-        sys.f2Oiwfs.circularBufferStatus.map(_.map(_.imageEnabled)).attempt(ConnectionTimeout)
-    } yield
-      for {
-        t  <- exp.attempt.map(_.toOption)
-        oi <- oiName.attempt.map(_.toOption)
-        gm <- gmosSav.map(_.toOption)
-        f2 <- f2Sav.map(_.toOption)
-      } yield CombinedOiwfsStatus(t, oi, gm, f2)
+    val startVal: VerifiedEpics[F, F, CombinedOiwfsStatus] = (
+      sys.ags.status.oiwfsName.attemptRun,
+      sys.oiwfs.getIntegrationTime.attemptRun,
+      sys.gmosOiwfs.circularBufferStatus.map(_.imageEnabled).attempt(ConnectionTimeout),
+      sys.f2Oiwfs.circularBufferStatus.map(_.imageEnabled).attempt(ConnectionTimeout)
+    ).mapN { (oi, t, gm, f2) =>
+      CombinedOiwfsStatus(t.toOption, oi.toOption, gm.toOption, f2.toOption)
+    }
 
     // TODO: Implement stream reconnection instead of discarding the stream forever if cannot create it
-    val streamsRes: VerifiedEpics[
-      F,
-      Resource[F, *],
-      (Stream[F, TimeSpan], Stream[F, Option[Instrument]], Stream[F, Boolean], Stream[F, Boolean])
-    ] = for {
-      expS    <- sys.oiwfs.integrationTimeStream
-      oiNameS <- sys.ags.status.oiwfsNameStream
-      gmSaveS <- sys.gmosOiwfs.imgCircularBufferStream.attempt(ConnectionTimeout)
-      f2SaveS <- sys.f2Oiwfs.imgCircularBufferStream.attempt(ConnectionTimeout)
-    } yield (expS,
-             oiNameS,
-             gmSaveS.map(_.getOrElse(Stream.never)),
-             f2SaveS.map(_.getOrElse(Stream.never))
-    ).mapN((_, _, _, _))
+    val streams: VerifiedEpics[F, Resource[F, *], Stream[F, OiStatusEvent]] = (
+      sys.oiwfs.integrationTimeStream,
+      sys.ags.status.oiwfsNameStream,
+      sys.gmosOiwfs.imgCircularBufferStream.attempt(ConnectionTimeout),
+      sys.f2Oiwfs.imgCircularBufferStream.attempt(ConnectionTimeout)
+    ).mapN { (expS, oiNameS, gmSaveS, f2SaveS) =>
+      Stream(
+        expS.map(OiExposureTime.apply),
+        oiNameS.map(OiName.apply),
+        gmSaveS.getOrElse(Stream.never).map(GmoiSaving.apply),
+        f2SaveS.getOrElse(Stream.never).map(F2oiSaving.apply)
+      ).parJoinUnbounded
+    }
 
-    val streams: VerifiedEpics[F, Resource[F, *], Stream[F, OiStatusEvent]] =
-      streamsRes.map(_.map { (a, b, c, d) =>
-        Stream(a.map(OiExposureTime.apply),
-               b.map(OiName.apply),
-               c.map(GmoiSaving.apply),
-               d.map(F2oiSaving.apply)
-        ).parJoinUnbounded
-      })
-
-    (
-      for {
-        v0F  <- startVal.liftK[Resource[F, *]]
-        ssrF <- streams
-      } yield
-        for {
-          v0  <- v0F
-          ssr <- ssrF
-        } yield ssr
+    (startVal.liftK[Resource[F, *]], streams)
+      .mapN { (v0, ssr) =>
+        ssr
           .scan(v0) { (current, update) =>
             update match {
               case OiExposureTime(t) => current.copy(expTime = t.some)
@@ -162,7 +141,8 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
             } yield WfsConfiguration(t, sav)
           }
           .flattenOption
-    ).verifiedRun(ConnectionTimeout)
+      }
+      .verifiedRun(ConnectionTimeout)
   }
 }
 

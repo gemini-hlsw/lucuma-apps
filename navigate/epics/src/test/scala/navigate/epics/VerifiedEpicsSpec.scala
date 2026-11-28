@@ -5,6 +5,7 @@ package navigate.epics
 
 import cats.effect.IO
 import cats.effect.std.Dispatcher
+import cats.syntax.all.*
 import lucuma.core.util.RetryFlakyTests
 import munit.CatsEffectSuite
 import navigate.epics.Channel.StreamEvent
@@ -33,7 +34,7 @@ class VerifiedEpicsSpec extends CatsEffectSuite with RetryFlakyTests {
         .use { case (tt, ch1, ch2) =>
           val q = for {
             _  <- VerifiedEpics.writeChannel(tt, ch1)(IO.pure(testVal.toDouble))
-            fa <- VerifiedEpics.readChannel(tt, ch1).map(_.map(_ + 1))
+            fa <- VerifiedEpics.readChannel(tt, ch1).map(_ + 1)
             _  <- VerifiedEpics.writeChannel(tt, ch2)(fa.map(_.toInt))
             fr <- VerifiedEpics.readChannel[IO, Int](tt, ch2)
           } yield fr
@@ -63,7 +64,7 @@ class VerifiedEpicsSpec extends CatsEffectSuite with RetryFlakyTests {
         given Dispatcher[IO] = dsp
         val q                = VerifiedEpics
           .eventStream(tt, ch1)
-          .map(
+          .mapRun(
             _.use(
               _.collect { case StreamEvent.ValueChanged(x) => x }
                 .take(valueCount.toLong)
@@ -100,7 +101,7 @@ class VerifiedEpicsSpec extends CatsEffectSuite with RetryFlakyTests {
         .use { case (tt, ch1, ch2) =>
           val q = for {
             _  <- VerifiedEpics.writeChannel(tt, ch1)(IO.pure(testVal.toDouble))
-            fa <- VerifiedEpics.readChannel(tt, ch1).map(_.map(_ + 1))
+            fa <- VerifiedEpics.readChannel(tt, ch1).map(_ + 1)
             _  <- VerifiedEpics.writeChannel(tt, ch2)(fa.map(_.toInt))
             fr <- VerifiedEpics.readChannel[IO, Int](tt, ch2)
           } yield fr

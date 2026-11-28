@@ -69,17 +69,15 @@ object WfsEpicsSystem {
 
     override def getIntegrationTime: VerifiedEpics[F, F, TimeSpan] = VerifiedEpics
       .readChannel(channels.telltale, channels.integrationTime)
-      .map(_.map(x => TimeSpan.fromSeconds(x).getOrElse(TimeSpan.Zero)))
+      .map(x => TimeSpan.fromSeconds(x).getOrElse(TimeSpan.Zero))
 
     override def integrationTimeStream: VerifiedEpics[F, Resource[F, *], Stream[F, TimeSpan]] =
       VerifiedEpics
         .eventStream(channels.telltale, channels.integrationTime)
         .map(
-          _.map(
-            _.collect { case StreamEvent.ValueChanged(t) =>
-              TimeSpan.fromSeconds(t).getOrElse(TimeSpan.Zero)
-            }
-          )
+          _.collect { case StreamEvent.ValueChanged(t) =>
+            TimeSpan.fromSeconds(t).getOrElse(TimeSpan.Zero)
+          }
         )
   }
 

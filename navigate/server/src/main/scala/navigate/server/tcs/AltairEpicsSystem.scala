@@ -102,25 +102,25 @@ object AltairEpicsSystem {
 
     override val status: AltairStatus[F] = new AltairStatus[F] {
       override def usingLaserWfs: VerifiedEpics[F, F, Boolean] =
-        read(ch.useLwfs).map(_.map(_.equalsIgnoreCase("ON")))
+        read(ch.useLwfs).map(_.equalsIgnoreCase("ON"))
 
       override def uStageIn: VerifiedEpics[F, F, Boolean] =
-        read(ch.uStage).map(_.map(_.equalsIgnoreCase("IN")))
+        read(ch.uStage).map(_.equalsIgnoreCase("IN"))
 
       override def zoomTracking: VerifiedEpics[F, F, Boolean] =
-        read(ch.zoomMode).map(_.map(_.equalsIgnoreCase("TRACK")))
+        read(ch.zoomMode).map(_.equalsIgnoreCase("TRACK"))
 
       override def zoomBusy: VerifiedEpics[F, F, Boolean] =
-        read(ch.zoomBusy).map(_.map(_.equalsIgnoreCase("BUSY")))
+        read(ch.zoomBusy).map(_.equalsIgnoreCase("BUSY"))
 
       override def zoomInPosition: VerifiedEpics[F, F, Boolean] =
-        read(ch.zoomInPosition).map(_.map(_ =!= 0))
+        read(ch.zoomInPosition).map(_ =!= 0)
 
       override def wfsPositionBusy: VerifiedEpics[F, F, Boolean] =
-        read(ch.wfsPositionBusy).map(_.map(_ === CarState.BUSY))
+        read(ch.wfsPositionBusy).map(_ === CarState.BUSY)
 
       override def busy: VerifiedEpics[F, F, Boolean] =
-        read(ch.gaosBusy).map(_.map(_ === CarState.BUSY))
+        read(ch.gaosBusy).map(_ === CarState.BUSY)
     }
 
     override val commands: AltairCommands[F] = new AltairCommands[F] {

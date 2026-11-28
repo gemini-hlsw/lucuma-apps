@@ -123,9 +123,9 @@ object GeminiApplyCommand {
       val carVals   = eventStream(telltaleChannel, car.oval)
       val dw        = writeChannel(telltaleChannel, apply.dir)(CadDirective.START.pure[F])
       val msr       =
-        readChannel(telltaleChannel, apply.mess).map(Temporal[F].delayBy(_, MessageReadDelay))
+        readChannel(telltaleChannel, apply.mess).mapRun(Temporal[F].delayBy(_, MessageReadDelay))
       val omsr      =
-        readChannel(telltaleChannel, car.omss).map(Temporal[F].delayBy(_, MessageReadDelay))
+        readChannel(telltaleChannel, car.omss).mapRun(Temporal[F].delayBy(_, MessageReadDelay))
       val clidr     = readChannel(telltaleChannel, car.clid)
       val avr       = readChannel(telltaleChannel, apply.oval)
 

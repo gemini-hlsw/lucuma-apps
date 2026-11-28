@@ -17,104 +17,28 @@ import navigate.server.epicsdata.DirSuffix
 
 import TcsChannels.*
 
+/**
+ * All TCS channels, organized in groups. The members of each group are exported, so channels can be
+ * accessed directly.
+ */
 case class TcsChannels[F[_]](
-  /**
-   * List of all TcsChannels. Channel -> Defines a raw channel Other cases -> Group of channels
-   */
-  telltale:                 TelltaleChannel[F],
-  telescopeParkDir:         Channel[F, CadDirective],
-  mountFollow:              Channel[F, String],
-  rotStopBrake:             Channel[F, String],
-  rotParkDir:               Channel[F, CadDirective],
-  rotFollow:                Channel[F, String],
-  rotMoveAngle:             Channel[F, String],
-  enclosure:                EnclosureChannels[F],
-  sourceA:                  TargetChannels[F],
-  pwfs1Target:              TargetChannels[F],
-  pwfs2Target:              TargetChannels[F],
-  oiwfsTarget:              TargetChannels[F],
-  wavelSourceA:             Channel[F, String],
-  wavelSourceB:             Channel[F, String],
-  wavelPwfs1:               Channel[F, String],
-  wavelPwfs2:               Channel[F, String],
-  wavelOiwfs:               Channel[F, String],
-  slew:                     SlewChannels[F],
-  rotator:                  RotatorChannels[F],
-  origin:                   OriginChannels[F],
-  focusOffset:              Channel[F, String],
-  focusOffsetB:             Channel[F, String],
-  p1ProbeTracking:          ProbeTrackingChannels[F],
-  p1Probe:                  ProbeChannels[F],
-  p2ProbeTracking:          ProbeTrackingChannels[F],
-  p2Probe:                  ProbeChannels[F],
-  oiProbeTracking:          ProbeTrackingChannels[F],
-  oiProbe:                  ProbeChannels[F],
-  m1Guide:                  Channel[F, String],
-  m1GuideConfig:            M1GuideConfigChannels[F],
-  m2Guide:                  Channel[F, String],
-  m2GuideMode:              Channel[F, String],
-  m2GuideConfig:            M2GuideConfigChannels[F],
-  m2GuideReset:             Channel[F, CadDirective],
-  m2Follow:                 Channel[F, String],
-  mountGuide:               MountGuideChannels[F],
-  pwfs1:                    WfsChannels[F],
-  pwfs2:                    WfsChannels[F],
-  oiwfs:                    WfsChannels[F],
-  guide:                    GuideConfigStatusChannels[F],
-  probeGuideMode:           ProbeGuideModeChannels[F],
-  oiwfsSelect:              OiwfsSelectChannels[F],
-  m2Baffles:                M2BafflesChannels[F],
-  hrwfsMech:                AgMechChannels[F],
-  scienceFoldMech:          AgMechChannels[F],
-  aoFoldMech:               AgMechChannels[F],
-  m1Channels:               M1Channels[F],
-  nodState:                 Channel[F, String],
-  p1ProbeTrackingState:     ProbeTrackingStateChannels[F],
-  p2ProbeTrackingState:     ProbeTrackingStateChannels[F],
-  oiProbeTrackingState:     ProbeTrackingStateChannels[F],
-  targetAdjust:             AdjustChannels[F],
-  targetOffsetAbsorb:       OffsetCommandChannels[F],
-  targetOffsetClear:        OffsetCommandChannels[F],
-  originAdjust:             AdjustChannels[F],
-  originOffsetAbsorb:       OffsetCommandChannels[F],
-  originOffsetClear:        OffsetCommandChannels[F],
-  pointingAdjust:           PointingModelAdjustChannels[F],
-  inPosition:               Channel[F, String],
-  agInPosition:             Channel[F, Double],
-  targetFilter:             TargetFilterChannels[F],
-  sourceATargetReadout:     Channel[F, Array[Double]],
-  pwfs1TargetReadout:       Channel[F, Array[Double]],
-  pwfs2TargetReadout:       Channel[F, Array[Double]],
-  oiwfsTargetReadout:       Channel[F, Array[Double]],
-  pointingAdjustmentState:  PointingCorrections[F],
-  pointingConfig:           PointingConfigChannels[F],
-  absorbGuideDir:           Channel[F, CadDirective],
-  zeroGuideDir:             Channel[F, CadDirective],
-  focalPlaneOffsetCommandA: FocalPlaneOffsetCommandChannels[F],
-  focalPlaneOffsetCommandB: FocalPlaneOffsetCommandChannels[F],
-  azimuthWrap:              Channel[F, String],
-  rotatorWrap:              Channel[F, String],
-  zeroRotatorGuideDir:      Channel[F, CadDirective],
-  pwfs1Mechs:               PwfsMechCmdChannels[F],
-  pwfs2Mechs:               PwfsMechCmdChannels[F],
-  chopConfig:               ChopConfigChannels[F],
-  chopRelative:             ChopRelativeChannels[F],
-  pwfs1UnwrapDir:           Channel[F, CadDirective],
-  pwfs2UnwrapDir:           Channel[F, CadDirective],
-  demandAzimuth:            Channel[F, Double],
-  demandRotator:            Channel[F, Double],
-  enclosureState:           EnclosureStateChannels[F],
-  instrAA:                  Channel[F, Double],
-  focalPlaneOffsetAX:       Channel[F, Double],
-  focalPlaneOffsetAY:       Channel[F, Double],
-  sourceAWavelength:        Channel[F, Double],
-  programId:                Channel[F, String],
-  useAo:                    Channel[F, String],
-  aoFieldLens:              Channel[F, String],
-  aoFieldLensPrepare:       Channel[F, String],
-  aoFollow:                 Channel[F, String],
-  aoPark:                   Channel[F, String]
-)
+  telltale:   TelltaleChannel[F],
+  mount:      MountChannels[F],
+  targets:    TargetsChannels[F],
+  probes:     GuideProbesChannels[F],
+  guiding:    GuidingChannels[F],
+  offsets:    OffsetsChannels[F],
+  mechanisms: MechanismsChannels[F],
+  ao:         AoChannels[F]
+) {
+  export mount.*
+  export targets.*
+  export probes.*
+  export guiding.*
+  export offsets.*
+  export mechanisms.*
+  export ao.*
+}
 
 object TcsChannels {
 
@@ -904,15 +828,383 @@ object TcsChannels {
     )
   }
 
+  /** Mount and rotator control and status. */
+  case class MountChannels[F[_]](
+    telescopeParkDir: Channel[F, CadDirective],
+    mountFollow:      Channel[F, String],
+    rotStopBrake:     Channel[F, String],
+    rotParkDir:       Channel[F, CadDirective],
+    rotFollow:        Channel[F, String],
+    rotMoveAngle:     Channel[F, String],
+    slew:             SlewChannels[F],
+    rotator:          RotatorChannels[F],
+    azimuthWrap:      Channel[F, String],
+    rotatorWrap:      Channel[F, String],
+    demandAzimuth:    Channel[F, Double],
+    demandRotator:    Channel[F, Double],
+    inPosition:       Channel[F, String],
+    agInPosition:     Channel[F, Double],
+    nodState:         Channel[F, String],
+    programId:        Channel[F, String]
+  )
+
+  object MountChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop
+    ): Resource[F, MountChannels[F]] = for {
+      tpd   <- service.getChannel[CadDirective](tcsTop.value, s"telpark$DirSuffix")
+      mf    <- service.getChannel[String](tcsTop.value, "mcFollow.A")
+      rsb   <- service.getChannel[String](tcsTop.value, "rotStop.B")
+      rpd   <- service.getChannel[CadDirective](tcsTop.value, s"rotPark$DirSuffix")
+      rf    <- service.getChannel[String](tcsTop.value, "crFollow.A")
+      rma   <- service.getChannel[String](tcsTop.value, "rotMove.A")
+      slw   <- buildSlewChannels(service, tcsTop)
+      rot   <- buildRotatorChannels(service, tcsTop)
+      nodS  <- service.getChannel[String](tcsTop.value, "sad:nodState.VAL")
+      inpo  <- service.getChannel[String](tcsTop.value, "sad:inPosition.VAL")
+      agip  <- service.getChannel[Double](tcsTop.value, "agInPosCalc.VAL")
+      azwr  <- service.getChannel[String](tcsTop.value, "azwrap.A")
+      rtwr  <- service.getChannel[String](tcsTop.value, "rotwrap.A")
+      dmaz  <- service.getChannel[Double](tcsTop.value, "demandAz.VAL")
+      dmrot <- service.getChannel[Double](tcsTop.value, "demandRma.VAL")
+      pid   <- service.getChannel[String](tcsTop.value, "sad:programID.VAL")
+    } yield MountChannels(
+      telescopeParkDir = tpd,
+      mountFollow = mf,
+      rotStopBrake = rsb,
+      rotParkDir = rpd,
+      rotFollow = rf,
+      rotMoveAngle = rma,
+      slew = slw,
+      rotator = rot,
+      azimuthWrap = azwr,
+      rotatorWrap = rtwr,
+      demandAzimuth = dmaz,
+      demandRotator = dmrot,
+      inPosition = inpo,
+      agInPosition = agip,
+      nodState = nodS,
+      programId = pid
+    )
+  }
+
+  /** Targets, wavelengths and target readouts. */
+  case class TargetsChannels[F[_]](
+    sourceA:              TargetChannels[F],
+    pwfs1Target:          TargetChannels[F],
+    pwfs2Target:          TargetChannels[F],
+    oiwfsTarget:          TargetChannels[F],
+    wavelSourceA:         Channel[F, String],
+    wavelSourceB:         Channel[F, String],
+    wavelPwfs1:           Channel[F, String],
+    wavelPwfs2:           Channel[F, String],
+    wavelOiwfs:           Channel[F, String],
+    sourceATargetReadout: Channel[F, Array[Double]],
+    pwfs1TargetReadout:   Channel[F, Array[Double]],
+    pwfs2TargetReadout:   Channel[F, Array[Double]],
+    oiwfsTargetReadout:   Channel[F, Array[Double]],
+    sourceAWavelength:    Channel[F, Double],
+    targetFilter:         TargetFilterChannels[F]
+  )
+
+  object TargetsChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop
+    ): Resource[F, TargetsChannels[F]] = for {
+      sra  <- buildTargetChannels(service, s"${tcsTop.value}sourceA")
+      p1t  <- buildTargetChannels(service, s"${tcsTop.value}pwfs1")
+      p2t  <- buildTargetChannels(service, s"${tcsTop.value}pwfs2")
+      oit  <- buildTargetChannels(service, s"${tcsTop.value}oiwfs")
+      wva  <- service.getChannel[String](tcsTop.value, "wavelSourceA.A")
+      wvb  <- service.getChannel[String](tcsTop.value, "wavelSourceB.A")
+      wvp1 <- service.getChannel[String](tcsTop.value, "wavelPwfs1.A")
+      wvp2 <- service.getChannel[String](tcsTop.value, "wavelPwfs2.A")
+      wvoi <- service.getChannel[String](tcsTop.value, "wavelOiwfs.A")
+      tf   <- TargetFilterChannels.build(service, tcsTop)
+      satr <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetA.VAL")
+      p1tr <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetPwfs1.VAL")
+      p2tr <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetPwfs2.VAL")
+      oitr <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetOiwfs.VAL")
+      swa  <- service.getChannel[Double](tcsTop.value, "sad:sourceAWavelength.VAL")
+    } yield TargetsChannels(
+      sourceA = sra,
+      pwfs1Target = p1t,
+      pwfs2Target = p2t,
+      oiwfsTarget = oit,
+      wavelSourceA = wva,
+      wavelSourceB = wvb,
+      wavelPwfs1 = wvp1,
+      wavelPwfs2 = wvp2,
+      wavelOiwfs = wvoi,
+      sourceATargetReadout = satr,
+      pwfs1TargetReadout = p1tr,
+      pwfs2TargetReadout = p2tr,
+      oiwfsTargetReadout = oitr,
+      sourceAWavelength = swa,
+      targetFilter = tf
+    )
+  }
+
+  /** Guide probes and wavefront sensors. */
+  case class GuideProbesChannels[F[_]](
+    p1ProbeTracking:      ProbeTrackingChannels[F],
+    p1Probe:              ProbeChannels[F],
+    p2ProbeTracking:      ProbeTrackingChannels[F],
+    p2Probe:              ProbeChannels[F],
+    oiProbeTracking:      ProbeTrackingChannels[F],
+    oiProbe:              ProbeChannels[F],
+    pwfs1:                WfsChannels[F],
+    pwfs2:                WfsChannels[F],
+    oiwfs:                WfsChannels[F],
+    probeGuideMode:       ProbeGuideModeChannels[F],
+    oiwfsSelect:          OiwfsSelectChannels[F],
+    p1ProbeTrackingState: ProbeTrackingStateChannels[F],
+    p2ProbeTrackingState: ProbeTrackingStateChannels[F],
+    oiProbeTrackingState: ProbeTrackingStateChannels[F],
+    pwfs1Mechs:           PwfsMechCmdChannels[F],
+    pwfs2Mechs:           PwfsMechCmdChannels[F],
+    pwfs1UnwrapDir:       Channel[F, CadDirective],
+    pwfs2UnwrapDir:       Channel[F, CadDirective]
+  )
+
+  object GuideProbesChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop
+    ): Resource[F, GuideProbesChannels[F]] = for {
+      p1g  <- buildProbeTrackingChannels(service, tcsTop, "Pwfs1")
+      p1p  <- buildProbeChannels(service, s"${tcsTop.value.value}pwfs1")
+      p2g  <- buildProbeTrackingChannels(service, tcsTop, "Pwfs2")
+      p2p  <- buildProbeChannels(service, s"${tcsTop.value.value}pwfs2")
+      oig  <- buildProbeTrackingChannels(service, tcsTop, "Oiwfs")
+      op   <- buildProbeChannels(service, s"${tcsTop.value.value}oiwfs")
+      p1   <- WfsChannels.build(service, tcsTop, "pwfs1", "p1")
+      p2   <- WfsChannels.build(service, tcsTop, "pwfs2", "p2")
+      oi   <- WfsChannels.build(service, tcsTop, "oiwfs", "oi")
+      gm   <- ProbeGuideModeChannels.build(service, tcsTop)
+      os   <- OiwfsSelectChannels.build(service, tcsTop)
+      p1gs <- buildProbeTrackingStateChannels(service, tcsTop, "Pwfs1")
+      p2gs <- buildProbeTrackingStateChannels(service, tcsTop, "Pwfs2")
+      oigs <- buildProbeTrackingStateChannels(service, tcsTop, "Oiwfs")
+      p1uw <- service.getChannel[CadDirective](tcsTop.value, "pwfs1Unwrap.DIR")
+      p2uw <- service.getChannel[CadDirective](tcsTop.value, "pwfs2Unwrap.DIR")
+      p1mc <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs1")
+      p2mc <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs2")
+    } yield GuideProbesChannels(
+      p1ProbeTracking = p1g,
+      p1Probe = p1p,
+      p2ProbeTracking = p2g,
+      p2Probe = p2p,
+      oiProbeTracking = oig,
+      oiProbe = op,
+      pwfs1 = p1,
+      pwfs2 = p2,
+      oiwfs = oi,
+      probeGuideMode = gm,
+      oiwfsSelect = os,
+      p1ProbeTrackingState = p1gs,
+      p2ProbeTrackingState = p2gs,
+      oiProbeTrackingState = oigs,
+      pwfs1Mechs = p1mc,
+      pwfs2Mechs = p2mc,
+      pwfs1UnwrapDir = p1uw,
+      pwfs2UnwrapDir = p2uw
+    )
+  }
+
+  /** Guide loops configuration and control. */
+  case class GuidingChannels[F[_]](
+    m1Guide:             Channel[F, String],
+    m1GuideConfig:       M1GuideConfigChannels[F],
+    m2Guide:             Channel[F, String],
+    m2GuideMode:         Channel[F, String],
+    m2GuideConfig:       M2GuideConfigChannels[F],
+    m2GuideReset:        Channel[F, CadDirective],
+    mountGuide:          MountGuideChannels[F],
+    guide:               GuideConfigStatusChannels[F],
+    absorbGuideDir:      Channel[F, CadDirective],
+    zeroGuideDir:        Channel[F, CadDirective],
+    zeroRotatorGuideDir: Channel[F, CadDirective]
+  )
+
+  object GuidingChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop
+    ): Resource[F, GuidingChannels[F]] = for {
+      m1g  <- service.getChannel[String](tcsTop.value, "m1GuideMode.A")
+      m1gc <- M1GuideConfigChannels.build(service, tcsTop)
+      m2g  <- service.getChannel[String](tcsTop.value, "m2GuideControl.A")
+      m2gm <- service.getChannel[String](tcsTop.value, "m2GuideMode.B")
+      m2gc <- M2GuideConfigChannels.build(service, tcsTop)
+      m2gr <- service.getChannel[CadDirective](tcsTop.value, s"m2GuideReset$DirSuffix")
+      mng  <- MountGuideChannels.build(service, tcsTop)
+      gd   <- GuideConfigStatusChannels.build(service, tcsTop)
+      abgd <- service.getChannel[CadDirective](tcsTop.value, "absorbGuide.DIR")
+      zgud <- service.getChannel[CadDirective](tcsTop.value, "zeroGuide.DIR")
+      zrg  <- service.getChannel[CadDirective](tcsTop.value, "zeroRotGuide.DIR")
+    } yield GuidingChannels(
+      m1Guide = m1g,
+      m1GuideConfig = m1gc,
+      m2Guide = m2g,
+      m2GuideMode = m2gm,
+      m2GuideConfig = m2gc,
+      m2GuideReset = m2gr,
+      mountGuide = mng,
+      guide = gd,
+      absorbGuideDir = abgd,
+      zeroGuideDir = zgud,
+      zeroRotatorGuideDir = zrg
+    )
+  }
+
+  /** Origin, offsets and pointing adjustments. */
+  case class OffsetsChannels[F[_]](
+    origin:                   OriginChannels[F],
+    targetAdjust:             AdjustChannels[F],
+    targetOffsetAbsorb:       OffsetCommandChannels[F],
+    targetOffsetClear:        OffsetCommandChannels[F],
+    originAdjust:             AdjustChannels[F],
+    originOffsetAbsorb:       OffsetCommandChannels[F],
+    originOffsetClear:        OffsetCommandChannels[F],
+    pointingAdjust:           PointingModelAdjustChannels[F],
+    pointingAdjustmentState:  PointingCorrections[F],
+    pointingConfig:           PointingConfigChannels[F],
+    focalPlaneOffsetCommandA: FocalPlaneOffsetCommandChannels[F],
+    focalPlaneOffsetCommandB: FocalPlaneOffsetCommandChannels[F],
+    focalPlaneOffsetAX:       Channel[F, Double],
+    focalPlaneOffsetAY:       Channel[F, Double],
+    instrAA:                  Channel[F, Double]
+  )
+
+  object OffsetsChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop
+    ): Resource[F, OffsetsChannels[F]] = for {
+      org   <- buildOriginChannels(service, tcsTop)
+      trad  <- AdjustChannels.build(service, tcsTop, "target")
+      trab  <- OffsetCommandChannels.build(service, tcsTop, "absorb")
+      trcl  <- OffsetCommandChannels.build(service, tcsTop, "clear")
+      orad  <- AdjustChannels.build(service, tcsTop, "po")
+      orab  <- OffsetCommandChannels.build(service, tcsTop, "absorbPo")
+      orcl  <- OffsetCommandChannels.build(service, tcsTop, "clearPo")
+      pmad  <- PointingModelAdjustChannels.build(service, tcsTop, "collAdjust")
+      padj  <- PointingCorrections.build(service, tcsTop)
+      pncf  <- PointingConfigChannels.build(service, tcsTop)
+      ioffA <- FocalPlaneOffsetCommandChannels.build(service, tcsTop, "offsetPoA1")
+      ioffB <- FocalPlaneOffsetCommandChannels.build(service, tcsTop, "offsetPoB1")
+      iaa   <- service.getChannel[Double](tcsTop.value, "sad:instrAA.VAL")
+      ioax  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALA")
+      ioay  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALB")
+    } yield OffsetsChannels(
+      origin = org,
+      targetAdjust = trad,
+      targetOffsetAbsorb = trab,
+      targetOffsetClear = trcl,
+      originAdjust = orad,
+      originOffsetAbsorb = orab,
+      originOffsetClear = orcl,
+      pointingAdjust = pmad,
+      pointingAdjustmentState = padj,
+      pointingConfig = pncf,
+      focalPlaneOffsetCommandA = ioffA,
+      focalPlaneOffsetCommandB = ioffB,
+      focalPlaneOffsetAX = ioax,
+      focalPlaneOffsetAY = ioay,
+      instrAA = iaa
+    )
+  }
+
+  /** Enclosure, focus, M1, M2, chopping and AG mechanisms. */
+  case class MechanismsChannels[F[_]](
+    enclosure:       EnclosureChannels[F],
+    enclosureState:  EnclosureStateChannels[F],
+    focusOffset:     Channel[F, String],
+    focusOffsetB:    Channel[F, String],
+    m2Follow:        Channel[F, String],
+    m2Baffles:       M2BafflesChannels[F],
+    hrwfsMech:       AgMechChannels[F],
+    scienceFoldMech: AgMechChannels[F],
+    aoFoldMech:      AgMechChannels[F],
+    m1Channels:      M1Channels[F],
+    chopConfig:      ChopConfigChannels[F],
+    chopRelative:    ChopRelativeChannels[F]
+  )
+
+  object MechanismsChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop,
+      m1Top:   M1Top
+    ): Resource[F, MechanismsChannels[F]] = for {
+      ecs   <- EnclosureChannels.build(service, tcsTop)
+      foc   <- service.getChannel[String](tcsTop.value, "dtelFocus.A")
+      focB  <- service.getChannel[String](tcsTop.value, "dtelFocus.B")
+      m2f   <- service.getChannel[String](tcsTop.value, "m2Follow.A")
+      bf    <- M2BafflesChannels.build(service, tcsTop)
+      hrm   <- AgMechChannels.build(service, s"${tcsTop.value}hrwfs")
+      sfm   <- AgMechChannels.build(service, s"${tcsTop.value}scienceFold")
+      aom   <- AgMechChannels.build(service, s"${tcsTop.value}aoFold")
+      m1    <- M1Channels.build(service, tcsTop, m1Top)
+      chcf  <- ChopConfigChannels.build(service, tcsTop)
+      chrl  <- ChopRelativeChannels.build(service, tcsTop)
+      encst <- EnclosureStateChannels.build(service, tcsTop)
+    } yield MechanismsChannels(
+      enclosure = ecs,
+      enclosureState = encst,
+      focusOffset = foc,
+      focusOffsetB = focB,
+      m2Follow = m2f,
+      m2Baffles = bf,
+      hrwfsMech = hrm,
+      scienceFoldMech = sfm,
+      aoFoldMech = aom,
+      m1Channels = m1,
+      chopConfig = chcf,
+      chopRelative = chrl
+    )
+  }
+
+  /** Adaptive optics (Altair) control. */
+  case class AoChannels[F[_]](
+    useAo:              Channel[F, String],
+    aoFieldLens:        Channel[F, String],
+    aoFieldLensPrepare: Channel[F, String],
+    aoFollow:           Channel[F, String],
+    aoPark:             Channel[F, String]
+  )
+
+  object AoChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      tcsTop:  TcsTop
+    ): Resource[F, AoChannels[F]] = for {
+      uao   <- service.getChannel[String](tcsTop.value, "configureForAO.A")
+      aofl  <- service.getChannel[String](tcsTop.value, "aoMoveAStar.A")
+      aoflp <- service.getChannel[String](tcsTop.value, "aoPrepareCm.F")
+      aofo  <- service.getChannel[String](tcsTop.value, "aoFollow.A")
+      aopk  <- service.getChannel[String](tcsTop.value, "aoPark.A")
+    } yield AoChannels(
+      useAo = uao,
+      aoFieldLens = aofl,
+      aoFieldLensPrepare = aoflp,
+      aoFollow = aofo,
+      aoPark = aopk
+    )
+  }
+
   /**
-   * Build all TcsChannels It will construct the desired raw channel or call the build function for
-   * channels group
+   * Builds all TCS channels: the telltale channel and each channel group.
    *
    * @param service
    *   Epics service to handle channels
-   * @param top
-   *   Prefix string of epics channel
-   * @return
+   * @param tcsTop
+   *   Prefix string of the TCS epics channels
+   * @param m1Top
+   *   Prefix string of the M1 epics channels
    */
   def buildChannels[F[_]](
     service: EpicsService[F],
@@ -923,193 +1215,14 @@ object TcsChannels {
       service.getChannel[String](top, channel).map(TelltaleChannel(sysName, _))
 
     for {
-      tt    <- telltaleChannel(tcsTop.value, "sad:health.VAL")
-      tpd   <- service.getChannel[CadDirective](tcsTop.value, s"telpark$DirSuffix")
-      mf    <- service.getChannel[String](tcsTop.value, "mcFollow.A")
-      rsb   <- service.getChannel[String](tcsTop.value, "rotStop.B")
-      rpd   <- service.getChannel[CadDirective](tcsTop.value, s"rotPark$DirSuffix")
-      rf    <- service.getChannel[String](tcsTop.value, "crFollow.A")
-      rma   <- service.getChannel[String](tcsTop.value, "rotMove.A")
-      ecs   <- EnclosureChannels.build(service, tcsTop)
-      sra   <- buildTargetChannels(service, s"${tcsTop.value}sourceA")
-      p1t   <- buildTargetChannels(service, s"${tcsTop.value}pwfs1")
-      p2t   <- buildTargetChannels(service, s"${tcsTop.value}pwfs2")
-      oit   <- buildTargetChannels(service, s"${tcsTop.value}oiwfs")
-      wva   <- service.getChannel[String](tcsTop.value, "wavelSourceA.A")
-      wvb   <- service.getChannel[String](tcsTop.value, "wavelSourceB.A")
-      wvp1  <- service.getChannel[String](tcsTop.value, "wavelPwfs1.A")
-      wvp2  <- service.getChannel[String](tcsTop.value, "wavelPwfs2.A")
-      wvoi  <- service.getChannel[String](tcsTop.value, "wavelOiwfs.A")
-      slw   <- buildSlewChannels(service, tcsTop)
-      rot   <- buildRotatorChannels(service, tcsTop)
-      org   <- buildOriginChannels(service, tcsTop)
-      foc   <- service.getChannel[String](tcsTop.value, "dtelFocus.A")
-      focB  <- service.getChannel[String](tcsTop.value, "dtelFocus.B")
-      p1g   <- buildProbeTrackingChannels(service, tcsTop, "Pwfs1")
-      p1p   <- buildProbeChannels(service, s"${tcsTop.value.value}pwfs1")
-      p2g   <- buildProbeTrackingChannels(service, tcsTop, "Pwfs2")
-      p2p   <- buildProbeChannels(service, s"${tcsTop.value.value}pwfs2")
-      oig   <- buildProbeTrackingChannels(service, tcsTop, "Oiwfs")
-      op    <- buildProbeChannels(service, s"${tcsTop.value.value}oiwfs")
-      m1g   <- service.getChannel[String](tcsTop.value, "m1GuideMode.A")
-      m1gc  <- M1GuideConfigChannels.build(service, tcsTop)
-      m2g   <- service.getChannel[String](tcsTop.value, "m2GuideControl.A")
-      m2gm  <- service.getChannel[String](tcsTop.value, "m2GuideMode.B")
-      m2gc  <- M2GuideConfigChannels.build(service, tcsTop)
-      m2gr  <- service.getChannel[CadDirective](tcsTop.value, s"m2GuideReset$DirSuffix")
-      m2f   <- service.getChannel[String](tcsTop.value, "m2Follow.A")
-      mng   <- MountGuideChannels.build(service, tcsTop)
-      p1    <- WfsChannels.build(service, tcsTop, "pwfs1", "p1")
-      p2    <- WfsChannels.build(service, tcsTop, "pwfs2", "p2")
-      oi    <- WfsChannels.build(service, tcsTop, "oiwfs", "oi")
-      gd    <- GuideConfigStatusChannels.build(service, tcsTop)
-      gm    <- ProbeGuideModeChannels.build(service, tcsTop)
-      os    <- OiwfsSelectChannels.build(service, tcsTop)
-      bf    <- M2BafflesChannels.build(service, tcsTop)
-      hrm   <- AgMechChannels.build(service, s"${tcsTop.value}hrwfs")
-      sfm   <- AgMechChannels.build(service, s"${tcsTop.value}scienceFold")
-      aom   <- AgMechChannels.build(service, s"${tcsTop.value}aoFold")
-      m1    <- M1Channels.build(service, tcsTop, m1Top)
-      trad  <- AdjustChannels.build(service, tcsTop, "target")
-      trab  <- OffsetCommandChannels.build(service, tcsTop, "absorb")
-      trcl  <- OffsetCommandChannels.build(service, tcsTop, "clear")
-      orad  <- AdjustChannels.build(service, tcsTop, "po")
-      orab  <- OffsetCommandChannels.build(service, tcsTop, "absorbPo")
-      orcl  <- OffsetCommandChannels.build(service, tcsTop, "clearPo")
-      pmad  <- PointingModelAdjustChannels.build(service, tcsTop, "collAdjust")
-      nodS  <- service.getChannel[String](tcsTop.value, "sad:nodState.VAL")
-      p1gs  <- buildProbeTrackingStateChannels(service, tcsTop, "Pwfs1")
-      p2gs  <- buildProbeTrackingStateChannels(service, tcsTop, "Pwfs2")
-      oigs  <- buildProbeTrackingStateChannels(service, tcsTop, "Oiwfs")
-      inpo  <- service.getChannel[String](tcsTop.value, "sad:inPosition.VAL")
-      agip  <- service.getChannel[Double](tcsTop.value, "agInPosCalc.VAL")
-      tf    <- TargetFilterChannels.build(service, tcsTop)
-      satr  <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetA.VAL")
-      p1tr  <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetPwfs1.VAL")
-      p2tr  <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetPwfs2.VAL")
-      oitr  <- service.getChannel[Array[Double]](tcsTop.value, "sad:targetOiwfs.VAL")
-      padj  <- PointingCorrections.build(service, tcsTop)
-      pncf  <- PointingConfigChannels.build(service, tcsTop)
-      abgd  <- service.getChannel[CadDirective](tcsTop.value, "absorbGuide.DIR")
-      zgud  <- service.getChannel[CadDirective](tcsTop.value, "zeroGuide.DIR")
-      ioffA <- FocalPlaneOffsetCommandChannels.build(service, tcsTop, "offsetPoA1")
-      ioffB <- FocalPlaneOffsetCommandChannels.build(service, tcsTop, "offsetPoB1")
-      azwr  <- service.getChannel[String](tcsTop.value, "azwrap.A")
-      rtwr  <- service.getChannel[String](tcsTop.value, "rotwrap.A")
-      p1uw  <- service.getChannel[CadDirective](tcsTop.value, "pwfs1Unwrap.DIR")
-      p2uw  <- service.getChannel[CadDirective](tcsTop.value, "pwfs2Unwrap.DIR")
-      zrg   <- service.getChannel[CadDirective](tcsTop.value, "zeroRotGuide.DIR")
-      p1mc  <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs1")
-      p2mc  <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs2")
-      chcf  <- ChopConfigChannels.build(service, tcsTop)
-      chrl  <- ChopRelativeChannels.build(service, tcsTop)
-      dmaz  <- service.getChannel[Double](tcsTop.value, "demandAz.VAL")
-      dmrot <- service.getChannel[Double](tcsTop.value, "demandRma.VAL")
-      encst <- EnclosureStateChannels.build(service, tcsTop)
-      iaa   <- service.getChannel[Double](tcsTop.value, "sad:instrAA.VAL")
-      ioax  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALA")
-      ioay  <- service.getChannel[Double](tcsTop.value, "offsetPoA1.VALB")
-      swa   <- service.getChannel[Double](tcsTop.value, "sad:sourceAWavelength.VAL")
-      pid   <- service.getChannel[String](tcsTop.value, "sad:programID.VAL")
-      uao   <- service.getChannel[String](tcsTop.value, "configureForAO.A")
-      aofl  <- service.getChannel[String](tcsTop.value, "aoMoveAStar.A")
-      aoflp <- service.getChannel[String](tcsTop.value, "aoPrepareCm.F")
-      aofo  <- service.getChannel[String](tcsTop.value, "aoFollow.A")
-      aopk  <- service.getChannel[String](tcsTop.value, "aoPark.A")
-    } yield TcsChannels[F](
-      tt,
-      tpd,
-      mf,
-      rsb,
-      rpd,
-      rf,
-      rma,
-      ecs,
-      sra,
-      p1t,
-      p2t,
-      oit,
-      wva,
-      wvb,
-      wvp1,
-      wvp2,
-      wvoi,
-      slw,
-      rot,
-      org,
-      foc,
-      focB,
-      p1g,
-      p1p,
-      p2g,
-      p2p,
-      oig,
-      op,
-      m1g,
-      m1gc,
-      m2g,
-      m2gm,
-      m2gc,
-      m2gr,
-      m2f,
-      mng,
-      p1,
-      p2,
-      oi,
-      gd,
-      gm,
-      os,
-      bf,
-      hrm,
-      sfm,
-      aom,
-      m1,
-      nodS,
-      p1gs,
-      p2gs,
-      oigs,
-      trad,
-      trab,
-      trcl,
-      orad,
-      orab,
-      orcl,
-      pmad,
-      inpo,
-      agip,
-      tf,
-      satr,
-      p1tr,
-      p2tr,
-      oitr,
-      padj,
-      pncf,
-      abgd,
-      zgud,
-      ioffA,
-      ioffB,
-      azwr,
-      rtwr,
-      zrg,
-      p1mc,
-      p2mc,
-      chcf,
-      chrl,
-      p1uw,
-      p2uw,
-      demandAzimuth = dmaz,
-      demandRotator = dmrot,
-      enclosureState = encst,
-      instrAA = iaa,
-      focalPlaneOffsetAX = ioax,
-      focalPlaneOffsetAY = ioay,
-      sourceAWavelength = swa,
-      programId = pid,
-      useAo = uao,
-      aoFieldLens = aofl,
-      aoFieldLensPrepare = aoflp,
-      aoFollow = aofo,
-      aoPark = aopk
-    )
+      tt         <- telltaleChannel(tcsTop.value, "sad:health.VAL")
+      mount      <- MountChannels.build(service, tcsTop)
+      targets    <- TargetsChannels.build(service, tcsTop)
+      probes     <- GuideProbesChannels.build(service, tcsTop)
+      guiding    <- GuidingChannels.build(service, tcsTop)
+      offsets    <- OffsetsChannels.build(service, tcsTop)
+      mechanisms <- MechanismsChannels.build(service, tcsTop, m1Top)
+      ao         <- AoChannels.build(service, tcsTop)
+    } yield TcsChannels[F](tt, mount, targets, probes, guiding, offsets, mechanisms, ao)
   }
 }

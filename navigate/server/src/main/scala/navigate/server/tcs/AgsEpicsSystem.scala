@@ -81,46 +81,40 @@ object AgsEpicsSystem {
       override val status: AgsStatus[F] = new AgsStatus[F] {
 
         override def inPosition: VerifiedEpics[F, F, Boolean] =
-          VerifiedEpics.readChannel(channels.telltale, channels.inPosition).map(_.map(a => a =!= 0))
+          VerifiedEpics.readChannel(channels.telltale, channels.inPosition).map(a => a =!= 0)
 
         override def sfParked: VerifiedEpics[F, F, ParkStatus] = VerifiedEpics
           .readChannel(channels.telltale, channels.sfParked)
-          .map(_.map(a => (a =!= 0).fold(Parked, NotParked)))
+          .map(a => (a =!= 0).fold(Parked, NotParked))
 
         override def aoParked: VerifiedEpics[F, F, ParkStatus] = VerifiedEpics
           .readChannel(channels.telltale, channels.aoParked)
-          .map(_.map(a => (a =!= 0).fold(Parked, NotParked)))
+          .map(a => (a =!= 0).fold(Parked, NotParked))
 
         override def hwParked: VerifiedEpics[F, F, ParkStatus] = VerifiedEpics
           .readChannel(channels.telltale, channels.hwParked)
-          .map(_.map(a => (a =!= 0).fold(Parked, NotParked)))
+          .map(a => (a =!= 0).fold(Parked, NotParked))
 
         override def p1Parked: VerifiedEpics[F, F, ParkStatus] = VerifiedEpics
           .readChannel(channels.telltale, channels.p1Parked)
-          .map(_.map(a => (a =!= 0).fold(Parked, NotParked)))
+          .map(a => (a =!= 0).fold(Parked, NotParked))
 
         override def p1Follow: VerifiedEpics[F, F, FollowStatus] =
-          VerifiedEpics.readChannel(channels.telltale, channels.p1Follow).map {
-            _.map(decodeFollow)
-          }
+          VerifiedEpics.readChannel(channels.telltale, channels.p1Follow).map(decodeFollow)
 
         override def p2Parked: VerifiedEpics[F, F, ParkStatus] = VerifiedEpics
           .readChannel(channels.telltale, channels.p2Parked)
-          .map(_.map(a => (a =!= 0).fold(Parked, NotParked)))
+          .map(a => (a =!= 0).fold(Parked, NotParked))
 
         override def p2Follow: VerifiedEpics[F, F, FollowStatus] =
-          VerifiedEpics.readChannel(channels.telltale, channels.p2Follow).map {
-            _.map(decodeFollow)
-          }
+          VerifiedEpics.readChannel(channels.telltale, channels.p2Follow).map(decodeFollow)
 
         override def oiParked: VerifiedEpics[F, F, ParkStatus] = VerifiedEpics
           .readChannel(channels.telltale, channels.oiParked)
-          .map(_.map(a => (a =!= 0).fold(Parked, NotParked)))
+          .map(a => (a =!= 0).fold(Parked, NotParked))
 
         override def oiFollow: VerifiedEpics[F, F, FollowStatus] =
-          VerifiedEpics.readChannel(channels.telltale, channels.oiFollow).map {
-            _.map(decodeFollow)
-          }
+          VerifiedEpics.readChannel(channels.telltale, channels.oiFollow).map(decodeFollow)
 
         private def decodeFollow(str: String): FollowStatus = str.toUpperCase.trim match {
           case "ON" => Following
@@ -170,24 +164,22 @@ object AgsEpicsSystem {
         override def aoName: VerifiedEpics[F, F, AgMechPosition] =
           VerifiedEpics
             .readChannel(channels.telltale, channels.aoName)
-            .map(_.map(Enumerated[AgMechPosition].fromTag(_).getOrElse(AgMechPosition.Unknown)))
+            .map(Enumerated[AgMechPosition].fromTag(_).getOrElse(AgMechPosition.Unknown))
 
         // Workaround for position readout at GN. When the pickoff mirror is parked, position is Unknown, and when it is
         // sent to OUT position, readout is "park-pos."
         override def hwName: VerifiedEpics[F, F, AgMechPosition] =
           VerifiedEpics
             .readChannel(channels.telltale, channels.hwName)
-            .map(
-              _.map(pos =>
-                if (site === Site.GS)
-                  Enumerated[AgMechPosition].fromTag(pos).getOrElse(AgMechPosition.Unknown)
-                else if (pos === "park-pos.") AgMechPosition.Out
-                else Enumerated[AgMechPosition].fromTag(pos).getOrElse(AgMechPosition.Unknown)
-              )
+            .map(pos =>
+              if (site === Site.GS)
+                Enumerated[AgMechPosition].fromTag(pos).getOrElse(AgMechPosition.Unknown)
+              else if (pos === "park-pos.") AgMechPosition.Out
+              else Enumerated[AgMechPosition].fromTag(pos).getOrElse(AgMechPosition.Unknown)
             )
 
         override def sfName: VerifiedEpics[F, F, ScienceFold] =
-          VerifiedEpics.readChannel(channels.telltale, channels.sfName).map(_.map(_.decode))
+          VerifiedEpics.readChannel(channels.telltale, channels.sfName).map(_.decode)
 
         private def oiInstrumentDecode(v: String): Option[Instrument] = v match {
           case "GMOS"  =>
@@ -201,19 +193,15 @@ object AgsEpicsSystem {
         override def oiwfsName: VerifiedEpics[F, F, Option[Instrument]] =
           VerifiedEpics
             .readChannel(channels.telltale, channels.oiwfsName)
-            .map(
-              _.map(oiInstrumentDecode)
-            )
+            .map(oiInstrumentDecode)
 
         override def oiwfsNameStream
           : VerifiedEpics[F, Resource[F, *], Stream[F, Option[Instrument]]] = VerifiedEpics
           .eventStream(channels.telltale, channels.oiwfsName)
           .map(
-            _.map(
-              _.collect { case StreamEvent.ValueChanged(t) =>
-                oiInstrumentDecode(t)
-              }
-            )
+            _.collect { case StreamEvent.ValueChanged(t) =>
+              oiInstrumentDecode(t)
+            }
           )
 
         override def pwfs1Angles: PwfsAngles[F] =
@@ -242,9 +230,9 @@ object AgsEpicsSystem {
       new PwfsAngles[F] {
         override val tableAngle: VerifiedEpics[F, F, Angle] = VerifiedEpics
           .readChannel[F, Double](tt, chs.tableAngle)
-          .map(_.map(Angle.fromDoubleDegrees))
+          .map(Angle.fromDoubleDegrees)
         override val armAngle: VerifiedEpics[F, F, Angle]   =
-          VerifiedEpics.readChannel[F, Double](tt, chs.armAngle).map(_.map(Angle.fromDoubleDegrees))
+          VerifiedEpics.readChannel[F, Double](tt, chs.armAngle).map(Angle.fromDoubleDegrees)
       }
   }
 
@@ -260,10 +248,10 @@ object AgsEpicsSystem {
     ): PwfsMechs[F] = new PwfsMechs {
       override val colFilter: VerifiedEpics[F, F, Option[PwfsFilter]]    = VerifiedEpics
         .readChannel[F, String](tt, chs.colFilter)
-        .map(_.map(_.decode))
+        .map(_.decode)
       override val fieldStop: VerifiedEpics[F, F, Option[PwfsFieldStop]] = VerifiedEpics
         .readChannel[F, String](tt, chs.fieldStop)
-        .map(_.map(_.decode))
+        .map(_.decode)
     }
   }
 

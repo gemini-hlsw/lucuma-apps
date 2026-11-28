@@ -24,10 +24,8 @@ object CrcsEpicsSystem {
         VerifiedEpics
           .readChannel(channels.telltale, channels.follow)
           .map {
-            _.map {
-              case "ON" => Following
-              case _    => NotFollowing
-            }
+            case "ON" => Following
+            case _    => NotFollowing
           }
     }
 
