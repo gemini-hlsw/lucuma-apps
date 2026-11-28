@@ -417,3 +417,74 @@ See https://github.com/highcharts/highcharts/issues/13320 */
     }
   }
 }
+
+.explore-scorpio-block-timeline {
+  --scorpio-block-readout: var(--gray-400);
+  --scorpio-block-write: var(--gray-600);
+
+  border-bottom: 1px solid var(--site-border-color);
+
+  &:has(+ :empty) {
+    border-bottom: none;
+  }
+
+  $channels: (
+    g: var(--scorpio-channel-g),
+    r: var(--scorpio-channel-r),
+    i: var(--scorpio-channel-i),
+    z: var(--scorpio-channel-z),
+  );
+
+  @each $channel, $color in $channels {
+    .highcharts-point.scorpio-block-#{$channel} {
+      fill: $color;
+      stroke: $color;
+    }
+  }
+
+  .highcharts-point.scorpio-block-readout {
+    fill: var(--scorpio-block-readout);
+    stroke: var(--scorpio-block-readout);
+  }
+
+  .highcharts-point.scorpio-block-write {
+    fill: var(--scorpio-block-write);
+    stroke: var(--scorpio-block-write);
+  }
+
+  .highcharts-point {
+    stroke-width: 0;
+  }
+
+  .explore-scorpio-block-timeline-caption {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1em;
+    align-items: center;
+    padding: 0.2em 0.5em;
+    font-size: smaller;
+    background-color: var(--plot-background-color);
+    color: var(--plot-text-color);
+  }
+
+  .explore-scorpio-block-timeline-note {
+    opacity: 0.7;
+  }
+
+  .explore-scorpio-block-timeline-readout::before,
+  .explore-scorpio-block-timeline-write::before {
+    content: '';
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 0.3em;
+  }
+
+  .explore-scorpio-block-timeline-readout::before {
+    background-color: var(--scorpio-block-readout);
+  }
+
+  .explore-scorpio-block-timeline-write::before {
+    background-color: var(--scorpio-block-write);
+  }
+}
