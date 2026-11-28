@@ -595,10 +595,14 @@ final case class Observation(
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =
     scienceTargets(allTargets).exists(Target.opportunity.getOption(_).isDefined)
 
+  // Designated by the user to run without a guide star.
+  def isUnguided: Boolean =
+    explicitGuideProbe.exists(_.isUnguided)
+
   def needsAGS(allTargets: TargetList): Boolean =
     // revert logic, question should we run ags for asterisms with a combination
     // of sidereal and ToOs?
-    calibrationRole.forall(_.needsAGS) && !hasTargetOfOpportunity(allTargets)
+    calibrationRole.forall(_.needsAGS) && !hasTargetOfOpportunity(allTargets) && !isUnguided
 
 object Observation:
   type Id = lucuma.core.model.Observation.Id

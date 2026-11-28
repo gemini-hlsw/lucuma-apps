@@ -2120,23 +2120,23 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           .pure[F]
       case HandsetAdjustment.ProbeFrameAdjustment(probeRefFrame, deltaX, deltaY, alignAngle) =>
         probeRefFrame match {
-          case GuideProbe.PWFS1           =>
+          case GuideProbe.PWFS1                             =>
             wfsRefAdjustParams(sys.ags.status.pwfs1Angles, rectToPolar(-deltaX, -deltaY))
-          case GuideProbe.PWFS2           =>
+          case GuideProbe.PWFS2                             =>
             wfsRefAdjustParams(sys.ags.status.pwfs2Angles, rectToPolar(deltaX, deltaY))
-          case GuideProbe.GmosOIWFS       =>
+          case GuideProbe.GmosOIWFS                         =>
             val pol = rectToPolar(deltaY, deltaX)
             (ReferenceFrame.XY,
              Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
              pol._2 + alignAngle.getOrElse(Angle.Angle0)
             ).pure[F]
-          case GuideProbe.Flamingos2OIWFS =>
+          case GuideProbe.Flamingos2OIWFS                   =>
             val pol = rectToPolar(deltaY, deltaX)
             (ReferenceFrame.XY,
              Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
              pol._2 + alignAngle.getOrElse(Angle.Angle0)
             ).pure[F]
-          case GuideProbe.AltairAOWFS     =>
+          case GuideProbe.AltairAOWFS | GuideProbe.Unguided =>
             ???
         }
     }

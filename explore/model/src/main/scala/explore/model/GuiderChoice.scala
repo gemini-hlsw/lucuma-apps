@@ -29,12 +29,15 @@ object GuiderChoice:
     case Probe(probe = probe) => Display[GuideProbe].shortName(probe)
     case Altair(mode = mode)  => altairModeLabel(mode)
 
-  // The probes the mode allows without Altair, best-first, then the Altair modes if supported.
+  // The probes the mode allows without Altair, best-first, then the Altair modes if supported,
+  // then Unguided, which no mode offers as a probe but any mode that guides may choose.
   def options(mode: ObservingModeType): List[GuiderChoice] =
-    val probeChoices: List[GuiderChoice]  = probes.allowedProbes(mode, none).toList.map(Probe(_))
-    val altairChoices: List[GuiderChoice] =
+    val probeChoices: List[GuiderChoice]   = probes.allowedProbes(mode, none).toList.map(Probe(_))
+    val altairChoices: List[GuiderChoice]  =
       if mode.supportsAltair then Enumerated[AltairMode].all.map(Altair(_)) else List.empty
-    probeChoices ++ altairChoices
+    val unguidedChoice: List[GuiderChoice] =
+      List(Probe(GuideProbe.Unguided)).filter(_ => probes.isProbeAllowed(mode, GuideProbe.Unguided))
+    probeChoices ++ altairChoices ++ unguidedChoice
 
   def current(guiding: GuidingConfiguration): Option[GuiderChoice] =
     guiding.altair
