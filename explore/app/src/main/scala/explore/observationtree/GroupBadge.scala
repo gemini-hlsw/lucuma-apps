@@ -11,6 +11,7 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.Group
 import explore.model.enums.GroupWarning
+import explore.utils.testId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.*
@@ -26,6 +27,7 @@ case class GroupBadge(
   onClickCB: ReactMouseEvent => Callback,
   href:      String,
   deleteCB:  Callback,
+  cloneCB:   Option[Callback] = none,
   isEmpty:   Boolean,
   readonly:  Boolean
 ) extends ReactFnProps(GroupBadge.component):
@@ -62,6 +64,15 @@ object GroupBadge:
         // Completely hidden when disabled
         .unless(props.isDisabled)
 
+    val duplicateButton: TagMod =
+      Button(
+        text = true,
+        clazz = ExploreStyles.ObsCloneButton,
+        icon = Icons.Clone,
+        tooltip = "Duplicate",
+        onClickE = e => e.preventDefaultCB *> e.stopPropagationCB *> props.cloneCB.getOrEmpty
+      ).withMods(testId := "explore-group-badge-duplicate").small.unless(props.isDisabled)
+
     <.a(
       ExploreStyles.ObsTreeGroupLeaf |+| ExploreStyles.SelectedGroupItem.when_(props.selected),
       ^.title     := group.id.show,
@@ -78,6 +89,7 @@ object GroupBadge:
       <.div(
         ExploreStyles.GroupBadgeRight,
         warningIcon,
+        props.cloneCB.whenDefined(using _ => duplicateButton),
         deleteButton,
         NonEmptyString
           .from(s"groups/system-$name.md")

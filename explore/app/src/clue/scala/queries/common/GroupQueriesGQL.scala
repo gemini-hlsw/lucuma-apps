@@ -50,3 +50,19 @@ object GroupQueriesGQL:
           group $GroupSubQuery
         }
       }"""
+
+  @GraphQL
+  trait CloneGroupMutation extends GraphQLOperation[ObservationDB]:
+    // The contents come under an alias because the same field can't be selected twice in a typed way
+    val document = gql"""
+      mutation($$input: CloneGroupInput!) {
+        cloneGroup(input: $$input) {
+          newGroup $GroupSubQuery
+          contents:newGroup {
+            allElements {
+              group $GroupSubQuery
+              observation $ObservationSubquery
+            }
+          }
+        }
+      }"""

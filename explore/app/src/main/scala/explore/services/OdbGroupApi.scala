@@ -6,6 +6,8 @@ package explore.services
 import cats.effect.Resource
 import eu.timepit.refined.types.numeric.NonNegShort
 import explore.model.Group
+import explore.model.GroupClone
+import lucuma.core.enums.CloneSequenceMode
 import lucuma.core.model.Program
 import lucuma.schemas.ObservationDB.Types.*
 import queries.common.ProgramQueriesGQL.GroupEditSubscription
@@ -26,12 +28,19 @@ trait OdbGroupApi[F[_]]:
     parentGroup:      Option[Group.Id],
     parentGroupIndex: NonNegShort
   ): F[Unit]
-  def updateGroup(groupId:        Group.Id, set:        GroupPropertiesInput): F[Unit]
-  def createGroup(programId:      Program.Id, parentId: Option[Group.Id]): F[Group]
-  def deleteGroup(groupId:        Group.Id): F[Unit]
-  def undeleteGroup(groupId:      Group.Id): F[Unit]
-  def groupTimeRange(groupId:     Group.Id): F[Option[GroupTimeRangeQuery.Data.Group]]
-  def allProgramGroups(programId: Program.Id): F[List[Group]]
+  def updateGroup(groupId:               Group.Id, set:        GroupPropertiesInput): F[Unit]
+  def createGroup(programId:             Program.Id, parentId: Option[Group.Id]): F[Group]
+  def deleteGroup(groupId:               Group.Id): F[Unit]
+  def undeleteGroup(groupId:             Group.Id): F[Unit]
+  def cloneGroup(
+    groupId:      Group.Id,
+    atIndex:      NonNegShort,
+    sequenceCopy: CloneSequenceMode
+  ): F[GroupClone]
+  def deleteGroupWithContents(groupId:   Group.Id): F[Unit]
+  def undeleteGroupWithContents(groupId: Group.Id): F[Unit]
+  def groupTimeRange(groupId:            Group.Id): F[Option[GroupTimeRangeQuery.Data.Group]]
+  def allProgramGroups(programId:        Program.Id): F[List[Group]]
   def programGroupsDeltaEdits(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, GroupEditSubscription.Data.GroupEdit]]

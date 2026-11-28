@@ -10,6 +10,7 @@ import crystal.react.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Group
+import explore.model.GroupClone
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
@@ -24,6 +25,7 @@ import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.TooActivation
 import lucuma.core.model.Program
 import lucuma.core.model.TelluricType
+import lucuma.core.syntax.display.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
@@ -209,6 +211,50 @@ object ObsActions:
         } { _ =>
           odbApi.undeleteGroup(groupId) >> setGroup(groupId).toAsync
         }
+    )
+
+  /** What an undo stack entry of `cloneGroup` holds. */
+  enum GroupCloneEdit:
+    /** The first edit: adds the copy. */
+    case Insert(copy: GroupClone)
+
+    /** Undo and redo: removes the copy when present, otherwise puts `snapshot` back. */
+    case Toggle(snapshot: Option[GroupClone])
+
+  // ODB updates can add the copy first, so undo and redo go by the model, not the recorded value.
+  def cloneGroup(
+    groupId:      Group.Id,
+    atIndex:      NonNegShort,
+    sequenceCopy: CloneSequenceMode,
+    focusGroup:   Group.Id => Callback = _ => Callback.empty,
+    postMessage:  String => IO[Unit] = _ => IO.unit
+  )(using
+    odbApi:       OdbGroupApi[IO]
+  ): AsyncAction[ObservationsAndGroups, GroupClone.Ids, GroupCloneEdit] =
+    AsyncAction(
+      asyncGet = odbApi
+        .cloneGroup(groupId, atIndex, sequenceCopy)
+        .map(clone => (clone.ids, GroupCloneEdit.Insert(clone))),
+      getter = (ids: GroupClone.Ids) =>
+        (oag: ObservationsAndGroups) => GroupCloneEdit.Toggle(oag.cloneWithIds(ids)),
+      setter = (ids: GroupClone.Ids) =>
+        (edit: GroupCloneEdit) =>
+          (oag: ObservationsAndGroups) =>
+            edit match
+              case GroupCloneEdit.Insert(copy)     => oag.addClone(copy)
+              case GroupCloneEdit.Toggle(snapshot) =>
+                if oag.groups.contains(ids.root) then oag.removeClone(ids)
+                else snapshot.fold(oag)(oag.addClone),
+      onSet = ids => (_, _) => focusGroup(ids.root).toAsync,
+      onRestore = ids =>
+        (oag, _) =>
+          if oag.groups.contains(ids.root) then
+            odbApi.deleteGroupWithContents(ids.root) >>
+              postMessage(s"Deleted group ${ids.root.shortName} and its contents")
+          else
+            odbApi.undeleteGroupWithContents(ids.root) >>
+              postMessage(s"Restored group ${ids.root.shortName} and its contents") >>
+              focusGroup(ids.root).toAsync
     )
 
   private def singleObsGetter(obsId: Observation.Id): ObservationList => Option[Observation] =
